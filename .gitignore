@@ -1,0 +1,11 @@
+.DS_Store
+build_log.txt
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+output.map
+.vscode/
+.cache
+compile_commands.json
+*.o
+*.d

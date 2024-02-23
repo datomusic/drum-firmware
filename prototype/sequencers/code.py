@@ -6,94 +6,53 @@ from adafruit_midi.midi_continue import Continue
 
 from drum import Drum
 from tempo import Tempo
-
-# from adafruit_midi.control_change import ControlChange
+from note_output import NoteOutput
 from adafruit_midi.note_off import NoteOff
 
-# from adafruit_midi.pitch_bend import PitchBend
+
+def setup_tracks(tracks):
+    tracks[0].note = 60
+    tracks[1].note = 64
+    tracks[2].note = 68
+    tracks[3].note = 72
+
+    tracks[0].sequencer.set_step(0)
+    tracks[0].sequencer.set_step(4)
+    tracks[1].sequencer.set_step(3)
+    tracks[1].sequencer.set_step(5)
+    tracks[2].sequencer.set_step(7)
+    tracks[3].sequencer.set_step(6)
 
 
-quarters = 0
-count = 0
-midi_ticks = 0
-drum = Drum()
+def main():
+    (midi_in, midi_out) = usb_midi.ports
+    midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
+    drum = Drum()
+    setup_tracks(drum.tracks)
+    tempo = Tempo(12)
 
-drum.tracks[0].note = 60
-drum.tracks[1].note = 64
-drum.tracks[2].note = 68
-drum.tracks[3].note = 72
+    note_out = NoteOutput(
+        lambda note, vel: midi.send(NoteOn(note, vel)),
+        lambda note: midi.send(NoteOff(note)),
+    )
 
-drum.tracks[0].sequencer.set_step(0)
-drum.tracks[0].sequencer.set_step(4)
-drum.tracks[1].sequencer.set_step(3)
-drum.tracks[1].sequencer.set_step(5)
-drum.tracks[2].sequencer.set_step(7)
-drum.tracks[3].sequencer.set_step(6)
+    def tick_drum():
+        def play_note(note, vel):
+            note_out.play(note, vel)
 
-
-(midi_in, midi_out) = usb_midi.ports
-midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
-
-
-class NoteOutput:
-    def __init__(self):
-        self.ticks = 0
-        self.note = 0
-        self.active = False
-
-    def play(self, note, vel):
-        if self.active:
-            midi.send(NoteOff(note))
-
-        self.ticks = 0
-        print("NoteOn")
-        midi.send(NoteOn(note, vel))
-        self.note = note
-        self.active = True
-
-    def tick(self):
-        if self.active:
-            self.ticks += 1
-            if self.ticks >= 5:
-                self.ticks = 0
-                print("NoteOff")
-                midi.send(NoteOff(self.note, 0))
-                self.active = False
-
-
-out = NoteOutput()
-
-
-def play_note(note, vel):
-    print(f"Note: {note}, vel: {vel}")
-    out.play(note, vel)
-
-
-def quarter_tick():
-    global quarters
-    global count
-    quarters += 1
-    if quarters >= 2:
-        quarters = 0
-        count += 1
         drum.tick(play_note)
 
+    while True:
+        msg = midi.receive()
 
-tempo = Tempo()
+        if msg is not None:
+            if type(msg) is TimingClock:
+                tempo.tick(tick_drum)
+                note_out.tick()
+
+            elif type(msg) is Continue:
+                tempo.reset()
+                tick_drum()
 
 
-while True:
-    msg = midi.receive()
-
-    if msg is not None:
-        if type(msg) is TimingClock:
-            tempo.tick()
-            midi_ticks += 1
-            out.tick()
-            if midi_ticks >= 6:
-                midi_ticks = 0
-                quarter_tick()
-        elif type(msg) is Continue:
-            print("Reset")
-            midi_ticks = 0
-            quarters = 0
+main()

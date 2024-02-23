@@ -3,16 +3,19 @@ from sequencer import Sequencer
 SEQ_COUNT = 4
 
 
+class Track:
+    def __init__(self):
+        self.sequencer = Sequencer()
+        self.note = 0
+
+
 class Drum:
     def __init__(self):
-        self.sequencers = [Sequencer() for _ in range(SEQ_COUNT)]
+        self.tracks = [Track() for _ in range(SEQ_COUNT)]
 
-    def tick(self, play_note):
-        seq_ind = 0
+    def tick(self, play_note_callback):
+        def on_seq_note(vel):
+            play_note_callback(track_ind, track.note, vel)
 
-        def on_seq_note(note, vel):
-            play_note(seq_ind, note, vel)
-
-        for ind, seq in enumerate(self.sequencers):
-            seq_ind = ind
-            seq.tick(on_seq_note)
+        for track_ind, track in enumerate(self.tracks):
+            track.sequencer.tick(on_seq_note)

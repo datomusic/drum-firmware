@@ -15,7 +15,7 @@ class Drum:
 
     def tick(self, play_note_callback):
         def on_seq_note(vel):
-            play_note_callback(track_ind, track.note, vel)
+            play_note_callback(track.note, vel)
 
-        for track_ind, track in enumerate(self.tracks):
+        for track in self.tracks:
             track.sequencer.tick(on_seq_note)

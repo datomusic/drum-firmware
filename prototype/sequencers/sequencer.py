@@ -16,7 +16,7 @@ class Sequencer:
         play_step(self.steps[self.cur_step_index], play_step_callback)
         self.cur_step_index = (self.cur_step_index + 1) % STEP_COUNT
 
-    def set_step(self, index, velocity):
+    def set_step(self, index, velocity = 127):
         step = self.steps[index]
         if velocity > 0:
             step.velocity = velocity

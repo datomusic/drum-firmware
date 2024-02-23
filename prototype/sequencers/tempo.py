@@ -1,3 +1,2 @@
-class Tempo:
-    def __init__(self):
-        pass
+def Tempo(on_tick):
+    pass

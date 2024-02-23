@@ -1,11 +1,18 @@
 from sequencer import Sequencer
-from tempo import Tempo
+
+SEQ_COUNT = 4
 
 
 class Drum:
     def __init__(self):
-        self.seqs = [Sequencer() for i in range(4)]
-        self.tempo = Tempo()
+        self.sequencers = [Sequencer() for _ in range(SEQ_COUNT)]
 
-    def run(self):
-        pass
+    def tick(self, play_note):
+        seq_ind = 0
+
+        def on_seq_note(note, vel):
+            play_note(seq_ind, note, vel)
+
+        for ind, seq in enumerate(self.sequencers):
+            seq_ind = ind
+            seq.tick(on_seq_note)

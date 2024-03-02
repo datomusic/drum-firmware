@@ -1,11 +1,11 @@
-import usb_midi
-import adafruit_midi
-from adafruit_midi.note_on import NoteOn
-
-from drum import Drum
-from tempo import MidiTempo
-from note_output import NoteOutput
 from adafruit_midi.note_off import NoteOff
+from note_output import NoteOutput
+from tempo import MidiTempo
+from drum import Drum
+from adafruit_midi.note_on import NoteOn
+import adafruit_midi
+import usb_midi
+import brains2
 
 
 def setup_tracks(tracks):
@@ -33,6 +33,7 @@ def main():
         lambda note, vel: midi.send(NoteOn(note, vel)),
         lambda note: midi.send(NoteOff(note)),
     )
+    keys = brains2.Keys()
 
     def on_tick():
         drum.tick(note_out.play)
@@ -41,6 +42,10 @@ def main():
     while True:
         msg = midi.receive()
         tempo.handle_message(msg, on_tick)
+
+        event = keys.events.get()
+        if event:
+            print(event, buttons[event.key_number])
 
 
 main()

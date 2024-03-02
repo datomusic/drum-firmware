@@ -11,6 +11,7 @@ class Tempo:
         if self.ticks % self.ticks_per_beat == 0:
             self.ticks = 0
             on_beat()
+
         self.ticks += 1
 
     def reset(self):

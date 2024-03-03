@@ -9,12 +9,14 @@ from brains2.drum_controls import DrumControls
 
 USE_INTERNAL_TEMPO = True
 
+ROOT_NOTE = 40
+
 
 def setup_tracks(tracks):
-    tracks[0].note = 60
-    tracks[1].note = 64
-    tracks[2].note = 68
-    tracks[3].note = 72
+    tracks[0].note = 0
+    tracks[1].note = 1
+    tracks[2].note = 2
+    tracks[3].note = 3
 
     tracks[0].sequencer.set_step(0)
     tracks[0].sequencer.set_step(4)
@@ -29,6 +31,7 @@ def main() -> None:
     (midi_in, midi_out) = usb_midi.ports
     midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
     drum = Drum()
+    setup_tracks(drum.tracks)
 
     tempo: InternalTempo | MidiTempo
     if USE_INTERNAL_TEMPO:
@@ -37,11 +40,9 @@ def main() -> None:
         tempo = MidiTempo()
 
     note_out = NoteOutput(
-        lambda note, vel: midi.send(NoteOn(note, vel)),
-        lambda note: midi.send(NoteOff(note)),
+        lambda note, vel: midi.send(NoteOn(ROOT_NOTE + note, vel)),
+        lambda note: midi.send(NoteOff(ROOT_NOTE + note)),
     )
-
-    setup_tracks(drum.tracks)
 
     def on_tick():
         drum.tick(note_out.play)
@@ -51,6 +52,7 @@ def main() -> None:
         if isinstance(tempo, InternalTempo):
             if tempo.update():
                 on_tick()
+
         elif isinstance(tempo, MidiTempo):
             msg = midi.receive()
             tempo.handle_message(msg, on_tick)

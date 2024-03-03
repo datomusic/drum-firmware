@@ -3,7 +3,7 @@ STEP_COUNT = 8
 
 class Step:
     def __init__(self):
-        self.velocity = 0
+        self.velocity = 127
         self.active = False
 
 

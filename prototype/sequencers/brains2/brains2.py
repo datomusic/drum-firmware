@@ -75,7 +75,7 @@ def init_keymatrix():
     return keypad.KeyMatrix(
         row_pins=col_pins,
         column_pins=row_pins,
-        interval=0.1
+        interval=0.05
     )
 
 

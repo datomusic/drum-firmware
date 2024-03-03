@@ -7,9 +7,7 @@ import adafruit_midi
 import usb_midi
 from brains2.drum_controls import DrumControls
 
-USE_INTERNAL_TEMPO = True
-
-ROOT_NOTE = 40
+USE_INTERNAL_TEMPO = False
 
 
 def setup_tracks(tracks):
@@ -39,10 +37,13 @@ def main() -> None:
     else:
         tempo = MidiTempo()
 
-    note_out = NoteOutput(
-        lambda note, vel: midi.send(NoteOn(ROOT_NOTE + note, vel)),
-        lambda note: midi.send(NoteOff(ROOT_NOTE + note)),
-    )
+    def note_on(note, vel):
+        midi.send(NoteOn(1, vel), note)
+
+    def note_off(note):
+        midi.send(NoteOff(1), note),
+
+    note_out = NoteOutput(note_on, note_off)
 
     def on_tick():
         drum.tick(note_out.play)

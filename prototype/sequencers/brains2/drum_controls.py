@@ -20,18 +20,13 @@ class DrumControls:
 
     def handle_input(self, drum: Drum, note_out: NoteOutput):
         event = self.controls.get_key_event()
-        if event:
+        if event and event.pressed:
             key = event.key
-
-            if event.pressed:
-                color = (255, 0, 0)
-                self.display.set_color(key, color)
 
             if isinstance(key, SequencerKey):
                 print(f"Seq, step: {key.step}, pressed: {event.pressed}")
-                if event.pressed:
-                    drum.tracks[self.current_track].sequencer.toggle_step(
-                        key.step)
+                drum.tracks[self.current_track].sequencer.toggle_step(
+                    key.step)
 
             elif isinstance(key, KeyboardKey):
                 track = drum.tracks[self.current_track]

@@ -25,10 +25,10 @@ class MidiTempo:
 
     def handle_message(self, msg, on_tick):
         if type(msg) is TimingClock:
-            self.BeatTicks.tick(on_tick)
+            self.ticks.tick(on_tick)
 
         elif type(msg) is Continue:
-            self.BeatTicks.reset()
+            self.ticks.reset()
             on_tick()
 
 

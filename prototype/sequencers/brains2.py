@@ -1,81 +1,132 @@
 import keypad
 import board
 import neopixel
+from enum import Enum, auto
+from copy import copy
 
-# import digitalio
-# Pull = digitalio.Pull
 
-button_names = (
-    'BTN_SEQ1', 'DUMMY_KEY', 'KEYB_0', 'KEYB_6',
-    'STEP_8', 'SEQ_START', 'BTN_DOWN', 'KEYB_5',
-    'STEP_1', 'STEP_2', 'KEYB_2', 'KEYB_8',
-    'BTN_SEQ2', 'STEP_3', 'KEYB_1', 'KEYB_7',
-    'STEP_7', 'STEP_4', 'KEYB_4', 'BTN_UP',
-    'STEP_6', 'STEP_5', 'KEYB_3', 'KEYB_9'
+class KeyEvent:
+    def __init__(self, pressed=False) -> None:
+        self.pressed: bool = pressed
+
+
+class SequencerKey(KeyEvent):
+    def __init__(self, step) -> None:
+        self.step: int = step
+
+
+class KeyboardKey(KeyEvent):
+    def __init__(self, number) -> None:
+        self.number: int = number
+
+
+class ControlName(Enum):
+    Seq1 = auto()
+    Seq2 = auto()
+    Start = auto()
+    Down = auto()
+    Up = auto()
+
+
+class ControlKey(KeyEvent):
+    def __init__(self, name) -> None:
+        self.name: ControlName = name
+
+
+class PotEvent:
+    def __init__(self, value) -> None:
+        self.value: int = value
+
+
+class Controls:
+    def __init__(self):
+        self.keys = init_keymatrix()
+
+    def get_event(self) \
+            -> SequencerKey | KeyboardKey | ControlKey | PotEvent | None:
+        key_event = self.keys.events.get()
+        if key_event:
+            return translate_key_event(key_event)
+
+        return None
+
+
+def init_keymatrix():
+    row_pins = (
+        board.ROW_1,
+        board.ROW_2,
+        board.ROW_3,
+        board.ROW_4,
+    )
+
+    col_pins = (
+        board.COL_1,
+        board.COL_2,
+        board.COL_3,
+        board.COL_4,
+        board.COL_5,
+        board.COL_6,
+    )
+
+    return keypad.KeyMatrix(
+        row_pins=col_pins,
+        column_pins=row_pins,
+        interval=0.1
+    )
+
+
+KEY_MAPPINGS = (
+    ControlKey("Seq1"),
+    None,
+    KeyboardKey(0),
+    KeyboardKey(6),
+    SequencerKey(8),
+    ControlKey("Start"),
+    ControlKey("Down"),
+    KeyboardKey(5),
+    SequencerKey(1),
+    SequencerKey(2),
+    KeyboardKey(2),
+    KeyboardKey(8),
+    ControlKey("Seq2"),
+    SequencerKey(3),
+    KeyboardKey(1),
+    KeyboardKey(7),
+    SequencerKey(7),
+    SequencerKey(4),
+    KeyboardKey(4),
+    ControlKey("Up"),
+    SequencerKey(6),
+    SequencerKey(5),
+    KeyboardKey(3),
+    KeyboardKey(9),
 )
 
+KEYMAP_LEN = len(KEY_MAPPINGS)
 
-class Keys:
+
+def translate_key_event(event) \
+        -> SequencerKey | KeyboardKey | ControlKey | None:
+    if event.key_number >= 0 and event.key_number < KEYMAP_LEN:
+        key = copy(KEY_MAPPINGS[event.key_number])
+        if key:
+            key.pressed = event.pressed
+            return key
+
+    return None
+
+
+class Display:
     def __init__(self):
-        row_pins = (
-            board.ROW_1,
-            board.ROW_2,
-            board.ROW_3,
-            board.ROW_4,
-        )
-
-        col_pins = (
-            board.COL_1,
-            board.COL_2,
-            board.COL_3,
-            board.COL_4,
-            board.COL_5,
-            board.COL_6,
-        )
-
-        self.keys = keypad.KeyMatrix(
-            row_pins=col_pins,
-            column_pins=row_pins,
-            interval=0.1
-        )
-
-        self.keys.reset()
-
-    def get_event(self):
-
-        event = self.keys.events.get()
-        if event:
-            if event.key_number < len(button_names):
-                return (event.pressed, button_names[event.key_number])
+        self.pixels = init_pixels()
 
 
-num_pixels = 19
-pixels = neopixel.NeoPixel(
-    board.NEOPIXEL, num_pixels, brightness=0.3, auto_write=False)
+def init_pixels():
+    pixel_count = 19
 
-pixels.fill((1, 1, 1))
+    pixels = neopixel.NeoPixel(
+        board.NEOPIXEL, pixel_count, brightness=0.3, auto_write=False
+    )
 
-pixels[2] = (250, 0, 0)
-# cols = [digitalio.DigitalInOut(x) for x in col_pins]
-# rows = [digitalio.DigitalInOut(x) for x in row_pins]
-
-# button_rows = (
-#     ("BTN_SEQ1",  "STEP_8",    "STEP_1",   "BTN_SEQ2", "STEP_7", "STEP_6"),
-#     ("DUMMY_KEY", "SEQ_START", "STEP_2",   "STEP_3",   "STEP_4", "STEP_5"),
-#     ("KEYB_0",    "BTN_DOWN",  "KEYB_2",   "KEYB_1",   "KEYB_4", "KEYB_3"),
-#     ("KEYB_6",    "KEYB_5",    "KEYB_8",   "KEYB_7",   "BTN_UP", "KEYB_9")
-# )
-
-# def scan_keys(on_down):
-#     for row in rows:
-#         row.switch_to_input(pull=Pull.UP)
-
-#     for (col_ind, col) in enumerate(cols):
-#         col.switch_to_output()
-#         col.value = False
-#         time.sleep(0.005)
-
-#         for (row_ind, row) in enumerate(rows):
-#             if not row.value:
-#                 on_down(row_ind, col_ind)
-#         col.switch_to_input(pull=Pull.UP)
+    pixels.fill((1, 1, 1))
+    return pixels

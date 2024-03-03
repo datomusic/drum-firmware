@@ -1,8 +1,6 @@
 import keypad
 import board
 import neopixel
-from enum import Enum, auto
-from copy import copy
 
 
 class KeyEvent:
@@ -20,12 +18,12 @@ class KeyboardKey(KeyEvent):
         self.number: int = number
 
 
-class ControlName(Enum):
-    Seq1 = auto()
-    Seq2 = auto()
-    Start = auto()
-    Down = auto()
-    Up = auto()
+class ControlName:
+    Seq1 = 1
+    Seq2 = 2
+    Start = 3
+    Down = 4
+    Up = 5
 
 
 class ControlKey(KeyEvent):
@@ -75,43 +73,62 @@ def init_keymatrix():
     )
 
 
-KEY_MAPPINGS = (
-    ControlKey("Seq1"),
-    None,
-    KeyboardKey(0),
-    KeyboardKey(6),
-    SequencerKey(8),
-    ControlKey("Start"),
-    ControlKey("Down"),
-    KeyboardKey(5),
-    SequencerKey(1),
-    SequencerKey(2),
-    KeyboardKey(2),
-    KeyboardKey(8),
-    ControlKey("Seq2"),
-    SequencerKey(3),
-    KeyboardKey(1),
-    KeyboardKey(7),
-    SequencerKey(7),
-    SequencerKey(4),
-    KeyboardKey(4),
-    ControlKey("Up"),
-    SequencerKey(6),
-    SequencerKey(5),
-    KeyboardKey(3),
-    KeyboardKey(9),
-)
-
-KEYMAP_LEN = len(KEY_MAPPINGS)
-
-
 def translate_key_event(event) \
         -> SequencerKey | KeyboardKey | ControlKey | None:
-    if event.key_number >= 0 and event.key_number < KEYMAP_LEN:
-        key = copy(KEY_MAPPINGS[event.key_number])
-        if key:
-            key.pressed = event.pressed
-            return key
+    key: SequencerKey | KeyboardKey | ControlKey | None = None
+    n = event.key_number
+
+    if n == 0:
+        key = ControlKey(ControlName.Seq1)
+    # Skip n == 1
+    elif n == 2:
+        key = KeyboardKey(0)
+    elif n == 3:
+        key = KeyboardKey(6)
+    elif n == 4:
+        key = SequencerKey(8)
+    elif n == 5:
+        key = ControlKey(ControlName.Start)
+    elif n == 6:
+        key = ControlKey(ControlName.Down)
+    elif n == 7:
+        key = KeyboardKey(5)
+    elif n == 8:
+        key = SequencerKey(1)
+    elif n == 9:
+        key = SequencerKey(2)
+    elif n == 10:
+        key = KeyboardKey(2)
+    elif n == 11:
+        key = KeyboardKey(8)
+    elif n == 12:
+        key = ControlKey(ControlName.Seq2)
+    elif n == 13:
+        key = SequencerKey(3)
+    elif n == 14:
+        key = KeyboardKey(1)
+    elif n == 15:
+        key = KeyboardKey(7)
+    elif n == 16:
+        key = SequencerKey(7)
+    elif n == 17:
+        key = SequencerKey(4)
+    elif n == 18:
+        key = KeyboardKey(4)
+    elif n == 19:
+        key = ControlKey(ControlName.Up)
+    elif n == 20:
+        key = SequencerKey(6)
+    elif n == 21:
+        key = SequencerKey(5)
+    elif n == 22:
+        key = KeyboardKey(3)
+    elif n == 23:
+        key = KeyboardKey(9)
+
+    if key:
+        key.pressed = event.pressed
+        return key
 
     return None
 

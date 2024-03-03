@@ -1,8 +1,18 @@
 import keypad
 import board
+import neopixel
 
 # import digitalio
 # Pull = digitalio.Pull
+
+button_names = (
+    'BTN_SEQ1', 'DUMMY_KEY', 'KEYB_0', 'KEYB_6',
+    'STEP_8', 'SEQ_START', 'BTN_DOWN', 'KEYB_5',
+    'STEP_1', 'STEP_2', 'KEYB_2', 'KEYB_8',
+    'BTN_SEQ2', 'STEP_3', 'KEYB_1', 'KEYB_7',
+    'STEP_7', 'STEP_4', 'KEYB_4', 'BTN_UP',
+    'STEP_6', 'STEP_5', 'KEYB_3', 'KEYB_9'
+)
 
 
 class Keys:
@@ -23,15 +33,6 @@ class Keys:
             board.COL_6,
         )
 
-        buttons = (
-            'BTN_SEQ1', 'DUMMY_KEY', 'KEYB_0', 'KEYB_6',
-            'STEP_8', 'SEQ_START', 'BTN_DOWN', 'KEYB_5',
-            'STEP_1', 'STEP_2', 'KEYB_2', 'KEYB_8',
-            'BTN_SEQ2', 'STEP_3', 'KEYB_1', 'KEYB_7',
-            'STEP_7', 'STEP_4', 'KEYB_4', 'BTN_UP',
-            'STEP_6', 'STEP_5', 'KEYB_3', 'KEYB_9'
-        )
-
         self.keys = keypad.KeyMatrix(
             row_pins=col_pins,
             column_pins=row_pins,
@@ -41,10 +42,11 @@ class Keys:
         self.keys.reset()
 
     def get_event(self):
-        return keys.events().get()
-        
 
-
+        event = self.keys.events.get()
+        if event:
+            if event.key_number < len(button_names):
+                return (event.pressed, button_names[event.key_number])
 
 
 num_pixels = 19

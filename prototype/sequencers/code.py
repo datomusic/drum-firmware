@@ -23,17 +23,18 @@ def setup_tracks(tracks):
 
 
 def main():
+    keys = brains2.Keys()
     (midi_in, midi_out) = usb_midi.ports
     midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
     drum = Drum()
-    setup_tracks(drum.tracks)
     tempo = MidiTempo()
 
     note_out = NoteOutput(
         lambda note, vel: midi.send(NoteOn(note, vel)),
         lambda note: midi.send(NoteOff(note)),
     )
-    keys = brains2.Keys()
+
+    setup_tracks(drum.tracks)
 
     def on_tick():
         drum.tick(note_out.play)
@@ -43,9 +44,9 @@ def main():
         msg = midi.receive()
         tempo.handle_message(msg, on_tick)
 
-        event = keys.events.get()
+        event = keys.get_event()
         if event:
-            print(event, buttons[event.key_number])
+            print(event)
 
 
 main()

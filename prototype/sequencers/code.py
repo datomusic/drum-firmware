@@ -57,7 +57,7 @@ def main() -> None:
             msg = midi.receive()
             tempo.handle_message(msg, on_tick)
 
-        drum_controls.handle_input(drum)
+        drum_controls.handle_input(drum, note_out)
         drum_controls.show(drum)
 
 

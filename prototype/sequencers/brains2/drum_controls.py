@@ -1,5 +1,6 @@
 from brains2.brains2 import ControlName, SequencerKey, KeyboardKey, ControlKey, Controls, Display
 from drum import Drum
+from note_output import NoteOutput
 
 
 class DrumControls:
@@ -17,7 +18,7 @@ class DrumControls:
 
         self.display.show()
 
-    def handle_input(self, drum: Drum):
+    def handle_input(self, drum: Drum, note_out: NoteOutput):
         event = self.controls.get_key_event()
         if event:
             key = event.key
@@ -42,20 +43,16 @@ class DrumControls:
 
             elif isinstance(key, ControlKey):
                 print(f"Control, name: {key.name}, pressed: {event.pressed}")
-                self.current_track = track_from_key(key)
-
-
-def track_from_key(key: ControlKey) -> int:
-    if key.name == ControlName.Seq1:
-        return 0
-    elif key.name == ControlName.Seq2:
-        return 1
-    elif key.name == ControlName.Down:
-        return 2
-    elif key.name == ControlName.Up:
-        return 3
-    else:
-        return 0
+                if key.name == ControlName.Seq1:
+                    self.current_track = 0
+                elif key.name == ControlName.Seq2:
+                    self.current_track = 1
+                elif key.name == ControlName.Down:
+                    self.current_track = 2
+                elif key.name == ControlName.Up:
+                    self.current_track = 3
+                elif key.name == ControlName.Start:
+                    note_out.play(drum.tracks[self.current_track].note)
 
 
 class Colors:

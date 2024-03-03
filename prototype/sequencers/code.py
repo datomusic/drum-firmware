@@ -8,6 +8,8 @@ import usb_midi
 from brains2.drum_controls import DrumControls
 
 USE_INTERNAL_TEMPO = False
+NOTES_TO_CHANNELS = False # Useful for triggering Volca Drum
+ROOT_NOTE = 40
 
 
 def setup_tracks(tracks):
@@ -38,10 +40,16 @@ def main() -> None:
         tempo = MidiTempo()
 
     def note_on(note, vel):
-        midi.send(NoteOn(1, vel), note)
+        if NOTES_TO_CHANNELS:
+            midi.send(NoteOn(1, vel), note)
+        else:
+            midi.send(NoteOn(ROOT_NOTE + note, vel))
 
     def note_off(note):
-        midi.send(NoteOff(1), note),
+        if NOTES_TO_CHANNELS:
+            midi.send(NoteOff(1), note),
+        else:
+            midi.send(NoteOff(ROOT_NOTE + note))
 
     note_out = NoteOutput(note_on, note_off)
 

@@ -3,17 +3,12 @@ import board
 import neopixel
 
 
-class KeyEvent:
-    def __init__(self, pressed=False) -> None:
-        self.pressed: bool = pressed
-
-
-class SequencerKey(KeyEvent):
+class SequencerKey:
     def __init__(self, step) -> None:
         self.step: int = step
 
 
-class KeyboardKey(KeyEvent):
+class KeyboardKey:
     def __init__(self, number) -> None:
         self.number: int = number
 
@@ -26,9 +21,17 @@ class ControlName:
     Up = 5
 
 
-class ControlKey(KeyEvent):
+class ControlKey:
     def __init__(self, name) -> None:
         self.name: ControlName = name
+
+
+class KeyEvent:
+    def __init__(self,
+                 key: SequencerKey | KeyboardKey | ControlKey,
+                 pressed: bool) -> None:
+        self.pressed = pressed
+        self.key = key
 
 
 class PotEvent:
@@ -73,8 +76,7 @@ def init_keymatrix():
     )
 
 
-def translate_key_event(event) \
-        -> SequencerKey | KeyboardKey | ControlKey | None:
+def translate_key_event(event) -> KeyEvent | None:
     key: SequencerKey | KeyboardKey | ControlKey | None = None
     n = event.key_number
 
@@ -127,8 +129,7 @@ def translate_key_event(event) \
         key = KeyboardKey(9)
 
     if key:
-        key.pressed = event.pressed
-        return key
+        return KeyEvent(key, event.pressed)
 
     return None
 
@@ -137,12 +138,25 @@ class Display:
     def __init__(self):
         self.pixels = init_pixels()
 
+    def set_color(self,
+                  key: KeyboardKey | SequencerKey | ControlKey,
+                  color: None | tuple[int, int, int]) -> None:
+        if not color:
+            color = (0, 0, 0)
+
+        if isinstance(key, SequencerKey):
+            self.pixels[key.step] = color
+        elif isinstance(key, KeyboardKey):
+            self.pixels[key.number + 9] = color
+        elif isinstance(key, ControlKey) and key.name == ControlName.Start:
+            self.pixels[0] = color
+
 
 def init_pixels():
     pixel_count = 19
 
     pixels = neopixel.NeoPixel(
-        board.NEOPIXEL, pixel_count, brightness=0.3, auto_write=False
+        board.NEOPIXEL, pixel_count, brightness=0.3, auto_write=True
     )
 
     pixels.fill((1, 1, 1))

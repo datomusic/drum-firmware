@@ -6,7 +6,7 @@ from adafruit_midi.note_on import NoteOn
 import adafruit_midi
 import usb_midi
 import brains2
-from brains2 import ControlName, SequencerKey, KeyboardKey, ControlKey
+from brains2 import KeyEvent, ControlName, SequencerKey, KeyboardKey, ControlKey
 
 
 def setup_tracks(tracks):
@@ -25,6 +25,7 @@ def setup_tracks(tracks):
 
 def main() -> None:
     keys = brains2.Controls()
+    display = brains2.Display()
     (midi_in, midi_out) = usb_midi.ports
     midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
     drum = Drum()
@@ -46,14 +47,23 @@ def main() -> None:
         tempo.handle_message(msg, on_tick)
 
         event = keys.get_event()
-        if isinstance(event, SequencerKey):
-            print(f"Seq, step: {event.step}, pressed: {event.pressed}")
+        if isinstance(event, KeyEvent):
+            col = None
 
-        elif isinstance(event, KeyboardKey):
-            print(f"Keyboard, number: {event.number}, pressed: {event.pressed}")
+            if event.pressed:
+                col = (255, 0, 0)
 
-        elif isinstance(event, ControlKey):
-            print(f"Control, name: {event.name}, pressed: {event.pressed}")
+            key = event.key
+            display.set_color(key, col)
+            if isinstance(key, SequencerKey):
+                print(f"Seq, step: {key.step}, pressed: {event.pressed}")
+
+            elif isinstance(key, KeyboardKey):
+                print(
+                    f"Keyboard, number: {key.number}, pressed: {event.pressed}")
+
+            elif isinstance(key, ControlKey):
+                print(f"Control, name: {key.name}, pressed: {event.pressed}")
 
 
 main()

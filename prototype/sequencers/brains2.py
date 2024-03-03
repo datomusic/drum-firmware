@@ -1,6 +1,7 @@
 import keypad
 import board
 import neopixel
+import analogio as aio
 
 
 class SequencerKey:
@@ -42,9 +43,11 @@ class PotEvent:
 class Controls:
     def __init__(self):
         self.keys = init_keymatrix()
+        self.pot1 = aio.AnalogIn(board.POT_1)
+        self.pot2 = aio.AnalogIn(board.POT_2)
 
-    def get_event(self) \
-            -> SequencerKey | KeyboardKey | ControlKey | PotEvent | None:
+    def get_key_event(self) \
+            -> KeyEvent | None:
         key_event = self.keys.events.get()
         if key_event:
             return translate_key_event(key_event)
@@ -88,7 +91,7 @@ def translate_key_event(event) -> KeyEvent | None:
     elif n == 3:
         key = KeyboardKey(6)
     elif n == 4:
-        key = SequencerKey(8)
+        key = SequencerKey(7)
     elif n == 5:
         key = ControlKey(ControlName.Start)
     elif n == 6:
@@ -96,9 +99,9 @@ def translate_key_event(event) -> KeyEvent | None:
     elif n == 7:
         key = KeyboardKey(5)
     elif n == 8:
-        key = SequencerKey(1)
+        key = SequencerKey(0)
     elif n == 9:
-        key = SequencerKey(2)
+        key = SequencerKey(1)
     elif n == 10:
         key = KeyboardKey(2)
     elif n == 11:
@@ -106,23 +109,23 @@ def translate_key_event(event) -> KeyEvent | None:
     elif n == 12:
         key = ControlKey(ControlName.Seq2)
     elif n == 13:
-        key = SequencerKey(3)
+        key = SequencerKey(2)
     elif n == 14:
         key = KeyboardKey(1)
     elif n == 15:
         key = KeyboardKey(7)
     elif n == 16:
-        key = SequencerKey(7)
+        key = SequencerKey(6)
     elif n == 17:
-        key = SequencerKey(4)
+        key = SequencerKey(3)
     elif n == 18:
         key = KeyboardKey(4)
     elif n == 19:
         key = ControlKey(ControlName.Up)
     elif n == 20:
-        key = SequencerKey(6)
-    elif n == 21:
         key = SequencerKey(5)
+    elif n == 21:
+        key = SequencerKey(4)
     elif n == 22:
         key = KeyboardKey(3)
     elif n == 23:
@@ -137,6 +140,10 @@ def translate_key_event(event) -> KeyEvent | None:
 class Display:
     def __init__(self):
         self.pixels = init_pixels()
+        self.show = self.pixels.show
+
+    def clear(self):
+        self.pixels.fill((0, 0, 0))
 
     def set_color(self,
                   key: KeyboardKey | SequencerKey | ControlKey,
@@ -145,7 +152,7 @@ class Display:
             color = (0, 0, 0)
 
         if isinstance(key, SequencerKey):
-            self.pixels[key.step] = color
+            self.pixels[key.step+1] = color
         elif isinstance(key, KeyboardKey):
             self.pixels[key.number + 9] = color
         elif isinstance(key, ControlKey) and key.name == ControlName.Start:
@@ -156,8 +163,8 @@ def init_pixels():
     pixel_count = 19
 
     pixels = neopixel.NeoPixel(
-        board.NEOPIXEL, pixel_count, brightness=0.3, auto_write=True
+        board.NEOPIXEL, pixel_count, brightness=0.3, auto_write=False
     )
 
-    pixels.fill((1, 1, 1))
+    pixels.fill((0, 0, 0))
     return pixels

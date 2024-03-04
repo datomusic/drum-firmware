@@ -1,0 +1,3 @@
+[submodule "lib/mcux-sdk"]
+	path = lib/mcux-sdk
+	url = https://github.com/nxp-mcuxpresso/mcux-sdk

@@ -11,6 +11,7 @@ USE_INTERNAL_TEMPO = False
 NOTES_TO_CHANNELS = False # Useful for triggering Volca Drum
 ROOT_NOTE = 40
 
+import microcontroller
 
 def setup_tracks(tracks):
     tracks[0].note = 0
@@ -68,6 +69,5 @@ def main() -> None:
 
         drum_controls.handle_input(drum, note_out)
         drum_controls.show(drum)
-
 
 main()

@@ -5,19 +5,17 @@ from drum import Drum
 from adafruit_midi.note_on import NoteOn
 import adafruit_midi
 import usb_midi
-from brains2.drum_controls import DrumControls
+from teensy41.drum_controls import DrumControls
 
 USE_INTERNAL_TEMPO = False
 NOTES_TO_CHANNELS = False # Useful for triggering Volca Drum
-ROOT_NOTE = 40
-
-import microcontroller
+ROOT_NOTE = 0
 
 def setup_tracks(tracks):
     tracks[0].note = 0
-    tracks[1].note = 1
-    tracks[2].note = 2
-    tracks[3].note = 3
+    tracks[1].note = 7
+    tracks[2].note = 15
+    tracks[3].note = 23
 
     tracks[0].sequencer.set_step(0)
     tracks[0].sequencer.set_step(4)
@@ -48,7 +46,7 @@ def main() -> None:
 
     def note_off(note):
         if NOTES_TO_CHANNELS:
-            midi.send(NoteOff(1), note),
+            midi.send(NoteOff(1), note)
         else:
             midi.send(NoteOff(ROOT_NOTE + note))
 

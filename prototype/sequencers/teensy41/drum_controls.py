@@ -1,4 +1,4 @@
-from teensy41.teensy41 import ControlName, SequencerKey, SampleSelectKey, ControlKey, Controls, Display
+from teensy41.teensy41 import ControlName, SequencerKey, SampleSelectKey, ControlKey, Controls, Display, Drumpad
 from drum import Drum
 from note_output import NoteOutput
 
@@ -13,8 +13,9 @@ class DrumControls:
         self.display.clear()
 
         for track_index in range(0, 4):
+            self.display.set_color(Drumpad(track_index), ColorScheme.Tracks[drum.tracks[track_index].note])
             show_track(self.display,
-                   ColorScheme.Tracks[track_index],
+                   ColorScheme.Tracks[drum.tracks[track_index].note],
                    drum.tracks[track_index],track_index)
 
         self.display.show()
@@ -30,37 +31,25 @@ class DrumControls:
                     drum.tracks[key.track].sequencer.toggle_step(key.step)
 
             elif isinstance(key, SampleSelectKey):
-                track = drum.tracks[self.current_track]
+                track = drum.tracks[key.track]
                 # track.note = key.number
                 print(f"track.note: {track.note}")
                 print(
-                    f"Sample Select, number: {key.number}, pressed: {event.pressed}"
+                    f"Sample Select, number: {key.track}, pressed: {event.pressed}"
                 )
+                track.note = track.note + key.direction
+                if (track.note < 0):
+                    track.note = 31
+                if(track.note > 31):
+                    track.note = 0
 
             elif isinstance(key, ControlKey):
                 print(f"Control, name: {key.name}, pressed: {event.pressed}")
-                if key.name == ControlName.Seq1:
-                    self.current_track = 0
-                elif key.name == ControlName.Seq2:
-                    self.current_track = 1
-                elif key.name == ControlName.Down:
-                    self.current_track = 2
-                elif key.name == ControlName.Up:
-                    self.current_track = 3
-                elif key.name == ControlName.Start:
+                if key.name == ControlName.Start:
                     note_out.play(drum.tracks[self.current_track].note)
             
             else:
                 print(event)
-
-class ColorScheme:
-    Cursor = (180, 180, 180)
-    Tracks = (
-        (200, 200, 0),
-        (0, 200, 0),
-        (0, 0, 200),
-        (200, 0, 0)
-    )
 
 def show_track(display, step_color, track, track_index):
     for (step_index, step) in enumerate(track.sequencer.steps):

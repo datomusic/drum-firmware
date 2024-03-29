@@ -1,10 +1,13 @@
 import keypad
 import board
 import microcontroller
-from digitalio import DigitalInOut, Direction, Pull
 import time
 import neopixel
 import analogio as aio
+
+class Direction:
+    Up = 1
+    Down = -1
 
 class SequencerKey:
     def __init__(self, step, track = 0) -> None:
@@ -13,9 +16,13 @@ class SequencerKey:
 
 
 class SampleSelectKey:
-    def __init__(self, number) -> None:
-        self.number: int = number
-
+    def __init__(self, direction, track) -> None:
+        self.direction: int = direction
+        self.track: int = track
+        
+class Drumpad:
+    def __init__(self, track) -> None:
+        self.track: int = track
 
 class ControlName:
     Seq1 = 1
@@ -95,8 +102,22 @@ def translate_key_event(event) -> KeyEvent | None:
 
     if (n % 5) < 4:
         key = SequencerKey(int(n/5), n%5)
-    elif n in (9,14,19,24,29,34,39,4):
-        key = SampleSelectKey(n)
+    elif n == 9:
+        key = SampleSelectKey(1,3)
+    elif n == 14:
+        key = SampleSelectKey(-1,3)
+    elif n == 19:
+        key = SampleSelectKey(1,2)
+    elif n == 24:
+        key = SampleSelectKey(-1,2)
+    elif n == 29:
+        key = SampleSelectKey(1,1)
+    elif n == 34:
+        key = SampleSelectKey(-1,1)
+    elif n == 39:
+        key = SampleSelectKey(1,0)
+    elif n == 4:
+        key = SampleSelectKey(-1,0)
     else:
         key = ControlKey(n)
 
@@ -145,6 +166,12 @@ step_to_led = {
     31: 7
 }
 
+drumpad_to_led = {
+    0: 5,
+    1: 16,
+    2: 25,
+    3: 36
+}
 
 class Display:
     def __init__(self):
@@ -155,15 +182,15 @@ class Display:
         self.pixels.fill((0, 0, 0))
 
     def set_color(self,
-                  key: SampleSelectKey | SequencerKey | ControlKey,
+                  key: Drumpad | SequencerKey | ControlKey,
                   color: None | tuple[int, int, int]) -> None:
         if not color:
             color = (0, 0, 0)
 
         if isinstance(key, SequencerKey):
             self.pixels[step_to_led[key.step + (key.track * 8)]] = color
-        elif isinstance(key, SampleSelectKey):
-            self.pixels[9] = color
+        elif isinstance(key, Drumpad):
+            self.pixels[drumpad_to_led[key.track]] = color
         elif isinstance(key, ControlKey) and key.name == ControlName.Start:
             self.pixels[0] = color
 
@@ -172,12 +199,12 @@ def init_pixels():
     pixel_count = 41
 
     pixels = neopixel.NeoPixel(
-        board.D2, pixel_count, brightness=0.3, auto_write=False
+        board.D2, pixel_count, brightness=1.0, auto_write=False
     )
     
     for i in range(pixel_count):
-        pixels[i] = (180,180,180)
-        time.sleep(.05)
+        pixels[i] = (60,60,60)
+        time.sleep(.02)
         pixels.show()
     time.sleep(.5)
 

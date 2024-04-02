@@ -34,7 +34,7 @@ def make_note_out(midi):
 
     def note_off(note):
         if NOTES_TO_CHANNELS:
-            midi.send(NoteOff(1), note),
+            midi.send(NoteOff(1), note)
         else:
             midi.send(NoteOff(ROOT_NOTE + note))
 

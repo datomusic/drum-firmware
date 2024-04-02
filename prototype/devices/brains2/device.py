@@ -1,9 +1,16 @@
-from brains2.brains2 import ControlName, SequencerKey, KeyboardKey, ControlKey, Controls, Display
+from .hardware import (
+    ControlName,
+    SequencerKey,
+    KeyboardKey,
+    ControlKey,
+    Controls,
+    Display,
+)
 from drum import Drum
 from note_output import NoteOutput
+from device_api import DeviceAPI
 
-
-class DrumControls:
+class Brains2Device(DeviceAPI):
     def __init__(self):
         self.current_track = 0
         self.controls = Controls()
@@ -12,9 +19,11 @@ class DrumControls:
     def show(self, drum):
         self.display.clear()
 
-        show_track(self.display,
-                   Colors.Tracks[self.current_track],
-                   drum.tracks[self.current_track])
+        show_track(
+            self.display,
+            Colors.Tracks[self.current_track],
+            drum.tracks[self.current_track],
+        )
 
         self.display.show()
 
@@ -25,16 +34,13 @@ class DrumControls:
 
             if isinstance(key, SequencerKey):
                 print(f"Seq, step: {key.step}, pressed: {event.pressed}")
-                drum.tracks[self.current_track].sequencer.toggle_step(
-                    key.step)
+                drum.tracks[self.current_track].sequencer.toggle_step(key.step)
 
             elif isinstance(key, KeyboardKey):
                 track = drum.tracks[self.current_track]
                 track.note = key.number
                 print(f"track.note: {track.note}")
-                print(
-                    f"Keyboard, number: {key.number}, pressed: {event.pressed}"
-                )
+                print(f"Keyboard, number: {key.number}, pressed: {event.pressed}")
 
             elif isinstance(key, ControlKey):
                 print(f"Control, name: {key.name}, pressed: {event.pressed}")
@@ -52,16 +58,11 @@ class DrumControls:
 
 class Colors:
     CurStep = (50, 50, 50)
-    Tracks = (
-        (200, 0, 0),
-        (0, 200, 200),
-        (0, 0, 200),
-        (200, 0, 200)
-    )
+    Tracks = ((200, 0, 0), (0, 200, 200), (0, 0, 200), (200, 0, 200))
 
 
 def show_track(display, step_color, track):
-    for (step_ind, step) in enumerate(track.sequencer.steps):
+    for step_ind, step in enumerate(track.sequencer.steps):
         col = None
         if step_ind == track.sequencer.cur_step_index:
             col = Colors.CurStep

@@ -3,11 +3,11 @@ from note_output import NoteOutput
 
 class DeviceAPI:
     def __init__(self):
-        pass
+        raise NotImplementedError("Required device method")
 
     def show(self, drum):
-        pass
+        raise NotImplementedError("Required device method")
 
     def handle_input(self, drum: Drum, note_out: NoteOutput):
-        pass
+        raise NotImplementedError("Required device method")
         

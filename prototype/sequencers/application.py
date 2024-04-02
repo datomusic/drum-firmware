@@ -8,14 +8,14 @@ import usb_midi
 
 USE_INTERNAL_TEMPO = True
 NOTES_TO_CHANNELS = False  # Useful for triggering Volca Drum
-ROOT_NOTE = 40
+ROOT_NOTE = 0
 
 
 def setup_tracks(tracks):
     tracks[0].note = 0
-    tracks[1].note = 1
-    tracks[2].note = 2
-    tracks[3].note = 3
+    tracks[1].note = 7
+    tracks[2].note = 15
+    tracks[3].note = 23
 
     tracks[0].sequencer.set_step(0)
     tracks[0].sequencer.set_step(4)

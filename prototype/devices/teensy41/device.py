@@ -10,6 +10,7 @@ from .hardware import (
 from drum import Drum
 from note_output import NoteOutput
 from device_api import DeviceAPI
+from .colors import ColorScheme
 
 
 class Teensy41Device(DeviceAPI):

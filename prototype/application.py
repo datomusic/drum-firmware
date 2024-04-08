@@ -54,6 +54,7 @@ def run_application(device):
 
     tempo = Tempo(midi, on_tempo_tick)
     tempo.use_internal = USE_INTERNAL_TEMPO
+    tempo.set_bpm(120)
 
     while True:
         msg = midi.receive()
@@ -61,5 +62,5 @@ def run_application(device):
             tempo.on_midi_msg(msg)
 
         tempo.update()
-        device.handle_input(drum, note_out)
+        device.handle_input(drum, note_out, tempo)
         device.show(drum)

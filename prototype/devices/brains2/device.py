@@ -10,11 +10,13 @@ from drum import Drum
 from note_output import NoteOutput
 from device_api import DeviceAPI
 
+
 class Brains2Device(DeviceAPI):
     def __init__(self):
         self.current_track = 0
         self.controls = Controls()
         self.display = Display()
+        self.last_pot1 = 0
 
     def show(self, drum):
         self.display.clear()
@@ -27,7 +29,12 @@ class Brains2Device(DeviceAPI):
 
         self.display.show()
 
-    def handle_input(self, drum: Drum, note_out: NoteOutput):
+    def handle_input(self, drum: Drum, note_out: NoteOutput, tempo):
+        v = self.controls.pot1.value
+        if v != self.last_pot1:
+            self.last_pot1 = v
+            tempo.set_bpm((65000 - v) / 200)
+
         event = self.controls.get_key_event()
         if event and event.pressed:
             key = event.key

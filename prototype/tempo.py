@@ -33,13 +33,17 @@ class MidiTempo:
 
 
 class InternalTempo:
-    def __init__(self):
+    def __init__(self, bpm):
         self.acc = 0
         self.last = time.monotonic_ns()
-        self.set_bpm(120)
+        self.set_bpm(bpm)
 
     def set_bpm(self, bpm):
-        self.ms_per_beat = (60 * 1000) / bpm
+        if bpm < 1:
+            bpm = 1
+        bpm = int(bpm)
+        print(f"bpm: {bpm}")
+        self.ms_per_beat = int((60 * 1000) / bpm)
 
     def update(self) -> bool:
         now = time.monotonic_ns()
@@ -59,10 +63,13 @@ class Tempo:
     def __init__(self, midi, on_tick):
         self.midi = midi
         self.on_tick = on_tick
-        self.use_internal = False
+        self.use_internal = True
 
-        self.internal_tempo = InternalTempo()
+        self.internal_tempo = InternalTempo(2 * 120)
         self.midi_tempo = MidiTempo()
+
+    def set_bpm(self, bpm):
+        self.internal_tempo.set_bpm(2 * bpm)
 
     def update(self):
         if self.use_internal:

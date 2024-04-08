@@ -1,9 +1,14 @@
+from adafruit_midi.note_off import NoteOff
+from note_output import NoteOutput
+from adafruit_midi.note_on import NoteOn
 from tempo import Tempo
 from drum import Drum
-from device_api import DeviceAPI
-from midi import open_midi, get_midi_note_out
+import adafruit_midi
+import usb_midi
 
 USE_INTERNAL_TEMPO = True
+NOTES_TO_CHANNELS = False  # Useful for triggering Volca Drum
+ROOT_NOTE = 0
 
 
 def setup_tracks(tracks):
@@ -20,11 +25,28 @@ def setup_tracks(tracks):
     tracks[3].sequencer.set_step(6)
 
 
-def run_application(device: DeviceAPI) -> None:
+def make_note_out(midi):
+    def note_on(note, vel):
+        if NOTES_TO_CHANNELS:
+            midi.send(NoteOn(1, vel), note)
+        else:
+            midi.send(NoteOn(ROOT_NOTE + note, vel))
+
+    def note_off(note):
+        if NOTES_TO_CHANNELS:
+            midi.send(NoteOff(1), note)
+        else:
+            midi.send(NoteOff(ROOT_NOTE + note))
+
+    return NoteOutput(note_on, note_off)
+
+
+def run_application(device):
+    (midi_in, midi_out) = usb_midi.ports
+    midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
     drum = Drum()
     setup_tracks(drum.tracks)
-    midi = open_midi()
-    note_out = get_midi_note_out(midi)
+    note_out = make_note_out(midi)
 
     def on_tempo_tick():
         drum.tick(note_out.play)

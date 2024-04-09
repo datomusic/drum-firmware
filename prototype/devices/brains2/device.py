@@ -6,17 +6,24 @@ from .hardware import (
     Controls,
     Display,
 )
+
 from drum import Drum
 from note_output import NoteOutput
 from device_api import DeviceAPI
 
 
+def open_midi():
+    (midi_in, midi_out) = usb_midi.ports
+    return adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
+
+
 class Brains2Device(DeviceAPI):
     def __init__(self):
+        self.midi = open_midi()
+
         self.current_track = 0
         self.controls = Controls()
         self.display = Display()
-        self.last_pot1 = 0
 
     def show(self, drum):
         self.display.clear()
@@ -30,11 +37,6 @@ class Brains2Device(DeviceAPI):
         self.display.show()
 
     def handle_input(self, drum: Drum, note_out: NoteOutput, tempo):
-        v = self.controls.pot1.value
-        if v != self.last_pot1:
-            self.last_pot1 = v
-            tempo.set_bpm((65000 - v) / 200)
-
         event = self.controls.get_key_event()
         if event and event.pressed:
             key = event.key
@@ -47,7 +49,9 @@ class Brains2Device(DeviceAPI):
                 track = drum.tracks[self.current_track]
                 track.note = key.number
                 print(f"track.note: {track.note}")
-                print(f"Keyboard, number: {key.number}, pressed: {event.pressed}")
+                print(
+                    f"Keyboard, number: {key.number}, pressed: {event.pressed}"
+                )
 
             elif isinstance(key, ControlKey):
                 print(f"Control, name: {key.name}, pressed: {event.pressed}")

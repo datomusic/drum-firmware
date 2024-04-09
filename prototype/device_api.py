@@ -1,13 +1,37 @@
 from drum import Drum
-from note_output import NoteOutput
+
+
+class PotName:
+    Speed = 1
+    Volume = 2
+
+
+# class DeviceCallbacks:
+#     def __init__(self, on_clock):
+#         self.on_clock = on_clock
+
 
 class DeviceAPI:
-    def __init__(self):
+    def update(self):
         raise NotImplementedError("Required device method")
 
-    def show(self, drum):
+    def read_pot(self, pot: PotName):
         raise NotImplementedError("Required device method")
 
-    def handle_input(self, drum: Drum, note_out: NoteOutput):
+    def send_note_on(self, note, vel):
         raise NotImplementedError("Required device method")
-        
+
+    def send_note_off(self, note):
+        raise NotImplementedError("Required device method")
+
+    def show(self, drum: Drum):
+        raise NotImplementedError("Required device method")
+
+    # def set_callbacks(self, callbacks: DeviceCallbacks):
+    #     raise NotImplementedError("Required device method")
+
+    # def handle_input(self, drum: Drum, note_out: NoteOutput):
+    #     raise NotImplementedError("Required device method")
+
+    # def get_midi_message(self):
+    #     raise NotImplementedError("Required device method")

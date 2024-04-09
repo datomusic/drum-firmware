@@ -1,14 +1,13 @@
-from adafruit_midi.note_off import NoteOff
 from note_output import NoteOutput
-from adafruit_midi.note_on import NoteOn
 from tempo import Tempo
 from drum import Drum
-import adafruit_midi
-import usb_midi
+from device_api import DeviceAPI, PotName
 
-USE_INTERNAL_TEMPO = True
-NOTES_TO_CHANNELS = False  # Useful for triggering Volca Drum
-ROOT_NOTE = 0
+USE_INTERNAL_TEMPO = False
+
+BPM_MAX = 500
+POT_MIN = 0
+POT_MAX = 65536
 
 
 def setup_tracks(tracks):
@@ -25,42 +24,66 @@ def setup_tracks(tracks):
     tracks[3].sequencer.set_step(6)
 
 
-def make_note_out(midi):
-    def note_on(note, vel):
-        if NOTES_TO_CHANNELS:
-            midi.send(NoteOn(1, vel), note)
+class PotReader:
+    def __init__(self, pot_name, inverted=True):
+        self.pot_name = pot_name
+        self.last_val = None
+        self.inverted = inverted
+
+    def read(self, device):
+        val = device.read_pot(self.pot_name)
+        if val != self.last_val:
+            if self.inverted:
+                val = POT_MAX - val
+
+            self.last_val = val
+            # print(f"self.last_val: {self.last_val}")
+            return (True, val)
         else:
-            midi.send(NoteOn(ROOT_NOTE + note, vel))
-
-    def note_off(note):
-        if NOTES_TO_CHANNELS:
-            midi.send(NoteOff(1), note)
-        else:
-            midi.send(NoteOff(ROOT_NOTE + note))
-
-    return NoteOutput(note_on, note_off)
+            return (False, val)
 
 
-def run_application(device):
-    (midi_in, midi_out) = usb_midi.ports
-    midi = adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
-    drum = Drum()
-    setup_tracks(drum.tracks)
-    note_out = make_note_out(midi)
+def bpm_from_pot(pot_value):
+    return ((POT_MAX - pot_value) / POT_MAX) * BPM_MAX
 
-    def on_tempo_tick():
-        drum.tick(note_out.play)
-        note_out.tick()
 
-    tempo = Tempo(midi, on_tempo_tick)
-    tempo.use_internal = USE_INTERNAL_TEMPO
-    tempo.set_bpm(120)
+class Application:
+    def __init__(self, device: DeviceAPI):
+        self.device = device
+        self.drum = Drum()
+        setup_tracks(self.drum.tracks)
+
+        self.note_out = NoteOutput(device.send_note_on, device.send_note_off)
+        self.speed_pot = PotReader(PotName.Speed)
+
+        def on_tempo_tick():
+            self.drum.tick(self.note_out.play)
+            self.note_out.tick()
+
+        self.tempo = Tempo(on_tempo_tick)
+        self.tempo.use_internal = USE_INTERNAL_TEMPO
+
+    def update(self) -> None:
+        self.device.update()
+        self.__read_pots()
+        # msg = self.device.get_midi_message()
+        # if msg:
+        #     self.tempo.on_midi_msg(msg)
+
+        self.tempo.update()
+
+    def show(self) -> None:
+        self.device.show(self.drum)
+
+    def __read_pots(self):
+        (speed_changed, speed) = self.speed_pot.read(self.device)
+        if speed_changed:
+            self.tempo.set_bpm(bpm_from_pot(speed))
+
+
+def run_application(device: DeviceAPI) -> None:
+    app = Application(device)
 
     while True:
-        msg = midi.receive()
-        if msg:
-            tempo.on_midi_msg(msg)
-
-        tempo.update()
-        device.handle_input(drum, note_out, tempo)
-        device.show(drum)
+        app.update()
+        app.show()

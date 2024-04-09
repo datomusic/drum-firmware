@@ -15,7 +15,7 @@ class DeviceAPI:
     def update(self):
         raise NotImplementedError("Required device method")
 
-    def read_pot(self, pot: PotName):
+    def read_pot(self, pot_name: PotName) -> int | None:
         raise NotImplementedError("Required device method")
 
     def send_note_on(self, note, vel):

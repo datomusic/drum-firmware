@@ -9,18 +9,11 @@ from .hardware import (
 
 from drum import Drum
 from note_output import NoteOutput
-from device_api import DeviceAPI
-
-
-def open_midi():
-    (midi_in, midi_out) = usb_midi.ports
-    return adafruit_midi.MIDI(midi_in=midi_in, midi_out=midi_out)
+from device_api import DeviceAPI, PotName
 
 
 class Brains2Device(DeviceAPI):
     def __init__(self):
-        self.midi = open_midi()
-
         self.current_track = 0
         self.controls = Controls()
         self.display = Display()
@@ -35,6 +28,12 @@ class Brains2Device(DeviceAPI):
         )
 
         self.display.show()
+
+    def read_pot(self, pot_name: PotName) -> int | None:
+        if pot_name == PotName.Speed:
+            return self.controls.pot1.value
+        else:
+            return None
 
     def handle_input(self, drum: Drum, note_out: NoteOutput, tempo):
         event = self.controls.get_key_event()

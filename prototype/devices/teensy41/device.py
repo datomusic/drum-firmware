@@ -9,8 +9,11 @@ from .hardware import (
 )
 from drum import Drum
 from note_output import NoteOutput
-from device_api import DeviceAPI
+from device_api import DeviceAPI, PotName
 from .colors import ColorScheme
+
+import analogio
+import board
 
 
 class Teensy41Device(DeviceAPI):
@@ -18,6 +21,9 @@ class Teensy41Device(DeviceAPI):
         self.current_track = 0
         self.controls = Controls()
         self.display = Display()
+    
+    def update(self):
+        pass
 
     def show(self, drum):
         self.display.clear()
@@ -63,6 +69,12 @@ class Teensy41Device(DeviceAPI):
 
             else:
                 print(event)
+
+    def read_pot(self, pot: PotName):
+        p = analogio.AnalogIn(board.A12)
+        r = p.value
+        p.deinit()
+        return r
 
 
 def show_track(display, step_color, track, track_index):

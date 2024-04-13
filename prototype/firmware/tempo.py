@@ -61,14 +61,15 @@ class InternalTempo:
 
 class Tempo:
     def __init__(self, on_tick):
+        self.internal_multiplier = 4
         self.on_tick = on_tick
         self.use_internal = True
 
-        self.internal_tempo = InternalTempo(120)
+        self.internal_tempo = InternalTempo(120 * self.internal_multiplier)
         self.midi_tempo = MidiTempo()
 
     def set_bpm(self, bpm):
-        self.internal_tempo.set_bpm(bpm)
+        self.internal_tempo.set_bpm(bpm * self.internal_multiplier)
 
     def update(self):
         if self.use_internal:

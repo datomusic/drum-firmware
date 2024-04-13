@@ -10,6 +10,9 @@ class Controller:
     def update(self, drum: Drum):
         raise NotImplementedError("Required method")
 
+    def show(self, drum: Drum):
+        raise NotImplementedError("Required method")
+
 
 class Output:
     def __init__(self):

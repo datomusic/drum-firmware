@@ -2,7 +2,7 @@ from .note_player import NotePlayer
 from .drum import Drum
 from .device_api import Controller, Output
 
-USE_INTERNAL_TEMPO = False
+USE_INTERNAL_TEMPO = True
 
 
 def setup_tracks(tracks):
@@ -35,8 +35,8 @@ class Application:
         self.drum.update()
 
     def show(self) -> None:
-        pass
-        # self.device.show(self.drum)
+        for controller in self.controllers:
+            controller.show(self.drum)
 
     def run(self):
         while True:

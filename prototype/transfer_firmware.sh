@@ -16,4 +16,4 @@ function send() {
 
 send firmware "$TARGET"
 send devices/$DEVICE_NAME "$TARGET"
-send code.py "$TARGET"
+# send code.py "$TARGET"

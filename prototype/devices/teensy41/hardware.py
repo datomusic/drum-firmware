@@ -11,6 +11,11 @@ class Direction:
     Down = -1
 
 
+class PotName:
+    Speed = 1
+    Volume = 2
+
+
 class SequencerKey:
     def __init__(self, step, track=0) -> None:
         self.track: int = track
@@ -58,8 +63,16 @@ class Controls:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
-        self.pot1 = aio.AnalogIn(board.A10)
-        self.pot2 = aio.AnalogIn(board.A11)
+        self.tune_slider1 = aio.AnalogIn(board.A1)
+
+        self.play_button = aio.AnalogIn(board.A2)
+
+        self.vol_pot = aio.AnalogIn(board.A4)
+        self.tune_slider2 = aio.AnalogIn(board.A7)
+
+        self.tune_slider3 = aio.AnalogIn(board.A11)
+        # self.pot1 = aio.AnalogIn(board.A15)
+        # self.pot2 = aio.AnalogIn(board.A11)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -67,6 +80,12 @@ class Controls:
             return translate_key_event(key_event)
 
         return None
+
+    def read_pot(self, pot_name: PotName) -> int | None:
+        if pot_name == PotName.Speed:
+            return self.vol_pot.value
+        else:
+            return None
 
 
 def init_keymatrix():
@@ -186,7 +205,8 @@ class Display:
 def init_pixels():
     pixel_count = 41
 
-    pixels = neopixel.NeoPixel(board.D2, pixel_count, brightness=1.0, auto_write=False)
+    pixels = neopixel.NeoPixel(
+        board.D2, pixel_count, brightness=1.0, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

@@ -7,7 +7,7 @@ class Controller:
     def __init__(self):
         raise NotImplementedError("Required method")
 
-    def update(self):
+    def update(self, drum: Drum):
         raise NotImplementedError("Required method")
 
 

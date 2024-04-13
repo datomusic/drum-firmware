@@ -42,4 +42,3 @@ class Application:
         while True:
             self.update()
             self.show()
-

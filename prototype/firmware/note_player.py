@@ -1,7 +1,7 @@
 NOTE_LENGTH = 2  # ticks
 
 
-class NoteOutput:
+class NotePlayer:
     def __init__(self, send_note_on, send_note_off):
         self.ticks = 0
         self.note = None

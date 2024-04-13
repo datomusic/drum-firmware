@@ -1,4 +1,25 @@
-from drum import Drum
+from .drum import Drum
+
+# Protocol
+
+
+class Controller:
+    def __init__(self):
+        raise NotImplementedError("Required method")
+
+    def update(self):
+        raise NotImplementedError("Required method")
+
+
+class Output:
+    def __init__(self):
+        pass
+
+    def send_note_on(self, note, vel):
+        raise NotImplementedError("Required method")
+
+    def send_note_off(self, note):
+        raise NotImplementedError("Required method")
 
 
 class PotName:

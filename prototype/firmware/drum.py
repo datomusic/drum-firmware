@@ -17,14 +17,14 @@ class Drum:
         self.tempo = Tempo(self.__on_tempo_tick)
         self.note_player = note_player
 
-    def update(self):
+    def update(self) -> None:
         self.tempo.update()
 
-    def __on_tempo_tick(self):
-        self.drum.__tick_sequencers(self.note_player.play)
+    def __on_tempo_tick(self) -> None:
+        self.__tick_sequencers(self.note_player.play)
         self.note_player.tick()
 
-    def __tick_sequencers(self, play_note_callback):
+    def __tick_sequencers(self, play_note_callback) -> None:
         def on_seq_note(vel):
             play_note_callback(track.note, vel)
 

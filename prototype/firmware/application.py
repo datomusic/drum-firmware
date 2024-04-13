@@ -22,6 +22,7 @@ def setup_tracks(tracks):
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
+        self.output = output
         note_out = NotePlayer(output.send_note_on, output.send_note_off)
         self.drum = Drum(note_out)
 
@@ -30,7 +31,7 @@ class Application:
 
     def update(self) -> None:
         for controller in self.controllers:
-            controller.update(self.drum)
+            controller.update(self.drum, self.output)
 
         self.drum.update()
 

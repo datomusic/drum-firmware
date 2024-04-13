@@ -3,17 +3,6 @@ from .drum import Drum
 # Protocol
 
 
-class Controller:
-    def __init__(self):
-        raise NotImplementedError("Required method")
-
-    def update(self, drum: Drum):
-        raise NotImplementedError("Required method")
-
-    def show(self, drum: Drum):
-        raise NotImplementedError("Required method")
-
-
 class Output:
     def __init__(self):
         pass
@@ -22,6 +11,17 @@ class Output:
         raise NotImplementedError("Required method")
 
     def send_note_off(self, note):
+        raise NotImplementedError("Required method")
+
+
+class Controller:
+    def __init__(self):
+        raise NotImplementedError("Required method")
+
+    def update(self, drum: Drum, output: Output):
+        raise NotImplementedError("Required method")
+
+    def show(self, drum: Drum):
         raise NotImplementedError("Required method")
 
 

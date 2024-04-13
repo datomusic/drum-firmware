@@ -1,4 +1,4 @@
-from firmware.device_api import Controller
+from firmware.device_api import Controller, Output
 from firmware.drum import Drum
 
 from .hardware import (
@@ -23,8 +23,12 @@ class PizzaController(Controller):
         self.speed_pot = PotReader(
             lambda: self.controls.read_pot(PotName.Speed))
 
-    def update(self, drum: Drum) -> None:
+    def update(self, drum: Drum, output: Output) -> None:
         self.__read_pots(drum)
+        key = self.controls.get_key_event()
+        if key:
+            print(f"key: {key}")
+
 
     def show(self, drum: Drum):
         self.display.clear()

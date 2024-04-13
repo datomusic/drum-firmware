@@ -42,7 +42,6 @@ class InternalTempo:
         if bpm < 1:
             bpm = 1
         bpm = int(bpm)
-        print(f"bpm: {bpm}")
         self.ms_per_beat = int((60 * 1000) / bpm)
 
     def update(self) -> bool:
@@ -69,6 +68,8 @@ class Tempo:
         self.midi_tempo = MidiTempo()
 
     def set_bpm(self, bpm):
+        bpm = round(bpm)
+        print(f"bpm: {bpm}")
         self.internal_tempo.set_bpm(bpm * self.internal_multiplier)
 
     def update(self):

@@ -64,15 +64,23 @@ class Controls:
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
         self.tune_slider1 = aio.AnalogIn(board.A1)
-
         self.play_button = aio.AnalogIn(board.A2)
 
+        self.drum_pad1 = aio.AnalogIn(board.A3)
+
         self.vol_pot = aio.AnalogIn(board.A4)
+        self.filter_left = aio.AnalogIn(board.A5)
+        self.filter_right = aio.AnalogIn(board.A6)
         self.tune_slider2 = aio.AnalogIn(board.A7)
 
+        self.drum_pad2_bottom = aio.AnalogIn(board.A8)
+        self.drum_pad2 = aio.AnalogIn(board.A9)
+        self.random_button = aio.AnalogIn(board.A10)
+
         self.tune_slider3 = aio.AnalogIn(board.A11)
-        # self.pot1 = aio.AnalogIn(board.A15)
-        # self.pot2 = aio.AnalogIn(board.A11)
+        self.drum_pad4 = aio.AnalogIn(board.A12)
+        self.drum_pad3_bottom = aio.AnalogIn(board.A13)
+        self.repeat_button = aio.AnalogIn(board.A0)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()

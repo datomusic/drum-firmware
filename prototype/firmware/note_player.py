@@ -11,12 +11,13 @@ class NotePlayer:
         self.channel = channel
         self.ticks = 0
         self.output = output
+        self.mute_level = 0.0
 
     def play(self, note: int, vel: float = 100.0) -> None:
         if self.played_note is not None:
             self.output.send_note_off(self.channel, self.played_note)
 
-        self.output.send_note_on(self.channel, note, vel)
+        self.output.send_note_on(self.channel, note, vel - self.mute_level)
         self.ticks = 0
         self.played_note = note
 

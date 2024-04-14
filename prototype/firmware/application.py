@@ -46,7 +46,8 @@ class AppControls(Controls):
         track.note_player.play(track.note, velocity)
 
     def set_track_mute(self, track_index: int, amount_percent: float):
-        pass
+        track = self.drum.tracks[track_index]
+        track.note_player.mute_level = amount_percent
 
     def set_volume(self, vol_percent):
         self.output.set_volume(vol_percent)

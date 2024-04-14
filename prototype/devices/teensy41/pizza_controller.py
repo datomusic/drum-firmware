@@ -7,7 +7,9 @@ from .hardware import (
     Drumpad,
     SequencerKey,
     SampleSelectKey,
-    Direction
+    Direction,
+    ControlKey,
+    ControlName
 )
 
 from .reading import IncDecReader, PotReader, bpm_from_pot
@@ -72,12 +74,10 @@ class PizzaController(Controller):
 
                 controls.change_sample(key.track, change)
 
-            # elif isinstance(key, ControlKey):
-            #     print(f"Control, name: {key.name}, pressed: {event.pressed}")
-            #     if key.name == ControlName.Start:
-            #         note_out.play(drum.tracks[self.current_track].note)
-
-            #     print(f"key: {key}")
+            elif isinstance(key, ControlKey):
+                print(f"Control, name: {key.name}, pressed: {event.pressed}")
+                if key.name == ControlName.Start:
+                    controls.toggle_playing()
 
 
 def show_track(display, step_color, track, track_index):

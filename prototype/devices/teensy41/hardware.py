@@ -55,13 +55,31 @@ class PotEvent:
         self.value: int = value
 
 
+class ThresholdButton:
+    def __init__(self, pin, threshold):
+        self.state = False
+        self.pin = pin
+        self.threshold = threshold
+
+    def pressed(self) -> bool:
+        val = self.pin.value
+
+        if not self.state and val > self.threshold:
+            self.state = True
+            return True
+        elif self.state and val < self.threshold:
+            self.state = False
+
+        return False
+
+
 class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
         self.repeat_button = aio.AnalogIn(board.A0)
         self.tune_slider1 = aio.AnalogIn(board.A1)
-        self.play_button = aio.AnalogIn(board.A2)
+        self.play_button = ThresholdButton(aio.AnalogIn(board.A2), 500)
         self.drum_pad1 = aio.AnalogIn(board.A3)
         # TODO: Map real speed pot
         # Using volume pot as speed pot for now
@@ -80,6 +98,9 @@ class Teensy41Hardware:
         key_event = self.keys.events.get()
         if key_event:
             return translate_key_event(key_event)
+        else:
+            if self.play_button.pressed():
+                return KeyEvent(ControlKey(ControlName.Start), True)
 
         return None
 

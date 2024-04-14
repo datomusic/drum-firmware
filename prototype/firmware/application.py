@@ -33,6 +33,9 @@ class AppControls(Controls):
         track.note = max(0, min(31, track.note + step))
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
+    def toggle_playing(self):
+        self.drum.playing = not self.drum.playing
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):

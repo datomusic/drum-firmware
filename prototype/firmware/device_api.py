@@ -30,6 +30,9 @@ class Controls:
     def change_sample(self, track: int, change):
         _not_implemented("change_sample", track, change)
 
+    def toggle_playing(self):
+        _not_implemented("toggle_playing")
+
 
 class SampleChange:
     Next = 1

@@ -4,6 +4,7 @@ from .controller_api import Controller
 
 
 USE_INTERNAL_TEMPO = True
+SAMPLE_COUNT = 32
 
 
 class AppControls(Controls):
@@ -34,7 +35,7 @@ class AppControls(Controls):
             step = 1
 
         track = self.drum.tracks[track_index]
-        track.note = max(0, min(31, track.note + step))
+        track.note = max(0, min(SAMPLE_COUNT - 1, track.note + step))
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
     def toggle_playing(self):

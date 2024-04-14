@@ -1,10 +1,5 @@
-BPM_MAX = 500
 POT_MIN = 0
 POT_MAX = 65536
-
-
-def bpm_from_pot(pot_value):
-    return ((POT_MAX - pot_value) / POT_MAX) * BPM_MAX
 
 
 def percentage_from_pot(pot_value):

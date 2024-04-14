@@ -18,20 +18,21 @@ from .reading import (
     IncDecReader,
     PotReader,
     ThresholdTrigger,
-    bpm_from_pot,
     percentage_from_pot)
 
+BPM_MAX = 300
 
 # TODO:
 # - Move inversion to hardware layer
 # - Maybe move jitter prevention to hardware layer
+
 
 class PizzaController(Controller):
     def __init__(self):
         self.display = Display()
         self.hardware = Teensy41Hardware()
 
-        self.speed_setting = PotReader(self.hardware.speed_pot)
+        self.speed_setting = PotReader(self.hardware.speed_pot, inverted=False)
         self.volume_setting = PotReader(
             self.hardware.volume_pot, inverted=False)
 
@@ -83,7 +84,8 @@ class PizzaController(Controller):
 
     def _read_pots(self, controls: Controls) -> None:
         self.speed_setting.read(
-            lambda speed: controls.set_bpm(bpm_from_pot(speed)))
+            lambda speed: controls.set_bpm(
+                (percentage_from_pot(speed)) * BPM_MAX / 100))
 
         self.volume_setting.read(
             lambda vol: controls.set_volume(percentage_from_pot(vol)))

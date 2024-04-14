@@ -75,7 +75,7 @@ class Tempo:
 
     def update(self):
         if self.use_internal:
-            if self.internal_tempo.update():
+            while self.internal_tempo.update():
                 self.on_tick()
 
     def on_midi_msg(self, msg):

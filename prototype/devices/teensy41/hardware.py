@@ -75,32 +75,59 @@ class ThresholdButton:
         return False
 
 
+class ToggleButton:
+    def __init__(self, pin, inverted=True):
+        self.state = False
+        self.pin = pin
+        self.inverted = inverted
+
+    def pressed(self) -> bool:
+        dig = dio.DigitalInOut(self.pin)
+        val = dig.value
+        dig.deinit()
+
+        if self.state != val:
+            self.state = val
+            ret = val
+            if self.inverted:
+                ret = not ret
+            return ret
+
+        return False
+
+
+class AnalogReader:
+    def __init__(self, pin):
+        self.pin = pin
+
+    def read(self):
+        analog = aio.AnalogIn(self.pin)
+        val = analog.value
+        analog.deinit()
+        return val
+
+
 class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
-        self.fx1 = aio.AnalogIn(board.A0)
-        self.pitch1 = aio.AnalogIn(board.A1)
-        self.drum_pad1 = aio.AnalogIn(board.A2)
-        self.mute1 = aio.AnalogIn(board.A3)
-
+        # self.repeat_button = aio.AnalogIn(board.A0)
+        # self.pitch1 = aio.AnalogIn(board.A1)
+        self.play_button = ToggleButton(board.D37)
+        # self.drum_pad1 = aio.AnalogIn(board.A2)
+        # self.drum_pad1_bottom = aio.AnalogIn(board.A3)
         # TODO: Map real speed pot
         # Using volume pot as speed pot for now
-        self.speed_pot = aio.AnalogIn(board.A4)
-
-        self.filter_right = aio.AnalogIn(board.A5)
-        self.filter_left = aio.AnalogIn(board.A6)
-
-        self.tune_slider2 = aio.AnalogIn(board.A7)
-        self.drum_pad2_bottom = aio.AnalogIn(board.A8)
-        self.drum_pad2 = aio.AnalogIn(board.A9)
-        self.random_button = aio.AnalogIn(board.A10)
-        self.tune_slider3 = aio.AnalogIn(board.A11)
-        self.drum_pad4 = aio.AnalogIn(board.A12)
-        self.drum_pad3_bottom = aio.AnalogIn(board.A13)
-
-        self.play_button = ThresholdButton(dio.DigitalInOut(board.D33), 100)
-        self.play_button.pin.switch_to_input(pull=dio.Pull.DOWN)
+        self.speed_pot = AnalogReader(board.A4)
+        self.filter_right = AnalogReader(board.A5)
+        self.filter_left = AnalogReader(board.A6)
+        # self.pitch2 = aio.AnalogIn(board.A7)
+        # self.drum_pad2_bottom = aio.AnalogIn(board.A8)
+        # self.drum_pad2 = aio.AnalogIn(board.A9)
+        # self.random_button = aio.AnalogIn(board.A10)
+        # self.pitch3 = aio.AnalogIn(board.A11)
+        # self.drum_pad4 = aio.AnalogIn(board.A12)
+        # self.drum_pad3_bottom = aio.AnalogIn(board.A13)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()

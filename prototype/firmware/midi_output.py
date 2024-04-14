@@ -11,22 +11,25 @@ class MIDIOutput(Output):
 
     def set_filter(self, channel, value) -> None:
         print("Filter:", value)
-        self._send_msg(ControlChange(74, value), channel)
+        self._print_send(ControlChange(74, value, channel=channel))
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
-        self._send_msg(NoteOn(note, percent_to_midi(vel_percent)), channel)
+        self.midi.send(
+            NoteOn(note, percent_to_midi(vel_percent), channel=channel))
 
     def send_note_off(self, channel: int, note: int):
-        self._send_msg(NoteOff(note), channel)
+        self.midi.send(NoteOff(note, channel=channel))
 
     def set_channel_pitch(self, channel: int, pitch_percent: float):
-        print(f"pitch_percent: {pitch_percent}")
-        self._send_msg(ControlChange(
-            16, percent_to_midi(pitch_percent)), channel)
+        self._print_send(ControlChange(
+            16, percent_to_midi(pitch_percent), channel=channel))
 
-    def _send_msg(self, msg, channel):
-        print(f"{msg}, channel: {channel}")
-        self.midi.send(msg, channel)
+    def set_volume(self, vol_percent):
+        self._print_send(ControlChange(7, percent_to_midi(vol_percent)))
+
+    def _print_send(self, msg):
+        print(msg)
+        self.midi.send(msg)
 
 
 def percent_to_midi(percent):

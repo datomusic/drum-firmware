@@ -16,6 +16,9 @@ class Output:
     def set_channel_pitch(self, channel: int, pitch: float):
         _not_implemented("Output.set_channel_pitch", channel, pitch)
 
+    def set_volume(self, vol: float):
+        _not_implemented("Output.set_volume", vol)
+
 
 class Controls:
     def adjust_filter(self, amount):

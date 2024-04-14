@@ -32,4 +32,4 @@ class MIDIOutput(Output):
 
 
 def percent_to_midi(percent):
-    return int((percent * 127) / 100)
+    return max(0, min(int((percent * 127) / 100), 127))

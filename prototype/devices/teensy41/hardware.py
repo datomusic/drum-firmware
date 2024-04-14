@@ -128,15 +128,15 @@ class Teensy41Hardware:
         self.random_button = AnalogReader(board.A10)
         self.pitch3 = AnalogReader(board.A11)
 
-        self.drum_pad4 = AnalogReader(board.A12)
-        self.drum_pad4_bottom = AnalogReader(board.A13)
+        self.drum_pad3 = AnalogReader(board.A12)
+        self.drum_pad3_bottom = AnalogReader(board.A13)
 
         self.play_button = ToggleButton(board.D37)
         self.speed_pot = AnalogReader(board.D38)
         self.pitch4 = AnalogReader(board.D39)
 
-        self.drum_pad3 = AnalogReader(board.D40)
-        self.drum_pad3_bottom = AnalogReader(board.D41)
+        self.drum_pad4 = AnalogReader(board.D40)
+        self.drum_pad4_bottom = AnalogReader(board.D41)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -238,7 +238,7 @@ step_to_led = {
     31: 7,
 }
 
-drumpad_to_led = {0: 5, 1: 16, 2: 25, 3: 36}
+drumpad_to_led = {0: 36, 1: 5, 2: 16, 3: 25}
 
 
 class Display:

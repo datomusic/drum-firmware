@@ -113,22 +113,30 @@ class Teensy41Hardware:
         self.keys = init_keymatrix()
         self.repeat_button = AnalogReader(board.A0)
         self.pitch1 = AnalogReader(board.A1)
+
         self.drum_pad1 = AnalogReader(board.A2)
         self.drum_pad1_bottom = AnalogReader(board.A3)
+
         self.volume_pot = AnalogReader(board.A4)
         self.filter_right = AnalogReader(board.A5)
         self.filter_left = AnalogReader(board.A6)
         self.pitch2 = AnalogReader(board.A7)
-        self.drum_pad2_bottom = AnalogReader(board.A8)
-        self.drum_pad2 = AnalogReader(board.A9)
+
+        self.drum_pad2 = AnalogReader(board.A8)
+        self.drum_pad2_bottom = AnalogReader(board.A9)
+
         self.random_button = AnalogReader(board.A10)
         self.pitch3 = AnalogReader(board.A11)
+
         self.drum_pad4 = AnalogReader(board.A12)
-        self.drum_pad3_bottom = AnalogReader(board.A13)
+        self.drum_pad4_bottom = AnalogReader(board.A13)
 
         self.play_button = ToggleButton(board.D37)
         self.speed_pot = AnalogReader(board.D38)
         self.pitch4 = AnalogReader(board.D39)
+
+        self.drum_pad3 = AnalogReader(board.D40)
+        self.drum_pad3_bottom = AnalogReader(board.D41)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()

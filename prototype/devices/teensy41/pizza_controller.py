@@ -1,6 +1,7 @@
 from firmware.device_api import Controller, Controls, SampleChange
 from firmware.drum import Drum
 
+from .colors import ColorScheme
 from .hardware import (
     Teensy41Hardware,
     Display,
@@ -12,8 +13,12 @@ from .hardware import (
     ControlName
 )
 
-from .reading import IncDecReader, PotReader, bpm_from_pot, percentage_from_pot
-from .colors import ColorScheme
+from .reading import (
+    IncDecReader,
+    PotReader,
+    ThresholdTrigger,
+    bpm_from_pot,
+    percentage_from_pot)
 
 
 # TODO:
@@ -27,7 +32,9 @@ class PizzaController(Controller):
         self.hardware = Teensy41Hardware()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
-        self.volume_setting = PotReader(self.hardware.volume_pot)
+        self.volume_setting = PotReader(
+            self.hardware.volume_pot)
+
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)
 
@@ -36,6 +43,20 @@ class PizzaController(Controller):
             PotReader(self.hardware.pitch2),
             PotReader(self.hardware.pitch3),
             PotReader(self.hardware.pitch4)
+        ]
+
+        self.drum_triggers = [
+            ThresholdTrigger(self.hardware.drum_pad1),
+            ThresholdTrigger(self.hardware.drum_pad2),
+            ThresholdTrigger(self.hardware.drum_pad3),
+            ThresholdTrigger(self.hardware.drum_pad4)
+        ]
+
+        self.mute_pads = [
+            PotReader(self.hardware.drum_pad1_bottom),
+            PotReader(self.hardware.drum_pad2_bottom),
+            PotReader(self.hardware.drum_pad3_bottom),
+            PotReader(self.hardware.drum_pad4_bottom)
         ]
 
     def update(self, controls: Controls) -> None:
@@ -73,6 +94,19 @@ class PizzaController(Controller):
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
                 lambda pitch: controls.set_track_pitch(track_ind, pitch))
+
+        for (ind, drum_trigger) in enumerate(self.drum_triggers):
+            drum_trigger.read(
+                lambda velocity: controls.play_track_sample(
+                    ind, percentage_from_pot(velocity)))
+
+        for (ind, muter) in enumerate(self.mute_pads):
+            muter.read(
+                lambda amount:
+                    controls.set_track_mute(
+                        ind,
+                        100 - percentage_from_pot(amount))
+            )
 
     def _process_keys(self, controls: Controls) -> None:
         event = self.hardware.get_key_event()

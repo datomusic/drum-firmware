@@ -30,13 +30,16 @@ class Controls:
     def set_volume(self, vol):
         _not_implemented("Controls.set_volume", vol)
 
-    def play_track_sample(self, track_index):
-        _not_implemented("Controls.play_track_sample", track_index)
+    def play_track_sample(self, track_index: int, velocity: float):
+        _not_implemented("Controls.play_track_sample", track_index, velocity)
 
-    def toggle_track_step(self, track_index, step):
+    def set_track_mute(self, track_index: int, amount: float):
+        _not_implemented("Controls.set_track_mute", track_index, amount)
+
+    def toggle_track_step(self, track_index: int, step):
         _not_implemented("Controls.toggle_track_step", track_index, step)
 
-    def set_track_pitch(self, track_index, pitch):
+    def set_track_pitch(self, track_index: int, pitch):
         _not_implemented("Controls.set_track_pitch", track_index, pitch)
 
     def change_sample(self, track_index: int, change):

@@ -8,7 +8,7 @@ def bpm_from_pot(pot_value):
 
 
 def percentage_from_pot(pot_value):
-    return ((POT_MAX - pot_value) / POT_MAX) * 100
+    return (pot_value / POT_MAX) * 100
 
 
 class IncDecReader:
@@ -53,3 +53,24 @@ class PotReader:
             return True
         else:
             return False
+
+
+class ThresholdTrigger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.triggered = False
+
+    def read(self, on_trigger):
+        trigger_threshold = 10000
+        reset_threshold = 1000
+        val = self.pin.read()
+
+        if self.triggered:
+            if val < reset_threshold:
+                self.triggered = False
+            return False
+
+        elif val > trigger_threshold:
+            self.triggered = True
+            on_trigger(val)
+            return True

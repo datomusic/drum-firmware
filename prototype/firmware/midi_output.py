@@ -9,9 +9,8 @@ class MIDIOutput(Output):
     def __init__(self, midi: MIDI):
         self.midi = midi
 
-    def set_filter(self, channel, value) -> None:
-        print("Filter:", value)
-        self._print_send(ControlChange(74, value, channel=channel))
+    def set_filter(self, amount_percent) -> None:
+        self._print_send(ControlChange(74, percent_to_midi(amount_percent)))
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
         self.midi.send(

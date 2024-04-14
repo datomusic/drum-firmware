@@ -14,8 +14,8 @@ class AppControls(Controls):
 
         self.filter = 50
 
-    def adjust_filter(self, value):
-        self.filter = max(0, min(self.filter + value, 100))
+    def adjust_filter(self, amount_percent) -> None:
+        self.filter = max(0, min(self.filter + amount_percent, 100))
         self.output.set_filter(self.filter)
 
     def set_bpm(self, bpm):

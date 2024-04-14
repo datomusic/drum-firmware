@@ -91,7 +91,7 @@ class PizzaController(Controller):
             lambda vol: controls.set_volume(percentage_from_pot(vol)))
 
         self.filter_setting.read(
-            lambda val: controls.adjust_filter(val))
+            lambda val: controls.adjust_filter(percentage_from_pot(val) / 30))
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(

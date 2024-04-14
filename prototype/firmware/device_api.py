@@ -30,6 +30,9 @@ class Controls:
     def set_volume(self, vol):
         _not_implemented("Controls.set_volume", vol)
 
+    def play_track_sample(self, track_index):
+        _not_implemented("Controls.play_track_sample", track_index)
+
     def toggle_track_step(self, track_index, step):
         _not_implemented("Controls.toggle_track_step", track_index, step)
 

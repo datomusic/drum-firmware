@@ -22,6 +22,9 @@ class AppControls(Controls):
     def toggle_track_step(self, track, step):
         self.drum.tracks[track].sequencer.toggle_step(step)
 
+    def set_track_pitch(self, track_index, pitch):
+        self.output.set_channel_pitch(track_index, pitch)
+
     def change_sample(self, track_index, change):
         if change == SampleChange.Prev:
             step = -1

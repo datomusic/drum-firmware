@@ -1,5 +1,6 @@
-from adafruit_midi.timing_clock import TimingClock
-from adafruit_midi.midi_continue import Continue
+from adafruit_midi.timing_clock import TimingClock  # type: ignore
+from adafruit_midi.midi_continue import Continue  # type: ignore
+
 import time
 
 

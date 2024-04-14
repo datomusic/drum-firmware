@@ -4,7 +4,8 @@ import adafruit_midi
 
 
 class PlatformMIDI:
-    pass
+    def get_message(self):
+        return None
 
 
 class MIDIController(Controller):
@@ -20,3 +21,6 @@ class MIDIController(Controller):
 class MIDIOutput(Output):
     def __init__(self, midi: PlatformMIDI):
         pass
+
+    def set_filter(self, value):
+        raise NotImplementedError("Required device method")

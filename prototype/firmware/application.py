@@ -5,20 +5,6 @@ from .device_api import Controller, Output
 USE_INTERNAL_TEMPO = True
 
 
-def setup_tracks(tracks):
-    tracks[0].note = 0
-    tracks[1].note = 7
-    tracks[2].note = 15
-    tracks[3].note = 23
-
-    tracks[0].sequencer.set_step(0)
-    tracks[0].sequencer.set_step(4)
-    tracks[1].sequencer.set_step(3)
-    tracks[1].sequencer.set_step(5)
-    tracks[2].sequencer.set_step(7)
-    tracks[3].sequencer.set_step(6)
-
-
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
@@ -43,3 +29,17 @@ class Application:
         while True:
             self.update()
             self.show()
+
+
+def setup_tracks(tracks):
+    tracks[0].note = 0
+    tracks[1].note = 7
+    tracks[2].note = 15
+    tracks[3].note = 23
+
+    tracks[0].sequencer.set_step(0)
+    tracks[0].sequencer.set_step(4)
+    tracks[1].sequencer.set_step(3)
+    tracks[1].sequencer.set_step(5)
+    tracks[2].sequencer.set_step(7)
+    tracks[3].sequencer.set_step(6)

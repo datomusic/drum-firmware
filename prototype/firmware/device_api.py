@@ -1,6 +1,9 @@
 from .drum import Drum
 
-# Protocol
+
+def _not_implemented(name, *args):
+    print("[Unimplemented]", name, args)
+    # raise NotImplementedError("Required method: " + name)
 
 
 class Output:
@@ -8,54 +11,18 @@ class Output:
         pass
 
     def send_note_on(self, note, vel):
-        raise NotImplementedError("Required method")
+        _not_implemented("send_note_on", note, vel)
 
     def send_note_off(self, note):
-        raise NotImplementedError("Required method")
+        _not_implemented("send_note_off", note)
+
+    def adjust_filter(self, value):
+        _not_implemented("adjust_filter", value)
 
 
 class Controller:
-    def __init__(self):
-        raise NotImplementedError("Required method")
-
     def update(self, drum: Drum, output: Output):
-        raise NotImplementedError("Required method")
+        _not_implemented("update")
 
     def show(self, drum: Drum):
-        raise NotImplementedError("Required method")
-
-
-class PotName:
-    Speed = 1
-    Volume = 2
-
-
-# class DeviceCallbacks:
-#     def __init__(self, on_clock):
-#         self.on_clock = on_clock
-
-
-class DeviceAPI:
-    def update(self):
-        raise NotImplementedError("Required device method")
-
-    def read_pot(self, pot_name: PotName) -> int | None:
-        raise NotImplementedError("Required device method")
-
-    def send_note_on(self, note, vel):
-        raise NotImplementedError("Required device method")
-
-    def send_note_off(self, note):
-        raise NotImplementedError("Required device method")
-
-    def show(self, drum: Drum):
-        raise NotImplementedError("Required device method")
-
-    # def set_callbacks(self, callbacks: DeviceCallbacks):
-    #     raise NotImplementedError("Required device method")
-
-    # def handle_input(self, drum: Drum, note_out: NoteOutput):
-    #     raise NotImplementedError("Required device method")
-
-    # def get_midi_message(self):
-    #     raise NotImplementedError("Required device method")
+        _not_implemented("show")

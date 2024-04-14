@@ -1,19 +1,15 @@
-import keypad
-import board
-import microcontroller
 import time
-import neopixel
-import analogio as aio
+
+import keypad  # type: ignore
+import board  # type: ignore
+import microcontroller  # type: ignore
+import neopixel  # type: ignore
+import analogio as aio  # type: ignore
 
 
 class Direction:
     Up = 1
     Down = -1
-
-
-class PotName:
-    Speed = 1
-    Volume = 2
 
 
 class SequencerKey:
@@ -59,7 +55,7 @@ class PotEvent:
         self.value: int = value
 
 
-class Controls:
+class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
@@ -68,9 +64,12 @@ class Controls:
 
         self.drum_pad1 = aio.AnalogIn(board.A3)
 
-        self.vol_pot = aio.AnalogIn(board.A4)
-        self.filter_left = aio.AnalogIn(board.A5)
-        self.filter_right = aio.AnalogIn(board.A6)
+        # TODO: Map real speed pot
+        # Using volume pot as speed pot for now
+        self.speed_pot = aio.AnalogIn(board.A4)
+
+        self.filter_right = aio.AnalogIn(board.A5)
+        self.filter_left = aio.AnalogIn(board.A6)
         self.tune_slider2 = aio.AnalogIn(board.A7)
 
         self.drum_pad2_bottom = aio.AnalogIn(board.A8)
@@ -89,12 +88,6 @@ class Controls:
 
         return None
 
-    def read_pot(self, pot_name: PotName) -> int | None:
-        if pot_name == PotName.Speed:
-            return self.vol_pot.value
-        else:
-            return None
-
 
 def init_keymatrix():
     col_pins = (board.D3, board.D4, board.D5, board.D6, board.D9)
@@ -111,7 +104,10 @@ def init_keymatrix():
     )
 
     return keypad.KeyMatrix(
-        row_pins=row_pins, column_pins=col_pins, interval=0.03, columns_to_anodes=False
+        row_pins=row_pins,
+        column_pins=col_pins,
+        interval=0.03,
+        columns_to_anodes=False
     )
 
 

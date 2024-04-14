@@ -1,4 +1,5 @@
-from .device_api import Controller, Controls, Output
+from .device_api import Controls, Output
+from .controller_api import Controller
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
 from adafruit_midi.note_on import NoteOn  # type: ignore
@@ -30,8 +31,9 @@ class MIDIOutput(Output):
         print("Filter:", value)
         self.midi.send(ControlChange(74, value))
 
-    def send_note_on(self, note: int, vel_percent: float):
-        self.midi.send(NoteOn(note, int((vel_percent * 127) / 100)))
+    def send_note_on(self, channel: int, note: int, vel_percent: float):
+        velocity = int((vel_percent * 127) / 100)
+        self.midi.send(NoteOn(note, velocity), channel)
 
-    def send_note_off(self, note):
-        self.midi.send(NoteOff(note))
+    def send_note_off(self, channel: int, note: int):
+        self.midi.send(NoteOff(note), channel)

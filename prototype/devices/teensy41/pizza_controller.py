@@ -1,4 +1,5 @@
-from firmware.device_api import Controller, Controls, SampleChange
+from firmware.device_api import Controls, SampleChange
+from firmware.controller_api import Controller
 from firmware.drum import Drum
 
 from .colors import ColorScheme
@@ -28,12 +29,11 @@ from .reading import (
 class PizzaController(Controller):
     def __init__(self):
         self.display = Display()
-
         self.hardware = Teensy41Hardware()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(
-            self.hardware.volume_pot)
+            self.hardware.volume_pot, inverted=False)
 
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)

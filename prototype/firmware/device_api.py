@@ -1,16 +1,13 @@
-from .drum import Drum
-
-
 def _not_implemented(name, *args):
     print("[Unimplemented]", name, args)
     # raise NotImplementedError("Required method: " + name)
 
 
 class Output:
-    def send_note_on(self, note: int, velocity_percent: float):
+    def send_note_on(self, channel: int, note: int, velocity_percent: float):
         _not_implemented("Output.send_note_on", note, velocity_percent)
 
-    def send_note_off(self, note: int):
+    def send_note_off(self, channel: int, note: int):
         _not_implemented("Output.send_note_off", note)
 
     def set_filter(self, value: float):
@@ -55,11 +52,3 @@ class Controls:
 class SampleChange:
     Next = 1
     Prev = -1
-
-
-class Controller:
-    def update(self, controls: Controls):
-        _not_implemented("Controller.update")
-
-    def show(self, drum: Drum):
-        _not_implemented("Controller.show")

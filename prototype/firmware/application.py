@@ -1,6 +1,7 @@
-from .note_player import NotePlayer
 from .drum import Drum
-from .device_api import Controller, Controls, Output, SampleChange
+from .device_api import Controls, Output, SampleChange
+from .controller_api import Controller
+
 
 USE_INTERNAL_TEMPO = True
 
@@ -40,16 +41,16 @@ class AppControls(Controls):
         self.drum.playing = not self.drum.playing
 
     def play_track_sample(self, track_index: int, velocity: float):
-        note = self.drum.tracks[track_index].note
-        self.drum.note_player.play(note, velocity)
+        pass
+        # note = self.drum.tracks[track_index].note
+        # self.drum.note_player.play(note, velocity)
 
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
         self.output = output
-        note_out = NotePlayer(output.send_note_on, output.send_note_off)
-        self.drum = Drum(note_out)
+        self.drum = Drum(output)
         self.controls = AppControls(self.drum, self.output)
 
         setup_tracks(self.drum.tracks)

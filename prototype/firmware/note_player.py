@@ -1,25 +1,29 @@
+from .device_api import Output
+
 NOTE_LENGTH = 2  # ticks
 
 
 class NotePlayer:
-    def __init__(self, send_note_on, send_note_off):
+    def __init__(self, channel: int, output: Output):
+        self.played_note: int | None
+        self.played_note = None
+
+        self.channel = channel
         self.ticks = 0
-        self.note = None
-        self.send_note_on = send_note_on
-        self.send_note_off = send_note_off
+        self.output = output
 
-    def play(self, note, vel=100.0):
-        if self.note is not None:
-            self.send_note_off(self.note)
+    def play(self, note: int, vel: float = 100.0) -> None:
+        if self.played_note is not None:
+            self.output.send_note_off(self.channel, self.played_note)
 
-        self.send_note_on(note, vel)
+        self.output.send_note_on(self.channel, note, vel)
         self.ticks = 0
-        self.note = note
+        self.played_note = note
 
-    def tick(self):
-        if self.note is not None:
+    def tick(self) -> None:
+        if self.played_note is not None:
             self.ticks += 1
             if self.ticks >= NOTE_LENGTH:
-                self.send_note_off(self.note)
+                self.output.send_note_off(self.channel, self.played_note)
+                self.played_note = None
                 self.ticks = 0
-                self.active = False

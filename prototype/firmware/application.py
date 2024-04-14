@@ -41,9 +41,8 @@ class AppControls(Controls):
         self.drum.playing = not self.drum.playing
 
     def play_track_sample(self, track_index: int, velocity: float):
-        pass
-        # note = self.drum.tracks[track_index].note
-        # self.drum.note_player.play(note, velocity)
+        track = self.drum.tracks[track_index]
+        track.note_player.play(track.note, velocity)
 
 
 class Application:

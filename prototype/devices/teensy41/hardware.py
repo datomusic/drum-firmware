@@ -5,6 +5,7 @@ import board  # type: ignore
 import microcontroller  # type: ignore
 import neopixel  # type: ignore
 import analogio as aio  # type: ignore
+import digitalio as dio  # type: ignore
 
 
 class Direction:
@@ -63,6 +64,7 @@ class ThresholdButton:
 
     def pressed(self) -> bool:
         val = self.pin.value
+        print(f"val: {val}")
 
         if not self.state and val > self.threshold:
             self.state = True
@@ -77,15 +79,18 @@ class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
-        self.repeat_button = aio.AnalogIn(board.A0)
-        self.tune_slider1 = aio.AnalogIn(board.A1)
-        self.play_button = ThresholdButton(aio.AnalogIn(board.A2), 500)
-        self.drum_pad1 = aio.AnalogIn(board.A3)
+        self.fx1 = aio.AnalogIn(board.A0)
+        self.pitch1 = aio.AnalogIn(board.A1)
+        self.drum_pad1 = aio.AnalogIn(board.A2)
+        self.mute1 = aio.AnalogIn(board.A3)
+
         # TODO: Map real speed pot
         # Using volume pot as speed pot for now
         self.speed_pot = aio.AnalogIn(board.A4)
+
         self.filter_right = aio.AnalogIn(board.A5)
         self.filter_left = aio.AnalogIn(board.A6)
+
         self.tune_slider2 = aio.AnalogIn(board.A7)
         self.drum_pad2_bottom = aio.AnalogIn(board.A8)
         self.drum_pad2 = aio.AnalogIn(board.A9)
@@ -93,6 +98,9 @@ class Teensy41Hardware:
         self.tune_slider3 = aio.AnalogIn(board.A11)
         self.drum_pad4 = aio.AnalogIn(board.A12)
         self.drum_pad3_bottom = aio.AnalogIn(board.A13)
+
+        self.play_button = ThresholdButton(dio.DigitalInOut(board.D33), 100)
+        self.play_button.pin.switch_to_input(pull=dio.Pull.DOWN)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()

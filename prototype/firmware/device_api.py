@@ -10,11 +10,11 @@ class Output:
     def send_note_off(self, channel: int, note: int):
         _not_implemented("Output.send_note_off", note)
 
-    def set_filter(self, value: float):
+    def set_filter(self, channel: int, value: float):
         _not_implemented("Output.set_filter", value)
 
-    def set_channel_pitch(self, channel_index: int, pitch: float):
-        _not_implemented("Output.set_channel_pitch", channel_index, pitch)
+    def set_channel_pitch(self, channel: int, pitch: float):
+        _not_implemented("Output.set_channel_pitch", channel, pitch)
 
 
 class Controls:

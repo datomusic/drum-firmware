@@ -93,7 +93,9 @@ class PizzaController(Controller):
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
-                lambda pitch: controls.set_track_pitch(track_ind, pitch))
+                lambda pitch: controls.set_track_pitch(
+                    track_ind,
+                    percentage_from_pot(pitch)))
 
         for (ind, drum_trigger) in enumerate(self.drum_triggers):
             drum_trigger.read(

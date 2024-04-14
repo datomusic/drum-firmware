@@ -8,7 +8,7 @@ class NotePlayer:
         self.send_note_on = send_note_on
         self.send_note_off = send_note_off
 
-    def play(self, note, vel=127):
+    def play(self, note, vel=100.0):
         if self.note is not None:
             self.send_note_off(self.note)
 

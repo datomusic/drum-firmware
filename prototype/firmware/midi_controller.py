@@ -1,6 +1,8 @@
 from .device_api import Controller, Controls, Output
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
+from adafruit_midi.note_on import NoteOn  # type: ignore
+from adafruit_midi.note_off import NoteOff  # type: ignore
 
 
 class PlatformMIDI:
@@ -13,9 +15,11 @@ class MIDIController(Controller):
         self.midi = midi
 
     def update(self, controls: Controls):
-        msg = self.midi.get_message()
-        if msg:
-            controls.set_bpm(120)
+        # TODO: Handle incoming MIDI
+        pass
+        # msg = self.midi.get_message()
+        # if msg:
+        #     controls.set_bpm(120)
 
 
 class MIDIOutput(Output):
@@ -26,8 +30,8 @@ class MIDIOutput(Output):
         print("Filter:", value)
         self.midi.send(ControlChange(74, value))
 
-    def send_note_on(self, note, vel):
-        pass
+    def send_note_on(self, note: int, vel_percent: float):
+        self.midi.send(NoteOn(note, int((vel_percent * 127) / 100)))
 
     def send_note_off(self, note):
-        pass
+        self.midi.send(NoteOff(note))

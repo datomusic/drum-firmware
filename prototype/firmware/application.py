@@ -39,6 +39,10 @@ class AppControls(Controls):
     def toggle_playing(self):
         self.drum.playing = not self.drum.playing
 
+    def play_track_sample(self, track_index: int, velocity: float):
+        note = self.drum.tracks[track_index].note
+        self.drum.note_player.play(note, velocity)
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):

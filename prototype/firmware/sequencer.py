@@ -3,7 +3,7 @@ STEP_COUNT = 8
 
 class Step:
     def __init__(self):
-        self.velocity = 127
+        self.velocity = 100.0
         self.active = False
 
 
@@ -16,7 +16,7 @@ class Sequencer:
         play_step(self.steps[self.cur_step_index], play_step_callback)
         self.cur_step_index = (self.cur_step_index + 1) % STEP_COUNT
 
-    def set_step(self, index, velocity=127):
+    def set_step(self, index, velocity=100.0):
         step = self.steps[index]
         if velocity > 0:
             step.velocity = velocity

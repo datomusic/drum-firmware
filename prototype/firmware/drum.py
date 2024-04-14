@@ -14,20 +14,20 @@ class Track:
 class Drum:
     def __init__(self, note_player: NotePlayer):
         self.tracks = [Track() for _ in range(SEQ_COUNT)]
-        self.tempo = Tempo(self.__on_tempo_tick)
+        self.tempo = Tempo(self._on_tempo_tick)
         self.note_player = note_player
         self.playing = True
 
     def update(self) -> None:
         self.tempo.update()
 
-    def __on_tempo_tick(self) -> None:
+    def _on_tempo_tick(self) -> None:
         if self.playing:
-            self.__tick_sequencers(self.note_player.play)
+            self._tick_sequencers(self.note_player.play)
 
         self.note_player.tick()
 
-    def __tick_sequencers(self, play_note_callback) -> None:
+    def _tick_sequencers(self, play_note_callback) -> None:
         def on_seq_note(vel):
             play_note_callback(track.note, vel)
 

@@ -27,6 +27,14 @@ class Controls:
     def toggle_track_step(self, track, step):
         _not_implemented("toggle_track_step", track, step)
 
+    def change_sample(self, track: int, change):
+        _not_implemented("change_sample", track, change)
+
+
+class SampleChange:
+    Next = 1
+    Prev = -1
+
 
 class Controller:
     def update(self, controls: Controls):

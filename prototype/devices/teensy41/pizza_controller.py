@@ -1,4 +1,4 @@
-from firmware.device_api import Controller, Controls
+from firmware.device_api import Controller, Controls, SampleChange
 from firmware.drum import Drum
 
 from .hardware import (
@@ -6,6 +6,8 @@ from .hardware import (
     Display,
     Drumpad,
     SequencerKey,
+    SampleSelectKey,
+    Direction
 )
 
 from .reading import IncDecReader, PotReader, bpm_from_pot
@@ -61,6 +63,21 @@ class PizzaController(Controller):
             key = event.key
             if isinstance(key, SequencerKey):
                 controls.toggle_track_step(key.track, key.step)
+
+            elif isinstance(key, SampleSelectKey):
+                if key.direction == Direction.Down:
+                    change = SampleChange.Prev
+                elif key.direction == Direction.Up:
+                    change = SampleChange.Next
+
+                controls.change_sample(key.track, change)
+
+            # elif isinstance(key, ControlKey):
+            #     print(f"Control, name: {key.name}, pressed: {event.pressed}")
+            #     if key.name == ControlName.Start:
+            #         note_out.play(drum.tracks[self.current_track].note)
+
+            #     print(f"key: {key}")
 
 
 def show_track(display, step_color, track, track_index):

@@ -1,6 +1,6 @@
 from .note_player import NotePlayer
 from .drum import Drum
-from .device_api import Controller, Controls, Output
+from .device_api import Controller, Controls, Output, SampleChange
 
 USE_INTERNAL_TEMPO = True
 
@@ -21,6 +21,17 @@ class AppControls(Controls):
 
     def toggle_track_step(self, track, step):
         self.drum.tracks[track].sequencer.toggle_step(step)
+
+    def change_sample(self, track_index, change):
+        if change == SampleChange.Prev:
+            step = -1
+
+        elif change == SampleChange.Next:
+            step = 1
+
+        track = self.drum.tracks[track_index]
+        track.note = max(0, min(31, track.note + step))
+        print(f"Sample change. track: {track_index}, note: {track.note}")
 
 
 class Application:

@@ -12,7 +12,7 @@ from .hardware import (
     ControlName
 )
 
-from .reading import IncDecReader, PotReader, bpm_from_pot
+from .reading import IncDecReader, PotReader, bpm_from_pot, percentage_from_pot
 from .colors import ColorScheme
 
 
@@ -27,8 +27,16 @@ class PizzaController(Controller):
         self.hardware = Teensy41Hardware()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
+        self.volume_setting = PotReader(self.hardware.volume_pot)
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)
+
+        self.pitch_settings = [
+            PotReader(self.hardware.pitch1),
+            PotReader(self.hardware.pitch2),
+            PotReader(self.hardware.pitch3),
+            PotReader(self.hardware.pitch4)
+        ]
 
     def update(self, controls: Controls) -> None:
         self._read_pots(controls)
@@ -42,6 +50,7 @@ class PizzaController(Controller):
                 Drumpad(track_index),
                 ColorScheme.Tracks[drum.tracks[track_index].note]
             )
+
             show_track(
                 self.display,
                 ColorScheme.Tracks[drum.tracks[track_index].note],
@@ -55,8 +64,15 @@ class PizzaController(Controller):
         self.speed_setting.read(
             lambda speed: controls.set_bpm(bpm_from_pot(speed)))
 
+        self.volume_setting.read(
+            lambda vol: controls.set_volume(percentage_from_pot(vol)))
+
         self.filter_setting.read(
             lambda val: controls.adjust_filter(val))
+
+        for track_ind, pitch_setting in enumerate(self.pitch_settings):
+            pitch_setting.read(
+                lambda pitch: controls.set_track_pitch(track_ind, pitch))
 
     def _process_keys(self, controls: Controls) -> None:
         event = self.hardware.get_key_event()
@@ -75,7 +91,6 @@ class PizzaController(Controller):
                 controls.change_sample(key.track, change)
 
             elif isinstance(key, ControlKey):
-                print(f"Control, name: {key.name}, pressed: {event.pressed}")
                 if key.name == ControlName.Start:
                     controls.toggle_playing()
 

@@ -24,11 +24,17 @@ class Controls:
     def set_bpm(self, bpm):
         _not_implemented("set_bpm", bpm)
 
-    def toggle_track_step(self, track, step):
-        _not_implemented("toggle_track_step", track, step)
+    def set_volume(self, vol):
+        _not_implemented("set_volume", vol)
 
-    def change_sample(self, track: int, change):
-        _not_implemented("change_sample", track, change)
+    def toggle_track_step(self, track_index, step):
+        _not_implemented("toggle_track_step", track_index, step)
+
+    def set_track_pitch(self, track_index, pitch):
+        _not_implemented("set_track_pitch", track_index, pitch)
+
+    def change_sample(self, track_index: int, change):
+        _not_implemented("change_sample", track_index, change)
 
     def toggle_playing(self):
         _not_implemented("toggle_playing")

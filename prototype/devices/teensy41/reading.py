@@ -7,6 +7,10 @@ def bpm_from_pot(pot_value):
     return ((POT_MAX - pot_value) / POT_MAX) * BPM_MAX
 
 
+def percentage_from_pot(pot_value):
+    return ((POT_MAX - pot_value) / POT_MAX) * 100
+
+
 class IncDecReader:
     def __init__(self, dec_pin, inc_pin):
         self.was_zero = True
@@ -15,12 +19,12 @@ class IncDecReader:
 
     def read(self, on_changed):
         threshold = 1000
-        val = self.dec_pin.value
+        val = self.dec_pin.read()
         if val > threshold:
             self.was_zero = False
             on_changed(- val)
         else:
-            val = self.inc_pin.value
+            val = self.inc_pin.read()
             if val > threshold:
                 self.was_zero = False
                 on_changed(val)
@@ -38,7 +42,7 @@ class PotReader:
     def read(self, on_changed):
         tolerance = 100
 
-        val = self.pin.value
+        val = self.pin.read()
         if self.last_val is None or abs(val - self.last_val) > tolerance:
             self.last_val = val
 

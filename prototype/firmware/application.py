@@ -1,8 +1,26 @@
 from .note_player import NotePlayer
 from .drum import Drum
-from .device_api import Controller, Output
+from .device_api import Controller, Controls, Output
 
 USE_INTERNAL_TEMPO = True
+
+
+class AppControls(Controls):
+    def __init__(self, drum: Drum, output: Output):
+        self.drum = drum
+        self.output = output
+
+        self.filter = 50
+
+    def adjust_filter(self, value):
+        self.filter = max(0, min(self.filter + value, 100))
+        self.output.set_filter(self.filter)
+
+    def set_bpm(self, bpm):
+        self.drum.tempo.set_bpm(bpm)
+
+    def toggle_track_step(self, track, step):
+        self.drum.tracks[track].sequencer.toggle_step(step)
 
 
 class Application:
@@ -11,13 +29,14 @@ class Application:
         self.output = output
         note_out = NotePlayer(output.send_note_on, output.send_note_off)
         self.drum = Drum(note_out)
+        self.controls = AppControls(self.drum, self.output)
 
         setup_tracks(self.drum.tracks)
         self.drum.tempo.use_internal = USE_INTERNAL_TEMPO
 
     def update(self) -> None:
         for controller in self.controllers:
-            controller.update(self.drum, self.output)
+            controller.update(self.controls)
 
         self.drum.update()
 

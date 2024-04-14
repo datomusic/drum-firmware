@@ -1,4 +1,4 @@
-from firmware.device_api import Controller, Output
+from firmware.device_api import Controller, Controls
 from firmware.drum import Drum
 
 from .hardware import (
@@ -26,9 +26,9 @@ class PizzaController(Controller):
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)
 
-    def update(self, drum: Drum, output: Output) -> None:
-        self._read_pots(drum, output)
-        self._process_keys()
+    def update(self, controls: Controls) -> None:
+        self._read_pots(controls)
+        self._process_keys(controls)
 
     def show(self, drum: Drum):
         self.display.clear()
@@ -47,17 +47,20 @@ class PizzaController(Controller):
 
         self.display.show()
 
-    def _read_pots(self, drum: Drum, output: Output) -> None:
+    def _read_pots(self, controls: Controls) -> None:
         self.speed_setting.read(
-            lambda speed: drum.tempo.set_bpm(bpm_from_pot(speed)))
+            lambda speed: controls.set_bpm(bpm_from_pot(speed)))
 
         self.filter_setting.read(
-            lambda val: output.adjust_filter(val))
+            lambda val: controls.adjust_filter(val))
 
-    def _process_keys(self):
-        key = self.hardware.get_key_event()
-        if key:
-            print(f"key: {key}")
+    def _process_keys(self, controls: Controls) -> None:
+        event = self.hardware.get_key_event()
+        pressed = event and event.pressed
+        if pressed:
+            key = event.key
+            if isinstance(key, SequencerKey):
+                controls.toggle_track_step(key.track, key.step)
 
 
 def show_track(display, step_color, track, track_index):

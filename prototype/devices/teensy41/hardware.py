@@ -59,27 +59,22 @@ class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
         self.keys = init_keymatrix()
+        self.repeat_button = aio.AnalogIn(board.A0)
         self.tune_slider1 = aio.AnalogIn(board.A1)
         self.play_button = aio.AnalogIn(board.A2)
-
         self.drum_pad1 = aio.AnalogIn(board.A3)
-
         # TODO: Map real speed pot
         # Using volume pot as speed pot for now
         self.speed_pot = aio.AnalogIn(board.A4)
-
         self.filter_right = aio.AnalogIn(board.A5)
         self.filter_left = aio.AnalogIn(board.A6)
         self.tune_slider2 = aio.AnalogIn(board.A7)
-
         self.drum_pad2_bottom = aio.AnalogIn(board.A8)
         self.drum_pad2 = aio.AnalogIn(board.A9)
         self.random_button = aio.AnalogIn(board.A10)
-
         self.tune_slider3 = aio.AnalogIn(board.A11)
         self.drum_pad4 = aio.AnalogIn(board.A12)
         self.drum_pad3_bottom = aio.AnalogIn(board.A13)
-        self.repeat_button = aio.AnalogIn(board.A0)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -115,28 +110,27 @@ def translate_key_event(event) -> KeyEvent | None:
     key: SequencerKey | SampleSelectKey | ControlKey | None = None
     n = event.key_number
 
-    # print(n)
-
     if (n % 5) < 4:
         key = SequencerKey(int(n / 5), n % 5)
     elif n == 9:
-        key = SampleSelectKey(1, 3)
+        key = SampleSelectKey(Direction.Up, 3)
     elif n == 14:
-        key = SampleSelectKey(-1, 3)
+        key = SampleSelectKey(Direction.Down, 3)
     elif n == 19:
-        key = SampleSelectKey(1, 2)
+        key = SampleSelectKey(Direction.Up, 2)
     elif n == 24:
-        key = SampleSelectKey(-1, 2)
+        key = SampleSelectKey(Direction.Down, 2)
     elif n == 29:
-        key = SampleSelectKey(1, 1)
+        key = SampleSelectKey(Direction.Up, 1)
     elif n == 34:
-        key = SampleSelectKey(-1, 1)
+        key = SampleSelectKey(Direction.Down, 1)
     elif n == 39:
-        key = SampleSelectKey(1, 0)
+        key = SampleSelectKey(Direction.Up, 0)
     elif n == 4:
-        key = SampleSelectKey(-1, 0)
+        key = SampleSelectKey(Direction.Down, 0)
     else:
-        key = ControlKey(n)
+        key = None
+        # key = ControlKey(n)
 
     if key:
         return KeyEvent(key, event.pressed)

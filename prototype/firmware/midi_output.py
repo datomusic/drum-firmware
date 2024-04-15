@@ -20,7 +20,7 @@ class MIDIOutput(Output):
 
     def set_channel_pitch(self, channel: int, pitch_percent: float):
         self._print_send(
-            ControlChange(16, percent_to_midi(pitch_percent), channel=channel + 1)
+            ControlChange(16 + channel, percent_to_midi(pitch_percent), channel=channel + 1)
         )
 
     def set_volume(self, vol_percent):

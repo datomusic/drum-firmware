@@ -6,9 +6,11 @@ from .hardware import (
     Controls,
     Display,
 )
+
 from drum import Drum
 from note_output import NoteOutput
-from device_api import DeviceAPI
+from device_api import DeviceAPI, PotName
+
 
 class Brains2Device(DeviceAPI):
     def __init__(self):
@@ -27,7 +29,13 @@ class Brains2Device(DeviceAPI):
 
         self.display.show()
 
-    def handle_input(self, drum: Drum, note_out: NoteOutput):
+    def read_pot(self, pot_name: PotName) -> int | None:
+        if pot_name == PotName.Speed:
+            return self.controls.pot1.value
+        else:
+            return None
+
+    def handle_input(self, drum: Drum, note_out: NoteOutput, tempo):
         event = self.controls.get_key_event()
         if event and event.pressed:
             key = event.key
@@ -40,7 +48,9 @@ class Brains2Device(DeviceAPI):
                 track = drum.tracks[self.current_track]
                 track.note = key.number
                 print(f"track.note: {track.note}")
-                print(f"Keyboard, number: {key.number}, pressed: {event.pressed}")
+                print(
+                    f"Keyboard, number: {key.number}, pressed: {event.pressed}"
+                )
 
             elif isinstance(key, ControlKey):
                 print(f"Control, name: {key.name}, pressed: {event.pressed}")

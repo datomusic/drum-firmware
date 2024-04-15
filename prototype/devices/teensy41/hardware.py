@@ -1,9 +1,11 @@
-import keypad
-import board
-import microcontroller
 import time
-import neopixel
-import analogio as aio
+
+import keypad  # type: ignore
+import board  # type: ignore
+import microcontroller  # type: ignore
+import neopixel  # type: ignore
+import analogio as aio  # type: ignore
+import digitalio as dio  # type: ignore
 
 
 class Direction:
@@ -54,17 +56,98 @@ class PotEvent:
         self.value: int = value
 
 
-class Controls:
+class ThresholdButton:
+    def __init__(self, pin, threshold):
+        self.state = False
+        self.pin = pin
+        self.threshold = threshold
+
+    def pressed(self) -> bool:
+        val = self.pin.value
+        print(f"val: {val}")
+
+        if not self.state and val > self.threshold:
+            self.state = True
+            return True
+        elif self.state and val < self.threshold:
+            self.state = False
+
+        return False
+
+
+class ToggleButton:
+    def __init__(self, pin, inverted=True):
+        self.state = False
+        self.pin = pin
+        self.inverted = inverted
+
+    def pressed(self) -> bool:
+        dig = dio.DigitalInOut(self.pin)
+        val = dig.value
+        dig.deinit()
+
+        if self.state != val:
+            self.state = val
+            ret = val
+            if self.inverted:
+                ret = not ret
+            return ret
+
+        return False
+
+
+class AnalogReader:
+    def __init__(self, pin):
+        self.pin = pin
+        self.analog = aio.AnalogIn(self.pin)
+
+    def read(self):
+        val = self.analog.value
+        return val
+
+
+class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
+        # microcontroller.cpu.frequency = 600000000
+
         self.keys = init_keymatrix()
-        self.pot1 = aio.AnalogIn(board.A10)
-        self.pot2 = aio.AnalogIn(board.A11)
+        self.repeat_button = AnalogReader(board.A0)
+        self.pitch1 = AnalogReader(board.A1)
+
+        self.drum_pad1 = AnalogReader(board.A2)
+        self.drum_pad1_bottom = AnalogReader(board.A3)
+
+        self.volume_pot = AnalogReader(board.A4)
+        self.swing_right = ToggleButton(board.D8)
+        self.swing_left = ToggleButton(board.D7)
+        self.pitch2 = AnalogReader(board.A5)
+
+        self.drum_pad2 = AnalogReader(board.A6)
+        self.drum_pad2_bottom = AnalogReader(board.A7)
+
+        self.random_button = AnalogReader(board.A8)
+        self.pitch3 = AnalogReader(board.A9)
+
+        self.drum_pad3 = AnalogReader(board.A10)
+        self.drum_pad3_bottom = AnalogReader(board.A11)
+
+        self.play_button = ToggleButton(board.D37)
+        self.speed_pot = AnalogReader(board.A12)
+        self.filter_right = AnalogReader(board.A13)
+        self.filter_left = AnalogReader(board.D38)
+        self.pitch4 = AnalogReader(board.D39)
+
+        self.drum_pad4 = AnalogReader(board.D40)
+        self.drum_pad4_bottom = AnalogReader(board.D41)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
         if key_event:
             return translate_key_event(key_event)
+        else:
+            if self.play_button.pressed():
+                return KeyEvent(ControlKey(ControlName.Start), True)
 
         return None
 
@@ -84,7 +167,10 @@ def init_keymatrix():
     )
 
     return keypad.KeyMatrix(
-        row_pins=row_pins, column_pins=col_pins, interval=0.03, columns_to_anodes=False
+        row_pins=row_pins,
+        column_pins=col_pins,
+        interval=0.1,
+        columns_to_anodes=False
     )
 
 
@@ -92,28 +178,27 @@ def translate_key_event(event) -> KeyEvent | None:
     key: SequencerKey | SampleSelectKey | ControlKey | None = None
     n = event.key_number
 
-    # print(n)
-
     if (n % 5) < 4:
         key = SequencerKey(int(n / 5), n % 5)
     elif n == 9:
-        key = SampleSelectKey(1, 3)
+        key = SampleSelectKey(Direction.Up, 3)
     elif n == 14:
-        key = SampleSelectKey(-1, 3)
+        key = SampleSelectKey(Direction.Down, 3)
     elif n == 19:
-        key = SampleSelectKey(1, 2)
+        key = SampleSelectKey(Direction.Up, 2)
     elif n == 24:
-        key = SampleSelectKey(-1, 2)
+        key = SampleSelectKey(Direction.Down, 2)
     elif n == 29:
-        key = SampleSelectKey(1, 1)
+        key = SampleSelectKey(Direction.Up, 1)
     elif n == 34:
-        key = SampleSelectKey(-1, 1)
+        key = SampleSelectKey(Direction.Down, 1)
     elif n == 39:
-        key = SampleSelectKey(1, 0)
+        key = SampleSelectKey(Direction.Up, 0)
     elif n == 4:
-        key = SampleSelectKey(-1, 0)
+        key = SampleSelectKey(Direction.Down, 0)
     else:
-        key = ControlKey(n)
+        key = None
+        # key = ControlKey(n)
 
     if key:
         return KeyEvent(key, event.pressed)
@@ -186,7 +271,8 @@ class Display:
 def init_pixels():
     pixel_count = 41
 
-    pixels = neopixel.NeoPixel(board.D2, pixel_count, brightness=1.0, auto_write=False)
+    pixels = neopixel.NeoPixel(
+        board.D2, pixel_count, brightness=1.0, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

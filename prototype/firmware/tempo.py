@@ -1,6 +1,8 @@
-from adafruit_midi.timing_clock import TimingClock
-from adafruit_midi.midi_continue import Continue
+from adafruit_midi.timing_clock import TimingClock  # type: ignore
+from adafruit_midi.midi_continue import Continue  # type: ignore
+
 import time
+
 
 class BeatTicks:
     def __init__(self, ticks_per_beat):
@@ -32,10 +34,16 @@ class MidiTempo:
 
 
 class InternalTempo:
-    def __init__(self, ms_per_beat=1000):
+    def __init__(self, bpm):
         self.acc = 0
         self.last = time.monotonic_ns()
-        self.ms_per_beat = ms_per_beat
+        self.set_bpm(bpm)
+
+    def set_bpm(self, bpm):
+        if bpm < 1:
+            bpm = 1
+        bpm = int(bpm)
+        self.ms_per_beat = int((60 * 1000) / bpm)
 
     def update(self) -> bool:
         now = time.monotonic_ns()
@@ -52,17 +60,22 @@ class InternalTempo:
 
 
 class Tempo:
-    def __init__(self, midi, on_tick):
-        self.midi = midi
+    def __init__(self, on_tick):
+        self.internal_multiplier = 2
         self.on_tick = on_tick
-        self.use_internal = False
+        self.use_internal = True
 
-        self.internal_tempo = InternalTempo(100)
+        self.internal_tempo = InternalTempo(120 * self.internal_multiplier)
         self.midi_tempo = MidiTempo()
+
+    def set_bpm(self, bpm):
+        bpm = round(bpm)
+        print(f"bpm: {bpm}")
+        self.internal_tempo.set_bpm(bpm * self.internal_multiplier)
 
     def update(self):
         if self.use_internal:
-            if self.internal_tempo.update():
+            while self.internal_tempo.update():
                 self.on_tick()
 
     def on_midi_msg(self, msg):

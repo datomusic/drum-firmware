@@ -61,7 +61,7 @@ class InternalTempo:
 
 class Tempo:
     def __init__(self, on_tick):
-        self.internal_multiplier = 4
+        self.internal_multiplier = 2
         self.on_tick = on_tick
         self.use_internal = True
 

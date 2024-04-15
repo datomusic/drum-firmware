@@ -13,7 +13,6 @@ class MIDIOutput(Output):
         self._print_send(ControlChange(74, percent_to_midi(amount_percent)))
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
-        print(f"note: {note}, velocity: {percent_to_midi(vel_percent)}, channel: {channel}")
         self.midi.send(NoteOn(note, percent_to_midi(vel_percent), channel=channel))
 
     def send_note_off(self, channel: int, note: int):

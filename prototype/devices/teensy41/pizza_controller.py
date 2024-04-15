@@ -2,6 +2,9 @@ from firmware.device_api import Controls, SampleChange
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 
+import gc
+import time
+
 from .colors import ColorScheme
 from .hardware import (
     Teensy41Hardware,
@@ -59,8 +62,14 @@ class PizzaController(Controller):
             PotReader(self.hardware.drum_pad3_bottom),
             PotReader(self.hardware.drum_pad4_bottom)
         ]
+        
+        self.last_update = time.monotonic()
 
     def update(self, controls: Controls) -> None:
+        update_interval = time.monotonic() - self.last_update
+        self.last_update = time.monotonic()
+        gc.collect()
+        print(f"update interval: {int(update_interval*1000)}ms, mem free: {gc.mem_free()}")
         self._read_pots(controls)
         self._process_keys(controls)
 

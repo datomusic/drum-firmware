@@ -99,17 +99,18 @@ class ToggleButton:
 class AnalogReader:
     def __init__(self, pin):
         self.pin = pin
+        self.analog = aio.AnalogIn(self.pin)
 
     def read(self):
-        analog = aio.AnalogIn(self.pin)
-        val = analog.value
-        analog.deinit()
+        val = self.analog.value
         return val
 
 
 class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
+        # microcontroller.cpu.frequency = 600000000
+
         self.keys = init_keymatrix()
         self.repeat_button = AnalogReader(board.A0)
         self.pitch1 = AnalogReader(board.A1)

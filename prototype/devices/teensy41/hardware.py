@@ -180,21 +180,21 @@ def translate_key_event(event) -> KeyEvent | None:
     if (n % 5) < 4:
         key = SequencerKey(int(n / 5), n % 5)
     elif n == 9:
-        key = SampleSelectKey(Direction.Up, 3)
-    elif n == 14:
-        key = SampleSelectKey(Direction.Down, 3)
-    elif n == 19:
-        key = SampleSelectKey(Direction.Up, 2)
-    elif n == 24:
-        key = SampleSelectKey(Direction.Down, 2)
-    elif n == 29:
-        key = SampleSelectKey(Direction.Up, 1)
-    elif n == 34:
-        key = SampleSelectKey(Direction.Down, 1)
-    elif n == 39:
         key = SampleSelectKey(Direction.Up, 0)
-    elif n == 4:
+    elif n == 14:
         key = SampleSelectKey(Direction.Down, 0)
+    elif n == 19:
+        key = SampleSelectKey(Direction.Up, 1)
+    elif n == 24:
+        key = SampleSelectKey(Direction.Down, 1)
+    elif n == 29:
+        key = SampleSelectKey(Direction.Up, 2)
+    elif n == 34:
+        key = SampleSelectKey(Direction.Down, 2)
+    elif n == 39:
+        key = SampleSelectKey(Direction.Up, 3)
+    elif n == 4:
+        key = SampleSelectKey(Direction.Down, 3)
     else:
         key = None
         # key = ControlKey(n)
@@ -240,7 +240,12 @@ step_to_led = {
     31: 7,
 }
 
-drumpad_to_led = {0: 5, 1: 16, 2: 25, 3: 36}
+drumpad_to_led = {
+    0: 36,
+    1: 25,
+    2: 16,
+    3: 5,
+}
 
 
 class Display:

@@ -80,11 +80,10 @@ class ToggleButton:
         self.state = False
         self.pin = pin
         self.inverted = inverted
+        self.digital = dio.DigitalInOut(self.pin)
 
     def pressed(self) -> bool:
-        dig = dio.DigitalInOut(self.pin)
-        val = dig.value
-        dig.deinit()
+        val = self.digital.value
 
         if self.state != val:
             self.state = val

@@ -13,14 +13,14 @@ class MIDIOutput(Output):
         self._print_send(ControlChange(74, percent_to_midi(amount_percent)))
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
-        self.midi.send(NoteOn(note, percent_to_midi(vel_percent), channel=channel))
+        self.midi.send(NoteOn(note, percent_to_midi(vel_percent)), channel=channel)
 
     def send_note_off(self, channel: int, note: int):
-        self.midi.send(NoteOff(note, channel=channel))
+        self.midi.send(NoteOff(note), channel=channel)
 
     def set_channel_pitch(self, channel: int, pitch_percent: float):
         self._print_send(
-            ControlChange(16 + channel, percent_to_midi(pitch_percent), channel=channel)
+            ControlChange(16 + channel, percent_to_midi(pitch_percent))
         )
 
     def set_volume(self, vol_percent):

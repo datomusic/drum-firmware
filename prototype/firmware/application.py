@@ -35,7 +35,12 @@ class AppControls(Controls):
             step = 1
 
         track = self.drum.tracks[track_index]
-        track.note = max(0, min(SAMPLE_COUNT - 1, track.note + step))
+        if track.note + step < 0:
+            track.note = SAMPLE_COUNT - track.note + step
+        elif track.note + step >= SAMPLE_COUNT:
+            track.note = track.note - SAMPLE_COUNT + step
+        else:
+            track.note = track.note + step
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
     def toggle_playing(self):

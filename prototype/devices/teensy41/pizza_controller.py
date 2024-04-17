@@ -8,7 +8,6 @@ import time
 from .colors import ColorScheme
 from .hardware import (
     Teensy41Hardware,
-    Display,
     Drumpad,
     SequencerKey,
     SampleSelectKey,
@@ -32,11 +31,11 @@ BPM_MAX = 300
 
 class PizzaController(Controller):
     def __init__(self, hardware=None):
-        self.display = Display()
         if hardware is None:
             hardware = Teensy41Hardware()
 
         self.hardware = hardware
+        self.display = hardware.init_display()
 
         self.speed_setting = PotReader(self.hardware.speed_pot, inverted=False)
         self.volume_setting = PotReader(

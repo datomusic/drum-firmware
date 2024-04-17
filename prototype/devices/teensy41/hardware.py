@@ -176,6 +176,9 @@ class Teensy41Hardware:
 
         return None
 
+    def init_display(self):
+        return Display()
+
 
 def init_keymatrix():
     col_pins = (board.D3, board.D4, board.D5, board.D6, board.D9)

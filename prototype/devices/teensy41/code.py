@@ -3,12 +3,12 @@ from adafruit_midi import MIDI  # type: ignore
 from firmware.application import Application
 from firmware.midi_output import MIDIOutput
 from teensy41.pizza_controller import PizzaController
-from teensy41.hardware import Teensy41Hardware, DefaultPins
+from teensy41.hardware import Teensy41Hardware
 
 use_valter_pins = False
 
 if not use_valter_pins:
-    pins = DefaultPins()
+    pizza_controller = PizzaController()
 else:
     import board
 
@@ -43,13 +43,13 @@ else:
             self.drum_pad4 = board.D40
             self.drum_pad4_bottom = board.D41
 
-    pins = ValterPins()
+    pizza_controller = PizzaController(Teensy41Hardware(ValterPins()))
 
 
 (midi_in, midi_out) = usb_midi.ports
 midi = MIDI(midi_in=midi_in, midi_out=midi_out)
 
-controllers = [PizzaController(Teensy41Hardware(pins))]
+controllers = [pizza_controller]
 output = MIDIOutput(midi)
 
 Application(controllers, output).run()

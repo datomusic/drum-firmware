@@ -105,66 +105,34 @@ class AnalogReader:
         return val
 
 
-class DefaultPins:
-    def __init__(self):
-        self.repeat_button = board.A0
-        self.pitch1 = board.A1
-
-        self.drum_pad1 = board.A2
-        self.drum_pad1_bottom = board.A3
-
-        self.volume_pot = board.A4
-        self.swing_right = board.D8
-        self.swing_left = board.D7
-        self.pitch2 = board.A7
-
-        self.drum_pad2 = board.A8
-        self.drum_pad2_bottom = board.A9
-
-        self.random_button = board.A10
-        self.pitch3 = board.A11
-
-        self.drum_pad3 = board.A12
-        self.drum_pad3_bottom = board.A13
-
-        self.play_button = board.D37
-        self.speed_pot = board.D38
-        self.filter_right = board.A5
-        self.filter_left = board.A6
-        self.pitch4 = board.D39
-
-        self.drum_pad4 = board.D40
-        self.drum_pad4_bottom = board.D41
-
-
 class Teensy41Hardware:
-    def __init__(self, pins=DefaultPins()):
+    def __init__(self):
         microcontroller.cpu.frequency = 150000000
         # microcontroller.cpu.frequency = 600000000
 
         self.keys = init_keymatrix()
 
-        self.play_button = ToggleButton(pins.play_button)
-        self.volume_pot = AnalogReader(pins.volume_pot)
-        self.speed_pot = AnalogReader(pins.speed_pot)
-        self.random_button = AnalogReader(pins.random_button)
-        self.repeat_button = AnalogReader(pins.repeat_button)
-        self.filter_right = AnalogReader(pins.filter_right)
-        self.filter_left = AnalogReader(pins.filter_left)
-        self.drum_pad1 = AnalogReader(pins.drum_pad1)
-        self.drum_pad1_bottom = AnalogReader(pins.drum_pad1_bottom)
-        self.drum_pad2 = AnalogReader(pins.drum_pad2)
-        self.drum_pad2_bottom = AnalogReader(pins.drum_pad2_bottom)
-        self.drum_pad3 = AnalogReader(pins.drum_pad3)
-        self.drum_pad3_bottom = AnalogReader(pins.drum_pad3_bottom)
-        self.drum_pad4 = AnalogReader(pins.drum_pad4)
-        self.drum_pad4_bottom = AnalogReader(pins.drum_pad4_bottom)
-        self.swing_right = ToggleButton(pins.swing_right)
-        self.swing_left = ToggleButton(pins.swing_left)
-        self.pitch1 = AnalogReader(pins.pitch1)
-        self.pitch2 = AnalogReader(pins.pitch2)
-        self.pitch3 = AnalogReader(pins.pitch3)
-        self.pitch4 = AnalogReader(pins.pitch4)
+        self.play_button = ToggleButton(board.D37)
+        self.volume_pot = AnalogReader(board.A4)
+        self.speed_pot = AnalogReader(board.D38)
+        self.random_button = AnalogReader(board.A10)
+        self.repeat_button = AnalogReader(board.A0)
+        self.filter_right = AnalogReader(board.A5)
+        self.filter_left = AnalogReader(board.A6)
+        self.drum_pad1 = AnalogReader(board.A2)
+        self.drum_pad1_bottom = AnalogReader(board.A3)
+        self.drum_pad2 = AnalogReader(board.A8)
+        self.drum_pad2_bottom = AnalogReader(board.A9)
+        self.drum_pad3 = AnalogReader(board.A12)
+        self.drum_pad3_bottom = AnalogReader(board.A13)
+        self.drum_pad4 = AnalogReader(board.D40)
+        self.drum_pad4_bottom = AnalogReader(board.D41)
+        self.swing_right = ToggleButton(board.D8)
+        self.swing_left = ToggleButton(board.D7)
+        self.pitch1 = AnalogReader(board.A1)
+        self.pitch2 = AnalogReader(board.A7)
+        self.pitch3 = AnalogReader(board.A11)
+        self.pitch4 = AnalogReader(board.D39)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -195,10 +163,7 @@ def init_keymatrix():
     )
 
     return keypad.KeyMatrix(
-        row_pins=row_pins,
-        column_pins=col_pins,
-        interval=0.1,
-        columns_to_anodes=False
+        row_pins=row_pins, column_pins=col_pins, interval=0.1, columns_to_anodes=False
     )
 
 

@@ -51,7 +51,6 @@ else:
 midi = MIDI(midi_in=midi_in, midi_out=midi_out)
 
 controllers = [PizzaController(Teensy41Hardware(pins))]
-# output = MIDIOutput(midi)
-output = PrintOutput()
+output = MIDIOutput(midi)
 
 Application(controllers, output).run()

@@ -63,13 +63,10 @@ class PizzaController(Controller):
             PotReader(self.hardware.drum_pad4_bottom)
         ]
         
-        self.last_update = time.monotonic()
+        self.last_update = time.monotonic_ns()
 
     def update(self, controls: Controls) -> None:
-        update_interval = time.monotonic() - self.last_update
-        self.last_update = time.monotonic()
         gc.collect()
-        print(f"update interval: {int(update_interval*1000)}ms, mem free: {gc.mem_free()}")
         self._read_pots(controls)
         self._process_keys(controls)
 
@@ -101,7 +98,7 @@ class PizzaController(Controller):
 
         self.filter_setting.read(
             lambda val: controls.adjust_filter(percentage_from_pot(val) / 30))
-
+        
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
                 lambda pitch: controls.set_track_pitch(

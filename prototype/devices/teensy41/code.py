@@ -3,10 +3,9 @@ from adafruit_midi import MIDI  # type: ignore
 from firmware.application import Application
 from firmware.midi_output import MIDIOutput
 from teensy41.pizza_controller import PizzaController
-from firmware.print_output import PrintOutput
 from teensy41.hardware import Teensy41Hardware, DefaultPins
 
-use_valter_pins = True
+use_valter_pins = False
 
 if not use_valter_pins:
     pins = DefaultPins()

@@ -62,8 +62,6 @@ class PizzaController(Controller):
             PotReader(self.hardware.drum_pad3_bottom),
             PotReader(self.hardware.drum_pad4_bottom)
         ]
-        
-        self.last_update = time.monotonic_ns()
 
     def update(self, controls: Controls) -> None:
         gc.collect()

@@ -31,9 +31,12 @@ BPM_MAX = 300
 
 
 class PizzaController(Controller):
-    def __init__(self):
+    def __init__(self, hardware=None):
         self.display = Display()
-        self.hardware = Teensy41Hardware()
+        if hardware is None:
+            hardware = Teensy41Hardware()
+
+        self.hardware = hardware
 
         self.speed_setting = PotReader(self.hardware.speed_pot, inverted=False)
         self.volume_setting = PotReader(
@@ -62,7 +65,7 @@ class PizzaController(Controller):
             PotReader(self.hardware.drum_pad3_bottom),
             PotReader(self.hardware.drum_pad4_bottom)
         ]
-        
+
     def update(self, controls: Controls) -> None:
         gc.collect()
         self._read_pots(controls)

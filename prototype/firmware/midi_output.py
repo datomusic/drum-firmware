@@ -1,6 +1,7 @@
 from .device_api import Output
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
+from adafruit_midi.channel_pressure import ChannelPressure # type: ignore
 from adafruit_midi.note_on import NoteOn  # type: ignore
 from adafruit_midi.note_off import NoteOff  # type: ignore
 
@@ -22,6 +23,9 @@ class MIDIOutput(Output):
         self._print_send(
             ControlChange(16 + channel, percent_to_midi(pitch_percent))
         )
+
+    def set_channel_pressure(self, channel: int, pressure: float):
+        self.midi.send(ChannelPressure(percent_to_midi(pressure)), channel=channel)
 
     def set_volume(self, vol_percent):
         self._print_send(ControlChange(7, percent_to_midi(vol_percent)))

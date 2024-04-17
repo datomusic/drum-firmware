@@ -50,9 +50,10 @@ class AppControls(Controls):
         track = self.drum.tracks[track_index]
         track.note_player.play(track.note, velocity)
 
-    def set_track_mute(self, track_index: int, amount_percent: float):
-        track = self.drum.tracks[track_index]
-        track.note_player.mute_level = amount_percent
+    def set_track_mute(self, track_index, pressure):
+        # track = self.drum.tracks[track_index]
+        # track.note_player.mute_level = amount_percent
+        self.output.set_channel_pressure(track_index, pressure)
 
     def set_volume(self, vol_percent):
         self.output.set_volume(vol_percent)
@@ -85,10 +86,10 @@ class Application:
 
 
 def setup_tracks(tracks):
-    tracks[0].note = 0
-    tracks[1].note = 7
-    tracks[2].note = 15
-    tracks[3].note = 23
+    tracks[3].note = 10
+    tracks[2].note = 0
+    tracks[1].note = 18
+    tracks[0].note = 25
 
     tracks[0].sequencer.set_step(0)
     tracks[0].sequencer.set_step(4)

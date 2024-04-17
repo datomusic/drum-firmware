@@ -116,21 +116,21 @@ class DefaultPins:
         self.volume_pot = board.A4
         self.swing_right = board.D8
         self.swing_left = board.D7
-        self.pitch2 = board.A5
+        self.pitch2 = board.A7
 
-        self.drum_pad2 = board.A6
-        self.drum_pad2_bottom = board.A7
+        self.drum_pad2 = board.A8
+        self.drum_pad2_bottom = board.A9
 
-        self.random_button = board.A8
-        self.pitch3 = board.A9
+        self.random_button = board.A10
+        self.pitch3 = board.A11
 
-        self.drum_pad3 = board.A10
-        self.drum_pad3_bottom = board.A11
+        self.drum_pad3 = board.A12
+        self.drum_pad3_bottom = board.A13
 
         self.play_button = board.D37
-        self.speed_pot = board.A12
-        self.filter_right = board.A13
-        self.filter_left = board.D38
+        self.speed_pot = board.D38
+        self.filter_right = board.A5
+        self.filter_left = board.A6
         self.pitch4 = board.D39
 
         self.drum_pad4 = board.D40
@@ -165,9 +165,6 @@ class Teensy41Hardware:
         self.pitch2 = AnalogReader(pins.pitch2)
         self.pitch3 = AnalogReader(pins.pitch3)
         self.pitch4 = AnalogReader(pins.pitch4)
-
-
-
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -304,8 +301,7 @@ class Display:
 def init_pixels():
     pixel_count = 41
 
-    pixels = neopixel.NeoPixel(
-        board.D2, pixel_count, brightness=1.0, auto_write=False)
+    pixels = neopixel.NeoPixel(board.D2, pixel_count, brightness=1.0, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

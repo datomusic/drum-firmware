@@ -5,7 +5,12 @@ from firmware.midi_output import MIDIOutput
 from teensy41.pizza_controller import PizzaController
 from teensy41.hardware import Teensy41Hardware
 
-use_valter_pins = False
+try:
+    import board_config
+
+    use_valter_pins = board_config.use_valter_pins
+except ImportError:
+    use_valter_pins = False
 
 if not use_valter_pins:
     pizza_controller = PizzaController()

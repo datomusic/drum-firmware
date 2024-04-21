@@ -1,9 +1,8 @@
-from firmware.device_api import Controls, SampleChange
+from firmware.device_api import Controls, SampleChange, OutputParam
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 
 import gc
-import time
 
 from .colors import ColorScheme
 from .hardware import (
@@ -17,7 +16,6 @@ from .hardware import (
 )
 
 from .reading import (
-    IncDecReader,
     PotReader,
     ThresholdTrigger,
     percentage_from_pot)
@@ -41,8 +39,11 @@ class PizzaController(Controller):
         self.volume_setting = PotReader(
             self.hardware.volume_pot, inverted=False)
 
-        self.filter_setting = IncDecReader(
-            self.hardware.filter_left, self.hardware.filter_right)
+        self.lowpass_setting = PotReader(
+            self.hardware.filter_left, inverted=False)
+
+        self.highpass_setting = PotReader(
+            self.hardware.filter_right, inverted=False)
 
         self.pitch_settings = [
             PotReader(self.hardware.pitch1),
@@ -94,11 +95,20 @@ class PizzaController(Controller):
                 (percentage_from_pot(speed)) * BPM_MAX / 100))
 
         self.volume_setting.read(
-            lambda vol: controls.set_volume(percentage_from_pot(vol)))
+            lambda vol: controls.set_output_param(
+                OutputParam.Volume,
+                percentage_from_pot(vol)))
 
-        self.filter_setting.read(
-            lambda val: controls.adjust_filter(percentage_from_pot(val) / 30))
-        
+        self.lowpass_setting.read(
+            lambda val: controls.set_output_param(
+                OutputParam.LowPass,
+                percentage_from_pot(val)))
+
+        self.highpass_setting.read(
+            lambda val: controls.set_output_param(
+                OutputParam.HighPass,
+                percentage_from_pot(val)))
+
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
                 lambda pitch: controls.set_track_pitch(

@@ -33,9 +33,9 @@ class MIDIOutput(Output):
                 74, 64 - math.floor(percent_to_midi(percent) / 2))
 
     def send_cc(self, cc, value, channel=1):
-        print(f"CC {cc}: {value}")
+        print(f"[{channel}] CC {cc}: {value}")
         self.midi.send(ControlChange(cc, value), channel=channel)
 
 
 def percent_to_midi(percent):
-    return max(0, min(int((percent * 127) / 100), 127))
+    return max(0, min(round((percent * 127) / 100), 127))

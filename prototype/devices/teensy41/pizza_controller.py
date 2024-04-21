@@ -39,8 +39,11 @@ class PizzaController(Controller):
         self.volume_setting = PotReader(
             self.hardware.volume_pot, inverted=False)
 
-        self.lowpass_setting = PotReader(self.hardware.filter_left)
-        self.highpass_setting = PotReader(self.hardware.filter_right)
+        self.lowpass_setting = PotReader(
+            self.hardware.filter_left, inverted=False)
+
+        self.highpass_setting = PotReader(
+            self.hardware.filter_right, inverted=False)
 
         self.pitch_settings = [
             PotReader(self.hardware.pitch1),

@@ -40,6 +40,9 @@ class PizzaController(Controller):
         self.volume_setting = PotReader(
             self.hardware.volume_pot)
 
+        self.filter_setting = IncDecReader(
+            self.hardware.filter_left, self.hardware.filter_right)
+
         self.lowpass_setting = PotReader(
             self.hardware.filter_left)
 
@@ -105,6 +108,11 @@ class PizzaController(Controller):
             lambda vol: controls.set_output_param(
                 OutputParam.Volume,
                 percentage_from_pot(vol)))
+
+        self.filter_setting.read(
+            lambda val: controls.set_output_param(
+                OutputParam.AdjustFilter,
+                percentage_from_pot(val) / 50))
 
         self.lowpass_setting.read(
             lambda val: controls.set_output_param(

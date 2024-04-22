@@ -10,6 +10,11 @@ class OutputParam:
     AdjustFilter = 4
 
 
+class EffectName:
+    Repeat = 1
+    Random = 2
+
+
 class Output:
     def send_note_on(self, channel: int, note: int, velocity_percent: float):
         _not_implemented("Output.send_note_on", note, velocity_percent)
@@ -57,6 +62,9 @@ class Controls:
 
     def toggle_playing(self):
         _not_implemented("Controls.toggle_playing")
+
+    def set_effect_level(self, effect_name, percentage):
+        _not_implemented("Controls.set_effect_level", effect_name, percentage)
 
 
 class SampleChange:

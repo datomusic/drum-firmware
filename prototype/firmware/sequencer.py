@@ -1,3 +1,5 @@
+from .repeat_effect import RepeatEffect
+
 STEP_COUNT = 8
 
 
@@ -12,6 +14,7 @@ class Sequencer:
         self.steps = [Step() for _ in range(STEP_COUNT)]
         self.cur_step_index = 0
         self.play_step_callback = play_step_callback
+        self.repeat_effect = RepeatEffect()
 
     def tick(self) -> None:
         step = self.steps[self.cur_step_index]

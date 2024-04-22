@@ -1,4 +1,4 @@
-from firmware.device_api import Controls, SampleChange, OutputParam
+from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 
@@ -49,11 +49,13 @@ class PizzaController(Controller):
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
 
-        self.lowpass_setting = PotReader(
-            self.hardware.filter_left)
+        self.beat_repeat_setting = PotReader(
+            self.hardware.repeat_button)
 
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
+        self.reandom_setting = PotReader(
+            self.hardware.random_button)
 
         self.pitch_settings = [
             PotReader(self.hardware.pitch1, inverted=True),
@@ -127,6 +129,16 @@ class PizzaController(Controller):
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
                 OutputParam.HighPass,
+                percentage_from_pot(val)))
+
+        self.beat_repeat_setting.read(
+            lambda val: controls.set_effect_level(
+                EffectName.Repeat,
+                percentage_from_pot(val)))
+
+        self.reandom_setting.read(
+            lambda val: controls.set_effect_level(
+                EffectName.Random,
                 percentage_from_pot(val)))
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):

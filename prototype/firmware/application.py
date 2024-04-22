@@ -51,6 +51,9 @@ class AppControls(Controls):
     def set_output_param(self, param, percent) -> None:
         self.output.set_param(param, percent)
 
+    def set_effect_level(self, effect_name, percentage):
+        print(f"effect level: {effect_name}, {percentage}")
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):

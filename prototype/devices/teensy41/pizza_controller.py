@@ -41,10 +41,10 @@ class PizzaController(Controller):
             self.hardware.volume_pot)
 
         self.lowpass_setting = PotReader(
-            self.hardware.filter_left, inverted=False)
+            self.hardware.filter_left)
 
         self.highpass_setting = PotReader(
-            self.hardware.filter_right, inverted=False)
+            self.hardware.filter_right)
 
         self.lowpass_setting = PotReader(
             self.hardware.filter_left)

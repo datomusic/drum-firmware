@@ -64,7 +64,6 @@ class ThresholdButton:
 
     def pressed(self) -> bool:
         val = self.pin.value
-        print(f"val: {val}")
 
         if not self.state and val > self.threshold:
             self.state = True
@@ -105,6 +104,16 @@ class AnalogReader:
         return val
 
 
+class DigitalReader:
+    def __init__(self, pin):
+        self.pin = pin
+        self.analog = dio.DigitalInOut(self.pin)
+
+    def read(self):
+        val = self.analog.value
+        return val
+
+
 class Teensy41Hardware:
     def __init__(self):
         microcontroller.cpu.frequency = 150000000
@@ -127,8 +136,8 @@ class Teensy41Hardware:
         self.drum_pad3_bottom = AnalogReader(board.A13)
         self.drum_pad4 = AnalogReader(board.D40)
         self.drum_pad4_bottom = AnalogReader(board.D41)
-        self.swing_right = ToggleButton(board.D8)
-        self.swing_left = ToggleButton(board.D7)
+        self.swing_right = DigitalReader(board.D7)
+        self.swing_left = DigitalReader(board.D8)
         self.pitch1 = AnalogReader(board.A1)
         self.pitch2 = AnalogReader(board.A7)
         self.pitch3 = AnalogReader(board.A11)
@@ -269,7 +278,8 @@ class Display:
 def init_pixels():
     pixel_count = 41
 
-    pixels = neopixel.NeoPixel(board.D2, pixel_count, brightness=1.0, auto_write=False)
+    pixels = neopixel.NeoPixel(
+        board.D2, pixel_count, brightness=1.0, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

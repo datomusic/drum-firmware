@@ -38,12 +38,18 @@ class InternalTempo:
         self.acc = 0
         self.last = time.monotonic_ns()
         self.set_bpm(bpm)
+        self.swing_percent = 0
 
     def set_bpm(self, bpm):
         if bpm < 1:
             bpm = 1
         bpm = int(bpm)
         self.ms_per_beat = int((60 * 1000) / bpm)
+
+    def adjust_swing(self, amount_percent):
+        self.swing_percent = max(-1,
+                                 min(1, self.swing_percent + amount_percent))
+        print(f"swing_percent: {self.swing_percent}")
 
     def update(self) -> bool:
         now = time.monotonic_ns()

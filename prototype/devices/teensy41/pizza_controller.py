@@ -35,21 +35,21 @@ class PizzaController(Controller):
         self.hardware = hardware
         self.display = hardware.init_display()
 
-        self.speed_setting = PotReader(self.hardware.speed_pot, inverted=False)
+        self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(
-            self.hardware.volume_pot, inverted=False)
+            self.hardware.volume_pot)
 
         self.lowpass_setting = PotReader(
-            self.hardware.filter_left, inverted=False)
+            self.hardware.filter_left)
 
         self.highpass_setting = PotReader(
-            self.hardware.filter_right, inverted=False)
+            self.hardware.filter_right)
 
         self.pitch_settings = [
-            PotReader(self.hardware.pitch1),
-            PotReader(self.hardware.pitch2),
-            PotReader(self.hardware.pitch3),
-            PotReader(self.hardware.pitch4)
+            PotReader(self.hardware.pitch1, inverted=True),
+            PotReader(self.hardware.pitch2, inverted=True),
+            PotReader(self.hardware.pitch3, inverted=True),
+            PotReader(self.hardware.pitch4, inverted=True)
         ]
 
         self.drum_triggers = [
@@ -60,10 +60,10 @@ class PizzaController(Controller):
         ]
 
         self.mute_pads = [
-            PotReader(self.hardware.drum_pad1_bottom),
-            PotReader(self.hardware.drum_pad2_bottom),
-            PotReader(self.hardware.drum_pad3_bottom),
-            PotReader(self.hardware.drum_pad4_bottom)
+            PotReader(self.hardware.drum_pad1_bottom, inverted=True),
+            PotReader(self.hardware.drum_pad2_bottom, inverted=True),
+            PotReader(self.hardware.drum_pad3_bottom, inverted=True),
+            PotReader(self.hardware.drum_pad4_bottom, inverted=True)
         ]
 
     def update(self, controls: Controls) -> None:

@@ -29,7 +29,7 @@ class IncDecReader:
 
 
 class PotReader:
-    def __init__(self, pin, inverted=True):
+    def __init__(self, pin, inverted=False):
         self.pin = pin
         self.inverted = inverted
         self.last_val = None

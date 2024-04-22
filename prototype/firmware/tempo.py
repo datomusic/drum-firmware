@@ -35,34 +35,45 @@ class MidiTempo:
 
 class InternalTempo:
     def __init__(self, bpm):
-        self.acc = 0
+        self.acc_ns = 0
         self.last = time.monotonic_ns()
         self.set_bpm(bpm)
-        self.swing_percent = 0
+        self.swing_multiplier = 0
+        self.even_step = True
 
     def set_bpm(self, bpm):
         if bpm < 1:
             bpm = 1
-        bpm = int(bpm)
-        self.ms_per_beat = int((60 * 1000) / bpm)
+        self.bpm = int(bpm)
 
     def adjust_swing(self, amount_percent):
-        self.swing_percent = max(-1,
-                                 min(1, self.swing_percent + amount_percent))
-        print(f"swing_percent: {self.swing_percent}")
+        self.swing_multiplier = max(-1, min(1,
+                                 self.swing_multiplier + amount_percent / 100))
 
     def update(self) -> bool:
         now = time.monotonic_ns()
         diff = now - self.last
-        self.acc += diff
+        self.acc_ns += diff
         self.last = now
 
-        ns = self.ms_per_beat * 1000 * 1000
-        if self.acc >= ns:
-            self.acc -= ns
+        ns = self._next_beat_ms() * 1000 * 1000
+        if self.acc_ns >= ns:
+            self.acc_ns -= ns
+            self.even_step = not self.even_step
             return True
 
         return False
+
+    def _next_beat_ms(self):
+        ms_per_beat = int((60 * 1000) / self.bpm)
+        if self.swing_multiplier > 0.05 and self.even_step:
+            return int(ms_per_beat * (1 + self.swing_multiplier))
+
+        elif self.swing_multiplier < -0.05 and not self.even_step:
+            return int(ms_per_beat * (1 + self.swing_multiplier))
+
+        else:
+            return ms_per_beat
 
 
 class Tempo:

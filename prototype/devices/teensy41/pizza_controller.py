@@ -131,10 +131,10 @@ class PizzaController(Controller):
                 percentage_from_pot(val)))
 
         self.swing_left.read(
-            lambda val: controls.adjust_swing(-0.1))
+            lambda val: controls.adjust_swing(-10))
 
         self.swing_right.read(
-            lambda val: controls.adjust_swing(0.1))
+            lambda val: controls.adjust_swing(10))
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(

@@ -3,7 +3,6 @@ from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
 from adafruit_midi.note_on import NoteOn  # type: ignore
 from adafruit_midi.note_off import NoteOff  # type: ignore
-import math
 
 
 class MIDIOutput(Output):

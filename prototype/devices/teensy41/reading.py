@@ -3,7 +3,7 @@ POT_MAX = 65536
 
 
 def percentage_from_pot(pot_value):
-    return (pot_value / POT_MAX) * 100
+    return max(-100, min(100, (pot_value / POT_MAX) * 100))
 
 
 class IncDecReader:

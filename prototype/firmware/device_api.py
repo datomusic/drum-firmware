@@ -7,6 +7,7 @@ class OutputParam:
     Volume = 1
     LowPass = 2
     HighPass = 3
+    AdjustFilter = 4
 
 
 class Output:

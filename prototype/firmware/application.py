@@ -54,6 +54,9 @@ class AppControls(Controls):
     def adjust_swing(self, amount_percent):
         self.drum.tempo.internal_tempo.adjust_swing(amount_percent)
 
+    def reset_swing(self):
+        self.drum.tempo.internal_tempo.reset_swing()
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):

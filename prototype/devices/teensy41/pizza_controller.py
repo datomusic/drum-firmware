@@ -136,6 +136,9 @@ class PizzaController(Controller):
         self.swing_right.read(
             lambda val: controls.adjust_swing(10))
 
+        if self.swing_left.triggered and self.swing_right.triggered:
+            controls.reset_swing()
+
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
                 lambda pitch: controls.set_track_pitch(

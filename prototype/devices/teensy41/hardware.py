@@ -107,10 +107,10 @@ class AnalogReader:
 class DigitalReader:
     def __init__(self, pin):
         self.pin = pin
-        self.analog = dio.DigitalInOut(self.pin)
+        self.input = dio.DigitalInOut(self.pin)
 
     def read(self):
-        val = self.analog.value
+        val = self.input.value
         return val
 
 

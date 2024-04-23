@@ -50,12 +50,6 @@ class PizzaController(Controller):
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
 
-        self.lowpass_setting = PotReader(
-            self.hardware.filter_left)
-
-        self.highpass_setting = PotReader(
-            self.hardware.filter_right)
-
         self.swing_left = DigitalTrigger(self.hardware.swing_left)
         self.swing_right = DigitalTrigger(self.hardware.swing_right)
 
@@ -121,11 +115,6 @@ class PizzaController(Controller):
         self.lowpass_setting.read(
             lambda val: controls.set_output_param(
                 OutputParam.LowPass,
-                percentage_from_pot(val)))
-
-        self.highpass_setting.read(
-            lambda val: controls.set_output_param(
-                OutputParam.HighPass,
                 percentage_from_pot(val)))
 
         self.highpass_setting.read(

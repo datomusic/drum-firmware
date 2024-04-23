@@ -10,7 +10,6 @@ class Step:
 class Sequencer:
     def __init__(self, step_count):
         self.steps = [Step() for _ in range(step_count)]
-        self.repeat_effect = RepeatEffect()
 
     def set_step(self, index, velocity=100.0):
         step = self.steps[index]

@@ -25,24 +25,25 @@ class Drum:
         self._cur_step_index = 0
         self.tempo = Tempo(self._on_tempo_tick)
         self.playing = True
-        self.repeat_effect = RepeatEffect()
+        self.repeat_effect = RepeatEffect(lambda: self._cur_step_index)
 
     def get_cur_step_index(self):
-        return self._cur_step_index
+        repeat_step = self.repeat_effect.get_step()
+        if isinstance(repeat_step, int):
+            return (repeat_step % STEP_COUNT)
+        else:
+            return self._cur_step_index
 
     def update(self) -> None:
         self.tempo.update()
 
     def _on_tempo_tick(self) -> None:
         if self.playing:
-            repeat_step = self.repeat_effect.get_step()
-            if repeat_step is not None:
-                pass
-            else:
-                self._cur_step_index = (self._cur_step_index + 1) % STEP_COUNT
+            self.repeat_effect.tick()
+            self._cur_step_index = (self._cur_step_index + 1) % STEP_COUNT
 
             for track in self.tracks:
-                step = track.sequencer.steps[self._cur_step_index]
+                step = track.sequencer.steps[self.get_cur_step_index()]
                 if step.active:
                     track.play_step(step.velocity)
 

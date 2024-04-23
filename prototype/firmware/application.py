@@ -53,8 +53,10 @@ class AppControls(Controls):
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            self.drum.repeat_effect.set_repeat_count(
-                int((percentage / 100) * 4))
+            steps = 1 + int((percentage / 100) * 4)
+            if percentage < 1:
+                steps = 0
+            self.drum.repeat_effect.set_repeat_count(steps)
 
 
 class Application:

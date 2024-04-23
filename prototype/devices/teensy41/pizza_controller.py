@@ -1,6 +1,6 @@
 from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
 from firmware.controller_api import Controller
-from firmware.drum import Drum
+from firmware.drum import Drum, Track
 
 import gc
 
@@ -95,6 +95,7 @@ class PizzaController(Controller):
             show_track(
                 self.display,
                 ColorScheme.Tracks[drum.tracks[track_index].note],
+                drum.get_cur_step_index(),
                 drum.tracks[track_index],
                 track_index,
             )
@@ -181,10 +182,11 @@ class PizzaController(Controller):
                     controls.toggle_playing()
 
 
-def show_track(display, step_color, track, track_index):
+def show_track(display, step_color, cur_step_index, track: Track, track_index
+               ) -> None:
     for step_index, step in enumerate(track.sequencer.steps):
         color = None
-        if step_index == (track.sequencer.cur_step_index + 7) % 8:
+        if step_index == (cur_step_index + 7) % 8:
             color = ColorScheme.Cursor
         elif step.active:
             color = step_color

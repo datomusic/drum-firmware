@@ -1,5 +1,5 @@
 from .drum import Drum
-from .device_api import Controls, Output, SampleChange
+from .device_api import Controls, Output, SampleChange, EffectName
 from .controller_api import Controller
 
 
@@ -52,7 +52,9 @@ class AppControls(Controls):
         self.output.set_param(param, percent)
 
     def set_effect_level(self, effect_name, percentage):
-        print(f"effect level: {effect_name}, {percentage}")
+        if EffectName.Repeat == effect_name:
+            self.drum.repeat_effect.set_repeat_count(
+                int((percentage / 100) * 4))
 
 
 class Application:

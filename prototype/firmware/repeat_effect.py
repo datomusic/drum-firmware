@@ -24,4 +24,6 @@ class RepeatEffect:
         if self.start_step is None:
             return None
         else:
-            return self.start_step + (self.counter % self.repeat_count)
+            return (self.start_step - self.repeat_count) + (
+                self.counter % self.repeat_count + 1
+            )

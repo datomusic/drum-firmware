@@ -36,7 +36,7 @@ class MIDIOutput(Output):
                 int(self.filter_amount + value))
             self.send_cc(74, self.filter_amount)
 
-    def send_cc(self, cc, value, channel=1):
+    def send_cc(self, cc, value, channel=0):
         print(f"[{channel}] CC {cc}: {value}")
         self.midi.send(ControlChange(cc, value), channel=channel)
 

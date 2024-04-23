@@ -6,7 +6,6 @@ from teensy41.pizza_controller import PizzaController
 
 (midi_in, midi_out) = usb_midi.ports
 midi = MIDI(midi_in=midi_in, midi_out=midi_out)
-MIDIOutput(midi)
 
 controllers = [PizzaController()]
 output = MIDIOutput(midi)

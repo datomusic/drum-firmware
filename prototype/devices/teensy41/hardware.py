@@ -111,34 +111,28 @@ class Teensy41Hardware:
         # microcontroller.cpu.frequency = 600000000
 
         self.keys = init_keymatrix()
-        self.repeat_button = AnalogReader(board.A0)
-        self.pitch1 = AnalogReader(board.A1)
-
-        self.drum_pad1 = AnalogReader(board.A2)
-        self.drum_pad1_bottom = AnalogReader(board.A3)
-
-        self.volume_pot = AnalogReader(board.A4)
-        self.swing_right = ToggleButton(board.D8)
-        self.swing_left = ToggleButton(board.D7)
-        self.pitch2 = AnalogReader(board.A5)
-
-        self.drum_pad2 = AnalogReader(board.A6)
-        self.drum_pad2_bottom = AnalogReader(board.A7)
-
-        self.random_button = AnalogReader(board.A8)
-        self.pitch3 = AnalogReader(board.A9)
-
-        self.drum_pad3 = AnalogReader(board.A10)
-        self.drum_pad3_bottom = AnalogReader(board.A11)
 
         self.play_button = ToggleButton(board.D37)
-        self.speed_pot = AnalogReader(board.A12)
-        self.filter_right = AnalogReader(board.A13)
-        self.filter_left = AnalogReader(board.D38)
-        self.pitch4 = AnalogReader(board.D39)
-
+        self.volume_pot = AnalogReader(board.A4)
+        self.speed_pot = AnalogReader(board.D38)
+        self.random_button = AnalogReader(board.A10)
+        self.repeat_button = AnalogReader(board.A0)
+        self.filter_right = AnalogReader(board.A5)
+        self.filter_left = AnalogReader(board.A6)
+        self.drum_pad1 = AnalogReader(board.A2)
+        self.drum_pad1_bottom = AnalogReader(board.A3)
+        self.drum_pad2 = AnalogReader(board.A8)
+        self.drum_pad2_bottom = AnalogReader(board.A9)
+        self.drum_pad3 = AnalogReader(board.A12)
+        self.drum_pad3_bottom = AnalogReader(board.A13)
         self.drum_pad4 = AnalogReader(board.D40)
         self.drum_pad4_bottom = AnalogReader(board.D41)
+        self.swing_right = ToggleButton(board.D8)
+        self.swing_left = ToggleButton(board.D7)
+        self.pitch1 = AnalogReader(board.A1)
+        self.pitch2 = AnalogReader(board.A7)
+        self.pitch3 = AnalogReader(board.A11)
+        self.pitch4 = AnalogReader(board.D39)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -149,6 +143,9 @@ class Teensy41Hardware:
                 return KeyEvent(ControlKey(ControlName.Start), True)
 
         return None
+
+    def init_display(self):
+        return Display()
 
 
 def init_keymatrix():
@@ -166,10 +163,7 @@ def init_keymatrix():
     )
 
     return keypad.KeyMatrix(
-        row_pins=row_pins,
-        column_pins=col_pins,
-        interval=0.1,
-        columns_to_anodes=False
+        row_pins=row_pins, column_pins=col_pins, interval=0.1, columns_to_anodes=False
     )
 
 
@@ -275,8 +269,7 @@ class Display:
 def init_pixels():
     pixel_count = 41
 
-    pixels = neopixel.NeoPixel(
-        board.D2, pixel_count, brightness=1.0, auto_write=False)
+    pixels = neopixel.NeoPixel(board.D2, pixel_count, brightness=1.0, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

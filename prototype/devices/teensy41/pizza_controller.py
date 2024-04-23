@@ -37,25 +37,17 @@ class PizzaController(Controller):
         self.display = hardware.init_display()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
-        self.volume_setting = PotReader(
-            self.hardware.volume_pot)
+        self.volume_setting = PotReader(self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)
 
-        self.lowpass_setting = PotReader(
-            self.hardware.filter_left)
-
+        self.lowpass_setting = PotReader(self.hardware.filter_left)
+        self.highpass_setting = PotReader(self.hardware.filter_right)
+        self.beat_repeat_setting = PotReader(self.hardware.repeat_button)
+        self.reandom_setting = PotReader(self.hardware.random_button)
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
-
-        self.beat_repeat_setting = PotReader(
-            self.hardware.repeat_button)
-
-        self.highpass_setting = PotReader(
-            self.hardware.filter_right)
-        self.reandom_setting = PotReader(
-            self.hardware.random_button)
 
         self.pitch_settings = [
             PotReader(self.hardware.pitch1, inverted=True),

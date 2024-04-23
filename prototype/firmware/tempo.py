@@ -42,15 +42,13 @@ class InternalTempo:
         self.even_step = True
 
     def set_bpm(self, bpm):
-        if bpm < 1:
-            bpm = 1
-        self.bpm = int(bpm)
+        self.bpm = int(max(1, bpm))
 
     def adjust_swing(self, amount_percent):
         new_swing = self.swing_multiplier + amount_percent / 100
         self.swing_multiplier = max(-1, min(1, new_swing))
 
-    def reset_swing(self,):
+    def reset_swing(self):
         self.swing_multiplier = 0
 
     def update(self) -> bool:
@@ -69,14 +67,21 @@ class InternalTempo:
 
     def _next_beat_ms(self):
         ms_per_beat = int((60 * 1000) / self.bpm)
-        if self.swing_multiplier > 0.05 and self.even_step:
-            return int(ms_per_beat * (1 + self.swing_multiplier))
+        direction = 0
 
-        elif self.swing_multiplier < -0.05 and not self.even_step:
-            return int(ms_per_beat * (1 + self.swing_multiplier))
+        if self.swing_multiplier > 0.05:
+            if self.even_step:
+                direction = 1
+            else:
+                direction = -1
 
-        else:
-            return ms_per_beat
+        elif self.swing_multiplier < -0.05:
+            if self.even_step:
+                direction = -1
+            else:
+                direction = 1
+
+        return int(ms_per_beat * (1 + self.swing_multiplier * direction))
 
 
 class Tempo:

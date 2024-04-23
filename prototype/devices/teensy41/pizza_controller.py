@@ -56,6 +56,9 @@ class PizzaController(Controller):
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
 
+        self.swing_left = DigitalTrigger(self.hardware.swing_left)
+        self.swing_right = DigitalTrigger(self.hardware.swing_right)
+
         self.pitch_settings = [
             PotReader(self.hardware.pitch1, inverted=True),
             PotReader(self.hardware.pitch2, inverted=True),

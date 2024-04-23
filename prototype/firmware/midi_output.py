@@ -9,6 +9,7 @@ class MIDIOutput(Output):
     def __init__(self, midi: MIDI):
         self.midi = midi
         self.filter_amount = 64
+
     def send_note_on(self, channel: int, note: int, vel_percent: float):
         self.midi.send(
             NoteOn(note, percent_to_midi(vel_percent)), channel=channel)

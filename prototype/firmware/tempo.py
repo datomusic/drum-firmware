@@ -62,23 +62,22 @@ class InternalTempo:
     def reset_swing(self):
         self.swing_multiplier = 0
 
-    def update(self, on_tick) -> bool:
+    def update(self, on_tick, on_half_beat) -> None:
         now = time.monotonic_ns()
         diff = now - self.last
         self.acc_ns += diff
         self.last = now
 
-        ns = self._next_tick_ms() * 1000 * 1000
-        if self.acc_ns >= ns:
+        ns = self._next_tick_ns()
+        while self.acc_ns >= ns:
+            ns = self._next_tick_ns()
             self.acc_ns -= ns
             on_tick()
             if self.half_note_ticks.tick():
                 self.even_step = not self.even_step
-                return True
+                on_half_beat()
 
-        return False
-
-    def _next_tick_ms(self):
+    def _next_tick_ns(self):
         ms_per_tick = int((60 * 1000) / (self.bpm * TICKS_PER_BEAT))
         direction = 0
 
@@ -94,7 +93,8 @@ class InternalTempo:
             else:
                 direction = 1
 
-        return int(ms_per_tick * (1 + self.swing_multiplier * direction))
+        ms = int(ms_per_tick * (1 + self.swing_multiplier * direction))
+        return ms * 1000 * 1000
 
 
 class Tempo:
@@ -114,8 +114,7 @@ class Tempo:
             self.on_tick(self.tempo_source)
 
         if TempoSource.Internal == self.tempo_source:
-            while self.internal_tempo.update(on_tick):
-                (self.on_half_beat)()
+            self.internal_tempo.update(on_tick, self.on_half_beat)
 
     def on_midi_msg(self, msg):
         if not self.use_internal:

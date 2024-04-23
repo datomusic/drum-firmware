@@ -29,6 +29,9 @@ class Output:
     def set_param(self, param, percent: float):
         _not_implemented("Output.set_param", param, percent)
 
+    def on_tempo_tick(self, source):
+        _not_implemented("Output.on_tempo_tick", source)
+
 
 class Controls:
     def set_output_param(self, param, amount_percent):

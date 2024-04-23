@@ -12,12 +12,6 @@ class AppControls(Controls):
         self.drum = drum
         self.output = output
 
-        self.filter = 50
-
-    def adjust_filter(self, amount_percent) -> None:
-        self.filter = max(0, min(self.filter + amount_percent, 100))
-        self.output.set_filter(self.filter)
-
     def set_bpm(self, bpm):
         self.drum.tempo.set_bpm(bpm)
 
@@ -54,8 +48,8 @@ class AppControls(Controls):
         track = self.drum.tracks[track_index]
         track.note_player.mute_level = amount_percent
 
-    def set_volume(self, vol_percent):
-        self.output.set_volume(vol_percent)
+    def set_output_param(self, param, percent) -> None:
+        self.output.set_param(param, percent)
 
 
 class Application:

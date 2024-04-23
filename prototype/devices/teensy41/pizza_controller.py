@@ -1,9 +1,8 @@
-from firmware.device_api import Controls, SampleChange
+from firmware.device_api import Controls, SampleChange, OutputParam
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 
 import gc
-import time
 
 from .colors import ColorScheme
 from .hardware import (
@@ -17,8 +16,8 @@ from .hardware import (
 )
 
 from .reading import (
-    IncDecReader,
     PotReader,
+    IncDecReader,
     ThresholdTrigger,
     percentage_from_pot)
 
@@ -37,18 +36,24 @@ class PizzaController(Controller):
         self.hardware = hardware
         self.display = hardware.init_display()
 
-        self.speed_setting = PotReader(self.hardware.speed_pot, inverted=False)
+        self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(
-            self.hardware.volume_pot, inverted=False)
+            self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)
 
+        self.lowpass_setting = PotReader(
+            self.hardware.filter_left)
+
+        self.highpass_setting = PotReader(
+            self.hardware.filter_right)
+
         self.pitch_settings = [
-            PotReader(self.hardware.pitch1),
-            PotReader(self.hardware.pitch2),
-            PotReader(self.hardware.pitch3),
-            PotReader(self.hardware.pitch4)
+            PotReader(self.hardware.pitch1, inverted=True),
+            PotReader(self.hardware.pitch2, inverted=True),
+            PotReader(self.hardware.pitch3, inverted=True),
+            PotReader(self.hardware.pitch4, inverted=True)
         ]
 
         self.drum_triggers = [
@@ -59,10 +64,10 @@ class PizzaController(Controller):
         ]
 
         self.mute_pads = [
-            PotReader(self.hardware.drum_pad1_bottom),
-            PotReader(self.hardware.drum_pad2_bottom),
-            PotReader(self.hardware.drum_pad3_bottom),
-            PotReader(self.hardware.drum_pad4_bottom)
+            PotReader(self.hardware.drum_pad1_bottom, inverted=True),
+            PotReader(self.hardware.drum_pad2_bottom, inverted=True),
+            PotReader(self.hardware.drum_pad3_bottom, inverted=True),
+            PotReader(self.hardware.drum_pad4_bottom, inverted=True)
         ]
 
     def update(self, controls: Controls) -> None:
@@ -94,11 +99,25 @@ class PizzaController(Controller):
                 (percentage_from_pot(speed)) * BPM_MAX / 100))
 
         self.volume_setting.read(
-            lambda vol: controls.set_volume(percentage_from_pot(vol)))
+            lambda vol: controls.set_output_param(
+                OutputParam.Volume,
+                percentage_from_pot(vol)))
 
         self.filter_setting.read(
-            lambda val: controls.adjust_filter(percentage_from_pot(val) / 30))
-        
+            lambda val: controls.set_output_param(
+                OutputParam.AdjustFilter,
+                percentage_from_pot(val) / 50))
+
+        self.lowpass_setting.read(
+            lambda val: controls.set_output_param(
+                OutputParam.LowPass,
+                percentage_from_pot(val)))
+
+        self.highpass_setting.read(
+            lambda val: controls.set_output_param(
+                OutputParam.HighPass,
+                percentage_from_pot(val)))
+
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
                 lambda pitch: controls.set_track_pitch(

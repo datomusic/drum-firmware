@@ -3,7 +3,7 @@ POT_MAX = 65536
 
 
 def percentage_from_pot(pot_value):
-    return (pot_value / POT_MAX) * 100
+    return max(-100, min(100, (pot_value / POT_MAX) * 100))
 
 
 class IncDecReader:
@@ -29,7 +29,7 @@ class IncDecReader:
 
 
 class PotReader:
-    def __init__(self, pin, inverted=True):
+    def __init__(self, pin, inverted=False):
         self.pin = pin
         self.inverted = inverted
         self.last_val = None

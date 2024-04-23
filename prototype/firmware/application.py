@@ -57,6 +57,9 @@ class AppControls(Controls):
             if percentage < 1:
                 steps = 0
             self.drum.repeat_effect.set_repeat_count(steps)
+        elif EffectName.Random == effect_name:
+            self.drum.random_effect.enabled = percentage > 50
+
 
 
 class Application:

@@ -45,7 +45,7 @@ class PizzaController(Controller):
         self.lowpass_setting = PotReader(self.hardware.filter_left)
         self.highpass_setting = PotReader(self.hardware.filter_right)
         self.beat_repeat_setting = PotReader(self.hardware.repeat_button)
-        self.reandom_setting = PotReader(self.hardware.random_button)
+        self.random_setting = PotReader(self.hardware.random_button)
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
 
@@ -129,7 +129,7 @@ class PizzaController(Controller):
                 EffectName.Repeat,
                 percentage_from_pot(val)))
 
-        self.reandom_setting.read(
+        self.random_setting.read(
             lambda val: controls.set_effect_level(
                 EffectName.Random,
                 percentage_from_pot(val)))

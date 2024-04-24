@@ -1,3 +1,4 @@
+from .tempo import TempoSource
 from .device_api import Output, OutputParam
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
@@ -36,8 +37,9 @@ class MIDIOutput(Output):
                 int(self.filter_amount + value))
             self.send_cc(74, self.filter_amount)
 
-    def on_tempo_tick(self, _source) -> None:
-        self.midi.send(TimingClock())
+    def on_tempo_tick(self, source) -> None:
+        if source == TempoSource.Internal:
+            self.midi.send(TimingClock())
 
     def send_cc(self, cc, value, channel=1):
         print(f"[{channel}] CC {cc}: {value}")

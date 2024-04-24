@@ -1,15 +1,16 @@
+from .tempo import TempoSource
 from .device_api import Output, OutputParam
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
 from adafruit_midi.note_on import NoteOn  # type: ignore
 from adafruit_midi.note_off import NoteOff  # type: ignore
+from adafruit_midi.timing_clock import TimingClock  # type: ignore
 
 
 class MIDIOutput(Output):
     def __init__(self, midi: MIDI):
         self.midi = midi
         self.filter_amount = 64
-
     def send_note_on(self, channel: int, note: int, vel_percent: float):
         self.midi.send(
             NoteOn(note, percent_to_midi(vel_percent)), channel=channel)
@@ -35,7 +36,11 @@ class MIDIOutput(Output):
                 int(self.filter_amount + value))
             self.send_cc(74, self.filter_amount)
 
-    def send_cc(self, cc, value, channel=1):
+    def on_tempo_tick(self, source) -> None:
+        if source == TempoSource.Internal:
+            self.midi.send(TimingClock())
+
+    def send_cc(self, cc, value, channel=0):
         print(f"[{channel}] CC {cc}: {value}")
         self.midi.send(ControlChange(cc, value), channel=channel)
 

@@ -1,19 +1,20 @@
 from .drum import Drum
-from .device_api import Controls, Output, SampleChange
+from .device_api import Controls, Output, SampleChange, EffectName
 from .controller_api import Controller
+from .tempo import Tempo
 
 
-USE_INTERNAL_TEMPO = True
 SAMPLE_COUNT = 32
 
 
 class AppControls(Controls):
-    def __init__(self, drum: Drum, output: Output):
+    def __init__(self, drum: Drum, output: Output, tempo: Tempo):
         self.drum = drum
         self.output = output
+        self.tempo = tempo
 
     def set_bpm(self, bpm):
-        self.drum.tempo.set_bpm(bpm)
+        self.tempo.set_bpm(bpm)
 
     def toggle_track_step(self, track, step):
         self.drum.tracks[track].sequencer.toggle_step(step)
@@ -51,22 +52,55 @@ class AppControls(Controls):
     def set_output_param(self, param, percent) -> None:
         self.output.set_param(param, percent)
 
+    def set_effect_level(self, effect_name, percentage):
+        if EffectName.Repeat == effect_name:
+            print(percentage)
+            if percentage > 99:
+                self.drum.repeat_effect.set_repeat_count(1)
+                self.drum.repeat_effect.set_repeat_divider(2)
+            elif percentage > 94:
+                self.drum.repeat_effect.set_repeat_count(2)
+                self.drum.repeat_effect.set_repeat_divider(2)
+            elif percentage > 30:
+                self.drum.repeat_effect.set_repeat_count(3)
+                self.drum.repeat_effect.set_repeat_divider(2)
+            else:
+                self.drum.repeat_effect.set_repeat_count(0)
+                self.drum.repeat_effect.set_repeat_divider(1)
+        elif EffectName.Random == effect_name:
+            self.drum.random_effect.enabled = percentage > 50
+
+
+    def adjust_swing(self, amount_percent):
+        self.tempo.internal_tempo.adjust_swing(amount_percent)
+
+    def reset_swing(self):
+        self.tempo.internal_tempo.reset_swing()
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
         self.output = output
+        self.tempo = Tempo(on_tick=self._on_tick,
+                           on_half_beat=self._on_half_beat)
         self.drum = Drum(output)
-        self.controls = AppControls(self.drum, self.output)
+        self.drum.playing = False
+        self.controls = AppControls(self.drum, self.output, self.tempo)
 
         setup_tracks(self.drum.tracks)
-        self.drum.tempo.use_internal = USE_INTERNAL_TEMPO
+
+    def _on_tick(self, source) -> None:
+        self.output.on_tempo_tick(source)
+        self.drum.tick()
+
+    def _on_half_beat(self) -> None:
+        self.drum.advance_step()
 
     def update(self) -> None:
         for controller in self.controllers:
             controller.update(self.controls)
 
-        self.drum.update()
+        self.tempo.update()
 
     def show(self) -> None:
         for controller in self.controllers:
@@ -79,14 +113,7 @@ class Application:
 
 
 def setup_tracks(tracks):
-    tracks[0].note = 0
-    tracks[1].note = 7
-    tracks[2].note = 15
-    tracks[3].note = 23
-
-    tracks[0].sequencer.set_step(0)
-    tracks[0].sequencer.set_step(4)
-    tracks[1].sequencer.set_step(3)
-    tracks[1].sequencer.set_step(5)
-    tracks[2].sequencer.set_step(7)
-    tracks[3].sequencer.set_step(6)
+    tracks[0].note = 10
+    tracks[1].note = 0
+    tracks[2].note = 18
+    tracks[3].note = 25

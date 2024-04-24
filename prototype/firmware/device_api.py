@@ -10,6 +10,11 @@ class OutputParam:
     AdjustFilter = 4
 
 
+class EffectName:
+    Repeat = 1
+    Random = 2
+
+
 class Output:
     def send_note_on(self, channel: int, note: int, velocity_percent: float):
         _not_implemented("Output.send_note_on", note, velocity_percent)
@@ -28,6 +33,9 @@ class Output:
 
     def set_param(self, param, percent: float):
         _not_implemented("Output.set_param", param, percent)
+
+    def on_tempo_tick(self, source):
+        _not_implemented("Output.on_tempo_tick", source)
 
 
 class Controls:
@@ -57,6 +65,12 @@ class Controls:
 
     def toggle_playing(self):
         _not_implemented("Controls.toggle_playing")
+
+    def adjust_swing(self, amount_percent):
+        _not_implemented("Controls.adjust_swing", amount_percent)
+
+    def reset_swing(self):
+        _not_implemented("Controls.reset_swing")
 
 
 class SampleChange:

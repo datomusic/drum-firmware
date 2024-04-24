@@ -1,19 +1,20 @@
 from .drum import Drum
 from .device_api import Controls, Output, SampleChange, EffectName
 from .controller_api import Controller
+from .tempo import Tempo
 
 
-USE_INTERNAL_TEMPO = True
 SAMPLE_COUNT = 32
 
 
 class AppControls(Controls):
-    def __init__(self, drum: Drum, output: Output):
+    def __init__(self, drum: Drum, output: Output, tempo: Tempo):
         self.drum = drum
         self.output = output
+        self.tempo = tempo
 
     def set_bpm(self, bpm):
-        self.drum.tempo.set_bpm(bpm)
+        self.tempo.set_bpm(bpm)
 
     def toggle_track_step(self, track, step):
         self.drum.tracks[track].sequencer.toggle_step(step)
@@ -61,22 +62,34 @@ class AppControls(Controls):
             self.drum.random_effect.enabled = percentage > 50
 
 
+    def adjust_swing(self, amount_percent):
+        self.tempo.internal_tempo.adjust_swing(amount_percent)
+
+    def reset_swing(self):
+        self.tempo.internal_tempo.reset_swing()
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
         self.output = output
+        self.tempo = Tempo(on_tick=self._on_tick,
+                           on_half_beat=self._on_half_beat)
         self.drum = Drum(output)
-        self.controls = AppControls(self.drum, self.output)
+        self.controls = AppControls(self.drum, self.output, self.tempo)
 
         setup_tracks(self.drum.tracks)
-        self.drum.tempo.use_internal = USE_INTERNAL_TEMPO
+
+    def _on_tick(self, source) -> None:
+        self.output.on_tempo_tick(source)
+
+    def _on_half_beat(self) -> None:
+        self.drum.advance_step()
 
     def update(self) -> None:
         for controller in self.controllers:
             controller.update(self.controls)
 
-        self.drum.update()
+        self.tempo.update()
 
     def show(self) -> None:
         for controller in self.controllers:

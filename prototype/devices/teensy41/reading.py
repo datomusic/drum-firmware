@@ -69,3 +69,22 @@ class ThresholdTrigger:
             self.triggered = True
             on_trigger(val)
             return True
+
+
+class DigitalTrigger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.triggered = False
+
+    def read(self, on_trigger):
+        val = self.pin.read()
+
+        if self.triggered:
+            if val == 0:
+                self.triggered = False
+            return False
+
+        elif val == 1:
+            self.triggered = True
+            on_trigger(val)
+            return True

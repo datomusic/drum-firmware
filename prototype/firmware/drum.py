@@ -1,7 +1,6 @@
 from .sequencer import Sequencer
 from .device_api import Output
 from .note_player import NotePlayer
-from .tempo import Tempo
 from .repeat_effect import RepeatEffect
 from .random_effect import RandomEffect
 
@@ -23,7 +22,6 @@ class Drum:
     def __init__(self, output: Output):
         self.tracks = [Track(NotePlayer(ind, output)) for ind in range(SEQ_COUNT)]
         self._cur_step_index = 0
-        self.tempo = Tempo(self._on_tempo_tick)
         self.playing = True
         self.repeat_effect = RepeatEffect(lambda: self._cur_step_index)
         self.random_effect = RandomEffect(STEP_COUNT)
@@ -40,10 +38,7 @@ class Drum:
 
         return step % STEP_COUNT
 
-    def update(self) -> None:
-        self.tempo.update()
-
-    def _on_tempo_tick(self) -> None:
+    def advance_step(self) -> None:
         if self.playing:
             self.repeat_effect.tick()
             self.random_effect.tick()

@@ -34,6 +34,9 @@ class Output:
     def set_param(self, param, percent: float):
         _not_implemented("Output.set_param", param, percent)
 
+    def on_tempo_tick(self, source):
+        _not_implemented("Output.on_tempo_tick", source)
+
 
 class Controls:
     def set_output_param(self, param, amount_percent):
@@ -63,8 +66,11 @@ class Controls:
     def toggle_playing(self):
         _not_implemented("Controls.toggle_playing")
 
-    def set_effect_level(self, effect_name, percentage):
-        _not_implemented("Controls.set_effect_level", effect_name, percentage)
+    def adjust_swing(self, amount_percent):
+        _not_implemented("Controls.adjust_swing", amount_percent)
+
+    def reset_swing(self):
+        _not_implemented("Controls.reset_swing")
 
 
 class SampleChange:

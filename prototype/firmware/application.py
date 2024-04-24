@@ -51,6 +51,12 @@ class AppControls(Controls):
     def set_output_param(self, param, percent) -> None:
         self.output.set_param(param, percent)
 
+    def adjust_swing(self, amount_percent):
+        self.drum.tempo.internal_tempo.adjust_swing(amount_percent)
+
+    def reset_swing(self):
+        self.drum.tempo.internal_tempo.reset_swing()
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):

@@ -18,6 +18,7 @@ from .hardware import (
 from .reading import (
     PotReader,
     IncDecReader,
+    DigitalTrigger,
     ThresholdTrigger,
     percentage_from_pot)
 
@@ -48,6 +49,9 @@ class PizzaController(Controller):
 
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
+
+        self.swing_left = DigitalTrigger(self.hardware.swing_left)
+        self.swing_right = DigitalTrigger(self.hardware.swing_right)
 
         self.pitch_settings = [
             PotReader(self.hardware.pitch1, inverted=True),
@@ -117,6 +121,15 @@ class PizzaController(Controller):
             lambda val: controls.set_output_param(
                 OutputParam.HighPass,
                 percentage_from_pot(val)))
+
+        self.swing_left.read(
+            lambda val: controls.adjust_swing(-10))
+
+        self.swing_right.read(
+            lambda val: controls.adjust_swing(10))
+
+        if self.swing_left.triggered and self.swing_right.triggered:
+            controls.reset_swing()
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(

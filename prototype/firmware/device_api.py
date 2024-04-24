@@ -58,6 +58,12 @@ class Controls:
     def toggle_playing(self):
         _not_implemented("Controls.toggle_playing")
 
+    def adjust_swing(self, amount_percent):
+        _not_implemented("Controls.adjust_swing", amount_percent)
+
+    def reset_swing(self):
+        _not_implemented("Controls.reset_swing")
+
 
 class SampleChange:
     Next = 1

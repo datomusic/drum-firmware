@@ -103,14 +103,14 @@ class Application:
 
 
 def setup_tracks(tracks):
-    tracks[0].note = 0
-    tracks[1].note = 7
-    tracks[2].note = 15
-    tracks[3].note = 23
+    tracks[0].note = 10
+    tracks[1].note = 0
+    tracks[2].note = 18
+    tracks[3].note = 25
 
-    tracks[0].sequencer.set_step(0)
-    tracks[0].sequencer.set_step(4)
-    tracks[1].sequencer.set_step(3)
-    tracks[1].sequencer.set_step(5)
-    tracks[2].sequencer.set_step(7)
-    tracks[3].sequencer.set_step(6)
+    # tracks[0].sequencer.set_step(0)
+    # tracks[0].sequencer.set_step(4)
+    # tracks[1].sequencer.set_step(3)
+    # tracks[1].sequencer.set_step(5)
+    # tracks[2].sequencer.set_step(7)
+    # tracks[3].sequencer.set_step(6)

@@ -7,7 +7,7 @@ class RepeatEffect:
         self.start_step = None
         self.cur_step_getter = cur_step_getter
         self.step_counter = 0
-        self.repeat_ticks = BeatTicks(TICKS_PER_BEAT / 4)
+        self.repeat_ticks = BeatTicks(TICKS_PER_BEAT)
 
     def active(self):
         return self.repeat_count > 0
@@ -20,6 +20,9 @@ class RepeatEffect:
                 return True
         else:
             return False
+
+    def set_repeat_divider(self, divider):
+        self.repeat_ticks.set_ticks_per_beat(TICKS_PER_BEAT / divider)
 
     def set_repeat_count(self, count):
         self.repeat_count = count
@@ -37,6 +40,4 @@ class RepeatEffect:
         if self.start_step is None:
             return None
         else:
-            return (self.start_step - self.repeat_count) + (
-                self.step_counter % self.repeat_count + 1
-            )
+            return (self.start_step - (self.repeat_count - (self.step_counter % self.repeat_count)))

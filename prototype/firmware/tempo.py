@@ -29,6 +29,9 @@ class BeatTicks:
     def reset(self):
         self.ticks = 0
 
+    def set_ticks_per_beat(self, ticks_per_beat):
+        self.ticks_per_beat = ticks_per_beat 
+
 
 class MidiTempo:
     def __init__(self):

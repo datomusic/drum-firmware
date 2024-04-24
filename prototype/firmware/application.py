@@ -54,10 +54,19 @@ class AppControls(Controls):
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            steps = 4 - int((percentage / 100) * 4)
-            if percentage < 1:
-                steps = 0
-            self.drum.repeat_effect.set_repeat_count(steps)
+            print(percentage)
+            if percentage > 99:
+                self.drum.repeat_effect.set_repeat_count(1)
+                self.drum.repeat_effect.set_repeat_divider(2)
+            elif percentage > 94:
+                self.drum.repeat_effect.set_repeat_count(2)
+                self.drum.repeat_effect.set_repeat_divider(2)
+            elif percentage > 30:
+                self.drum.repeat_effect.set_repeat_count(3)
+                self.drum.repeat_effect.set_repeat_divider(2)
+            else:
+                self.drum.repeat_effect.set_repeat_count(0)
+                self.drum.repeat_effect.set_repeat_divider(1)
         elif EffectName.Random == effect_name:
             self.drum.random_effect.enabled = percentage > 50
 

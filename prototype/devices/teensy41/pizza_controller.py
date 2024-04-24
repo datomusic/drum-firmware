@@ -20,8 +20,7 @@ from .reading import (
     IncDecReader,
     DigitalTrigger,
     ThresholdTrigger,
-    percentage_from_pot,
-    exp_percentage_from_pot)
+    percentage_from_pot)
 
 BPM_MAX = 300
 
@@ -141,7 +140,7 @@ class PizzaController(Controller):
         self.beat_repeat_setting.read(
             lambda val: controls.set_effect_level(
                 EffectName.Repeat,
-                exp_percentage_from_pot(val)))
+                percentage_from_pot(val)))
 
         self.random_setting.read(
             lambda val: controls.set_effect_level(

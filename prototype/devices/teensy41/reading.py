@@ -7,14 +7,6 @@ POT_MAX = 65536
 def percentage_from_pot(pot_value):
     return max(-100, min(100, (pot_value / POT_MAX) * 100))
 
-
-def exp_percentage_from_pot(pot_value) -> None:
-    exponent = 30
-    val = math.pow(pot_value / POT_MAX, exponent)
-    print(f"val: {val}")
-    return max(-1, min(1, val)) * 100
-
-
 class IncDecReader:
     def __init__(self, dec_pin, inc_pin):
         self.was_zero = True

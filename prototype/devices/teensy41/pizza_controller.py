@@ -91,7 +91,7 @@ class PizzaController(Controller):
             show_track(
                 self.display,
                 ColorScheme.Tracks[drum.tracks[track_index].note],
-                drum.get_cur_step_index(),
+                drum.get_indicator_step(),
                 drum.tracks[track_index],
                 track_index,
             )

@@ -81,6 +81,7 @@ class Application:
 
     def _on_tick(self, source) -> None:
         self.output.on_tempo_tick(source)
+        self.drum.tick()
 
     def _on_half_beat(self) -> None:
         self.drum.advance_step()

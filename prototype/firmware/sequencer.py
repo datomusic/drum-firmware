@@ -1,6 +1,3 @@
-from .repeat_effect import RepeatEffect
-
-
 class Step:
     def __init__(self):
         self.velocity = 100.0

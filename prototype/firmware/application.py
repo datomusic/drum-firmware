@@ -75,6 +75,7 @@ class Application:
         self.tempo = Tempo(on_tick=self._on_tick,
                            on_half_beat=self._on_half_beat)
         self.drum = Drum(output)
+        self.drum.playing = False
         self.controls = AppControls(self.drum, self.output, self.tempo)
 
         setup_tracks(self.drum.tracks)
@@ -107,10 +108,3 @@ def setup_tracks(tracks):
     tracks[1].note = 0
     tracks[2].note = 18
     tracks[3].note = 25
-
-    # tracks[0].sequencer.set_step(0)
-    # tracks[0].sequencer.set_step(4)
-    # tracks[1].sequencer.set_step(3)
-    # tracks[1].sequencer.set_step(5)
-    # tracks[2].sequencer.set_step(7)
-    # tracks[3].sequencer.set_step(6)

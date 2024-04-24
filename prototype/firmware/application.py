@@ -1,5 +1,5 @@
 from .drum import Drum
-from .device_api import Controls, Output, SampleChange
+from .device_api import Controls, Output, SampleChange, EffectName
 from .controller_api import Controller
 from .tempo import Tempo
 
@@ -51,6 +51,16 @@ class AppControls(Controls):
 
     def set_output_param(self, param, percent) -> None:
         self.output.set_param(param, percent)
+
+    def set_effect_level(self, effect_name, percentage):
+        if EffectName.Repeat == effect_name:
+            steps = 4 - int((percentage / 100) * 4)
+            if percentage < 1:
+                steps = 0
+            self.drum.repeat_effect.set_repeat_count(steps)
+        elif EffectName.Random == effect_name:
+            self.drum.random_effect.enabled = percentage > 50
+
 
     def adjust_swing(self, amount_percent):
         self.tempo.internal_tempo.adjust_swing(amount_percent)

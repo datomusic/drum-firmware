@@ -10,6 +10,11 @@ class OutputParam:
     AdjustFilter = 4
 
 
+class EffectName:
+    Repeat = 1
+    Random = 2
+
+
 class Output:
     def send_note_on(self, channel: int, note: int, velocity_percent: float):
         _not_implemented("Output.send_note_on", note, velocity_percent)

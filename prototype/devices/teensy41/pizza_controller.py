@@ -1,6 +1,6 @@
-from firmware.device_api import Controls, SampleChange, OutputParam
+from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
 from firmware.controller_api import Controller
-from firmware.drum import Drum
+from firmware.drum import Drum, Track
 
 import gc
 
@@ -38,15 +38,15 @@ class PizzaController(Controller):
         self.display = hardware.init_display()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
-        self.volume_setting = PotReader(
-            self.hardware.volume_pot)
+        self.volume_setting = PotReader(self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
             self.hardware.filter_left, self.hardware.filter_right)
 
-        self.lowpass_setting = PotReader(
-            self.hardware.filter_left)
-
+        self.lowpass_setting = PotReader(self.hardware.filter_left)
+        self.highpass_setting = PotReader(self.hardware.filter_right)
+        self.beat_repeat_setting = PotReader(self.hardware.repeat_button)
+        self.random_setting = PotReader(self.hardware.random_button)
         self.highpass_setting = PotReader(
             self.hardware.filter_right)
 
@@ -91,6 +91,7 @@ class PizzaController(Controller):
             show_track(
                 self.display,
                 ColorScheme.Tracks[drum.tracks[track_index].note],
+                drum.get_cur_step_index(),
                 drum.tracks[track_index],
                 track_index,
             )
@@ -130,6 +131,21 @@ class PizzaController(Controller):
 
         if self.swing_left.triggered and self.swing_right.triggered:
             controls.reset_swing()
+
+        self.highpass_setting.read(
+            lambda val: controls.set_output_param(
+                OutputParam.HighPass,
+                percentage_from_pot(val)))
+
+        self.beat_repeat_setting.read(
+            lambda val: controls.set_effect_level(
+                EffectName.Repeat,
+                percentage_from_pot(val)))
+
+        self.random_setting.read(
+            lambda val: controls.set_effect_level(
+                EffectName.Random,
+                percentage_from_pot(val)))
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
@@ -171,10 +187,11 @@ class PizzaController(Controller):
                     controls.toggle_playing()
 
 
-def show_track(display, step_color, track, track_index):
+def show_track(display, step_color, cur_step_index, track: Track, track_index
+               ) -> None:
     for step_index, step in enumerate(track.sequencer.steps):
         color = None
-        if step_index == (track.sequencer.cur_step_index + 7) % 8:
+        if step_index == (cur_step_index + 7) % 8:
             color = ColorScheme.Cursor
         elif step.active:
             color = step_color

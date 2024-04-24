@@ -42,12 +42,13 @@ class Drum:
         if self.playing:
             self.repeat_effect.tick()
             self.random_effect.tick()
-            self._cur_step_index = (self._cur_step_index + 1) % STEP_COUNT
 
             for track in self.tracks:
                 step = track.sequencer.steps[self.get_cur_step_index()]
                 if step.active:
                     track.play_step(step.velocity)
+
+            self._cur_step_index = (self._cur_step_index + 1) % STEP_COUNT
 
         for track in self.tracks:
             track.note_player.tick()

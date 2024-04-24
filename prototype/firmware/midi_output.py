@@ -40,7 +40,7 @@ class MIDIOutput(Output):
         if source == TempoSource.Internal:
             self.midi.send(TimingClock())
 
-    def send_cc(self, cc, value, channel=1):
+    def send_cc(self, cc, value, channel=0):
         print(f"[{channel}] CC {cc}: {value}")
         self.midi.send(ControlChange(cc, value), channel=channel)
 

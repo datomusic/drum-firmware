@@ -13,8 +13,9 @@ class RepeatEffect:
         return self.repeat_count > 0
 
     def tick(self):
+        should_step = self.repeat_ticks.tick()
         if self.repeat_count > 0:
-            if self.repeat_ticks.tick():
+            if should_step:
                 self.step_counter += 1
                 return True
         else:

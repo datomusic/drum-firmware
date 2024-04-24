@@ -45,6 +45,7 @@ class MidiTempo:
 
 class InternalTempo:
     def __init__(self, bpm=100):
+
         self.acc_ns = 0
         self.last = time.monotonic_ns()
         self.set_bpm(bpm)
@@ -67,7 +68,7 @@ class InternalTempo:
         diff = now - self.last
         self.acc_ns += diff
         self.last = now
-
+        
         ns = self._next_tick_ns()
         while self.acc_ns >= ns:
             ns = self._next_tick_ns()
@@ -95,6 +96,24 @@ class InternalTempo:
 
         ms = int(ms_per_tick * (1 + self.swing_multiplier * direction))
         return ms * 1000 * 1000
+
+    def _next_beat_ms(self):
+        ms_per_beat = int((60 * 1000) / self.bpm)
+        direction = 0
+
+        if self.swing_multiplier > 0.05:
+            if self.even_step:
+                direction = 1
+            else:
+                direction = -1
+
+        elif self.swing_multiplier < -0.05:
+            if self.even_step:
+                direction = -1
+            else:
+                direction = 1
+
+        return int(ms_per_beat * (1 + self.swing_multiplier * direction))
 
 
 class Tempo:

@@ -58,7 +58,6 @@ class AppControls(Controls):
     def reset_swing(self):
         self.tempo.internal_tempo.reset_swing()
 
-
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers

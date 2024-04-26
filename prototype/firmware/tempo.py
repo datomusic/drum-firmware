@@ -123,7 +123,8 @@ class Tempo:
         self.internal_ticker.set_bpm(bpm)
 
     def update(self):
-        self.internal_ticker.update(self._on_tick)
+        if TempoSource.Internal == self.tempo_source:
+            self.internal_ticker.update(self._on_tick)
 
     def on_midi_msg(self, msg):
         if TempoSource.MIDI == self.tempo_source:

@@ -54,8 +54,7 @@ class InternalTicker:
         self.set_bpm(bpm)
 
     def set_bpm(self, bpm):
-        self._ns_per_tick = 1000 * 1000 * \
-            int((60 * 1000) / (bpm * TICKS_PER_BEAT))
+        self._ns_per_tick = 1000 * 1000 * int((60 * 1000) / (bpm * TICKS_PER_BEAT))
 
     def update(self, on_tick) -> None:
         now = time.monotonic_ns()
@@ -63,15 +62,9 @@ class InternalTicker:
         self.accumulated_ns += diff
         self.last_ns = now
 
-        while self._try_tick():
-            on_tick()
-
-    def _try_tick(self):
-        if self.accumulated_ns >= self._ns_per_tick:
+        while self.accumulated_ns >= self._ns_per_tick:
             self.accumulated_ns -= self._ns_per_tick
-            return True
-        else:
-            return False
+            on_tick()
 
 
 class Swing:

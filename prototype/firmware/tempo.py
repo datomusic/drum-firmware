@@ -74,6 +74,42 @@ class InternalTicker:
             return False
 
 
+class Swing:
+    Range = 6  # Delay in ticks in each direction
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self._ticks = 0
+        self._amount = 0
+        self._even_beat = True
+
+    def set_amount(self, amount):
+        self._amount = max(-Swing.Range, min(Swing.Range, amount))
+
+    def adjust(self, direction):
+        addition = 1 if direction > 0 else -1
+        self.set_amount(self._amount + addition)
+
+    def tick(self):
+        mid_point = TICKS_PER_BEAT / 2 + self._amount
+
+        triggered = False
+        if self._even_beat and self._ticks % TICKS_PER_BEAT == 0:
+            self._ticks = 0
+            triggered = True
+
+        elif not self._even_beat and self._ticks % mid_point == 0:
+            triggered = True
+
+        if triggered:
+            self._even_beat = not self._even_beat
+
+        self._ticks += 1
+        return triggered
+
+
 class Tempo:
     def __init__(self, tick_callback, half_beat_callback):
         self.tick_callback = tick_callback
@@ -81,7 +117,7 @@ class Tempo:
         self.tempo_source = TempoSource.Internal
         self.internal_ticker = InternalTicker()
         self.midi_ticker = MIDITicker()
-        self.half_beat_divider = Divider(TICKS_PER_BEAT / 2)
+        self.swing = Swing()
 
     def set_bpm(self, bpm):
         self.internal_ticker.set_bpm(bpm)
@@ -93,13 +129,7 @@ class Tempo:
         if TempoSource.MIDI == self.tempo_source:
             self.midi_ticker.handle_message(msg, self._on_tick)
 
-    def reset_swing(self,):
-        pass
-
-    def adjust_swing(self, _):
-        pass
-
     def _on_tick(self):
         self.tick_callback(self.tempo_source)
-        if self.half_beat_divider.tick():
+        if self.swing.tick():
             self.half_beat_callback()

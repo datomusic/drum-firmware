@@ -71,10 +71,10 @@ class AppControls(Controls):
             self.drum.random_effect.enabled = percentage > 50
 
     def adjust_swing(self, amount_percent):
-        self.tempo.adjust_swing(amount_percent)
+        self.tempo.swing.adjust(amount_percent)
 
-    def reset_swing(self):
-        self.tempo.reset_swing()
+    def clear_swing(self):
+        self.tempo.swing.set_amount(0)
 
 
 class Application:

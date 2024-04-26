@@ -1,6 +1,3 @@
-from adafruit_midi.timing_clock import TimingClock  # type: ignore
-from adafruit_midi.midi_continue import Continue  # type: ignore
-
 import time
 
 TICKS_PER_BEAT = 24
@@ -33,19 +30,6 @@ class Divider:
         self.division = division
 
 
-class MIDITicker:
-    def __init__(self):
-        self.ticks = Divider(TICKS_PER_BEAT / 2)
-
-    def handle_message(self, msg, on_tick):
-        if type(msg) is TimingClock:
-            self.ticks.tick(on_tick)
-
-        elif type(msg) is Continue:
-            self.ticks.reset()
-            on_tick()
-
-
 class InternalTicker:
     def __init__(self, bpm=100):
 
@@ -54,7 +38,8 @@ class InternalTicker:
         self.set_bpm(bpm)
 
     def set_bpm(self, bpm):
-        self._ns_per_tick = 1000 * 1000 * int((60 * 1000) / (bpm * TICKS_PER_BEAT))
+        self._ns_per_tick = 1000 * 1000 * \
+            int((60 * 1000) / (bpm * TICKS_PER_BEAT))
 
     def update(self, on_tick) -> None:
         now = time.monotonic_ns()
@@ -103,25 +88,32 @@ class Swing:
         return triggered
 
 
+class MIDIRealtime:
+    Clock = 1
+    Continue = 2
+
+
 class Tempo:
     def __init__(self, tick_callback, half_beat_callback):
         self.tick_callback = tick_callback
         self.half_beat_callback = half_beat_callback
         self.tempo_source = TempoSource.Internal
         self.internal_ticker = InternalTicker()
-        self.midi_ticker = MIDITicker()
         self.swing = Swing()
 
     def set_bpm(self, bpm):
         self.internal_ticker.set_bpm(bpm)
 
+    def reset(self):
+        self.swing.reset()
+
     def update(self):
         if TempoSource.Internal == self.tempo_source:
             self.internal_ticker.update(self._on_tick)
 
-    def on_midi_msg(self, msg):
-        if TempoSource.MIDI == self.tempo_source:
-            self.midi_ticker.handle_message(msg, self._on_tick)
+    def handle_midi(self, message):
+        if TempoSource.MIDI == self.tempo_source and MIDIRealtime.Clock == message:
+            self._on_tick()
 
     def _on_tick(self):
         self.tick_callback(self.tempo_source)

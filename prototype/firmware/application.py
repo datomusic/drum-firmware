@@ -70,19 +70,19 @@ class AppControls(Controls):
         elif EffectName.Random == effect_name:
             self.drum.random_effect.enabled = percentage > 50
 
-
     def adjust_swing(self, amount_percent):
-        self.tempo.internal_tempo.adjust_swing(amount_percent)
+        self.tempo.adjust_swing(amount_percent)
 
     def reset_swing(self):
-        self.tempo.internal_tempo.reset_swing()
+        self.tempo.reset_swing()
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
         self.output = output
-        self.tempo = Tempo(on_tick=self._on_tick,
-                           on_half_beat=self._on_half_beat)
+        self.tempo = Tempo(tick_callback=self._on_tick,
+                           half_beat_callback=self._on_half_beat)
         self.drum = Drum(output)
         self.drum.playing = False
         self.controls = AppControls(self.drum, self.output, self.tempo)
@@ -117,3 +117,4 @@ def setup_tracks(tracks):
     tracks[1].note = 0
     tracks[2].note = 18
     tracks[3].note = 25
+

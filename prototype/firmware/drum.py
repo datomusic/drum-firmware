@@ -13,6 +13,11 @@ class Track:
         self.note_player = note_player
         self.note = 0
         self.sequencer = Sequencer(STEP_COUNT)
+        self.random_effect = RandomEffect(STEP_COUNT)
+
+    def tick(self):
+        self.note_player.tick()
+        self.random_effect.tick()
 
     def play_step(self, velocity) -> None:
         self.note_player.play(self.note, velocity)
@@ -20,15 +25,15 @@ class Track:
 
 class Drum:
     def __init__(self, output: Output):
-        self.tracks = [Track(NotePlayer(ind, output)) for ind in range(SEQ_COUNT)]
+        self.tracks = [Track(NotePlayer(ind, output))
+                       for ind in range(SEQ_COUNT)]
         self._next_step_index = 0
         self.playing = True
         self.repeat_effect = RepeatEffect(lambda: self._next_step_index)
-        self.random_effect = RandomEffect(STEP_COUNT)
 
-    def _get_effect_step(self):
+    def _get_effect_step(self, track_index) -> int | None:
         repeat_step = self.repeat_effect.get_step()
-        random_step = self.random_effect.get_step()
+        random_step = self.tracks[track_index].random_effect.get_step()
 
         if isinstance(repeat_step, int):
             return repeat_step
@@ -37,20 +42,20 @@ class Drum:
         else:
             return None
 
-    def _get_play_step_index(self):
+    def _get_play_step_index(self, track_index) -> int:
         step = self._next_step_index
-        effect_step = self._get_effect_step()
+        effect_step = self._get_effect_step(track_index)
         if effect_step is not None:
             step = effect_step
 
         return step % STEP_COUNT
 
-    def get_indicator_step(self):
-        effect_step = self._get_effect_step()
+    def get_indicator_step(self, track_index):
+        effect_step = self._get_effect_step(track_index)
         if effect_step is not None:
             return (effect_step + 1) % STEP_COUNT
         else:
-            return self._get_play_step_index()
+            return self._get_play_step_index(track_index)
 
     def tick(self):
         if self.playing:
@@ -59,16 +64,19 @@ class Drum:
 
     def advance_step(self) -> None:
         if self.playing:
-            self.random_effect.tick()
             if not self.repeat_effect.active():
                 self._play_track_steps()
             self._next_step_index = (self._next_step_index + 1) % STEP_COUNT
 
         for track in self.tracks:
-            track.note_player.tick()
+            track.tick()
 
-    def _play_track_steps(self):
-        for track in self.tracks:
-            step = track.sequencer.steps[self._get_play_step_index()]
+    def _play_track_steps(self) -> None:
+        for index, track in enumerate(self.tracks):
+            step = track.sequencer.steps[self._get_play_step_index(index)]
             if step.active:
                 track.play_step(step.velocity)
+
+    def set_random_enabled(self, enabled):
+        for track in self.tracks:
+            track.random_effect.enabled = enabled

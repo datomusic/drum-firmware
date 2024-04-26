@@ -38,8 +38,7 @@ class InternalTicker:
         self.set_bpm(bpm)
 
     def set_bpm(self, bpm):
-        self._ns_per_tick = 1000 * 1000 * \
-            int((60 * 1000) / (bpm * TICKS_PER_BEAT))
+        self._ns_per_tick = 1000 * 1000 * int((60 * 1000) / (bpm * TICKS_PER_BEAT))
 
     def update(self, on_tick) -> None:
         now = time.monotonic_ns()
@@ -88,11 +87,6 @@ class Swing:
         return triggered
 
 
-class MIDIRealtime:
-    Clock = 1
-    Continue = 2
-
-
 class Tempo:
     def __init__(self, tick_callback, half_beat_callback):
         self.tick_callback = tick_callback
@@ -111,8 +105,8 @@ class Tempo:
         if TempoSource.Internal == self.tempo_source:
             self.internal_ticker.update(self._on_tick)
 
-    def handle_midi(self, message):
-        if TempoSource.MIDI == self.tempo_source and MIDIRealtime.Clock == message:
+    def handle_midi_clock(self):
+        if TempoSource.MIDI == self.tempo_source:
             self._on_tick()
 
     def _on_tick(self):

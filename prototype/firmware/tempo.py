@@ -1,6 +1,3 @@
-from adafruit_midi.timing_clock import TimingClock  # type: ignore
-from adafruit_midi.midi_continue import Continue  # type: ignore
-
 import time
 
 TICKS_PER_BEAT = 24
@@ -31,19 +28,6 @@ class Divider:
 
     def set_division(self, division):
         self.division = division
-
-
-class MIDITicker:
-    def __init__(self):
-        self.ticks = Divider(TICKS_PER_BEAT / 2)
-
-    def handle_message(self, msg, on_tick):
-        if type(msg) is TimingClock:
-            self.ticks.tick(on_tick)
-
-        elif type(msg) is Continue:
-            self.ticks.reset()
-            on_tick()
 
 
 class InternalTicker:
@@ -109,19 +93,21 @@ class Tempo:
         self.half_beat_callback = half_beat_callback
         self.tempo_source = TempoSource.Internal
         self.internal_ticker = InternalTicker()
-        self.midi_ticker = MIDITicker()
         self.swing = Swing()
 
     def set_bpm(self, bpm):
         self.internal_ticker.set_bpm(bpm)
 
+    def reset(self):
+        self.swing.reset()
+
     def update(self):
         if TempoSource.Internal == self.tempo_source:
             self.internal_ticker.update(self._on_tick)
 
-    def on_midi_msg(self, msg):
+    def handle_midi_clock(self):
         if TempoSource.MIDI == self.tempo_source:
-            self.midi_ticker.handle_message(msg, self._on_tick)
+            self._on_tick()
 
     def _on_tick(self):
         self.tick_callback(self.tempo_source)

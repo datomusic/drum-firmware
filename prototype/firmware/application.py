@@ -1,7 +1,7 @@
 from .drum import Drum
 from .device_api import Controls, Output, SampleChange, EffectName
 from .controller_api import Controller
-from .tempo import Tempo
+from .tempo import Tempo, TempoSource
 
 
 SAMPLE_COUNT = 32
@@ -76,13 +76,21 @@ class AppControls(Controls):
     def clear_swing(self):
         self.tempo.swing.set_amount(0)
 
+    def handle_midi_clock(self):
+        self.tempo.tempo_source = TempoSource.MIDI
+        self.tempo.handle_midi_clock()
+
+    def reset_tempo(self):
+        self.tempo.reset()
+
 
 class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
         self.output = output
-        self.tempo = Tempo(tick_callback=self._on_tick,
-                           half_beat_callback=self._on_half_beat)
+        self.tempo = Tempo(
+            tick_callback=self._on_tick, half_beat_callback=self._on_half_beat
+        )
         self.drum = Drum(output)
         self.drum.playing = False
         self.controls = AppControls(self.drum, self.output, self.tempo)
@@ -117,4 +125,3 @@ def setup_tracks(tracks):
     tracks[1].note = 0
     tracks[2].note = 18
     tracks[3].note = 25
-

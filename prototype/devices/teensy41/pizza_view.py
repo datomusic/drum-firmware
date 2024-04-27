@@ -11,33 +11,74 @@ from .hardware import (
 )
 
 
+def fade_color(color, amount):
+    (r, g, b) = color
+    return (int(r * amount), int(g * amount), int(b * amount))
+
+
+class PadIndicator:
+    FadeTimeMs = 150
+
+    def __init__(self, index):
+        self.index = index
+        self.fade_remaining_ms = 0
+        self.last_triggered_step = 0
+
+    def trigger(self, display, step_index, color, active):
+        if active:
+            if self.fade_remaining_ms > 0:
+                fade_amount = self.fade_remaining_ms / PadIndicator.FadeTimeMs
+                color = fade_color(color, 1 - fade_amount)
+
+            if active and step_index != self.last_triggered_step:
+                self.fade_remaining_ms = PadIndicator.FadeTimeMs
+
+        self.last_triggered_step = step_index
+        pad = Drumpad(self.index)
+        display.set_color(pad, color)
+
+    def update(self, delta_ms: int):
+        if self.fade_remaining_ms > 0:
+            self.fade_remaining_ms -= delta_ms
+
+
 class PizzaView():
     def __init__(self):
-        pass
+        self.pad_indicators = [PadIndicator(
+            track_index) for track_index in range(Track.Count)]
+
+    def update(self, delta_ms: int) -> None:
+        for pad_indicator in self.pad_indicators:
+            pad_indicator.update(delta_ms)
 
     def render(self, display: Display, drum: Drum) -> None:
-        for track_index in range(0, 4):
-            display.set_color(
-                Drumpad(track_index),
-                ColorScheme.Tracks[drum.tracks[track_index].note]
-            )
+        for (track_index, _track) in enumerate(drum.tracks):
+            color = ColorScheme.Tracks[drum.tracks[track_index].note]
+            show_track(display, drum, color, track_index)
+            self._show_pads(display, drum, color, track_index)
 
-            show_track(
-                display,
-                ColorScheme.Tracks[drum.tracks[track_index].note],
-                drum.get_indicator_step(),
-                drum.tracks[track_index],
-                track_index,
-            )
+    def _show_pads(self, display, drum, color, track_index) -> None:
+        current_step_index = drum.get_indicator_step()
+
+        track = drum.tracks[track_index]
+        step_active = track.sequencer.steps[current_step_index].active
+        self.pad_indicators[track_index].trigger(
+            display, current_step_index, color, step_active)
 
 
-def show_track(display, step_color, cur_step_index, track: Track, track_index
-               ) -> None:
+def show_track(display, drum: Drum, step_color, track_index) -> None:
+    track = drum.tracks[track_index]
+    current_step_index = drum.get_indicator_step()
+
     for step_index, step in enumerate(track.sequencer.steps):
+        on_cursor = step_index == current_step_index
         color = None
-        if step_index == (cur_step_index + 7) % 8:
+        if on_cursor:
             color = ColorScheme.Cursor
         elif step.active:
             color = step_color
 
         display.set_color(SequencerKey(step_index, track_index), color)
+
+        if on_cursor and step.active:
+            display.set_color(Drumpad(track_index), 0)

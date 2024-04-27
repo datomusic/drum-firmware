@@ -74,10 +74,11 @@ class PizzaController(Controller):
             PotReader(self.hardware.drum_pad4_bottom, inverted=True)
         ]
 
-    def update(self, controls: Controls) -> None:
+    def update(self, controls: Controls, delta_ms: int) -> None:
         gc.collect()
         self._read_pots(controls)
         self._process_keys(controls)
+        self.view.update(delta_ms)
 
     def show(self, drum: Drum):
         self.display.clear()

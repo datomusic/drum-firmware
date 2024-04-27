@@ -17,7 +17,11 @@ class AppControls(Controls):
         self.tempo.set_bpm(bpm)
 
     def toggle_track_step(self, track, step):
-        self.drum.tracks[track].sequencer.toggle_step(step)
+        track = self.drum.tracks[track]
+        track.sequencer.toggle_step(step)
+
+        if not self.drum.playing:
+            track.note_player.play(track.note)
 
     def set_track_pitch(self, track_index, pitch):
         self.output.set_channel_pitch(track_index, pitch)
@@ -69,6 +73,7 @@ class AppControls(Controls):
                 self.drum.repeat_effect.set_repeat_divider(1)
         elif EffectName.Random == effect_name:
             self.drum.set_random_enabled(percentage > 50)
+
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
 
@@ -81,7 +86,6 @@ class AppControls(Controls):
 
     def reset_tempo(self):
         self.tempo.reset()
-
 
 
 class Application:

@@ -79,6 +79,3 @@ def show_track(display, drum: Drum, step_color, track_index) -> None:
             color = step_color
 
         display.set_color(SequencerKey(step_index, track_index), color)
-
-        if on_cursor and step.active:
-            display.set_color(Drumpad(track_index), 0)

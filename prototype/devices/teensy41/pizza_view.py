@@ -11,27 +11,28 @@ from .hardware import (
 )
 
 
+FADE_TIME_MS = 150
+
+
 def fade_color(color, amount):
     (r, g, b) = color
     return (int(r * amount), int(g * amount), int(b * amount))
 
 
 class PadIndicator:
-    FadeTimeMs = 150
-
     def __init__(self, index):
         self.index = index
         self.fade_remaining_ms = 0
         self.last_triggered_step = 0
 
-    def trigger(self, display, step_index, color, active):
+    def show(self, display, step_index, color, active):
         if active:
             if self.fade_remaining_ms > 0:
-                fade_amount = self.fade_remaining_ms / PadIndicator.FadeTimeMs
+                fade_amount = self.fade_remaining_ms / FADE_TIME_MS
                 color = fade_color(color, 1 - fade_amount)
 
             if active and step_index != self.last_triggered_step:
-                self.fade_remaining_ms = PadIndicator.FadeTimeMs
+                self.fade_remaining_ms = FADE_TIME_MS
 
         self.last_triggered_step = step_index
         pad = Drumpad(self.index)
@@ -45,9 +46,10 @@ class PadIndicator:
 class SequencerRing:
     def __init__(self, track_index: int) -> None:
         self.track_index = track_index
+        self.fade_remaining_ms = 0
 
     def trigger(self):
-        pass
+        self.fade_remaining_ms = FADE_TIME_MS
 
     def show_steps(self, display: Display, drum: Drum, step_color) -> None:
         cursor_step = drum.get_indicator_step(self.track_index)
@@ -58,16 +60,19 @@ class SequencerRing:
             color = None
             if on_cursor:
                 color = ColorScheme.Cursor
-            elif step.active:
-                color = step_color
-            # elif step.active or trigger_down:
-            #     color = step_color
+            else:
+                if self.fade_remaining_ms > 0:
+                    fade_amount = self.fade_remaining_ms / FADE_TIME_MS
+                    color = fade_color(step_color, fade_amount)
+                elif step.active:
+                    color = step_color
 
             display.set_color(SequencerKey(
                 step_index, self.track_index), color)
 
     def update(self, delta_ms: int) -> None:
-        pass
+        if self.fade_remaining_ms > 0:
+            self.fade_remaining_ms -= delta_ms
 
 
 class PizzaView():
@@ -92,7 +97,7 @@ class PizzaView():
     def trigger_track(self, track_index: int) -> None:
         self.rings[track_index].trigger()
 
-    def render(self, display: Display, drum: Drum) -> None:
+    def show(self, display: Display, drum: Drum) -> None:
         for (track_index, track) in enumerate(drum.tracks):
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
             self.rings[track_index].show_steps(display, drum, color)
@@ -103,5 +108,5 @@ class PizzaView():
 
         track = drum.tracks[track_index]
         step_active = track.sequencer.steps[current_step_index].active
-        self.pad_indicators[track_index].trigger(
+        self.pad_indicators[track_index].show(
             display, current_step_index, color, step_active)

@@ -1,3 +1,4 @@
+import math
 
 POT_MIN = 0
 POT_MAX = 65536
@@ -52,7 +53,7 @@ class PotReader:
 
 
 class ThresholdTrigger:
-    def __init__(self, pin) -> None:
+    def __init__(self, pin):
         self.pin = pin
         self.triggered = False
 
@@ -64,13 +65,15 @@ class ThresholdTrigger:
         if self.triggered:
             if value < reset_threshold:
                 self.triggered = False
+            return False, value
 
         elif value > trigger_threshold:
             self.triggered = True
             if on_trigger:
                 on_trigger(value)
-
-        return self.triggered, value
+            return True, value
+        else:
+            return False, value
 
 
 class DigitalTrigger:

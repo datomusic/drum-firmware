@@ -82,7 +82,7 @@ class PizzaController(Controller):
 
     def show(self, drum: Drum) -> None:
         self.display.clear()
-        self.view.render(self.display, drum)
+        self.view.show(self.display, drum)
         self.display.show()
 
     def _read_pots(self, controls: Controls) -> None:

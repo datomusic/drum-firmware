@@ -51,12 +51,12 @@ class Drum:
 
         return step % STEP_COUNT
 
-    def get_indicator_step(self, track_index):
+    def get_indicator_step(self, track_index) -> int:
         effect_step = self._get_effect_step(track_index)
         if effect_step is not None:
             step = effect_step
         else:
-            step = (self._get_play_step_index() - 1)
+            step = (self._get_play_step_index(track_index) - 1)
 
         return step % STEP_COUNT
 

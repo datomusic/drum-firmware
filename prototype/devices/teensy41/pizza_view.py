@@ -54,11 +54,12 @@ class PizzaView():
     def render(self, display: Display, drum: Drum, drum_trigger_states) -> None:
         for (track_index, _track) in enumerate(drum.tracks):
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
-            show_track(display, drum, color, track_index, drum_trigger_states[track_index])
+            show_track(display, drum, color, track_index,
+                       drum_trigger_states[track_index])
             self._show_pads(display, drum, color, track_index)
 
     def _show_pads(self, display, drum, color, track_index) -> None:
-        current_step_index = drum.get_indicator_step()
+        current_step_index = drum.get_indicator_step(track_index)
 
         track = drum.tracks[track_index]
         step_active = track.sequencer.steps[current_step_index].active
@@ -66,9 +67,9 @@ class PizzaView():
             display, current_step_index, color, step_active)
 
 
-def show_track(display, drum: Drum, step_color, track_index, trigger_down) -> None:
+def show_track(display, drum: Drum, step_color, track_index: int, trigger_down) -> None:
     track = drum.tracks[track_index]
-    current_step_index = drum.get_indicator_step()
+    current_step_index = drum.get_indicator_step(track_index)
 
     for step_index, step in enumerate(track.sequencer.steps):
         on_cursor = step_index == current_step_index

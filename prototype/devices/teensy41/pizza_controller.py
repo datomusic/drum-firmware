@@ -1,4 +1,4 @@
-from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
+from firmware.device_api import Controls, SampleChange, OutputParam, TrackParam, EffectName
 from firmware.controller_api import Controller
 from firmware.drum import Drum, Track
 
@@ -149,7 +149,8 @@ class PizzaController(Controller):
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
-                lambda pitch: controls.set_track_pitch(
+                lambda pitch: controls.set_track_param(
+                    TrackParam.Pitch,
                     track_ind,
                     percentage_from_pot(pitch)))
 
@@ -158,11 +159,12 @@ class PizzaController(Controller):
                 lambda velocity: controls.play_track_sample(
                     ind, percentage_from_pot(velocity)))
 
-        for (ind, muter) in enumerate(self.mute_pads):
+        for (track_index, muter) in enumerate(self.mute_pads):
             muter.read(
                 lambda amount:
-                    controls.set_track_mute(
-                        ind,
+                    controls.set_track_param(
+                        TrackParam.Mute,
+                        track_index,
                         100 - percentage_from_pot(amount))
             )
 

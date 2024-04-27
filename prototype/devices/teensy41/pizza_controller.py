@@ -1,13 +1,12 @@
 from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
 from firmware.controller_api import Controller
 from firmware.drum import Drum, Track
+from .pizza_view import PizzaView
 
 import gc
 
-from .colors import ColorScheme
 from .hardware import (
     Teensy41Hardware,
-    Drumpad,
     SequencerKey,
     SampleSelectKey,
     Direction,
@@ -36,6 +35,7 @@ class PizzaController(Controller):
 
         self.hardware = hardware
         self.display = hardware.init_display()
+        self.view = PizzaView()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)
@@ -81,21 +81,7 @@ class PizzaController(Controller):
 
     def show(self, drum: Drum):
         self.display.clear()
-
-        for track_index in range(0, 4):
-            self.display.set_color(
-                Drumpad(track_index),
-                ColorScheme.Tracks[drum.tracks[track_index].note]
-            )
-
-            show_track(
-                self.display,
-                ColorScheme.Tracks[drum.tracks[track_index].note],
-                drum.get_indicator_step(track_index),
-                drum.tracks[track_index],
-                track_index,
-            )
-
+        self.view.render(self.display, drum)
         self.display.show()
 
     def _read_pots(self, controls: Controls) -> None:
@@ -185,15 +171,3 @@ class PizzaController(Controller):
             elif isinstance(key, ControlKey):
                 if key.name == ControlName.Start:
                     controls.toggle_playing()
-
-
-def show_track(display, step_color, cur_step_index, track: Track, track_index
-               ) -> None:
-    for step_index, step in enumerate(track.sequencer.steps):
-        color = None
-        if step_index == (cur_step_index + 7) % 8:
-            color = ColorScheme.Cursor
-        elif step.active:
-            color = step_color
-
-        display.set_color(SequencerKey(step_index, track_index), color)

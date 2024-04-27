@@ -82,7 +82,8 @@ class PizzaController(Controller):
 
     def show(self, drum: Drum):
         self.display.clear()
-        self.view.render(self.display, drum)
+        active_triggers = [trigger.triggered for trigger in self.drum_triggers]
+        self.view.render(self.display, drum, active_triggers)
         self.display.show()
 
     def _read_pots(self, controls: Controls) -> None:

@@ -17,7 +17,11 @@ class AppControls(Controls):
         self.tempo.set_bpm(bpm)
 
     def toggle_track_step(self, track, step):
-        self.drum.tracks[track].sequencer.toggle_step(step)
+        track = self.drum.tracks[track]
+        track.sequencer.toggle_step(step)
+
+        if not self.drum.playing:
+            track.note_player.play(track.note)
 
     def change_sample(self, track_index, change):
         if change == SampleChange.Prev:

@@ -14,6 +14,7 @@ function send() {
   from=$1
   to=$2
   rsync -rz --progress --update \
+    --bwlimit=100 \
     --exclude=__pycache__ \
     --exclude=.mypy_cache \
     --exclude="*.pyc" \

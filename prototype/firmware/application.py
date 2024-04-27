@@ -1,5 +1,5 @@
 from .drum import Drum
-from .device_api import Controls, Output, SampleChange, EffectName
+from .device_api import Controls, Output, SampleChange, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 
@@ -18,9 +18,6 @@ class AppControls(Controls):
 
     def toggle_track_step(self, track, step):
         self.drum.tracks[track].sequencer.toggle_step(step)
-
-    def set_track_pitch(self, track_index, pitch):
-        self.output.set_channel_pitch(track_index, pitch)
 
     def change_sample(self, track_index, change):
         if change == SampleChange.Prev:
@@ -45,9 +42,11 @@ class AppControls(Controls):
         track = self.drum.tracks[track_index]
         track.note_player.play(track.note, velocity)
 
-    def set_track_mute(self, track_index: int, amount_percent: float):
-        track = self.drum.tracks[track_index]
-        track.note_player.mute_level = amount_percent
+    def set_track_param(self, param, track_index: int, amount_percent: float):
+        if TrackParam.Pitch == param:
+            self.output.set_channel_pitch(track_index, amount_percent)
+        elif TrackParam.Mute == param:
+            self.output.set_channel_mute(track_index, amount_percent)
 
     def set_output_param(self, param, percent) -> None:
         self.output.set_param(param, percent)
@@ -69,6 +68,7 @@ class AppControls(Controls):
                 self.drum.repeat_effect.set_repeat_divider(1)
         elif EffectName.Random == effect_name:
             self.drum.set_random_enabled(percentage > 50)
+
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
 
@@ -81,7 +81,6 @@ class AppControls(Controls):
 
     def reset_tempo(self):
         self.tempo.reset()
-
 
 
 class Application:

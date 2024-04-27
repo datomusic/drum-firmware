@@ -37,10 +37,23 @@ class Output:
     def on_tempo_tick(self, source):
         _not_implemented("Output.on_tempo_tick", source)
 
+    def set_channel_mute(self, channel: int, amount_percent: float):
+        _not_implemented("Output.set_channel_mute",
+                         channel, amount_percent)
+
+
+class TrackParam:
+    Pitch = 1
+    Mute = 2
+
 
 class Controls:
     def set_output_param(self, param, amount_percent):
         _not_implemented("Controls.set_output_param", param, amount_percent)
+
+    def set_track_param(self, param, track_index, amount_percent):
+        _not_implemented("Controls.set_track_param", param,
+                         track_index, amount_percent)
 
     def set_bpm(self, bpm):
         _not_implemented("Controls.set_bpm", bpm)
@@ -49,16 +62,8 @@ class Controls:
         _not_implemented("Controls.play_track_sample",
                          track_index, velocity_percent)
 
-    def set_track_mute(self, track_index: int, amount_percent: float):
-        _not_implemented("Controls.set_track_mute",
-                         track_index, amount_percent)
-
     def toggle_track_step(self, track_index: int, step):
         _not_implemented("Controls.toggle_track_step", track_index, step)
-
-    def set_track_pitch(self, track_index: int, pitch_percent: float):
-        _not_implemented("Controls.set_track_pitch",
-                         track_index, pitch_percent)
 
     def set_effect_level(self, effect_name, percentage):
         _not_implemented("Controls.set_effect_level", effect_name, percentage)

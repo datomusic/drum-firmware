@@ -53,19 +53,18 @@ class AppControls(Controls):
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            print(percentage)
             if percentage > 99:
                 self.drum.repeat_effect.set_repeat_count(1)
-                self.drum.repeat_effect.set_repeat_divider(2)
+                self.drum.repeat_effect.set_subdivision(2)
             elif percentage > 94:
                 self.drum.repeat_effect.set_repeat_count(2)
-                self.drum.repeat_effect.set_repeat_divider(2)
+                self.drum.repeat_effect.set_subdivision(2)
             elif percentage > 30:
                 self.drum.repeat_effect.set_repeat_count(3)
-                self.drum.repeat_effect.set_repeat_divider(2)
+                self.drum.repeat_effect.set_subdivision(2)
             else:
                 self.drum.repeat_effect.set_repeat_count(0)
-                self.drum.repeat_effect.set_repeat_divider(1)
+                self.drum.repeat_effect.set_subdivision(1)
         elif EffectName.Random == effect_name:
             self.drum.set_random_enabled(percentage > 50)
 
@@ -98,7 +97,6 @@ class Application:
 
     def _on_tick(self, source) -> None:
         self.output.on_tempo_tick(source)
-        self.drum.tick()
 
     def _on_half_beat(self) -> None:
         self.drum.advance_step()

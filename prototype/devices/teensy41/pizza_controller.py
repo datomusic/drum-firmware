@@ -130,7 +130,7 @@ class PizzaController(Controller):
             lambda val: controls.adjust_swing(10))
 
         if self.swing_left.triggered and self.swing_right.triggered:
-            controls.reset_swing()
+            controls.clear_swing()
 
         self.highpass_setting.read(
             lambda val: controls.set_output_param(

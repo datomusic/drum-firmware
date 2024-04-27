@@ -1,4 +1,4 @@
-from .tempo import BeatTicks, TICKS_PER_BEAT
+from .tempo import Divider, TICKS_PER_BEAT
 
 
 class RepeatEffect:
@@ -7,7 +7,7 @@ class RepeatEffect:
         self.start_step = None
         self.cur_step_getter = cur_step_getter
         self.step_counter = 0
-        self.repeat_ticks = BeatTicks(TICKS_PER_BEAT)
+        self.repeat_ticks = Divider(TICKS_PER_BEAT)
 
     def active(self):
         return self.repeat_count > 0
@@ -22,7 +22,7 @@ class RepeatEffect:
             return False
 
     def set_repeat_divider(self, divider):
-        self.repeat_ticks.set_ticks_per_beat(TICKS_PER_BEAT / divider)
+        self.repeat_ticks.set_division(TICKS_PER_BEAT / divider)
 
     def set_repeat_count(self, count):
         self.repeat_count = count

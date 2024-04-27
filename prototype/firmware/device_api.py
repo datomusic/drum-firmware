@@ -69,8 +69,14 @@ class Controls:
     def adjust_swing(self, amount_percent):
         _not_implemented("Controls.adjust_swing", amount_percent)
 
-    def reset_swing(self):
-        _not_implemented("Controls.reset_swing")
+    def clear_swing(self):
+        _not_implemented("Controls.clear_swing")
+
+    def handle_midi_clock(self):
+        _not_implemented("Controls.handle_midi_clock")
+
+    def reset_tempo(self):
+        _not_implemented("Controls.reset_tempo")
 
 
 class SampleChange:

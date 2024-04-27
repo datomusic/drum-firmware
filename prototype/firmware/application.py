@@ -1,3 +1,4 @@
+import time
 from .drum import Drum
 from .device_api import Controls, Output, SampleChange, EffectName, TrackParam
 from .controller_api import Controller
@@ -105,9 +106,9 @@ class Application:
     def _on_half_beat(self) -> None:
         self.drum.advance_step()
 
-    def update(self) -> None:
+    def update(self, delta_ms: int) -> None:
         for controller in self.controllers:
-            controller.update(self.controls)
+            controller.update(self.controls, delta_ms)
 
         self.tempo.update()
 
@@ -116,8 +117,13 @@ class Application:
             controller.show(self.drum)
 
     def run(self):
+        last_ns = time.monotonic_ns()
+
         while True:
-            self.update()
+            now = time.monotonic_ns()
+            delta_ms = (now - last_ns) // (1000 * 1000)
+            last_ns = now
+            self.update(delta_ms)
             self.show()
 
 
@@ -126,3 +132,4 @@ def setup_tracks(tracks):
     tracks[1].note = 0
     tracks[2].note = 18
     tracks[3].note = 25
+

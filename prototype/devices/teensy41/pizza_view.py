@@ -42,20 +42,60 @@ class PadIndicator:
             self.fade_remaining_ms -= delta_ms
 
 
+class SequencerRing:
+    def __init__(self, track_index: int) -> None:
+        self.track_index = track_index
+
+    def trigger(self):
+        pass
+
+    def show_steps(self, display: Display, drum: Drum, step_color) -> None:
+        cursor_step = drum.get_indicator_step(self.track_index)
+        track = drum.tracks[self.track_index]
+
+        for step_index, step in enumerate(track.sequencer.steps):
+            on_cursor = step_index == cursor_step
+            color = None
+            if on_cursor:
+                color = ColorScheme.Cursor
+            elif step.active:
+                color = step_color
+            # elif step.active or trigger_down:
+            #     color = step_color
+
+            display.set_color(SequencerKey(
+                step_index, self.track_index), color)
+
+    def update(self, delta_ms: int) -> None:
+        pass
+
+
 class PizzaView():
-    def __init__(self):
-        self.pad_indicators = [PadIndicator(
-            track_index) for track_index in range(Track.Count)]
+    def __init__(self) -> None:
+        self.pad_indicators = [
+            PadIndicator(track_index)
+            for track_index in range(Track.Count)
+        ]
+
+        self.rings = [
+            SequencerRing(track_index)
+            for track_index in range(Track.Count)
+        ]
 
     def update(self, delta_ms: int) -> None:
         for pad_indicator in self.pad_indicators:
             pad_indicator.update(delta_ms)
 
-    def render(self, display: Display, drum: Drum, drum_trigger_states) -> None:
-        for (track_index, _track) in enumerate(drum.tracks):
+        for ring in self.rings:
+            ring.update(delta_ms)
+
+    def trigger_track(self, track_index: int) -> None:
+        self.rings[track_index].trigger()
+
+    def render(self, display: Display, drum: Drum) -> None:
+        for (track_index, track) in enumerate(drum.tracks):
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
-            show_track(display, drum, color, track_index,
-                       drum_trigger_states[track_index])
+            self.rings[track_index].show_steps(display, drum, color)
             self._show_pads(display, drum, color, track_index)
 
     def _show_pads(self, display, drum, color, track_index) -> None:
@@ -65,18 +105,3 @@ class PizzaView():
         step_active = track.sequencer.steps[current_step_index].active
         self.pad_indicators[track_index].trigger(
             display, current_step_index, color, step_active)
-
-
-def show_track(display, drum: Drum, step_color, track_index: int, trigger_down) -> None:
-    track = drum.tracks[track_index]
-    current_step_index = drum.get_indicator_step(track_index)
-
-    for step_index, step in enumerate(track.sequencer.steps):
-        on_cursor = step_index == current_step_index
-        color = None
-        if on_cursor:
-            color = ColorScheme.Cursor
-        elif step.active or trigger_down:
-            color = step_color
-
-        display.set_color(SequencerKey(step_index, track_index), color)

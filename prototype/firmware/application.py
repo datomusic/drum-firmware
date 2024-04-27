@@ -70,6 +70,7 @@ class AppControls(Controls):
                 self.drum.repeat_effect.set_repeat_divider(1)
         elif EffectName.Random == effect_name:
             self.drum.set_random_enabled(percentage > 50)
+
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
 
@@ -82,7 +83,6 @@ class AppControls(Controls):
 
     def reset_tempo(self):
         self.tempo.reset()
-
 
 
 class Application:

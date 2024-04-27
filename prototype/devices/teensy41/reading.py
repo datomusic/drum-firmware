@@ -1,4 +1,3 @@
-import math
 
 POT_MIN = 0
 POT_MAX = 65536
@@ -6,6 +5,7 @@ POT_MAX = 65536
 
 def percentage_from_pot(pot_value):
     return max(-100, min(100, (pot_value / POT_MAX) * 100))
+
 
 class IncDecReader:
     def __init__(self, dec_pin, inc_pin):
@@ -52,24 +52,25 @@ class PotReader:
 
 
 class ThresholdTrigger:
-    def __init__(self, pin):
+    def __init__(self, pin) -> None:
         self.pin = pin
         self.triggered = False
 
-    def read(self, on_trigger):
+    def read(self, on_trigger=None) -> tuple[bool, int]:
         trigger_threshold = 10000
         reset_threshold = 1000
-        val = self.pin.read()
+        value = self.pin.read()
 
         if self.triggered:
-            if val < reset_threshold:
+            if value < reset_threshold:
                 self.triggered = False
-            return False
 
-        elif val > trigger_threshold:
+        elif value > trigger_threshold:
             self.triggered = True
-            on_trigger(val)
-            return True
+            if on_trigger:
+                on_trigger(value)
+
+        return self.triggered, value
 
 
 class DigitalTrigger:

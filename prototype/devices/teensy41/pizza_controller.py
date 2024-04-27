@@ -1,6 +1,6 @@
 from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
 from firmware.controller_api import Controller
-from firmware.drum import Drum, Track
+from firmware.drum import Drum
 from .pizza_view import PizzaView
 
 import gc
@@ -29,7 +29,7 @@ BPM_MAX = 300
 
 
 class PizzaController(Controller):
-    def __init__(self, hardware=None):
+    def __init__(self, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
@@ -80,10 +80,9 @@ class PizzaController(Controller):
         self._process_keys(controls)
         self.view.update(delta_ms)
 
-    def show(self, drum: Drum):
+    def show(self, drum: Drum) -> None:
         self.display.clear()
-        active_triggers = [trigger.triggered for trigger in self.drum_triggers]
-        self.view.render(self.display, drum, active_triggers)
+        self.view.render(self.display, drum)
         self.display.show()
 
     def _read_pots(self, controls: Controls) -> None:
@@ -141,10 +140,12 @@ class PizzaController(Controller):
                     track_ind,
                     percentage_from_pot(pitch)))
 
-        for (ind, drum_trigger) in enumerate(self.drum_triggers):
-            drum_trigger.read(
-                lambda velocity: controls.play_track_sample(
-                    ind, percentage_from_pot(velocity)))
+        for (track_index, drum_trigger) in enumerate(self.drum_triggers):
+            triggered, velocity = drum_trigger.read()
+            if triggered:
+                controls.play_track_sample(
+                    track_index, percentage_from_pot(velocity))
+                self.view.trigger_track(track_index)
 
         for (ind, muter) in enumerate(self.mute_pads):
             muter.read(

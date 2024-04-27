@@ -60,6 +60,9 @@ class Controls:
         _not_implemented("Controls.set_track_pitch",
                          track_index, pitch_percent)
 
+    def set_effect_level(self, effect_name, percentage):
+        _not_implemented("Controls.set_effect_level", effect_name, percentage)
+
     def change_sample(self, track_index: int, change):
         _not_implemented("Controls.change_sample", track_index, change)
 

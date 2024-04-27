@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 
 TARGET=~/mnt/CIRCUITPY
+
+if [[ -d /Volumes/CIRCUITPY ]]; then
+  TARGET=/Volumes/CIRCUITPY
+fi
+
 DEVICE_NAME=teensy41
 
+echo "Copying firmware $DEVICE_NAME to $TARGET"
 
 function send() {
   from=$1

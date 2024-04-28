@@ -9,7 +9,7 @@ class MIDIController(Controller):
     def __init__(self, midi: MIDI):
         self.midi = midi
 
-    def update(self, controls: Controls):
+    def update(self, controls: Controls, delta_ms: int):
         msg = self.midi.receive()
         while msg:
             if isinstance(msg, TimingClock):

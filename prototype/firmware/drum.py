@@ -5,10 +5,11 @@ from .repeat_effect import RepeatEffect
 from .random_effect import RandomEffect
 
 STEP_COUNT = 8
-SEQ_COUNT = 4
 
 
 class Track:
+    Count = 4
+
     def __init__(self, note_player: NotePlayer):
         self.note_player = note_player
         self.note = 0
@@ -26,7 +27,7 @@ class Track:
 class Drum:
     def __init__(self, output: Output):
         self.tracks = [Track(NotePlayer(ind, output))
-                       for ind in range(SEQ_COUNT)]
+                       for ind in range(Track.Count)]
         self._next_step_index = 0
         self.playing = True
         self.repeat_effect = RepeatEffect(lambda: self._next_step_index)
@@ -50,23 +51,20 @@ class Drum:
 
         return step % STEP_COUNT
 
-    def get_indicator_step(self, track_index):
+    def get_indicator_step(self, track_index) -> int:
         effect_step = self._get_effect_step(track_index)
         if effect_step is not None:
-            return (effect_step + 1) % STEP_COUNT
+            step = effect_step
         else:
-            return self._get_play_step_index(track_index)
+            step = (self._get_play_step_index(track_index) - 1)
 
-    def tick(self):
-        if self.playing:
-            if self.repeat_effect.tick():
-                self._play_track_steps()
+        return step % STEP_COUNT
 
     def advance_step(self) -> None:
         if self.playing:
-            if not self.repeat_effect.active():
-                self._play_track_steps()
+            self._play_track_steps()
             self._next_step_index = (self._next_step_index + 1) % STEP_COUNT
+            self.repeat_effect.advance()
 
         for track in self.tracks:
             track.tick()

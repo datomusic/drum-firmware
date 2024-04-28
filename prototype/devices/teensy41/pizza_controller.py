@@ -1,13 +1,12 @@
-from firmware.device_api import Controls, SampleChange, OutputParam, EffectName
+from firmware.device_api import Controls, SampleChange, OutputParam, TrackParam, EffectName
 from firmware.controller_api import Controller
-from firmware.drum import Drum, Track
+from firmware.drum import Drum
+from .pizza_view import PizzaView
 
 import gc
 
-from .colors import ColorScheme
 from .hardware import (
     Teensy41Hardware,
-    Drumpad,
     SequencerKey,
     SampleSelectKey,
     Direction,
@@ -30,12 +29,13 @@ BPM_MAX = 300
 
 
 class PizzaController(Controller):
-    def __init__(self, hardware=None):
+    def __init__(self, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
         self.hardware = hardware
         self.display = hardware.init_display()
+        self.view = PizzaView()
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)
@@ -74,28 +74,15 @@ class PizzaController(Controller):
             PotReader(self.hardware.drum_pad4_bottom, inverted=True)
         ]
 
-    def update(self, controls: Controls) -> None:
+    def update(self, controls: Controls, delta_ms: int) -> None:
         gc.collect()
         self._read_pots(controls)
         self._process_keys(controls)
+        self.view.update(delta_ms)
 
-    def show(self, drum: Drum):
+    def show(self, drum: Drum) -> None:
         self.display.clear()
-
-        for track_index in range(0, 4):
-            self.display.set_color(
-                Drumpad(track_index),
-                ColorScheme.Tracks[drum.tracks[track_index].note]
-            )
-
-            show_track(
-                self.display,
-                ColorScheme.Tracks[drum.tracks[track_index].note],
-                drum.get_indicator_step(track_index),
-                drum.tracks[track_index],
-                track_index,
-            )
-
+        self.view.show(self.display, drum)
         self.display.show()
 
     def _read_pots(self, controls: Controls) -> None:
@@ -149,20 +136,24 @@ class PizzaController(Controller):
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
-                lambda pitch: controls.set_track_pitch(
+                lambda pitch: controls.set_track_param(
+                    TrackParam.Pitch,
                     track_ind,
                     percentage_from_pot(pitch)))
 
-        for (ind, drum_trigger) in enumerate(self.drum_triggers):
-            drum_trigger.read(
-                lambda velocity: controls.play_track_sample(
-                    ind, percentage_from_pot(velocity)))
+        for (track_index, drum_trigger) in enumerate(self.drum_triggers):
+            triggered, velocity = drum_trigger.read()
+            if triggered:
+                controls.play_track_sample(
+                    track_index, percentage_from_pot(velocity))
+                self.view.trigger_track(track_index)
 
-        for (ind, muter) in enumerate(self.mute_pads):
+        for (track_index, muter) in enumerate(self.mute_pads):
             muter.read(
                 lambda amount:
-                    controls.set_track_mute(
-                        ind,
+                    controls.set_track_param(
+                        TrackParam.Mute,
+                        track_index,
                         100 - percentage_from_pot(amount))
             )
 
@@ -185,15 +176,3 @@ class PizzaController(Controller):
             elif isinstance(key, ControlKey):
                 if key.name == ControlName.Start:
                     controls.toggle_playing()
-
-
-def show_track(display, step_color, cur_step_index, track: Track, track_index
-               ) -> None:
-    for step_index, step in enumerate(track.sequencer.steps):
-        color = None
-        if step_index == (cur_step_index + 7) % 8:
-            color = ColorScheme.Cursor
-        elif step.active:
-            color = step_color
-
-        display.set_color(SequencerKey(step_index, track_index), color)

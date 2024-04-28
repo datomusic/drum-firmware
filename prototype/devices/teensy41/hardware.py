@@ -95,13 +95,12 @@ class ToggleButton:
 
 
 class AnalogReader:
-    def __init__(self, pin):
+    def __init__(self, pin) -> None:
         self.pin = pin
         self.analog = aio.AnalogIn(self.pin)
 
-    def read(self):
-        val = self.analog.value
-        return val
+    def read(self) -> int:
+        return self.analog.value
 
 
 class DigitalReader:

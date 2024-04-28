@@ -1,5 +1,6 @@
+import time
 from .drum import Drum
-from .device_api import Controls, Output, SampleChange, EffectName
+from .device_api import Controls, Output, SampleChange, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 
@@ -17,10 +18,11 @@ class AppControls(Controls):
         self.tempo.set_bpm(bpm)
 
     def toggle_track_step(self, track, step):
-        self.drum.tracks[track].sequencer.toggle_step(step)
+        track = self.drum.tracks[track]
+        track.sequencer.toggle_step(step)
 
-    def set_track_pitch(self, track_index, pitch):
-        self.output.set_channel_pitch(track_index, pitch)
+        if not self.drum.playing:
+            track.note_player.play(track.note)
 
     def change_sample(self, track_index, change):
         if change == SampleChange.Prev:
@@ -45,30 +47,32 @@ class AppControls(Controls):
         track = self.drum.tracks[track_index]
         track.note_player.play(track.note, velocity)
 
-    def set_track_mute(self, track_index: int, amount_percent: float):
-        track = self.drum.tracks[track_index]
-        track.note_player.mute_level = amount_percent
+    def set_track_param(self, param, track_index: int, amount_percent: float):
+        if TrackParam.Pitch == param:
+            self.output.set_channel_pitch(track_index, amount_percent)
+        elif TrackParam.Mute == param:
+            self.output.set_channel_mute(track_index, amount_percent)
 
     def set_output_param(self, param, percent) -> None:
         self.output.set_param(param, percent)
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            print(percentage)
             if percentage > 99:
                 self.drum.repeat_effect.set_repeat_count(1)
-                self.drum.repeat_effect.set_repeat_divider(2)
+                self.drum.repeat_effect.set_subdivision(2)
             elif percentage > 94:
                 self.drum.repeat_effect.set_repeat_count(2)
-                self.drum.repeat_effect.set_repeat_divider(2)
+                self.drum.repeat_effect.set_subdivision(2)
             elif percentage > 30:
                 self.drum.repeat_effect.set_repeat_count(3)
-                self.drum.repeat_effect.set_repeat_divider(2)
+                self.drum.repeat_effect.set_subdivision(2)
             else:
                 self.drum.repeat_effect.set_repeat_count(0)
-                self.drum.repeat_effect.set_repeat_divider(1)
+                self.drum.repeat_effect.set_subdivision(1)
         elif EffectName.Random == effect_name:
             self.drum.set_random_enabled(percentage > 50)
+
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
 
@@ -81,7 +85,6 @@ class AppControls(Controls):
 
     def reset_tempo(self):
         self.tempo.reset()
-
 
 
 class Application:
@@ -99,14 +102,13 @@ class Application:
 
     def _on_tick(self, source) -> None:
         self.output.on_tempo_tick(source)
-        self.drum.tick()
 
     def _on_half_beat(self) -> None:
         self.drum.advance_step()
 
-    def update(self) -> None:
+    def update(self, delta_ms: int) -> None:
         for controller in self.controllers:
-            controller.update(self.controls)
+            controller.update(self.controls, delta_ms)
 
         self.tempo.update()
 
@@ -115,8 +117,13 @@ class Application:
             controller.show(self.drum)
 
     def run(self):
+        last_ns = time.monotonic_ns()
+
         while True:
-            self.update()
+            now = time.monotonic_ns()
+            delta_ms = (now - last_ns) // (1000 * 1000)
+            last_ns = now
+            self.update(delta_ms)
             self.show()
 
 
@@ -125,3 +132,4 @@ def setup_tracks(tracks):
     tracks[1].note = 0
     tracks[2].note = 18
     tracks[3].note = 25
+

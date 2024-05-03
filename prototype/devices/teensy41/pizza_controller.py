@@ -85,6 +85,9 @@ class PizzaController(Controller):
         self.view.show(self.display, drum)
         self.display.show()
 
+    def on_track_sample_played(self, track_index: int):
+        self.view.trigger_track(track_index)
+
     def _read_pots(self, controls: Controls) -> None:
         self.speed_setting.read(
             lambda speed: controls.set_bpm(
@@ -142,11 +145,17 @@ class PizzaController(Controller):
                     percentage_from_pot(pitch)))
 
         for (track_index, drum_trigger) in enumerate(self.drum_triggers):
-            triggered, velocity = drum_trigger.read()
+            was_triggered = drum_trigger.triggered
+            triggered, value = drum_trigger.read()
+            velocity = percentage_from_pot(value)
+
+            if was_triggered != drum_trigger.triggered and not drum_trigger.triggered:
+                controls.set_track_repeat_velocity(track_index, 0)
+            elif velocity > 1:
+                controls.set_track_repeat_velocity(track_index, velocity)
+
             if triggered:
-                controls.play_track_sample(
-                    track_index, percentage_from_pot(velocity))
-                self.view.trigger_track(track_index)
+                controls.play_track_sample(track_index, velocity)
 
         for (track_index, muter) in enumerate(self.mute_pads):
             muter.read(

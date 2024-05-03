@@ -9,10 +9,11 @@ SAMPLE_COUNT = 32
 
 
 class AppControls(Controls):
-    def __init__(self, drum: Drum, output: Output, tempo: Tempo):
+    def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
         self.drum = drum
         self.output = output
         self.tempo = tempo
+        self.on_sample_trigger = on_sample_trigger
 
     def set_bpm(self, bpm):
         self.tempo.set_bpm(bpm)
@@ -46,6 +47,7 @@ class AppControls(Controls):
     def play_track_sample(self, track_index: int, velocity: float):
         track = self.drum.tracks[track_index]
         track.note_player.play(track.note, velocity)
+        self.on_sample_trigger(track_index)
 
     def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
         self.drum.tracks[track_index].repeat_velocity = amount_percent
@@ -97,13 +99,15 @@ class Application:
         self.tempo = Tempo(
             tick_callback=self._on_tick, half_beat_callback=self._on_half_beat
         )
-        self.drum = Drum(output, self._on_track_note)
+        self.drum = Drum(output, on_track_repeat=self._on_sample_trigger)
         self.drum.playing = False
-        self.controls = AppControls(self.drum, self.output, self.tempo)
+        self.controls = AppControls(
+            self.drum, self.output, self.tempo, self._on_sample_trigger
+        )
 
         setup_tracks(self.drum.tracks)
 
-    def _on_track_note(self, track_index: int, note: int):
+    def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
 

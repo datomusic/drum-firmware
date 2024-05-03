@@ -8,3 +8,6 @@ class Controller:
 
     def show(self, drum: Drum):
         _not_implemented("Controller.show")
+
+    def on_track_sample_played(self, track_index: int):
+        _not_implemented("Controller.on_track_sample_played", track_index)

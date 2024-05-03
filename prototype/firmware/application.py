@@ -97,11 +97,15 @@ class Application:
         self.tempo = Tempo(
             tick_callback=self._on_tick, half_beat_callback=self._on_half_beat
         )
-        self.drum = Drum(output)
+        self.drum = Drum(output, self._on_track_note)
         self.drum.playing = False
         self.controls = AppControls(self.drum, self.output, self.tempo)
 
         setup_tracks(self.drum.tracks)
+
+    def _on_track_note(self, track_index: int, note: int):
+        for controller in self.controllers:
+            controller.on_track_sample_played(track_index)
 
     def _on_tick(self, source) -> None:
         self.output.on_tempo_tick(source)

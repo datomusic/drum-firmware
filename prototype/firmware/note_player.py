@@ -20,6 +20,9 @@ class NotePlayer:
         self.ticks = 0
         self.played_note = note
 
+    def playing(self):
+        return self.played_note is not None
+
     def tick(self) -> None:
         if self.played_note is not None:
             self.ticks += 1

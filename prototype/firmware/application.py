@@ -47,6 +47,9 @@ class AppControls(Controls):
         track = self.drum.tracks[track_index]
         track.note_player.play(track.note, velocity)
 
+    def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
+        self.drum.tracks[track_index].repeat_velocity = amount_percent
+
     def set_track_param(self, param, track_index: int, amount_percent: float):
         if TrackParam.Pitch == param:
             self.output.set_channel_pitch(track_index, amount_percent)
@@ -132,4 +135,3 @@ def setup_tracks(tracks):
     tracks[1].note = 0
     tracks[2].note = 18
     tracks[3].note = 25
-

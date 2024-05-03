@@ -15,12 +15,17 @@ class Track:
         self.note = 0
         self.sequencer = Sequencer(STEP_COUNT)
         self.random_effect = RandomEffect(STEP_COUNT)
+        self.repeat_velocity = 0.0
 
-    def tick(self):
+    def tick(self, trigger_repeat: bool):
+        if trigger_repeat and self.repeat_velocity > 10:
+            self.note_player.play(self.note, self.repeat_velocity)
+
         self.note_player.tick()
         self.random_effect.tick()
 
     def play_step(self, velocity) -> None:
+        self.last_velocity = velocity
         self.note_player.play(self.note, velocity)
 
 
@@ -67,7 +72,7 @@ class Drum:
             self.repeat_effect.advance()
 
         for track in self.tracks:
-            track.tick()
+            track.tick(trigger_repeat=self.playing)
 
     def _play_track_steps(self) -> None:
         for index, track in enumerate(self.tracks):

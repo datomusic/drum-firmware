@@ -62,6 +62,10 @@ class Controls:
         _not_implemented("Controls.play_track_sample",
                          track_index, velocity_percent)
 
+    def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
+        _not_implemented("Controls.set_track_sample_repeat",
+                         track_index, amount_percent)
+
     def toggle_track_step(self, track_index: int, step):
         _not_implemented("Controls.toggle_track_step", track_index, step)
 

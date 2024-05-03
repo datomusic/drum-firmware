@@ -12,10 +12,13 @@ class MIDIOutput(Output):
     def __init__(self, midi: MIDI):
         self.midi = midi
         self.filter_amount = 64
+        self.mute_multipliers = [0.0 for i in range(4)]
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
-        self.midi.send(
-            NoteOn(note, percent_to_midi(vel_percent)), channel=channel)
+        midi_value = percent_to_midi(
+            vel_percent * (1 - self.mute_multipliers[channel]))
+        print(f"Note: {midi_value}")
+        self.midi.send(NoteOn(note, midi_value), channel=channel)
 
     def send_note_off(self, channel: int, note: int):
         self.midi.send(NoteOff(note), channel=channel)
@@ -23,8 +26,9 @@ class MIDIOutput(Output):
     def set_channel_pitch(self, channel: int, pitch_percent: float):
         self._send_cc(16 + channel, percent_to_midi(pitch_percent))
 
-    def set_channel_mute(self, channel: int, pressure: float):
-        midi_value = percent_to_midi(pressure)
+    def set_channel_mute(self, channel: int, amount_percent: float):
+        self.mute_multipliers[channel] = amount_percent / 100
+        midi_value = percent_to_midi(amount_percent)
         print(f"[{channel}] ChannelPressure: {midi_value}")
         self.midi.send(ChannelPressure(midi_value), channel=channel)
 

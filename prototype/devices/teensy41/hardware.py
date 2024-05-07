@@ -250,9 +250,22 @@ drumpad_to_led = {
 }
 
 
+def fade_color(color, amount):
+    (r, g, b) = color
+    return (int(r * amount), int(g * amount), int(b * amount))
+
+
+def add_colors(color1, color2):
+    (r1, g1, b1) = color1
+    (r2, g2, b2) = color2
+    return (r1 + r2, g1 + g2, b1 + b2)
+
+
 class Display:
+    PixelCount = 41
+
     def __init__(self):
-        self.pixels = init_pixels()
+        self.pixels = init_neopixels(Display.PixelCount)
         self.show = self.pixels.show
 
     def clear(self):
@@ -266,17 +279,29 @@ class Display:
         if not color:
             color = (0, 0, 0)
 
-        if isinstance(key, SequencerKey):
-            self.pixels[step_to_led[key.step + (key.track * 8)]] = color
-        elif isinstance(key, Drumpad):
-            self.pixels[drumpad_to_led[key.track]] = color
-        elif isinstance(key, ControlKey) and key.name == ControlName.Start:
-            self.pixels[0] = color
+        pixel_index = pixel_index_from_key(key)
+        self.pixels[pixel_index] = color
+
+    def fade(
+        self,
+        key: Drumpad | SequencerKey | ControlKey,
+        amount: float
+    ) -> None:
+        pixel_index = pixel_index_from_key(key)
+        old_color = self.pixels[pixel_index]
+        self.pixels[pixel_index] = fade_color(old_color, amount)
 
 
-def init_pixels():
-    pixel_count = 41
+def pixel_index_from_key(key):
+    if isinstance(key, SequencerKey):
+        return step_to_led[key.step + key.track * 8]
+    elif isinstance(key, Drumpad):
+        return drumpad_to_led[key.track]
+    elif isinstance(key, ControlKey) and key.name == ControlName.Start:
+        return 0
 
+
+def init_neopixels(pixel_count):
     pixels = neopixel.NeoPixel(
         board.D2, pixel_count, brightness=1.0, auto_write=False)
 

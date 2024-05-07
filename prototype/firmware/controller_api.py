@@ -6,8 +6,8 @@ class Controller:
     def update(self, controls: Controls, delta_ms: int):
         _not_implemented("Controller.update", delta_ms)
 
-    def show(self, drum: Drum):
-        _not_implemented("Controller.show")
+    def show(self, drum: Drum, beat_position: float):
+        _not_implemented("Controller.show", beat_position)
 
     def on_track_sample_played(self, track_index: int):
         _not_implemented("Controller.on_track_sample_played", track_index)

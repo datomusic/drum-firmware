@@ -72,15 +72,17 @@ class SequencerRing:
 
 
 class Cursor:
-    def update(self, delta_ms: int):
-        pass
-
-    def show(self, display: Display,  drum: Drum):
+    def show(self, display: Display,  drum: Drum, beat_position: float) -> None:
         for track_index in range(Track.Count):
             step_index = drum.get_indicator_step(track_index)
+            if drum.playing:
+                color = ColorScheme.CursorPlaying
+            else:
+                color = fade_color(ColorScheme.CursorStopped, abs(beat_position - 0.5))
+
             display.set_color(
                 SequencerKey(step_index, track_index),
-                ColorScheme.Cursor
+                color
             )
 
 
@@ -98,7 +100,6 @@ class PizzaView():
         ]
 
     def update(self, delta_ms: int) -> None:
-        self.cursor.update(delta_ms)
 
         for pad_indicator in self.pad_indicators:
             pad_indicator.update(delta_ms)
@@ -109,12 +110,12 @@ class PizzaView():
     def trigger_track(self, track_index: int) -> None:
         self.rings[track_index].trigger()
 
-    def show(self, display: Display, drum: Drum) -> None:
+    def show(self, display: Display, drum: Drum, beat_position: float) -> None:
         for (track_index, track) in enumerate(drum.tracks):
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
-            self.cursor.show(display, drum)
+            self.cursor.show(display, drum, beat_position)
 
     def _show_pad(self, display, drum, color, track_index) -> None:
         current_step_index = drum.get_indicator_step(track_index)

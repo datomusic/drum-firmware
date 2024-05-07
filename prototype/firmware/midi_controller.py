@@ -18,5 +18,8 @@ class MIDIController(Controller):
                 controls.reset_tempo()
             msg = self.midi.receive()
 
-    def show(self, _drum):
+    def show(self, _drum, _beat_position):
+        pass
+
+    def on_track_sample_played(self, track_index: int):
         pass

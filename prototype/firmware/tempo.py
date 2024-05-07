@@ -87,6 +87,9 @@ class Swing:
         self._ticks += 1
         return triggered
 
+    def get_beat_position(self) -> float:
+        return self._ticks / TICKS_PER_BEAT
+
 
 class Tempo:
     def __init__(self, tick_callback, half_beat_callback) -> None:
@@ -109,6 +112,9 @@ class Tempo:
     def handle_midi_clock(self) -> None:
         if TempoSource.MIDI == self.tempo_source:
             self._on_tick()
+
+    def get_beat_position(self) -> float:
+        return self.swing.get_beat_position()
 
     def _on_tick(self) -> None:
         self.tick_callback(self.tempo_source)

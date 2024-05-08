@@ -154,7 +154,8 @@ class PizzaController(Controller):
             elif velocity > 1:
                 controls.set_track_repeat_velocity(track_index, velocity)
 
-            if triggered:
+            muted = self.mute_pads[track_index].last_val > 1000
+            if triggered and not muted:
                 controls.play_track_sample(track_index, velocity)
 
         for (track_index, muter) in enumerate(self.mute_pads):

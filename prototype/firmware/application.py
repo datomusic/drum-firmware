@@ -45,6 +45,7 @@ class AppControls(Controls):
 
     def toggle_playing(self):
         self.drum.playing = not self.drum.playing
+        self.tempo.reset()
 
     def play_track_sample(self, track_index: int, velocity: float):
         track = self.drum.tracks[track_index]

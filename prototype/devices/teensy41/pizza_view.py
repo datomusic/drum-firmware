@@ -66,10 +66,15 @@ class SequencerRing:
 
 
 class Cursor:
+
     @staticmethod
     def show(display: Display, track_index: int, current_step: int, beat_position: float) -> None:
         key = SequencerKey(current_step, track_index)
         display.set_color(key, ColorScheme.Cursor)
+
+    @staticmethod
+    def apply_fade(display: Display, track_index: int, current_step: int, beat_position: float) -> None:
+        key = SequencerKey(current_step, track_index)
         display.fade(key, (0.5 - abs(beat_position - 0.5)) * 2)
 
 
@@ -98,15 +103,15 @@ class PizzaView():
 
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
         for (track_index, track) in enumerate(drum.tracks):
+            current_step = drum.get_indicator_step(track_index)
+            Cursor.show(display, track_index, current_step, beat_position)
+
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
-            current_step = drum.get_indicator_step(track_index)
-            Cursor.show(display,
-                        track_index,
-                        current_step,
-                        beat_position)
+            Cursor.apply_fade(display, track_index,
+                              current_step, beat_position)
 
         # if drum.playing:
         #     self.cursor.show(display, drum, beat_position)

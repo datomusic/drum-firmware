@@ -20,9 +20,9 @@ class AppControls(Controls):
 
     def toggle_track_step(self, track, step):
         track = self.drum.tracks[track]
-        track.sequencer.toggle_step(step)
+        active = track.sequencer.toggle_step(step)
 
-        if not self.drum.playing:
+        if active and not self.drum.playing:
             track.note_player.play(track.note)
 
     def change_sample(self, track_index, change):

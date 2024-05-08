@@ -17,6 +17,7 @@ class Sequencer:
             step.active = False
             step.velocity = 0
 
-    def toggle_step(self, index):
+    def toggle_step(self, index) -> bool:
         step = self.steps[index]
         step.active = not step.active
+        return step.active

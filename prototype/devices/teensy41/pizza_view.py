@@ -66,26 +66,15 @@ class SequencerRing:
 
 
 class Cursor:
-    def show(self, display: Display,  drum: Drum, beat_position: float) -> None:
-        for track_index in range(Track.Count):
-            step_index = drum.get_indicator_step(track_index)
-            key = SequencerKey(step_index, track_index)
-            if drum.playing:
-                display.set_color(key, ColorScheme.CursorPlaying)
-            else:
-                display.set_color(key, ColorScheme.CursorStopped)
-
-    def apply_fade(self, display: Display,  drum: Drum, beat_position: float) -> None:
-        for track_index in range(Track.Count):
-            step_index = drum.get_indicator_step(track_index)
-            key = SequencerKey(step_index, track_index)
-            if not drum.playing:
-                display.fade(key, abs(beat_position - 0.5))
+    @staticmethod
+    def show(display: Display, track_index: int, current_step: int, beat_position: float) -> None:
+        key = SequencerKey(current_step, track_index)
+        display.set_color(key, ColorScheme.Cursor)
+        display.fade(key, (0.5 - abs(beat_position - 0.5)) * 2)
 
 
 class PizzaView():
     def __init__(self) -> None:
-        self.cursor = Cursor()
         self.pad_indicators = [
             PadIndicator(track_index)
             for track_index in range(Track.Count)
@@ -108,18 +97,19 @@ class PizzaView():
         self.rings[track_index].trigger()
 
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
-        if not drum.playing:
-            self.cursor.show(display, drum, beat_position)
-
         for (track_index, track) in enumerate(drum.tracks):
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
-        if drum.playing:
-            self.cursor.show(display, drum, beat_position)
+            current_step = drum.get_indicator_step(track_index)
+            Cursor.show(display,
+                        track_index,
+                        current_step,
+                        beat_position)
 
-        self.cursor.apply_fade(display, drum, beat_position)
+        # if drum.playing:
+        #     self.cursor.show(display, drum, beat_position)
 
     def _show_pad(self, display, drum, color, track_index) -> None:
         current_step_index = drum.get_indicator_step(track_index)

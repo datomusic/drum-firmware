@@ -1,6 +1,5 @@
 class ColorScheme:
-    CursorPlaying = (60,60,60)
-    CursorStopped = (120,120,120)
+    Cursor = (60,60,60)
     Tracks = (
         # YELLOW
         (0x39, 0x35, 0x0D), (0x4E, 0x38, 0x07), (0x7F, 0x7F, 0x00), (0x7F, 0x57, 0x00),

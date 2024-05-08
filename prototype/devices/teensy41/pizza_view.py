@@ -91,7 +91,6 @@ class PizzaView():
         ]
 
     def update(self, delta_ms: int) -> None:
-
         for pad_indicator in self.pad_indicators:
             pad_indicator.update(delta_ms)
 

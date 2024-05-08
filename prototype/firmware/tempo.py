@@ -56,11 +56,11 @@ class Swing:
     Range = 6  # Delay in ticks in each direction
 
     def __init__(self) -> None:
-        self.reset()
-
-    def reset(self) -> None:
-        self._ticks = 0
         self._amount = 0
+        self.reset_ticks()
+
+    def reset_ticks(self) -> None:
+        self._ticks = 0
         self._even_beat = True
 
     def set_amount(self, amount) -> None:
@@ -76,7 +76,7 @@ class Swing:
             self._ticks = 0
             triggered = True
 
-        elif not self._even_beat and self._ticks % self._mid_point() == 0:
+        elif not self._even_beat and self._ticks % self._get_middle_tick() == 0:
             triggered = True
 
         if triggered:
@@ -85,13 +85,15 @@ class Swing:
         self._ticks = (self._ticks + 1) % TICKS_PER_BEAT
         return triggered
 
-    def _mid_point(self) -> int:
+    def _get_middle_tick(self) -> int:
         return int(TICKS_PER_BEAT / 2) + self._amount
 
     def get_beat_position(self) -> float:
-        half_ticks = TICKS_PER_BEAT / 2
-        mid_tick = self._ticks % half_ticks
-        return mid_tick / half_ticks
+        middle_tick = self._get_middle_tick()
+        if self._ticks < middle_tick:
+            return self._ticks / middle_tick
+        else:
+            return (self._ticks - middle_tick) / (TICKS_PER_BEAT - middle_tick)
 
 
 class Tempo:
@@ -106,7 +108,7 @@ class Tempo:
         self.internal_ticker.set_bpm(bpm)
 
     def reset(self) -> None:
-        self.swing.reset()
+        self.swing.reset_ticks()
 
     def update(self) -> None:
         if TempoSource.Internal == self.tempo_source:

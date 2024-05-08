@@ -39,6 +39,8 @@ class AppControls(Controls):
             track.note = track.note - SAMPLE_COUNT + step
         else:
             track.note = track.note + step
+
+        track.note_player.play(track.note)
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
     def toggle_playing(self):

@@ -45,6 +45,7 @@ class AppControls(Controls):
 
     def toggle_playing(self):
         self.drum.playing = not self.drum.playing
+        self.tempo.reset()
 
     def play_track_sample(self, track_index: int, velocity: float):
         track = self.drum.tracks[track_index]
@@ -127,7 +128,7 @@ class Application:
 
     def show(self) -> None:
         for controller in self.controllers:
-            controller.show(self.drum)
+            controller.show(self.drum, self.tempo.get_beat_position())
 
     def run(self):
         last_ns = time.monotonic_ns()

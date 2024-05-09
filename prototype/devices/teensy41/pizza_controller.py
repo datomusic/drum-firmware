@@ -114,9 +114,9 @@ class PizzaController(Controller):
         self._process_keys(controls)
         self.view.update(delta_ms)
 
-    def show(self, drum: Drum) -> None:
+    def show(self, drum: Drum, beat_position: float) -> None:
         self.display.clear()
-        self.view.show(self.display, drum)
+        self.view.show(self.display, drum, beat_position)
         self.display.show()
 
     def on_track_sample_played(self, track_index: int):

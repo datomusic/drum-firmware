@@ -56,11 +56,11 @@ class Swing:
     Range = 6  # Delay in ticks in each direction
 
     def __init__(self) -> None:
-        self.reset()
-
-    def reset(self) -> None:
-        self._ticks = 0
         self._amount = 0
+        self.reset_ticks()
+
+    def reset_ticks(self) -> None:
+        self._ticks = 0
         self._even_beat = True
 
     def set_amount(self, amount) -> None:
@@ -71,21 +71,29 @@ class Swing:
         self.set_amount(self._amount + addition)
 
     def tick(self) -> bool:
-        mid_point = TICKS_PER_BEAT / 2 + self._amount
-
         triggered = False
         if self._even_beat and self._ticks % TICKS_PER_BEAT == 0:
             self._ticks = 0
             triggered = True
 
-        elif not self._even_beat and self._ticks % mid_point == 0:
+        elif not self._even_beat and self._ticks % self._get_middle_tick() == 0:
             triggered = True
 
         if triggered:
             self._even_beat = not self._even_beat
 
-        self._ticks += 1
+        self._ticks = (self._ticks + 1) % TICKS_PER_BEAT
         return triggered
+
+    def _get_middle_tick(self) -> int:
+        return int(TICKS_PER_BEAT / 2) + self._amount
+
+    def get_beat_position(self) -> float:
+        middle_tick = self._get_middle_tick()
+        if self._ticks < middle_tick:
+            return self._ticks / middle_tick
+        else:
+            return (self._ticks - middle_tick) / (TICKS_PER_BEAT - middle_tick)
 
 
 class Tempo:
@@ -100,7 +108,7 @@ class Tempo:
         self.internal_ticker.set_bpm(bpm)
 
     def reset(self) -> None:
-        self.swing.reset()
+        self.swing.reset_ticks()
 
     def update(self) -> None:
         if TempoSource.Internal == self.tempo_source:
@@ -109,6 +117,9 @@ class Tempo:
     def handle_midi_clock(self) -> None:
         if TempoSource.MIDI == self.tempo_source:
             self._on_tick()
+
+    def get_beat_position(self) -> float:
+        return self.swing.get_beat_position()
 
     def _on_tick(self) -> None:
         self.tick_callback(self.tempo_source)

@@ -75,8 +75,11 @@ class Controls:
     def change_sample(self, track_index: int, change):
         _not_implemented("Controls.change_sample", track_index, change)
 
-    def toggle_playing(self):
-        _not_implemented("Controls.toggle_playing")
+    def is_playing(self) -> bool:
+        _not_implemented("Controls.is_playing")
+
+    def set_playing(self, playing: bool):
+        _not_implemented("Controls.set_playing", playing)
 
     def adjust_swing(self, amount_percent):
         _not_implemented("Controls.adjust_swing", amount_percent)
@@ -86,9 +89,6 @@ class Controls:
 
     def handle_midi_clock(self):
         _not_implemented("Controls.handle_midi_clock")
-
-    def reset_tempo(self):
-        _not_implemented("Controls.reset_tempo")
 
 
 class SampleChange:

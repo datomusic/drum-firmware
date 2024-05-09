@@ -3,6 +3,8 @@ from .controller_api import Controller
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.timing_clock import TimingClock  # type: ignore
 from adafruit_midi.midi_continue import Continue  # type: ignore
+from adafruit_midi.start import Start  # type: ignore
+from adafruit_midi.stop import Stop  # type: ignore
 
 
 class MIDIController(Controller):
@@ -14,8 +16,11 @@ class MIDIController(Controller):
         while msg:
             if isinstance(msg, TimingClock):
                 controls.handle_midi_clock()
-            elif isinstance(msg, Continue):
-                controls.reset_tempo()
+            elif isinstance(msg, Continue) or isinstance(msg, Start):
+                controls.set_playing(True)
+            elif isinstance(msg, Stop):
+                controls.set_playing(False)
+
             msg = self.midi.receive()
 
     def show(self, _drum, _beat_position):

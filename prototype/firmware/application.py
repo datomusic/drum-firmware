@@ -43,9 +43,13 @@ class AppControls(Controls):
         track.note_player.play(track.note)
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
-    def toggle_playing(self):
-        self.drum.playing = not self.drum.playing
-        self.tempo.reset()
+    def set_playing(self, playing):
+        self.drum.playing = playing
+        if playing:
+            self.tempo.reset()
+
+    def is_playing(self):
+        return self.drum.playing
 
     def play_track_sample(self, track_index: int, velocity: float):
         track = self.drum.tracks[track_index]
@@ -90,9 +94,6 @@ class AppControls(Controls):
     def handle_midi_clock(self):
         self.tempo.tempo_source = TempoSource.MIDI
         self.tempo.handle_midi_clock()
-
-    def reset_tempo(self):
-        self.tempo.reset()
 
 
 class Application:

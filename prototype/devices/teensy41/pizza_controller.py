@@ -199,4 +199,4 @@ class PizzaController(Controller):
 
             elif isinstance(key, ControlKey):
                 if key.name == ControlName.Start:
-                    controls.toggle_playing()
+                    controls.set_playing(not controls.is_playing())

@@ -34,13 +34,13 @@ class PotReader:
     def __init__(self, pin, inverted=False):
         self.pin = pin
         self.inverted = inverted
-        self.last_val = None
+        self.last_val = 0
 
     def read(self, on_changed):
         tolerance = 100
 
         val = self.pin.read()
-        if self.last_val is None or abs(val - self.last_val) > tolerance:
+        if abs(val - self.last_val) > tolerance:
             self.last_val = val
 
             if self.inverted:

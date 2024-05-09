@@ -14,11 +14,11 @@ class MIDIOutput(Output):
         self.filter_amount = 64
         self.mute_multipliers = [0.0 for i in range(4)]
 
-    def send_note_on(self, channel: int, note: int, vel_percent: float):
-        midi_value = percent_to_midi(
-            vel_percent * (1 - self.mute_multipliers[channel]))
-        print(f"Note: {midi_value}")
-        self.midi.send(NoteOn(note, midi_value), channel=channel)
+    def send_note_on(self, channel: int, note: int, velocity_percent: float):
+        midi_velocity = percent_to_midi(
+            velocity_percent * (1 - self.mute_multipliers[channel]))
+        print(f"Note: {note}, velocity: {midi_velocity}")
+        self.midi.send(NoteOn(note, midi_velocity), channel=channel)
 
     def send_note_off(self, channel: int, note: int):
         self.midi.send(NoteOff(note), channel=channel)

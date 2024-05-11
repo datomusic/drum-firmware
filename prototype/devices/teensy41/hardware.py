@@ -250,7 +250,7 @@ drumpad_to_led = {
 }
 
 
-def fade_color(color, amount):
+def attenuate_color(color, amount):
     (r, g, b) = color
     return (int(r * amount), int(g * amount), int(b * amount))
 
@@ -282,14 +282,14 @@ class Display:
         pixel_index = pixel_index_from_key(key)
         self.pixels[pixel_index] = color
 
-    def fade(
+    def attenuate(
         self,
         key: Drumpad | SequencerKey | ControlKey,
         amount: float
     ) -> None:
         pixel_index = pixel_index_from_key(key)
         old_color = self.pixels[pixel_index]
-        self.pixels[pixel_index] = fade_color(old_color, amount)
+        self.pixels[pixel_index] = attenuate_color(old_color, amount)
 
 
 def pixel_index_from_key(key):

@@ -1,6 +1,8 @@
 import time
 
-TICKS_PER_BEAT = 24
+TEMPO_TICKS_PER_BEAT = 24
+TICK_SUBDIVISIONS = 6
+TICKS_PER_BEAT = TEMPO_TICKS_PER_BEAT * TICK_SUBDIVISIONS
 
 
 class TempoSource:
@@ -38,8 +40,7 @@ class InternalTicker:
         self.set_bpm(bpm)
 
     def set_bpm(self, bpm) -> None:
-        self._ns_per_tick = 1_000_000 * \
-            int(60_000 / (bpm * TICKS_PER_BEAT))
+        self._ns_per_tick = 1_000_000 * int(60_000 / (bpm * TICKS_PER_BEAT))
 
     def update(self, on_tick) -> None:
         now = time.monotonic_ns()
@@ -53,7 +54,7 @@ class InternalTicker:
 
 
 class Swing:
-    Range = 6  # Delay in ticks in each direction
+    Range = 6  # Delay in tempo ticks in each direction
 
     def __init__(self) -> None:
         self._amount = 0
@@ -70,23 +71,28 @@ class Swing:
         addition = 1 if direction > 0 else -1
         self.set_amount(self._amount + addition)
 
-    def tick(self) -> bool:
+    def tick(self, tick_count, on_tempo_tick, on_half_beat) -> None:
         triggered = False
+        mid_point = self._get_middle_tick()
+
         if self._even_beat and self._ticks % TICKS_PER_BEAT == 0:
             self._ticks = 0
             triggered = True
 
-        elif not self._even_beat and self._ticks % self._get_middle_tick() == 0:
+        elif not self._even_beat and self._ticks % mid_point == 0:
             triggered = True
+
+        if self._ticks % TICK_SUBDIVISIONS == 0:
+            on_tempo_tick()
 
         if triggered:
             self._even_beat = not self._even_beat
+            on_half_beat()
 
-        self._ticks = (self._ticks + 1) % TICKS_PER_BEAT
-        return triggered
+        self._ticks = (self._ticks + tick_count) % TICKS_PER_BEAT
 
     def _get_middle_tick(self) -> int:
-        return int(TICKS_PER_BEAT / 2) + self._amount
+        return int(TICKS_PER_BEAT / 2) + (self._amount * TICK_SUBDIVISIONS)
 
     def get_beat_position(self) -> float:
         middle_tick = self._get_middle_tick()
@@ -97,8 +103,8 @@ class Swing:
 
 
 class Tempo:
-    def __init__(self, tick_callback, half_beat_callback) -> None:
-        self.tick_callback = tick_callback
+    def __init__(self, tempo_tick_callback, half_beat_callback) -> None:
+        self.tempo_tick_callback = tempo_tick_callback
         self.half_beat_callback = half_beat_callback
         self.tempo_source = TempoSource.Internal
         self.internal_ticker = InternalTicker()
@@ -112,16 +118,18 @@ class Tempo:
 
     def update(self) -> None:
         if TempoSource.Internal == self.tempo_source:
-            self.internal_ticker.update(self._on_tick)
+            self.internal_ticker.update(self._tick_swing)
 
     def handle_midi_clock(self) -> None:
         if TempoSource.MIDI == self.tempo_source:
-            self._on_tick()
+            self._tick_swing(TICK_SUBDIVISIONS)
+
+    def _tick_swing(self, tick_count: int = 1):
+        self.swing.tick(
+            tick_count,
+            on_half_beat=self.half_beat_callback,
+            on_tempo_tick=lambda: self.tempo_tick_callback(self.tempo_source),
+        )
 
     def get_beat_position(self) -> float:
         return self.swing.get_beat_position()
-
-    def _on_tick(self) -> None:
-        self.tick_callback(self.tempo_source)
-        if self.swing.tick():
-            self.half_beat_callback()

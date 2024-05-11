@@ -12,13 +12,14 @@ class MIDIOutput(Output):
     def __init__(self, midi: MIDI):
         self.midi = midi
         self.filter_amount = 64
-        self.mute_multipliers = [0.0 for i in range(4)]
+        self.mute_multipliers = [1.0 for i in range(4)]
 
     def send_note_on(self, channel: int, note: int, velocity_percent: float):
-        midi_velocity = percent_to_midi(
-            velocity_percent * (1 - self.mute_multipliers[channel]))
-        print(f"Note: {note}, velocity: {midi_velocity}")
-        self.midi.send(NoteOn(note, midi_velocity), channel=channel)
+        multiplier = self.mute_multipliers[channel]
+        midi_velocity = percent_to_midi(velocity_percent * multiplier)
+        if multiplier >= 0.05:
+            print(f"Note: {note}, velocity: {midi_velocity}")
+            self.midi.send(NoteOn(note, midi_velocity), channel=channel)
 
     def send_note_off(self, channel: int, note: int):
         self.midi.send(NoteOff(note), channel=channel)
@@ -27,7 +28,7 @@ class MIDIOutput(Output):
         self._send_cc(16 + channel, percent_to_midi(pitch_percent))
 
     def set_channel_mute(self, channel: int, amount_percent: float):
-        self.mute_multipliers[channel] = amount_percent / 100
+        self.mute_multipliers[channel] = 1 - (amount_percent / 100)
         midi_value = percent_to_midi(amount_percent)
         print(f"[{channel}] ChannelPressure: {midi_value}")
         self.midi.send(ChannelPressure(midi_value), channel=channel)
@@ -43,8 +44,7 @@ class MIDIOutput(Output):
             self._send_cc(76, percent_to_midi(value))
 
         elif param == OutputParam.AdjustFilter:
-            self.filter_amount = constrain_midi(
-                int(self.filter_amount + value))
+            self.filter_amount = constrain_midi(int(self.filter_amount + value))
             self._send_cc(74, self.filter_amount)
 
     def on_tempo_tick(self, source) -> None:

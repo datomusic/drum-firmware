@@ -103,7 +103,8 @@ class Application:
         self.controllers = controllers
         self.output = output
         self.tempo = Tempo(
-            tick_callback=self._on_tick, half_beat_callback=self._on_half_beat
+            tempo_tick_callback=self.output.on_tempo_tick,
+            half_beat_callback=self._on_half_beat
         )
         self.drum = Drum(output, on_track_repeat=self._on_sample_trigger)
         self.drum.playing = False
@@ -116,9 +117,6 @@ class Application:
     def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
-
-    def _on_tick(self, source) -> None:
-        self.output.on_tempo_tick(source)
 
     def _on_half_beat(self) -> None:
         self.drum.advance_step()

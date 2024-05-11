@@ -40,7 +40,9 @@ class AppControls(Controls):
         else:
             track.note = track.note + step
 
-        track.note_player.play(track.note)
+        if not self.drum.playing:
+            track.note_player.play(track.note)
+
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
     def set_playing(self, playing):

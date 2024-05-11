@@ -34,13 +34,12 @@ class Divider:
 
 class InternalTicker:
     def __init__(self, bpm=100) -> None:
-
         self.accumulated_ns = 0
         self.last_ns = time.monotonic_ns()
         self.set_bpm(bpm)
 
     def set_bpm(self, bpm) -> None:
-        self._ns_per_tick = 1_000_000 * int(60_000 / (bpm * TICKS_PER_BEAT))
+        self._ns_per_tick = int((1_000_000 * 60_000) / (bpm * TICKS_PER_BEAT))
 
     def update(self, on_tick) -> None:
         now = time.monotonic_ns()

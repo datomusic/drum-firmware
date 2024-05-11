@@ -7,8 +7,8 @@ from .hardware import (
     fade_color,
     # SampleSelectKey,
     # Direction,
-    # ControlKey,
-    # ControlName
+    ControlKey,
+    ControlName,
 )
 
 
@@ -66,29 +66,52 @@ class SequencerRing:
 
 
 class Cursor:
+    def __init__(self):
+        self.fade_play_toggle = False
+        self.last_beat_position = 0
 
     @staticmethod
-    def show(display: Display, track_index: int, current_step: int, beat_position: float) -> None:
-        key = SequencerKey(current_step, track_index)
-        display.set_color(key, ColorScheme.Cursor)
+    def show(
+        display: Display, track_index: int, current_step: int, beat_position: float
+    ) -> None:
+        display.set_color(ControlKey(ControlName.Start), ColorScheme.Cursor)
+        display.set_color(SequencerKey(current_step, track_index), ColorScheme.Cursor)
 
-    @staticmethod
-    def apply_fade(display: Display, track_index: int, current_step: int, beat_position: float) -> None:
-        key = SequencerKey(current_step, track_index)
-        display.fade(key, (0.5 - abs(beat_position - 0.5)) * 2)
+    def apply_fade(
+        self,
+        display: Display,
+        playing: bool,
+        track_index: int,
+        current_step: int,
+        beat_position: float,
+    ) -> None:
+        amount = (0.5 - abs(beat_position - 0.5)) * 2
+        sequencer_key = SequencerKey(current_step, track_index)
+        start_key = ControlKey(ControlName.Start)
+
+        if beat_position < self.last_beat_position:
+            self.fade_play_toggle = not self.fade_play_toggle
+
+        self.last_beat_position = beat_position
+        if playing:
+            display.fade(sequencer_key, amount)
+        else:
+            if self.fade_play_toggle:
+                display.fade(sequencer_key, amount)
+                display.set_color(start_key, (0, 0, 0))
+            else:
+                display.fade(start_key, amount)
+                display.set_color(sequencer_key, (0, 0, 0))
 
 
-class PizzaView():
+class PizzaView:
     def __init__(self) -> None:
         self.pad_indicators = [
-            PadIndicator(track_index)
-            for track_index in range(Track.Count)
+            PadIndicator(track_index) for track_index in range(Track.Count)
         ]
 
-        self.rings = [
-            SequencerRing(track_index)
-            for track_index in range(Track.Count)
-        ]
+        self.rings = [SequencerRing(track_index) for track_index in range(Track.Count)]
+        self.cursor = Cursor()
 
     def update(self, delta_ms: int) -> None:
         for pad_indicator in self.pad_indicators:
@@ -101,7 +124,7 @@ class PizzaView():
         self.rings[track_index].trigger()
 
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
-        for (track_index, track) in enumerate(drum.tracks):
+        for track_index, track in enumerate(drum.tracks):
             current_step = drum.get_indicator_step(track_index)
             Cursor.show(display, track_index, current_step, beat_position)
 
@@ -109,8 +132,9 @@ class PizzaView():
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
-            Cursor.apply_fade(display, track_index,
-                              current_step, beat_position)
+            self.cursor.apply_fade(
+                display, drum.playing, track_index, current_step, beat_position
+            )
 
         # if drum.playing:
         #     self.cursor.show(display, drum, beat_position)
@@ -121,4 +145,5 @@ class PizzaView():
         track = drum.tracks[track_index]
         step_active = track.sequencer.steps[current_step_index].active
         self.pad_indicators[track_index].show(
-            display, current_step_index, color, step_active)
+            display, current_step_index, color, step_active
+        )

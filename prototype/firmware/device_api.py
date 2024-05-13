@@ -8,6 +8,7 @@ class OutputParam:
     LowPass = 2
     HighPass = 3
     AdjustFilter = 4
+    Tempo = 5
 
 
 class EffectName:

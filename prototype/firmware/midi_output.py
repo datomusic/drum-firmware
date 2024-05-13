@@ -37,6 +37,9 @@ class MIDIOutput(Output):
         if param == OutputParam.Volume:
             self._send_cc(7, percent_to_midi(value))
 
+        elif param == OutputParam.Tempo:
+            self._send_cc(3, percent_to_midi(value))
+
         elif param == OutputParam.LowPass:
             self._send_cc(75, percent_to_midi(value))
 

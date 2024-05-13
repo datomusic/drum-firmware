@@ -124,8 +124,9 @@ class PizzaController(Controller):
 
     def _read_pots(self, controls: Controls) -> None:
         self.speed_setting.read(
-            lambda speed: controls.set_bpm(
-                (percentage_from_pot(speed)) * BPM_MAX / 100))
+            lambda speed: (
+                controls.set_bpm((percentage_from_pot(speed)) * BPM_MAX / 100),
+                controls.set_output_param(OutputParam.Tempo, percentage_from_pot(speed))))
 
         self.volume_setting.read(
             lambda vol: controls.set_output_param(

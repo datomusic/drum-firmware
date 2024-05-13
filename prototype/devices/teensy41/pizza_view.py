@@ -4,7 +4,7 @@ from .hardware import (
     Display,
     Drumpad,
     SequencerKey,
-    attenuate_color,
+    fade_color,
     # SampleSelectKey,
     # Direction,
     ControlKey,
@@ -33,13 +33,7 @@ class PadIndicator:
 
         self.last_triggered_step = step_index
         pad = Drumpad(self.index)
-        attenuation = 1.8
-        base_amount = 0.2
-        color = attenuate_color(
-            color,
-            attenuation * (base_amount + fade_amount * (1 - base_amount)))
-
-        display.set_color(pad, color)
+        display.set_color(pad, fade_color(color, 1 - fade_amount))
 
     def update(self, delta_ms: int):
         if self.fade_remaining_ms > 0:
@@ -62,8 +56,7 @@ class SequencerRing:
 
             if self.fade_remaining_ms > 0:
                 fade_amount = self.fade_remaining_ms / FADE_TIME_MS
-                display.set_color(key, attenuate_color(
-                    step_color, fade_amount))
+                display.set_color(key, fade_color(step_color, fade_amount))
             elif step.active:
                 display.set_color(key, step_color)
 
@@ -82,8 +75,7 @@ class Cursor:
         display: Display, track_index: int, current_step: int, beat_position: float
     ) -> None:
         display.set_color(ControlKey(ControlName.Start), ColorScheme.Cursor)
-        display.set_color(SequencerKey(
-            current_step, track_index), ColorScheme.Cursor)
+        display.set_color(SequencerKey(current_step, track_index), ColorScheme.Cursor)
 
     def apply_fade(
         self,
@@ -102,13 +94,13 @@ class Cursor:
 
         self.last_beat_position = beat_position
         if playing:
-            display.attenuate(sequencer_key, amount)
+            display.fade(sequencer_key, amount)
         else:
             if self.fade_play_toggle:
-                display.attenuate(sequencer_key, amount)
+                display.fade(sequencer_key, amount)
                 display.set_color(start_key, (0, 0, 0))
             else:
-                display.attenuate(start_key, amount)
+                display.fade(start_key, amount)
                 display.set_color(sequencer_key, (0, 0, 0))
 
 
@@ -118,8 +110,7 @@ class PizzaView:
             PadIndicator(track_index) for track_index in range(Track.Count)
         ]
 
-        self.rings = [SequencerRing(track_index)
-                      for track_index in range(Track.Count)]
+        self.rings = [SequencerRing(track_index) for track_index in range(Track.Count)]
         self.cursor = Cursor()
 
     def update(self, delta_ms: int) -> None:

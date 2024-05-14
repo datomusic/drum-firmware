@@ -162,12 +162,6 @@ class PizzaController(Controller):
                 OutputParam.Bitcrusher, 
                 val * 100))
         
-        self.swing_right.read(
-            lambda val: controls.adjust_swing(10))
-
-        if self.swing_left.triggered and self.swing_right.triggered:
-            controls.clear_swing()
-
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
                 OutputParam.HighPass,

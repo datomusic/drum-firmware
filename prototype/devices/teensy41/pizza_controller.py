@@ -45,7 +45,7 @@ class DrumPad:
                     controls.set_track_param(
                         TrackParam.Mute,
                         self.track_index,
-                        100 - percentage_from_pot(amount))
+                        percentage_from_pot(amount))
             )
 
         velocity = percentage_from_pot(value)
@@ -58,10 +58,10 @@ class DrumPad:
                 controls.set_track_repeat_velocity(self.track_index, 0)
                 self.muted_when_triggered = False
 
-        elif velocity > 1 and not (muted or self.muted_when_triggered):
+        elif velocity > 1:
             controls.set_track_repeat_velocity(self.track_index, velocity)
 
-        if triggered and not muted:
+        if triggered:
             controls.play_track_sample(self.track_index, velocity)
 
 

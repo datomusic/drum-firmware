@@ -17,9 +17,17 @@ class LinearMapping:
     def apply(value):
         return value
 
+class LinearInvertedMapping:
+    def apply(value):
+        return (ANALOG_MAX - value)
+
 class ExponentialMapping:
     def apply(value):
         return (value * value) / ANALOG_MAX
+
+class ExponentialInvertedMapping:
+    def apply(value):
+        return (ANALOG_MAX - ((value * value) / ANALOG_MAX))
 
 class SequencerKey:
     def __init__(self, step, track=0) -> None:
@@ -135,20 +143,20 @@ class Teensy41Hardware:
         self.repeat_button = AnalogReader(board.A0, ExponentialMapping)
         self.filter_right = AnalogReader(board.A5, ExponentialMapping)
         self.filter_left = AnalogReader(board.A6, ExponentialMapping)
-        self.drum_pad1 = AnalogReader(board.A2)
-        self.drum_pad1_bottom = AnalogReader(board.A3, ExponentialMapping)
-        self.drum_pad2 = AnalogReader(board.A8)
-        self.drum_pad2_bottom = AnalogReader(board.A9, ExponentialMapping)
-        self.drum_pad3 = AnalogReader(board.A12)
-        self.drum_pad3_bottom = AnalogReader(board.A13, ExponentialMapping)
-        self.drum_pad4 = AnalogReader(board.D40)
-        self.drum_pad4_bottom = AnalogReader(board.D41, ExponentialMapping)
+        self.drum_pad1 = AnalogReader(board.A2, ExponentialMapping)
+        self.drum_pad1_bottom = AnalogReader(board.A3, ExponentialInvertedMapping)
+        self.drum_pad2 = AnalogReader(board.A8, ExponentialMapping)
+        self.drum_pad2_bottom = AnalogReader(board.A9, ExponentialInvertedMapping)
+        self.drum_pad3 = AnalogReader(board.A12, ExponentialMapping)
+        self.drum_pad3_bottom = AnalogReader(board.A13, ExponentialInvertedMapping)
+        self.drum_pad4 = AnalogReader(board.D40, ExponentialMapping)
+        self.drum_pad4_bottom = AnalogReader(board.D41, ExponentialInvertedMapping)
         self.swing_right = DigitalReader(board.D7)
         self.swing_left = DigitalReader(board.D8)
-        self.pitch1 = AnalogReader(board.A1)
-        self.pitch2 = AnalogReader(board.A7)
-        self.pitch3 = AnalogReader(board.A11)
-        self.pitch4 = AnalogReader(board.D39)
+        self.pitch1 = AnalogReader(board.A1, LinearInvertedMapping)
+        self.pitch2 = AnalogReader(board.A7, LinearInvertedMapping)
+        self.pitch3 = AnalogReader(board.A11, LinearInvertedMapping)
+        self.pitch4 = AnalogReader(board.D39, LinearInvertedMapping)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()

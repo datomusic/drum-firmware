@@ -24,7 +24,6 @@ from .reading import (
 BPM_MAX = 300
 
 # TODO:
-# - Move inversion to hardware layer
 # - Maybe move jitter prevention to hardware layer
 
 
@@ -32,7 +31,7 @@ class DrumPad:
     def __init__(self, track_index, trigger_port, mute_port):
         self.track_index = track_index
         self.trigger = ThresholdTrigger(trigger_port)
-        self.mute = PotReader(mute_port, inverted=True)
+        self.mute = PotReader(mute_port)
         self.muted_when_triggered = False
 
     def update(self, controls):
@@ -92,10 +91,10 @@ class PizzaController(Controller):
         self.swing_right = DigitalTrigger(self.hardware.swing_right)
 
         self.pitch_settings = [
-            PotReader(self.hardware.pitch1, inverted=True),
-            PotReader(self.hardware.pitch2, inverted=True),
-            PotReader(self.hardware.pitch3, inverted=True),
-            PotReader(self.hardware.pitch4, inverted=True)
+            PotReader(self.hardware.pitch1),
+            PotReader(self.hardware.pitch2),
+            PotReader(self.hardware.pitch3),
+            PotReader(self.hardware.pitch4)
         ]
 
         self.drum_pads = [

@@ -17,17 +17,21 @@ class LinearMapping:
     def apply(value):
         return value
 
+
 class LinearInvertedMapping:
     def apply(value):
         return (ANALOG_MAX - value)
+
 
 class ExponentialMapping:
     def apply(value):
         return (value * value) / ANALOG_MAX
 
+
 class ExponentialInvertedMapping:
     def apply(value):
         return (ANALOG_MAX - ((value * value) / ANALOG_MAX))
+
 
 class SequencerKey:
     def __init__(self, step, track=0) -> None:

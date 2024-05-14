@@ -90,7 +90,7 @@ class Controls:
     def clear_swing(self):
         _not_implemented("Controls.clear_swing")
 
-    def set_swing(self):
+    def set_swing(self, amount):
         _not_implemented("Controls.set_swing")
 
     def handle_midi_clock(self):

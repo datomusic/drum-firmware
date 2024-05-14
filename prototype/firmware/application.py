@@ -90,6 +90,9 @@ class AppControls(Controls):
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
 
+    def set_swing(self, amount):
+        self.tempo.swing.set_amount(amount)
+        
     def clear_swing(self):
         self.tempo.swing.set_amount(0)
 

@@ -7,11 +7,19 @@ import neopixel  # type: ignore
 import analogio as aio  # type: ignore
 import digitalio as dio  # type: ignore
 
+ANALOG_MAX = 65536
 
 class Direction:
     Up = 1
     Down = -1
 
+class LinearMapping:
+    def apply(value):
+        return value
+
+class ExponentialMapping:
+    def apply(value):
+        return (value * value) / ANALOG_MAX
 
 class SequencerKey:
     def __init__(self, step, track=0) -> None:
@@ -95,13 +103,13 @@ class ToggleButton:
 
 
 class AnalogReader:
-    def __init__(self, pin) -> None:
+    def __init__(self, pin, mapping = LinearMapping) -> None:
         self.pin = pin
         self.analog = aio.AnalogIn(self.pin)
+        self.mapping = mapping
 
     def read(self) -> int:
-        return self.analog.value
-
+        return self.mapping.apply(self.analog.value)
 
 class DigitalReader:
     def __init__(self, pin):
@@ -123,18 +131,18 @@ class Teensy41Hardware:
         self.play_button = ToggleButton(board.D37)
         self.volume_pot = AnalogReader(board.A4)
         self.speed_pot = AnalogReader(board.D38)
-        self.random_button = AnalogReader(board.A10)
-        self.repeat_button = AnalogReader(board.A0)
-        self.filter_right = AnalogReader(board.A5)
-        self.filter_left = AnalogReader(board.A6)
+        self.random_button = AnalogReader(board.A10, ExponentialMapping)
+        self.repeat_button = AnalogReader(board.A0, ExponentialMapping)
+        self.filter_right = AnalogReader(board.A5, ExponentialMapping)
+        self.filter_left = AnalogReader(board.A6, ExponentialMapping)
         self.drum_pad1 = AnalogReader(board.A2)
-        self.drum_pad1_bottom = AnalogReader(board.A3)
+        self.drum_pad1_bottom = AnalogReader(board.A3, ExponentialMapping)
         self.drum_pad2 = AnalogReader(board.A8)
-        self.drum_pad2_bottom = AnalogReader(board.A9)
+        self.drum_pad2_bottom = AnalogReader(board.A9, ExponentialMapping)
         self.drum_pad3 = AnalogReader(board.A12)
-        self.drum_pad3_bottom = AnalogReader(board.A13)
+        self.drum_pad3_bottom = AnalogReader(board.A13, ExponentialMapping)
         self.drum_pad4 = AnalogReader(board.D40)
-        self.drum_pad4_bottom = AnalogReader(board.D41)
+        self.drum_pad4_bottom = AnalogReader(board.D41, ExponentialMapping)
         self.swing_right = DigitalReader(board.D7)
         self.swing_left = DigitalReader(board.D8)
         self.pitch1 = AnalogReader(board.A1)

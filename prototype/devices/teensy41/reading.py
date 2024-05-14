@@ -71,6 +71,22 @@ class ThresholdTrigger:
             return False, value
 
 
+
+class DigitalChanger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.previous_value = False
+
+    def read(self, on_trigger):
+        val = self.pin.read()
+
+        if self.previous_value != val:
+            self.previous_value = val
+            on_trigger(val)
+
+        return val
+        
+
 class DigitalTrigger:
     def __init__(self, pin):
         self.pin = pin

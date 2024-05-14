@@ -90,6 +90,9 @@ class AppControls(Controls):
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
 
+    def set_swing(self, amount):
+        self.tempo.swing.set_amount(amount)
+        
     def clear_swing(self):
         self.tempo.swing.set_amount(0)
 
@@ -143,7 +146,7 @@ class Application:
 
 
 def setup_tracks(tracks):
-    tracks[0].note = 10
-    tracks[1].note = 0
-    tracks[2].note = 18
-    tracks[3].note = 25
+    tracks[0].note = 4
+    tracks[1].note = 12
+    tracks[2].note = 20
+    tracks[3].note = 28

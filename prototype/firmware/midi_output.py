@@ -45,6 +45,12 @@ class MIDIOutput(Output):
             self.filter_amount = constrain_midi(int(self.filter_amount + value))
             self._send_cc(74, self.filter_amount)
 
+        elif param == OutputParam.Distortion:
+            self._send_cc(77, percent_to_midi(value))                
+
+        elif param == OutputParam.Bitcrusher:
+            self._send_cc(78, percent_to_midi(value))      
+
     def on_tempo_tick(self, source) -> None:
         if source == TempoSource.Internal:
             self.midi.send(TimingClock())

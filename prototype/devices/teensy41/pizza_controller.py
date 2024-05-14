@@ -130,10 +130,14 @@ class PizzaController(Controller):
                 controls.set_bpm((percentage_from_pot(speed)) * BPM_MAX / 100),
                 controls.set_output_param(OutputParam.Tempo, percentage_from_pot(speed))))
 
-        self.volume_setting.read(
-            lambda vol: controls.set_output_param(
-                OutputParam.Volume,
-                percentage_from_pot(vol)))
+        # self.volume_setting.read(
+        #     lambda vol: controls.set_output_param(
+        #         OutputParam.Volume,
+        #         percentage_from_pot(vol)))
+        
+        self.volume_setting.read( 
+            lambda volume: 
+                controls.set_swing(int(6-(volume/(65536/12)))))
 
         self.filter_setting.read(
             lambda val: controls.set_output_param(

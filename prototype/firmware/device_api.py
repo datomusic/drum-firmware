@@ -9,6 +9,8 @@ class OutputParam:
     HighPass = 3
     AdjustFilter = 4
     Tempo = 5
+    Distortion = 6
+    Bitcrusher = 7
 
 
 class EffectName:
@@ -87,6 +89,9 @@ class Controls:
 
     def clear_swing(self):
         _not_implemented("Controls.clear_swing")
+
+    def set_swing(self, amount):
+        _not_implemented("Controls.set_swing")
 
     def handle_midi_clock(self):
         _not_implemented("Controls.handle_midi_clock")

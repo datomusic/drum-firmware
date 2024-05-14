@@ -19,12 +19,12 @@ from .reading import (
     IncDecReader,
     DigitalTrigger,
     ThresholdTrigger,
+    DigitalChanger,
     percentage_from_pot)
 
 BPM_MAX = 300
 
 # TODO:
-# - Move inversion to hardware layer
 # - Maybe move jitter prevention to hardware layer
 
 
@@ -32,7 +32,7 @@ class DrumPad:
     def __init__(self, track_index, trigger_port, mute_port):
         self.track_index = track_index
         self.trigger = ThresholdTrigger(trigger_port)
-        self.mute = PotReader(mute_port, inverted=True)
+        self.mute = PotReader(mute_port)
         self.muted_when_triggered = False
 
     def update(self, controls):
@@ -46,7 +46,7 @@ class DrumPad:
                     controls.set_track_param(
                         TrackParam.Mute,
                         self.track_index,
-                        100 - percentage_from_pot(amount))
+                        percentage_from_pot(amount))
             )
 
         velocity = percentage_from_pot(value)
@@ -59,10 +59,10 @@ class DrumPad:
                 controls.set_track_repeat_velocity(self.track_index, 0)
                 self.muted_when_triggered = False
 
-        elif velocity > 1 and not (muted or self.muted_when_triggered):
+        elif velocity > 1:
             controls.set_track_repeat_velocity(self.track_index, velocity)
 
-        if triggered and not muted:
+        if triggered:
             controls.play_track_sample(self.track_index, velocity)
 
 
@@ -79,7 +79,7 @@ class PizzaController(Controller):
         self.volume_setting = PotReader(self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
-            self.hardware.filter_left, self.hardware.filter_right)
+        self.hardware.filter_left, self.hardware.filter_right)
 
         self.lowpass_setting = PotReader(self.hardware.filter_left)
         self.highpass_setting = PotReader(self.hardware.filter_right)
@@ -89,13 +89,15 @@ class PizzaController(Controller):
             self.hardware.filter_right)
 
         self.swing_left = DigitalTrigger(self.hardware.swing_left)
+        self.distortion = DigitalChanger(self.hardware.swing_left)
         self.swing_right = DigitalTrigger(self.hardware.swing_right)
+        self.bitcrusher = DigitalChanger(self.hardware.swing_right)
 
         self.pitch_settings = [
-            PotReader(self.hardware.pitch1, inverted=True),
-            PotReader(self.hardware.pitch2, inverted=True),
-            PotReader(self.hardware.pitch3, inverted=True),
-            PotReader(self.hardware.pitch4, inverted=True)
+            PotReader(self.hardware.pitch1),
+            PotReader(self.hardware.pitch2),
+            PotReader(self.hardware.pitch3),
+            PotReader(self.hardware.pitch4)
         ]
 
         self.drum_pads = [
@@ -128,10 +130,14 @@ class PizzaController(Controller):
                 controls.set_bpm((percentage_from_pot(speed)) * BPM_MAX / 100),
                 controls.set_output_param(OutputParam.Tempo, percentage_from_pot(speed))))
 
-        self.volume_setting.read(
-            lambda vol: controls.set_output_param(
-                OutputParam.Volume,
-                percentage_from_pot(vol)))
+        # self.volume_setting.read(
+        #     lambda vol: controls.set_output_param(
+        #         OutputParam.Volume,
+        #         percentage_from_pot(vol)))
+        
+        self.volume_setting.read( 
+            lambda volume: 
+                controls.set_swing(int(6-(volume/(65536/12)))))
 
         self.filter_setting.read(
             lambda val: controls.set_output_param(
@@ -148,15 +154,18 @@ class PizzaController(Controller):
                 OutputParam.HighPass,
                 percentage_from_pot(val)))
 
-        self.swing_left.read(
-            lambda val: controls.adjust_swing(-10))
+        self.distortion.read(
+            lambda val: 
+                controls.set_output_param( 
+                OutputParam.Distortion, 
+                val * 100))
 
-        self.swing_right.read(
-            lambda val: controls.adjust_swing(10))
-
-        if self.swing_left.triggered and self.swing_right.triggered:
-            controls.clear_swing()
-
+        self.bitcrusher.read(
+            lambda val: 
+                controls.set_output_param( 
+                OutputParam.Bitcrusher, 
+                val * 100))
+        
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
                 OutputParam.HighPass,

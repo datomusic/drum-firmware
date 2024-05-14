@@ -31,9 +31,8 @@ class IncDecReader:
 
 
 class PotReader:
-    def __init__(self, pin, inverted=False):
+    def __init__(self, pin):
         self.pin = pin
-        self.inverted = inverted
         self.last_val = 0
 
     def read(self, on_changed):
@@ -42,10 +41,6 @@ class PotReader:
         val = self.pin.read()
         if abs(val - self.last_val) > tolerance:
             self.last_val = val
-
-            if self.inverted:
-                val = POT_MAX - val
-
             on_changed(val)
             return True
         else:
@@ -75,6 +70,22 @@ class ThresholdTrigger:
         else:
             return False, value
 
+
+
+class DigitalChanger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.previous_value = False
+
+    def read(self, on_trigger):
+        val = self.pin.read()
+
+        if self.previous_value != val:
+            self.previous_value = val
+            on_trigger(val)
+
+        return val
+        
 
 class DigitalTrigger:
     def __init__(self, pin):

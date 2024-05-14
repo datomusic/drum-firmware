@@ -143,7 +143,7 @@ class Application:
 
 
 def setup_tracks(tracks):
-    tracks[0].note = 10
-    tracks[1].note = 0
-    tracks[2].note = 18
-    tracks[3].note = 25
+    tracks[0].note = 4
+    tracks[1].note = 12
+    tracks[2].note = 20
+    tracks[3].note = 28

@@ -13,24 +13,20 @@ class Direction:
     Up = 1
     Down = -1
 
-class LinearMapping:
-    def apply(value):
-        return value
+def LinearMapping(value):
+    return value
 
 
-class LinearInvertedMapping:
-    def apply(value):
-        return (ANALOG_MAX - value)
+def LinearInvertedMapping(value):
+    return (ANALOG_MAX - value)
 
 
-class ExponentialMapping:
-    def apply(value):
-        return (value * value) / ANALOG_MAX
+def ExponentialMapping(value):
+    return (value * value) / ANALOG_MAX
 
 
-class ExponentialInvertedMapping:
-    def apply(value):
-        return (ANALOG_MAX - ((value * value) / ANALOG_MAX))
+def ExponentialInvertedMapping(value):
+    return (ANALOG_MAX - ((value * value) / ANALOG_MAX))
 
 
 class SequencerKey:
@@ -121,7 +117,7 @@ class AnalogReader:
         self.mapping = mapping
 
     def read(self) -> int:
-        return self.mapping.apply(self.analog.value)
+        return self.mapping(self.analog.value)
 
 class DigitalReader:
     def __init__(self, pin):

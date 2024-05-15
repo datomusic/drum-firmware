@@ -78,7 +78,7 @@ class AppControls(Controls):
             elif percentage > 94:
                 self.drum.repeat_effect.set_repeat_count(2)
                 self.drum.repeat_effect.set_subdivision(2)
-            elif percentage > 30:
+            elif percentage > 20:
                 self.drum.repeat_effect.set_repeat_count(3)
                 self.drum.repeat_effect.set_subdivision(2)
             else:

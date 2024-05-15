@@ -17,16 +17,17 @@ def LinearMapping(value):
     return value
 
 
-def LinearInvertedMapping(value):
+def InvertedMapping(value):
     return (ANALOG_MAX - value)
 
 
-def ExponentialMapping(value):
+def SquaredMapping(value):
     return (value * value) / ANALOG_MAX
 
 
-def ExponentialInvertedMapping(value):
-    return (ANALOG_MAX - ((value * value) / ANALOG_MAX))
+def CubedMapping(value):
+    return (value * value * value) / (ANALOG_MAX * ANALOG_MAX)
+
 
 
 class SequencerKey:
@@ -139,24 +140,24 @@ class Teensy41Hardware:
         self.play_button = ToggleButton(board.D37)
         self.volume_pot = AnalogReader(board.A4)
         self.speed_pot = AnalogReader(board.D38)
-        self.random_button = AnalogReader(board.A10, ExponentialMapping)
-        self.repeat_button = AnalogReader(board.A0, ExponentialMapping)
-        self.filter_right = AnalogReader(board.A5, ExponentialMapping)
-        self.filter_left = AnalogReader(board.A6, ExponentialMapping)
-        self.drum_pad1 = AnalogReader(board.A2, ExponentialMapping)
-        self.drum_pad1_bottom = AnalogReader(board.A3, ExponentialInvertedMapping)
-        self.drum_pad2 = AnalogReader(board.A8, ExponentialMapping)
-        self.drum_pad2_bottom = AnalogReader(board.A9, ExponentialInvertedMapping)
-        self.drum_pad3 = AnalogReader(board.A12, ExponentialMapping)
-        self.drum_pad3_bottom = AnalogReader(board.A13, ExponentialInvertedMapping)
-        self.drum_pad4 = AnalogReader(board.D40, ExponentialMapping)
-        self.drum_pad4_bottom = AnalogReader(board.D41, ExponentialInvertedMapping)
+        self.random_button = AnalogReader(board.A10, CubedMapping)
+        self.repeat_button = AnalogReader(board.A0, CubedMapping)
+        self.filter_right = AnalogReader(board.A5, CubedMapping)
+        self.filter_left = AnalogReader(board.A6, CubedMapping)
+        self.drum_pad1 = AnalogReader(board.A2, CubedMapping)
+        self.drum_pad1_bottom = AnalogReader(board.A3, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad2 = AnalogReader(board.A8, CubedMapping)
+        self.drum_pad2_bottom = AnalogReader(board.A9, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad3 = AnalogReader(board.A12, CubedMapping)
+        self.drum_pad3_bottom = AnalogReader(board.A13, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad4 = AnalogReader(board.D40, CubedMapping)
+        self.drum_pad4_bottom = AnalogReader(board.D41, lambda val: (InvertedMapping(CubedMapping(val))))
         self.swing_right = DigitalReader(board.D7)
         self.swing_left = DigitalReader(board.D8)
-        self.pitch1 = AnalogReader(board.A1, LinearInvertedMapping)
-        self.pitch2 = AnalogReader(board.A7, LinearInvertedMapping)
-        self.pitch3 = AnalogReader(board.A11, LinearInvertedMapping)
-        self.pitch4 = AnalogReader(board.D39, LinearInvertedMapping)
+        self.pitch1 = AnalogReader(board.A1, InvertedMapping)
+        self.pitch2 = AnalogReader(board.A7, InvertedMapping)
+        self.pitch3 = AnalogReader(board.A11, InvertedMapping)
+        self.pitch4 = AnalogReader(board.D39, InvertedMapping)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()

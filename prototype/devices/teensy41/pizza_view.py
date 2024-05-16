@@ -4,7 +4,7 @@ from .hardware import (
     Display,
     Drumpad,
     SequencerKey,
-    fade_color,
+    saturated_multiply,
     # SampleSelectKey,
     # Direction,
     ControlKey,
@@ -33,7 +33,7 @@ class PadIndicator:
 
         self.last_triggered_step = step_index
         pad = Drumpad(self.index)
-        display.set_color(pad, fade_color(color, 1 - fade_amount))
+        display.set_color(pad, saturated_multiply(color, 1 - fade_amount))
 
     def update(self, delta_ms: int):
         if self.fade_remaining_ms > 0:
@@ -56,7 +56,7 @@ class SequencerRing:
 
             if self.fade_remaining_ms > 0:
                 fade_amount = self.fade_remaining_ms / FADE_TIME_MS
-                display.set_color(key, fade_color(step_color, fade_amount))
+                display.set_color(key, saturated_multiply(step_color, fade_amount))
             elif step.active:
                 display.set_color(key, step_color)
 
@@ -85,7 +85,7 @@ class Cursor:
         current_step: int,
         beat_position: float,
     ) -> None:
-        amount = (0.5 - abs(beat_position - 0.5)) * 2
+        amount = min(max(0, 1 - beat_position), 1)
         sequencer_key = SequencerKey(current_step, track_index)
         start_key = ControlKey(ControlName.Start)
 

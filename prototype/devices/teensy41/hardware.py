@@ -267,15 +267,25 @@ drumpad_to_led = {
 }
 
 
-def fade_color(color, amount):
+def saturated_multiply(color, amount):
     (r, g, b) = color
-    return (int(r * amount), int(g * amount), int(b * amount))
+    return (
+        constrain_color(int(r * amount)),
+        constrain_color(int(g * amount)),
+        constrain_color(int(b * amount)))
 
 
 def add_colors(color1, color2):
     (r1, g1, b1) = color1
     (r2, g2, b2) = color2
-    return (r1 + r2, g1 + g2, b1 + b2)
+    return (
+        constrain_color(r1 + r2),
+        constrain_color(g1 + g2),
+        constrain_color(b1 + b2))
+
+
+def constrain_color(color):
+    return min(max(0, color), 255)
 
 
 class Display:
@@ -306,7 +316,7 @@ class Display:
     ) -> None:
         pixel_index = pixel_index_from_key(key)
         old_color = self.pixels[pixel_index]
-        self.pixels[pixel_index] = fade_color(old_color, amount)
+        self.pixels[pixel_index] = saturated_multiply(old_color, amount)
 
 
 def pixel_index_from_key(key):

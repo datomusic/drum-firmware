@@ -95,10 +95,11 @@ class Swing:
 
     def get_beat_position(self) -> float:
         middle_tick = self._get_middle_tick()
-        if self._ticks < middle_tick:
-            return self._ticks / middle_tick
+        ticks = (self._ticks - TICK_SUBDIVISIONS) % TICKS_PER_BEAT
+        if ticks < middle_tick:
+            return ticks / middle_tick
         else:
-            return (self._ticks - middle_tick) / (TICKS_PER_BEAT - middle_tick)
+            return (ticks - middle_tick) / (TICKS_PER_BEAT - middle_tick)
 
 
 class Tempo:

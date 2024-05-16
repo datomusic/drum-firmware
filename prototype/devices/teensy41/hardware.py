@@ -7,7 +7,7 @@ import neopixel  # type: ignore
 import analogio as aio  # type: ignore
 import digitalio as dio  # type: ignore
 
-ANALOG_MAX = 65536
+UINT16_MAX = 65536
 
 class Direction:
     Up = 1
@@ -18,15 +18,15 @@ def LinearMapping(value):
 
 
 def InvertedMapping(value):
-    return (ANALOG_MAX - value)
+    return (UINT16_MAX - value)
 
 
 def SquaredMapping(value):
-    return (value * value) / ANALOG_MAX
+    return (value * value) // UINT16_MAX
 
 
 def CubedMapping(value):
-    return (value * value * value) / (ANALOG_MAX * ANALOG_MAX)
+    return (value * value * value) // (UINT16_MAX * UINT16_MAX)
 
 
 
@@ -197,7 +197,7 @@ def translate_key_event(event) -> KeyEvent | None:
     n = event.key_number
 
     if (n % 5) < 4:
-        key = SequencerKey(int(n / 5), n % 5)
+        key = SequencerKey((n // 5), n % 5)
     elif n == 9:
         key = SampleSelectKey(Direction.Up, 0)
     elif n == 14:

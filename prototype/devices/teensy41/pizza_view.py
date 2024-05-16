@@ -71,15 +71,7 @@ class Cursor:
         self.fade_play_toggle = False
         self.last_beat_position = 0
 
-    @staticmethod
     def show(
-        display: Display, track_index: int, current_step: int, beat_position: float
-    ) -> None:
-        display.set_color(ControlKey(ControlName.Start), ColorScheme.Cursor)
-        display.set_color(SequencerKey(
-            current_step, track_index), ColorScheme.Cursor)
-
-    def apply_fade(
         self,
         display: Display,
         playing: bool,
@@ -96,14 +88,14 @@ class Cursor:
 
         self.last_beat_position = beat_position
         if playing:
-            display.fade(sequencer_key, amount)
+            display.blend(sequencer_key, ColorScheme.Cursor, amount)
         else:
             if self.fade_play_toggle:
-                display.fade(sequencer_key, amount)
+                display.blend(sequencer_key, ColorScheme.Cursor, amount)
                 display.set_color(start_key, (0, 0, 0))
             else:
+                display.set_color(start_key, ColorScheme.Cursor)
                 display.fade(start_key, amount)
-                display.set_color(sequencer_key, (0, 0, 0))
 
 
 class PizzaView:
@@ -129,18 +121,14 @@ class PizzaView:
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
         for track_index, track in enumerate(drum.tracks):
             current_step = drum.get_indicator_step(track_index)
-            Cursor.show(display, track_index, current_step, beat_position)
 
             color = ColorScheme.Tracks[drum.tracks[track_index].note]
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
-            self.cursor.apply_fade(
+            self.cursor.show(
                 display, drum.playing, track_index, current_step, beat_position
             )
-
-        # if drum.playing:
-        #     self.cursor.show(display, drum, beat_position)
 
     def _show_pad(self, display, drum, color, track_index) -> None:
         current_step_index = drum.get_indicator_step(track_index)

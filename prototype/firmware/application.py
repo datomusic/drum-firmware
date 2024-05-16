@@ -92,7 +92,7 @@ class AppControls(Controls):
 
     def set_swing(self, amount):
         self.tempo.swing.set_amount(amount)
-        
+
     def clear_swing(self):
         self.tempo.swing.set_amount(0)
 
@@ -109,7 +109,7 @@ class Application:
             tempo_tick_callback=self.output.on_tempo_tick,
             half_beat_callback=self._on_half_beat
         )
-        self.drum = Drum(output, on_track_repeat=self._on_sample_trigger)
+        self.drum = Drum(output)
         self.drum.playing = False
         self.controls = AppControls(
             self.drum, self.output, self.tempo, self._on_sample_trigger

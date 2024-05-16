@@ -54,7 +54,9 @@ class SequencerRing:
         for step_index, step in enumerate(track.sequencer.steps):
             key = SequencerKey(step_index, self.track_index)
 
-            if self.fade_remaining_ms > 0:
+            if track.repeat_is_active():
+                display.set_color(key, step_color)
+            elif self.fade_remaining_ms > 0:
                 fade_amount = self.fade_remaining_ms / FADE_TIME_MS
                 display.set_color(key, saturated_multiply(
                     step_color, fade_amount))

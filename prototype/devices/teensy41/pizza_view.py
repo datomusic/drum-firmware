@@ -56,7 +56,8 @@ class SequencerRing:
 
             if self.fade_remaining_ms > 0:
                 fade_amount = self.fade_remaining_ms / FADE_TIME_MS
-                display.set_color(key, saturated_multiply(step_color, fade_amount))
+                display.set_color(key, saturated_multiply(
+                    step_color, fade_amount))
             elif step.active:
                 display.set_color(key, step_color)
 
@@ -75,7 +76,8 @@ class Cursor:
         display: Display, track_index: int, current_step: int, beat_position: float
     ) -> None:
         display.set_color(ControlKey(ControlName.Start), ColorScheme.Cursor)
-        display.set_color(SequencerKey(current_step, track_index), ColorScheme.Cursor)
+        display.set_color(SequencerKey(
+            current_step, track_index), ColorScheme.Cursor)
 
     def apply_fade(
         self,
@@ -110,7 +112,8 @@ class PizzaView:
             PadIndicator(track_index) for track_index in range(Track.Count)
         ]
 
-        self.rings = [SequencerRing(track_index) for track_index in range(Track.Count)]
+        self.rings = [SequencerRing(track_index)
+                      for track_index in range(Track.Count)]
         self.cursor = Cursor()
 
     def update(self, delta_ms: int) -> None:

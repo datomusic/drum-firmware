@@ -9,9 +9,11 @@ import digitalio as dio  # type: ignore
 
 UINT16_MAX = 65536
 
+
 class Direction:
     Up = 1
     Down = -1
+
 
 def LinearMapping(value):
     return value
@@ -27,7 +29,6 @@ def SquaredMapping(value):
 
 def CubedMapping(value):
     return (value * value * value) // (UINT16_MAX * UINT16_MAX)
-
 
 
 class SequencerKey:
@@ -112,13 +113,14 @@ class ToggleButton:
 
 
 class AnalogReader:
-    def __init__(self, pin, mapping = LinearMapping) -> None:
+    def __init__(self, pin, mapping=LinearMapping) -> None:
         self.pin = pin
         self.analog = aio.AnalogIn(self.pin)
         self.mapping = mapping
 
     def read(self) -> int:
         return self.mapping(self.analog.value)
+
 
 class DigitalReader:
     def __init__(self, pin):
@@ -145,13 +147,17 @@ class Teensy41Hardware:
         self.filter_right = AnalogReader(board.A5, CubedMapping)
         self.filter_left = AnalogReader(board.A6, CubedMapping)
         self.drum_pad1 = AnalogReader(board.A2, CubedMapping)
-        self.drum_pad1_bottom = AnalogReader(board.A3, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad1_bottom = AnalogReader(
+            board.A3, lambda val: (InvertedMapping(CubedMapping(val))))
         self.drum_pad2 = AnalogReader(board.A8, CubedMapping)
-        self.drum_pad2_bottom = AnalogReader(board.A9, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad2_bottom = AnalogReader(
+            board.A9, lambda val: (InvertedMapping(CubedMapping(val))))
         self.drum_pad3 = AnalogReader(board.A12, CubedMapping)
-        self.drum_pad3_bottom = AnalogReader(board.A13, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad3_bottom = AnalogReader(
+            board.A13, lambda val: (InvertedMapping(CubedMapping(val))))
         self.drum_pad4 = AnalogReader(board.D40, CubedMapping)
-        self.drum_pad4_bottom = AnalogReader(board.D41, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad4_bottom = AnalogReader(
+            board.D41, lambda val: (InvertedMapping(CubedMapping(val))))
         self.swing_right = DigitalReader(board.D7)
         self.swing_left = DigitalReader(board.D8)
         self.pitch1 = AnalogReader(board.A1, InvertedMapping)

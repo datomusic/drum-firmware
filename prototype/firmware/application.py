@@ -2,7 +2,7 @@ import time
 from .drum import Drum
 from .device_api import Controls, Output, SampleChange, EffectName, TrackParam
 from .controller_api import Controller
-from .tempo import Tempo, TempoSource, BeatLength
+from .tempo import Tempo, TempoSource
 
 
 SAMPLE_COUNT = 32
@@ -72,9 +72,11 @@ class AppControls(Controls):
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            if percentage > 99:
+            self.drum.double_time_repeat = False
+            if percentage > 96:
                 self.drum.repeat_effect.set_repeat_count(1)
-                self.drum.repeat_effect.set_subdivision(2)
+                if percentage > 98:
+                    self.drum.double_time_repeat = True
             elif percentage > 94:
                 self.drum.repeat_effect.set_repeat_count(2)
                 self.drum.repeat_effect.set_subdivision(2)

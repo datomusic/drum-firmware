@@ -45,6 +45,7 @@ class Drum:
         self._next_step_index = 0
         self.playing = True
         self.repeat_effect = RepeatEffect(lambda: self._next_step_index)
+        self.double_time_repeat = False
 
     def _get_effect_step(self, track_index) -> int | None:
         repeat_step = self.repeat_effect.get_step()
@@ -83,8 +84,12 @@ class Drum:
                 track.tick()
 
     def tick_beat_repeat(self, quarter_index):
-        for (track_index, track) in enumerate(self.tracks):
-            if self.playing:
+        if self.playing:
+            if self.double_time_repeat:
+                print("DOUBLE TIME")
+                self._play_track_steps()
+
+            for (track_index, track) in enumerate(self.tracks):
                 track.trigger_repeat(quarter_index)
 
     def _play_track_steps(self) -> None:

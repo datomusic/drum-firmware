@@ -55,7 +55,8 @@ class AppControls(Controls):
 
     def play_track_sample(self, track_index: int, velocity: float):
         track = self.drum.tracks[track_index]
-        track.note_player.play(track.note, velocity)
+        if not track.note_player.playing():
+            track.note_player.play(track.note, velocity)
         self.on_sample_trigger(track_index)
 
     def set_track_repeat_velocity(self, track_index: int, amount_percent: float):

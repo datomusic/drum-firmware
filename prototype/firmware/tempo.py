@@ -95,7 +95,7 @@ class Swing:
 
     def get_beat_position(self) -> float:
         middle_tick = self._get_middle_tick()
-        ticks = (self._ticks - TICK_SUBDIVISIONS) % TICKS_PER_BEAT
+        ticks = (self._ticks - 1) % TICKS_PER_BEAT
         if ticks < middle_tick:
             return ticks / middle_tick
         else:

@@ -35,7 +35,8 @@ class Track:
 
     def play_step(self, velocity) -> None:
         self.last_velocity = velocity
-        self.note_player.play(self.note, velocity)
+        if not self.note_player.playing():
+            self.note_player.play(self.note, velocity)
 
 
 class Drum:

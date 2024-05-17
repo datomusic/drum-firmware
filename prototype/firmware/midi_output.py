@@ -25,7 +25,7 @@ class MIDIOutput(Output):
 
     def set_channel_mute(self, channel: int, pressure: float):
         midi_value = percent_to_midi(pressure)
-        print(f"[{channel}] ChannelPressure: {midi_value}")
+        # print(f"[{channel}] ChannelPressure: {midi_value}")
         self.midi.send(ChannelPressure(midi_value), channel=channel)
 
     def set_param(self, param, value) -> None:

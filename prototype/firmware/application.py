@@ -2,7 +2,7 @@ import time
 from .drum import Drum
 from .device_api import Controls, Output, SampleChange, EffectName, TrackParam
 from .controller_api import Controller
-from .tempo import Tempo, TempoSource
+from .tempo import Tempo, TempoSource, BeatLength
 
 
 SAMPLE_COUNT = 32
@@ -107,7 +107,7 @@ class Application:
         self.output = output
         self.tempo = Tempo(
             tempo_tick_callback=self.output.on_tempo_tick,
-            half_beat_callback=self._on_half_beat
+            on_quarter_beat=self._on_quarter_beat
         )
         self.drum = Drum(output)
         self.drum.playing = False
@@ -121,8 +121,11 @@ class Application:
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
 
-    def _on_half_beat(self) -> None:
-        self.drum.advance_step()
+    def _on_quarter_beat(self, quarter_index) -> None:
+        self.drum.tick_beat_repeat(quarter_index)
+
+        if quarter_index % 2 == 0:
+            self.drum.advance_step()
 
     def update(self, delta_ms: int) -> None:
         for controller in self.controllers:

@@ -70,20 +70,29 @@ class Swing:
         addition = 1 if direction > 0 else -1
         self.set_amount(self._amount + addition)
 
-    def tick(self, tick_count, on_half_beat) -> None:
+    def tick(self, tick_count, on_quarter_beat) -> None:
         triggered = False
         mid_point = self._get_middle_tick()
 
-        if self._even_beat and self._ticks % TICKS_PER_BEAT == 0:
-            self._ticks = 0
-            triggered = True
+        quarter_index = (
+            4 * self._ticks) // (TEMPO_TICKS_PER_BEAT * TICK_SUBDIVISIONS)
 
-        elif not self._even_beat and self._ticks % mid_point == 0:
-            triggered = True
+        if self._even_beat:
+            if self._ticks % TICKS_PER_BEAT == 0:
+                self._ticks = 0
+                triggered = True
+            elif self._ticks == TICKS_PER_BEAT - (mid_point / 2):
+                on_quarter_beat(quarter_index)
+
+        elif not self._even_beat:
+            if self._ticks % mid_point == 0:
+                triggered = True
+            elif self._ticks == (mid_point / 2):
+                on_quarter_beat(quarter_index)
 
         if triggered:
             self._even_beat = not self._even_beat
-            on_half_beat()
+            on_quarter_beat(quarter_index)
 
         self._ticks = (self._ticks + tick_count) % TICKS_PER_BEAT
 
@@ -103,9 +112,9 @@ class Swing:
 
 
 class Tempo:
-    def __init__(self, tempo_tick_callback, half_beat_callback) -> None:
+    def __init__(self, tempo_tick_callback, on_quarter_beat) -> None:
         self.tempo_tick_callback = tempo_tick_callback
-        self.half_beat_callback = half_beat_callback
+        self.on_quarter_beat = on_quarter_beat
         self.tempo_source = TempoSource.Internal
         self.internal_ticker = InternalTicker()
         self.swing = Swing()
@@ -123,10 +132,13 @@ class Tempo:
     def handle_midi_clock(self) -> None:
         if TempoSource.MIDI == self.tempo_source:
             self.tempo_tick_callback(self.tempo_source)
-            self.swing.tick(TICK_SUBDIVISIONS, self.half_beat_callback)
+            self.swing.tick(TICK_SUBDIVISIONS, self.on_quarter_beat)
 
-    def _on_internal_tick(self):
-        self.swing.tick(1, self.half_beat_callback)
+    def _on_internal_tick(self) -> None:
+        self.swing.tick(
+            tick_count=1,
+            on_quarter_beat=self.on_quarter_beat
+        )
         if self.swing.is_tempo_tick():
             self.tempo_tick_callback(self.tempo_source)
 

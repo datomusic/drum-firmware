@@ -21,10 +21,12 @@ class Track:
         self.note_player.tick()
         self.random_effect.tick()
 
-    def trigger_repeat(self):
-        if not self.note_player.playing() and self.repeat_is_active():
-            self.note_player.play(self.note, self.repeat_velocity)
-            return True
+    def trigger_repeat(self, quarter_index):
+        if self.repeat_is_active():
+            is_half = quarter_index % 2 == 0
+            if is_half or self.repeat_velocity > 95:
+                self.note_player.play(self.note, self.repeat_velocity)
+                return True
         else:
             return False
 
@@ -77,11 +79,13 @@ class Drum:
             self._play_track_steps()
             self._next_step_index = (self._next_step_index + 1) % STEP_COUNT
             self.repeat_effect.advance()
+            for track in self.tracks:
+                track.tick()
 
+    def tick_beat_repeat(self, quarter_index):
         for (track_index, track) in enumerate(self.tracks):
             if self.playing:
-                track.trigger_repeat()
-            track.tick()
+                track.trigger_repeat(quarter_index)
 
     def _play_track_steps(self) -> None:
         for index, track in enumerate(self.tracks):

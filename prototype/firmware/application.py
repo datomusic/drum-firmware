@@ -124,10 +124,10 @@ class Application:
             controller.on_track_sample_played(track_index)
 
     def _on_quarter_beat(self, quarter_index) -> None:
-        self.drum.tick_beat_repeat(quarter_index)
-
         if quarter_index % 2 == 0:
             self.drum.advance_step()
+
+        self.drum.tick_beat_repeat(quarter_index)
 
     def update(self, delta_ms: int) -> None:
         for controller in self.controllers:

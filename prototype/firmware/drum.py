@@ -86,7 +86,6 @@ class Drum:
     def tick_beat_repeat(self, quarter_index):
         if self.playing:
             if self.double_time_repeat:
-                print("DOUBLE TIME")
                 self._play_track_steps()
 
             for (track_index, track) in enumerate(self.tracks):

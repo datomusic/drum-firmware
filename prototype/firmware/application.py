@@ -76,7 +76,7 @@ class AppControls(Controls):
             self.drum.double_time_repeat = False
             if percentage > 96:
                 self.drum.repeat_effect.set_repeat_count(1)
-                if percentage > 99.5:
+                if percentage > 98:
                     self.drum.double_time_repeat = True
             elif percentage > 94:
                 self.drum.repeat_effect.set_repeat_count(2)

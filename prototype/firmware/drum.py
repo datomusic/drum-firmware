@@ -24,7 +24,7 @@ class Track:
     def trigger_repeat(self, quarter_index):
         if self.repeat_is_active():
             is_half = quarter_index % 2 == 0
-            if (not self.note_player.playing() and is_half) or self.repeat_velocity > 95:
+            if (not self.note_player.playing() and is_half) or self.repeat_velocity > 97:
                 self.note_player.play(self.note, self.repeat_velocity)
                 return True
         else:

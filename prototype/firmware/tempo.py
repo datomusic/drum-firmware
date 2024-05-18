@@ -71,28 +71,22 @@ class Swing:
         self.set_amount(self._amount + addition)
 
     def tick(self, tick_count, on_quarter_beat) -> None:
-        triggered = False
         mid_point = self._get_middle_tick()
 
-        quarter_index = (
-            4 * self._ticks) // (TEMPO_TICKS_PER_BEAT * TICK_SUBDIVISIONS)
-
         if self._even_beat:
-            if self._ticks % TICKS_PER_BEAT == 0:
+            if self._ticks == TICKS_PER_BEAT - (mid_point / 2):
+                on_quarter_beat(0)
+            elif self._ticks % TICKS_PER_BEAT == 0:
                 self._ticks = 0
-                triggered = True
-            elif self._ticks == TICKS_PER_BEAT - (mid_point / 2):
-                on_quarter_beat(quarter_index)
+                self._even_beat = not self._even_beat
+                on_quarter_beat(1)
 
         elif not self._even_beat:
-            if self._ticks % mid_point == 0:
-                triggered = True
-            elif self._ticks == (mid_point / 2):
-                on_quarter_beat(quarter_index)
-
-        if triggered:
-            self._even_beat = not self._even_beat
-            on_quarter_beat(quarter_index)
+            if self._ticks == (mid_point / 2):
+                on_quarter_beat(2)
+            elif self._ticks % mid_point == 0:
+                self._even_beat = not self._even_beat
+                on_quarter_beat(3)
 
         self._ticks = (self._ticks + tick_count) % TICKS_PER_BEAT
 

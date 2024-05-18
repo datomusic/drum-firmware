@@ -19,7 +19,6 @@ class Track:
 
     def tick(self):
         self.note_player.tick()
-        self.random_effect.tick()
 
     def trigger_repeat(self, quarter_index):
         if self.repeat_is_active():
@@ -77,6 +76,9 @@ class Drum:
 
     def advance_step(self) -> None:
         if self.playing:
+            for track in self.tracks:
+                track.random_effect.advance()
+
             self._play_track_steps()
             self._next_step_index = (self._next_step_index + 1) % STEP_COUNT
             self.repeat_effect.advance()

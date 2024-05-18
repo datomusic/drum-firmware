@@ -7,7 +7,7 @@ class RandomEffect:
         self.enabled = False
         self.step = 0
 
-    def tick(self):
+    def advance(self):
         self.step = random.randint(0, self.step_count)
 
     def get_step(self):

@@ -31,12 +31,12 @@ class RepeatEffect:
 
     # Plays final_step first, just after triggering.
     # Then loops from repeat_count steps back.
-    def get_step(self) -> None | int:
+    def get_step(self, offset=0) -> None | int:
         if self.final_step is None:
             return None
         else:
             start = self.final_step - self.repeat_count + 1
-            return (
-                start +
-                (self.step_counter + self.repeat_count - 1) % self.repeat_count
-            )
+            loop_step = ((self.step_counter + self.repeat_count - 1 + offset)
+                         % self.repeat_count)
+
+            return start + loop_step

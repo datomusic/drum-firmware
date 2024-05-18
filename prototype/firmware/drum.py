@@ -47,8 +47,8 @@ class Drum:
         self.repeat_effect = RepeatEffect(lambda: self._next_step_index)
         self.double_time_repeat = False
 
-    def _get_effect_step(self, track_index) -> int | None:
-        repeat_step = self.repeat_effect.get_step()
+    def _get_effect_step(self, track_index, offset) -> int | None:
+        repeat_step = self.repeat_effect.get_step(offset)
         random_step = self.tracks[track_index].random_effect.get_step()
 
         if isinstance(repeat_step, int):
@@ -60,14 +60,14 @@ class Drum:
 
     def _get_play_step_index(self, track_index) -> int:
         step = self._next_step_index
-        effect_step = self._get_effect_step(track_index)
+        effect_step = self._get_effect_step(track_index, 0)
         if effect_step is not None:
             step = effect_step
 
         return step % STEP_COUNT
 
     def get_indicator_step(self, track_index) -> int:
-        effect_step = self._get_effect_step(track_index)
+        effect_step = self._get_effect_step(track_index, -1)
         if effect_step is not None:
             step = effect_step
         else:

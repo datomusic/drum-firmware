@@ -61,7 +61,6 @@ class Swing:
 
     def reset_ticks(self) -> None:
         self._ticks = 0
-        self._even_beat = True
 
     def set_amount(self, amount) -> None:
         self._amount = max(-Swing.Range, min(Swing.Range, amount))
@@ -72,21 +71,14 @@ class Swing:
 
     def tick(self, tick_count, on_quarter_beat) -> None:
         mid_point = self._get_middle_tick()
-
-        if self._even_beat:
-            if self._ticks % TICKS_PER_BEAT == 0:
-                self._ticks = 0
-                self._even_beat = not self._even_beat
-                on_quarter_beat(0)
-            elif self._ticks % (mid_point / 2) == 0:
-                on_quarter_beat(1)
-
-        else:
-            if self._ticks % mid_point == 0:
-                self._even_beat = not self._even_beat
-                on_quarter_beat(2)
-            elif self._ticks % (TICKS_PER_BEAT - (mid_point / 2)) == 0:
-                on_quarter_beat(3)
+        if self._ticks == 0:
+            on_quarter_beat(0)
+        elif self._ticks == int(mid_point / 2):
+            on_quarter_beat(1)
+        elif self._ticks == mid_point:
+            on_quarter_beat(2)
+        elif self._ticks == mid_point + int((TICKS_PER_BEAT - mid_point) / 2):
+            on_quarter_beat(3)
 
         self._ticks = (self._ticks + tick_count) % TICKS_PER_BEAT
 

@@ -74,18 +74,18 @@ class Swing:
         mid_point = self._get_middle_tick()
 
         if self._even_beat:
-            if self._ticks == TICKS_PER_BEAT - (mid_point / 2):
-                on_quarter_beat(0)
-            elif self._ticks % TICKS_PER_BEAT == 0:
+            if self._ticks % TICKS_PER_BEAT == 0:
                 self._ticks = 0
                 self._even_beat = not self._even_beat
+                on_quarter_beat(0)
+            elif self._ticks % (mid_point / 2) == 0:
                 on_quarter_beat(1)
 
-        elif not self._even_beat:
-            if self._ticks == (mid_point / 2):
-                on_quarter_beat(2)
-            elif self._ticks % mid_point == 0:
+        else:
+            if self._ticks % mid_point == 0:
                 self._even_beat = not self._even_beat
+                on_quarter_beat(2)
+            elif self._ticks % (TICKS_PER_BEAT - (mid_point / 2)) == 0:
                 on_quarter_beat(3)
 
         self._ticks = (self._ticks + tick_count) % TICKS_PER_BEAT

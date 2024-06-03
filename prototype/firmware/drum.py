@@ -9,26 +9,21 @@ SAMPLE_COUNT = 32
 
 
 class Track:
-    Count = 4
-
-    def __init__(self, note_player: NotePlayer):
+    def __init__(self, note_player: NotePlayer) -> None:
         self.note_player = note_player
         self.note = 0
         self.sequencer = Sequencer(STEP_COUNT)
         self.random_effect = RandomEffect(STEP_COUNT)
         self.repeat_velocity = 0.0
 
-    def tick(self):
-        self.note_player.tick()
-
-    def trigger_repeat(self, quarter_index):
+    def trigger_repeat(self, quarter_index) -> bool:
         if self.repeat_is_active():
             is_half = quarter_index % 2 == 0
             if is_half or self.repeat_velocity > 97:
                 self.note_player.play(self.note, self.repeat_velocity)
                 return True
-        else:
-            return False
+
+        return False
 
     def repeat_is_active(self):
         return self.repeat_velocity > 20
@@ -39,9 +34,9 @@ class Track:
 
 
 class Drum:
-    def __init__(self, output: Output):
+    def __init__(self, output: Output, track_count: int):
         self.tracks = [Track(NotePlayer(index, output))
-                       for index in range(Track.Count)]
+                       for index in range(track_count)]
         self._next_step_index = 0
         self.playing = True
         self.repeat_effect = RepeatEffect(lambda: self._next_step_index)
@@ -83,8 +78,6 @@ class Drum:
             self._play_track_steps()
             self._next_step_index = (self._next_step_index + 1) % STEP_COUNT
             self.repeat_effect.advance()
-            for track in self.tracks:
-                track.tick()
 
     def tick_beat_repeat(self, quarter_index):
         if self.playing:
@@ -105,7 +98,7 @@ class Drum:
             track.random_effect.enabled = enabled
 
     def change_sample(self, track_index, step):
-        track = self.drum.tracks[track_index]
+        track = self.tracks[track_index]
         if track.note + step < 0:
             track.note = SAMPLE_COUNT - track.note + step
         elif track.note + step >= SAMPLE_COUNT:
@@ -113,14 +106,13 @@ class Drum:
         else:
             track.note = track.note + step
 
-        if not self.drum.playing:
+        if not self.playing:
             track.note_player.play(track.note)
 
         print(f"Sample change. track: {track_index}, note: {track.note}")
 
     def toggle_track_step(self, track_index, step_index):
         track = self.tracks[track_index]
-        track.toggle_step(step_index)
         active = track.sequencer.toggle_step(step_index)
 
         if active and not self.playing:

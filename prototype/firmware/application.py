@@ -4,6 +4,8 @@ from .device_api import Controls, Output, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 
+TRACK_COUNT = 4
+
 
 class AppControls(Controls):
     def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
@@ -73,7 +75,7 @@ class Application:
             tempo_tick_callback=self.output.on_tempo_tick,
             on_quarter_beat=self._on_quarter_beat
         )
-        self.drum = Drum(output)
+        self.drum = Drum(output, TRACK_COUNT)
         self.drum.playing = False
         self.controls = AppControls(
             self.drum, self.output, self.tempo, self._on_sample_trigger

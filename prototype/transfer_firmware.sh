@@ -16,6 +16,7 @@ function send() {
   rsync -rz --progress --update \
     --bwlimit=10 \
     --exclude=__pycache__ \
+    --exclude=tests \
     --exclude=.mypy_cache \
     --exclude="*.pyc" \
     "$from" "$to"

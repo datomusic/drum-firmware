@@ -1,4 +1,4 @@
-from firmware.drum import Drum, Track  # type: ignore
+from firmware.drum import Drum # type: ignore
 from .colors import ColorScheme
 from .hardware import (
     Display,
@@ -101,13 +101,13 @@ class Cursor:
 
 
 class PizzaView:
-    def __init__(self) -> None:
+    def __init__(self, track_count) -> None:
         self.pad_indicators = [
-            PadIndicator(track_index) for track_index in range(Track.Count)
+            PadIndicator(track_index) for track_index in range(track_count)
         ]
 
         self.rings = [SequencerRing(track_index)
-                      for track_index in range(Track.Count)]
+                      for track_index in range(track_count)]
         self.cursor = Cursor()
 
     def update(self, delta_ms: int) -> None:

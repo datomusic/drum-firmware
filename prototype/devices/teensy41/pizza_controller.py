@@ -67,13 +67,13 @@ class DrumPad:
 
 
 class PizzaController(Controller):
-    def __init__(self, hardware=None) -> None:
+    def __init__(self, track_count, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
         self.hardware = hardware
         self.display = hardware.init_display()
-        self.view = PizzaView()
+        self.view = PizzaView(track_count)
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)

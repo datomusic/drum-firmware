@@ -83,16 +83,6 @@ class Application:
 
         setup_tracks(self.drum.tracks)
 
-    def _on_sample_trigger(self, track_index: int):
-        for controller in self.controllers:
-            controller.on_track_sample_played(track_index)
-
-    def _on_quarter_beat(self, quarter_index) -> None:
-        if quarter_index % 2 == 0:
-            self.drum.advance_step()
-
-        self.drum.tick_beat_repeat(quarter_index)
-
     def update(self, delta_ms: int) -> None:
         for controller in self.controllers:
             controller.update(self.controls, delta_ms)
@@ -112,6 +102,16 @@ class Application:
             last_ns = now
             self.update(delta_ms)
             self.show()
+
+    def _on_sample_trigger(self, track_index: int):
+        for controller in self.controllers:
+            controller.on_track_sample_played(track_index)
+
+    def _on_quarter_beat(self, quarter_index) -> None:
+        if quarter_index % 2 == 0:
+            self.drum.advance_step()
+
+        self.drum.tick_beat_repeat(quarter_index)
 
 
 def setup_tracks(tracks):

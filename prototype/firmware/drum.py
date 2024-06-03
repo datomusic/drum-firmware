@@ -37,10 +37,10 @@ class Drum:
     def __init__(self, output: Output, track_count: int):
         self.tracks = [Track(NotePlayer(index, output))
                        for index in range(track_count)]
-        self._next_step_index = 0
         self.playing = True
-        self.repeat_effect = RepeatEffect(lambda: self._next_step_index)
-        self.double_time_repeat = False
+        self._next_step_index = 0
+        self._repeat_effect = RepeatEffect(lambda: self._next_step_index)
+        self._double_time_repeat = False
 
     def get_indicator_step(self, track_index) -> int:
         effect_step = self._get_effect_step(track_index, -1)
@@ -58,11 +58,11 @@ class Drum:
 
             self._play_track_steps()
             self._next_step_index = (self._next_step_index + 1) % STEP_COUNT
-            self.repeat_effect.advance()
+            self._repeat_effect.advance()
 
     def tick_beat_repeat(self, quarter_index):
         if self.playing:
-            if self.double_time_repeat:
+            if self._double_time_repeat:
                 self._play_track_steps()
 
             for (track_index, track) in enumerate(self.tracks):
@@ -94,23 +94,23 @@ class Drum:
             track.random_effect.enabled = enabled
 
     def set_repeat_effect_level(self, percentage: float) -> None:
-        self.double_time_repeat = False
+        self._double_time_repeat = False
         if percentage > 96:
-            self.repeat_effect.set_repeat_count(1)
+            self._repeat_effect.set_repeat_count(1)
             if percentage > 98:
-                self.double_time_repeat = True
+                self._double_time_repeat = True
         elif percentage > 94:
-            self.repeat_effect.set_repeat_count(2)
-            self.repeat_effect.set_subdivision(2)
+            self._repeat_effect.set_repeat_count(2)
+            self._repeat_effect.set_subdivision(2)
         elif percentage > 20:
-            self.repeat_effect.set_repeat_count(3)
-            self.repeat_effect.set_subdivision(2)
+            self._repeat_effect.set_repeat_count(3)
+            self._repeat_effect.set_subdivision(2)
         else:
-            self.repeat_effect.set_repeat_count(0)
-            self.repeat_effect.set_subdivision(1)
+            self._repeat_effect.set_repeat_count(0)
+            self._repeat_effect.set_subdivision(1)
 
     def _get_effect_step(self, track_index, offset) -> int | None:
-        repeat_step = self.repeat_effect.get_step(offset)
+        repeat_step = self._repeat_effect.get_step(offset)
         random_step = self.tracks[track_index].random_effect.get_step()
 
         if isinstance(repeat_step, int):

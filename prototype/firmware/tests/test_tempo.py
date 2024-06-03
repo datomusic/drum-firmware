@@ -1,4 +1,4 @@
-from tempo import Swing, TICKS_PER_BEAT
+from firmware.tempo import Swing, TICKS_PER_BEAT
 import unittest
 
 

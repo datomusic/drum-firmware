@@ -1,11 +1,8 @@
 import time
 from .drum import Drum
-from .device_api import Controls, Output, SampleChange, EffectName, TrackParam
+from .device_api import Controls, Output, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
-
-
-SAMPLE_COUNT = 32
 
 
 class AppControls(Controls):
@@ -18,32 +15,11 @@ class AppControls(Controls):
     def set_bpm(self, bpm):
         self.tempo.set_bpm(bpm)
 
-    def toggle_track_step(self, track, step):
-        track = self.drum.tracks[track]
-        active = track.sequencer.toggle_step(step)
-
-        if active and not self.drum.playing:
-            track.note_player.play(track.note)
+    def toggle_track_step(self, track_index, step_index):
+        self.drum.toggle_track_step(track_index, step_index)
 
     def change_sample(self, track_index, change):
-        if change == SampleChange.Prev:
-            step = -1
-
-        elif change == SampleChange.Next:
-            step = 1
-
-        track = self.drum.tracks[track_index]
-        if track.note + step < 0:
-            track.note = SAMPLE_COUNT - track.note + step
-        elif track.note + step >= SAMPLE_COUNT:
-            track.note = track.note - SAMPLE_COUNT + step
-        else:
-            track.note = track.note + step
-
-        if not self.drum.playing:
-            track.note_player.play(track.note)
-
-        print(f"Sample change. track: {track_index}, note: {track.note}")
+        self.drum.change_sample(track_index, change)
 
     def set_playing(self, playing):
         self.drum.playing = playing
@@ -54,8 +30,7 @@ class AppControls(Controls):
         return self.drum.playing
 
     def play_track_sample(self, track_index: int, velocity: float):
-        track = self.drum.tracks[track_index]
-        track.note_player.play(track.note, velocity)
+        self.drum.tracks[track_index].play(velocity)
         self.on_sample_trigger(track_index)
 
     def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
@@ -72,20 +47,7 @@ class AppControls(Controls):
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            self.drum.double_time_repeat = False
-            if percentage > 96:
-                self.drum.repeat_effect.set_repeat_count(1)
-                if percentage > 98:
-                    self.drum.double_time_repeat = True
-            elif percentage > 94:
-                self.drum.repeat_effect.set_repeat_count(2)
-                self.drum.repeat_effect.set_subdivision(2)
-            elif percentage > 20:
-                self.drum.repeat_effect.set_repeat_count(3)
-                self.drum.repeat_effect.set_subdivision(2)
-            else:
-                self.drum.repeat_effect.set_repeat_count(0)
-                self.drum.repeat_effect.set_subdivision(1)
+            self.drum.set_repeat_effect_level(percentage)
         elif EffectName.Random == effect_name:
             self.drum.set_random_enabled(percentage > 50)
 

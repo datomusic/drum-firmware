@@ -1,4 +1,4 @@
-from firmware.device_api import Controls, SampleChange, OutputParam, TrackParam, EffectName
+from firmware.device_api import Controls, OutputParam, TrackParam, EffectName
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 from .pizza_view import PizzaView
@@ -79,7 +79,7 @@ class PizzaController(Controller):
         self.volume_setting = PotReader(self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
-        self.hardware.filter_left, self.hardware.filter_right)
+            self.hardware.filter_left, self.hardware.filter_right)
 
         self.lowpass_setting = PotReader(self.hardware.filter_left)
         self.highpass_setting = PotReader(self.hardware.filter_right)
@@ -134,9 +134,9 @@ class PizzaController(Controller):
         #     lambda vol: controls.set_output_param(
         #         OutputParam.Volume,
         #         percentage_from_pot(vol)))
-        
-        self.volume_setting.read( 
-            lambda volume: 
+
+        self.volume_setting.read(
+            lambda volume:
                 controls.set_swing(int(6-(volume/(65536/12)))))
 
         self.filter_setting.read(
@@ -155,17 +155,17 @@ class PizzaController(Controller):
                 percentage_from_pot(val)))
 
         self.distortion.read(
-            lambda val: 
-                controls.set_output_param( 
-                OutputParam.Distortion, 
-                val * 100))
+            lambda val:
+                controls.set_output_param(
+                    OutputParam.Distortion,
+                    val * 100))
 
         self.bitcrusher.read(
-            lambda val: 
-                controls.set_output_param( 
-                OutputParam.Bitcrusher, 
-                val * 100))
-        
+            lambda val:
+                controls.set_output_param(
+                    OutputParam.Bitcrusher,
+                    val * 100))
+
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
                 OutputParam.HighPass,
@@ -201,9 +201,9 @@ class PizzaController(Controller):
 
             elif isinstance(key, SampleSelectKey):
                 if key.direction == Direction.Down:
-                    change = SampleChange.Prev
+                    change = 1
                 elif key.direction == Direction.Up:
-                    change = SampleChange.Next
+                    change = -1
 
                 controls.change_sample(key.track, change)
 

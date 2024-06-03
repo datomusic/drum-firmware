@@ -97,6 +97,3 @@ class Controls:
         _not_implemented("Controls.handle_midi_clock")
 
 
-class SampleChange:
-    Next = 1
-    Prev = -1

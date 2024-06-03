@@ -72,11 +72,11 @@ class Application:
     def __init__(self, controllers: list[Controller], output: Output):
         self.controllers = controllers
         self.output = output
+        self.drum = Drum(output, Application.TRACK_COUNT)
         self.tempo = Tempo(
             tempo_tick_callback=self.output.on_tempo_tick,
-            on_quarter_beat=self._on_quarter_beat
+            on_quarter_beat=self.drum.on_quarter_beat
         )
-        self.drum = Drum(output, Application.TRACK_COUNT)
         self.drum.playing = False
         self.controls = AppControls(
             self.drum, self.output, self.tempo, self._on_sample_trigger
@@ -133,12 +133,6 @@ class Application:
     def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
-
-    def _on_quarter_beat(self, quarter_index) -> None:
-        if quarter_index % 2 == 0:
-            self.drum.advance_step()
-
-        self.drum.tick_beat_repeat(quarter_index)
 
 
 def setup_tracks(tracks):

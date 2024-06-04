@@ -26,7 +26,7 @@ class MIDIOutput(Output):
 
     def set_channel_mute(self, channel: int, pressure: float):
         midi_value = percent_to_midi(pressure)
-        # print(f"[{channel}] ChannelPressure: {midi_value}")
+        self.midi.send(ControlChange(50 + channel, midi_value), channel=channel)
         self.midi.send(ChannelPressure(midi_value), channel=channel)
 
     def set_param(self, param, value) -> None:
@@ -59,9 +59,6 @@ class MIDIOutput(Output):
     def _send_cc(self, cc, value, channel=0):
         print(f"[{channel}] CC {cc}: {value}")
         self.midi.send(ControlChange(cc, value), channel=channel)
-
-    def set_channel_pressure(self, channel: int, pressure: float):
-        self.midi.send(ChannelPressure(percent_to_midi(pressure)), channel=channel)
 
     def set_volume(self, vol_percent):
         self._print_send(ControlChange(7, percent_to_midi(vol_percent)))

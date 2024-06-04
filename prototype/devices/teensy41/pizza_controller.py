@@ -3,8 +3,6 @@ from firmware.controller_api import Controller
 from firmware.drum import Drum
 from .pizza_view import PizzaView
 
-import gc
-
 from .hardware import (
     Teensy41Hardware,
     SequencerKey,
@@ -111,7 +109,6 @@ class PizzaController(Controller):
         ]
 
     def update(self, controls: Controls, delta_ms: int) -> None:
-        gc.collect()
         self._read_pots(controls)
         self._process_keys(controls)
         self.view.update(delta_ms)

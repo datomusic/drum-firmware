@@ -3,6 +3,7 @@ from .drum import Drum
 from .device_api import Controls, Output, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
+import gc
 
 
 class AppControls(Controls):
@@ -83,25 +84,38 @@ class Application:
 
         setup_tracks(self.drum.tracks)
 
-    def update(self, delta_ms: int) -> None:
-        for controller in self.controllers:
-            controller.update(self.controls, delta_ms)
+    def update(self, delta_ns: int) -> None:
+        self.tempo.update(delta_ns)
 
-        self.tempo.update()
+        for controller in self.controllers:
+            controller.update(self.controls, delta_ns // 1_000_000)
+
 
     def show(self) -> None:
         for controller in self.controllers:
             controller.show(self.drum, self.tempo.get_beat_position())
 
     def run(self):
+        gc.disable()
+
+        accumulated_show_ns = 0
         last_ns = time.monotonic_ns()
 
         while True:
             now = time.monotonic_ns()
-            delta_ms = (now - last_ns) // (1000 * 1000)
+            delta_ns = now - last_ns
+            accumulated_show_ns += delta_ns
             last_ns = now
-            self.update(delta_ms)
-            self.show()
+            self.update(delta_ns)
+
+            if accumulated_show_ns > 30_000_000:
+                accumulated_show_ns = 0
+                self.show()
+            else:
+                gc.collect()
+
+            # delta_ms = delta_ns // 1_000_000
+            # print(f"delta_ms: {delta_ms}")
 
     def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:

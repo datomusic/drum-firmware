@@ -70,7 +70,6 @@ class Application:
     TRACK_COUNT = 4
 
     def __init__(self, controllers: list[Controller], output: Output):
-        self._controller_acc_ns = 0
         self.controllers = controllers
         self.output = output
         self.tempo = Tempo(
@@ -86,13 +85,11 @@ class Application:
         setup_tracks(self.drum.tracks)
 
     def update(self, delta_ns: int) -> None:
-        self._controller_acc_ns += delta_ns
         self.tempo.update(delta_ns)
 
-        if self._controller_acc_ns > 2_000_000:
-            for controller in self.controllers:
-                controller.update(self.controls, 2)
-            self._controller_acc_ns = 0
+        for controller in self.controllers:
+            controller.update(self.controls, delta_ns // 1_000_000)
+
 
     def show(self) -> None:
         for controller in self.controllers:
@@ -100,26 +97,25 @@ class Application:
 
     def run(self):
         gc.disable()
-        show_accumulation_ns = 0
-        gc_accumulation_ns = 0
 
+        accumulated_show_ns = 0
         last_ns = time.monotonic_ns()
 
         while True:
             now = time.monotonic_ns()
             delta_ns = now - last_ns
-            show_accumulation_ns += delta_ns
-            gc_accumulation_ns += delta_ns
+            accumulated_show_ns += delta_ns
             last_ns = now
             self.update(delta_ns)
 
-            # Render every 10ms
-            if show_accumulation_ns > 10_000_000:
-                show_accumulation_ns = 0
+            if accumulated_show_ns > 30_000_000:
+                accumulated_show_ns = 0
                 self.show()
-
-            if gc_accumulation_ns > 1_000_000:
+            else:
                 gc.collect()
+
+            # delta_ms = delta_ns // 1_000_000
+            # print(f"delta_ms: {delta_ms}")
 
     def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:

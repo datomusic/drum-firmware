@@ -8,6 +8,14 @@ class OutputParam:
     LowPass = 2
     HighPass = 3
     AdjustFilter = 4
+    Tempo = 5
+    Distortion = 6
+    Bitcrusher = 7
+
+
+class EffectName:
+    Repeat = 1
+    Random = 2
 
 
 class Output:
@@ -29,10 +37,26 @@ class Output:
     def set_param(self, param, percent: float):
         _not_implemented("Output.set_param", param, percent)
 
+    def on_tempo_tick(self, source):
+        _not_implemented("Output.on_tempo_tick", source)
+
+    def set_channel_mute(self, channel: int, amount_percent: float):
+        _not_implemented("Output.set_channel_mute",
+                         channel, amount_percent)
+
+
+class TrackParam:
+    Pitch = 1
+    Mute = 2
+
 
 class Controls:
     def set_output_param(self, param, amount_percent):
         _not_implemented("Controls.set_output_param", param, amount_percent)
+
+    def set_track_param(self, param, track_index, amount_percent):
+        _not_implemented("Controls.set_track_param", param,
+                         track_index, amount_percent)
 
     def set_bpm(self, bpm):
         _not_implemented("Controls.set_bpm", bpm)
@@ -41,22 +65,36 @@ class Controls:
         _not_implemented("Controls.play_track_sample",
                          track_index, velocity_percent)
 
-    def set_track_mute(self, track_index: int, amount_percent: float):
-        _not_implemented("Controls.set_track_mute",
+    def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
+        _not_implemented("Controls.set_track_sample_repeat",
                          track_index, amount_percent)
 
     def toggle_track_step(self, track_index: int, step):
         _not_implemented("Controls.toggle_track_step", track_index, step)
 
-    def set_track_pitch(self, track_index: int, pitch_percent: float):
-        _not_implemented("Controls.set_track_pitch",
-                         track_index, pitch_percent)
+    def set_effect_level(self, effect_name, percentage):
+        _not_implemented("Controls.set_effect_level", effect_name, percentage)
 
     def change_sample(self, track_index: int, change):
         _not_implemented("Controls.change_sample", track_index, change)
 
-    def toggle_playing(self):
-        _not_implemented("Controls.toggle_playing")
+    def is_playing(self) -> bool:
+        _not_implemented("Controls.is_playing")
+
+    def set_playing(self, playing: bool):
+        _not_implemented("Controls.set_playing", playing)
+
+    def adjust_swing(self, amount_percent):
+        _not_implemented("Controls.adjust_swing", amount_percent)
+
+    def clear_swing(self):
+        _not_implemented("Controls.clear_swing")
+
+    def set_swing(self, amount):
+        _not_implemented("Controls.set_swing")
+
+    def handle_midi_clock(self):
+        _not_implemented("Controls.handle_midi_clock")
 
 
 class SampleChange:

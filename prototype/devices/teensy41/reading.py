@@ -1,3 +1,5 @@
+import math
+
 POT_MIN = 0
 POT_MAX = 65536
 
@@ -17,7 +19,7 @@ class IncDecReader:
         val = self.dec_pin.read()
         if val > threshold:
             self.was_zero = False
-            on_changed(- val)
+            on_changed(-val)
         else:
             val = self.inc_pin.read()
             if val > threshold:
@@ -29,21 +31,16 @@ class IncDecReader:
 
 
 class PotReader:
-    def __init__(self, pin, inverted=False):
+    def __init__(self, pin):
         self.pin = pin
-        self.inverted = inverted
-        self.last_val = None
+        self.last_val = 0
 
     def read(self, on_changed):
         tolerance = 100
 
         val = self.pin.read()
-        if self.last_val is None or abs(val - self.last_val) > tolerance:
+        if abs(val - self.last_val) > tolerance:
             self.last_val = val
-
-            if self.inverted:
-                val = POT_MAX - val
-
             on_changed(val)
             return True
         else:
@@ -55,17 +52,55 @@ class ThresholdTrigger:
         self.pin = pin
         self.triggered = False
 
-    def read(self, on_trigger):
+    def read(self, on_trigger=None) -> tuple[bool, int]:
         trigger_threshold = 10000
         reset_threshold = 1000
+        value = self.pin.read()
+
+        if self.triggered:
+            if value < reset_threshold:
+                self.triggered = False
+            return False, value
+
+        elif value > trigger_threshold:
+            self.triggered = True
+            if on_trigger:
+                on_trigger(value)
+            return True, value
+        else:
+            return False, value
+
+
+
+class DigitalChanger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.previous_value = False
+
+    def read(self, on_trigger):
+        val = self.pin.read()
+
+        if self.previous_value != val:
+            self.previous_value = val
+            on_trigger(val)
+
+        return val
+        
+
+class DigitalTrigger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.triggered = False
+
+    def read(self, on_trigger):
         val = self.pin.read()
 
         if self.triggered:
-            if val < reset_threshold:
+            if val == 0:
                 self.triggered = False
             return False
 
-        elif val > trigger_threshold:
+        elif val == 1:
             self.triggered = True
             on_trigger(val)
             return True

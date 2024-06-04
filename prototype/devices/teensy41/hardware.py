@@ -7,10 +7,28 @@ import neopixel  # type: ignore
 import analogio as aio  # type: ignore
 import digitalio as dio  # type: ignore
 
+UINT16_MAX = 65536
+
 
 class Direction:
     Up = 1
     Down = -1
+
+
+def LinearMapping(value):
+    return value
+
+
+def InvertedMapping(value):
+    return (UINT16_MAX - value)
+
+
+def SquaredMapping(value):
+    return (value * value) // UINT16_MAX
+
+
+def CubedMapping(value):
+    return (value * value * value) // (UINT16_MAX * UINT16_MAX)
 
 
 class SequencerKey:
@@ -64,7 +82,6 @@ class ThresholdButton:
 
     def pressed(self) -> bool:
         val = self.pin.value
-        print(f"val: {val}")
 
         if not self.state and val > self.threshold:
             self.state = True
@@ -96,12 +113,22 @@ class ToggleButton:
 
 
 class AnalogReader:
-    def __init__(self, pin):
+    def __init__(self, pin, mapping=LinearMapping) -> None:
         self.pin = pin
         self.analog = aio.AnalogIn(self.pin)
+        self.mapping = mapping
+
+    def read(self) -> int:
+        return self.mapping(self.analog.value)
+
+
+class DigitalReader:
+    def __init__(self, pin):
+        self.pin = pin
+        self.input = dio.DigitalInOut(self.pin)
 
     def read(self):
-        val = self.analog.value
+        val = self.input.value
         return val
 
 
@@ -115,24 +142,28 @@ class Teensy41Hardware:
         self.play_button = ToggleButton(board.D37)
         self.volume_pot = AnalogReader(board.A4)
         self.speed_pot = AnalogReader(board.D38)
-        self.random_button = AnalogReader(board.A10)
-        self.repeat_button = AnalogReader(board.A0)
-        self.filter_right = AnalogReader(board.A5)
-        self.filter_left = AnalogReader(board.A6)
-        self.drum_pad1 = AnalogReader(board.A2)
-        self.drum_pad1_bottom = AnalogReader(board.A3)
-        self.drum_pad2 = AnalogReader(board.A8)
-        self.drum_pad2_bottom = AnalogReader(board.A9)
-        self.drum_pad3 = AnalogReader(board.A12)
-        self.drum_pad3_bottom = AnalogReader(board.A13)
-        self.drum_pad4 = AnalogReader(board.D40)
-        self.drum_pad4_bottom = AnalogReader(board.D41)
-        self.swing_right = ToggleButton(board.D8)
-        self.swing_left = ToggleButton(board.D7)
-        self.pitch1 = AnalogReader(board.A1)
-        self.pitch2 = AnalogReader(board.A7)
-        self.pitch3 = AnalogReader(board.A11)
-        self.pitch4 = AnalogReader(board.D39)
+        self.random_button = AnalogReader(board.A10, SquaredMapping)
+        self.repeat_button = AnalogReader(board.A0, SquaredMapping)
+        self.filter_right = AnalogReader(board.A5, CubedMapping)
+        self.filter_left = AnalogReader(board.A6, CubedMapping)
+        self.drum_pad1 = AnalogReader(board.A2, CubedMapping)
+        self.drum_pad1_bottom = AnalogReader(
+            board.A3, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad2 = AnalogReader(board.A8, CubedMapping)
+        self.drum_pad2_bottom = AnalogReader(
+            board.A9, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad3 = AnalogReader(board.A12, CubedMapping)
+        self.drum_pad3_bottom = AnalogReader(
+            board.A13, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad4 = AnalogReader(board.D40, CubedMapping)
+        self.drum_pad4_bottom = AnalogReader(
+            board.D41, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.swing_right = DigitalReader(board.D7)
+        self.swing_left = DigitalReader(board.D8)
+        self.pitch1 = AnalogReader(board.A1, InvertedMapping)
+        self.pitch2 = AnalogReader(board.A7, InvertedMapping)
+        self.pitch3 = AnalogReader(board.A11, InvertedMapping)
+        self.pitch4 = AnalogReader(board.D39, InvertedMapping)
 
     def get_key_event(self) -> KeyEvent | None:
         key_event = self.keys.events.get()
@@ -172,7 +203,7 @@ def translate_key_event(event) -> KeyEvent | None:
     n = event.key_number
 
     if (n % 5) < 4:
-        key = SequencerKey(int(n / 5), n % 5)
+        key = SequencerKey((n // 5), n % 5)
     elif n == 9:
         key = SampleSelectKey(Direction.Up, 0)
     elif n == 14:
@@ -242,9 +273,32 @@ drumpad_to_led = {
 }
 
 
+def saturated_multiply(color, amount):
+    (r, g, b) = color
+    return (
+        constrain_color(int(r * amount)),
+        constrain_color(int(g * amount)),
+        constrain_color(int(b * amount)))
+
+
+def add_colors(color1, color2):
+    (r1, g1, b1) = color1
+    (r2, g2, b2) = color2
+    return (
+        constrain_color(r1 + r2),
+        constrain_color(g1 + g2),
+        constrain_color(b1 + b2))
+
+
+def constrain_color(color):
+    return min(max(0, color), 255)
+
+
 class Display:
+    PixelCount = 41
+
     def __init__(self):
-        self.pixels = init_pixels()
+        self.pixels = init_neopixels(Display.PixelCount)
         self.show = self.pixels.show
 
     def clear(self):
@@ -258,18 +312,44 @@ class Display:
         if not color:
             color = (0, 0, 0)
 
-        if isinstance(key, SequencerKey):
-            self.pixels[step_to_led[key.step + (key.track * 8)]] = color
-        elif isinstance(key, Drumpad):
-            self.pixels[drumpad_to_led[key.track]] = color
-        elif isinstance(key, ControlKey) and key.name == ControlName.Start:
-            self.pixels[0] = color
+        pixel_index = pixel_index_from_key(key)
+        self.pixels[pixel_index] = color
+
+    def fade(
+        self,
+        key: Drumpad | SequencerKey | ControlKey,
+        amount: float
+    ) -> None:
+        pixel_index = pixel_index_from_key(key)
+        old_color = self.pixels[pixel_index]
+        self.pixels[pixel_index] = saturated_multiply(old_color, amount)
+
+    def blend(
+        self,
+        key: Drumpad | SequencerKey | ControlKey,
+        color,
+        amount
+    ) -> None:
+        pixel_index = pixel_index_from_key(key)
+        old_color = self.pixels[pixel_index]
+        self.pixels[pixel_index] = add_colors(
+            saturated_multiply(color, amount),
+            saturated_multiply(old_color, 1 - amount),
+        )
 
 
-def init_pixels():
-    pixel_count = 41
+def pixel_index_from_key(key):
+    if isinstance(key, SequencerKey):
+        return step_to_led[key.step + key.track * 8]
+    elif isinstance(key, Drumpad):
+        return drumpad_to_led[key.track]
+    elif isinstance(key, ControlKey) and key.name == ControlName.Start:
+        return 0
 
-    pixels = neopixel.NeoPixel(board.D2, pixel_count, brightness=1.0, auto_write=False)
+
+def init_neopixels(pixel_count):
+    pixels = neopixel.NeoPixel(
+        board.D2, pixel_count, brightness=1.0, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

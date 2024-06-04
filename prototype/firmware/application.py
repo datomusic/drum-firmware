@@ -3,6 +3,7 @@ from .drum import Drum
 from .device_api import Controls, Output, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
+import gc
 
 
 class AppControls(Controls):
@@ -98,20 +99,27 @@ class Application:
             controller.show(self.drum, self.tempo.get_beat_position())
 
     def run(self):
+        gc.disable()
+        show_accumulation_ns = 0
+        gc_accumulation_ns = 0
+
         last_ns = time.monotonic_ns()
-        show_acc_ns = 0
 
         while True:
             now = time.monotonic_ns()
             delta_ns = now - last_ns
-            show_acc_ns += delta_ns
+            show_accumulation_ns += delta_ns
+            gc_accumulation_ns += delta_ns
             last_ns = now
             self.update(delta_ns)
 
             # Render every 10ms
-            if show_acc_ns > 10_000_000:
-                show_acc_ns = 0
+            if show_accumulation_ns > 10_000_000:
+                show_accumulation_ns = 0
                 self.show()
+
+            if gc_accumulation_ns > 1_000_000:
+                gc.collect()
 
     def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:

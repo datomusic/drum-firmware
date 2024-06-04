@@ -1,5 +1,3 @@
-import time
-
 TEMPO_TICKS_PER_BEAT = 24
 TICK_SUBDIVISIONS = 6
 TICKS_PER_BEAT = TEMPO_TICKS_PER_BEAT * TICK_SUBDIVISIONS
@@ -35,17 +33,13 @@ class Divider:
 class InternalTicker:
     def __init__(self, bpm=100) -> None:
         self.accumulated_ns = 0
-        self.last_ns = time.monotonic_ns()
         self.set_bpm(bpm)
 
     def set_bpm(self, bpm) -> None:
         self._ns_per_tick = int((1_000_000 * 60_000) / (bpm * TICKS_PER_BEAT))
 
-    def update(self, on_tick) -> None:
-        now = time.monotonic_ns()
-        diff = now - self.last_ns
-        self.accumulated_ns += diff
-        self.last_ns = now
+    def update(self, delta_ns, on_tick) -> None:
+        self.accumulated_ns += delta_ns
 
         while self.accumulated_ns >= self._ns_per_tick:
             self.accumulated_ns -= self._ns_per_tick
@@ -111,9 +105,9 @@ class Tempo:
     def reset(self) -> None:
         self.swing.reset_ticks()
 
-    def update(self) -> None:
+    def update(self, delta_ns) -> None:
         if TempoSource.Internal == self.tempo_source:
-            self.internal_ticker.update(self._on_internal_tick)
+            self.internal_ticker.update(delta_ns, self._on_internal_tick)
 
     def handle_midi_clock(self) -> None:
         if TempoSource.MIDI == self.tempo_source:

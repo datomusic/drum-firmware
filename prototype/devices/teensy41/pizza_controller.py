@@ -108,12 +108,16 @@ class PizzaController(Controller):
             DrumPad(3, self.hardware.drum_pad4, self.hardware.drum_pad4_bottom)
         ]
 
+    def fast_update(self, controls: Controls, _delta_ms: int) -> None:
+        for (track_index, pad) in enumerate(self.drum_pads):
+            pad.update(controls)
+
     def update(self, controls: Controls, delta_ms: int) -> None:
         self._read_pots(controls)
         self._process_keys(controls)
-        self.view.update(delta_ms)
 
-    def show(self, drum: Drum, beat_position: float) -> None:
+    def show(self, drum: Drum, delta_ms: int, beat_position: float) -> None:
+        self.view.update(delta_ms)
         self.display.clear()
         self.view.show(self.display, drum, beat_position)
         self.display.show()
@@ -184,9 +188,6 @@ class PizzaController(Controller):
                     TrackParam.Pitch,
                     track_ind,
                     percentage_from_pot(pitch)))
-
-        for (track_index, pad) in enumerate(self.drum_pads):
-            pad.update(controls)
 
     def _process_keys(self, controls: Controls) -> None:
         event = self.hardware.get_key_event()

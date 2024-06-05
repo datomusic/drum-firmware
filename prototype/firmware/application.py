@@ -84,36 +84,49 @@ class Application:
 
         setup_tracks(self.drum.tracks)
 
-    def update(self, delta_ns: int) -> None:
+    def slow_update(self, delta_ms: int) -> None:
+        for controller in self.controllers:
+            controller.update(self.controls, delta_ms)
+
+    def fast_update(self, delta_ns: int) -> None:
         self.tempo.update(delta_ns)
 
+        delta_ms = delta_ns // 1_000_000
         for controller in self.controllers:
-            controller.update(self.controls, delta_ns // 1_000_000)
+            controller.fast_update(self.controls, delta_ms)
 
-
-    def show(self) -> None:
+    def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.drum, self.tempo.get_beat_position())
+            controller.show(self.drum, delta_ms, self.tempo.get_beat_position())
 
     def run(self):
         gc.disable()
 
         accumulated_show_ns = 0
+        accumulated_slow_update_ns = 0
         last_ns = time.monotonic_ns()
 
+        frame_counter = 0
         while True:
             now = time.monotonic_ns()
             delta_ns = now - last_ns
             accumulated_show_ns += delta_ns
+            accumulated_slow_update_ns += delta_ns
             last_ns = now
-            self.update(delta_ns)
+            self.fast_update(delta_ns)
+
+            if frame_counter % 2 == 0:
+                ms = accumulated_slow_update_ns // 1_000_000
+                self.slow_update(ms)
+                accumulated_slow_update_ns -= ms * 1_000
 
             if accumulated_show_ns > 30_000_000:
+                self.show(accumulated_show_ns // 1_000_000)
                 accumulated_show_ns = 0
-                self.show()
             else:
                 gc.collect()
 
+            frame_counter += 1
             # delta_ms = delta_ns // 1_000_000
             # print(f"delta_ms: {delta_ms}")
 

@@ -3,10 +3,13 @@ from .device_api import Controls, _not_implemented
 
 
 class Controller:
+    def fast_update(self, controls: Controls, delta_ms: int):
+        _not_implemented("Controller.update", delta_ms)
+
     def update(self, controls: Controls, delta_ms: int):
         _not_implemented("Controller.update", delta_ms)
 
-    def show(self, drum: Drum, beat_position: float):
+    def show(self, drum: Drum, delta_ms: int, beat_position: float):
         _not_implemented("Controller.show", beat_position)
 
     def on_track_sample_played(self, track_index: int):

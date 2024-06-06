@@ -5,6 +5,7 @@ from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
 
+WITH_MEMORY_METRICS = False
 
 class AppControls(Controls):
     def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
@@ -73,12 +74,16 @@ class Tracker:
 
     def start(self):
         self.start_ns = time.monotonic_ns()
-        self.start_memory = gc.mem_alloc()
+        if WITH_MEMORY_METRICS:
+            self.start_memory = gc.mem_alloc()
 
     def stop(self):
         self.count += 1
         time_diff = time.monotonic_ns() - self.start_ns
-        memory_diff = gc.mem_alloc() - self.start_memory
+        if WITH_MEMORY_METRICS:
+            memory_diff = gc.mem_alloc() - self.start_memory
+        else:
+            memory_diff = 0
 
         if self.average_ns > 0:
             self.average_ns = (self.average_ns + time_diff) / 2

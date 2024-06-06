@@ -73,21 +73,25 @@ class Tracker:
 
     def start(self):
         self.start_ns = time.monotonic_ns()
+        self.start_memory = gc.mem_alloc()
 
     def stop(self):
         self.count += 1
-        diff = time.monotonic_ns() - self.start_ns
+        time_diff = time.monotonic_ns() - self.start_ns
+        memory_diff = gc.mem_alloc() - self.start_memory
 
         if self.average_ns > 0:
-            self.average_ns = (self.average_ns + diff) / 2
-            self.min = min(self.min, diff)
-            self.max = max(self.max, diff)
+            self.average_ns = (self.average_ns + time_diff) / 2
+            self.average_memory = (self.average_memory + memory_diff) / 2
+            self.min = min(self.min, time_diff)
+            self.max = max(self.max, time_diff)
         else:
-            self.average_ns = diff
-            self.min = diff
-            self.max = diff
+            self.average_ns = time_diff
+            self.average_memory = memory_diff
+            self.min = time_diff
+            self.max = time_diff
 
-        self.total_ns += diff
+        self.total_ns += time_diff
 
     def reset(self):
         self.count = 0
@@ -96,9 +100,10 @@ class Tracker:
         self.min = 0
         self.max = 0
         self.average_ns = 0
+        self.start_memory = 0
 
     def get_info(self):
-        return f"[{self.name}] count: {self.count}, avg: {self.average_ns / 1_000_000:.2f}ms, min: {self.min / 1_000_000:.2f}ms, max: {self.max / 1_000_000:.2f}ms"
+        return f"[{self.name}] count: {self.count}, avg: {self.average_ns / 1_000_000:.2f}ms, min: {self.min / 1_000_000:.2f}ms, max: {self.max / 1_000_000:.2f}ms, alloc: {self.average_memory}"
 
 
 class Timed:

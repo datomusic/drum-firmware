@@ -66,6 +66,53 @@ class AppControls(Controls):
         self.tempo.handle_midi_clock()
 
 
+class Tracker:
+    def __init__(self, name):
+        self.name = name
+        self.reset()
+
+    def start(self):
+        self.start_ns = time.monotonic_ns()
+
+    def stop(self):
+        self.count += 1
+        diff = time.monotonic_ns() - self.start_ns
+
+        if self.average_ns > 0:
+            self.average_ns = (self.average_ns + diff) / 2
+            self.min = min(self.min, diff)
+            self.max = max(self.max, diff)
+        else:
+            self.average_ns = diff
+            self.min = diff
+            self.max = diff
+
+        self.total_ns += diff
+
+    def reset(self):
+        self.count = 0
+        self.start_ns = 0
+        self.total_ns = 0
+        self.min = 0
+        self.max = 0
+        self.average_ns = 0
+
+    def get_info(self):
+        return f"[{self.name}] count: {self.count}, avg: {self.average_ns / 1_000_000:.2f}ms, min: {self.min / 1_000_000:.2f}ms, max: {self.max / 1_000_000:.2f}ms"
+
+
+class Timed:
+    def __init__(self, name, function):
+        self.tracker = Tracker(name)
+        self.function = function
+        self.name = name
+
+    def __call__(self, *args):
+        self.tracker.start()
+        self.function(*args)
+        self.tracker.stop()
+
+
 class Application:
     TRACK_COUNT = 4
 
@@ -97,38 +144,63 @@ class Application:
 
     def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.drum, delta_ms, self.tempo.get_beat_position())
+            controller.show(self.drum, delta_ms,
+                            self.tempo.get_beat_position())
 
     def run(self):
+        for _ in self.run_iterator():
+            pass
+
+    def run_iterator(self):
         gc.disable()
 
+        accumulated_info_ns = 0
         accumulated_show_ns = 0
         accumulated_slow_update_ns = 0
         last_ns = time.monotonic_ns()
-
         frame_counter = 0
+
+        loop_tracker = Tracker("loop")
+        gc_collect = Timed("gc_collect", lambda: gc.collect())
+        fast_update = Timed("fast_update", self.fast_update)
+        slow_update = Timed("slow_update", self.slow_update)
+        show = Timed("show", self.show)
+
         while True:
+            loop_tracker.start()
+
             now = time.monotonic_ns()
             delta_ns = now - last_ns
             accumulated_show_ns += delta_ns
             accumulated_slow_update_ns += delta_ns
+            accumulated_info_ns += delta_ns
             last_ns = now
-            self.fast_update(delta_ns)
+            fast_update(delta_ns)
 
             if frame_counter % 2 == 0:
                 ms = accumulated_slow_update_ns // 1_000_000
-                self.slow_update(ms)
+                slow_update(ms)
                 accumulated_slow_update_ns -= ms * 1_000
 
             if accumulated_show_ns > 30_000_000:
-                self.show(accumulated_show_ns // 1_000_000)
+                show(accumulated_show_ns // 1_000_000)
                 accumulated_show_ns = 0
             else:
-                gc.collect()
+                gc_collect()
 
             frame_counter += 1
-            # delta_ms = delta_ns // 1_000_000
-            # print(f"delta_ms: {delta_ms}")
+
+            loop_tracker.stop()
+            if accumulated_info_ns > 1_000_000_000:
+                accumulated_info_ns = 0
+                print(loop_tracker.get_info())
+                loop_tracker.reset()
+                for timed in [fast_update, gc_collect, slow_update, show]:
+                    print(timed.tracker.get_info())
+                    timed.tracker.reset()
+                print()
+
+            yield
 
     def _on_sample_trigger(self, track_index: int):
         for controller in self.controllers:

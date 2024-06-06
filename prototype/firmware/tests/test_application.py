@@ -9,10 +9,7 @@ from firmware.drum import Drum
 class ApplicationTest(unittest.TestCase):
     def test_application_runs(self):
         output = Mock(Output)
-        app = Application([], output)
-        for i in range(100):
-            app.update(1)
-            app.show()
+        Application([], output).run_iterator().__next__()
 
 
 class AppControlsTest(unittest.TestCase):

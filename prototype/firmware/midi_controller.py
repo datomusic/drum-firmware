@@ -11,6 +11,9 @@ class MIDIController(Controller):
     def __init__(self, midi: MIDI):
         self.midi = midi
 
+    def fast_update(self, controls: Controls, delta_ms: int):
+        pass
+
     def update(self, controls: Controls, delta_ms: int):
         msg = self.midi.receive()
         while msg:
@@ -23,7 +26,7 @@ class MIDIController(Controller):
 
             msg = self.midi.receive()
 
-    def show(self, _drum, _beat_position):
+    def show(self, _drum, _delta_ms, _beat_position):
         pass
 
     def on_track_sample_played(self, track_index: int):

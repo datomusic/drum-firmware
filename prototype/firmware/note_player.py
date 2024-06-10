@@ -18,7 +18,6 @@ class NotePlayer:
 
         self.output.send_note_on(self.channel, note, velocity)
         self.ticks = 0
-        self.played_note = note
 
     def playing(self):
         return self.played_note is not None

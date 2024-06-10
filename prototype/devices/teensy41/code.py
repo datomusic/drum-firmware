@@ -8,7 +8,10 @@ from teensy41.pizza_controller import PizzaController
 (midi_in_port, midi_out_port) = usb_midi.ports
 
 
-controllers = [PizzaController(), MIDIController(MIDI(midi_in=midi_in_port))]
+controllers = [
+    PizzaController(track_count=Application.TRACK_COUNT),
+    MIDIController(MIDI(midi_in=midi_in_port))]
+
 output = MIDIOutput(MIDI(midi_out=midi_out_port))
 
 Application(controllers, output).run()

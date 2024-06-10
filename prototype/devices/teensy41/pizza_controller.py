@@ -1,9 +1,7 @@
-from firmware.device_api import Controls, SampleChange, OutputParam, TrackParam, EffectName
+from firmware.device_api import Controls, OutputParam, TrackParam, EffectName
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 from .pizza_view import PizzaView
-
-import gc
 
 from .hardware import (
     Teensy41Hardware,
@@ -67,19 +65,19 @@ class DrumPad:
 
 
 class PizzaController(Controller):
-    def __init__(self, hardware=None) -> None:
+    def __init__(self, track_count, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
         self.hardware = hardware
         self.display = hardware.init_display()
-        self.view = PizzaView()
+        self.view = PizzaView(track_count)
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
-        self.hardware.filter_left, self.hardware.filter_right)
+            self.hardware.filter_left, self.hardware.filter_right)
 
         self.lowpass_setting = PotReader(self.hardware.filter_left)
         self.highpass_setting = PotReader(self.hardware.filter_right)
@@ -110,13 +108,16 @@ class PizzaController(Controller):
             DrumPad(3, self.hardware.drum_pad4, self.hardware.drum_pad4_bottom)
         ]
 
+    def fast_update(self, controls: Controls, _delta_ms: int) -> None:
+        for (track_index, pad) in enumerate(self.drum_pads):
+            pad.update(controls)
+
     def update(self, controls: Controls, delta_ms: int) -> None:
-        gc.collect()
         self._read_pots(controls)
         self._process_keys(controls)
-        self.view.update(delta_ms)
 
-    def show(self, drum: Drum, beat_position: float) -> None:
+    def show(self, drum: Drum, delta_ms: int, beat_position: float) -> None:
+        self.view.update(delta_ms)
         self.display.clear()
         self.view.show(self.display, drum, beat_position)
         self.display.show()
@@ -134,9 +135,9 @@ class PizzaController(Controller):
         #     lambda vol: controls.set_output_param(
         #         OutputParam.Volume,
         #         percentage_from_pot(vol)))
-        
-        self.volume_setting.read( 
-            lambda volume: 
+
+        self.volume_setting.read(
+            lambda volume:
                 controls.set_swing(int(6-(volume/(65536/12)))))
 
         self.filter_setting.read(
@@ -155,17 +156,17 @@ class PizzaController(Controller):
                 percentage_from_pot(val)))
 
         self.distortion.read(
-            lambda val: 
-                controls.set_output_param( 
-                OutputParam.Distortion, 
-                val * 100))
+            lambda val:
+                controls.set_output_param(
+                    OutputParam.Distortion,
+                    val * 100))
 
         self.bitcrusher.read(
-            lambda val: 
-                controls.set_output_param( 
-                OutputParam.Bitcrusher, 
-                val * 100))
-        
+            lambda val:
+                controls.set_output_param(
+                    OutputParam.Bitcrusher,
+                    val * 100))
+
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
                 OutputParam.HighPass,
@@ -188,9 +189,6 @@ class PizzaController(Controller):
                     track_ind,
                     percentage_from_pot(pitch)))
 
-        for (track_index, pad) in enumerate(self.drum_pads):
-            pad.update(controls)
-
     def _process_keys(self, controls: Controls) -> None:
         event = self.hardware.get_key_event()
         pressed = event and event.pressed
@@ -201,9 +199,9 @@ class PizzaController(Controller):
 
             elif isinstance(key, SampleSelectKey):
                 if key.direction == Direction.Down:
-                    change = SampleChange.Prev
+                    change = 1
                 elif key.direction == Direction.Up:
-                    change = SampleChange.Next
+                    change = -1
 
                 controls.change_sample(key.track, change)
 

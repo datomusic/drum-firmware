@@ -9,9 +9,11 @@ import digitalio as dio  # type: ignore
 
 UINT16_MAX = 65536
 
+
 class Direction:
     Up = 1
     Down = -1
+
 
 def LinearMapping(value):
     return value
@@ -27,7 +29,6 @@ def SquaredMapping(value):
 
 def CubedMapping(value):
     return (value * value * value) // (UINT16_MAX * UINT16_MAX)
-
 
 
 class SequencerKey:
@@ -112,13 +113,14 @@ class ToggleButton:
 
 
 class AnalogReader:
-    def __init__(self, pin, mapping = LinearMapping) -> None:
+    def __init__(self, pin, mapping=LinearMapping) -> None:
         self.pin = pin
         self.analog = aio.AnalogIn(self.pin)
         self.mapping = mapping
 
     def read(self) -> int:
         return self.mapping(self.analog.value)
+
 
 class DigitalReader:
     def __init__(self, pin):
@@ -145,13 +147,17 @@ class Teensy41Hardware:
         self.filter_right = AnalogReader(board.A5, CubedMapping)
         self.filter_left = AnalogReader(board.A6, CubedMapping)
         self.drum_pad1 = AnalogReader(board.A2, CubedMapping)
-        self.drum_pad1_bottom = AnalogReader(board.A3, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad1_bottom = AnalogReader(
+            board.A3, lambda val: (InvertedMapping(CubedMapping(val))))
         self.drum_pad2 = AnalogReader(board.A8, CubedMapping)
-        self.drum_pad2_bottom = AnalogReader(board.A9, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad2_bottom = AnalogReader(
+            board.A9, lambda val: (InvertedMapping(CubedMapping(val))))
         self.drum_pad3 = AnalogReader(board.A12, CubedMapping)
-        self.drum_pad3_bottom = AnalogReader(board.A13, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad3_bottom = AnalogReader(
+            board.A13, lambda val: (InvertedMapping(CubedMapping(val))))
         self.drum_pad4 = AnalogReader(board.D40, CubedMapping)
-        self.drum_pad4_bottom = AnalogReader(board.D41, lambda val: (InvertedMapping(CubedMapping(val))))
+        self.drum_pad4_bottom = AnalogReader(
+            board.D41, lambda val: (InvertedMapping(CubedMapping(val))))
         self.swing_right = DigitalReader(board.D7)
         self.swing_left = DigitalReader(board.D8)
         self.pitch1 = AnalogReader(board.A1, InvertedMapping)
@@ -267,15 +273,25 @@ drumpad_to_led = {
 }
 
 
-def fade_color(color, amount):
+def saturated_multiply(color, amount):
     (r, g, b) = color
-    return (int(r * amount), int(g * amount), int(b * amount))
+    return (
+        constrain_color(int(r * amount)),
+        constrain_color(int(g * amount)),
+        constrain_color(int(b * amount)))
 
 
 def add_colors(color1, color2):
     (r1, g1, b1) = color1
     (r2, g2, b2) = color2
-    return (r1 + r2, g1 + g2, b1 + b2)
+    return (
+        constrain_color(r1 + r2),
+        constrain_color(g1 + g2),
+        constrain_color(b1 + b2))
+
+
+def constrain_color(color):
+    return min(max(0, color), 255)
 
 
 class Display:
@@ -306,7 +322,20 @@ class Display:
     ) -> None:
         pixel_index = pixel_index_from_key(key)
         old_color = self.pixels[pixel_index]
-        self.pixels[pixel_index] = fade_color(old_color, amount)
+        self.pixels[pixel_index] = saturated_multiply(old_color, amount)
+
+    def blend(
+        self,
+        key: Drumpad | SequencerKey | ControlKey,
+        color,
+        amount
+    ) -> None:
+        pixel_index = pixel_index_from_key(key)
+        old_color = self.pixels[pixel_index]
+        self.pixels[pixel_index] = add_colors(
+            saturated_multiply(color, amount),
+            saturated_multiply(old_color, 1 - amount),
+        )
 
 
 def pixel_index_from_key(key):

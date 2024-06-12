@@ -11,7 +11,6 @@ class ApplicationTest(unittest.TestCase):
         output = Mock(Output)
         Application([], output).run_iterator().__next__()
 
-
 class AppControlsTest(unittest.TestCase):
     def test_app_controls(self):
         output = Mock(Output)

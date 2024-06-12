@@ -212,11 +212,9 @@ class Application:
 
             yield
 
-    def _on_quarter_beat(self, quarter_index) -> None:
-        if quarter_index % 2 == 0:
-            self.drum.advance_step()
-
-        self.drum.tick_beat_repeat(quarter_index)
+    def _on_sample_trigger(self, track_index: int):
+        for controller in self.controllers:
+            controller.on_track_sample_played(track_index)
 
 def setup_tracks(tracks):
     tracks[0].note = 4

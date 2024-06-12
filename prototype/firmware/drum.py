@@ -50,7 +50,8 @@ class Track:
 
 class Drum:
     def __init__(self, output: Output, track_count: int):
-        self.tracks = [Track(NotePlayer(index, output)) for index in range(track_count)]
+        self.tracks = [Track(NotePlayer(index, output))
+                       for index in range(track_count)]
         self.playing = True
         self._next_step_index = 0
         self._repeat_effect = RepeatEffect(lambda: self._next_step_index)
@@ -88,7 +89,6 @@ class Drum:
     def toggle_track_step(self, track_index, step_index):
         track = self.tracks[track_index]
         active = track.sequencer.toggle_step(step_index)
-
         if active and not self.playing:
             track.note_player.play(track.note)
 
@@ -128,17 +128,6 @@ class Drum:
 
             for track_index, track in enumerate(self.tracks):
                 track.trigger_repeat(quarter_index)
-
-    def _get_effect_step(self, track_index, offset) -> int | None:
-        repeat_step = self._repeat_effect.get_step(offset)
-        random_step = self.tracks[track_index].random_effect.get_step()
-
-        if isinstance(repeat_step, int):
-            return repeat_step
-        elif isinstance(random_step, int):
-            return random_step
-        else:
-            return None
 
     def _get_play_step_index(self, track_index) -> int:
         step = self._next_step_index

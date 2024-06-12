@@ -129,6 +129,17 @@ class Drum:
             for track_index, track in enumerate(self.tracks):
                 track.trigger_repeat(quarter_index)
 
+    def _get_effect_step(self, track_index, offset) -> int | None:
+        repeat_step = self._repeat_effect.get_step(offset)
+        random_step = self.tracks[track_index].random_effect.get_step()
+
+        if isinstance(repeat_step, int):
+            return repeat_step
+        elif isinstance(random_step, int):
+            return random_step
+        else:
+            return None
+
     def _get_play_step_index(self, track_index) -> int:
         step = self._next_step_index
         effect_step = self._get_effect_step(track_index, 0)

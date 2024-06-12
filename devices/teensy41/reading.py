@@ -1,0 +1,106 @@
+import math
+
+POT_MIN = 0
+POT_MAX = 65536
+
+
+def percentage_from_pot(pot_value):
+    return max(-100, min(100, (pot_value / POT_MAX) * 100))
+
+
+class IncDecReader:
+    def __init__(self, dec_pin, inc_pin):
+        self.was_zero = True
+        self.inc_pin = inc_pin
+        self.dec_pin = dec_pin
+
+    def read(self, on_changed):
+        threshold = 1000
+        val = self.dec_pin.read()
+        if val > threshold:
+            self.was_zero = False
+            on_changed(-val)
+        else:
+            val = self.inc_pin.read()
+            if val > threshold:
+                self.was_zero = False
+                on_changed(val)
+            elif not self.was_zero:
+                on_changed(0)
+                self.was_zero = True
+
+
+class PotReader:
+    def __init__(self, pin):
+        self.pin = pin
+        self.last_val = 0
+
+    def read(self, on_changed):
+        tolerance = 100
+
+        val = self.pin.read()
+        if abs(val - self.last_val) > tolerance:
+            self.last_val = val
+            on_changed(val)
+            return True
+        else:
+            return False
+
+
+class ThresholdTrigger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.triggered = False
+
+    def read(self, on_trigger=None) -> tuple[bool, int]:
+        trigger_threshold = 10000
+        reset_threshold = 1000
+        value = self.pin.read()
+
+        if self.triggered:
+            if value < reset_threshold:
+                self.triggered = False
+            return False, value
+
+        elif value > trigger_threshold:
+            self.triggered = True
+            if on_trigger:
+                on_trigger(value)
+            return True, value
+        else:
+            return False, value
+
+
+
+class DigitalChanger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.previous_value = False
+
+    def read(self, on_trigger):
+        val = self.pin.read()
+
+        if self.previous_value != val:
+            self.previous_value = val
+            on_trigger(val)
+
+        return val
+        
+
+class DigitalTrigger:
+    def __init__(self, pin):
+        self.pin = pin
+        self.triggered = False
+
+    def read(self, on_trigger):
+        val = self.pin.read()
+
+        if self.triggered:
+            if val == 0:
+                self.triggered = False
+            return False
+
+        elif val == 1:
+            self.triggered = True
+            on_trigger(val)
+            return True

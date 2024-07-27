@@ -333,7 +333,7 @@ class Display:
         pixel_index = pixel_index_from_key(key)
         old_color = self.pixels[pixel_index]
         self.pixels[pixel_index] = add_colors(
-                saturated_multiply(color, amount),
+            saturated_multiply(color, amount),
             saturated_multiply(old_color, 1 - amount),
         )
 

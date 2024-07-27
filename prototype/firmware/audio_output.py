@@ -7,12 +7,23 @@ import audiopwmio
 
 class AudioOutput(Output):
     def __init__(self):
-        data = open("sample.wav", "rb")
-        self.sample = audiocore.WaveFile(data)
         self.audio = audiopwmio.PWMAudioOut(board.D12)
+        sample_names = [
+            "closed_hh.wav",
+            "kick.wav",
+            "open_hh.wav",
+            "snare.wav",
+        ]
+
+        self.samples = list(map(
+            lambda file_name: audiocore.WaveFile(open(f"samples/{file_name}", "rb")),
+            sample_names,
+        ))
+
+        self.sample_count = len(self.samples)
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
-        self.audio.play(self.sample)
+        self.audio.play(self.samples[channel % self.sample_count])
 
     def send_note_off(self, channel: int, note: int):
         pass

@@ -1,10 +1,12 @@
 from ..device_api import Output
 from .sample_player import SamplePlayer
+import audiopwmio
 
 
 class AudioOutput(Output):
     def __init__(self):
-        self.player = SamplePlayer()
+        audio = audiopwmio.PWMAudioOut(board.D12)
+        self.player = SamplePlayer(audio)
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
         print("Audio note_on")

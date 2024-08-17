@@ -12,7 +12,7 @@ def get_caller(outputs, method_name):
     return caller
 
 
-class MultiMethods:
+class CombinedMethods(Output):
     def __init__(self, outputs: list[Output]):
         method_names = [name for (name, _) in inspect.getmembers(
             Output, predicate=inspect.isfunction)]

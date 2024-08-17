@@ -6,6 +6,7 @@ from firmware.audio.audio_output import AudioOutput
 from firmware.midi_controller import MIDIController
 from firmware.combined_methods import CombinedMethods
 from teensy41.pizza_controller import PizzaController
+from teensy41.hardware import Teensy41Hardware
 from firmware.device_api import Output
 from firmware.controller_api import Controller
 
@@ -14,7 +15,10 @@ from firmware.controller_api import Controller
 controller = CombinedMethods(
     Controller(),
     [
-        PizzaController(track_count=Application.TRACK_COUNT),
+        PizzaController(
+            track_count=Application.TRACK_COUNT,
+            hardware=Teensy41Hardware(using_PWM=True)
+        ),
         MIDIController(MIDI(midi_in=midi_in_port))
     ]
 )

@@ -5,6 +5,7 @@ from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
 
+WITH_METRICS = False
 WITH_MEMORY_METRICS = False
 
 
@@ -175,7 +176,8 @@ class Application:
         show = Timed("show", self.show)
 
         while True:
-            loop_tracker.start()
+            if WITH_METRICS:
+                loop_tracker.start()
 
             now = time.monotonic_ns()
             delta_ns = now - last_ns
@@ -198,15 +200,16 @@ class Application:
 
             frame_counter += 1
 
-            loop_tracker.stop()
-            if accumulated_info_ns > 1_000_000_000:
-                accumulated_info_ns = 0
-                print(loop_tracker.get_info())
-                loop_tracker.reset()
-                for timed in [fast_update, gc_collect, slow_update, show]:
-                    print(timed.tracker.get_info())
-                    timed.tracker.reset()
-                print()
+            if WITH_METRICS:
+                loop_tracker.stop()
+                if accumulated_info_ns > 1_000_000_000:
+                    accumulated_info_ns = 0
+                    print(loop_tracker.get_info())
+                    loop_tracker.reset()
+                    for timed in [fast_update, gc_collect, slow_update, show]:
+                        print(timed.tracker.get_info())
+                        timed.tracker.reset()
+                    print()
 
             yield
 

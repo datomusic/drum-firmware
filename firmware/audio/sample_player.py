@@ -34,8 +34,8 @@ class SamplePlayer:
         for voice in self.mixer.voice:
             voice.level = 0.8
 
-    def play(self, channel, note):
-        index = channel % self.sample_count
+    def play_sample(self, sample_index: int):
+        index = sample_index % self.sample_count
         sample = self.samples[index]
         voice = self.mixer.voice[index]
 

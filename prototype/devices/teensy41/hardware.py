@@ -185,7 +185,7 @@ def init_keymatrix():
     row_pins = (
         board.D10,
         board.D11,
-        board.D12,
+        board.D33,
         board.D28,
         board.D29,
         board.D30,

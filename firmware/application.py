@@ -7,6 +7,7 @@ import gc
 
 WITH_MEMORY_METRICS = False
 
+
 class AppControls(Controls):
     def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
         self.drum = drum
@@ -126,8 +127,8 @@ class Timed:
 class Application:
     TRACK_COUNT = 4
 
-    def __init__(self, controllers: list[Controller], output: Output):
-        self.controllers = controllers
+    def __init__(self, controller: Controller, output: Output):
+        self.controller = controller
         self.output = output
         self.drum = Drum(output, Application.TRACK_COUNT)
         self.tempo = Tempo(
@@ -142,20 +143,17 @@ class Application:
         setup_tracks(self.drum.tracks)
 
     def slow_update(self, delta_ms: int) -> None:
-        for controller in self.controllers:
-            controller.update(self.controls, delta_ms)
+        self.controller.update(self.controls, delta_ms)
 
     def fast_update(self, delta_ns: int) -> None:
         self.tempo.update(delta_ns)
 
         delta_ms = delta_ns // 1_000_000
-        for controller in self.controllers:
-            controller.fast_update(self.controls, delta_ms)
+        self.controller.fast_update(self.controls, delta_ms)
 
     def show(self, delta_ms) -> None:
-        for controller in self.controllers:
-            controller.show(self.drum, delta_ms,
-                            self.tempo.get_beat_position())
+        self.controller.show(self.drum, delta_ms,
+                             self.tempo.get_beat_position())
 
     def run(self):
         for _ in self.run_iterator():
@@ -213,8 +211,8 @@ class Application:
             yield
 
     def _on_sample_trigger(self, track_index: int):
-        for controller in self.controllers:
-            controller.on_track_sample_played(track_index)
+        self.controller.on_track_sample_played(track_index)
+
 
 def setup_tracks(tracks):
     tracks[0].note = 4

@@ -3,13 +3,16 @@ from unittest.mock import Mock
 from firmware.application import Application, AppControls
 from firmware.tempo import Tempo
 from firmware.device_api import Output, TrackParam, OutputParam, EffectName
+from firmware.controller_api import Controller
 from firmware.drum import Drum
 
 
 class ApplicationTest(unittest.TestCase):
     def test_application_runs(self):
         output = Mock(Output)
-        Application([], output).run_iterator().__next__()
+        controller = Mock(Controller)
+        Application(controller, output).run_iterator().__next__()
+
 
 class AppControlsTest(unittest.TestCase):
     def test_app_controls(self):

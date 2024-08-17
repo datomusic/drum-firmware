@@ -1,23 +1,30 @@
 import unittest
 from unittest.mock import Mock, call
-from firmware.device_api import Output
 from firmware.combined_methods import CombinedMethods
+
+
+class Dummy:
+    def __init__(self):
+        pass
+
+    def call_dummy(*args):
+        pass
 
 
 class CombinedMethodsTest(unittest.TestCase):
     def test_redirects(self):
-        output1 = Mock(Output)
-        output2 = Mock(Output)
+        mock1 = Mock(Dummy)
+        mock2 = Mock(Dummy)
 
-        combined = CombinedMethods([output1, output2])
-        combined.send_note_on(1, 2, 3)
+        combined = CombinedMethods(Dummy(), [mock1, mock2])
+        combined.call_dummy(1, 2, 3)
 
         self.assertEqual(
-            output1.send_note_on.mock_calls,
+            mock1.call_dummy.mock_calls,
             [call(1, 2, 3)])
 
         self.assertEqual(
-            output2.send_note_on.mock_calls,
+            mock2.call_dummy.mock_calls,
             [call(1, 2, 3)])
 
 

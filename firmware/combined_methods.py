@@ -1,21 +1,19 @@
-from .device_api import Output
-import inspect
+class CombinedMethods:
+    def __init__(self, prototype, children):
+        method_names = [
+            name for name
+            in dir(prototype)
+            if not name.startswith("__")]
+
+        for name in method_names:
+            setattr(self, name, get_caller(children, name))
 
 
-def get_caller(outputs, method_name):
-    methods = [getattr(output, method_name) for output in outputs]
+def get_caller(children, method_name):
+    children_methods = [getattr(child, method_name) for child in children]
 
     def caller(*args):
-        for method in methods:
+        for method in children_methods:
             method(*args)
 
     return caller
-
-
-class CombinedMethods(Output):
-    def __init__(self, outputs: list[Output]):
-        method_names = [name for (name, _) in inspect.getmembers(
-            Output, predicate=inspect.isfunction)]
-
-        for name in method_names:
-            setattr(self, name, get_caller(outputs, name))

@@ -8,6 +8,7 @@ class AudioOutput(Output):
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
         print("Audio note_on")
+        self.player.play(channel, note)
 
     def send_note_off(self, channel: int, note: int):
         pass

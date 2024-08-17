@@ -10,6 +10,10 @@ from firmware.controller_api import Controller
 
 settings = Settings()
     [
+        PizzaController(
+            track_count=Application.TRACK_COUNT,
+            hardware=Teensy41Hardware(using_PWM=True)
+        ),
     ]
 )
 

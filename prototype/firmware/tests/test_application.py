@@ -9,6 +9,8 @@ from adafruit_midi import MIDI
 class DummySettings(Settings):
     def get(self, item):
         return 1
+        Application(controller, output).run_iterator().__next__()
+
 
 
 class DummyMIDI(MIDI):

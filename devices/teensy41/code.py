@@ -1,34 +1,52 @@
-import usb_midi  # type: ignore
-from adafruit_midi import MIDI  # type: ignore
-from firmware.application import Application
-from firmware.midi_output import MIDIOutput
-from firmware.audio.audio_output import AudioOutput
-from firmware.midi_controller import MIDIController
-from firmware.broadcaster import Broadcaster
-from teensy41.pizza_controller import PizzaController
-from teensy41.hardware import Teensy41Hardware
-from firmware.device_api import Output
-from firmware.controller_api import Controller
+import board
+import audiocore
+import ulab.numpy as np
+import adafruit_wave
+import audiopwmio
+import audiomixer
 
-(midi_in_port, midi_out_port) = usb_midi.ports
-
-controller = Broadcaster(
-    Controller(),
-    [
-        PizzaController(
-            track_count=Application.TRACK_COUNT,
-            hardware=Teensy41Hardware(using_PWM=True)
-        ),
-        MIDIController(MIDI(midi_in=midi_in_port))
-    ]
+wave_file = adafruit_wave.open("samples/boink.wav")
+channels, bit_depth, sample_rate = (
+    wave_file.getnchannels(),
+    wave_file.getsampwidth() * 8,
+    wave_file.getframerate(),
 )
 
-output = Broadcaster(
-    Output(),
-    [
-        AudioOutput(),
-        MIDIOutput(MIDI(midi_out=midi_out_port))
-    ]
+assert channels == 1
+assert bit_depth == 8
+
+audio = audiopwmio.PWMAudioOut(board.D12)
+mixer = audiomixer.Mixer(
+    samples_signed=False,
+    bits_per_sample=8,
+    voice_count=4,
+    sample_rate=sample_rate,
+    channel_count=1,
 )
 
-Application(controller, output).run()
+audio.play(mixer)
+file_buffer = wave_file.readframes(1024)
+file_buffer_length = len(file_buffer)
+
+
+def play_downpitched_wav(speed_multiplier):
+    buffer_length = int(file_buffer_length / speed_multiplier)
+    play_buffer = np.zeros(buffer_length, dtype=np.uint8)
+
+    for i in range(buffer_length):
+        ind = int(i * speed_multiplier)
+        play_buffer[i] = file_buffer[ind]
+
+    audio_sample = audiocore.RawSample(
+        bytearray(play_buffer.tobytes()), sample_rate=sample_rate
+    )
+
+    voice = mixer.voice[0]
+    voice.play(audio_sample)
+
+
+import time
+
+while True:
+    time.sleep(0.5)
+    play_downpitched_wav(0.6)

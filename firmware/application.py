@@ -5,9 +5,7 @@ from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
 
-WITH_METRICS = False
 WITH_MEMORY_METRICS = False
-
 
 class AppControls(Controls):
     def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
@@ -128,8 +126,8 @@ class Timed:
 class Application:
     TRACK_COUNT = 4
 
-    def __init__(self, controller: Controller, output: Output):
-        self.controller = controller
+    def __init__(self, controllers: list[Controller], output: Output):
+        self.controllers = controllers
         self.output = output
         self.drum = Drum(output, Application.TRACK_COUNT)
         self.tempo = Tempo(
@@ -144,17 +142,20 @@ class Application:
         setup_tracks(self.drum.tracks)
 
     def slow_update(self, delta_ms: int) -> None:
-        self.controller.update(self.controls, delta_ms)
+        for controller in self.controllers:
+            controller.update(self.controls, delta_ms)
 
     def fast_update(self, delta_ns: int) -> None:
         self.tempo.update(delta_ns)
 
         delta_ms = delta_ns // 1_000_000
-        self.controller.fast_update(self.controls, delta_ms)
+        for controller in self.controllers:
+            controller.fast_update(self.controls, delta_ms)
 
     def show(self, delta_ms) -> None:
-        self.controller.show(self.drum, delta_ms,
-                             self.tempo.get_beat_position())
+        for controller in self.controllers:
+            controller.show(self.drum, delta_ms,
+                            self.tempo.get_beat_position())
 
     def run(self):
         for _ in self.run_iterator():
@@ -176,8 +177,7 @@ class Application:
         show = Timed("show", self.show)
 
         while True:
-            if WITH_METRICS:
-                loop_tracker.start()
+            loop_tracker.start()
 
             now = time.monotonic_ns()
             delta_ns = now - last_ns
@@ -200,22 +200,21 @@ class Application:
 
             frame_counter += 1
 
-            if WITH_METRICS:
-                loop_tracker.stop()
-                if accumulated_info_ns > 1_000_000_000:
-                    accumulated_info_ns = 0
-                    print(loop_tracker.get_info())
-                    loop_tracker.reset()
-                    for timed in [fast_update, gc_collect, slow_update, show]:
-                        print(timed.tracker.get_info())
-                        timed.tracker.reset()
-                    print()
+            loop_tracker.stop()
+            if accumulated_info_ns > 1_000_000_000:
+                accumulated_info_ns = 0
+                print(loop_tracker.get_info())
+                loop_tracker.reset()
+                for timed in [fast_update, gc_collect, slow_update, show]:
+                    print(timed.tracker.get_info())
+                    timed.tracker.reset()
+                print()
 
             yield
 
     def _on_sample_trigger(self, track_index: int):
-        self.controller.on_track_sample_played(track_index)
-
+        for controller in self.controllers:
+            controller.on_track_sample_played(track_index)
 
 def setup_tracks(tracks):
     tracks[0].note = 4

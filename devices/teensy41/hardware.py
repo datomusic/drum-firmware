@@ -133,11 +133,11 @@ class DigitalReader:
 
 
 class Teensy41Hardware:
-    def __init__(self, using_PWM=False):
+    def __init__(self):
         microcontroller.cpu.frequency = 150000000
         # microcontroller.cpu.frequency = 600000000
 
-        self.keys = init_keymatrix(using_PWM)
+        self.keys = init_keymatrix()
 
         self.play_button = ToggleButton(board.D37)
         self.volume_pot = AnalogReader(board.A4)
@@ -179,15 +179,13 @@ class Teensy41Hardware:
         return Display()
 
 
-def init_keymatrix(using_PWM):
+def init_keymatrix():
     col_pins = (board.D3, board.D4, board.D5, board.D6, board.D9)
-
-    maybe_pwm_pin = board.D33 if using_PWM else board.D12
 
     row_pins = (
         board.D10,
         board.D11,
-        maybe_pwm_pin,
+        board.D12,
         board.D28,
         board.D29,
         board.D30,

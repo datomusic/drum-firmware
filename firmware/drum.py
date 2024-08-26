@@ -3,6 +3,7 @@ from .device_api import Output
 from .note_player import NotePlayer
 from .repeat_effect import RepeatEffect
 from .random_effect import RandomEffect
+import os
 
 STEP_COUNT = 8
 SAMPLE_COUNT = 32
@@ -74,12 +75,15 @@ class Drum:
 
     def change_sample(self, track_index, step):
         track = self.tracks[track_index]
-        if track.note + step < 0:
-            track.note = SAMPLE_COUNT - track.note + step
-        elif track.note + step >= SAMPLE_COUNT:
-            track.note = track.note - SAMPLE_COUNT + step
-        else:
-            track.note = track.note + step
+
+        # Get lowest note and maximum note selection range
+        track_init_note = int(os.getenv(f'track.{track_index}.init_note'))
+        range = int(os.getenv(f'track.{track_index}.range'))
+
+        # Wrap the values around when they hit the min or max allowed note
+        track.note = (track_init_note + (((track.note - track_init_note) + step) % range)) % SAMPLE_COUNT
+
+        #track.note = (track.note + step) % SAMPLE_COUNT
 
         if not self.playing:
             track.note_player.play(track.note)

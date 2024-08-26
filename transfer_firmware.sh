@@ -25,3 +25,4 @@ function send() {
 send firmware "$TARGET"
 send devices/$DEVICE_NAME "$TARGET"
 send devices/$DEVICE_NAME/code.py "$TARGET"
+send devices/$DEVICE_NAME/settings.toml "$TARGET"

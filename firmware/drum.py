@@ -98,13 +98,11 @@ class Drum:
 
     def set_repeat_effect_level(self, percentage: float) -> None:
         self._double_time_repeat = False
-        if percentage > 96:
+        if percentage > 97:
             self._repeat_effect.set_repeat_count(1)
-            if percentage > 98:
-                self._double_time_repeat = True
-        elif percentage > 94:
-            self._repeat_effect.set_repeat_count(2)
-            self._repeat_effect.set_subdivision(2)
+        # elif percentage > 90:
+        #     self._repeat_effect.set_repeat_count(2)
+        #     self._repeat_effect.set_subdivision(2)
         elif percentage > 20:
             self._repeat_effect.set_repeat_count(3)
             self._repeat_effect.set_subdivision(2)

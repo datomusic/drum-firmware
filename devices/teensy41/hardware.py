@@ -1,4 +1,5 @@
 import time
+import os
 
 import keypad  # type: ignore
 import board  # type: ignore
@@ -348,8 +349,11 @@ def pixel_index_from_key(key):
 
 
 def init_neopixels(pixel_count):
+    brightness = os.getenv("device.brightness") / 256
+    if (brightness > 1.0):
+        brightness = 1.0
     pixels = neopixel.NeoPixel(
-        board.D2, pixel_count, brightness=1.0, auto_write=False)
+        board.D2, pixel_count, brightness=brightness, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

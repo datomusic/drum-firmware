@@ -1,5 +1,5 @@
 from firmware.drum import Drum # type: ignore
-from .colors import ColorScheme
+import os
 from .hardware import (
     Display,
     Drumpad,
@@ -10,6 +10,33 @@ from .hardware import (
     ControlKey,
     ControlName,
 )
+
+def hex_to_rgb(hex_color):
+    # Convert the hexadecimal values to decimal and create a tuple of (R, G, B)
+    rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+    return rgb
+
+def int_to_rgb(int_color):
+    # Extract the red component (bits 16-23) using bitwise AND and right shift
+    r = (int_color >> 16) & 0xFF
+
+    # Extract the green component (bits 8-15) using bitwise AND and right shift
+    g = (int_color >> 8) & 0xFF
+
+    # Extract the blue component (bits 0-7) using bitwise AND
+    b = int_color & 0xFF
+
+    return (r, g, b)
+
+class ColorScheme:
+    Cursor = int_to_rgb(os.getenv("device.cursor_color"))
+
+    def Note(note):
+        if(note > 32):
+            print("Error, note out of range")
+        color = int_to_rgb(os.getenv(f'note.{note}.color'))
+        return color
 
 
 FADE_TIME_MS = 150
@@ -53,7 +80,6 @@ class SequencerRing:
 
         for step_index, step in enumerate(track.sequencer.steps):
             key = SequencerKey(step_index, self.track_index)
-
             if track.repeat_is_active():
                 display.set_color(key, step_color)
             elif self.fade_remaining_ms > 0:
@@ -123,8 +149,7 @@ class PizzaView:
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
         for track_index, track in enumerate(drum.tracks):
             current_step = drum.get_indicator_step(track_index)
-
-            color = ColorScheme.Tracks[drum.tracks[track_index].note]
+            color = ColorScheme.Note(drum.tracks[track_index].note)
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 

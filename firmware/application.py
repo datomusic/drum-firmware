@@ -4,6 +4,10 @@ from .device_api import Controls, Output, EffectName, TrackParam
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
+import os
+
+def get_setting(key):
+    return os.getenv(key)
 
 WITH_MEMORY_METRICS = False
 
@@ -217,7 +221,15 @@ class Application:
             controller.on_track_sample_played(track_index)
 
 def setup_tracks(tracks):
-    tracks[0].note = 4
-    tracks[1].note = 12
-    tracks[2].note = 20
-    tracks[3].note = 28
+    tracks[0].note = get_setting("track.0.init_note")
+    tracks[1].note = get_setting("track.1.init_note")
+    tracks[2].note = get_setting("track.2.init_note")
+    tracks[3].note = get_setting("track.3.init_note")
+
+    ## TODO: bounds checking and error reporting
+    for i in range(4): # Should be number of tracks
+        track_init = get_setting(f'track.{i}.init_pattern')
+        for j in range(8): # should be number of steps
+            if track_init & (1 << j):  # Check if the bit is high
+                tracks[i].sequencer.set_step(j, 100)
+

@@ -9,23 +9,23 @@ from adafruit_midi.note_on import NoteOn
 import time
 import gc
 
-WITH_MEMORY_METRICS = False
-
 
 class Tracker:
+    WITH_MEMORY_METRICS = False
+
     def __init__(self, name):
         self.name = name
         self.reset()
 
     def start(self):
         self.start_ns = time.monotonic_ns()
-        if WITH_MEMORY_METRICS:
+        if Tracker.WITH_MEMORY_METRICS:
             self.start_memory = gc.mem_alloc()
 
     def stop(self):
         self.count += 1
         time_diff = time.monotonic_ns() - self.start_ns
-        if WITH_MEMORY_METRICS:
+        if Tracker.WITH_MEMORY_METRICS:
             memory_diff = gc.mem_alloc() - self.start_memory
         else:
             memory_diff = 0
@@ -56,52 +56,61 @@ class Tracker:
         return f"[{self.name}] count: {self.count}, avg: {self.average_ns / 1_000_000:.2f}ms, min: {self.min / 1_000_000:.2f}ms, max: {self.max / 1_000_000:.2f}ms, alloc: {self.average_memory}"
 
 
-def run_pitchshift_demo(audio):
-    # wave_file = adafruit_wave.open("samples/snare.wav")
-    # wave_file = adafruit_wave.open("samples/snare.wav")
-    wave_file = adafruit_wave.open("samples/open_hh.wav")
-    channels, bit_depth, sample_rate = (
-        wave_file.getnchannels(),
-        wave_file.getsampwidth() * 8,
-        wave_file.getframerate(),
-    )
+class MonoSample:
+    BUFFER_SIZE = 256
 
-    assert channels == 1
-    # assert bit_depth == 8
-    print(f"bit_depth: {bit_depth}")
+    def __init__(self, path):
+        file = adafruit_wave.open(path)
+        channels, bits_per_sample, sample_rate = (
+            file.getnchannels(),
+            file.getsampwidth() * 8,
+            file.getframerate(),
+        )
+        self.bits_per_sample = bits_per_sample
+        self.rate = sample_rate
 
-    mixer = audiomixer.Mixer(
-        bits_per_sample=bit_depth,
-        voice_count=4,
-        sample_rate=sample_rate,
-        channel_count=1,
-        samples_signed = bit_depth == 16,
-    )
+        assert channels == 1
 
-    sample_bits = np.int16 if bit_depth == 16 else np.uint8
+        self.buffer_data_type = np.int16 if bits_per_sample == 16 else np.uint8
 
-    audio.play(mixer)
+        self.frame_count = file.getnframes()
+        self.file_buffer = np.frombuffer(
+            file.readframes(MonoSample.BUFFER_SIZE),
+            dtype=self.buffer_data_type
+        )
+        self.file_buffer_length = len(self.file_buffer)
+        self.file_buffer_indices = np.arange(self.file_buffer_length)
 
-    frame_count = wave_file.getnframes()
-    print(f"frames: {frame_count}")
-    file_buffer = np.frombuffer(wave_file.readframes(2*1024), dtype=sample_bits)
-    file_buffer_length = len(file_buffer)
-    
-    file_buffer_indices = np.arange(file_buffer_length)
+    def is_signed(self):
+        return self.bits_per_sample == 16
 
-    def play_at_speed(speed_multiplier):
-        out_sample_count = int(file_buffer_length / speed_multiplier)
-        out_indices = np.linspace(0, file_buffer_length, out_sample_count)
+    def play_at_speed(self, player, speed_multiplier):
+        out_sample_count = int(self.file_buffer_length / speed_multiplier)
+        out_indices = np.linspace(0, self.file_buffer_length, out_sample_count)
 
         play_buffer = np.array(
-            np.interp(out_indices, file_buffer_indices, file_buffer),
-            dtype=sample_bits,
+            np.interp(out_indices, self.file_buffer_indices, self.file_buffer),
+            dtype=self.buffer_data_type,
         )
 
-        audio_sample = audiocore.RawSample(play_buffer, sample_rate=sample_rate)
+        audio_sample = audiocore.RawSample(
+            play_buffer, sample_rate=self.rate)
 
-        voice = mixer.voice[0]
-        voice.play(audio_sample)
+        player.play(audio_sample)
+
+
+def run_pitchshift_demo(audio):
+    sample = MonoSample("samples/snare_44k_16.wav")
+
+    mixer = audiomixer.Mixer(
+        voice_count=4,
+        bits_per_sample=sample.bits_per_sample,
+        sample_rate=sample.rate,
+        channel_count=1,
+        samples_signed=sample.is_signed(),
+    )
+
+    audio.play(mixer)
 
     midi = adafruit_midi.MIDI(midi_in=usb_midi.ports[0], in_channel=0)
     loop_tracker = Tracker("loop")
@@ -121,7 +130,9 @@ def run_pitchshift_demo(audio):
             speed_multiplier = 2 * (msg.note / 127)
             # speed_multiplier = 1
             # print(f"speed_multiplier: {speed_multiplier}")
-            play_at_speed(speed_multiplier)
+
+            sample.play_at_speed(mixer.voice[0], speed_multiplier)
+
         loop_tracker.stop()
         if accumulated_info_ns > 1_000_000_000:
             accumulated_info_ns = 0

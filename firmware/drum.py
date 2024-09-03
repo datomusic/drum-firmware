@@ -1,5 +1,5 @@
 from .sequencer import Sequencer
-from .device_api import Output
+from .device_api import Output, Config
 from .note_player import NotePlayer
 from .repeat_effect import RepeatEffect
 from .random_effect import RandomEffect
@@ -50,10 +50,11 @@ class Track:
 
 
 class Drum:
-    def __init__(self, output: Output, track_count: int):
+    def __init__(self, output: Output, track_count: int, config: Config):
         self.tracks = [Track(NotePlayer(index, output))
                        for index in range(track_count)]
         self.playing = True
+        self.config = config
         self._next_step_index = 0
         self._repeat_effect = RepeatEffect(lambda: self._next_step_index)
         self._double_time_repeat = False
@@ -77,8 +78,8 @@ class Drum:
         track = self.tracks[track_index]
 
         # Get lowest note and maximum note selection range
-        track_init_note = int(os.getenv(f'track.{track_index}.init_note'))
-        range = int(os.getenv(f'track.{track_index}.range'))
+        track_init_note = int(self.config.get(f'track.{track_index}.init_note'))
+        range = int(self.config.get(f'track.{track_index}.range'))
 
         # Wrap the values around when they hit the min or max allowed note
         track.note = (track_init_note + (((track.note - track_init_note) + step) % range)) % SAMPLE_COUNT

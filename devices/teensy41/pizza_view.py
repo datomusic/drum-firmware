@@ -29,16 +29,6 @@ def int_to_rgb(int_color):
 
     return (r, g, b)
 
-class ColorScheme:
-    Cursor = int_to_rgb(os.getenv("device.cursor_color"))
-
-    def Note(note):
-        if(note > 32):
-            print("Error, note out of range")
-        color = int_to_rgb(os.getenv(f'note.{note}.color'))
-        return color
-
-
 FADE_TIME_MS = 150
 
 
@@ -102,6 +92,7 @@ class Cursor:
     def show(
         self,
         display: Display,
+        color: int,
         playing: bool,
         track_index: int,
         current_step: int,
@@ -116,22 +107,22 @@ class Cursor:
 
         self.last_beat_position = beat_position
         if playing:
-            display.blend(sequencer_key, ColorScheme.Cursor, amount)
+            display.blend(sequencer_key, color, amount)
         else:
             if self.fade_play_toggle:
-                display.blend(sequencer_key, ColorScheme.Cursor, amount)
+                display.blend(sequencer_key, color, amount)
                 display.set_color(start_key, (0, 0, 0))
             else:
-                display.set_color(start_key, ColorScheme.Cursor)
+                display.set_color(start_key, color)
                 display.fade(start_key, amount)
 
 
 class PizzaView:
-    def __init__(self, track_count) -> None:
+    def __init__(self, track_count, config) -> None:
         self.pad_indicators = [
             PadIndicator(track_index) for track_index in range(track_count)
         ]
-
+        self.config = config
         self.rings = [SequencerRing(track_index)
                       for track_index in range(track_count)]
         self.cursor = Cursor()
@@ -149,12 +140,13 @@ class PizzaView:
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
         for track_index, track in enumerate(drum.tracks):
             current_step = drum.get_indicator_step(track_index)
-            color = ColorScheme.Note(drum.tracks[track_index].note)
+            # TODO: only retrieve colors once, or at least cache them
+            color = int_to_rgb(int(drum.config.get(f'note.{track.note}.color')))
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
             self.cursor.show(
-                display, drum.playing, track_index, current_step, beat_position
+                display, int_to_rgb(int(self.config.get("device.cursor_color"))), drum.playing, track_index, current_step, beat_position
             )
 
     def _show_pad(self, display, drum, color, track_index) -> None:

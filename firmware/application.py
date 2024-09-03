@@ -1,13 +1,9 @@
 import time
-from .drum import Drum
-from .device_api import Controls, Output, EffectName, TrackParam
+from .drum import Drum, STEP_COUNT
+from .device_api import Controls, Output, EffectName, TrackParam, Config
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
-import os
-
-def get_setting(key):
-    return os.getenv(key)
 
 WITH_MEMORY_METRICS = False
 
@@ -130,10 +126,11 @@ class Timed:
 class Application:
     TRACK_COUNT = 4
 
-    def __init__(self, controllers: list[Controller], output: Output):
+    def __init__(self, controllers: list[Controller], output: Output, config: Config):
+        self.config = config
         self.controllers = controllers
         self.output = output
-        self.drum = Drum(output, Application.TRACK_COUNT)
+        self.drum = Drum(output, Application.TRACK_COUNT, config)
         self.tempo = Tempo(
             tempo_tick_callback=self.output.on_tempo_tick,
             on_quarter_beat=self.drum.on_quarter_beat
@@ -143,7 +140,7 @@ class Application:
             self.drum, self.output, self.tempo, self._on_sample_trigger
         )
 
-        setup_tracks(self.drum.tracks)
+        setup_tracks(self.drum.tracks, config)
 
     def slow_update(self, delta_ms: int) -> None:
         for controller in self.controllers:
@@ -220,16 +217,11 @@ class Application:
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
 
-def setup_tracks(tracks):
-    tracks[0].note = get_setting("track.0.init_note")
-    tracks[1].note = get_setting("track.1.init_note")
-    tracks[2].note = get_setting("track.2.init_note")
-    tracks[3].note = get_setting("track.3.init_note")
-
-    ## TODO: bounds checking and error reporting
-    for i in range(4): # Should be number of tracks
-        track_init = get_setting(f'track.{i}.init_pattern')
-        for j in range(8): # should be number of steps
-            if track_init & (1 << j):  # Check if the bit is high
-                tracks[i].sequencer.set_step(j, 100)
+def setup_tracks(tracks, config):
+    for i in range(Application.TRACK_COUNT):
+        tracks[i].note = config.get(f'track.{i}.init_note')
+        track_init = int(config.get(f'track.{i}.init_pattern'))
+        for j in range(STEP_COUNT): 
+            if track_init & (1 << j):  
+                tracks[i].sequencer.set_step(8-j-1, 100)
 

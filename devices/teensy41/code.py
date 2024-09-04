@@ -3,7 +3,8 @@ from adafruit_midi import MIDI  # type: ignore
 from firmware.application import Application
 from firmware.midi_output import MIDIOutput
 from firmware.midi_controller import MIDIController
-from teensy41.pizza_controller import PizzaController, CircuitPythonTOMLConfig
+from teensy41.pizza_controller import PizzaController
+from teensy41.circuitpythontomlconfig import CircuitPythonTOMLConfig
 from teensy41.hardware import Teensy41Hardware
 
 (midi_in_port, midi_out_port) = usb_midi.ports

@@ -107,10 +107,11 @@ class Cursor:
 
         self.last_beat_position = beat_position
         if playing:
-            display.blend(sequencer_key, color, amount)
+            display.blend(sequencer_key, color, (amount*0.7)+0.3)
+            display.set_color(start_key, color)
         else:
             if self.fade_play_toggle:
-                display.blend(sequencer_key, color, amount)
+                display.blend(sequencer_key, color, (amount*0.7)+0.3)
                 display.set_color(start_key, (0, 0, 0))
             else:
                 display.set_color(start_key, color)

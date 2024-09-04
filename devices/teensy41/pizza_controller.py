@@ -23,18 +23,6 @@ from .reading import (
 
 BPM_MAX = 300
 
-class CircuitPythonTOMLConfig:
-    def __init__(self):
-        self.setter = print
-        self.getter = os.getenv
-
-    def set(self, key: str, value):
-        self.setter(f'Key: {key}, value: {value}')
-
-    def get(self, key: str):
-        return self.getter(key)
-
-
 class DrumPad:
     def __init__(self, track_index, trigger_port, mute_port):
         self.track_index = track_index

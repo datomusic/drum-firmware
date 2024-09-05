@@ -1,4 +1,5 @@
-from firmware.device_api import Controls, OutputParam, TrackParam, EffectName, Config
+from firmware.device_api import Controls, OutputParam, TrackParam, EffectName
+from firmware.settings import Settings
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 from .pizza_view import PizzaView
@@ -61,16 +62,16 @@ class DrumPad:
 
 
 class PizzaController(Controller):
-    def __init__(self, track_count, config: Config, hardware=None) -> None:
+    def __init__(self, track_count, settings: Settings, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
         self.hardware = hardware
-        self.config = config
+        self.settings = settings
         ## TODO: bounds setting on brightness setting
-        brightness = int(config.get("device.brightness")) / 256
+        brightness = int(settings.get("device.brightness")) / 256
         self.display = hardware.init_display(brightness)
-        self.view = PizzaView(track_count, config)
+        self.view = PizzaView(track_count, settings)
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)

@@ -10,66 +10,6 @@ import gc
 WITH_MEMORY_METRICS = False
 
 
-# class AppControls:
-#     def __init__(self, sequencer: Sequencer, output: Output, tempo: Tempo, on_sample_trigger):
-#         self.sequencer = sequencer
-#         self.output = output
-#         self.tempo = tempo
-#         self.on_sample_trigger = on_sample_trigger
-
-#     def set_bpm(self, bpm):
-#         self.tempo.set_bpm(bpm)
-
-#     def toggle_track_step(self, track_index, step_index):
-#         self.sequencer.toggle_track_step(track_index, step_index)
-
-#     def change_sample(self, track_index, change):
-#         self.sequencer.change_sample(track_index, change)
-
-#     def set_playing(self, playing):
-#         self.sequencer.playing = playing
-#         if playing:
-#             self.tempo.reset()
-
-#     def is_playing(self):
-#         return self.sequencer.playing
-
-#     def play_track_sample(self, track_index: int, velocity: float):
-#         self.sequencer.tracks[track_index].play(velocity)
-#         self.on_sample_trigger(track_index)
-
-#     def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
-#         self.sequencer.tracks[track_index].repeat_velocity = amount_percent
-
-#     def set_track_param(self, param, track_index: int, amount_percent: float):
-#         if TrackParam.Pitch == param:
-#             self.output.set_channel_pitch(track_index, amount_percent)
-#         elif TrackParam.Mute == param:
-#             self.output.set_channel_mute(track_index, amount_percent)
-
-#     def set_output_param(self, param, percent) -> None:
-#         self.output.set_param(param, percent)
-
-#     def set_effect_level(self, effect_name, percentage):
-#         if EffectName.Repeat == effect_name:
-#             self.sequencer.set_repeat_effect_level(percentage)
-#         elif EffectName.Random == effect_name:
-#             self.sequencer.set_random_enabled(percentage > 50)
-
-#     def adjust_swing(self, amount_percent):
-#         self.tempo.swing.adjust(amount_percent)
-
-#     def set_swing(self, amount):
-#         self.tempo.swing.set_amount(amount)
-
-#     def clear_swing(self):
-#         self.tempo.swing.set_amount(0)
-
-#     def handle_midi_clock(self):
-#         self.tempo.tempo_source = TempoSource.MIDI
-#         self.tempo.handle_midi_clock()
-
-
 class Tracker:
     def __init__(self, name):
         self.name = name

@@ -1,7 +1,7 @@
 import os
 
 
-class Config:
+class Settings:
     def __init__(self):
         self.setter = print
         self.getter = os.getenv

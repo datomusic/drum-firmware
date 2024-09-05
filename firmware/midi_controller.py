@@ -1,4 +1,5 @@
-from .device_api import Controls, Config
+from .device_api import Controls
+from .settings import Settings
 from .controller_api import Controller
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.timing_clock import TimingClock  # type: ignore
@@ -8,9 +9,9 @@ from adafruit_midi.stop import Stop  # type: ignore
 
 
 class MIDIController(Controller):
-    def __init__(self, midi: MIDI, config: Config):
+    def __init__(self, midi: MIDI, settings: Settings):
         self.midi = midi
-        self.config = config
+        self.settings = settings
 
     def fast_update(self, controls: Controls, delta_ms: int):
         pass

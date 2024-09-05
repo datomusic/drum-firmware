@@ -1,4 +1,5 @@
 from firmware.drum import Drum  # type: ignore
+from firmware.settings import Settings  # type: ignore
 from .hardware import (
     Display,
     Drumpad,
@@ -120,11 +121,11 @@ class Cursor:
 
 
 class PizzaView:
-    def __init__(self, track_count, config) -> None:
+    def __init__(self, track_count: int, settings: Settings) -> None:
         self.pad_indicators = [
             PadIndicator(track_index) for track_index in range(track_count)
         ]
-        self.config = config
+        self.settings = settings
         self.rings = [SequencerRing(track_index) for track_index in range(track_count)]
         self.cursor = Cursor()
 
@@ -142,13 +143,13 @@ class PizzaView:
         for track_index, track in enumerate(drum.tracks):
             current_step = drum.get_indicator_step(track_index)
             # TODO: only retrieve colors once, or at least cache them
-            color = int_to_rgb(int(drum.config.get(f"note.{track.note}.color")))
+            color = int_to_rgb(int(drum.settings.get(f"note.{track.note}.color")))
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
             self.cursor.show(
                 display,
-                int_to_rgb(int(self.config.get("device.cursor_color"))),
+                int_to_rgb(int(self.settings.get("device.cursor_color"))),
                 drum.playing,
                 track_index,
                 current_step,

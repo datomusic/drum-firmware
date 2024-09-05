@@ -6,15 +6,21 @@ from firmware.device_api import Output, TrackParam, OutputParam, EffectName
 from firmware.drum import Drum
 
 
+class TestSettings:
+    def get(self, item):
+        return 1
+
+
 class ApplicationTest(unittest.TestCase):
     def test_application_runs(self):
         output = Mock(Output)
-        Application([], output).run_iterator().__next__()
+        Application([], output, TestSettings()).run_iterator().__next__()
+
 
 class AppControlsTest(unittest.TestCase):
     def test_app_controls(self):
         output = Mock(Output)
-        drum = Drum(output, 1)
+        drum = Drum(output, 1, TestSettings())
         tempo = Tempo(
             tempo_tick_callback=lambda _unused: None,
             on_quarter_beat=lambda _unused: None

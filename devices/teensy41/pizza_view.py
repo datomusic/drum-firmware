@@ -72,7 +72,7 @@ class SequencerRing:
     def show_steps(self, display: Display, sequencer: Sequencer, step_color) -> None:
         track = sequencer.tracks[self.track_index]
 
-        for step_index, step in enumerate(track.steps.steps):
+        for step_index, step in enumerate(track.steps.entries):
             key = SequencerKey(step_index, self.track_index)
             if track.repeat_is_active():
                 display.set_color(key, step_color)
@@ -161,7 +161,7 @@ class PizzaView:
         current_step_index = sequencer.get_indicator_step(track_index)
 
         track = sequencer.tracks[track_index]
-        step_active = track.steps.steps[current_step_index].active
+        step_active = track.steps.entries[current_step_index].active
         self.pad_indicators[track_index].show(
             display, current_step_index, color, step_active
         )

@@ -1,5 +1,5 @@
 import time
-from .drum import Drum, STEP_COUNT
+from .sequencer import Sequencer, STEP_COUNT
 from .device_api import Controls, Output, EffectName, TrackParam
 from .settings import Settings
 from .controller_api import Controller
@@ -10,8 +10,8 @@ WITH_MEMORY_METRICS = False
 
 
 class AppControls(Controls):
-    def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
-        self.drum = drum
+    def __init__(self, sequencer: Sequencer, output: Output, tempo: Tempo, on_sample_trigger):
+        self.sequencer = sequencer
         self.output = output
         self.tempo = tempo
         self.on_sample_trigger = on_sample_trigger
@@ -20,25 +20,25 @@ class AppControls(Controls):
         self.tempo.set_bpm(bpm)
 
     def toggle_track_step(self, track_index, step_index):
-        self.drum.toggle_track_step(track_index, step_index)
+        self.sequencer.toggle_track_step(track_index, step_index)
 
     def change_sample(self, track_index, change):
-        self.drum.change_sample(track_index, change)
+        self.sequencer.change_sample(track_index, change)
 
     def set_playing(self, playing):
-        self.drum.playing = playing
+        self.sequencer.playing = playing
         if playing:
             self.tempo.reset()
 
     def is_playing(self):
-        return self.drum.playing
+        return self.sequencer.playing
 
     def play_track_sample(self, track_index: int, velocity: float):
-        self.drum.tracks[track_index].play(velocity)
+        self.sequencer.tracks[track_index].play(velocity)
         self.on_sample_trigger(track_index)
 
     def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
-        self.drum.tracks[track_index].repeat_velocity = amount_percent
+        self.sequencer.tracks[track_index].repeat_velocity = amount_percent
 
     def set_track_param(self, param, track_index: int, amount_percent: float):
         if TrackParam.Pitch == param:
@@ -51,9 +51,9 @@ class AppControls(Controls):
 
     def set_effect_level(self, effect_name, percentage):
         if EffectName.Repeat == effect_name:
-            self.drum.set_repeat_effect_level(percentage)
+            self.sequencer.set_repeat_effect_level(percentage)
         elif EffectName.Random == effect_name:
-            self.drum.set_random_enabled(percentage > 50)
+            self.sequencer.set_random_enabled(percentage > 50)
 
     def adjust_swing(self, amount_percent):
         self.tempo.swing.adjust(amount_percent)
@@ -134,17 +134,17 @@ class Application:
         self.settings = settings
         self.controllers = controllers
         self.output = output
-        self.drum = Drum(output, Application.TRACK_COUNT, settings)
+        self.sequencer = Sequencer(output, Application.TRACK_COUNT, settings)
         self.tempo = Tempo(
             tempo_tick_callback=self.output.on_tempo_tick,
-            on_quarter_beat=self.drum.on_quarter_beat,
+            on_quarter_beat=self.sequencer.on_quarter_beat,
         )
-        self.drum.playing = False
+        self.sequencer.playing = False
         self.controls = AppControls(
-            self.drum, self.output, self.tempo, self._on_sample_trigger
+            self.sequencer, self.output, self.tempo, self._on_sample_trigger
         )
 
-        setup_tracks(self.drum.tracks, settings)
+        setup_tracks(self.sequencer.tracks, settings)
 
     def slow_update(self, delta_ms: int) -> None:
         for controller in self.controllers:
@@ -159,7 +159,7 @@ class Application:
 
     def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.drum, delta_ms, self.tempo.get_beat_position())
+            controller.show(self.sequencer, delta_ms, self.tempo.get_beat_position())
 
     def run(self):
         for _ in self.run_iterator():

@@ -3,7 +3,7 @@ from unittest.mock import Mock
 from firmware.application import Application, AppControls
 from firmware.tempo import Tempo
 from firmware.device_api import Output, TrackParam, OutputParam, EffectName
-from firmware.drum import Drum
+from firmware.sequencer import Sequencer
 
 
 class TestSettings:
@@ -20,14 +20,14 @@ class ApplicationTest(unittest.TestCase):
 class AppControlsTest(unittest.TestCase):
     def test_app_controls(self):
         output = Mock(Output)
-        drum = Drum(output, 1, TestSettings())
+        sequencer = Sequencer(output, 1, TestSettings())
         tempo = Tempo(
             tempo_tick_callback=lambda _unused: None,
             on_quarter_beat=lambda _unused: None
         )
         on_sample_trigger = Mock()
 
-        controls = AppControls(drum, output, tempo, on_sample_trigger)
+        controls = AppControls(sequencer, output, tempo, on_sample_trigger)
         controls.set_bpm(100)
         controls.toggle_track_step(0, 0)
         controls.change_sample(0, 1)

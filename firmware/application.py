@@ -81,12 +81,8 @@ class Application:
             on_quarter_beat=self.sequencer.on_quarter_beat,
         )
         self.sequencer.playing = False
-        # self.controls = AppControls(
-        #     self.sequencer, self.output, self.tempo, self._on_sample_trigger
-        # )
-        self.drum = Drum(
-            self.sequencer, self.output, self.tempo, self._on_sample_trigger
-        )
+        self.drum = Drum(self.sequencer, self.output,
+                         self.tempo, self._on_sample_trigger)
 
         setup_tracks(self.sequencer.tracks, settings)
 

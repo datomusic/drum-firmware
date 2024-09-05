@@ -40,7 +40,8 @@ class DrumPad:
         if not self.trigger.triggered or self.muted_when_triggered:
             self.mute.read(
                 lambda amount: controls.set_track_param(
-                    TrackParam.Mute, self.track_index, percentage_from_pot(amount)
+                    TrackParam.Mute, self.track_index, percentage_from_pot(
+                        amount)
                 )
             )
 
@@ -68,7 +69,7 @@ class PizzaController(Controller):
 
         self.hardware = hardware
         self.settings = settings
-        ## TODO: bounds setting on brightness setting
+        # TODO: bounds setting on brightness setting
         brightness = int(settings.get("device.brightness")) / 256
         self.display = hardware.init_display(brightness)
         self.view = PizzaView(track_count, settings)
@@ -99,10 +100,14 @@ class PizzaController(Controller):
         ]
 
         self.drum_pads = [
-            DrumPad(0, self.hardware.drum_pad1, self.hardware.drum_pad1_bottom),
-            DrumPad(1, self.hardware.drum_pad2, self.hardware.drum_pad2_bottom),
-            DrumPad(2, self.hardware.drum_pad3, self.hardware.drum_pad3_bottom),
-            DrumPad(3, self.hardware.drum_pad4, self.hardware.drum_pad4_bottom),
+            DrumPad(0, self.hardware.drum_pad1,
+                    self.hardware.drum_pad1_bottom),
+            DrumPad(1, self.hardware.drum_pad2,
+                    self.hardware.drum_pad2_bottom),
+            DrumPad(2, self.hardware.drum_pad3,
+                    self.hardware.drum_pad3_bottom),
+            DrumPad(3, self.hardware.drum_pad4,
+                    self.hardware.drum_pad4_bottom),
         ]
 
     def fast_update(self, controls: Controls, _delta_ms: int) -> None:
@@ -160,11 +165,13 @@ class PizzaController(Controller):
         )
 
         self.distortion.read(
-            lambda val: controls.set_output_param(OutputParam.Distortion, val * 100)
+            lambda val: controls.set_output_param(
+                OutputParam.Distortion, val * 100)
         )
 
         self.bitcrusher.read(
-            lambda val: controls.set_output_param(OutputParam.Bitcrusher, val * 100)
+            lambda val: controls.set_output_param(
+                OutputParam.Bitcrusher, val * 100)
         )
 
         self.highpass_setting.read(

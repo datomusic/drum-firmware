@@ -157,6 +157,6 @@ class Sequencer:
 
     def _play_track_steps(self) -> None:
         for index, track in enumerate(self.tracks):
-            step = track.steps.steps[self._get_play_step_index(index)]
+            step = track.steps.entries[self._get_play_step_index(index)]
             if step.active:
                 track.play(step.velocity)

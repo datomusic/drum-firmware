@@ -1,4 +1,4 @@
-from .device_api import Controls
+from .device_api import Controls, Config
 from .controller_api import Controller
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.timing_clock import TimingClock  # type: ignore
@@ -8,7 +8,7 @@ from adafruit_midi.stop import Stop  # type: ignore
 
 
 class MIDIController(Controller):
-    def __init__(self, midi: MIDI, config):
+    def __init__(self, midi: MIDI, config: Config):
         self.midi = midi
         self.config = config
 

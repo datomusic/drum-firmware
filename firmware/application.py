@@ -1,11 +1,13 @@
 import time
 from .drum import Drum, STEP_COUNT
-from .device_api import Controls, Output, EffectName, TrackParam, Config
+from .device_api import Controls, Output, EffectName, TrackParam
+from .config import Config
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
 
 WITH_MEMORY_METRICS = False
+
 
 class AppControls(Controls):
     def __init__(self, drum: Drum, output: Output, tempo: Tempo, on_sample_trigger):
@@ -133,7 +135,7 @@ class Application:
         self.drum = Drum(output, Application.TRACK_COUNT, config)
         self.tempo = Tempo(
             tempo_tick_callback=self.output.on_tempo_tick,
-            on_quarter_beat=self.drum.on_quarter_beat
+            on_quarter_beat=self.drum.on_quarter_beat,
         )
         self.drum.playing = False
         self.controls = AppControls(
@@ -155,8 +157,7 @@ class Application:
 
     def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.drum, delta_ms,
-                            self.tempo.get_beat_position())
+            controller.show(self.drum, delta_ms, self.tempo.get_beat_position())
 
     def run(self):
         for _ in self.run_iterator():
@@ -217,11 +218,11 @@ class Application:
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
 
+
 def setup_tracks(tracks, config):
     for i in range(Application.TRACK_COUNT):
-        tracks[i].note = config.get(f'track.{i}.init_note')
-        track_init = int(config.get(f'track.{i}.init_pattern'))
-        for j in range(STEP_COUNT): 
-            if track_init & (1 << j):  
-                tracks[i].sequencer.set_step(8-j-1, 100)
-
+        tracks[i].note = config.get(f"track.{i}.init_note")
+        track_init = int(config.get(f"track.{i}.init_pattern"))
+        for j in range(STEP_COUNT):
+            if track_init & (1 << j):
+                tracks[i].sequencer.set_step(8 - j - 1, 100)

@@ -227,4 +227,4 @@ def setup_tracks(tracks, settings: Settings):
         track_init = int(settings.get(f"track.{i}.init_pattern"))
         for j in range(STEP_COUNT):
             if track_init & (1 << j):
-                tracks[i].sequencer.set_step(8 - j - 1, 100)
+                tracks[i].steps.set_step(8 - j - 1, 100)

@@ -1,4 +1,4 @@
-from .sequencer import Sequencer
+from .steps import Steps
 from .device_api import Output
 from .note_player import NotePlayer
 from .repeat_effect import RepeatEffect
@@ -17,7 +17,7 @@ class Track:
     def __init__(self, note_player: NotePlayer) -> None:
         self.note_player = note_player
         self.note = 0
-        self.sequencer = Sequencer(STEP_COUNT)
+        self.steps = Steps(STEP_COUNT)
         self.random_effect = RandomEffect(STEP_COUNT)
         self.repeat_velocity = 0.0
         self._last_source: int | None = None
@@ -97,7 +97,7 @@ class Drum:
 
     def toggle_track_step(self, track_index, step_index):
         track = self.tracks[track_index]
-        active = track.sequencer.toggle_step(step_index)
+        active = track.steps.toggle_step(step_index)
         if active and not self.playing:
             track.note_player.play(track.note)
 
@@ -157,6 +157,6 @@ class Drum:
 
     def _play_track_steps(self) -> None:
         for index, track in enumerate(self.tracks):
-            step = track.sequencer.steps[self._get_play_step_index(index)]
+            step = track.steps.steps[self._get_play_step_index(index)]
             if step.active:
                 track.play(step.velocity)

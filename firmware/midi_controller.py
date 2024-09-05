@@ -1,4 +1,5 @@
-from .device_api import Controls
+from .drum import Drum
+from .tempo import TempoSource
 from .settings import Settings
 from .controller_api import Controller
 from adafruit_midi import MIDI  # type: ignore
@@ -13,18 +14,19 @@ class MIDIController(Controller):
         self.midi = midi
         self.settings = settings
 
-    def fast_update(self, controls: Controls, delta_ms: int):
+    def fast_update(self, drum: Drum, delta_ms: int):
         pass
 
-    def update(self, controls: Controls, delta_ms: int):
+    def update(self, drum: Drum, delta_ms: int):
         msg = self.midi.receive()
         while msg:
             if isinstance(msg, TimingClock):
-                controls.handle_midi_clock()
+                drum.tempo.tempo_source = TempoSource.MIDI
+                drum.tempo.handle_midi_clock()
             elif isinstance(msg, Continue) or isinstance(msg, Start):
-                controls.set_playing(True)
+                drum.set_playing(True)
             elif isinstance(msg, Stop):
-                controls.set_playing(False)
+                drum.set_playing(False)
 
             msg = self.midi.receive()
 

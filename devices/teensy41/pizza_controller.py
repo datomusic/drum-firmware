@@ -9,7 +9,7 @@ from .hardware import (
     SampleSelectKey,
     Direction,
     ControlKey,
-    ControlName
+    ControlName,
 )
 
 from .reading import (
@@ -18,9 +18,11 @@ from .reading import (
     DigitalTrigger,
     ThresholdTrigger,
     DigitalChanger,
-    percentage_from_pot)
+    percentage_from_pot,
+)
 
 BPM_MAX = 300
+
 
 class DrumPad:
     def __init__(self, track_index, trigger_port, mute_port):
@@ -36,11 +38,9 @@ class DrumPad:
 
         if not self.trigger.triggered or self.muted_when_triggered:
             self.mute.read(
-                lambda amount:
-                    controls.set_track_param(
-                        TrackParam.Mute,
-                        self.track_index,
-                        percentage_from_pot(amount))
+                lambda amount: controls.set_track_param(
+                    TrackParam.Mute, self.track_index, percentage_from_pot(amount)
+                )
             )
 
         velocity = percentage_from_pot(value)
@@ -68,7 +68,7 @@ class PizzaController(Controller):
         self.hardware = hardware
         self.config = config
         ## TODO: bounds setting on brightness setting
-        brightness = int(config.get('device.brightness')) / 256
+        brightness = int(config.get("device.brightness")) / 256
         self.display = hardware.init_display(brightness)
         self.view = PizzaView(track_count, config)
 
@@ -76,14 +76,14 @@ class PizzaController(Controller):
         self.volume_setting = PotReader(self.hardware.volume_pot)
 
         self.filter_setting = IncDecReader(
-            self.hardware.filter_left, self.hardware.filter_right)
+            self.hardware.filter_left, self.hardware.filter_right
+        )
 
         self.lowpass_setting = PotReader(self.hardware.filter_left)
         self.highpass_setting = PotReader(self.hardware.filter_right)
         self.beat_repeat_setting = PotReader(self.hardware.repeat_button)
         self.random_setting = PotReader(self.hardware.random_button)
-        self.highpass_setting = PotReader(
-            self.hardware.filter_right)
+        self.highpass_setting = PotReader(self.hardware.filter_right)
 
         self.swing_left = DigitalTrigger(self.hardware.swing_left)
         self.distortion = DigitalChanger(self.hardware.swing_left)
@@ -94,21 +94,18 @@ class PizzaController(Controller):
             PotReader(self.hardware.pitch1),
             PotReader(self.hardware.pitch2),
             PotReader(self.hardware.pitch3),
-            PotReader(self.hardware.pitch4)
+            PotReader(self.hardware.pitch4),
         ]
 
         self.drum_pads = [
-            DrumPad(0, self.hardware.drum_pad1,
-                    self.hardware.drum_pad1_bottom),
-            DrumPad(1, self.hardware.drum_pad2,
-                    self.hardware.drum_pad2_bottom),
-            DrumPad(2, self.hardware.drum_pad3,
-                    self.hardware.drum_pad3_bottom),
-            DrumPad(3, self.hardware.drum_pad4, self.hardware.drum_pad4_bottom)
+            DrumPad(0, self.hardware.drum_pad1, self.hardware.drum_pad1_bottom),
+            DrumPad(1, self.hardware.drum_pad2, self.hardware.drum_pad2_bottom),
+            DrumPad(2, self.hardware.drum_pad3, self.hardware.drum_pad3_bottom),
+            DrumPad(3, self.hardware.drum_pad4, self.hardware.drum_pad4_bottom),
         ]
 
     def fast_update(self, controls: Controls, _delta_ms: int) -> None:
-        for (track_index, pad) in enumerate(self.drum_pads):
+        for track_index, pad in enumerate(self.drum_pads):
             pad.update(controls)
 
     def update(self, controls: Controls, delta_ms: int) -> None:
@@ -128,7 +125,11 @@ class PizzaController(Controller):
         self.speed_setting.read(
             lambda speed: (
                 controls.set_bpm((percentage_from_pot(speed)) * BPM_MAX / 100),
-                controls.set_output_param(OutputParam.Tempo, percentage_from_pot(speed))))
+                controls.set_output_param(
+                    OutputParam.Tempo, percentage_from_pot(speed)
+                ),
+            )
+        )
 
         # self.volume_setting.read(
         #     lambda vol: controls.set_output_param(
@@ -136,57 +137,59 @@ class PizzaController(Controller):
         #         percentage_from_pot(vol)))
 
         self.volume_setting.read(
-            lambda volume:
-                controls.set_swing(int(6-(volume/(65536/12)))))
+            lambda volume: controls.set_swing(int(6 - (volume / (65536 / 12))))
+        )
 
         self.filter_setting.read(
             lambda val: controls.set_output_param(
-                OutputParam.AdjustFilter,
-                percentage_from_pot(val) / 50))
+                OutputParam.AdjustFilter, percentage_from_pot(val) / 50
+            )
+        )
 
         self.lowpass_setting.read(
             lambda val: controls.set_output_param(
-                OutputParam.LowPass,
-                percentage_from_pot(val)))
+                OutputParam.LowPass, percentage_from_pot(val)
+            )
+        )
 
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
-                OutputParam.HighPass,
-                percentage_from_pot(val)))
+                OutputParam.HighPass, percentage_from_pot(val)
+            )
+        )
 
         self.distortion.read(
-            lambda val:
-                controls.set_output_param(
-                    OutputParam.Distortion,
-                    val * 100))
+            lambda val: controls.set_output_param(OutputParam.Distortion, val * 100)
+        )
 
         self.bitcrusher.read(
-            lambda val:
-                controls.set_output_param(
-                    OutputParam.Bitcrusher,
-                    val * 100))
+            lambda val: controls.set_output_param(OutputParam.Bitcrusher, val * 100)
+        )
 
         self.highpass_setting.read(
             lambda val: controls.set_output_param(
-                OutputParam.HighPass,
-                percentage_from_pot(val)))
+                OutputParam.HighPass, percentage_from_pot(val)
+            )
+        )
 
         self.beat_repeat_setting.read(
             lambda val: controls.set_effect_level(
-                EffectName.Repeat,
-                percentage_from_pot(val)))
+                EffectName.Repeat, percentage_from_pot(val)
+            )
+        )
 
         self.random_setting.read(
             lambda val: controls.set_effect_level(
-                EffectName.Random,
-                percentage_from_pot(val)))
+                EffectName.Random, percentage_from_pot(val)
+            )
+        )
 
         for track_ind, pitch_setting in enumerate(self.pitch_settings):
             pitch_setting.read(
                 lambda pitch: controls.set_track_param(
-                    TrackParam.Pitch,
-                    track_ind,
-                    percentage_from_pot(pitch)))
+                    TrackParam.Pitch, track_ind, percentage_from_pot(pitch)
+                )
+            )
 
     def _process_keys(self, controls: Controls) -> None:
         event = self.hardware.get_key_event()

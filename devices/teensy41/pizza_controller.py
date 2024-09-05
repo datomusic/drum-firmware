@@ -2,7 +2,6 @@ from firmware.device_api import Controls, OutputParam, TrackParam, EffectName, C
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 from .pizza_view import PizzaView
-import os
 
 from .hardware import (
     Teensy41Hardware,

@@ -1,5 +1,4 @@
 from firmware.drum import Drum # type: ignore
-import os
 from .hardware import (
     Display,
     Drumpad,

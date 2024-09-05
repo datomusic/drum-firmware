@@ -1,4 +1,4 @@
-from firmware.device_api import Controls, OutputParam, TrackParam, EffectName
+from firmware.device_api import OutputParam
 from firmware.settings import Settings
 from firmware.controller_api import Controller
 from firmware.drum import Drum
@@ -32,18 +32,16 @@ class DrumPad:
         self.mute = PotReader(mute_port)
         self.muted_when_triggered = False
 
-    def update(self, controls):
+    def update(self, drum: Drum):
         was_triggered = self.trigger.triggered
         triggered, value = self.trigger.read()
         trigger_changed = was_triggered != self.trigger.triggered
 
         if not self.trigger.triggered or self.muted_when_triggered:
             self.mute.read(
-                lambda amount: controls.set_track_param(
-                    TrackParam.Mute, self.track_index, percentage_from_pot(
-                        amount)
-                )
-            )
+                lambda amount:
+                    drum.output.set_channel_mute(
+                        self.track_index, percentage_from_pot(amount)))
 
         velocity = percentage_from_pot(value)
         muted = self.mute.last_val > 1000
@@ -52,14 +50,14 @@ class DrumPad:
             if self.trigger.triggered:
                 self.muted_when_triggered = muted
             else:
-                controls.set_track_repeat_velocity(self.track_index, 0)
+                drum.sequencer.tracks[self.track_index].repeat_velocity = 0
                 self.muted_when_triggered = False
 
         elif velocity > 1:
-            controls.set_track_repeat_velocity(self.track_index, velocity)
+            drum.sequencer.tracks[self.track_index].repeat_velocity = velocity
 
         if triggered:
-            controls.play_track_sample(self.track_index, velocity)
+            drum.play_track_sample(self.track_index, velocity)
 
 
 class PizzaController(Controller):
@@ -110,13 +108,13 @@ class PizzaController(Controller):
                     self.hardware.drum_pad4_bottom),
         ]
 
-    def fast_update(self, controls: Controls, _delta_ms: int) -> None:
+    def fast_update(self, drum: Drum, _delta_ms: int) -> None:
         for track_index, pad in enumerate(self.drum_pads):
-            pad.update(controls)
+            pad.update(drum)
 
-    def update(self, controls: Controls, delta_ms: int) -> None:
-        self._read_pots(controls)
-        self._process_keys(controls)
+    def update(self, drum: Drum, delta_ms: int) -> None:
+        self._read_pots(drum)
+        self._process_keys(drum)
 
     def show(self, drum: Drum, delta_ms: int, beat_position: float) -> None:
         self.view.update(delta_ms)
@@ -127,85 +125,78 @@ class PizzaController(Controller):
     def on_track_sample_played(self, track_index: int):
         self.view.trigger_track(track_index)
 
-    def _read_pots(self, controls: Controls) -> None:
-        self.speed_setting.read(
-            lambda speed: (
-                controls.set_bpm((percentage_from_pot(speed)) * BPM_MAX / 100),
-                controls.set_output_param(
-                    OutputParam.Tempo, percentage_from_pot(speed)
-                ),
-            )
-        )
+    def _read_pots(self, drum: Drum) -> None:
+
+        def set_speed(pot_speed):
+            speed = percentage_from_pot(pot_speed)
+            drum.tempo.set_bpm(speed * BPM_MAX / 100)
+            drum.output.set_param(OutputParam.Tempo, speed)
+
+        self.speed_setting.read(set_speed)
 
         # self.volume_setting.read(
-        #     lambda vol: controls.set_output_param(
+        #     lambda vol: drum.output.set_param(
         #         OutputParam.Volume,
         #         percentage_from_pot(vol)))
 
         self.volume_setting.read(
-            lambda volume: controls.set_swing(int(6 - (volume / (65536 / 12))))
+            lambda volume: drum.tempo.swing.set_amount(
+                int(6 - (volume / (65536 / 12))))
         )
 
         self.filter_setting.read(
-            lambda val: controls.set_output_param(
+            lambda val: drum.output.set_param(
                 OutputParam.AdjustFilter, percentage_from_pot(val) / 50
             )
         )
 
         self.lowpass_setting.read(
-            lambda val: controls.set_output_param(
+            lambda val: drum.output.set_param(
                 OutputParam.LowPass, percentage_from_pot(val)
             )
         )
 
         self.highpass_setting.read(
-            lambda val: controls.set_output_param(
+            lambda val: drum.output.set_param(
                 OutputParam.HighPass, percentage_from_pot(val)
             )
         )
 
         self.distortion.read(
-            lambda val: controls.set_output_param(
+            lambda val: drum.output.set_param(
                 OutputParam.Distortion, val * 100)
         )
 
         self.bitcrusher.read(
-            lambda val: controls.set_output_param(
+            lambda val: drum.output.set_param(
                 OutputParam.Bitcrusher, val * 100)
         )
 
         self.highpass_setting.read(
-            lambda val: controls.set_output_param(
+            lambda val: drum.output.set_param(
                 OutputParam.HighPass, percentage_from_pot(val)
             )
         )
 
         self.beat_repeat_setting.read(
-            lambda val: controls.set_effect_level(
-                EffectName.Repeat, percentage_from_pot(val)
-            )
-        )
+            lambda val: drum.sequencer.set_repeat_effect_level(
+                percentage_from_pot(val)))
 
         self.random_setting.read(
-            lambda val: controls.set_effect_level(
-                EffectName.Random, percentage_from_pot(val)
-            )
-        )
+            lambda val: drum.sequencer.set_random_enabled(
+                percentage_from_pot(val) > 50))
 
-        for track_ind, pitch_setting in enumerate(self.pitch_settings):
-            pitch_setting.read(
-                lambda pitch: controls.set_track_param(
-                    TrackParam.Pitch, track_ind, percentage_from_pot(pitch)
-                )
-            )
+        for track_index, pitch_setting in enumerate(self.pitch_settings):
+            pitch_setting.read(lambda pitch: drum.output.set_channel_pitch(
+                track_index, percentage_from_pot(pitch)))
 
-    def _process_keys(self, controls: Controls) -> None:
+    def _process_keys(self, drum: Drum) -> None:
         event = self.hardware.get_key_event()
         pressed = event and event.pressed
         if pressed:
             key = event.key
             if isinstance(key, SequencerKey):
-                controls.toggle_track_step(key.track, key.step)
+                drum.sequencer.toggle_track_step(key.track, key.step)
 
             elif isinstance(key, SampleSelectKey):
                 if key.direction == Direction.Down:
@@ -213,8 +204,8 @@ class PizzaController(Controller):
                 elif key.direction == Direction.Up:
                     change = -1
 
-                controls.change_sample(key.track, change)
+                drum.sequencer.change_sample(key.track, change)
 
             elif isinstance(key, ControlKey):
                 if key.name == ControlName.Start:
-                    controls.set_playing(not controls.is_playing())
+                    drum.set_playing(not drum.sequencer.playing)

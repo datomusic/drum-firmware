@@ -1,12 +1,12 @@
 from .drum import Drum
-from .device_api import Controls, _not_implemented
+from .device_api import _not_implemented
 
 
 class Controller:
-    def fast_update(self, controls: Controls, delta_ms: int):
+    def fast_update(self, drum: Drum, delta_ms: int):
         _not_implemented("Controller.update", delta_ms)
 
-    def update(self, controls: Controls, delta_ms: int):
+    def update(self, drum: Drum, delta_ms: int):
         _not_implemented("Controller.update", delta_ms)
 
     def show(self, drum: Drum, delta_ms: int, beat_position: float):

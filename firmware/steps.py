@@ -4,7 +4,7 @@ class Step:
         self.active = False
 
 
-class Sequencer:
+class Steps:
     def __init__(self, step_count):
         self.steps = [Step() for _ in range(step_count)]
 

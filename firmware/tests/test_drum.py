@@ -4,10 +4,15 @@ from firmware.device_api import Output
 from firmware.drum import Drum
 
 
+class TestSettings:
+    def get(self, item):
+        return 1
+
+
 class DrumTest(unittest.TestCase):
     def test_no_play_when_repeat_active(self):
         output = Mock(Output)
-        drum = Drum(output=output, track_count=1)
+        drum = Drum(output=output, track_count=1, settings=TestSettings())
         track = drum.tracks[0]
         self.assertEqual(True, drum.playing)
         velocity = 100
@@ -32,7 +37,7 @@ class DrumTest(unittest.TestCase):
 
     def test_no_repeat_soon_after_play(self):
         output = Mock(Output)
-        drum = Drum(output=output, track_count=1)
+        drum = Drum(output=output, track_count=1, settings=TestSettings())
         track = drum.tracks[0]
         self.assertEqual(True, drum.playing)
         repeat_velocity_1 = 98
@@ -57,7 +62,7 @@ class DrumTest(unittest.TestCase):
 
     def test_plays_track_if_no_track_repeat(self):
         output = Mock(Output)
-        drum = Drum(output=output, track_count=1)
+        drum = Drum(output=output, track_count=1, settings=TestSettings())
         track = drum.tracks[0]
         self.assertEqual(True, drum.playing)
         track.repeat_velocity = 100

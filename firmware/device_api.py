@@ -41,8 +41,7 @@ class Output:
         _not_implemented("Output.on_tempo_tick", source)
 
     def set_channel_mute(self, channel: int, amount_percent: float):
-        _not_implemented("Output.set_channel_mute",
-                         channel, amount_percent)
+        _not_implemented("Output.set_channel_mute", channel, amount_percent)
 
 
 class TrackParam:
@@ -55,19 +54,18 @@ class Controls:
         _not_implemented("Controls.set_output_param", param, amount_percent)
 
     def set_track_param(self, param, track_index, amount_percent):
-        _not_implemented("Controls.set_track_param", param,
-                         track_index, amount_percent)
+        _not_implemented("Controls.set_track_param", param, track_index, amount_percent)
 
     def set_bpm(self, bpm):
         _not_implemented("Controls.set_bpm", bpm)
 
     def play_track_sample(self, track_index: int, velocity_percent: float):
-        _not_implemented("Controls.play_track_sample",
-                         track_index, velocity_percent)
+        _not_implemented("Controls.play_track_sample", track_index, velocity_percent)
 
     def set_track_repeat_velocity(self, track_index: int, amount_percent: float):
-        _not_implemented("Controls.set_track_sample_repeat",
-                         track_index, amount_percent)
+        _not_implemented(
+            "Controls.set_track_sample_repeat", track_index, amount_percent
+        )
 
     def toggle_track_step(self, track_index: int, step):
         _not_implemented("Controls.toggle_track_step", track_index, step)
@@ -96,10 +94,3 @@ class Controls:
     def handle_midi_clock(self):
         _not_implemented("Controls.handle_midi_clock")
 
-
-class Config:
-    def get(key: str):
-        _not_implemented("Config.get", key)
-    
-    def set(key: str, value: str):
-        _not_implemented("Config.set", key, value)

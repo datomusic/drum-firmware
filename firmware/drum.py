@@ -26,7 +26,8 @@ class Track:
         if self.repeat_is_active():
             double_speed = self.repeat_velocity > 97
             is_half = quarter_index % 2 == 0
-            last_source_valid = self._check_last_source(Track.PlaySource.Repeat)
+            last_source_valid = self._check_last_source(
+                Track.PlaySource.Repeat)
 
             if last_source_valid and (is_half or double_speed):
                 self.note_player.play(self.note, self.repeat_velocity)
@@ -50,8 +51,9 @@ class Track:
 
 
 class Drum:
-    def __init__(self, output: Output, track_count: int, settings: Settings()):
-        self.tracks = [Track(NotePlayer(index, output)) for index in range(track_count)]
+    def __init__(self, output: Output, track_count: int, settings: Settings):
+        self.tracks = [Track(NotePlayer(index, output))
+                       for index in range(track_count)]
         self.playing = True
         self.settings = settings
         self._next_step_index = 0
@@ -77,7 +79,8 @@ class Drum:
         track = self.tracks[track_index]
 
         # Get lowest note and maximum note selection range
-        track_init_note = int(self.settings.get(f"track.{track_index}.init_note"))
+        track_init_note = int(self.settings.get(
+            f"track.{track_index}.init_note"))
         range = int(self.settings.get(f"track.{track_index}.range"))
 
         # Wrap the values around when they hit the min or max allowed note

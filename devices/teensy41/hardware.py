@@ -175,8 +175,8 @@ class Teensy41Hardware:
 
         return None
 
-    def init_display(self):
-        return Display()
+    def init_display(self, brightness):
+        return Display(brightness)
 
 
 def init_keymatrix():
@@ -297,8 +297,8 @@ def constrain_color(color):
 class Display:
     PixelCount = 41
 
-    def __init__(self):
-        self.pixels = init_neopixels(Display.PixelCount)
+    def __init__(self, brightness):
+        self.pixels = init_neopixels(Display.PixelCount, brightness)
         self.show = self.pixels.show
 
     def clear(self):
@@ -347,9 +347,9 @@ def pixel_index_from_key(key):
         return 0
 
 
-def init_neopixels(pixel_count):
+def init_neopixels(pixel_count, brightness):
     pixels = neopixel.NeoPixel(
-        board.D2, pixel_count, brightness=1.0, auto_write=False)
+        board.D2, pixel_count, brightness=brightness, auto_write=False)
 
     for i in range(pixel_count):
         pixels[i] = (60, 60, 60)

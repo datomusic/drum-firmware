@@ -97,3 +97,9 @@ class Controls:
         _not_implemented("Controls.handle_midi_clock")
 
 
+class Config:
+    def get(key: str):
+        _not_implemented("Config.get", key)
+    
+    def set(key: str, value: str):
+        _not_implemented("Config.set", key, value)

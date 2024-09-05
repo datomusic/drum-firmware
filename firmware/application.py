@@ -1,6 +1,6 @@
 import time
-from .drum import Drum
-from .device_api import Controls, Output, EffectName, TrackParam
+from .drum import Drum, STEP_COUNT
+from .device_api import Controls, Output, EffectName, TrackParam, Config
 from .controller_api import Controller
 from .tempo import Tempo, TempoSource
 import gc
@@ -126,10 +126,11 @@ class Timed:
 class Application:
     TRACK_COUNT = 4
 
-    def __init__(self, controllers: list[Controller], output: Output):
+    def __init__(self, controllers: list[Controller], output: Output, config: Config):
+        self.config = config
         self.controllers = controllers
         self.output = output
-        self.drum = Drum(output, Application.TRACK_COUNT)
+        self.drum = Drum(output, Application.TRACK_COUNT, config)
         self.tempo = Tempo(
             tempo_tick_callback=self.output.on_tempo_tick,
             on_quarter_beat=self.drum.on_quarter_beat
@@ -139,7 +140,7 @@ class Application:
             self.drum, self.output, self.tempo, self._on_sample_trigger
         )
 
-        setup_tracks(self.drum.tracks)
+        setup_tracks(self.drum.tracks, config)
 
     def slow_update(self, delta_ms: int) -> None:
         for controller in self.controllers:
@@ -216,8 +217,11 @@ class Application:
         for controller in self.controllers:
             controller.on_track_sample_played(track_index)
 
-def setup_tracks(tracks):
-    tracks[0].note = 4
-    tracks[1].note = 12
-    tracks[2].note = 20
-    tracks[3].note = 28
+def setup_tracks(tracks, config):
+    for i in range(Application.TRACK_COUNT):
+        tracks[i].note = config.get(f'track.{i}.init_note')
+        track_init = int(config.get(f'track.{i}.init_pattern'))
+        for j in range(STEP_COUNT): 
+            if track_init & (1 << j):  
+                tracks[i].sequencer.set_step(8-j-1, 100)
+

@@ -8,8 +8,9 @@ from adafruit_midi.stop import Stop  # type: ignore
 
 
 class MIDIController(Controller):
-    def __init__(self, midi: MIDI):
+    def __init__(self, midi: MIDI, config):
         self.midi = midi
+        self.config = config
 
     def fast_update(self, controls: Controls, delta_ms: int):
         pass

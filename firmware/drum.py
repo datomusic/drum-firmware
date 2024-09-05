@@ -1,8 +1,9 @@
 from .sequencer import Sequencer
-from .device_api import Output
+from .device_api import Output, Config
 from .note_player import NotePlayer
 from .repeat_effect import RepeatEffect
 from .random_effect import RandomEffect
+import os
 
 STEP_COUNT = 8
 SAMPLE_COUNT = 32
@@ -49,10 +50,11 @@ class Track:
 
 
 class Drum:
-    def __init__(self, output: Output, track_count: int):
+    def __init__(self, output: Output, track_count: int, config: Config):
         self.tracks = [Track(NotePlayer(index, output))
                        for index in range(track_count)]
         self.playing = True
+        self.config = config
         self._next_step_index = 0
         self._repeat_effect = RepeatEffect(lambda: self._next_step_index)
         self._double_time_repeat = False
@@ -74,12 +76,15 @@ class Drum:
 
     def change_sample(self, track_index, step):
         track = self.tracks[track_index]
-        if track.note + step < 0:
-            track.note = SAMPLE_COUNT - track.note + step
-        elif track.note + step >= SAMPLE_COUNT:
-            track.note = track.note - SAMPLE_COUNT + step
-        else:
-            track.note = track.note + step
+
+        # Get lowest note and maximum note selection range
+        track_init_note = int(self.config.get(f'track.{track_index}.init_note'))
+        range = int(self.config.get(f'track.{track_index}.range'))
+
+        # Wrap the values around when they hit the min or max allowed note
+        track.note = (track_init_note + (((track.note - track_init_note) + step) % range)) % SAMPLE_COUNT
+
+        #track.note = (track.note + step) % SAMPLE_COUNT
 
         if not self.playing:
             track.note_player.play(track.note)
@@ -98,13 +103,11 @@ class Drum:
 
     def set_repeat_effect_level(self, percentage: float) -> None:
         self._double_time_repeat = False
-        if percentage > 96:
+        if percentage > 97:
             self._repeat_effect.set_repeat_count(1)
-            if percentage > 98:
-                self._double_time_repeat = True
-        elif percentage > 94:
-            self._repeat_effect.set_repeat_count(2)
-            self._repeat_effect.set_subdivision(2)
+        # elif percentage > 90:
+        #     self._repeat_effect.set_repeat_count(2)
+        #     self._repeat_effect.set_subdivision(2)
         elif percentage > 20:
             self._repeat_effect.set_repeat_count(3)
             self._repeat_effect.set_subdivision(2)

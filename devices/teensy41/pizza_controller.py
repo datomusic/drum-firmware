@@ -1,7 +1,8 @@
-from firmware.device_api import Controls, OutputParam, TrackParam, EffectName
+from firmware.device_api import Controls, OutputParam, TrackParam, EffectName, Config
 from firmware.controller_api import Controller
 from firmware.drum import Drum
 from .pizza_view import PizzaView
+import os
 
 from .hardware import (
     Teensy41Hardware,
@@ -21,10 +22,6 @@ from .reading import (
     percentage_from_pot)
 
 BPM_MAX = 300
-
-# TODO:
-# - Maybe move jitter prevention to hardware layer
-
 
 class DrumPad:
     def __init__(self, track_index, trigger_port, mute_port):
@@ -65,13 +62,16 @@ class DrumPad:
 
 
 class PizzaController(Controller):
-    def __init__(self, track_count, hardware=None) -> None:
+    def __init__(self, track_count, config: Config, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
         self.hardware = hardware
-        self.display = hardware.init_display()
-        self.view = PizzaView(track_count)
+        self.config = config
+        ## TODO: bounds setting on brightness setting
+        brightness = int(config.get('device.brightness')) / 256
+        self.display = hardware.init_display(brightness)
+        self.view = PizzaView(track_count, config)
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)

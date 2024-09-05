@@ -1,5 +1,5 @@
 from firmware.drum import Drum # type: ignore
-from .colors import ColorScheme
+import os
 from .hardware import (
     Display,
     Drumpad,
@@ -11,6 +11,23 @@ from .hardware import (
     ControlName,
 )
 
+def hex_to_rgb(hex_color):
+    # Convert the hexadecimal values to decimal and create a tuple of (R, G, B)
+    rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+    return rgb
+
+def int_to_rgb(int_color):
+    # Extract the red component (bits 16-23) using bitwise AND and right shift
+    r = (int_color >> 16) & 0xFF
+
+    # Extract the green component (bits 8-15) using bitwise AND and right shift
+    g = (int_color >> 8) & 0xFF
+
+    # Extract the blue component (bits 0-7) using bitwise AND
+    b = int_color & 0xFF
+
+    return (r, g, b)
 
 FADE_TIME_MS = 150
 
@@ -53,7 +70,6 @@ class SequencerRing:
 
         for step_index, step in enumerate(track.sequencer.steps):
             key = SequencerKey(step_index, self.track_index)
-
             if track.repeat_is_active():
                 display.set_color(key, step_color)
             elif self.fade_remaining_ms > 0:
@@ -76,6 +92,7 @@ class Cursor:
     def show(
         self,
         display: Display,
+        color: int,
         playing: bool,
         track_index: int,
         current_step: int,
@@ -90,22 +107,23 @@ class Cursor:
 
         self.last_beat_position = beat_position
         if playing:
-            display.blend(sequencer_key, ColorScheme.Cursor, amount)
+            display.blend(sequencer_key, color, (amount*0.7)+0.3)
+            display.set_color(start_key, color)
         else:
             if self.fade_play_toggle:
-                display.blend(sequencer_key, ColorScheme.Cursor, amount)
+                display.blend(sequencer_key, color, (amount*0.7)+0.3)
                 display.set_color(start_key, (0, 0, 0))
             else:
-                display.set_color(start_key, ColorScheme.Cursor)
+                display.set_color(start_key, color)
                 display.fade(start_key, amount)
 
 
 class PizzaView:
-    def __init__(self, track_count) -> None:
+    def __init__(self, track_count, config) -> None:
         self.pad_indicators = [
             PadIndicator(track_index) for track_index in range(track_count)
         ]
-
+        self.config = config
         self.rings = [SequencerRing(track_index)
                       for track_index in range(track_count)]
         self.cursor = Cursor()
@@ -123,13 +141,13 @@ class PizzaView:
     def show(self, display: Display, drum: Drum, beat_position: float) -> None:
         for track_index, track in enumerate(drum.tracks):
             current_step = drum.get_indicator_step(track_index)
-
-            color = ColorScheme.Tracks[drum.tracks[track_index].note]
+            # TODO: only retrieve colors once, or at least cache them
+            color = int_to_rgb(int(drum.config.get(f'note.{track.note}.color')))
             self.rings[track_index].show_steps(display, drum, color)
             self._show_pad(display, drum, color, track_index)
 
             self.cursor.show(
-                display, drum.playing, track_index, current_step, beat_position
+                display, int_to_rgb(int(self.config.get("device.cursor_color"))), drum.playing, track_index, current_step, beat_position
             )
 
     def _show_pad(self, display, drum, color, track_index) -> None:

@@ -1,4 +1,5 @@
 from firmware.drum import Drum  # type: ignore
+from firmware.sequencer import Sequencer  # type: ignore
 from firmware.settings import Settings  # type: ignore
 from .hardware import (
     Display,
@@ -68,10 +69,10 @@ class SequencerRing:
     def trigger(self):
         self.fade_remaining_ms = FADE_TIME_MS
 
-    def show_steps(self, display: Display, drum: Drum, step_color) -> None:
-        track = drum.tracks[self.track_index]
+    def show_steps(self, display: Display, sequencer: Sequencer, step_color) -> None:
+        track = sequencer.tracks[self.track_index]
 
-        for step_index, step in enumerate(track.sequencer.steps):
+        for step_index, step in enumerate(track.steps.steps):
             key = SequencerKey(step_index, self.track_index)
             if track.repeat_is_active():
                 display.set_color(key, step_color)
@@ -139,28 +140,28 @@ class PizzaView:
     def trigger_track(self, track_index: int) -> None:
         self.rings[track_index].trigger()
 
-    def show(self, display: Display, drum: Drum, beat_position: float) -> None:
-        for track_index, track in enumerate(drum.tracks):
-            current_step = drum.get_indicator_step(track_index)
+    def show(self, display: Display, sequencer: Sequencer, beat_position: float) -> None:
+        for track_index, track in enumerate(sequencer.tracks):
+            current_step = sequencer.get_indicator_step(track_index)
             # TODO: only retrieve colors once, or at least cache them
-            color = int_to_rgb(int(drum.settings.get(f"note.{track.note}.color")))
-            self.rings[track_index].show_steps(display, drum, color)
-            self._show_pad(display, drum, color, track_index)
+            color = int_to_rgb(int(self.settings.get(f"note.{track.note}.color")))
+            self.rings[track_index].show_steps(display, sequencer, color)
+            self._show_pad(display, sequencer, color, track_index)
 
             self.cursor.show(
                 display,
                 int_to_rgb(int(self.settings.get("device.cursor_color"))),
-                drum.playing,
+                sequencer.playing,
                 track_index,
                 current_step,
                 beat_position,
             )
 
-    def _show_pad(self, display, drum, color, track_index) -> None:
-        current_step_index = drum.get_indicator_step(track_index)
+    def _show_pad(self, display, sequencer, color, track_index) -> None:
+        current_step_index = sequencer.get_indicator_step(track_index)
 
-        track = drum.tracks[track_index]
-        step_active = track.sequencer.steps[current_step_index].active
+        track = sequencer.tracks[track_index]
+        step_active = track.steps.steps[current_step_index].active
         self.pad_indicators[track_index].show(
             display, current_step_index, color, step_active
         )

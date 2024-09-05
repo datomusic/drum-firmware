@@ -1,9 +1,10 @@
 import time
 from .sequencer import Sequencer, STEP_COUNT
-from .device_api import Output, EffectName, TrackParam
+from .device_api import Output
 from .settings import Settings
 from .controller_api import Controller
-from .tempo import Tempo, TempoSource
+from .tempo import Tempo
+from .drum import Drum
 import gc
 
 WITH_MEMORY_METRICS = False
@@ -140,7 +141,10 @@ class Application:
             on_quarter_beat=self.sequencer.on_quarter_beat,
         )
         self.sequencer.playing = False
-        self.controls = AppControls(
+        # self.controls = AppControls(
+        #     self.sequencer, self.output, self.tempo, self._on_sample_trigger
+        # )
+        self.drum = Drum(
             self.sequencer, self.output, self.tempo, self._on_sample_trigger
         )
 
@@ -148,18 +152,18 @@ class Application:
 
     def slow_update(self, delta_ms: int) -> None:
         for controller in self.controllers:
-            controller.update(self.controls, delta_ms)
+            controller.update(self.drum, delta_ms)
 
     def fast_update(self, delta_ns: int) -> None:
         self.tempo.update(delta_ns)
 
         delta_ms = delta_ns // 1_000_000
         for controller in self.controllers:
-            controller.fast_update(self.controls, delta_ms)
+            controller.fast_update(self.drum, delta_ms)
 
     def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.sequencer, delta_ms,
+            controller.show(self.drum, delta_ms,
                             self.tempo.get_beat_position())
 
     def run(self):

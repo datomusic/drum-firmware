@@ -1,4 +1,4 @@
-from .device_api import Output
+from .output_api import Output
 
 
 class NotePlayer:

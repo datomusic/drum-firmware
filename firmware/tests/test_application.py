@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from firmware.application import Application
-from firmware.device_api import Output
+from firmware.output_api import Output
 
 
 class TestSettings:

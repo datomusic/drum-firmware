@@ -32,6 +32,3 @@ class MIDIController(Controller):
 
     def show(self, _drum, _delta_ms, _beat_position):
         pass
-
-    def on_track_sample_played(self, track_index: int):
-        pass

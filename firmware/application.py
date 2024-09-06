@@ -1,6 +1,6 @@
 import time
 from .sequencer import Sequencer, STEP_COUNT
-from .device_api import Output
+from .output_api import Output
 from .settings import Settings
 from .controller_api import Controller
 from .tempo import Tempo
@@ -81,8 +81,7 @@ class Application:
             on_quarter_beat=self.sequencer.on_quarter_beat,
         )
         self.sequencer.playing = False
-        self.drum = Drum(self.sequencer, self.output,
-                         self.tempo, self._on_sample_trigger)
+        self.drum = Drum(self.sequencer, self.output, self.tempo)
 
         setup_tracks(self.sequencer.tracks, settings)
 

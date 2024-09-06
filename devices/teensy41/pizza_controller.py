@@ -32,7 +32,7 @@ class DrumPad:
         self.mute = PotReader(mute_port)
         self.muted_when_triggered = False
 
-    def update(self, drum: Drum):
+    def update(self, drum: Drum, view: PizzaView):
         was_triggered = self.trigger.triggered
         triggered, value = self.trigger.read()
         trigger_changed = was_triggered != self.trigger.triggered
@@ -57,7 +57,8 @@ class DrumPad:
             drum.sequencer.tracks[self.track_index].repeat_velocity = velocity
 
         if triggered:
-            drum.play_track_sample(self.track_index, velocity)
+            drum.sequencer.tracks[self.track_index].play(velocity)
+            view.trigger_track(self.track_index)
 
 
 class PizzaController(Controller):
@@ -110,7 +111,7 @@ class PizzaController(Controller):
 
     def fast_update(self, drum: Drum, _delta_ms: int) -> None:
         for track_index, pad in enumerate(self.drum_pads):
-            pad.update(drum)
+            pad.update(drum, self.view)
 
     def update(self, drum: Drum, delta_ms: int) -> None:
         self._read_pots(drum)
@@ -122,11 +123,7 @@ class PizzaController(Controller):
         self.view.show(self.display, drum.sequencer, beat_position)
         self.display.show()
 
-    def on_track_sample_played(self, track_index: int):
-        self.view.trigger_track(track_index)
-
     def _read_pots(self, drum: Drum) -> None:
-
         def set_speed(pot_speed):
             speed = percentage_from_pot(pot_speed)
             drum.tempo.set_bpm(speed * BPM_MAX / 100)

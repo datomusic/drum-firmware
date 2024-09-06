@@ -1,5 +1,5 @@
 from .tempo import TempoSource
-from .device_api import Output, OutputParam
+from .output_api import Output, OutputParam
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
 from adafruit_midi.note_on import NoteOn  # type: ignore

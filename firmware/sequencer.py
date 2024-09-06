@@ -1,5 +1,5 @@
 from .steps import Steps
-from .device_api import Output
+from .output_api import Output
 from .note_player import NotePlayer
 from .repeat_effect import RepeatEffect
 from .random_effect import RandomEffect

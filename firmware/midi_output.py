@@ -1,5 +1,5 @@
 from .tempo import TempoSource
-from .output_api import Output, OutputParam
+from .output_api import Output, OutputParam, OutputChannelParam
 from adafruit_midi import MIDI  # type: ignore
 from adafruit_midi.control_change import ControlChange  # type: ignore
 from adafruit_midi.note_on import NoteOn  # type: ignore
@@ -20,13 +20,13 @@ class MIDIOutput(Output):
     def send_note_off(self, channel: int, note: int):
         self.midi.send(NoteOff(note), channel=channel)
 
-    def set_channel_pitch(self, channel: int, pitch_percent: float):
-        self._send_cc(16 + channel, percent_to_midi(pitch_percent))
-
-    def set_channel_mute(self, channel: int, pressure: float):
-        midi_value = percent_to_midi(pressure)
-        # print(f"[{channel}] ChannelPressure: {midi_value}")
-        self.midi.send(ChannelPressure(midi_value), channel=channel)
+    def set_channel_param(self, channel: int, param, value_percent: float):
+        if param == OutputChannelParam.Pitch:
+            self._send_cc(16 + channel, percent_to_midi(value_percent))
+        elif param == OutputChannelParam.Mute:
+            midi_value = percent_to_midi(value_percent)
+            # print(f"[{channel}] ChannelPressure: {midi_value}")
+            self.midi.send(ChannelPressure(midi_value), channel=channel)
 
     def set_param(self, param, value) -> None:
         if param == OutputParam.Volume:
@@ -42,14 +42,15 @@ class MIDIOutput(Output):
             self._send_cc(76, percent_to_midi(value))
 
         elif param == OutputParam.AdjustFilter:
-            self.filter_amount = constrain_midi(int(self.filter_amount + value))
+            self.filter_amount = constrain_midi(
+                int(self.filter_amount + value))
             self._send_cc(74, self.filter_amount)
 
         elif param == OutputParam.Distortion:
-            self._send_cc(77, percent_to_midi(value))                
+            self._send_cc(77, percent_to_midi(value))
 
         elif param == OutputParam.Bitcrusher:
-            self._send_cc(78, percent_to_midi(value))      
+            self._send_cc(78, percent_to_midi(value))
 
     def on_tempo_tick(self, source) -> None:
         if source == TempoSource.Internal:

@@ -13,6 +13,11 @@ class OutputParam:
     Bitcrusher = 7
 
 
+class OutputChannelParam:
+    Pitch = 1
+    Mute = 2
+
+
 class Output:
     def send_note_on(self, channel: int, note: int, velocity_percent: float):
         _not_implemented("Output.send_note_on", note, velocity_percent)
@@ -20,14 +25,11 @@ class Output:
     def send_note_off(self, channel: int, note: int):
         _not_implemented("Output.send_note_off", note)
 
-    def set_channel_pitch(self, channel: int, pitch: float):
-        _not_implemented("Output.set_channel_pitch", channel, pitch)
-
     def set_param(self, param, percent: float):
         _not_implemented("Output.set_param", param, percent)
 
+    def set_channel_param(self, channel: int, param, percent: float):
+        _not_implemented("Output.set_channel_param", param, channel, percent)
+
     def on_tempo_tick(self, source):
         _not_implemented("Output.on_tempo_tick", source)
-
-    def set_channel_mute(self, channel: int, amount_percent: float):
-        _not_implemented("Output.set_channel_mute", channel, amount_percent)

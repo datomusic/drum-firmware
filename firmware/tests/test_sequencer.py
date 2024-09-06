@@ -15,7 +15,7 @@ class SequencerTest(unittest.TestCase):
         sequencer = Sequencer(output=output, track_count=1,
                               settings=TestSettings())
         track = sequencer.tracks[0]
-        self.assertEqual(True, sequencer.playing)
+        self.assertEqual(True, sequencer._playing)
         velocity = 100
         track.repeat_velocity = velocity
         sequencer.on_quarter_beat(0)
@@ -41,7 +41,7 @@ class SequencerTest(unittest.TestCase):
         sequencer = Sequencer(output=output, track_count=1,
                               settings=TestSettings())
         track = sequencer.tracks[0]
-        self.assertEqual(True, sequencer.playing)
+        self.assertEqual(True, sequencer._playing)
         repeat_velocity_1 = 98
         repeat_velocity_2 = 99
         play_velocity = 50
@@ -67,7 +67,7 @@ class SequencerTest(unittest.TestCase):
         sequencer = Sequencer(output=output, track_count=1,
                               settings=TestSettings())
         track = sequencer.tracks[0]
-        self.assertEqual(True, sequencer.playing)
+        self.assertEqual(True, sequencer._playing)
         track.repeat_velocity = 100
         sequencer.on_quarter_beat(0)
         # Should not play since repeat is active

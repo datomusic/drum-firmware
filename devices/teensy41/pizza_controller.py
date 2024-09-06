@@ -207,4 +207,4 @@ class PizzaController(Controller):
 
             elif isinstance(key, ControlKey):
                 if key.name == ControlName.Start:
-                    drum.set_playing(not drum.sequencer.playing)
+                    drum.sequencer.set_playing(not drum.sequencer.is_playing())

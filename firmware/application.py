@@ -1,9 +1,8 @@
 import time
-from .sequencer import Sequencer, STEP_COUNT
-from .output_api import Output
 from .settings import Settings
+from .sequencer import STEP_COUNT
+from .output_api import Output
 from .controller_api import Controller
-from .tempo import Tempo
 from .drum import Drum
 import gc
 
@@ -71,26 +70,19 @@ class Application:
 
     def __init__(
         self, controllers: list[Controller], output: Output, settings: Settings
-    ):
+    ) -> None:
         self.settings = settings
         self.controllers = controllers
         self.output = output
-        self.sequencer = Sequencer(output, Application.TRACK_COUNT, settings)
-        self.tempo = Tempo(
-            tempo_tick_callback=self.output.on_tempo_tick,
-            on_quarter_beat=self.sequencer.on_quarter_beat,
-        )
-        self.sequencer.playing = False
-        self.drum = Drum(self.sequencer, self.output, self.tempo)
-
-        setup_tracks(self.sequencer.tracks, settings)
+        self.drum = Drum(Application.TRACK_COUNT, self.output, settings)
+        setup_tracks(self.drum.sequencer.tracks, settings)
 
     def slow_update(self, delta_ms: int) -> None:
         for controller in self.controllers:
             controller.update(self.drum, delta_ms)
 
     def fast_update(self, delta_ns: int) -> None:
-        self.tempo.update(delta_ns)
+        self.drum.tempo.update(delta_ns)
 
         delta_ms = delta_ns // 1_000_000
         for controller in self.controllers:
@@ -98,8 +90,7 @@ class Application:
 
     def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.drum, delta_ms,
-                            self.tempo.get_beat_position())
+            controller.show(self.drum, delta_ms, self.drum.tempo.get_beat_position())
 
     def run(self):
         for _ in self.run_iterator():

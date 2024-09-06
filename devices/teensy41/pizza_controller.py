@@ -1,4 +1,4 @@
-from firmware.device_api import OutputParam
+from firmware.output_api import OutputParam, OutputChannelParam
 from firmware.settings import Settings
 from firmware.controller_api import Controller
 from firmware.drum import Drum
@@ -26,13 +26,13 @@ BPM_MAX = 300
 
 
 class DrumPad:
-    def __init__(self, track_index, trigger_port, mute_port):
+    def __init__(self, track_index, trigger_port, mute_port) -> None:
         self.track_index = track_index
         self.trigger = ThresholdTrigger(trigger_port)
         self.mute = PotReader(mute_port)
         self.muted_when_triggered = False
 
-    def update(self, drum: Drum, view: PizzaView):
+    def update(self, drum: Drum, view: PizzaView) -> None:
         was_triggered = self.trigger.triggered
         triggered, value = self.trigger.read()
         trigger_changed = was_triggered != self.trigger.triggered
@@ -40,7 +40,8 @@ class DrumPad:
         if not self.trigger.triggered or self.muted_when_triggered:
             self.mute.read(
                 lambda amount:
-                    drum.output.set_channel_mute(
+                    drum.output.set_channel_param(
+                        OutputChannelParam.Mute,
                         self.track_index, percentage_from_pot(amount)))
 
         velocity = percentage_from_pot(value)
@@ -184,7 +185,8 @@ class PizzaController(Controller):
                 percentage_from_pot(val) > 50))
 
         for track_index, pitch_setting in enumerate(self.pitch_settings):
-            pitch_setting.read(lambda pitch: drum.output.set_channel_pitch(
+            pitch_setting.read(lambda pitch: drum.output.set_channel_param(
+                OutputChannelParam.Pitch,
                 track_index, percentage_from_pot(pitch)))
 
     def _process_keys(self, drum: Drum) -> None:

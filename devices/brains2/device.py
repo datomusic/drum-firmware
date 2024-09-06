@@ -9,7 +9,7 @@ from .hardware import (
 
 from drum import Drum
 from note_output import NoteOutput
-from device_api import DeviceAPI, PotName
+from output_api import DeviceAPI, PotName
 
 
 class Brains2Device(DeviceAPI):

@@ -51,14 +51,23 @@ class Track:
 
 
 class Sequencer:
-    def __init__(self, output: Output, track_count: int, settings: Settings):
+    def __init__(self, output: Output, track_count: int,  settings: Settings, on_play_callback=None):
         self.tracks = [Track(NotePlayer(index, output))
                        for index in range(track_count)]
-        self.playing = True
-        self.settings = settings
+        self._on_play_callback = on_play_callback
+        self._playing = True
+        self._settings = settings
         self._next_step_index = 0
         self._repeat_effect = RepeatEffect(lambda: self._next_step_index)
         self._double_time_repeat = False
+
+    def set_playing(self, playing):
+        self._playing = playing
+        if self._on_play_callback and self._playing:
+            self._on_play_callback()
+
+    def is_playing(self):
+        return self._playing
 
     def on_quarter_beat(self, quarter_index):
         if quarter_index % 2 == 0:
@@ -79,9 +88,9 @@ class Sequencer:
         track = self.tracks[track_index]
 
         # Get lowest note and maximum note selection range
-        track_init_note = int(self.settings.get(
+        track_init_note = int(self._settings.get(
             f"track.{track_index}.init_note"))
-        range = int(self.settings.get(f"track.{track_index}.range"))
+        range = int(self._settings.get(f"track.{track_index}.range"))
 
         # Wrap the values around when they hit the min or max allowed note
         track.note = (
@@ -90,7 +99,7 @@ class Sequencer:
 
         # track.note = (track.note + step) % SAMPLE_COUNT
 
-        if not self.playing:
+        if not self._playing:
             track.note_player.play(track.note)
 
         print(f"Sample change. track: {track_index}, note: {track.note}")
@@ -98,7 +107,7 @@ class Sequencer:
     def toggle_track_step(self, track_index, step_index):
         track = self.tracks[track_index]
         active = track.steps.toggle_step(step_index)
-        if active and not self.playing:
+        if active and not self._playing:
             track.note_player.play(track.note)
 
     def set_random_enabled(self, enabled):
@@ -120,7 +129,7 @@ class Sequencer:
             self._repeat_effect.set_subdivision(1)
 
     def _advance_step(self) -> None:
-        if self.playing:
+        if self._playing:
             for track in self.tracks:
                 track.random_effect.advance()
 
@@ -129,7 +138,7 @@ class Sequencer:
             self._repeat_effect.advance()
 
     def _tick_beat_repeat(self, quarter_index):
-        if self.playing:
+        if self._playing:
             if self._double_time_repeat:
                 self._play_track_steps()
 

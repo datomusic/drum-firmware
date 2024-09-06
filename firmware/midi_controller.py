@@ -24,9 +24,9 @@ class MIDIController(Controller):
                 drum.tempo.tempo_source = TempoSource.MIDI
                 drum.tempo.handle_midi_clock()
             elif isinstance(msg, Continue) or isinstance(msg, Start):
-                drum.set_playing(True)
+                drum.sequencer.set_playing(True)
             elif isinstance(msg, Stop):
-                drum.set_playing(False)
+                drum.sequencer.set_playing(False)
 
             msg = self.midi.receive()
 

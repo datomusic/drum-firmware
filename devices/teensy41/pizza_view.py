@@ -151,7 +151,7 @@ class PizzaView:
             self.cursor.show(
                 display,
                 int_to_rgb(int(self.settings.get("device.cursor_color"))),
-                sequencer.playing,
+                sequencer.is_playing(),
                 track_index,
                 current_step,
                 beat_position,

@@ -1,67 +1,10 @@
 import time
+import gc
 from .settings import Settings
 from .output_api import Output
 from .controller_api import Controller
 from .drum import Drum
-import gc
-
-WITH_MEMORY_METRICS = False
-
-
-class Tracker:
-    def __init__(self, name):
-        self.name = name
-        self.reset()
-
-    def start(self):
-        self.start_ns = time.monotonic_ns()
-        if WITH_MEMORY_METRICS:
-            self.start_memory = gc.mem_alloc()
-
-    def stop(self):
-        self.count += 1
-        time_diff = time.monotonic_ns() - self.start_ns
-        if WITH_MEMORY_METRICS:
-            memory_diff = gc.mem_alloc() - self.start_memory
-        else:
-            memory_diff = 0
-
-        if self.average_ns > 0:
-            self.average_ns = (self.average_ns + time_diff) / 2
-            self.average_memory = (self.average_memory + memory_diff) / 2
-            self.min = min(self.min, time_diff)
-            self.max = max(self.max, time_diff)
-        else:
-            self.average_ns = time_diff
-            self.average_memory = memory_diff
-            self.min = time_diff
-            self.max = time_diff
-
-        self.total_ns += time_diff
-
-    def reset(self):
-        self.count = 0
-        self.start_ns = 0
-        self.total_ns = 0
-        self.min = 0
-        self.max = 0
-        self.average_ns = 0
-        self.start_memory = 0
-
-    def get_info(self):
-        return f"[{self.name}] count: {self.count}, avg: {self.average_ns / 1_000_000:.2f}ms, min: {self.min / 1_000_000:.2f}ms, max: {self.max / 1_000_000:.2f}ms, alloc: {self.average_memory}"
-
-
-class Timed:
-    def __init__(self, name, function):
-        self.tracker = Tracker(name)
-        self.function = function
-        self.name = name
-
-    def __call__(self, *args):
-        self.tracker.start()
-        self.function(*args)
-        self.tracker.stop()
+from .metrics import Metrics
 
 
 class Application:
@@ -86,39 +29,41 @@ class Application:
 
     def show(self, delta_ms) -> None:
         for controller in self.controllers:
-            controller.show(self.drum, delta_ms, self.drum.tempo.get_beat_position())
+            controller.show(self.drum, delta_ms,
+                            self.drum.tempo.get_beat_position())
 
     def run(self):
         for _ in self.run_iterator():
             pass
 
-    def run_iterator(self):
+    def run_iterator(self) -> object:
         gc.disable()
+        metrics = Metrics()
 
-        accumulated_info_ns = 0
         accumulated_show_ns = 0
         accumulated_slow_update_ns = 0
-        last_ns = time.monotonic_ns()
-        frame_counter = 0
+        loop_counter = 0
 
-        loop_tracker = Tracker("loop")
-        gc_collect = Timed("gc_collect", lambda: gc.collect())
-        fast_update = Timed("fast_update", self.fast_update)
-        slow_update = Timed("slow_update", self.slow_update)
-        show = Timed("show", self.show)
+        gc_collect = metrics.wrap("gc_collect", gc.collect)
+        fast_update = metrics.wrap("fast_update", self.fast_update)
+        slow_update = metrics.wrap("slow_update", self.slow_update)
+        show = metrics.wrap("show", self.show)
+
+        last_nanoseconds = time.monotonic_ns()
 
         while True:
-            loop_tracker.start()
+            metrics.begin_loop()
 
             now = time.monotonic_ns()
-            delta_ns = now - last_ns
-            accumulated_show_ns += delta_ns
-            accumulated_slow_update_ns += delta_ns
-            accumulated_info_ns += delta_ns
-            last_ns = now
-            fast_update(delta_ns)
+            delta_nanoseconds = now - last_nanoseconds
+            last_nanoseconds = now
 
-            if frame_counter % 2 == 0:
+            accumulated_show_ns += delta_nanoseconds
+            accumulated_slow_update_ns += delta_nanoseconds
+
+            fast_update(delta_nanoseconds)
+
+            if loop_counter % 2 == 0:
                 ms = accumulated_slow_update_ns // 1_000_000
                 slow_update(ms)
                 accumulated_slow_update_ns -= ms * 1_000
@@ -129,18 +74,8 @@ class Application:
             else:
                 gc_collect()
 
-            frame_counter += 1
-
-            loop_tracker.stop()
-            if accumulated_info_ns > 1_000_000_000:
-                accumulated_info_ns = 0
-                print(loop_tracker.get_info())
-                loop_tracker.reset()
-                for timed in [fast_update, gc_collect, slow_update, show]:
-                    print(timed.tracker.get_info())
-                    timed.tracker.reset()
-                print()
-
+            loop_counter += 1
+            metrics.end_loop(delta_nanoseconds)
             yield
 
 

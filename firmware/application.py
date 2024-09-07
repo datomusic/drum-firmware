@@ -16,66 +16,62 @@ class Application:
         self.output = output
         self.drum = Drum(self.output, settings)
 
-    def slow_update(self, delta_ms: int) -> None:
-        for controller in self.controllers:
-            controller.update(self.drum, delta_ms)
+        self._metrics = Metrics()
+        self._gc_collect = self._metrics.wrap("gc_collect", gc.collect)
+        self._fast_update = self._metrics.wrap("fast_update", self.fast_update)
+        self._slow_update = self._metrics.wrap("slow_update", self.slow_update)
+        self._show = self._metrics.wrap("show", self.show)
 
-    def fast_update(self, delta_ns: int) -> None:
-        self.drum.tempo.update(delta_ns)
+        self._last_nanoseconds = time.monotonic_ns()
+        self._loop_counter = 0
+        self._accumulated_show_ns = 0
+        self._accumulated_slow_update_ns = 0
+        gc.disable()
 
-        delta_ms = delta_ns // 1_000_000
+    def slow_update(self, delta_milliseconds: int) -> None:
         for controller in self.controllers:
-            controller.fast_update(self.drum, delta_ms)
+            controller.update(self.drum, delta_milliseconds)
 
-    def show(self, delta_ms) -> None:
+    def fast_update(self, delta_nanoseconds: int) -> None:
+        self.drum.tempo.update(delta_nanoseconds)
+
+        delta_milliseconds = delta_nanoseconds // 1_000_000
         for controller in self.controllers:
-            controller.show(self.drum, delta_ms,
+            controller.fast_update(self.drum, delta_milliseconds)
+
+    def show(self, delta_milliseconds) -> None:
+        for controller in self.controllers:
+            controller.show(self.drum, delta_milliseconds,
                             self.drum.tempo.get_beat_position())
 
     def run(self):
-        for _ in self.run_iterator():
-            pass
-
-    def run_iterator(self) -> object:
-        gc.disable()
-        metrics = Metrics()
-
-        accumulated_show_ns = 0
-        accumulated_slow_update_ns = 0
-        loop_counter = 0
-
-        gc_collect = metrics.wrap("gc_collect", gc.collect)
-        fast_update = metrics.wrap("fast_update", self.fast_update)
-        slow_update = metrics.wrap("slow_update", self.slow_update)
-        show = metrics.wrap("show", self.show)
-
-        last_nanoseconds = time.monotonic_ns()
-
         while True:
-            metrics.begin_loop()
+            self.loop_step()
 
-            now = time.monotonic_ns()
-            delta_nanoseconds = now - last_nanoseconds
-            last_nanoseconds = now
+    def loop_step(self) -> None:
+        self._metrics.begin_loop()
 
-            accumulated_show_ns += delta_nanoseconds
-            accumulated_slow_update_ns += delta_nanoseconds
+        now = time.monotonic_ns()
+        delta_nanoseconds = now - self._last_nanoseconds
+        self._last_nanoseconds = now
 
-            fast_update(delta_nanoseconds)
+        self._accumulated_show_ns += delta_nanoseconds
+        self._accumulated_slow_update_ns += delta_nanoseconds
 
-            if loop_counter % 2 == 0:
-                ms = accumulated_slow_update_ns // 1_000_000
-                slow_update(ms)
-                accumulated_slow_update_ns -= ms * 1_000
+        self._fast_update(delta_nanoseconds)
 
-            if accumulated_show_ns > 30_000_000:
-                show(accumulated_show_ns // 1_000_000)
-                accumulated_show_ns = 0
-            else:
-                gc_collect()
+        if self._loop_counter % 2 == 0:
+            ms = self._accumulated_slow_update_ns // 1_000_000
+            self._slow_update(ms)
+            self._accumulated_slow_update_ns -= ms * 1_000
 
-            loop_counter += 1
-            metrics.end_loop(delta_nanoseconds)
-            yield
+        if self._accumulated_show_ns > 30_000_000:
+            self._show(self._accumulated_show_ns // 1_000_000)
+            self._accumulated_show_ns = 0
+        else:
+            self._gc_collect()
+
+        self._loop_counter += 1
+        self._metrics.end_loop(delta_nanoseconds)
 
 

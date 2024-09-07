@@ -73,5 +73,3 @@ class Application:
 
         self._loop_counter += 1
         self._metrics.end_loop(delta_nanoseconds)
-
-

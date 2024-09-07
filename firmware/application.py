@@ -28,26 +28,6 @@ class Application:
         self._accumulated_slow_update_ns = 0
         gc.disable()
 
-    def slow_update(self, delta_milliseconds: int) -> None:
-        for controller in self.controllers:
-            controller.update(self.drum, delta_milliseconds)
-
-    def fast_update(self, delta_nanoseconds: int) -> None:
-        self.drum.tempo.update(delta_nanoseconds)
-
-        delta_milliseconds = delta_nanoseconds // 1_000_000
-        for controller in self.controllers:
-            controller.fast_update(self.drum, delta_milliseconds)
-
-    def show(self, delta_milliseconds) -> None:
-        for controller in self.controllers:
-            controller.show(self.drum, delta_milliseconds,
-                            self.drum.tempo.get_beat_position())
-
-    def run(self):
-        while True:
-            self.loop_step()
-
     def loop_step(self) -> None:
         self._metrics.begin_loop()
 
@@ -73,3 +53,24 @@ class Application:
 
         self._loop_counter += 1
         self._metrics.end_loop(delta_nanoseconds)
+
+    def run(self):
+        while True:
+            self.loop_step()
+
+
+    def slow_update(self, delta_milliseconds: int) -> None:
+        for controller in self.controllers:
+            controller.update(self.drum, delta_milliseconds)
+
+    def fast_update(self, delta_nanoseconds: int) -> None:
+        self.drum.tempo.update(delta_nanoseconds)
+
+        delta_milliseconds = delta_nanoseconds // 1_000_000
+        for controller in self.controllers:
+            controller.fast_update(self.drum, delta_milliseconds)
+
+    def show(self, delta_milliseconds) -> None:
+        for controller in self.controllers:
+            controller.show(self.drum, delta_milliseconds,
+                            self.drum.tempo.get_beat_position())

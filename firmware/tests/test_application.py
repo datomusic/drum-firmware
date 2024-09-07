@@ -10,9 +10,9 @@ class TestSettings:
 
 
 class ApplicationTest(unittest.TestCase):
-    def test_application_runs(self):
+    def test_application_single_step(self):
         output = Mock(Output)
-        Application([], output, TestSettings()).run_iterator().__next__()
+        Application([], output, TestSettings()).loop_step()
 
 
 if __name__ == '__main__':

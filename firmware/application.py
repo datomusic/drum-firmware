@@ -58,7 +58,6 @@ class Application:
         while True:
             self.loop_step()
 
-
     def slow_update(self, delta_milliseconds: int) -> None:
         for controller in self.controllers:
             controller.update(self.drum, delta_milliseconds)

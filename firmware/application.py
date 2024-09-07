@@ -1,6 +1,5 @@
 import time
 from .settings import Settings
-from .sequencer import STEP_COUNT
 from .output_api import Output
 from .controller_api import Controller
 from .drum import Drum
@@ -66,16 +65,13 @@ class Timed:
 
 
 class Application:
-    TRACK_COUNT = 4
-
     def __init__(
         self, controllers: list[Controller], output: Output, settings: Settings
     ) -> None:
         self.settings = settings
         self.controllers = controllers
         self.output = output
-        self.drum = Drum(Application.TRACK_COUNT, self.output, settings)
-        setup_tracks(self.drum.sequencer.tracks, settings)
+        self.drum = Drum(self.output, settings)
 
     def slow_update(self, delta_ms: int) -> None:
         for controller in self.controllers:
@@ -148,10 +144,3 @@ class Application:
             yield
 
 
-def setup_tracks(tracks, settings: Settings):
-    for i in range(Application.TRACK_COUNT):
-        tracks[i].note = settings.get(f"track.{i}.init_note")
-        track_init = int(settings.get(f"track.{i}.init_pattern"))
-        for j in range(STEP_COUNT):
-            if track_init & (1 << j):
-                tracks[i].steps.set_step(8 - j - 1, 100)

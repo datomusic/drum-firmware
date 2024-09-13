@@ -12,7 +12,6 @@ settings = Settings()
 
 controllers = [
     PizzaController(
-        track_count=Application.TRACK_COUNT,
         hardware=Teensy41Hardware(),
         settings=settings,
     ),

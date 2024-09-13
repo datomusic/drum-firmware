@@ -1,7 +1,7 @@
 from firmware.output_api import OutputParam, OutputChannelParam
 from firmware.settings import Settings
 from firmware.controller_api import Controller
-from firmware.drum import Drum
+from firmware.drum import Drum, TRACK_COUNT
 from .pizza_view import PizzaView
 
 from .hardware import (
@@ -39,10 +39,12 @@ class DrumPad:
 
         if not self.trigger.triggered or self.muted_when_triggered:
             self.mute.read(
-                lambda amount:
-                    drum.output.set_channel_param(
-                        OutputChannelParam.Mute,
-                        self.track_index, percentage_from_pot(amount)))
+                lambda amount: drum.output.set_channel_param(
+                    self.track_index,
+                    OutputChannelParam.Mute,
+                    percentage_from_pot(amount),
+                )
+            )
 
         velocity = percentage_from_pot(value)
         muted = self.mute.last_val > 1000
@@ -63,7 +65,7 @@ class DrumPad:
 
 
 class PizzaController(Controller):
-    def __init__(self, track_count, settings: Settings, hardware=None) -> None:
+    def __init__(self, settings: Settings, hardware=None) -> None:
         if hardware is None:
             hardware = Teensy41Hardware()
 
@@ -72,7 +74,7 @@ class PizzaController(Controller):
         # TODO: bounds setting on brightness setting
         brightness = int(settings.get("device.brightness")) / 256
         self.display = hardware.init_display(brightness)
-        self.view = PizzaView(track_count, settings)
+        self.view = PizzaView(TRACK_COUNT, settings)
 
         self.speed_setting = PotReader(self.hardware.speed_pot)
         self.volume_setting = PotReader(self.hardware.volume_pot)
@@ -178,16 +180,22 @@ class PizzaController(Controller):
 
         self.beat_repeat_setting.read(
             lambda val: drum.sequencer.set_repeat_effect_level(
-                percentage_from_pot(val)))
+                percentage_from_pot(val))
+        )
 
         self.random_setting.read(
             lambda val: drum.sequencer.set_random_enabled(
-                percentage_from_pot(val) > 50))
+                percentage_from_pot(val) > 50)
+        )
 
         for track_index, pitch_setting in enumerate(self.pitch_settings):
-            pitch_setting.read(lambda pitch: drum.output.set_channel_param(
-                OutputChannelParam.Pitch,
-                track_index, percentage_from_pot(pitch)))
+            pitch_setting.read(
+                lambda pitch: drum.output.set_channel_param(
+                    track_index,
+                    OutputChannelParam.Pitch,
+                    percentage_from_pot(pitch)
+                )
+            )
 
     def _process_keys(self, drum: Drum) -> None:
         event = self.hardware.get_key_event()

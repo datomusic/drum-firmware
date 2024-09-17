@@ -97,8 +97,6 @@ class Sequencer:
             track_init_note + (((track.note - track_init_note) + step) % range)
         ) % SAMPLE_COUNT
 
-        # track.note = (track.note + step) % SAMPLE_COUNT
-
         if not self._playing:
             track.note_player.play(track.note)
 
@@ -118,9 +116,6 @@ class Sequencer:
         self._double_time_repeat = False
         if percentage > 97:
             self._repeat_effect.set_repeat_count(1)
-        # elif percentage > 90:
-        #     self._repeat_effect.set_repeat_count(2)
-        #     self._repeat_effect.set_subdivision(2)
         elif percentage > 20:
             self._repeat_effect.set_repeat_count(3)
             self._repeat_effect.set_subdivision(2)

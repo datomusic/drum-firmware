@@ -24,7 +24,6 @@ class MIDIOutput(Output):
             self._send_cc(16 + channel, percent_to_midi(value_percent))
         elif param == OutputChannelParam.Mute:
             midi_value = percent_to_midi(value_percent)
-            # print(f"[{channel}] ChannelPressure: {midi_value}")
             self.midi.send(ChannelPressure(midi_value), channel=channel)
         else:
             raise TypeError(f"Invalid output channel parameter: {param}")

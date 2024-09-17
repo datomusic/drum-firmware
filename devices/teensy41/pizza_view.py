@@ -143,7 +143,6 @@ class PizzaView:
     def show(self, display: Display, sequencer: Sequencer, beat_position: float) -> None:
         for track_index, track in enumerate(sequencer.tracks):
             current_step = sequencer.get_indicator_step(track_index)
-            # TODO: only retrieve colors once, or at least cache them
             color = int_to_rgb(int(self.settings.get(f"note.{track.note}.color")))
             self.rings[track_index].show_steps(display, sequencer, color)
             self._show_pad(display, sequencer, color, track_index)

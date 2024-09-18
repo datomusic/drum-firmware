@@ -194,7 +194,8 @@ def init_keymatrix():
     )
 
     return keypad.KeyMatrix(
-        row_pins=row_pins, column_pins=col_pins, interval=0.1, columns_to_anodes=False
+        row_pins=row_pins, column_pins=col_pins,
+        interval=0.1, columns_to_anodes=False
     )
 
 

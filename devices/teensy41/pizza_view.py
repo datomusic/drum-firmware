@@ -1,4 +1,3 @@
-from firmware.drum import Drum  # type: ignore
 from firmware.sequencer import Sequencer  # type: ignore
 from firmware.settings import Settings  # type: ignore
 from .hardware import (
@@ -15,7 +14,8 @@ from .hardware import (
 
 def hex_to_rgb(hex_color):
     # Convert the hexadecimal values to decimal and create a tuple of (R, G, B)
-    rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    rgb = tuple(int(
+        hex_color[i: i + 2], 16) for i in (0, 2, 4))
 
     return rgb
 
@@ -78,7 +78,8 @@ class SequencerRing:
                 display.set_color(key, step_color)
             elif self.fade_remaining_ms > 0:
                 fade_amount = self.fade_remaining_ms / FADE_TIME_MS
-                display.set_color(key, saturated_multiply(step_color, fade_amount))
+                display.set_color(key, saturated_multiply(
+                    step_color, fade_amount))
             elif step.active:
                 display.set_color(key, step_color)
 
@@ -95,7 +96,7 @@ class Cursor:
     def show(
         self,
         display: Display,
-        color: int,
+        color: None | tuple[int, int, int],
         playing: bool,
         track_index: int,
         current_step: int,
@@ -127,7 +128,8 @@ class PizzaView:
             PadIndicator(track_index) for track_index in range(track_count)
         ]
         self.settings = settings
-        self.rings = [SequencerRing(track_index) for track_index in range(track_count)]
+        self.rings = [SequencerRing(track_index)
+                      for track_index in range(track_count)]
         self.cursor = Cursor()
 
     def update(self, delta_ms: int) -> None:
@@ -140,10 +142,12 @@ class PizzaView:
     def trigger_track(self, track_index: int) -> None:
         self.rings[track_index].trigger()
 
-    def show(self, display: Display, sequencer: Sequencer, beat_position: float) -> None:
+    def show(self, display: Display,
+             sequencer: Sequencer, beat_position: float) -> None:
         for track_index, track in enumerate(sequencer.tracks):
             current_step = sequencer.get_indicator_step(track_index)
-            color = int_to_rgb(int(self.settings.get(f"note.{track.note}.color")))
+            color = int_to_rgb(
+                int(self.settings.get(f"note.{track.note}.color")))
             self.rings[track_index].show_steps(display, sequencer, color)
             self._show_pad(display, sequencer, color, track_index)
 

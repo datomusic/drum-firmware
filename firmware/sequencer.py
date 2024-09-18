@@ -51,7 +51,11 @@ class Track:
 
 
 class Sequencer:
-    def __init__(self, output: Output, track_count: int,  settings: Settings, on_play_callback=None):
+    def __init__(self,
+                 output: Output,
+                 track_count: int,
+                 settings: Settings,
+                 on_play_callback=None):
         self.tracks = [Track(NotePlayer(index, output))
                        for index in range(track_count)]
         self._on_play_callback = on_play_callback

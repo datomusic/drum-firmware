@@ -1,7 +1,7 @@
-import keypad
-import board
-import neopixel
-import analogio as aio
+import keypad  # type: ignore
+import board  # type: ignore
+import neopixel  # type: ignore
+import analogio as aio  # type: ignore
 
 
 class SequencerKey:

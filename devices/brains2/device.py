@@ -7,9 +7,9 @@ from .hardware import (
     Display,
 )
 
-from drum import Drum
-from note_output import NoteOutput
-from output_api import DeviceAPI, PotName
+from firmware.drum import Drum
+from firmware.note_output import NoteOutput
+from firmware.output_api import DeviceAPI, PotName
 
 
 class Brains2Device(DeviceAPI):

@@ -1,5 +1,3 @@
-import math
-
 POT_MIN = 0
 POT_MAX = 65536
 
@@ -71,7 +69,6 @@ class ThresholdTrigger:
             return False, value
 
 
-
 class DigitalChanger:
     def __init__(self, pin):
         self.pin = pin
@@ -85,7 +82,7 @@ class DigitalChanger:
             on_trigger(val)
 
         return val
-        
+
 
 class DigitalTrigger:
     def __init__(self, pin):

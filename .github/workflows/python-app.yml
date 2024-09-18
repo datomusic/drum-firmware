@@ -32,6 +32,10 @@ jobs:
       run: |
         mypy devices/teensy41
         mypy firmware
+    - name: Check style with pycodestyle
+      run: |
+        pycodestyle firmware
+        pycodestyle devices
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

@@ -69,8 +69,7 @@ class SequencerRing:
     def trigger(self):
         self.fade_remaining_ms = FADE_TIME_MS
 
-    def show_steps(self, display: Display,
-                   sequencer: Sequencer, step_color) -> None:
+    def show_steps(self, display: Display, sequencer: Sequencer, step_color) -> None:
         track = sequencer.tracks[self.track_index]
 
         for step_index, step in enumerate(track.steps.entries):

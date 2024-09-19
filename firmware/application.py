@@ -1,7 +1,7 @@
 import time
 import gc
 from .settings import Settings
-from .output_api import Output
+from firmware.midi_output import MIDIOutput
 from .controller_api import Controller
 from .drum import Drum
 from .metrics import Metrics
@@ -13,14 +13,15 @@ class Application:
     def __init__(
         self,
         controller: Controller,
-        device_output: Output,
         midi: MIDI,
         settings: Settings
     ) -> None:
         self.settings = settings
         self.controller = controller
         self.midi_handler = MIDIHandler(midi, settings)
-        self.drum = Drum(device_output, settings)
+
+        output = MIDIOutput(midi)
+        self.drum = Drum(output, settings)
 
         self._metrics = Metrics()
         self._gc_collect = self._metrics.wrap("gc_collect", gc.collect)

@@ -27,6 +27,8 @@ class MIDIHandler:
             elif isinstance(message, Stop):
                 drum.sequencer.set_playing(False)
             elif isinstance(message, SystemExclusive):
-                self.sysex_handler.handle_sysex(message)
+                response = self.sysex_handler.handle_sysex_data(message.data)
+                if type(response) is bytes:
+                    pass
 
             message = self.midi.receive()

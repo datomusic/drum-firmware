@@ -69,9 +69,10 @@ class Application:
         self.controller.update(self.drum, delta_milliseconds)
 
     def fast_update(self, delta_nanoseconds: int) -> None:
+        delta_milliseconds = delta_nanoseconds // 1_000_000
+        self.midi_handler.update(self.drum, delta_milliseconds)
         self.drum.tempo.update(delta_nanoseconds)
 
-        delta_milliseconds = delta_nanoseconds // 1_000_000
         self.controller.fast_update(self.drum, delta_milliseconds)
 
     def show(self, delta_milliseconds) -> None:

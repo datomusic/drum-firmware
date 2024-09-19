@@ -9,11 +9,11 @@ from adafruit_midi.stop import Stop  # type: ignore
 
 
 class MIDIHandler:
-    def __init__(self, midi: MIDI, settings: Settings):
+    def __init__(self, midi: MIDI, settings: Settings) -> None:
         self.midi = midi
         self.settings = settings
 
-    def update(self, drum: Drum, delta_ms: int):
+    def update(self, drum: Drum, delta_ms: int) -> None:
         msg = self.midi.receive()
         while msg:
             if isinstance(msg, TimingClock):

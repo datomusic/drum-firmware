@@ -10,10 +10,15 @@ class DummySettings(Settings):
         return 1
 
 
+class DummyMIDI:
+    def receive(self):
+        return None
+
+
 class ApplicationTest(unittest.TestCase):
     def test_application_single_step(self) -> None:
         controller = Mock(Controller)
-        Application(controller, (None, None), DummySettings()).loop_step()
+        Application(controller, DummyMIDI(), DummySettings()).loop_step()
 
 
 if __name__ == '__main__':

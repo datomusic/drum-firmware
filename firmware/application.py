@@ -1,20 +1,27 @@
 import time
 import gc
 from .settings import Settings
-from .output_api import Output
+from firmware.midi_output import MIDIOutput
 from .controller_api import Controller
 from .drum import Drum
 from .metrics import Metrics
+from .midi_handler import MIDIHandler
+from adafruit_midi import MIDI  # type: ignore
 
 
 class Application:
     def __init__(
-        self, controllers: list[Controller], output: Output, settings: Settings
+        self,
+        controller: Controller,
+        midi: MIDI,
+        settings: Settings
     ) -> None:
         self.settings = settings
-        self.controllers = controllers
-        self.output = output
-        self.drum = Drum(self.output, settings)
+        self.controller = controller
+        self.midi_handler = MIDIHandler(midi, settings)
+
+        output = MIDIOutput(midi)
+        self.drum = Drum(output, settings)
 
         self._metrics = Metrics()
         self._gc_collect = self._metrics.wrap("gc_collect", gc.collect)
@@ -59,17 +66,16 @@ class Application:
             self.loop_step()
 
     def slow_update(self, delta_milliseconds: int) -> None:
-        for controller in self.controllers:
-            controller.update(self.drum, delta_milliseconds)
+        self.controller.update(self.drum, delta_milliseconds)
 
     def fast_update(self, delta_nanoseconds: int) -> None:
+        delta_milliseconds = delta_nanoseconds // 1_000_000
+        self.midi_handler.update(self.drum, delta_milliseconds)
         self.drum.tempo.update(delta_nanoseconds)
 
-        delta_milliseconds = delta_nanoseconds // 1_000_000
-        for controller in self.controllers:
-            controller.fast_update(self.drum, delta_milliseconds)
+        self.controller.fast_update(self.drum, delta_milliseconds)
 
     def show(self, delta_milliseconds) -> None:
-        for controller in self.controllers:
-            controller.show(self.drum, delta_milliseconds,
-                            self.drum.tempo.get_beat_position())
+        self.controller.show(self.drum,
+                             delta_milliseconds,
+                             self.drum.tempo.get_beat_position())

@@ -1,18 +1,24 @@
 import unittest
 from unittest.mock import Mock
 from firmware.application import Application
-from firmware.output_api import Output
+from firmware.controller_api import Controller
+from firmware.settings import Settings
 
 
-class TestSettings:
+class DummySettings(Settings):
     def get(self, item):
         return 1
 
 
+class DummyMIDI:
+    def receive(self):
+        return None
+
+
 class ApplicationTest(unittest.TestCase):
-    def test_application_single_step(self):
-        output = Mock(Output)
-        Application([], output, TestSettings()).loop_step()
+    def test_application_single_step(self) -> None:
+        controller = Mock(Controller)
+        Application(controller, DummyMIDI(), DummySettings()).loop_step()
 
 
 if __name__ == '__main__':

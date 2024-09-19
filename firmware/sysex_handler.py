@@ -1,5 +1,10 @@
+from adafruit_midi.system_exclusive import SystemExclusive  # type: ignore
+
 from .settings import Settings
 import struct
+
+# TODO: Use real manufacturer ID
+__MANUFACTURER_ID = bytes([0x7D])
 
 __SETTING_NAMES = [
     "device.brightness",
@@ -70,25 +75,40 @@ class Tag:
 
 
 class SysexHandler:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, midi_sender, settings: Settings) -> None:
         self.settings = settings
+        self.midi_sender = midi_sender
 
-    def handle_sysex_data(self, message_bytes) -> None:
-        print("Received sysex:", message_bytes)
+    def handle_sysex_data(self, message: SystemExclusive) -> None:
+        message_bytes = message.data
         length = len(message_bytes)
-        if length < 2:
+        if message.manufacturer_id != __MANUFACTURER_ID:
+            print("Invalid manufacturer ID")
             return
+
+        if length < 2:
+            print("Sysex message too short")
 
         (tag,) = struct.unpack("H", message_bytes[:2])
         print("Tag:", tag)
 
         if tag == Tag.SetSetting:
-            (setting_index, value) = struct.unpack("HH", message_bytes[2:4])
-            if setting_index < __SETTINGS_COUNT:
-                setting_name = __SETTING_NAMES[setting_index]
+            (_, setting_name) = _find_setting(message_bytes[2:4])
+            if setting_name is not None:
+                value = 123
                 self.settings.set(setting_name, value)
+
         elif tag == Tag.GetSetting:
-            (setting_index, value) = struct.unpack("HH", message_bytes[2:4])
-            if setting_index < __SETTINGS_COUNT:
-                setting_name = __SETTING_NAMES[setting_index]
-                return struct.pack("HH", setting_index, self.settings.get(setting_name))
+            (setting_index, setting_name) = _find_setting(message_bytes[2:4])
+            if setting_name is not None:
+                value = self.settings.get(setting_name)
+                content_bytes = struct.pack("HH", setting_index, value)
+                self.midi_sender(SystemExclusive(__MANUFACTURER_ID, content_bytes))
+
+
+def _find_setting(message_bytes):
+    (setting_index, value) = struct.unpack("HH", message_bytes)
+    if setting_index < __SETTINGS_COUNT:
+        return (setting_index, __SETTING_NAMES[setting_index])
+    else:
+        return None

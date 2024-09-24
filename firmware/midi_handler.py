@@ -1,17 +1,17 @@
-import adafruit_logging as logging  # type: ignore
+import adafruit_logging as logging
 from .drum import Drum
 from .tempo import TempoSource
 from .settings import Settings
 from .sysex_handler import SysexHandler
-from adafruit_midi import MIDI  # type: ignore
-from adafruit_midi.timing_clock import TimingClock  # type: ignore
-from adafruit_midi.midi_continue import Continue  # type: ignore
-from adafruit_midi.start import Start  # type: ignore
-from adafruit_midi.stop import Stop  # type: ignore
-from adafruit_midi.system_exclusive import SystemExclusive  # type: ignore
+from adafruit_midi import MIDI
+from adafruit_midi.timing_clock import TimingClock
+from adafruit_midi.midi_continue import Continue
+from adafruit_midi.start import Start
+from adafruit_midi.stop import Stop
+from adafruit_midi.system_exclusive import SystemExclusive
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)  # type: ignore
 
 # TODO: Use real manufacturer ID
 __MANUFACTURER_ID = bytes([0x7D])

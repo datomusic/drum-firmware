@@ -1,4 +1,4 @@
-from adafruit_midi.system_exclusive import SystemExclusive  # type: ignore
+from adafruit_midi.system_exclusive import SystemExclusive
 
 from .settings import Settings
 import struct

@@ -1,7 +1,9 @@
-from adafruit_midi.system_exclusive import SystemExclusive
-
-from .settings import Settings
 import struct
+import adafruit_logging as logging
+from .settings import Settings
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # type: ignore
 
 __SETTING_NAMES = [
     "device.brightness",
@@ -69,40 +71,43 @@ __SETTINGS_COUNT = len(__SETTING_NAMES)
 class Tag:
     SetSetting = 1
     GetSetting = 2
+    RequestVersion = 3
 
 
-class SysexHandler:
+class DeviceProtocol:
     def __init__(self, response_sender, settings: Settings) -> None:
         self.settings = settings
         self.response_sender = response_sender
 
-    def handle_sysex_data(self, message: SystemExclusive) -> None:
-        message_bytes = message.data
-        length = len(message_bytes)
+    def handle_message(self, message: bytes) -> None:
+        if len(message) < 2:
+            logger.error("Message too short")
+            return
 
-        if length < 2:
-            print("Sysex message too short")
+        (tag,) = struct.unpack(">H", message[:2])
 
-        (tag,) = struct.unpack("H", message_bytes[:2])
-        print("Tag:", tag)
-
-        if tag == Tag.SetSetting:
-            (_, setting_name) = _find_setting(message_bytes[2:4])
-            if setting_name is not None:
-                value = 123
-                self.settings.set(setting_name, value)
-
-        elif tag == Tag.GetSetting:
-            (setting_index, setting_name) = _find_setting(message_bytes[2:4])
-            if setting_name is not None:
-                value = self.settings.get(setting_name)
-                content_bytes = struct.pack("HH", setting_index, value)
-                self.response_sender(content_bytes)
+        if tag in [Tag.SetSetting, Tag.GetSetting]:
+            _handle_setting_action(tag, message[2:], self.settings, self.response_sender)
+        elif tag == Tag.RequestVersion:
+            pass  # TODO
 
 
-def _find_setting(message_bytes):
-    (setting_index, value) = struct.unpack("HH", message_bytes)
+def _handle_setting_action(tag: int, message: bytes, settings: Settings, response_sender) -> None:
+    (setting_index,) = struct.unpack(">H", message[:2])
     if setting_index < __SETTINGS_COUNT:
-        return (setting_index, __SETTING_NAMES[setting_index])
+        setting_name = __SETTING_NAMES[setting_index]
     else:
-        return None
+        logger.error("Invalid setting index")
+        return
+
+    if tag == Tag.SetSetting:
+        (value, ) = struct.unpack(">I", message[2:6])
+        settings.set(setting_name, value)
+
+    elif tag == Tag.GetSetting:
+        value = settings.get(setting_name)
+        if not isinstance(value, int):
+            logger.error("Setting value is not an integer")
+        else:
+            content_bytes = struct.pack(">HI", setting_index, value)
+            response_sender(content_bytes)

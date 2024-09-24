@@ -2,7 +2,7 @@ import adafruit_logging as logging
 from .drum import Drum
 from .tempo import TempoSource
 from .settings import Settings
-from .sysex_handler import SysexHandler
+from .device_protocol import DeviceProtocol
 from adafruit_midi import MIDI
 from adafruit_midi.timing_clock import TimingClock
 from adafruit_midi.midi_continue import Continue
@@ -13,15 +13,15 @@ from adafruit_midi.system_exclusive import SystemExclusive
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # type: ignore
 
-# TODO: Use real manufacturer ID
-__MANUFACTURER_ID = bytes([0x7D])
+# DATO SysEx ID
+__MANUFACTURER_ID = bytes([0, 0x22, 0x01])
 
 
 class MIDIHandler:
     def __init__(self, midi: MIDI, settings: Settings) -> None:
         self.midi = midi
         self.settings = settings
-        self.sysex_handler = SysexHandler(self._send_sysex_data, settings)
+        self.sysex_handler = DeviceProtocol(self._send_sysex_data, settings)
         logger.debug("MIDIHandler initialized")
 
     def update(self, drum: Drum, delta_ms: int) -> None:
@@ -38,7 +38,7 @@ class MIDIHandler:
                 if message.manufacturer_id != __MANUFACTURER_ID:
                     logger.error("Invalid manufacturer ID")
                 else:
-                    self.sysex_handler.handle_sysex_data(message)
+                    self.sysex_handler.handle_message(message.data)
 
             message = self.midi.receive()
 

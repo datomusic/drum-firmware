@@ -3,9 +3,6 @@ from adafruit_midi.system_exclusive import SystemExclusive  # type: ignore
 from .settings import Settings
 import struct
 
-# TODO: Use real manufacturer ID
-__MANUFACTURER_ID = bytes([0x7D])
-
 __SETTING_NAMES = [
     "device.brightness",
     "device.cursor_color",
@@ -75,16 +72,13 @@ class Tag:
 
 
 class SysexHandler:
-    def __init__(self, midi_sender, settings: Settings) -> None:
+    def __init__(self, response_sender, settings: Settings) -> None:
         self.settings = settings
-        self.midi_sender = midi_sender
+        self.response_sender = response_sender
 
     def handle_sysex_data(self, message: SystemExclusive) -> None:
         message_bytes = message.data
         length = len(message_bytes)
-        if message.manufacturer_id != __MANUFACTURER_ID:
-            print("Invalid manufacturer ID")
-            return
 
         if length < 2:
             print("Sysex message too short")
@@ -103,7 +97,7 @@ class SysexHandler:
             if setting_name is not None:
                 value = self.settings.get(setting_name)
                 content_bytes = struct.pack("HH", setting_index, value)
-                self.midi_sender(SystemExclusive(__MANUFACTURER_ID, content_bytes))
+                self.response_sender(content_bytes)
 
 
 def _find_setting(message_bytes):

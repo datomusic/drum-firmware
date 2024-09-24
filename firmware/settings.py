@@ -1,4 +1,8 @@
 import os
+import adafruit_logging as logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # type: ignore
 
 
 # TODO: Persist settings which are set during runtime
@@ -8,7 +12,7 @@ class Settings:
 
     def set(self, key: str, value):
         self.cache[key] = value
-        print(f"Key: {key}, value: {value}")
+        logger.info(f"Setting: {key} = {value}")
 
     def get(self, key: str):
         item = self.cache.get(key)

@@ -1,38 +1,44 @@
 import time
 import gc
 
+PRINT_REPORT = True
 WITH_MEMORY_METRICS = False
 
 
 class Metrics:
     def __init__(self):
-        self.loop_tracker = Tracker("loop")
-        self.loop_nanoseconds = 0
-        self.functions = []
+        self._loop_tracker = Tracker("loop")
+        self._loop_nanoseconds = 0
+        self._functions = []
 
     def begin_loop(self) -> None:
-        self.loop_tracker.start()
+        self._loop_tracker.start()
 
     def end_loop(self, delta_nanoseconds: int) -> None:
-        self.loop_tracker.stop()
-        self.loop_nanoseconds += delta_nanoseconds
+        self._loop_tracker.stop()
+        self._loop_nanoseconds += delta_nanoseconds
 
-        if self.loop_nanoseconds > 1_000_000_000:
-            self.loop_nanoseconds = 0
+        if self._loop_nanoseconds > 1_000_000_000:
+            self._loop_nanoseconds = 0
             self._report()
 
     def wrap(self, name: str, function):
         timed = Timed(name, function)
-        self.functions.append(timed)
+        self._functions.append(timed)
         return timed
 
     def _report(self):
-        print(self.loop_tracker.get_info())
-        self.loop_tracker.reset()
-        for timed in self.functions:
-            print(timed.tracker.get_info())
+        if PRINT_REPORT:
+            print(self._loop_tracker.get_info())
+        self._loop_tracker.reset()
+
+        for timed in self._functions:
+            if PRINT_REPORT:
+                print(timed.tracker.get_info())
             timed.tracker.reset()
-        print()
+
+        if PRINT_REPORT:
+            print()
 
 
 class Tracker:

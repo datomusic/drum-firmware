@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from firmware.application import Application
 from firmware.controller_api import Controller
 from firmware.settings import Settings
+from adafruit_midi import MIDI
 
 
 class DummySettings(Settings):
@@ -10,7 +11,10 @@ class DummySettings(Settings):
         return 1
 
 
-class DummyMIDI:
+class DummyMIDI(MIDI):
+    def __init__(self):
+        pass
+
     def receive(self):
         return None
 

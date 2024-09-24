@@ -3,4 +3,3 @@ mypy-extensions==1.0.0
 pytest==8.3.3
 pycodestyle==2.12.1
 flake8==7.1.1
-adafruit-circuitpython-midi==1.4.19

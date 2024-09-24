@@ -1,21 +1,23 @@
 import time
 import gc
+import firmware.metrics as metrics
 from .settings import Settings
-from firmware.midi_output import MIDIOutput
+from .midi_output import MIDIOutput
 from .controller_api import Controller
 from .drum import Drum
-from .metrics import Metrics
 from .midi_handler import MIDIHandler
-from adafruit_midi import MIDI  # type: ignore
+from adafruit_midi import MIDI
+import adafruit_logging as logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # type: ignore
+
+metrics.PRINT_REPORT = False
+metrics.WITH_MEMORY_METRICS = False
 
 
 class Application:
-    def __init__(
-        self,
-        controller: Controller,
-        midi: MIDI,
-        settings: Settings
-    ) -> None:
+    def __init__(self, controller: Controller, midi: MIDI, settings: Settings) -> None:
         self.settings = settings
         self.controller = controller
         self.midi_handler = MIDIHandler(midi, settings)
@@ -23,7 +25,7 @@ class Application:
         output = MIDIOutput(midi)
         self.drum = Drum(output, settings)
 
-        self._metrics = Metrics()
+        self._metrics = metrics.Metrics()
         self._gc_collect = self._metrics.wrap("gc_collect", gc.collect)
         self._fast_update = self._metrics.wrap("fast_update", self.fast_update)
         self._slow_update = self._metrics.wrap("slow_update", self.slow_update)
@@ -33,7 +35,10 @@ class Application:
         self._loop_counter = 0
         self._accumulated_show_ns = 0
         self._accumulated_slow_update_ns = 0
+
         gc.disable()
+        logging._default_handler.setLevel(logging.DEBUG)  # type: ignore
+        logger.info("Application initialized")
 
     def loop_step(self) -> None:
         self._metrics.begin_loop()
@@ -62,6 +67,7 @@ class Application:
         self._metrics.end_loop(delta_nanoseconds)
 
     def run(self):
+        logger.info("Application running")
         while True:
             self.loop_step()
 
@@ -76,6 +82,6 @@ class Application:
         self.controller.fast_update(self.drum, delta_milliseconds)
 
     def show(self, delta_milliseconds) -> None:
-        self.controller.show(self.drum,
-                             delta_milliseconds,
-                             self.drum.tempo.get_beat_position())
+        self.controller.show(
+            self.drum, delta_milliseconds, self.drum.tempo.get_beat_position()
+        )

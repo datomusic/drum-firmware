@@ -99,7 +99,7 @@ def _byte_count_from_format_char(format_char) -> int:
         raise ValueError(f"Unknown format character: {format_char}")
 
 
-class Tag:
+class Action:
     SetSetting = 1
     GetSetting = 2
     RequestVersion = 3
@@ -112,17 +112,17 @@ class DeviceProtocol:
 
     def handle_message(self, message: bytes) -> None:
         reader = ByteReader(message)
-        tag = reader.read_single("H")
-        if tag is not None:
-            (tag,) = tag
-            logger.debug(f"Tag: {tag}")
+        action = reader.read_single("H")
+        if action is not None:
+            (action,) = action
+            logger.debug(f"Action: {action}")
 
-            if tag in [Tag.SetSetting, Tag.GetSetting]:
-                _handle_setting_action(tag, reader, self.settings, self.response_sender)
-            elif tag == Tag.RequestVersion:
+            if action in [Action.SetSetting, Action.GetSetting]:
+                _handle_setting_action(action, reader, self.settings, self.response_sender)
+            elif action == Action.RequestVersion:
                 pass  # TODO
             else:
-                logger.error(f"Unknown tag: {tag}")
+                logger.error(f"Unknown tag: {action}")
 
 
 def _handle_setting_action(tag, reader: ByteReader, settings: Settings, response_sender) -> None:
@@ -135,13 +135,13 @@ def _handle_setting_action(tag, reader: ByteReader, settings: Settings, response
             logger.error(f"Invalid setting index. Got: {setting_index}")
             return
 
-        if tag == Tag.SetSetting:
+        if tag == Action.SetSetting:
             value = reader.read_single("I")
             if value:
                 (value,) = value
                 settings.set(setting_name, value)
 
-        elif tag == Tag.GetSetting:
+        elif tag == Action.GetSetting:
             value = settings.get(setting_name)
             if not isinstance(value, int):
                 logger.error("Setting value is not an integer")

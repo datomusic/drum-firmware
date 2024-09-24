@@ -1,7 +1,7 @@
 import unittest
 import struct
 from unittest.mock import Mock, call
-from firmware.device_protocol import _handle_setting_action, Tag, ByteReader
+from firmware.device_protocol import _handle_setting_action, Action, ByteReader
 from firmware.settings import Settings
 
 
@@ -12,7 +12,7 @@ class TestDeviceProtocol(unittest.TestCase):
         setting_id = 1  # Should be device.cursor_color
         value = 0xFF00FF
         message = struct.pack(">HI", setting_id, value)
-        _handle_setting_action(Tag.SetSetting, ByteReader(message), settings, send_response)
+        _handle_setting_action(Action.SetSetting, ByteReader(message), settings, send_response)
         self.assertEqual(settings.set.mock_calls, [call("device.cursor_color", value)])
 
     def test_gets_setting(self) -> None:
@@ -21,7 +21,7 @@ class TestDeviceProtocol(unittest.TestCase):
         settings.configure_mock(**{"get.return_value": 123})
         setting_id = 1  # Should be device.cursor_color
         message = struct.pack(">H", setting_id)
-        _handle_setting_action(Tag.GetSetting, ByteReader(message), settings, send_response)
+        _handle_setting_action(Action.GetSetting, ByteReader(message), settings, send_response)
         self.assertEqual(settings.get.mock_calls, [call("device.cursor_color")])
         self.assertEqual(send_response.mock_calls, [call(struct.pack(">HI", setting_id, 123))])
 

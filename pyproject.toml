@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+pythonpath = [
+  "lib"
+]
+
+[tool.mypy]
+mypy_path = "lib"
+follow_imports = "silent"

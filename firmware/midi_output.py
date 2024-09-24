@@ -1,11 +1,11 @@
 from .tempo import TempoSource
 from .output_api import Output, OutputParam, OutputChannelParam
-from adafruit_midi import MIDI  # type: ignore
-from adafruit_midi.control_change import ControlChange  # type: ignore
-from adafruit_midi.note_on import NoteOn  # type: ignore
-from adafruit_midi.note_off import NoteOff  # type: ignore
-from adafruit_midi.timing_clock import TimingClock  # type: ignore
-from adafruit_midi.channel_pressure import ChannelPressure  # type: ignore
+from adafruit_midi import MIDI
+from adafruit_midi.control_change import ControlChange
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+from adafruit_midi.timing_clock import TimingClock
+from adafruit_midi.channel_pressure import ChannelPressure
 
 
 class MIDIOutput(Output):

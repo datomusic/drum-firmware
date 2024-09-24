@@ -9,6 +9,9 @@ from .midi_handler import MIDIHandler
 from adafruit_midi import MIDI
 import adafruit_logging as logging
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # type: ignore
+
 metrics.PRINT_REPORT = False
 metrics.WITH_MEMORY_METRICS = False
 

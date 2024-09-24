@@ -68,6 +68,37 @@ __SETTING_NAMES = [
 __SETTINGS_COUNT = len(__SETTING_NAMES)
 
 
+class ByteReader:
+    def __init__(self, bytes: bytes) -> None:
+        self.bytes = bytes
+        self.length = len(bytes)
+        self.index = 0
+
+    def read_single(self, format_char):
+        byte_count = _byte_count_from_format_char(format_char)
+        if self.index + byte_count > self.length:
+            logger.error("Message too short")
+            return None
+        else:
+            result = struct.unpack(
+                f">{format_char}",
+                self.bytes[self.index: self.index + byte_count])
+
+            self.index += byte_count
+            return result
+
+
+def _byte_count_from_format_char(format_char) -> int:
+    if format_char in ["B", "b"]:
+        return 1
+    elif format_char in ["H", "h"]:
+        return 2
+    elif format_char in ["I", "i", "f"]:
+        return 4
+    else:
+        raise ValueError(f"Unknown format character: {format_char}")
+
+
 class Tag:
     SetSetting = 1
     GetSetting = 2
@@ -80,34 +111,40 @@ class DeviceProtocol:
         self.response_sender = response_sender
 
     def handle_message(self, message: bytes) -> None:
-        if len(message) < 2:
-            logger.error("Message too short")
+        reader = ByteReader(message)
+        tag = reader.read_single("H")
+        if tag is not None:
+            (tag,) = tag
+            logger.debug(f"Tag: {tag}")
+
+            if tag in [Tag.SetSetting, Tag.GetSetting]:
+                _handle_setting_action(tag, reader, self.settings, self.response_sender)
+            elif tag == Tag.RequestVersion:
+                pass  # TODO
+            else:
+                logger.error(f"Unknown tag: {tag}")
+
+
+def _handle_setting_action(tag, reader: ByteReader, settings: Settings, response_sender) -> None:
+    setting_index = reader.read_single("H")
+    if setting_index is not None:
+        (setting_index,) = setting_index
+        if setting_index < __SETTINGS_COUNT:
+            setting_name = __SETTING_NAMES[setting_index]
+        else:
+            logger.error(f"Invalid setting index. Got: {setting_index}")
             return
 
-        (tag,) = struct.unpack(">H", message[:2])
+        if tag == Tag.SetSetting:
+            value = reader.read_single("I")
+            if value:
+                (value,) = value
+                settings.set(setting_name, value)
 
-        if tag in [Tag.SetSetting, Tag.GetSetting]:
-            _handle_setting_action(tag, message[2:], self.settings, self.response_sender)
-        elif tag == Tag.RequestVersion:
-            pass  # TODO
-
-
-def _handle_setting_action(tag: int, message: bytes, settings: Settings, response_sender) -> None:
-    (setting_index,) = struct.unpack(">H", message[:2])
-    if setting_index < __SETTINGS_COUNT:
-        setting_name = __SETTING_NAMES[setting_index]
-    else:
-        logger.error("Invalid setting index")
-        return
-
-    if tag == Tag.SetSetting:
-        (value, ) = struct.unpack(">I", message[2:6])
-        settings.set(setting_name, value)
-
-    elif tag == Tag.GetSetting:
-        value = settings.get(setting_name)
-        if not isinstance(value, int):
-            logger.error("Setting value is not an integer")
-        else:
-            content_bytes = struct.pack(">HI", setting_index, value)
-            response_sender(content_bytes)
+        elif tag == Tag.GetSetting:
+            value = settings.get(setting_name)
+            if not isinstance(value, int):
+                logger.error("Setting value is not an integer")
+            else:
+                content_bytes = struct.pack(">HI", setting_index, value)
+                response_sender(content_bytes)

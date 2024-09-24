@@ -36,7 +36,7 @@ class MIDIHandler:
                 drum.sequencer.set_playing(False)
             elif isinstance(message, SystemExclusive):
                 if message.manufacturer_id != __MANUFACTURER_ID:
-                    logger.error("Invalid manufacturer ID")
+                    logger.error(f"Invalid manufacturer ID. Got {message.manufacturer_id}")
                 else:
                     self.sysex_handler.handle_message(message.data)
 

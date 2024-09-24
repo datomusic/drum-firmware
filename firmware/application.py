@@ -15,9 +15,6 @@ logger.setLevel(logging.DEBUG)  # type: ignore
 metrics.PRINT_REPORT = False
 metrics.WITH_MEMORY_METRICS = False
 
-metrics.PRINT_REPORT = False
-metrics.WITH_MEMORY_METRICS = False
-
 
 class Application:
     def __init__(self, controller: Controller, midi: MIDI, settings: Settings) -> None:

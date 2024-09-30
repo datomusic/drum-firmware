@@ -21,7 +21,7 @@ class MIDIHandler:
     def __init__(self, midi: MIDI, settings: Settings) -> None:
         self.midi = midi
         self.settings = settings
-        self.sysex_handler = DeviceProtocol(self._send_sysex_data, settings)
+        self.device_protocol = DeviceProtocol(self._send_sysex_data, settings)
         logger.debug("MIDIHandler initialized")
 
     def update(self, drum: Drum, delta_ms: int) -> None:
@@ -38,7 +38,7 @@ class MIDIHandler:
                 if message.manufacturer_id != __MANUFACTURER_ID:
                     logger.error(f"Invalid manufacturer ID. Got {message.manufacturer_id}")
                 else:
-                    self.sysex_handler.handle_message(message.data)
+                    self.device_protocol.handle_message(message.data)
 
             message = self.midi.receive()
 

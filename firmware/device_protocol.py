@@ -74,29 +74,31 @@ class ByteReader:
         self.length = len(bytes)
         self.index = 0
 
-    def read_single(self, format_char):
-        byte_count = _byte_count_from_format_char(format_char)
+    def read_uint16(self):
+        data = self.__read_bytes(3)
+        if data:
+            (b1, b2, b3) = data
+            return (b1 << 14) | (b2 << 7) | b3
+
+    def read_uint32(self):
+        top = self.read_uint16()
+        bottom = self.read_uint16()
+
+        if top and bottom:
+            return (top << 16) + bottom
+
+    def __read_bytes(self, byte_count: int):
         if self.index + byte_count > self.length:
             logger.error("Message too short")
             return None
         else:
+            format_string = "B" * byte_count
             result = struct.unpack(
-                f">{format_char}",
+                f">{format_string}",
                 self.bytes[self.index: self.index + byte_count])
 
             self.index += byte_count
             return result
-
-
-def _byte_count_from_format_char(format_char) -> int:
-    if format_char in ["B", "b"]:
-        return 1
-    elif format_char in ["H", "h"]:
-        return 2
-    elif format_char in ["I", "i", "f"]:
-        return 4
-    else:
-        raise ValueError(f"Unknown format character: {format_char}")
 
 
 class Action:
@@ -112,9 +114,8 @@ class DeviceProtocol:
 
     def handle_message(self, message: bytes) -> None:
         reader = ByteReader(message)
-        action = reader.read_single("H")
+        action = reader.read_uint16()
         if action is not None:
-            (action,) = action
             logger.debug(f"Action: {action}")
 
             if action in [Action.SetSetting, Action.GetSetting]:
@@ -126,9 +127,8 @@ class DeviceProtocol:
 
 
 def _handle_setting_action(tag, reader: ByteReader, settings: Settings, response_sender) -> None:
-    setting_index = reader.read_single("H")
+    setting_index = reader.read_uint16()
     if setting_index is not None:
-        (setting_index,) = setting_index
         if setting_index < __SETTINGS_COUNT:
             setting_name = __SETTING_NAMES[setting_index]
         else:
@@ -136,9 +136,8 @@ def _handle_setting_action(tag, reader: ByteReader, settings: Settings, response
             return
 
         if tag == Action.SetSetting:
-            value = reader.read_single("I")
+            value = reader.read_uint32()
             if value:
-                (value,) = value
                 settings.set(setting_name, value)
 
         elif tag == Action.GetSetting:

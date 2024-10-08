@@ -22,7 +22,8 @@ from .reading import (
     percentage_from_pot,
 )
 
-BPM_MAX = 300
+BPM_MIN = 30
+BPM_MAX = 360
 
 
 class DrumPad:
@@ -129,7 +130,8 @@ class PizzaController(Controller):
     def _read_pots(self, drum: Drum) -> None:
         def set_speed(pot_speed):
             speed = percentage_from_pot(pot_speed)
-            drum.tempo.set_bpm(speed * BPM_MAX / 100)
+            range = BPM_MAX - BPM_MIN
+            drum.tempo.set_bpm((speed * range / 100) + BPM_MIN)
             drum.output.set_param(OutputParam.Tempo, speed)
 
         self.speed_setting.read(set_speed)
@@ -138,7 +140,6 @@ class PizzaController(Controller):
         #     lambda vol: drum.output.set_param(
         #         OutputParam.Volume,
         #         percentage_from_pot(vol)))
-
         self.volume_setting.read(
             lambda volume: drum.tempo.swing.set_amount(
                 int(6 - (volume / (65536 / 12))))

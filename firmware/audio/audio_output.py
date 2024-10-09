@@ -5,13 +5,13 @@ import board  # type: ignore
 
 
 class AudioOutput(Output):
-    def __init__(self):
+    def __init__(self) -> None:
         audio = audiopwmio.PWMAudioOut(board.D12)
         self.player = SamplePlayer(audio)
 
     def send_note_on(self, channel: int, note: int, vel_percent: float):
-        print("Audio note_on")
-        self.player.play_sample(channel)
+        print("Audio note_on:", channel, note, vel_percent)
+        self.player.play_sample(channel, note / 127)
 
     def send_note_off(self, channel: int, note: int):
         pass

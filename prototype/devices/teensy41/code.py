@@ -11,6 +11,6 @@ settings = Settings()
 (midi_in_port, midi_out_port) = usb_midi.ports
 midi = MIDI(midi_in=midi_in_port, midi_out=midi_out_port)
 
-controller = PizzaController(settings, Teensy41Hardware())
+controller = PizzaController(settings, Teensy41Hardware(using_PWM=True))
 audio_output = AudioOutput()
 Application(controller, audio_output, midi, settings).run()

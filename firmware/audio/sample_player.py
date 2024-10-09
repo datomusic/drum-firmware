@@ -33,6 +33,7 @@ class MonoSample:
         return self.bits_per_sample == 16
 
     def play_at_speed(self, player, speed_multiplier):
+        speed_multiplier = 1
         out_sample_count = int(self.file_buffer_length / speed_multiplier)
         out_indices = np.linspace(0, self.file_buffer_length, out_sample_count)
 
@@ -41,20 +42,18 @@ class MonoSample:
             dtype=self.buffer_data_type,
         )
 
-        audio_sample = audiocore.RawSample(
-            play_buffer, sample_rate=self.rate)
-
+        audio_sample = audiocore.RawSample(play_buffer, sample_rate=self.rate)
         player.play(audio_sample)
 
 
 class SamplePlayer:
-    def __init__(self, audio):
+    def __init__(self, audio) -> None:
 
         sample_names = [
-            "samples/snare_44k_16.wav",
-            "samples/snare_44k_16.wav",
-            "samples/snare_44k_16.wav",
-            "samples/snare_44k_16.wav",
+            "samples/snare_44k.wav",
+            "samples/open_hh.wav",
+            "samples/open_hh.wav",
+            "samples/open_hh.wav",
         ]
 
         self.samples = list(map(MonoSample, sample_names))
@@ -70,16 +69,12 @@ class SamplePlayer:
         )
 
         audio.play(self.mixer)
-        self.mixer.voice[0].play(self.synth)
-        self.mixer.voice[0].level = 0.75
 
         for voice in self.mixer.voice:
             voice.level = 0.8
 
-    def play_sample(self, sample_index: int):
+    def play_sample(self, sample_index: int, speed_multiplier: float):
         index = sample_index % self.sample_count
         sample = self.samples[index]
-        voice = self.mixer.voice[sample_index]
-
-        speed_multiplier = 1
-        sample.play_at_speed(voice, speed_multiplier)
+        voice = self.mixer.voice[index]
+        sample.play_at_speed(voice, 1)

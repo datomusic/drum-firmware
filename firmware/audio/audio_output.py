@@ -12,7 +12,6 @@ class AudioOutput(Output):
         self.player = SamplePlayer(self.audio)
 
     def send_note_on(self, channel: int, _note: int, _vel_percent: float):
-        # print("Audio note_on:", channel, note, vel_percent)
         self.player.play_sample(channel)
 
     def send_note_off(self, channel: int, note: int):
@@ -27,4 +26,7 @@ class AudioOutput(Output):
             raise TypeError(f"Invalid output channel parameter: {param}")
 
     def on_tempo_tick(self, source) -> None:
+        pass
+
+    def set_param(self, param, value_percent: float):
         pass

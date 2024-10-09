@@ -128,17 +128,19 @@ class PizzaController(Controller):
         self.display.show()
 
     def _read_pots(self, drum: Drum) -> None:
+        out_param = OutputParam()
+
         def set_speed(pot_speed):
             speed = percentage_from_pot(pot_speed)
             range = BPM_MAX - BPM_MIN
             drum.tempo.set_bpm((speed * range / 100) + BPM_MIN)
-            drum.output.set_param(OutputParam.Tempo, speed)
+            drum.output.set_param(out_param.Tempo, speed)
 
         self.speed_setting.read(set_speed)
 
         # self.volume_setting.read(
         #     lambda vol: drum.output.set_param(
-        #         OutputParam.Volume,
+        #         out_param.Volume,
         #         percentage_from_pot(vol)))
         self.volume_setting.read(
             lambda volume: drum.tempo.swing.set_amount(
@@ -147,35 +149,35 @@ class PizzaController(Controller):
 
         self.filter_setting.read(
             lambda val: drum.output.set_param(
-                OutputParam.AdjustFilter, percentage_from_pot(val) / 50
+                out_param.AdjustFilter, percentage_from_pot(val) / 50
             )
         )
 
         self.lowpass_setting.read(
             lambda val: drum.output.set_param(
-                OutputParam.LowPass, percentage_from_pot(val)
+                out_param.LowPass, percentage_from_pot(val)
             )
         )
 
         self.highpass_setting.read(
             lambda val: drum.output.set_param(
-                OutputParam.HighPass, percentage_from_pot(val)
+                out_param.HighPass, percentage_from_pot(val)
             )
         )
 
         self.distortion.read(
             lambda val: drum.output.set_param(
-                OutputParam.Distortion, val * 100)
+                out_param.Distortion, val * 100)
         )
 
         self.bitcrusher.read(
             lambda val: drum.output.set_param(
-                OutputParam.Bitcrusher, val * 100)
+                out_param.Bitcrusher, val * 100)
         )
 
         self.highpass_setting.read(
             lambda val: drum.output.set_param(
-                OutputParam.HighPass, percentage_from_pot(val)
+                out_param.HighPass, percentage_from_pot(val)
             )
         )
 

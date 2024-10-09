@@ -29,26 +29,27 @@ class MIDIOutput(Output):
             raise TypeError(f"Invalid output channel parameter: {param}")
 
     def set_param(self, param, value) -> None:
-        if param == OutputParam.Volume:
+        out_param = OutputParam()
+        if param == out_param.Volume:
             self._send_cc(7, percent_to_midi(value))
 
-        elif param == OutputParam.Tempo:
+        elif param == out_param.Tempo:
             self._send_cc(3, percent_to_midi(value))
 
-        elif param == OutputParam.LowPass:
+        elif param == out_param.LowPass:
             self._send_cc(75, percent_to_midi(value))
 
-        elif param == OutputParam.HighPass:
+        elif param == out_param.HighPass:
             self._send_cc(76, percent_to_midi(value))
 
-        elif param == OutputParam.AdjustFilter:
+        elif param == out_param.AdjustFilter:
             self.filter_amount = constrain_midi(int(self.filter_amount + value))
             self._send_cc(74, self.filter_amount)
 
-        elif param == OutputParam.Distortion:
+        elif param == out_param.Distortion:
             self._send_cc(77, percent_to_midi(value))
 
-        elif param == OutputParam.Bitcrusher:
+        elif param == out_param.Bitcrusher:
             self._send_cc(78, percent_to_midi(value))
 
     def on_tempo_tick(self, source) -> None:

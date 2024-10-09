@@ -1,4 +1,3 @@
-import time
 import usb_midi  # type: ignore
 from adafruit_midi import MIDI  # type: ignore
 from firmware.application import Application

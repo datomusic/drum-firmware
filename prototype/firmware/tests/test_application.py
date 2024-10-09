@@ -4,13 +4,12 @@ from firmware.application import Application
 from firmware.controller_api import Controller
 from firmware.settings import Settings
 from adafruit_midi import MIDI
+from firmware.output_api import Output
 
 
 class DummySettings(Settings):
     def get(self, item):
         return 1
-        Application(controller, output).run_iterator().__next__()
-
 
 
 class DummyMIDI(MIDI):
@@ -24,7 +23,8 @@ class DummyMIDI(MIDI):
 class ApplicationTest(unittest.TestCase):
     def test_application_single_step(self) -> None:
         controller = Mock(Controller)
-        Application(controller, DummyMIDI(), DummySettings()).loop_step()
+        dummy_output = Mock(Output)
+        Application(controller, dummy_output, DummyMIDI(), DummySettings()).loop_step()
 
 
 if __name__ == '__main__':

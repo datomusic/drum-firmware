@@ -8,6 +8,6 @@ fi
 
 rm "$TARGET/code.py"
 rm "$TARGET/settings.toml"
-rmdir "$TARGET/lib"
+rm -r "${TARGET:?}/lib"
 cp -r lib "$TARGET"
 ./transfer_firmware.sh

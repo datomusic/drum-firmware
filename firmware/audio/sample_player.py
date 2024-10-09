@@ -50,10 +50,10 @@ class SamplePlayer:
     def __init__(self, audio) -> None:
 
         sample_names = [
-            "samples/snare_44k.wav",
-            "samples/open_hh.wav",
-            "samples/open_hh.wav",
-            "samples/open_hh.wav",
+            "samples/snare_44k_16.wav",
+            "samples/snare_44k_16.wav",
+            "samples/snare_44k_16.wav",
+            "samples/snare_44k_16.wav",
         ]
 
         self.samples = list(map(MonoSample, sample_names))

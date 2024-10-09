@@ -10,4 +10,5 @@ rm "$TARGET/code.py"
 rm "$TARGET/settings.toml"
 rm -r "${TARGET:?}/lib"
 cp -r lib "$TARGET"
+cp -r samples "$TARGET"
 ./transfer_firmware.sh

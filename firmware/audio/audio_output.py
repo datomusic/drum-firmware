@@ -1,7 +1,7 @@
-from ..device_api import Output
+from ..output_api import Output
 from .sample_player import SamplePlayer
-import audiopwmio
-import board
+import audiopwmio  # type: ignore
+import board  # type: ignore
 
 
 class AudioOutput(Output):

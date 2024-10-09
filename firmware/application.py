@@ -12,7 +12,7 @@ import adafruit_logging as logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # type: ignore
 
-metrics.PRINT_REPORT = False
+metrics.PRINT_REPORT = True
 metrics.WITH_MEMORY_METRICS = False
 
 

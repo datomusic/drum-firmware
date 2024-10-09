@@ -1,6 +1,7 @@
 from ..device_api import Output
 from .sample_player import SamplePlayer
 import audiopwmio
+import board
 
 
 class AudioOutput(Output):

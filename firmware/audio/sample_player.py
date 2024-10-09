@@ -28,13 +28,17 @@ class MonoSample:
         )
         self.file_buffer_length = len(self.file_buffer)
         self.file_buffer_indices = np.arange(self.file_buffer_length)
+        self._playback_speed = 1
+
+    def set_playback_speed(self, speed):
+        self._playback_speed = min(2, max(0.1, speed))
+        print(f"Playback speed: {self._playback_speed}")
 
     def is_signed(self):
         return self.bits_per_sample == 16
 
-    def play_at_speed(self, player, speed_multiplier):
-        speed_multiplier = 1
-        out_sample_count = int(self.file_buffer_length / speed_multiplier)
+    def play(self, player) -> None:
+        out_sample_count = int(self.file_buffer_length / self._playback_speed)
         out_indices = np.linspace(0, self.file_buffer_length, out_sample_count)
 
         play_buffer = np.array(
@@ -50,10 +54,10 @@ class SamplePlayer:
     def __init__(self, audio) -> None:
 
         sample_names = [
-            "samples/snare_44k_16.wav",
-            "samples/snare_44k_16.wav",
-            "samples/snare_44k_16.wav",
-            "samples/snare_44k_16.wav",
+            "samples/open_hh.wav",
+            "samples/closed_hh.wav",
+            "samples/snare.wav",
+            "samples/sample.wav",
         ]
 
         self.samples = list(map(MonoSample, sample_names))
@@ -61,7 +65,7 @@ class SamplePlayer:
 
         first_sample = self.samples[0]
         self.mixer = audiomixer.Mixer(
-            voice_count=4,
+            voice_count=self.sample_count,
             bits_per_sample=first_sample.bits_per_sample,
             sample_rate=first_sample.rate,
             channel_count=1,
@@ -71,10 +75,14 @@ class SamplePlayer:
         audio.play(self.mixer)
 
         for voice in self.mixer.voice:
-            voice.level = 0.8
+            voice.level = 1
 
-    def play_sample(self, sample_index: int, speed_multiplier: float):
+    def set_pitch(self, sample_index: int, pitch: float):
+        index = sample_index % self.sample_count
+        self.samples[index].set_playback_speed(pitch)
+
+    def play_sample(self, sample_index: int):
         index = sample_index % self.sample_count
         sample = self.samples[index]
         voice = self.mixer.voice[index]
-        sample.play_at_speed(voice, 1)
+        sample.play(voice)

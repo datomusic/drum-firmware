@@ -31,8 +31,8 @@ class MonoSample:
         self._playback_speed = 1
 
     def set_playback_speed(self, speed):
-        self._playback_speed = min(2, max(0.1, speed))
-        print(f"Playback speed: {self._playback_speed}")
+        self._playback_speed =  2**((speed-1.0))
+        print(f"Playback speed: {self._playback_speed} {speed}")
 
     def is_signed(self):
         return self.bits_per_sample == 16

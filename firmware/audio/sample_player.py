@@ -5,7 +5,7 @@ import audiocore  # type: ignore
 
 
 class MonoSample:
-    BUFFER_SIZE = 256
+    BUFFER_SIZE = 1024
 
     def __init__(self, path):
         file = adafruit_wave.open(path)
@@ -31,8 +31,8 @@ class MonoSample:
         self._playback_speed = 1
 
     def set_playback_speed(self, speed):
-        self._playback_speed =  2**((speed-1.0))
-        print(f"Playback speed: {self._playback_speed} {speed}")
+        self._playback_speed = 2**((speed-1.0))
+        print(f"Playback speed: {self._playback_speed}")
 
     def is_signed(self):
         return self.bits_per_sample == 16
@@ -54,10 +54,10 @@ class SamplePlayer:
     def __init__(self, audio) -> None:
 
         sample_names = [
-            "samples/open_hh.wav",
-            "samples/closed_hh.wav",
-            "samples/snare.wav",
-            "samples/sample.wav",
+            "samples/DUO-hat-01.wav",
+            "samples/Snare-C78.wav",
+            "samples/cowbell_hi.wav",
+            "samples/Kick-C78.wav",
         ]
 
         self.samples = list(map(MonoSample, sample_names))

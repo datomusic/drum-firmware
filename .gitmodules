@@ -1,0 +1,12 @@
+[submodule "mimxrt10xx/libraries/tinyusb"]
+	path = mimxrt10xx/libraries/tinyusb
+	url = git@github.com:hathach/tinyusb.git
+[submodule "mimxrt10xx/libraries/Arduino-USBMIDI"]
+	path = mimxrt10xx/libraries/Arduino-USBMIDI
+	url = git@github.com:lathoub/Arduino-USBMIDI.git
+[submodule "mimxrt10xx/libraries/arduino_midi_library"]
+	path = mimxrt10xx/libraries/arduino_midi_library
+	url = https://github.com/FortySevenEffects/arduino_midi_library
+[submodule "mimxrt10xx/sdk"]
+	path = mimxrt10xx/sdk
+	url = git@github.com:nxp-mcuxpresso/mcux-sdk.git

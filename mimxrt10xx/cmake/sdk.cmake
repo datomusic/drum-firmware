@@ -1,0 +1,55 @@
+set(MCUX_DEVICE "MIMXRT1011")
+
+set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    ${SDK_DIR}/../xip
+    ${SDK_DIR}/devices/MIMXRT1011
+    ${SDK_DIR}/devices/MIMXRT1011/drivers
+    ${SDK_DIR}/devices/MIMXRT1011/xip
+    ${SDK_DIR}/drivers/igpio
+    ${SDK_DIR}/drivers/common
+    ${SDK_DIR}/drivers/edma
+    ${SDK_DIR}/drivers/dmamux
+    ${SDK_DIR}/drivers/pwm
+    ${SDK_DIR}/drivers/flexio
+    ${SDK_DIR}/drivers/lpuart
+    ${SDK_DIR}/drivers/sai
+    ${SDK_DIR}/drivers/adc_12b1msps_sar
+    ${SDK_DIR}/drivers/xbara
+    ${SDK_DIR}/drivers/ocotp
+    ${SDK_DIR}/utilities/misc_utilities
+    ${SDK_DIR}/cmsis_drivers
+    ${SDK_DIR}/components/uart
+    ${SDK_DIR}/components/lists
+    ${SDK_DIR}/../CMSIS/Core/Include
+    ${SDK_DIR}/../CMSIS/DSP
+    ${SDK_DIR}/utilities/debug_console
+    ${SDK_DIR}/utilities/assert
+    ${SDK_DIR}/components/serial_manager
+)
+
+include(driver_igpio)
+include(driver_clock)
+include(driver_common)
+include(driver_pwm)
+include(driver_flexio)
+include(driver_xbara)
+include(driver_ocotp)
+include(driver_sai_edma)
+include(component_lpuart_adapter)
+include(component_lists)
+include(driver_lpuart)
+include(device_startup)
+include(driver_iomuxc)
+include(utility_debug_console)
+include(component_serial_manager)
+include(utility_assert)
+include(driver_xip_device)
+include(xip_board_duobrains2)
+include(CMSIS_Include_core_cm_MIMXRT1011)
+include(device_CMSIS)
+include(CMSIS_DSP_Library)
+include(utilities_misc_utilities_MIMXRT1011)
+include(device_system)
+include(driver_adc_12b1msps_sar)
+include(component_serial_manager_uart_MIMXRT1042)

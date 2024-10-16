@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_PATH=$(dirname "$(realpath "$0")")
 APP_PATH="$1"
-TOOLCHAIN_FILE=${TOOLCHAIN_FILE:-"$SCRIPT_PATH/../sdk/armgcc/arm-none-eabi-gcc.cmake"}
+TOOLCHAIN_FILE=${TOOLCHAIN_FILE:-"$SCRIPT_PATH/../cmake/toolchain/global-arm-gcc.cmake"}
 
 echo "Toolchain: $TOOLCHAIN_FILE"
 

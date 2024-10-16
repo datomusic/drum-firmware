@@ -16,4 +16,4 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 )
 
 include(${LIBRARIES_DIR}/tinyusb.cmake)
-include(${LIBRARIES_DIR}/arduino_midi_library/src/component_arduino_midi_library.cmake)
+include(${LIBRARIES_DIR}/arduino_midi_library.cmake)

@@ -16,4 +16,4 @@ target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/.
 )
 
-include(driver_common_MIMXRT1011)
+include(driver_common)

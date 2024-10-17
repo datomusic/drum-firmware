@@ -19,19 +19,24 @@ metrics.WITH_MEMORY_METRICS = False
 
 
 class Application:
-    def __init__(self,
-                 controller: Controller,
-                 device_output: Output,
-                 midi: MIDI,
-                 settings: Settings) -> None:
+    def __init__(
+        self,
+        controller: Controller,
+        midi: MIDI,
+        settings: Settings,
+        device_output: Output | None = None,
+    ) -> None:
 
         self.settings = settings
         self.controller = controller
         self.midi_handler = MIDIHandler(midi, settings)
 
         midi_output = MIDIOutput(midi)
-        combined_output = Broadcaster(Output, [device_output, midi_output])
-        self.drum = Drum(combined_output, settings)  # type: ignore
+        if device_output is not None:
+            output = Broadcaster(Output, [device_output, midi_output])
+            self.drum = Drum(output, settings)  # type: ignore
+        else:
+            self.drum = Drum(midi_output, settings)
 
         self._metrics = metrics.Metrics()
         self._gc_collect = self._metrics.wrap("gc_collect", gc.collect)

@@ -20,15 +20,8 @@ include(sdk)
 include(libraries)
 include(core)
 include(app_support)
-
-# All apps build with USB support for now,
-# since we rely on USB-MIDI to enter bootloader.
-set(WITH_USB true)
-
-if(WITH_USB)
-  include(add_git_defines)
-  include(usb)
-endif(WITH_USB)
+include(add_git_defines)
+include(usb)
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   # Disable warning about LOAD segment with RWX permissions.

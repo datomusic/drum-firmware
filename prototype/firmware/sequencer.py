@@ -112,6 +112,10 @@ class Sequencer:
         if active and not self._playing:
             track.note_player.play(track.note)
 
+    def shift_sequence(self, offset):
+        for track in self.tracks:
+            track.steps.shift_steps(offset)
+
     def set_random_enabled(self, enabled):
         for track in self.tracks:
             track.random_effect.enabled = enabled

@@ -21,3 +21,8 @@ class Steps:
         step = self.entries[index]
         step.active = not step.active
         return step.active
+    
+    def shift_steps(self, offset):
+        length = len(self.entries)
+        offset = offset % length
+        self.entries = self.entries[-offset:] + self.entries[:-offset]

@@ -8,6 +8,8 @@ from .drum import Drum
 from .midi_handler import MIDIHandler
 from adafruit_midi import MIDI
 import adafruit_logging as logging
+from .output_api import Output
+from .broadcaster import Broadcaster
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # type: ignore
@@ -17,13 +19,19 @@ metrics.WITH_MEMORY_METRICS = False
 
 
 class Application:
-    def __init__(self, controller: Controller, midi: MIDI, settings: Settings) -> None:
+    def __init__(self,
+                 controller: Controller,
+                 device_output: Output,
+                 midi: MIDI,
+                 settings: Settings) -> None:
+
         self.settings = settings
         self.controller = controller
         self.midi_handler = MIDIHandler(midi, settings)
 
-        output = MIDIOutput(midi)
-        self.drum = Drum(output, settings)
+        midi_output = MIDIOutput(midi)
+        combined_output = Broadcaster(Output, [device_output, midi_output])
+        self.drum = Drum(combined_output, settings)  # type: ignore
 
         self._metrics = metrics.Metrics()
         self._gc_collect = self._metrics.wrap("gc_collect", gc.collect)

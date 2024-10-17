@@ -4,13 +4,14 @@ def _not_implemented(name, *args):
 
 
 class OutputParam:
-    Volume = 1
-    LowPass = 2
-    HighPass = 3
-    AdjustFilter = 4
-    Tempo = 5
-    Distortion = 6
-    Bitcrusher = 7
+    def __init__(self):
+        self.Volume = 1
+        self.LowPass = 2
+        self.HighPass = 3
+        self.AdjustFilter = 4
+        self.Tempo = 5
+        self.Distortion = 6
+        self.Bitcrusher = 7
 
 
 class OutputChannelParam:

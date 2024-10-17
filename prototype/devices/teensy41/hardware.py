@@ -179,7 +179,7 @@ class Teensy41Hardware:
         return Display(brightness)
 
 
-def init_keymatrix(using_PWM):
+def init_keymatrix():
     col_pins = (board.D3, board.D4, board.D5, board.D6, board.D9)
     row_pins = (
         board.D10,

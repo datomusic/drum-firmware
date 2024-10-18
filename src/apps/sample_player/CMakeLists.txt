@@ -6,6 +6,7 @@ set(EXECUTABLE_NAME sample_player.elf)
 
 add_executable(${EXECUTABLE_NAME}
     main.cpp
+    pitch_shifter.cpp
     AudioSampleSnare.cpp
     AudioSampleKick.cpp
     AudioSampleHihat.cpp

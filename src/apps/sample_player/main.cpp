@@ -32,7 +32,7 @@ static void setup_audio() {
   AudioInterrupts();
 }
 
-static void handle_midi_on(byte channel, byte note, byte velocity) {
+static void handle_midi_on(byte _channel, byte note, byte _velocity) {
   switch (note % 4) {
   case 0:
     Rompler::kick.play();
@@ -85,7 +85,7 @@ int main(void) {
 
   dac.begin();
   setup_audio();
-  // Output::set_volume(0.2f);
+  Output::set_volume(0.2f);
   Audio::amp_enable();
 
   int counter = 0;
@@ -93,6 +93,7 @@ int main(void) {
     if (counter++ > 1000000) {
       counter = 0;
       MIDI::sendNoteOn(0, 100, 1);
+      // handle_midi_on(0, 0, 0);
     }
 
     App::update();

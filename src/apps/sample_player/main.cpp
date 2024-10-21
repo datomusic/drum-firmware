@@ -90,11 +90,13 @@ int main(void) {
 
   int counter = 0;
   while (true) {
+    /*
     if (counter++ > 1000000) {
       counter = 0;
       MIDI::sendNoteOn(0, 100, 1);
-      handle_note_on(0, 0, 0);
+      // handle_note_on(0, 0, 0);
     }
+    */
 
     App::update();
   }

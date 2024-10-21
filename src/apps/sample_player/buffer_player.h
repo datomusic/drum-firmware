@@ -5,19 +5,15 @@
 #include <AudioStream.h>
 
 class BufferPlayer : public AudioStream {
+
 public:
-  BufferPlayer(void) : AudioStream(0, NULL), playing(false) {
+  BufferPlayer(void) : AudioStream(0, NULL) {
   }
   void play(const unsigned int *data);
-  void stop(void);
-  bool isPlaying(void);
-  uint32_t positionMillis(void);
-  uint32_t lengthMillis(void);
   virtual void update(void);
 
 private:
   AudioMemoryReader reader;
-  bool playing;
 };
 
 #endif /* end of include guard: BUFFER_PLAYER_H_O1XVVMCG */

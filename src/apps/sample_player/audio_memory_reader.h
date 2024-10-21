@@ -5,30 +5,21 @@
 
 class AudioMemoryReader {
 public:
-  AudioMemoryReader() : encoding(0) {
+  AudioMemoryReader() : playing(0) {};
+
+  void play(const unsigned int *data);
+  uint8_t is_playing() {
+    return this->playing;
   }
 
-  void init(const unsigned int *sample_data) {
-    this->data = sample_data;
-
-    const uint32_t format = *this->data++;
-    this->length = format & 0xFFFFFF;
-    this->encoding = format >> 24;
-    this->prior = 0;
-    this->next = data;
-  }
-
-  void read_samples8(int16_t *buffer);
-  bool has_data() {
-    return this->encoding > 0;
-  }
+  uint32_t read_samples(int16_t *out, const uint16_t count);
 
 private:
-  const unsigned int *data;
   const unsigned int *next;
-  uint8_t encoding;
-  uint8_t length;
+  const unsigned int *beginning;
+  uint32_t length;
   int16_t prior;
+  volatile uint8_t playing;
 };
 
 #endif /* end of include guard: AUDIO_MEMORY_READER_H_R6GTYSPZ */

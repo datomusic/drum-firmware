@@ -33,6 +33,9 @@ static void setup_audio() {
 }
 
 static void handle_note_on(byte _channel, byte note, byte _velocity) {
+
+    Rompler::kick.play();
+  /*
   switch (note % 4) {
   case 0:
     Rompler::kick.play();
@@ -49,6 +52,7 @@ static void handle_note_on(byte _channel, byte note, byte _velocity) {
     Rompler::tom.play();
     break;
   }
+  */
 }
 
 static void handle_cc(byte channel, byte cc, byte midi_value) {
@@ -90,13 +94,11 @@ int main(void) {
 
   int counter = 0;
   while (true) {
-    /*
     if (counter++ > 1000000) {
       counter = 0;
       MIDI::sendNoteOn(0, 100, 1);
-      // handle_note_on(0, 0, 0);
+      handle_note_on(0, 0, 0);
     }
-    */
 
     App::update();
   }

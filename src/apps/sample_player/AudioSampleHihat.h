@@ -1,3 +1,4 @@
 // Audio data converted from WAV file by wav2sketch
 
-extern const unsigned int AudioSampleHihat[5953];
+#define AudioSampleHihatSize 5953
+extern const unsigned int AudioSampleHihat[AudioSampleHihatSize];

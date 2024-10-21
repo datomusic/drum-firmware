@@ -12,23 +12,31 @@
 
 namespace Rompler {
 struct Sound {
-  Sound(const unsigned int *sample_data) : sample_data(sample_data) {
+  Sound(const unsigned int *sample_data, const size_t data_length) : sample_data(sample_data), data_length(data_length) {
   }
 
   void play() {
-    player.play(sample_data);
+    player.play(sample_data, data_length);
   }
 
   BufferPlayer<PitchShifter<AudioMemoryReader>> player;
 
 private:
   const unsigned int *const sample_data;
+  const size_t data_length;
 };
 
-Sound kick(AudioSampleKick);
+Sound kick(AudioSampleKick, AudioSampleKickSize);
+Sound snare(AudioSampleSnare, AudioSampleSnareSize);
+Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
+Sound tom(AudioSampleTomtom, AudioSampleTomtomSize);
+
+/*
 Sound snare(AudioSampleSnare);
 Sound hihat(AudioSampleHihat);
 Sound tom(AudioSampleTomtom);
+*/
+
 AudioMixer4 mixer;
 
 static AudioConnection connections[] = {

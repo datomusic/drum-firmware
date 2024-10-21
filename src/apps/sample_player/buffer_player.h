@@ -8,8 +8,8 @@ template <typename Reader> struct BufferPlayer : public AudioStream {
   BufferPlayer() : AudioStream(0, NULL) {
   }
 
-  void play(const unsigned int *data) {
-    reader.init(data);
+  void play(const unsigned int *data, const uint32_t data_length) {
+    reader.init(data, data_length);
   }
 
   virtual void update() {

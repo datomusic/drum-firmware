@@ -4,7 +4,7 @@ extern "C" {
 extern const int16_t ulaw_decode_table[256];
 };
 
-void AudioMemoryReader::play(const unsigned int *data) {
+void AudioMemoryReader::init(const unsigned int *data) {
   uint32_t format;
 
   prior = 0;

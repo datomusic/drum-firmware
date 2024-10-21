@@ -3,11 +3,10 @@
 
 #include <stdint.h>
 
-class AudioMemoryReader {
-public:
+struct AudioMemoryReader {
   AudioMemoryReader() : encoding(0) {};
 
-  void play(const unsigned int *data);
+  void init(const unsigned int *data);
   bool has_data() {
     return this->encoding > 0;
   }

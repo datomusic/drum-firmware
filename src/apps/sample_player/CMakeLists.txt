@@ -8,6 +8,7 @@ add_executable(${EXECUTABLE_NAME}
     main.cpp
     buffer_player.cpp
     audio_memory_reader.cpp
+    pitch_shifter.cpp
     AudioSampleSnare.cpp
     AudioSampleKick.cpp
     AudioSampleHihat.cpp

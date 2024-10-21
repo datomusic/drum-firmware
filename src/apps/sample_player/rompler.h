@@ -7,6 +7,7 @@
 #include "AudioSampleSnare.h"
 #include "AudioSampleTomtom.h"
 #include "buffer_player.h"
+#include "pitch_shifter.h"
 #include <mixer.h>
 
 namespace Rompler {
@@ -18,7 +19,7 @@ struct Sound {
     player.play(sample_data);
   }
 
-  BufferPlayer player;
+  BufferPlayer<PitchShifter<AudioMemoryReader>> player;
 
 private:
   const unsigned int *const sample_data;

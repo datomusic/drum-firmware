@@ -19,7 +19,7 @@ struct AudioMemoryReader {
 
 private:
   int read_next(){
-    const unsigned int* end = this->beginning + this->data_length;
+    const unsigned int* end = this->beginning + this->data_length - 1;
     if (next == end) {
       encoding = 0;
       return 0;

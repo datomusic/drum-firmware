@@ -9,6 +9,7 @@
 #include "buffer_player.h"
 #include "pitch_shifter.h"
 #include <mixer.h>
+// #include <play_memory.h>
 
 namespace Rompler {
 struct Sound {
@@ -17,9 +18,11 @@ struct Sound {
 
   void play() {
     player.play(sample_data, data_length);
+    // player.play(sample_data);
   }
 
   BufferPlayer<PitchShifter<AudioMemoryReader>> player;
+  // AudioPlayMemory player;
 
 private:
   const unsigned int *const sample_data;
@@ -30,12 +33,6 @@ Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 Sound tom(AudioSampleTomtom, AudioSampleTomtomSize);
-
-/*
-Sound snare(AudioSampleSnare);
-Sound hihat(AudioSampleHihat);
-Sound tom(AudioSampleTomtom);
-*/
 
 AudioMixer4 mixer;
 

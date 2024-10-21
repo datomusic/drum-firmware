@@ -5,11 +5,11 @@
 #include <stdint.h>
 
 template <typename Reader> struct PitchShifter {
-  PitchShifter() : speed(0.9f) {
+  PitchShifter() : speed(1.5) {
   }
 
   // Reader interface
-  void init(const unsigned int *data, const uint32_t data_length){
+  void init(const unsigned int *data, const uint32_t data_length) {
     reader.init(data, data_length);
   }
 
@@ -20,15 +20,13 @@ template <typename Reader> struct PitchShifter {
 
   // Reader interface
   void read_samples(int16_t *out, const uint16_t out_sample_count) {
+    // TODO: Stream in chunks instead of using a preallocated buffer.
+    // Requires returning how many samples were read from reader.read_samples().
     static const uint32_t buffer_size = AUDIO_BLOCK_SAMPLES * 2;
     int16_t buffer[buffer_size];
 
     if (this->speed > 1) {
-      for (uint32_t i = 0; i < buffer_size; ++i) {
-        buffer[i] = 0;
-      }
-
-      uint32_t read_count = ((out_sample_count * this->speed) / 2) * 2;
+      uint32_t read_count = out_sample_count * this->speed;
       if (read_count > buffer_size) {
         read_count = buffer_size;
       }

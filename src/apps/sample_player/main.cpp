@@ -32,7 +32,7 @@ static void setup_audio() {
   AudioInterrupts();
 }
 
-static void handle_midi_on(byte _channel, byte note, byte _velocity) {
+static void handle_note_on(byte _channel, byte note, byte _velocity) {
   switch (note % 4) {
   case 0:
     Rompler::kick.play();
@@ -80,7 +80,7 @@ static void handle_cc(byte channel, byte cc, byte midi_value) {
 }
 
 int main(void) {
-  App::init(MIDI::Callbacks{.note_on = handle_midi_on, .cc = handle_cc});
+  App::init(MIDI::Callbacks{.note_on = handle_note_on, .cc = handle_cc});
   Audio::amp_disable();
 
   dac.begin();
@@ -93,7 +93,7 @@ int main(void) {
     if (counter++ > 1000000) {
       counter = 0;
       MIDI::sendNoteOn(0, 100, 1);
-      // handle_midi_on(0, 0, 0);
+      handle_note_on(0, 0, 0);
     }
 
     App::update();

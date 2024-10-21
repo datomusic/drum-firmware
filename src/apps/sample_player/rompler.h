@@ -8,7 +8,6 @@
 #include "AudioSampleTomtom.h"
 #include "buffer_player.h"
 #include <mixer.h>
-#include <play_memory.h>
 
 namespace Rompler {
 struct Sound {
@@ -19,7 +18,6 @@ struct Sound {
     player.play(sample_data);
   }
 
-  // AudioPlayMemory player;
   BufferPlayer player;
 
 private:
@@ -27,20 +25,16 @@ private:
 };
 
 Sound kick(AudioSampleKick);
-/*
 Sound snare(AudioSampleSnare);
 Sound hihat(AudioSampleHihat);
 Sound tom(AudioSampleTomtom);
-*/
 AudioMixer4 mixer;
 
 static AudioConnection connections[] = {
-    AudioConnection(kick.player, 0, mixer, 1),
-    /*
     AudioConnection(snare.player, 0, mixer, 0),
+    AudioConnection(kick.player, 0, mixer, 1),
     AudioConnection(hihat.player, 0, mixer, 2),
     AudioConnection(tom.player, 0, mixer, 3),
-    */
 };
 
 AudioStream &get_output() {

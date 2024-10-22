@@ -1,7 +1,6 @@
 #ifndef PITCH_SHIFTER_H_0GR8ZAHC
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
-#include <AudioStream.h>
 #include <stdint.h>
 
 template <typename Reader> struct PitchShifter {
@@ -52,7 +51,7 @@ void PitchShifter<Reader>::read_samples(int16_t *out,
                                         const uint16_t out_sample_count) {
   // TODO: Stream in chunks instead of using a preallocated buffer.
   // Requires returning how many samples were read from reader.read_samples().
-  static const uint32_t buffer_size = AUDIO_BLOCK_SAMPLES * 10;
+  static const uint32_t buffer_size = 256 * 10;
   int16_t samples[buffer_size];
 
   if (this->speed < 1.01 && this->speed > 0.99) {

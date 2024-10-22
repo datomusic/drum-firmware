@@ -32,20 +32,21 @@ static void setup_audio() {
   AudioInterrupts();
 }
 
-static void handle_note_on(byte _channel, byte note, byte _velocity) {
-  switch (note % 4) {
-  case 0:
+static void handle_note_on(byte channel, byte note, byte _velocity) {
+  Rompler::playback_speed = (float)note / 64.0f;
+  switch (channel) {
+  case 1:
     Rompler::kick.play();
     break;
 
-  case 1:
+  case 2:
     Rompler::snare.play();
     break;
 
-  case 2:
+  case 3:
     Rompler::hihat.play();
     break;
-  case 3:
+  case 4:
     Rompler::tom.play();
     break;
   }
@@ -88,15 +89,9 @@ int main(void) {
   Output::set_volume(0.2f);
   Audio::amp_enable();
 
-  int counter = 0;
   while (true) {
-    if (counter++ > 1000000) {
-      counter = 0;
-      MIDI::sendNoteOn(0, 100, 1);
-      // handle_note_on(0, 0, 0);
-    }
-
-    App::update();
+    const auto midi_channel = 0; // All channels
+    App::update(midi_channel);
   }
 
   return 0;

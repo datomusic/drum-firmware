@@ -20,7 +20,7 @@ def main():
     step = 0
 
     while True:
-        time.sleep(0.5)
+        time.sleep(0.3)
         samples = sequence[step % len(sequence)]
         step += 1
         for sample in samples:

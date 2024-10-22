@@ -4,17 +4,16 @@
 #include <AudioStream.h>
 #include <stdint.h>
 
-namespace PitchShifterSupport {
-int16_t quad_interpolate(int16_t d1, int16_t d2, int16_t d3, int16_t d4,
-                         double x);
-}
-
 template <typename Reader> struct PitchShifter {
   PitchShifter() : speed(1.5) {
   }
 
   // Reader interface
   void init(const unsigned int *data, const uint32_t data_length) {
+    for (int i = 0; i < 4; ++i) {
+      this->interpolationData[i] = 0;
+    }
+
     reader.init(data, data_length);
   }
 
@@ -26,8 +25,8 @@ template <typename Reader> struct PitchShifter {
   // Reader interface
   void read_samples(int16_t *out, const uint16_t out_sample_count);
 
-  void set_speed(const float speed) {
-    if (speed < 0.1f) {
+  void set_speed(const double speed) {
+    if (speed < 0.1) {
       this->speed = 0.1;
     } else if (speed > 2) {
       this->speed = 2;
@@ -39,34 +38,72 @@ template <typename Reader> struct PitchShifter {
   Reader reader;
 
 private:
-  float speed;
+  double speed;
+  int16_t interpolationData[4];
 };
+
+namespace PitchShifterSupport {
+int16_t quad_interpolate(int16_t d1, int16_t d2, int16_t d3, int16_t d4,
+                         double x);
+}
 
 template <typename Reader>
 void PitchShifter<Reader>::read_samples(int16_t *out,
                                         const uint16_t out_sample_count) {
   // TODO: Stream in chunks instead of using a preallocated buffer.
   // Requires returning how many samples were read from reader.read_samples().
-  static const uint32_t buffer_size = AUDIO_BLOCK_SAMPLES * 2;
-  int16_t buffer[buffer_size];
+  static const uint32_t buffer_size = AUDIO_BLOCK_SAMPLES * 10;
+  int16_t samples[buffer_size];
 
-  if (this->speed < 1.01f && this->speed > 0.99f) {
+  if (this->speed < 1.01 && this->speed > 0.99) {
     reader.read_samples(out, out_sample_count);
   } else {
-    uint32_t read_count = out_sample_count * this->speed;
-    if (read_count > buffer_size) {
-      read_count = buffer_size;
+    uint32_t max_read_count = out_sample_count * this->speed;
+    if (max_read_count > buffer_size) {
+      max_read_count = buffer_size;
     }
 
-    reader.read_samples(buffer, read_count);
-    for (int target_index = 0; target_index < out_sample_count;
-         ++target_index) {
-      const uint32_t source_index = (int)(target_index * this->speed);
-      if (source_index < buffer_size) {
+    reader.read_samples(samples, max_read_count);
 
-        *out++ = buffer[source_index];
-      } else {
-        *out++ = 0;
+    for (int i = 1; i < 4; i++) {
+      interpolationData[i] = samples[i - 1];
+    }
+
+    double position = 0;
+    uint32_t wholeNumber = 0;
+    double remainder = 0;
+
+    for (uint32_t target_index = 0; target_index < out_sample_count;
+         ++target_index) {
+
+      const int16_t interpolated = PitchShifterSupport::quad_interpolate(
+          interpolationData[0], interpolationData[1], interpolationData[2],
+          interpolationData[3], 1.0 + remainder);
+
+      uint32_t lastWholeNumber = wholeNumber;
+      wholeNumber = (uint32_t)(position);
+      remainder = position - wholeNumber;
+      position += this->speed;
+
+      *out++ = interpolated;
+
+      if (wholeNumber - lastWholeNumber > 0) {
+        interpolationData[0] = samples[lastWholeNumber];
+
+        if (lastWholeNumber + 1 < max_read_count)
+          interpolationData[1] = samples[lastWholeNumber + 1];
+        else
+          interpolationData[1] = 0;
+
+        if (lastWholeNumber + 2 < max_read_count)
+          interpolationData[2] = samples[lastWholeNumber + 2];
+        else
+          interpolationData[2] = 0;
+
+        if (lastWholeNumber + 3 < max_read_count)
+          interpolationData[3] = samples[lastWholeNumber + 3];
+        else
+          interpolationData[3] = 0;
       }
     }
   }

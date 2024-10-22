@@ -10,3 +10,6 @@
 [submodule "mimxrt10xx/sdk"]
 	path = src/sdk
 	url = git@github.com:nxp-mcuxpresso/mcux-sdk.git
+[submodule "src/apps/sample_player/test/Catch2"]
+	path = src/apps/sample_player/test/Catch2
+	url = git@github.com:catchorg/Catch2.git

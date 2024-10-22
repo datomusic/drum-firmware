@@ -42,24 +42,24 @@ struct AudioMemoryReader {
   }
 
   // Reader interface
-  void read_samples(int16_t *out, const uint16_t count);
+  uint32_t read_samples(int16_t *out, const uint16_t count);
 
 private:
-  int read_next() {
-    const unsigned int *end = this->beginning + this->data_length - 1;
+  bool read_next(uint32_t &out) {
+    const unsigned int *end = this->beginning + this->data_length;
     if (next == end) {
       encoding = 0;
-      return 0;
+      return false;
     } else {
-      const int sample = *next;
+      out = *next;
       ++next;
-      return sample;
+      return true;
     }
   }
 
   const unsigned int *next;
   const unsigned int *beginning;
-  uint32_t length;
+  uint32_t remaining_length;
   int16_t prior;
   volatile uint8_t encoding;
   uint32_t data_length;

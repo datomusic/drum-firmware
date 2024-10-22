@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 template <typename Reader> struct PitchShifter {
-  PitchShifter() : speed(1.5) {
+  PitchShifter() : speed(1) {
   }
 
   // Reader interface
@@ -26,10 +26,10 @@ template <typename Reader> struct PitchShifter {
   void read_samples(int16_t *out, const uint16_t out_sample_count);
 
   void set_speed(const double speed) {
-    if (speed < 0.1) {
-      this->speed = 0.1;
-    } else if (speed > 2) {
-      this->speed = 2;
+    if (speed < 0.2) {
+      this->speed = 0.2;
+    } else if (speed > 1.8) {
+      this->speed = 1.8;
     } else {
       this->speed = speed;
     }
@@ -63,7 +63,7 @@ void PitchShifter<Reader>::read_samples(int16_t *out,
       max_read_count = buffer_size;
     }
 
-    reader.read_samples(samples, max_read_count);
+    const uint32_t read_count = reader.read_samples(samples, max_read_count);
 
     for (int i = 1; i < 4; i++) {
       interpolationData[i] = samples[i - 1];
@@ -73,10 +73,10 @@ void PitchShifter<Reader>::read_samples(int16_t *out,
     uint32_t wholeNumber = 0;
     double remainder = 0;
 
-    for (uint32_t target_index = 0; target_index < out_sample_count;
-         ++target_index) {
+    uint32_t target_index;
+    for (target_index = 0; target_index < out_sample_count; ++target_index) {
 
-      const int16_t interpolated = PitchShifterSupport::quad_interpolate(
+      *out++ = PitchShifterSupport::quad_interpolate(
           interpolationData[0], interpolationData[1], interpolationData[2],
           interpolationData[3], 1.0 + remainder);
 
@@ -85,26 +85,28 @@ void PitchShifter<Reader>::read_samples(int16_t *out,
       remainder = position - wholeNumber;
       position += this->speed;
 
-      *out++ = interpolated;
-
       if (wholeNumber - lastWholeNumber > 0) {
         interpolationData[0] = samples[lastWholeNumber];
 
-        if (lastWholeNumber + 1 < max_read_count)
+        if (lastWholeNumber + 1 < read_count)
           interpolationData[1] = samples[lastWholeNumber + 1];
         else
           interpolationData[1] = 0;
 
-        if (lastWholeNumber + 2 < max_read_count)
+        if (lastWholeNumber + 2 < read_count)
           interpolationData[2] = samples[lastWholeNumber + 2];
         else
           interpolationData[2] = 0;
 
-        if (lastWholeNumber + 3 < max_read_count)
+        if (lastWholeNumber + 3 < read_count)
           interpolationData[3] = samples[lastWholeNumber + 3];
         else
           interpolationData[3] = 0;
       }
+    }
+
+    for (; target_index < out_sample_count; ++target_index) {
+      *out++ = 0;
     }
   }
 }

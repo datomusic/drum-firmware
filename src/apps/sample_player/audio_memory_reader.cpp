@@ -40,13 +40,14 @@ void AudioMemoryReader::init(const unsigned int *data,
   format = *data++;
   next = data;
   beginning = data;
-  length = format & 0xFFFFFF;
+  remaining_length = format & 0xFFFFFF;
   encoding = format >> 24;
   this->data_length = data_length;
 }
 
-void AudioMemoryReader::read_samples(int16_t *out, const uint16_t count) {
-  uint32_t tmp32, consumed;
+uint32_t AudioMemoryReader::read_samples(int16_t *out,
+                                         const uint16_t max_sample_count) {
+  uint32_t tmp32, consumed = 0, samples_written = 0;
   int16_t s0, s1, s2, s3, s4;
   int i;
 
@@ -54,28 +55,38 @@ void AudioMemoryReader::read_samples(int16_t *out, const uint16_t count) {
 
   switch (encoding) {
   case 0x01: // u-law encoded, 44100 Hz, Mono
-    for (i = 0; i < count; i += 4) {
-      tmp32 = read_next();
+    for (i = 0; i < max_sample_count; i += 4) {
+      if (!read_next(tmp32)) {
+        break;
+      }
       *out++ = ulaw_decode_table[(tmp32 >> 0) & 255];
       *out++ = ulaw_decode_table[(tmp32 >> 8) & 255];
       *out++ = ulaw_decode_table[(tmp32 >> 16) & 255];
       *out++ = ulaw_decode_table[(tmp32 >> 24) & 255];
+
+      samples_written += 4;
+      consumed += 4;
     }
-    consumed = count;
     break;
 
   case 0x81: // 16 bit PCM, 44100 Hz, Mono
-    for (i = 0; i < count; i += 2) {
-      tmp32 = read_next();
+    for (i = 0; i < max_sample_count; i += 2) {
+      if (!read_next(tmp32)) {
+        break;
+      }
       *out++ = (int16_t)(tmp32 & 65535);
       *out++ = (int16_t)(tmp32 >> 16);
+
+      samples_written += 2;
+      consumed += 2;
     }
-    consumed = count;
     break;
 
   case 0x02: // u-law encoded, 22050 Hz, Mono
-    for (i = 0; i < count; i += 8) {
-      tmp32 = read_next();
+    for (i = 0; i < max_sample_count; i += 8) {
+      if (!read_next(tmp32)) {
+        break;
+      }
       s1 = ulaw_decode_table[(tmp32 >> 0) & 255];
       s2 = ulaw_decode_table[(tmp32 >> 8) & 255];
       s3 = ulaw_decode_table[(tmp32 >> 16) & 255];
@@ -89,27 +100,36 @@ void AudioMemoryReader::read_samples(int16_t *out, const uint16_t count) {
       *out++ = (s3 + s4) >> 1;
       *out++ = s4;
       s0 = s4;
+
+      consumed += 4;
+      samples_written += 8;
     }
-    consumed = count / 2;
     break;
 
   case 0x82: // 16 bits PCM, 22050 Hz, Mono
-    for (i = 0; i < count; i += 4) {
-      tmp32 = read_next();
+    for (i = 0; i < max_sample_count; i += 4) {
+      if (!read_next(tmp32)) {
+        break;
+      }
       s1 = (int16_t)(tmp32 & 65535);
       s2 = (int16_t)(tmp32 >> 16);
       *out++ = (s0 + s1) >> 1;
       *out++ = s1;
       *out++ = (s1 + s2) >> 1;
       *out++ = s2;
+
       s0 = s2;
+
+      consumed += 2;
+      samples_written += 4;
     }
-    consumed = count / 2;
     break;
 
   case 0x03: // u-law encoded, 11025 Hz, Mono
-    for (i = 0; i < count; i += 16) {
-      tmp32 = read_next();
+    for (i = 0; i < max_sample_count; i += 16) {
+      if (!read_next(tmp32)) {
+        break;
+      }
       s1 = ulaw_decode_table[(tmp32 >> 0) & 255];
       s2 = ulaw_decode_table[(tmp32 >> 8) & 255];
       s3 = ulaw_decode_table[(tmp32 >> 16) & 255];
@@ -131,13 +151,17 @@ void AudioMemoryReader::read_samples(int16_t *out, const uint16_t count) {
       *out++ = (s3 + s4 * 3) >> 2;
       *out++ = s4;
       s0 = s4;
+
+      consumed += 4;
+      samples_written += 16;
     }
-    consumed = count / 4;
     break;
 
   case 0x83: // 16 bit PCM, 11025 Hz, Mono
-    for (i = 0; i < count; i += 8) {
-      tmp32 = read_next();
+    for (i = 0; i < max_sample_count; i += 8) {
+      if (!read_next(tmp32)) {
+        break;
+      }
       s1 = (int16_t)(tmp32 & 65535);
       s2 = (int16_t)(tmp32 >> 16);
       *out++ = (s0 * 3 + s1) >> 2;
@@ -149,24 +173,29 @@ void AudioMemoryReader::read_samples(int16_t *out, const uint16_t count) {
       *out++ = (s1 + s2 * 3) >> 2;
       *out++ = s2;
       s0 = s2;
+
+      consumed += 2;
+      samples_written += 8;
     }
-    consumed = count / 4;
     break;
 
   default:
     encoding = 0;
-    return;
+    return samples_written;
   }
 
   prior = s0;
 
-  if (consumed == 0) {
+  if (consumed == 0 || samples_written == 0) {
     encoding = 0;
+  } else {
+
+    if (remaining_length > consumed) {
+      remaining_length -= consumed;
+    } else {
+      encoding = 0;
+    }
   }
 
-  if (length > consumed) {
-    length -= consumed;
-  } else {
-    encoding = 0;
-  }
+  return samples_written;
 }

@@ -4,9 +4,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(Catch2)
 add_executable(tests 
-    pitch_shifter_test.cpp)
+    pitch_shifter_test.cpp
+    ../pitch_shifter.cpp
+    ../AudioSampleKick.cpp
+    ../audio_memory_reader.cpp
+    ./../../../libraries/Teensy_Audio/data_ulaw.c
+  )
 
 target_include_directories(tests PUBLIC
+  ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
 )
 

@@ -1,7 +1,6 @@
 #ifndef BUFFER_PLAYER_H_O1XVVMCG
 #define BUFFER_PLAYER_H_O1XVVMCG
 
-#include "audio_memory_reader.h"
 #include "sample_reader.h"
 #include <AudioStream.h>
 

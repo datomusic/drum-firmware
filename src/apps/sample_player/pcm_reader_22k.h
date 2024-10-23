@@ -25,14 +25,14 @@
  * THE SOFTWARE.
  */
 
-#ifndef AUDIO_MEMORY_READER_H_R6GTYSPZ
-#define AUDIO_MEMORY_READER_H_R6GTYSPZ
+#ifndef PCM_READER_22K_H_XZWOFIKS
+#define PCM_READER_22K_H_XZWOFIKS
 
 #include "sample_reader.h"
 #include <stdint.h>
 
-struct AudioMemoryReader : SampleReader {
-  AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
+struct PCMReader22k : SampleReader {
+  PCMReader22k(const unsigned int *sample_data, const uint32_t data_length)
       : encoding(0), sample_data(sample_data), data_length(data_length) {};
 
   // Reader interface
@@ -68,4 +68,4 @@ private:
   int16_t prior;
 };
 
-#endif /* end of include guard: AUDIO_MEMORY_READER_H_R6GTYSPZ */
+#endif /* end of include guard: PCM_READER_22K_H_XZWOFIKS */

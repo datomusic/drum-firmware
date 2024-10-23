@@ -7,7 +7,8 @@ set(EXECUTABLE_NAME sample_player.elf)
 add_executable(${EXECUTABLE_NAME}
     main.cpp
     buffer_player.cpp
-    audio_memory_reader.cpp
+    # audio_memory_reader.cpp
+    pcm_reader_22k.cpp
     pitch_shifter.cpp
     AudioSampleSnare.cpp
     AudioSampleKick.cpp

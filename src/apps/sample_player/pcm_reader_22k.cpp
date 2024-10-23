@@ -1,3 +1,4 @@
+
 /* Audio Library for Teensy 3.X
  * Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
  *
@@ -25,47 +26,69 @@
  * THE SOFTWARE.
  */
 
-#ifndef AUDIO_MEMORY_READER_H_R6GTYSPZ
-#define AUDIO_MEMORY_READER_H_R6GTYSPZ
+#include "pcm_reader_22k.h"
 
-#include "sample_reader.h"
-#include <stdint.h>
+extern "C" {
+extern const int16_t ulaw_decode_table[256];
+};
 
-struct AudioMemoryReader : SampleReader {
-  AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
-      : encoding(0), sample_data(sample_data), data_length(data_length) {};
+void PCMReader22k::reset() {
+  uint32_t format;
 
-  // Reader interface
-  void reset();
+  prior = 0;
+  next = sample_data;
+  format = *next++;
+  beginning = next;
+  remaining_length = format & 0xFFFFFF;
+  encoding = format >> 24;
+}
 
-  // Reader interface
-  bool has_data() {
-    return this->encoding > 0;
+uint32_t PCMReader22k::read_samples(int16_t *out,
+                                    const uint16_t max_sample_count) {
+  uint32_t tmp32, consumed = 0, samples_written = 0;
+  int16_t s0, s1, s2;
+  int i;
+
+  s0 = prior;
+
+  switch (encoding) {
+
+  case 0x82: // 16 bits PCM, 22050 Hz, Mono
+    for (i = 0; i < max_sample_count; i += 4) {
+      if (!read_next(tmp32)) {
+        break;
+      }
+      s1 = (int16_t)(tmp32 & 65535);
+      s2 = (int16_t)(tmp32 >> 16);
+      *out++ = (s0 + s1) >> 1;
+      *out++ = s1;
+      *out++ = (s1 + s2) >> 1;
+      *out++ = s2;
+
+      s0 = s2;
+
+      consumed += 2;
+      samples_written += 4;
+    }
+    break;
+
+  default:
+    encoding = 0;
+    return samples_written;
   }
 
-  // Reader interface
-  uint32_t read_samples(int16_t *out, const uint16_t count);
+  prior = s0;
 
-private:
-  bool read_next(uint32_t &out) {
-    const unsigned int *end = this->beginning + this->data_length - 1;
-    if (next == end) {
-      encoding = 0;
-      return false;
+  if (consumed == 0 || samples_written == 0) {
+    encoding = 0;
+  } else {
+
+    if (remaining_length > consumed) {
+      remaining_length -= consumed;
     } else {
-      out = *next;
-      ++next;
-      return true;
+      encoding = 0;
     }
   }
 
-  volatile uint8_t encoding;
-  const unsigned int *const sample_data;
-  const uint32_t data_length;
-  const unsigned int *next;
-  const unsigned int *beginning;
-  uint32_t remaining_length;
-  int16_t prior;
-};
-
-#endif /* end of include guard: AUDIO_MEMORY_READER_H_R6GTYSPZ */
+  return samples_written;
+}

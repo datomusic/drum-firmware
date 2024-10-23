@@ -77,6 +77,7 @@ uint32_t PitchShifter::read_samples(int16_t *out,
       }
     }
 
+    // Pad rest of buffer. This should only happen if reader.has_data() is false
     for (; target_index < out_sample_count; ++target_index) {
       *out++ = 0;
     }

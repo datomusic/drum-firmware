@@ -4,7 +4,7 @@
 #include "sample_reader.h"
 #include <stdint.h>
 
-struct PitchShifter : public SampleReader {
+struct PitchShifter : SampleReader {
   PitchShifter(SampleReader &reader) : speed(1), reader(reader) {
   }
 

@@ -2,11 +2,11 @@
 #define BUFFER_PLAYER_H_O1XVVMCG
 
 #include "audio_memory_reader.h"
-#include "reader.h"
+#include "sample_reader.h"
 #include <AudioStream.h>
 
 struct BufferPlayer : public AudioStream {
-  BufferPlayer(Reader &reader) : AudioStream(0, NULL), reader(reader) {
+  BufferPlayer(SampleReader &reader) : AudioStream(0, NULL), reader(reader) {
   }
 
   void play() {
@@ -29,7 +29,7 @@ struct BufferPlayer : public AudioStream {
   }
 
 private:
-  Reader &reader;
+  SampleReader &reader;
 };
 
 #endif /* end of include guard: BUFFER_PLAYER_H_O1XVVMCG */

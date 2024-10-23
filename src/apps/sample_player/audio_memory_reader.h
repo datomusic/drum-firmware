@@ -28,10 +28,10 @@
 #ifndef AUDIO_MEMORY_READER_H_R6GTYSPZ
 #define AUDIO_MEMORY_READER_H_R6GTYSPZ
 
-#include "reader.h"
+#include "sample_reader.h"
 #include <stdint.h>
 
-struct AudioMemoryReader : public Reader {
+struct AudioMemoryReader : public SampleReader {
   AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
       : encoding(0), sample_data(sample_data), data_length(data_length) {};
 

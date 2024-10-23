@@ -1,11 +1,11 @@
 #ifndef PITCH_SHIFTER_H_0GR8ZAHC
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
-#include "reader.h"
+#include "sample_reader.h"
 #include <stdint.h>
 
-struct PitchShifter : public Reader {
-  PitchShifter(Reader &reader) : speed(1), reader(reader) {
+struct PitchShifter : public SampleReader {
+  PitchShifter(SampleReader &reader) : speed(1), reader(reader) {
   }
 
   // Reader interface
@@ -31,7 +31,7 @@ struct PitchShifter : public Reader {
 
 private:
   double speed;
-  Reader &reader;
+  SampleReader &reader;
   int16_t interpolationData[4];
 };
 

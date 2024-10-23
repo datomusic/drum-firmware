@@ -4,16 +4,16 @@
 #include <stdint.h>
 
 template <typename Reader> struct PitchShifter {
-  PitchShifter() : speed(1) {
+  PitchShifter(Reader reader) : speed(1), reader(reader) {
   }
 
   // Reader interface
-  void init(const unsigned int *data, const uint32_t data_length) {
+  void reset() {
     for (int i = 0; i < 4; ++i) {
       this->interpolationData[i] = 0;
     }
 
-    reader.init(data, data_length);
+    reader.reset();
   }
 
   // Reader interface
@@ -34,10 +34,10 @@ template <typename Reader> struct PitchShifter {
     }
   }
 
-  Reader reader;
 
 private:
   double speed;
+  Reader reader;
   int16_t interpolationData[4];
 };
 

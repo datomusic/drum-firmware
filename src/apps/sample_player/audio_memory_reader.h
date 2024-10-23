@@ -31,10 +31,11 @@
 #include <stdint.h>
 
 struct AudioMemoryReader {
-  AudioMemoryReader() : encoding(0) {};
+  AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
+      : encoding(0), sample_data(sample_data), data_length(data_length) {};
 
   // Reader interface
-  void init(const unsigned int *data, const uint32_t data_length);
+  void reset();
 
   // Reader interface
   bool has_data() {
@@ -57,12 +58,13 @@ private:
     }
   }
 
+  volatile uint8_t encoding;
+  const unsigned int *const sample_data;
+  const uint32_t data_length;
   const unsigned int *next;
   const unsigned int *beginning;
   uint32_t remaining_length;
   int16_t prior;
-  volatile uint8_t encoding;
-  uint32_t data_length;
 };
 
 #endif /* end of include guard: AUDIO_MEMORY_READER_H_R6GTYSPZ */

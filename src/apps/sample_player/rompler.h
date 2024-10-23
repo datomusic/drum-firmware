@@ -9,27 +9,22 @@
 #include "buffer_player.h"
 #include "pitch_shifter.h"
 #include <mixer.h>
-// #include <play_memory.h>
 
 namespace Rompler {
-  float playback_speed = 1;
+double playback_speed = 1;
 
 struct Sound {
-  Sound(const unsigned int *sample_data, const size_t data_length) : sample_data(sample_data), data_length(data_length) {
+  Sound(const unsigned int *sample_data, const size_t data_length)
+      : player(PitchShifter<AudioMemoryReader>(
+            AudioMemoryReader(sample_data, data_length))) {
   }
 
   void play() {
     player.reader.set_speed(playback_speed);
-    player.play(sample_data, data_length);
-    // player.play(sample_data);
+    player.play();
   }
 
   BufferPlayer<PitchShifter<AudioMemoryReader>> player;
-  // AudioPlayMemory player;
-
-private:
-  const unsigned int *const sample_data;
-  const size_t data_length;
 };
 
 Sound kick(AudioSampleKick, AudioSampleKickSize);

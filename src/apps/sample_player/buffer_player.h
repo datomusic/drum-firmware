@@ -5,11 +5,11 @@
 #include <AudioStream.h>
 
 template <typename Reader> struct BufferPlayer : public AudioStream {
-  BufferPlayer() : AudioStream(0, NULL) {
+  BufferPlayer(Reader reader) : AudioStream(0, NULL), reader(reader) {
   }
 
-  void play(const unsigned int *data, const uint32_t data_length) {
-    reader.init(data, data_length);
+  void play() {
+    reader.reset();
   }
 
   virtual void update() {

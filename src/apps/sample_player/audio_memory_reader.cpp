@@ -32,17 +32,15 @@ extern "C" {
 extern const int16_t ulaw_decode_table[256];
 };
 
-void AudioMemoryReader::init(const unsigned int *data,
-                             const uint32_t data_length) {
+void AudioMemoryReader::reset() {
   uint32_t format;
 
   prior = 0;
-  format = *data++;
-  next = data;
-  beginning = data;
+  next = sample_data;
+  format = *next++;
+  beginning = next;
   remaining_length = format & 0xFFFFFF;
   encoding = format >> 24;
-  this->data_length = data_length;
 }
 
 uint32_t AudioMemoryReader::read_samples(int16_t *out,

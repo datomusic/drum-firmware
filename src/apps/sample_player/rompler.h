@@ -15,22 +15,24 @@ double playback_speed = 1;
 
 struct Sound {
   Sound(const unsigned int *sample_data, const size_t data_length)
-      : player(PitchShifter<AudioMemoryReader>(
-            AudioMemoryReader(sample_data, data_length))) {
+      : memory_reader(sample_data, data_length), pitch_shifter(memory_reader),
+        player(pitch_shifter) {
   }
 
   void play() {
-    player.reader.set_speed(playback_speed);
+    pitch_shifter.set_speed(playback_speed);
     player.play();
   }
 
-  BufferPlayer<PitchShifter<AudioMemoryReader>> player;
+  AudioMemoryReader memory_reader;
+  PitchShifter pitch_shifter;
+  BufferPlayer player;
 };
 
-Sound kick(AudioSampleKick, AudioSampleKickSize);
+Sound kick(AudioSampleSnare, AudioSampleSnareSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
-Sound tom(AudioSampleTomtom, AudioSampleTomtomSize);
+Sound tom(AudioSampleHihat, AudioSampleHihatSize);
 
 AudioMixer4 mixer;
 

@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.13.0)
 project(sample-player-tests)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_C_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
+set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 
 add_subdirectory(Catch2)
 add_executable(tests 

@@ -4,10 +4,8 @@
 #include "audio_memory_reader.h"
 #include "pitch_shifter.h"
 
+template <int MAX_SAMPLES, int CHUNK_SIZE>
 struct DummyBufferReader : SampleReader {
-  static const auto MAX_SAMPLES = 100;
-  static const auto CHUNK_SIZE = 4;
-
   DummyBufferReader() {
     reset();
   }
@@ -62,25 +60,52 @@ struct DummyBufferReader : SampleReader {
 };
 
 TEST_CASE("PitchShifter reads samples") {
-  auto reader = DummyBufferReader();
+  auto reader = DummyBufferReader<100, 4>();
   auto shifter = PitchShifter(reader);
 
-  int16_t buffer[20];
+  int16_t buffer[100];
   shifter.set_speed(1);
 
   auto total_samples_read = 0;
   auto loop_counter = 0;
 
+  int16_t *write_position = buffer;
   while (shifter.has_data()) {
-    auto samples_read = shifter.read_samples(buffer, 23);
+    auto samples_read = shifter.read_samples(write_position, 20);
     REQUIRE(samples_read == 20);
     total_samples_read += samples_read;
     loop_counter += 1;
+    write_position += samples_read;
   }
 
   REQUIRE(reader.read_counter == 100);
   REQUIRE(total_samples_read == 100);
   REQUIRE(loop_counter == 5);
+
+  for (int i = 0; i < 100; ++i) {
+    REQUIRE(buffer[i] == i);
+  }
+}
+
+TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
+          "sample count is equal to chunk size of the underlying reader") {
+  const int CHUNK_SIZE = 4;
+  auto reader = DummyBufferReader<8, CHUNK_SIZE>();
+  auto shifter = PitchShifter(reader);
+
+  int16_t buffer[CHUNK_SIZE];
+  shifter.set_speed(0.8);
+
+  auto samples_read = shifter.read_samples(buffer, CHUNK_SIZE);
+  REQUIRE(samples_read == CHUNK_SIZE);
+
+  for (int i = 0; i < CHUNK_SIZE; ++i) {
+    REQUIRE(buffer[i] == i);
+  }
+
+  /*
+  REQUIRE(reader.read_counter == CHUNK_SIZE);
+  */
 }
 
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if

@@ -25,7 +25,8 @@ struct DummyBufferReader : SampleReader {
         }
 
         for (int chunk = 0; chunk < CHUNK_SIZE; ++chunk) {
-          *out++ = read_counter++;
+          *out++ = read_counter + 1;
+          read_counter++;
         }
 
         consumed += CHUNK_SIZE;
@@ -83,29 +84,50 @@ TEST_CASE("PitchShifter reads samples") {
   REQUIRE(loop_counter == 5);
 
   for (int i = 0; i < 100; ++i) {
-    REQUIRE(buffer[i] == i);
+    REQUIRE(buffer[i] == i + 1);
   }
 }
 
 TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
           "sample count is equal to chunk size of the underlying reader") {
   const int CHUNK_SIZE = 4;
-  auto reader = DummyBufferReader<8, CHUNK_SIZE>();
+  auto reader = DummyBufferReader<4, CHUNK_SIZE>();
   auto shifter = PitchShifter(reader);
 
-  int16_t buffer[CHUNK_SIZE];
-  shifter.set_speed(0.8);
+  int16_t buffer[CHUNK_SIZE * 3];
+  shifter.set_speed(0.5);
 
-  auto samples_read = shifter.read_samples(buffer, CHUNK_SIZE);
-  REQUIRE(samples_read == CHUNK_SIZE);
+  auto samples_read = shifter.read_samples(buffer, CHUNK_SIZE * 3);
+  REQUIRE(reader.read_counter == 4);
+  REQUIRE(samples_read == CHUNK_SIZE * 3);
 
-  for (int i = 0; i < CHUNK_SIZE; ++i) {
-    REQUIRE(buffer[i] == i);
-  }
-
-  /*
-  REQUIRE(reader.read_counter == CHUNK_SIZE);
-  */
+#if 0 // With interpolation
+  REQUIRE(buffer[0] == 1);
+  REQUIRE(buffer[1] == 1);
+  REQUIRE(buffer[2] == 1);
+  REQUIRE(buffer[3] == 1);
+  REQUIRE(buffer[4] == 2);
+  REQUIRE(buffer[5] == 2);
+  REQUIRE(buffer[6] == 3);
+  REQUIRE(buffer[7] == 3);
+  REQUIRE(buffer[8] == 2);
+  REQUIRE(buffer[9] == 0);
+  REQUIRE(buffer[10] == 0);
+  REQUIRE(buffer[11] == 0);
+#else
+  REQUIRE(buffer[0] == 1);
+  REQUIRE(buffer[1] == 1);
+  REQUIRE(buffer[2] == 2);
+  REQUIRE(buffer[3] == 2);
+  REQUIRE(buffer[4] == 3);
+  REQUIRE(buffer[5] == 3);
+  REQUIRE(buffer[6] == 4);
+  REQUIRE(buffer[7] == 4);
+  REQUIRE(buffer[8] == 0);
+  REQUIRE(buffer[9] == 0);
+  REQUIRE(buffer[10] == 0);
+  REQUIRE(buffer[11] == 0);
+#endif
 }
 
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if

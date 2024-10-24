@@ -49,6 +49,10 @@ uint32_t PCMReader22k::read_samples(int16_t *out,
   int16_t s0, s1, s2;
   int i;
 
+  if (!has_data()) {
+    return 0;
+  }
+
   s0 = prior;
 
   switch (encoding) {

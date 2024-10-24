@@ -1,11 +1,12 @@
 #ifndef PITCH_SHIFTER_H_0GR8ZAHC
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
+#include "chunk_reader.h"
 #include "sample_reader.h"
 #include <stdint.h>
 
 struct PitchShifter : SampleReader {
-  PitchShifter(SampleReader &reader) : speed(1), reader(reader) {
+  PitchShifter(SampleReader &reader) : speed(1), chunk_reader(reader) {
   }
 
   // Reader interface
@@ -13,7 +14,7 @@ struct PitchShifter : SampleReader {
 
   // Reader interface
   bool has_data() {
-    return reader.has_data();
+    return chunk_reader.has_data();
   }
 
   // Reader interface
@@ -31,8 +32,8 @@ struct PitchShifter : SampleReader {
 
 private:
   double speed;
-  SampleReader &reader;
   int16_t interpolationData[4];
+  ChunkReader<256> chunk_reader;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

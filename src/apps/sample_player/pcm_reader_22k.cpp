@@ -43,8 +43,7 @@ void PCMReader22k::reset() {
   encoding = format >> 24;
 }
 
-uint32_t PCMReader22k::read_samples(int16_t *out,
-                                    const uint16_t max_sample_count) {
+uint32_t PCMReader22k::read_samples(int16_t *out) {
   uint32_t tmp32, consumed = 0, samples_written = 0;
   int16_t s0, s1, s2;
   int i;
@@ -58,7 +57,7 @@ uint32_t PCMReader22k::read_samples(int16_t *out,
   switch (encoding) {
 
   case 0x82: // 16 bits PCM, 22050 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 4) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 4) {
       if (!read_next(tmp32)) {
         break;
       }

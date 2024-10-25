@@ -20,4 +20,8 @@ add_executable(${EXECUTABLE_NAME}
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
 )
 
+add_definitions(
+    -DAUDIO_BLOCK_SAMPLES=128
+)
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/build_app.cmake)

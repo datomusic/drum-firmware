@@ -14,11 +14,11 @@ struct DummyBufferReader : SampleReader {
     return active;
   }
 
-  uint32_t read_samples(int16_t *out, const uint16_t max_sample_count) {
+  uint32_t read_samples(int16_t *out) {
     uint32_t consumed = 0, samples_written = 0;
 
     if (active) {
-      for (int i = 0; i <= max_sample_count - CHUNK_SIZE; i += CHUNK_SIZE) {
+      for (int i = 0; i <= AUDIO_BLOCK_SAMPLES - CHUNK_SIZE; i += CHUNK_SIZE) {
         if (read_counter + CHUNK_SIZE > MAX_SAMPLES) {
           active = false;
           break;
@@ -71,9 +71,12 @@ TEST_CASE("PitchShifter reads samples") {
   auto loop_counter = 0;
 
   int16_t *write_position = buffer;
+
+  REQUIRE(AUDIO_BLOCK_SAMPLES == 20);
+
   while (shifter.has_data()) {
-    auto samples_read = shifter.read_samples(write_position, 20);
-    REQUIRE(samples_read == 20);
+    auto samples_read = shifter.read_samples(write_position);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
     total_samples_read += samples_read;
     loop_counter += 1;
     write_position += samples_read;
@@ -97,7 +100,7 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
   int16_t buffer[CHUNK_SIZE * 3];
   shifter.set_speed(0.5);
 
-  auto samples_read = shifter.read_samples(buffer, CHUNK_SIZE * 3);
+  auto samples_read = shifter.read_samples(buffer);
   REQUIRE(reader.read_counter == 4);
   REQUIRE(samples_read == CHUNK_SIZE * 3);
 

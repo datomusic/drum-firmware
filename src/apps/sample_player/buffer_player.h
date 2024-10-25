@@ -22,7 +22,7 @@ struct BufferPlayer : public AudioStream {
       return;
     }
 
-    reader.read_samples(block->data, AUDIO_BLOCK_SAMPLES);
+    reader.read_samples(block->data);
     transmit(block);
     release(block);
   }

@@ -6,7 +6,8 @@
 #include <stdint.h>
 
 struct PitchShifter : SampleReader {
-  PitchShifter(SampleReader &reader) : speed(1), chunk_reader(reader) {
+  PitchShifter(SampleReader &reader)
+      : speed(1), sample_reader(reader), chunk_reader(reader) {
   }
 
   // Reader interface
@@ -18,7 +19,7 @@ struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  uint32_t read_samples(int16_t *out, const uint16_t out_sample_count);
+  uint32_t read_samples(int16_t *out);
 
   void set_speed(const double speed) {
     if (speed < 0.2) {
@@ -31,9 +32,13 @@ struct PitchShifter : SampleReader {
   }
 
 private:
+  uint32_t read_interpolated(int16_t *out);
+  uint32_t read_simple(int16_t *out);
+
   double speed;
   int16_t interpolationData[4];
-  ChunkReader<256> chunk_reader;
+  SampleReader &sample_reader;
+  ChunkReader<64> chunk_reader;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

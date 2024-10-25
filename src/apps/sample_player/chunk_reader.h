@@ -1,12 +1,11 @@
 #ifndef CHUNK_READER_H_FBMGJA3O
 #define CHUNK_READER_H_FBMGJA3O
-
 #include "sample_reader.h"
+#include <stdint.h>
 
-template <int BUFFER_SIZE> struct ChunkReader : SampleReader {
+template <int BUFFER_SIZE> struct ChunkReader {
   ChunkReader(SampleReader &reader) : reader(reader) {};
 
-  // Reader interface
   void reset() {
     reader.reset();
     bytes_read = 0;
@@ -19,28 +18,20 @@ template <int BUFFER_SIZE> struct ChunkReader : SampleReader {
   }
 
   // Reader interface
-  uint32_t read_samples(int16_t *out, const uint16_t output_sample_count) {
-    uint32_t written_samples = 0;
-    for (int sample_index = 0; sample_index < output_sample_count;
-         ++sample_index) {
-      if (read_position < bytes_read) {
-        out[sample_index] = buffer[read_position];
-        read_position++;
-        written_samples++;
-      } else {
-        bytes_read = reader.read_samples(buffer, BUFFER_SIZE);
-        read_position = 0;
-        if (bytes_read > 0) {
-          out[sample_index] = buffer[read_position];
-          read_position++;
-          written_samples++;
-        } else {
-          break;
-        }
-      }
+  bool read_next(int16_t *out) {
+    if (read_position >= bytes_read) {
+      bytes_read = reader.read_samples(buffer, BUFFER_SIZE);
+      read_position = 0;
     }
 
-    return written_samples;
+    if (read_position < bytes_read) {
+      *out = buffer[read_position];
+      read_position++;
+      return true;
+    } else {
+      *out = 0;
+      return false;
+    }
   }
 
 private:

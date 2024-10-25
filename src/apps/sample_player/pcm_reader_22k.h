@@ -44,7 +44,7 @@ struct PCMReader22k : SampleReader {
   }
 
   // Reader interface
-  uint32_t read_samples(int16_t *out, const uint16_t count);
+  uint32_t read_samples(int16_t *out);
 
 private:
   bool read_next(uint32_t &out) {

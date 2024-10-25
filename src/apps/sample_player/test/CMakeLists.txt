@@ -18,6 +18,10 @@ target_include_directories(tests PUBLIC
   ${CMAKE_CURRENT_LIST_DIR}/..
 )
 
+add_definitions(
+    -DAUDIO_BLOCK_SAMPLES=20
+)
+
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 include(CTest)
 include(Catch)

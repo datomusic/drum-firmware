@@ -3,7 +3,7 @@
 #include "sample_reader.h"
 #include <stdint.h>
 
-template <int BUFFER_SIZE> struct ChunkReader {
+struct ChunkReader {
   ChunkReader(SampleReader &reader) : reader(reader) {};
 
   void reset() {
@@ -36,7 +36,7 @@ template <int BUFFER_SIZE> struct ChunkReader {
 
 private:
   SampleReader &reader;
-  int16_t buffer[BUFFER_SIZE];
+  int16_t buffer[AUDIO_BLOCK_SAMPLES];
   uint32_t bytes_read = 0;
   uint32_t read_position = 0;
 };

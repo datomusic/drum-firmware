@@ -38,7 +38,7 @@ private:
   double speed;
   int16_t interpolationData[4];
   SampleReader &sample_reader;
-  ChunkReader<64> chunk_reader;
+  ChunkReader chunk_reader;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

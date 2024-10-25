@@ -97,12 +97,12 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
   auto reader = DummyBufferReader<4, CHUNK_SIZE>();
   auto shifter = PitchShifter(reader);
 
-  int16_t buffer[CHUNK_SIZE * 3];
+  int16_t buffer[AUDIO_BLOCK_SAMPLES];
   shifter.set_speed(0.5);
 
   auto samples_read = shifter.read_samples(buffer);
   REQUIRE(reader.read_counter == 4);
-  REQUIRE(samples_read == CHUNK_SIZE * 3);
+  REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
 #if 0 // With interpolation
   REQUIRE(buffer[0] == 1);

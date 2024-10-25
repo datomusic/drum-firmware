@@ -35,13 +35,25 @@ uint32_t PitchShifter::read_samples(int16_t *out) {
 }
 
 uint32_t PitchShifter::read_simple(int16_t *out) {
-  /*
-  uint32_t target_index;
-  for (target_index = 0; target_index < AUDIO_BLOCK_SAMPLES; ++target_index) {
+  uint32_t source_index = 0;
+
+  int16_t sample;
+  chunk_reader.read_next(sample);
+
+  for (uint32_t target_index = 0; target_index < AUDIO_BLOCK_SAMPLES;
+       ++target_index) {
     const double position = target_index * this->speed;
-    source_index = (uint32_t)(position);
+    const uint32_t new_source_index = (uint32_t)(position);
+    while (source_index < new_source_index) {
+      source_index++;
+      chunk_reader.read_next(sample);
+    }
+
+    *out = sample;
+    out++;
   }
-  */
+
+  return AUDIO_BLOCK_SAMPLES;
 }
 
 uint32_t PitchShifter::read_interpolated(int16_t *out) {

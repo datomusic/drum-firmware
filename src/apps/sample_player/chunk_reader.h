@@ -18,18 +18,18 @@ template <int BUFFER_SIZE> struct ChunkReader {
   }
 
   // Reader interface
-  bool read_next(int16_t *out) {
+  bool read_next(int16_t &out) {
     if (read_position >= bytes_read) {
-      bytes_read = reader.read_samples(buffer, BUFFER_SIZE);
+      bytes_read = reader.read_samples(buffer);
       read_position = 0;
     }
 
     if (read_position < bytes_read) {
-      *out = buffer[read_position];
+      out = buffer[read_position];
       read_position++;
       return true;
     } else {
-      *out = 0;
+      out = 0;
       return false;
     }
   }

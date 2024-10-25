@@ -21,6 +21,7 @@ static AudioConnection connections[] = {
     AudioConnection(Rompler::get_output(), 0, Output::get_input(), 0),
     AudioConnection(Output::get_output(), 0, pop_suppressor, 0),
     AudioConnection(pop_suppressor, 0, speaker_preamp, 0),
+    AudioConnection(speaker_preamp, 0, dac, 0),
     AudioConnection(speaker_preamp, 0, dac, 1)};
 
 static void setup_audio() {
@@ -84,11 +85,13 @@ static void handle_cc(byte channel, byte cc, byte midi_value) {
 int main(void) {
   App::init(MIDI::Callbacks{.note_on = handle_note_on, .cc = handle_cc});
   Audio::amp_disable();
+  // Audio::headphone_disable();
 
   dac.begin();
   setup_audio();
   Output::set_volume(0.2f);
   Audio::amp_enable();
+  Audio::headphone_enable();
 
   while (true) {
     const auto midi_channel = 0; // All channels

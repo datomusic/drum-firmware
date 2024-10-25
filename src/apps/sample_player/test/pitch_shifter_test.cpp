@@ -63,6 +63,7 @@ struct DummyBufferReader : SampleReader {
 TEST_CASE("PitchShifter reads samples") {
   auto reader = DummyBufferReader<100, 4>();
   auto shifter = PitchShifter(reader);
+  shifter.reset();
 
   int16_t buffer[100];
   shifter.set_speed(1);
@@ -96,6 +97,7 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
   const int CHUNK_SIZE = 4;
   auto reader = DummyBufferReader<4, CHUNK_SIZE>();
   auto shifter = PitchShifter(reader);
+  shifter.reset();
 
   int16_t buffer[AUDIO_BLOCK_SAMPLES];
   shifter.set_speed(0.5);
@@ -104,33 +106,27 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
   REQUIRE(reader.read_counter == 4);
   REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
-#if 0 // With interpolation
-  REQUIRE(buffer[0] == 1);
-  REQUIRE(buffer[1] == 1);
-  REQUIRE(buffer[2] == 1);
-  REQUIRE(buffer[3] == 1);
-  REQUIRE(buffer[4] == 2);
-  REQUIRE(buffer[5] == 2);
-  REQUIRE(buffer[6] == 3);
-  REQUIRE(buffer[7] == 3);
-  REQUIRE(buffer[8] == 2);
-  REQUIRE(buffer[9] == 0);
-  REQUIRE(buffer[10] == 0);
-  REQUIRE(buffer[11] == 0);
-#else
-  REQUIRE(buffer[0] == 1);
-  REQUIRE(buffer[1] == 1);
-  REQUIRE(buffer[2] == 2);
-  REQUIRE(buffer[3] == 2);
-  REQUIRE(buffer[4] == 3);
-  REQUIRE(buffer[5] == 3);
-  REQUIRE(buffer[6] == 4);
-  REQUIRE(buffer[7] == 4);
-  REQUIRE(buffer[8] == 0);
-  REQUIRE(buffer[9] == 0);
-  REQUIRE(buffer[10] == 0);
-  REQUIRE(buffer[11] == 0);
-#endif
+  // Interpolated values
+  REQUIRE(buffer[0] == 0);
+  REQUIRE(buffer[1] == 0);
+  REQUIRE(buffer[2] == 0);
+  REQUIRE(buffer[3] == 0);
+  REQUIRE(buffer[4] == 0);
+  REQUIRE(buffer[5] == 0);
+  REQUIRE(buffer[6] == 1);
+  REQUIRE(buffer[7] == 1);
+  REQUIRE(buffer[8] == 1);
+  REQUIRE(buffer[9] == 2);
+  REQUIRE(buffer[10] == 2);
+  REQUIRE(buffer[11] == 3);
+  REQUIRE(buffer[12] == 3);
+  REQUIRE(buffer[13] == 2);
+  REQUIRE(buffer[14] == 0);
+  REQUIRE(buffer[15] == 0);
+  REQUIRE(buffer[16] == 0);
+  REQUIRE(buffer[17] == 0);
+  REQUIRE(buffer[18] == 0);
+  REQUIRE(buffer[19] == 0);
 }
 
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if

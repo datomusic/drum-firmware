@@ -2,13 +2,14 @@ class Step:
     def __init__(self):
         self.velocity = 100.0
         self.active = False
+        self.enabled = True
 
 
 class Steps:
     def __init__(self, step_count):
         self.entries = [Step() for _ in range(step_count)]
 
-    def set_step(self, index, velocity=100.0):
+    def set_step(self, index, velocity=100.0, enabled=True):
         step = self.entries[index]
         if velocity > 0:
             step.velocity = velocity
@@ -16,6 +17,7 @@ class Steps:
         else:
             step.active = False
             step.velocity = 0
+        step.enabled = enabled
 
     def toggle_step(self, index) -> bool:
         step = self.entries[index]

@@ -35,7 +35,8 @@ static void setup_audio() {
 }
 
 static void handle_note_on(byte channel, byte note, byte _velocity) {
-  Rompler::playback_speed = (float)note / 64.0f;
+  Rompler::playback_speed = note / 64.0;
+
   switch (channel) {
   case 1:
     Rompler::kick.play();
@@ -85,7 +86,7 @@ static void handle_cc(byte channel, byte cc, byte midi_value) {
 int main(void) {
   App::init(MIDI::Callbacks{.note_on = handle_note_on, .cc = handle_cc});
   Audio::amp_disable();
-  // Audio::headphone_disable();
+  Audio::headphone_disable();
 
   dac.begin();
   setup_audio();

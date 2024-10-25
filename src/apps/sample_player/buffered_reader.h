@@ -29,7 +29,6 @@ struct BufferedReader {
       read_position++;
       return true;
     } else {
-      out = 0;
       return false;
     }
   }

@@ -32,8 +32,7 @@ struct PitchShifter : SampleReader {
   }
 
 private:
-  uint32_t read_interpolated(int16_t *out);
-  uint32_t read_simple(int16_t *out);
+  uint32_t read_resampled(int16_t *out);
 
   double speed;
   int16_t interpolationData[4];

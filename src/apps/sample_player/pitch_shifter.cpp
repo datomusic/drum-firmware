@@ -19,7 +19,7 @@ void PitchShifter::reset() {
     this->interpolationData[i] = 0;
   }
 
-  chunk_reader.reset();
+  buffered_reader.reset();
 }
 
 uint32_t PitchShifter::read_samples(int16_t *out) {
@@ -38,7 +38,7 @@ uint32_t PitchShifter::read_simple(int16_t *out) {
   uint32_t source_index = 0;
 
   int16_t sample;
-  chunk_reader.read_next(sample);
+  buffered_reader.read_next(sample);
 
   for (uint32_t target_index = 0; target_index < AUDIO_BLOCK_SAMPLES;
        ++target_index) {
@@ -46,7 +46,7 @@ uint32_t PitchShifter::read_simple(int16_t *out) {
     const uint32_t new_source_index = (uint32_t)(position);
     while (source_index < new_source_index) {
       source_index++;
-      chunk_reader.read_next(sample);
+      buffered_reader.read_next(sample);
     }
 
     *out = sample;
@@ -60,7 +60,7 @@ uint32_t PitchShifter::read_interpolated(int16_t *out) {
   /*
   // TODO: Stream in chunks instead of using a preallocated buffer.
   // Requires returning how many samples were read from
-  // chunk_reader.read_samples().
+  // buffered_reader.read_samples().
   static const uint32_t buffer_size = 256 * 10;
   int16_t samples[buffer_size];
 
@@ -70,7 +70,7 @@ uint32_t PitchShifter::read_interpolated(int16_t *out) {
   }
 
   const uint32_t read_count =
-      chunk_reader.read_samples(samples, max_read_count);
+      buffered_reader.read_samples(samples, max_read_count);
 
   for (int i = 1; i < 4; i++) {
     interpolationData[i] = samples[i - 1];

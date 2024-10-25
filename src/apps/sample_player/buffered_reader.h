@@ -3,8 +3,8 @@
 #include "sample_reader.h"
 #include <stdint.h>
 
-struct ChunkReader {
-  ChunkReader(SampleReader &reader) : reader(reader) {};
+struct BufferedReader {
+  BufferedReader(SampleReader &reader) : reader(reader) {};
 
   void reset() {
     reader.reset();

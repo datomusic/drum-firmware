@@ -43,8 +43,7 @@ void AudioMemoryReader::reset() {
   encoding = format >> 24;
 }
 
-uint32_t AudioMemoryReader::read_samples(int16_t *out,
-                                         const uint16_t max_sample_count) {
+uint32_t AudioMemoryReader::read_samples(int16_t *out) {
   uint32_t tmp32, consumed = 0, samples_written = 0;
   int16_t s0, s1, s2, s3, s4;
   int i;
@@ -53,7 +52,7 @@ uint32_t AudioMemoryReader::read_samples(int16_t *out,
 
   switch (encoding) {
   case 0x01: // u-law encoded, 44100 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 4) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 4) {
       if (!read_next(tmp32)) {
         break;
       }
@@ -68,7 +67,7 @@ uint32_t AudioMemoryReader::read_samples(int16_t *out,
     break;
 
   case 0x81: // 16 bit PCM, 44100 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 2) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 2) {
       if (!read_next(tmp32)) {
         break;
       }
@@ -81,7 +80,7 @@ uint32_t AudioMemoryReader::read_samples(int16_t *out,
     break;
 
   case 0x02: // u-law encoded, 22050 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 8) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 8) {
       if (!read_next(tmp32)) {
         break;
       }
@@ -105,7 +104,7 @@ uint32_t AudioMemoryReader::read_samples(int16_t *out,
     break;
 
   case 0x82: // 16 bits PCM, 22050 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 4) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 4) {
       if (!read_next(tmp32)) {
         break;
       }
@@ -124,7 +123,7 @@ uint32_t AudioMemoryReader::read_samples(int16_t *out,
     break;
 
   case 0x03: // u-law encoded, 11025 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 16) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 16) {
       if (!read_next(tmp32)) {
         break;
       }
@@ -156,7 +155,7 @@ uint32_t AudioMemoryReader::read_samples(int16_t *out,
     break;
 
   case 0x83: // 16 bit PCM, 11025 Hz, Mono
-    for (i = 0; i < max_sample_count; i += 8) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i += 8) {
       if (!read_next(tmp32)) {
         break;
       }

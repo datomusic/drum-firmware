@@ -7,7 +7,8 @@
 #include "AudioSampleSnare.h"
 #include "AudioSampleTomtom.h"
 #include "buffer_player.h"
-#include "pcm_reader_22k.h"
+// #include "pcm_reader_22k.h"
+#include "audio_memory_reader.h"
 #include "pitch_shifter.h"
 #include <mixer.h>
 
@@ -25,22 +26,15 @@ struct Sound {
     player.play();
   }
 
-  PCMReader22k memory_reader;
+  AudioMemoryReader memory_reader;
   PitchShifter pitch_shifter;
   BufferPlayer player;
 };
 
-// Kick is the only 22k PCM sample, so use temporarily use it for everything.
 Sound kick(AudioSampleKick, AudioSampleKickSize);
-Sound snare(AudioSampleKick, AudioSampleKickSize);
-Sound hihat(AudioSampleKick, AudioSampleKickSize);
-Sound tom(AudioSampleKick, AudioSampleKickSize);
-
-/*
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 Sound tom(AudioSampleHihat, AudioSampleHihatSize);
-*/
 
 AudioMixer4 mixer;
 

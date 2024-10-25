@@ -23,10 +23,10 @@ def main():
         samples = sequence[step % len(sequence)]
         step += 1
         for sample in samples:
-            note =  64 + random.randint(-50, -30)
+            note =  64 + random.randint(-60, 60)
             print(f"Sample: {sample}, Note: {note}")
             output.send_message([0x90 + sample, note, 120])
-        time.sleep(1)
+        time.sleep(0.3)
 
 
 if __name__ == "__main__":

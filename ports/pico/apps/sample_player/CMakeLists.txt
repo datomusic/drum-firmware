@@ -24,7 +24,14 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b pico_audio
 add_executable(sample_player
     main.cpp
     audio_output.cpp
+    timestretched/pitch_shifter.cpp
+    timestretched/audio_memory_reader.cpp
+    # timestretched/AudioSampleKick.cpp
+    # timestretched/AudioSampleSnare.cpp
+    timestretched/data_ulaw.c
 )
+
+add_definitions(-DAUDIO_BLOCK_SAMPLES=1024)
 
 target_link_libraries(sample_player
   pico_stdlib

@@ -13,3 +13,9 @@
 [submodule "ports/pico/pico-sdk"]
 	path = ports/pico/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "ports/pico/pico_audio_i2s_32b"]
+	path = ports/pico/pico_audio_i2s_32b
+	url = https://github.com/elehobica/pico_audio_i2s_32b.git
+[submodule "ports/pico/pico-extras"]
+	path = ports/pico/pico-extras
+	url = https://github.com/raspberrypi/pico-extras.git

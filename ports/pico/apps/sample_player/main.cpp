@@ -21,12 +21,6 @@
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
-static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
-uint32_t step0 = 0x040000;
-uint32_t step1 = 0x070000;
-uint32_t pos0 = 0;
-uint32_t pos1 = 0;
-const uint32_t pos_max = 0x10000 * SINE_WAVE_TABLE_LEN;
 uint vol = 1;
 
 static void init_clock() {
@@ -51,19 +45,10 @@ static void fill_buffer(audio_buffer_pool_t *pool) {
 
   int32_t *samples = (int32_t *)buffer->buffer->bytes;
   for (uint i = 0; i < buffer->max_sample_count; i++) {
-    int32_t value0 = (vol * sine_wave_table[pos0 >> 16u]) << 8u;
-    int32_t value1 = (vol * sine_wave_table[pos1 >> 16u]) << 8u;
-    // use 32bit full scale
-    samples[i * 2 + 0] = value0 + (value0 >> 16u); // L
-    samples[i * 2 + 1] = value1 + (value1 >> 16u); // R
-
-    pos0 += step0;
-    pos1 += step1;
-    if (pos0 >= pos_max)
-      pos0 -= pos_max;
-    if (pos1 >= pos_max)
-      pos1 -= pos_max;
+    samples[i * 2 + 0] = 0; // L
+    samples[i * 2 + 1] = 0; // R
   }
+
   buffer->sample_count = buffer->max_sample_count;
   give_audio_buffer(pool, buffer);
 }
@@ -79,11 +64,6 @@ int main() {
   gpio_set_dir(PIN_DCDC_PSM_CTRL, GPIO_OUT);
   gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
 
-  for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
-    sine_wave_table[i] =
-        32767 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN));
-  }
-
   AudioOutput::init(fill_buffer, SAMPLES_PER_BUFFER);
 
   while (true) {
@@ -93,20 +73,12 @@ int main() {
         vol--;
       if ((c == '=' || c == '+') && vol < 256)
         vol++;
-      if (c == '[' && step0 > 0x10000)
-        step0 -= 0x10000;
-      if (c == ']' && step0 < (SINE_WAVE_TABLE_LEN / 16) * 0x20000)
-        step0 += 0x10000;
-      if (c == '{' && step1 > 0x10000)
-        step1 -= 0x10000;
-      if (c == '}' && step1 < (SINE_WAVE_TABLE_LEN / 16) * 0x20000)
-        step1 += 0x10000;
       if (c == 'q') {
         AudioOutput::deinit();
         break;
       }
-      printf("vol = %d, step0 = %d, step1 = %d      \r", vol, step0 >> 16,
-             step1 >> 16);
+
+      printf("vol = %d      \r", vol);
     }
   }
   puts("\n");

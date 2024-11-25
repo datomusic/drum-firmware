@@ -129,6 +129,28 @@ static void fill_buffer(audio_buffer_pool_t *pool) {
   give_audio_buffer(pool, buffer);
 }
 
+static bool interactive_ui() {
+  int c = getchar_timeout_us(0);
+  if (c >= 0) {
+    if (c == '-' && volume)
+      volume--;
+    if ((c == '=' || c == '+') && volume < 256)
+      volume++;
+    if (c == 'q') {
+      AudioOutput::deinit();
+      return false;
+    }
+
+    if (c == 'p') {
+      sound.play();
+    }
+
+    printf("volume = %d      \r", volume);
+  }
+
+  return true;
+}
+
 int main() {
   init_clock();
   stdio_init_all();
@@ -144,23 +166,13 @@ int main() {
   AudioOutput::init(fill_buffer, AUDIO_BLOCK_SAMPLES);
 
   while (true) {
-    int c = getchar_timeout_us(0);
-    if (c >= 0) {
-      if (c == '-' && volume)
-        volume--;
-      if ((c == '=' || c == '+') && volume < 256)
-        volume++;
-      if (c == 'q') {
-        AudioOutput::deinit();
-        break;
-      }
-
-      if (c == 'p') {
-        sound.play();
-      }
-
-      printf("volume = %d      \r", volume);
+    /*
+    if (!interactive_ui()) {
+      break;
     }
+    */
+    sleep_ms(1000);
+    sound.play();
   }
   puts("\n");
   return 0;

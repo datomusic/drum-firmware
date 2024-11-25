@@ -23,6 +23,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b pico_audio
 
 add_executable(sample_player
     main.cpp
+    audio_output.cpp
 )
 
 target_link_libraries(sample_player

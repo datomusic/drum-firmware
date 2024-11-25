@@ -10,3 +10,6 @@
 [submodule "mimxrt10xx/sdk"]
 	path = src/sdk
 	url = git@github.com:nxp-mcuxpresso/mcux-sdk.git
+[submodule "ports/pico/pico-sdk"]
+	path = ports/pico/pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git

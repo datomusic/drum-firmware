@@ -1,8 +1,10 @@
 // Audio data converted from WAV file by wav2sketch
 
 #include "AudioSampleKick.h"
+#include "pico/stdlib.h"
 // Converted from kick.wav, using 22050 Hz, 16 bit PCM encoding
-const unsigned int AudioSampleKick[2561] = {
+
+const unsigned int __in_flash() AudioSampleKick[2561] = {
 0x820013EC,0xFFDC0027,0xFF710095,0x038DFF4C,0xFBA10105,0x0037FB6E,0x09D2011A,0x007504CA,
 0x024BF6BF,0xF77B0AFF,0xFB72F723,0xEF3DEBAD,0x0F7009D6,0x09DD1736,0xF26EFA3E,0x0D7002FB,
 0xFF4401F1,0x06B20406,0xF83306AF,0xFC9DF1A9,0xFCC601C7,0x0423F387,0x11F011ED,0xF727066F,

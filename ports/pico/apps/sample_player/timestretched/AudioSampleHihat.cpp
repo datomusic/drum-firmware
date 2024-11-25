@@ -1,10 +1,10 @@
 // Audio data converted from WAV file by wav2sketch
 
 #include "AudioSampleHihat.h"
-#include <Arduino.h>
+#include "pico/stdlib.h"
 // Converted from hihat.wav, using 44100 Hz, u-law encoding
-PROGMEM
-const unsigned int AudioSampleHihat[5953] = {
+
+const unsigned int __in_flash() AudioSampleHihat[5953] = {
 0x01005CB1,0x77766877,0xEAEC2195,0xE0737099,0x82807B70,0x88909012,0x8B822303,0x8C04180B,
 0x090B9207,0x878EA413,0x1EB09F15,0x0B9B2122,0xA09E0094,0x51B2B980,0xD1485CCA,0xDACCBF48,
 0xE8DFBB47,0xD7B254E2,0xA3E0DED2,0x56D9CDBB,0xBDBAE652,0x33ECEDE7,0xE9F8E450,0xE7C7605C,

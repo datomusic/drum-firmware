@@ -26,12 +26,14 @@ add_executable(sample_player
     audio_output.cpp
     timestretched/pitch_shifter.cpp
     timestretched/audio_memory_reader.cpp
-    # timestretched/AudioSampleKick.cpp
-    # timestretched/AudioSampleSnare.cpp
+    timestretched/AudioSampleKick.cpp
+    timestretched/AudioSampleSnare.cpp
+    timestretched/AudioSampleGong.cpp
+    timestretched/AudioSampleHihat.cpp
     timestretched/data_ulaw.c
 )
 
-add_definitions(-DAUDIO_BLOCK_SAMPLES=1024)
+add_definitions(-DAUDIO_BLOCK_SAMPLES=256)
 
 target_link_libraries(sample_player
   pico_stdlib

@@ -31,6 +31,8 @@ add_executable(sample_player
     timestretched/AudioSampleGong.cpp
     timestretched/AudioSampleHihat.cpp
     timestretched/data_ulaw.c
+    teensy_audio/mixer.cpp
+    teensy_audio/AudioStream.cpp
 )
 
 add_definitions(-DAUDIO_BLOCK_SAMPLES=256)

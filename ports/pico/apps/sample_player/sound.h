@@ -1,0 +1,54 @@
+#ifndef SOUND_H_2P4SDIWG
+#define SOUND_H_2P4SDIWG
+
+#include "timestretched/audio_memory_reader.h"
+#include "timestretched/pitch_shifter.h"
+#include <stdint.h>
+#include <stdio.h>
+
+struct Sound {
+  // static double playback_speed = 1;
+  uint volume = 10;
+
+  Sound(const unsigned int *sample_data, const size_t data_length)
+      : memory_reader(sample_data, data_length), pitch_shifter(memory_reader) {
+  }
+
+  void play() {
+    printf("Playing drum\n");
+    // pitch_shifter.set_speed(playback_speed);
+    pitch_shifter.reset();
+  }
+
+  void fill_buffer(audio_buffer_t *out_buffer) {
+    int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
+
+    // printf("Max samples: %i\n", out_buffer->max_sample_count);
+    if (pitch_shifter.has_data()) {
+      int16_t source_buffer[AUDIO_BLOCK_SAMPLES];
+      const uint32_t read_count = pitch_shifter.read_samples(source_buffer);
+      printf("Read %i samples, max: %i\n", read_count,
+             out_buffer->max_sample_count);
+      for (uint i = 0; i < read_count; i++) {
+        int32_t sample = (volume * source_buffer[i]) << 8u;
+        // use 32bit full scale
+        sample = sample + (sample >> 16u);
+        out_samples[i * 2 + 0] = sample; // L
+        out_samples[i * 2 + 1] = sample; // R
+      }
+      out_buffer->sample_count = read_count;
+    } else {
+      printf("Filling empty buffer\n");
+      for (uint i = 0; i < out_buffer->max_sample_count; i++) {
+        out_samples[i * 2 + 0] = 0; // L
+        out_samples[i * 2 + 1] = 0; // R
+      }
+      out_buffer->sample_count = out_buffer->max_sample_count;
+    }
+  }
+
+  AudioMemoryReader memory_reader;
+  PitchShifter pitch_shifter;
+};
+
+#endif /* end of include guard: SOUND_H_2P4SDIWG */

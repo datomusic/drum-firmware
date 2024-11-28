@@ -38,8 +38,6 @@ struct AudioMixer4 : BufferSource {
   AudioMixer4(BufferSource **sources, unsigned int source_count)
       : sources(sources), source_count(source_count) {
 
-    temp_buffer = AudioOutput::new_buffer();
-
     for (int i = 0; i < 4; i++) {
       multiplier[i] = 256;
     }
@@ -62,7 +60,6 @@ struct AudioMixer4 : BufferSource {
 private:
   unsigned int source_count;
   BufferSource **sources;
-  audio_buffer_t *temp_buffer;
   int16_t multiplier[4];
 };
 

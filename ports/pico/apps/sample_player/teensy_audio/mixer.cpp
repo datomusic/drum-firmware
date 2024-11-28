@@ -29,23 +29,22 @@
 #include "dspinst.h"
 #include <stdint.h>
 
-uint32_t AudioMixer4::fill_buffer(int16_t *out_buffer) {
-  /*
-        // int32_t mult = multiplier[0];
-      sources[0]->fill_buffer(out_buffer);
-      for (int channel = 1; channel < source_count; ++channel) {
-        sources[channel]->fill_buffer(temp_buffer);
-        // TODO: Actually apply gain on first channel
+static int16_t temp_buffer[AUDIO_BLOCK_SAMPLES];
 
-        int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
-        for (int i = 0; i < temp_buffer->sample_count; ++i) {
-          // const int32_t mult = multiplier[channel];
+uint32_t AudioMixer4::fill_buffer(int16_t *out_samples) {
+  for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
+       ++sample_index) {
+    out_samples[sample_index] = 0;
+  }
 
-          // Actually apply gain, and fix distortion
-          int32_t *temp_samples = (int32_t *)temp_buffer->buffer->bytes;
-          int32_t val = (out_samples[i] / 2) + (temp_samples[i] / 2);
-          out_samples[i] = val;
-        }
-      }
-    */
+  for (int channel = 0; channel < source_count; ++channel) {
+    sources[channel]->fill_buffer(temp_buffer);
+    for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
+         ++sample_index) {
+      out_samples[sample_index] =
+          (out_samples[sample_index] / 2) + (temp_buffer[sample_index] / 2);
+    }
+  }
+
+  return AUDIO_BLOCK_SAMPLES;
 }

@@ -56,19 +56,19 @@ static void fill_audio_buffer(audio_buffer_pool_t *pool) {
     return;
   }
 
-  // mixer.fill_buffer(samples);
+  mixer.fill_buffer(samples);
   // snare.fill_buffer(samples);
-  kick.fill_buffer(samples);
+  // kick.fill_buffer(samples);
   // sine_fill_buffer(out_buffer);
 
   // Convert to 32bit
 
-  int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
+  int32_t *stereo_out_samples = (int32_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
     int32_t sample = (volume * samples[i]) << 8u;
     sample = sample + (sample >> 16u);
-    out_samples[i * 2] = sample;
-    out_samples[i * 2 + 1] = sample;
+    stereo_out_samples[i * 2] = sample;
+    stereo_out_samples[i * 2 + 1] = sample;
   }
 
   out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;

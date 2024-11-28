@@ -1,12 +1,14 @@
 #ifndef SOUND_H_2P4SDIWG
 #define SOUND_H_2P4SDIWG
 
+#include <stdio.h>
+#include "buffer_source.h"
 #include "timestretched/audio_memory_reader.h"
 #include "timestretched/pitch_shifter.h"
 #include <stdint.h>
 #include <stdio.h>
 
-struct Sound {
+struct Sound : BufferSource {
   // static double playback_speed = 1;
   uint volume = 10;
 

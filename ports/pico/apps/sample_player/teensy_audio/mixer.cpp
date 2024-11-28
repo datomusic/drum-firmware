@@ -29,82 +29,21 @@
 #include "dspinst.h"
 #include <stdint.h>
 
-#define MULTI_UNITYGAIN 256
+void AudioMixer4::fill_buffer(audio_buffer_t *out_buffer) {
+  // int32_t mult = multiplier[0];
+  sources[0]->fill_buffer(out_buffer);
+  for (int channel = 1; channel < source_count; ++channel) {
+    sources[channel]->fill_buffer(temp_buffer);
+    // TODO: Actually apply gain on first channel
 
-static void applyGain(int16_t *data, int32_t mult) {
-  const int16_t *end = data + AUDIO_BLOCK_SAMPLES;
+    int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
+    for (int i = 0; i < temp_buffer->sample_count; ++i) {
+      // const int32_t mult = multiplier[channel];
 
-  do {
-    int32_t val = *data * mult;
-    *data++ = signed_saturate_rshift(val, 16, 0);
-  } while (data < end);
-}
-
-static void applyGainThenAdd(int16_t *dst, const int16_t *src, int32_t mult) {
-  const int16_t *end = dst + AUDIO_BLOCK_SAMPLES;
-
-  if (mult == MULTI_UNITYGAIN) {
-    do {
-      int32_t val = *dst + *src++;
-      *dst++ = signed_saturate_rshift(val, 16, 0);
-    } while (dst < end);
-  } else {
-    do {
-      int32_t val = *dst + ((*src++ * mult) >> 8); // overflow possible??
-      *dst++ = signed_saturate_rshift(val, 16, 0);
-    } while (dst < end);
-  }
-}
-
-void AudioMixer4::update(void) {
-  audio_block_t *in, *out = nullptr;
-  unsigned int channel;
-
-  for (channel = 0; channel < 4; channel++) {
-    if (!out) {
-      out = receiveWritable(channel);
-      if (out) {
-        int32_t mult = multiplier[channel];
-        if (mult != MULTI_UNITYGAIN)
-          applyGain(out->data, mult);
-      }
-    } else {
-      in = receiveReadOnly(channel);
-      if (in) {
-        applyGainThenAdd(out->data, in->data, multiplier[channel]);
-        release(in);
-      }
-    }
-  }
-  if (out) {
-    transmit(out);
-    release(out);
-  }
-}
-
-void AudioAmplifier::update(void) {
-  audio_block_t *block;
-  int32_t mult = multiplier;
-
-  if (mult == 0) {
-    // zero gain, discard any input and transmit nothing
-    block = receiveReadOnly(0);
-    if (block)
-      release(block);
-  } else if (mult == MULTI_UNITYGAIN) {
-    // unity gain, pass input to output without any change
-    block = receiveReadOnly(0);
-    if (block) {
-      transmit(block);
-      release(block);
-    }
-  } else {
-    // apply gain to signal
-    block = receiveWritable(0);
-    if (block) {
-      applyGain(block->data, mult);
-      transmit(block);
-      release(block);
+      // Actually apply gain, and fix distortion
+      int32_t *temp_samples = (int32_t *)temp_buffer->buffer->bytes;
+      int32_t val = (out_samples[i] / 2) + (temp_samples[i] / 2);
+      out_samples[i] = val;
     }
   }
 }

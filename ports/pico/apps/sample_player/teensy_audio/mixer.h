@@ -28,47 +28,42 @@
 #ifndef mixer_h_
 #define mixer_h_
 
-#include "AudioStream.h"
+// #include "AudioStream.h"
+#include "../audio_output.h"
+#include "../buffer_source.h"
 #include <stdint.h>
+#include <vector>
 
-class AudioMixer4 : public AudioStream {
-public:
-  AudioMixer4(void) : AudioStream(4, inputQueueArray) {
-    for (int i = 0; i < 4; i++)
+struct AudioMixer4 : BufferSource {
+  AudioMixer4(BufferSource **sources, unsigned int source_count)
+      : sources(sources), source_count(source_count) {
+
+    temp_buffer = AudioOutput::new_buffer();
+
+    for (int i = 0; i < 4; i++) {
       multiplier[i] = 256;
+    }
   }
-  virtual void update(void);
+  void fill_buffer(audio_buffer_t *pool);
   void gain(unsigned int channel, float gain) {
-    if (channel >= 4)
+    if (channel >= 4) {
       return;
-    if (gain > 127.0f)
+    }
+
+    if (gain > 127.0f) {
       gain = 127.0f;
-    else if (gain < -127.0f)
+    } else if (gain < -127.0f) {
       gain = -127.0f;
+    }
+
     multiplier[channel] = gain * 256.0f; // TODO: proper roundoff?
   }
 
 private:
+  unsigned int source_count;
+  BufferSource **sources;
+  audio_buffer_t *temp_buffer;
   int16_t multiplier[4];
-  audio_block_t *inputQueueArray[4];
-};
-
-class AudioAmplifier : public AudioStream {
-public:
-  AudioAmplifier(void) : AudioStream(1, inputQueueArray), multiplier(65536) {
-  }
-  virtual void update(void);
-  void gain(float n) {
-    if (n > 32767.0f)
-      n = 32767.0f;
-    else if (n < -32767.0f)
-      n = -32767.0f;
-    multiplier = n * 65536.0f;
-  }
-
-private:
-  int32_t multiplier;
-  audio_block_t *inputQueueArray[1];
 };
 
 #endif

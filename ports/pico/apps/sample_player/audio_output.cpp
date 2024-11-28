@@ -5,9 +5,11 @@
 
 static audio_buffer_pool_t *producer_pool;
 static bool running = false;
+static AudioOutput::BufferCallback buffer_callback = nullptr;
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 #define SAMPLE_FREQUENCY 44100
+#define BUFFER_COUNT 3
 
 static audio_format_t audio_format = {.sample_freq = SAMPLE_FREQUENCY,
                                       .pcm_format = AUDIO_PCM_FORMAT_S32,
@@ -23,14 +25,16 @@ static audio_i2s_config_t i2s_config = {.data_pin = PICO_AUDIO_I2S_DATA_PIN,
                                         .dma_channel1 = 1,
                                         .pio_sm = 0};
 
-namespace AudioOutput {
-static BufferCallback buffer_callback = nullptr;
+audio_buffer_t *AudioOutput::new_buffer() {
+  return audio_new_buffer(&producer_format, AUDIO_BLOCK_SAMPLES);
+}
 
-void init(BufferCallback callback, const uint32_t samples_per_buffer) {
+void AudioOutput::init(BufferCallback callback) {
   buffer_callback = callback;
   audio_format.sample_freq = SAMPLE_FREQUENCY;
 
-  producer_pool = audio_new_producer_pool(&producer_format, 3, samples_per_buffer);
+  producer_pool = audio_new_producer_pool(&producer_format, BUFFER_COUNT,
+                                          AUDIO_BLOCK_SAMPLES);
 
   bool __unused ok;
   const audio_format_t *output_format;
@@ -42,43 +46,35 @@ void init(BufferCallback callback, const uint32_t samples_per_buffer) {
 
   ok = audio_i2s_connect(producer_pool);
   assert(ok);
-  callback(producer_pool);
-  callback(producer_pool);
-  callback(producer_pool);
+
+  for (int i = 0; i < BUFFER_COUNT; ++i) {
+    callback(producer_pool);
+  }
+
   audio_i2s_set_enabled(true);
 
   running = true;
 }
 
-void deinit() {
+void AudioOutput::deinit() {
   running = false;
 
   audio_i2s_set_enabled(false);
   audio_i2s_end();
 
-  audio_buffer_t *ab;
-  ab = take_audio_buffer(producer_pool, false);
-  while (ab != nullptr) {
-    free(ab->buffer->bytes);
-    free(ab->buffer);
-    ab = take_audio_buffer(producer_pool, false);
-  }
-  ab = get_free_audio_buffer(producer_pool, false);
-  while (ab != nullptr) {
-    free(ab->buffer->bytes);
-    free(ab->buffer);
-    ab = get_free_audio_buffer(producer_pool, false);
-  }
-  ab = get_full_audio_buffer(producer_pool, false);
-  while (ab != nullptr) {
-    free(ab->buffer->bytes);
-    free(ab->buffer);
-    ab = get_full_audio_buffer(producer_pool, false);
+  audio_buffer_t *buffer;
+
+  for (int i = 0; i < BUFFER_COUNT; ++i) {
+    buffer = take_audio_buffer(producer_pool, false);
+    while (buffer != nullptr) {
+      free(buffer->buffer->bytes);
+      free(buffer->buffer);
+      buffer = take_audio_buffer(producer_pool, false);
+    }
   }
   free(producer_pool);
   producer_pool = nullptr;
 }
-} // namespace AudioOutput
 
 extern "C" {
 // callback from:
@@ -87,8 +83,8 @@ extern "C" {
 //   where i2s_callback_func() is declared with __attribute__((weak))
 void i2s_callback_func() {
   if (running) {
-    if (AudioOutput::buffer_callback) {
-      AudioOutput::buffer_callback(producer_pool);
+    if (buffer_callback) {
+      buffer_callback(producer_pool);
     }
   }
 }

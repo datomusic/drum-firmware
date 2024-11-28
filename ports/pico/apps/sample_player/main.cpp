@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <stdio.h>
+
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "hardware/pll.h"
@@ -13,13 +15,19 @@
 #include "audio_output.h"
 #include "pico/audio.h"
 #include "pico/stdlib.h"
-
 #include "sound.h"
+
+#include "teensy_audio/mixer.h"
 #include "timestretched/AudioSampleKick.h"
 #include "timestretched/AudioSampleSnare.h"
 
+#include <vector>
+
 Sound kick(AudioSampleKick, AudioSampleKickSize);
-Sound sound(AudioSampleSnare, AudioSampleSnareSize);
+Sound snare(AudioSampleSnare, AudioSampleSnareSize);
+BufferSource *sounds[2] = {&kick, &snare};
+
+AudioMixer4 mixer(sounds, 2);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
@@ -37,17 +45,19 @@ static void init_clock() {
                   96 * MHZ, 96 * MHZ);
 }
 
-static void fill_buffer(audio_buffer_pool_t *pool) {
+static void fill_audio_buffer(audio_buffer_pool_t *pool) {
   audio_buffer_t *buffer = take_audio_buffer(pool, false);
   if (buffer == NULL) {
     return;
   }
 
-  sound.fill_buffer(buffer);
+  mixer.fill_buffer(buffer);
+  // sound.fill_buffer(buffer);
   // sine_fill_buffer(buffer);
   give_audio_buffer(pool, buffer);
 }
 
+/*
 static bool interactive_ui() {
   int c = getchar_timeout_us(0);
   if (c >= 0) {
@@ -69,6 +79,7 @@ static bool interactive_ui() {
 
   return true;
 }
+*/
 
 int main() {
   init_clock();
@@ -82,7 +93,7 @@ int main() {
   gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
 
   // fill_sine_table();
-  AudioOutput::init(fill_buffer, AUDIO_BLOCK_SAMPLES);
+  AudioOutput::init(fill_audio_buffer);
 
   while (true) {
     /*
@@ -91,7 +102,8 @@ int main() {
     }
     */
     sleep_ms(1000);
-    sound.play();
+    kick.play();
+    snare.play();
   }
   puts("\n");
   return 0;

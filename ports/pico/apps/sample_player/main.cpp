@@ -33,6 +33,8 @@ static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
 uint volume = 10;
 
+static int16_t samples[AUDIO_BLOCK_SAMPLES];
+
 static void init_clock() {
   // Set PLL_USB 96MHz
   pll_init(pll_usb, 1, 1536 * MHZ, 4, 4);
@@ -50,21 +52,26 @@ static void init_clock() {
 static void fill_audio_buffer(audio_buffer_pool_t *pool) {
   audio_buffer_t *out_buffer = take_audio_buffer(pool, false);
   if (out_buffer == NULL) {
+    printf("Failed to take audio buffer\n");
     return;
   }
 
-  static int16_t samples[AUDIO_BLOCK_SAMPLES];
   // mixer.fill_buffer(samples);
-  snare.fill_buffer(samples);
+  // snare.fill_buffer(samples);
+  kick.fill_buffer(samples);
   // sine_fill_buffer(out_buffer);
 
   // Convert to 32bit
 
   int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    out_samples[i] = ((volume * samples[i]) << 8u) >> 16u;
+    int32_t sample = (volume * samples[i]) << 8u;
+    sample = sample + (sample >> 16u);
+    out_samples[i * 2] = sample;
+    out_samples[i * 2 + 1] = sample;
   }
 
+  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
   give_audio_buffer(pool, out_buffer);
 }
 

@@ -23,23 +23,11 @@ struct Sound : BufferSource {
   uint32_t fill_buffer(int16_t *out_samples) {
     // printf("Max samples: %i\n", out_buffer->max_sample_count);
     if (pitch_shifter.has_data()) {
-      int16_t source_buffer[AUDIO_BLOCK_SAMPLES];
-      const uint32_t read_count = pitch_shifter.read_samples(source_buffer);
-      // printf("Read %i samples, max: %i\n", read_count,
-      // out_buffer->max_sample_count);
-      for (uint i = 0; i < read_count; i++) {
-        int32_t sample = source_buffer[i];
-        // use 32bit full scale
-        sample = sample + (sample >> 16u);
-        out_samples[i * 2 + 0] = sample; // L
-        out_samples[i * 2 + 1] = sample; // R
-      }
-      return read_count;
+      return pitch_shifter.read_samples(out_samples);
     } else {
       printf("Filling empty buffer\n");
-      for (uint i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
-        out_samples[i * 2 + 0] = 0; // L
-        out_samples[i * 2 + 1] = 0; // R
+      for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
+        out_samples[i] = 0; // L
       }
 
       return AUDIO_BLOCK_SAMPLES;

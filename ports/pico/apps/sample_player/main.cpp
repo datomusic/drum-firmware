@@ -31,6 +31,8 @@ AudioMixer4 mixer(sounds, 2);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
+uint volume = 10;
+
 static void init_clock() {
   // Set PLL_USB 96MHz
   pll_init(pll_usb, 1, 1536 * MHZ, 4, 4);
@@ -46,15 +48,24 @@ static void init_clock() {
 }
 
 static void fill_audio_buffer(audio_buffer_pool_t *pool) {
-  audio_buffer_t *buffer = take_audio_buffer(pool, false);
-  if (buffer == NULL) {
+  audio_buffer_t *out_buffer = take_audio_buffer(pool, false);
+  if (out_buffer == NULL) {
     return;
   }
 
-  mixer.fill_buffer(buffer);
-  // sound.fill_buffer(buffer);
-  // sine_fill_buffer(buffer);
-  give_audio_buffer(pool, buffer);
+  static int16_t samples[AUDIO_BLOCK_SAMPLES];
+  // mixer.fill_buffer(samples);
+  snare.fill_buffer(samples);
+  // sine_fill_buffer(out_buffer);
+
+  // Convert to 32bit
+
+  int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
+  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+    out_samples[i] = ((volume * samples[i]) << 8u) >> 16u;
+  }
+
+  give_audio_buffer(pool, out_buffer);
 }
 
 /*

@@ -4,7 +4,7 @@
 #include "pico/audio.h"
 
 struct BufferSource {
-  virtual void fill_buffer(audio_buffer_t *pool) = 0;
+  virtual uint32_t fill_buffer(int16_t *out_samples) = 0;
 };
 
 #endif /* end of include guard: BUFFER_SOURCE_H_ANRBYEKH */

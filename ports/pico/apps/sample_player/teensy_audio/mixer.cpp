@@ -29,21 +29,23 @@
 #include "dspinst.h"
 #include <stdint.h>
 
-void AudioMixer4::fill_buffer(audio_buffer_t *out_buffer) {
-  // int32_t mult = multiplier[0];
-  sources[0]->fill_buffer(out_buffer);
-  for (int channel = 1; channel < source_count; ++channel) {
-    sources[channel]->fill_buffer(temp_buffer);
-    // TODO: Actually apply gain on first channel
+uint32_t AudioMixer4::fill_buffer(int16_t *out_buffer) {
+  /*
+        // int32_t mult = multiplier[0];
+      sources[0]->fill_buffer(out_buffer);
+      for (int channel = 1; channel < source_count; ++channel) {
+        sources[channel]->fill_buffer(temp_buffer);
+        // TODO: Actually apply gain on first channel
 
-    int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
-    for (int i = 0; i < temp_buffer->sample_count; ++i) {
-      // const int32_t mult = multiplier[channel];
+        int32_t *out_samples = (int32_t *)out_buffer->buffer->bytes;
+        for (int i = 0; i < temp_buffer->sample_count; ++i) {
+          // const int32_t mult = multiplier[channel];
 
-      // Actually apply gain, and fix distortion
-      int32_t *temp_samples = (int32_t *)temp_buffer->buffer->bytes;
-      int32_t val = (out_samples[i] / 2) + (temp_samples[i] / 2);
-      out_samples[i] = val;
-    }
-  }
+          // Actually apply gain, and fix distortion
+          int32_t *temp_samples = (int32_t *)temp_buffer->buffer->bytes;
+          int32_t val = (out_samples[i] / 2) + (temp_samples[i] / 2);
+          out_samples[i] = val;
+        }
+      }
+    */
 }

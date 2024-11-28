@@ -44,7 +44,7 @@ struct AudioMixer4 : BufferSource {
       multiplier[i] = 256;
     }
   }
-  void fill_buffer(audio_buffer_t *pool);
+  uint32_t fill_buffer(int16_t *out_samples);
   void gain(unsigned int channel, float gain) {
     if (channel >= 4) {
       return;

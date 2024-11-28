@@ -15,8 +15,10 @@ static audio_format_t audio_format = {.sample_freq = SAMPLE_FREQUENCY,
                                       .pcm_format = AUDIO_PCM_FORMAT_S32,
                                       .channel_count = AUDIO_CHANNEL_STEREO};
 
-static audio_buffer_format_t producer_format = {.format = &audio_format,
-                                                .sample_stride = 8};
+static audio_buffer_format_t producer_format = {
+    .format = &audio_format,
+    .sample_stride = 8}; // 4 bytes per sample, stereo, which means 8 bytes per
+                         // stereo sampling point
 
 static audio_i2s_config_t i2s_config = {.data_pin = PICO_AUDIO_I2S_DATA_PIN,
                                         .clock_pin_base =
@@ -24,10 +26,6 @@ static audio_i2s_config_t i2s_config = {.data_pin = PICO_AUDIO_I2S_DATA_PIN,
                                         .dma_channel0 = 0,
                                         .dma_channel1 = 1,
                                         .pio_sm = 0};
-
-audio_buffer_t *AudioOutput::new_buffer() {
-  return audio_new_buffer(&producer_format, AUDIO_BLOCK_SAMPLES);
-}
 
 void AudioOutput::init(BufferCallback callback) {
   buffer_callback = callback;

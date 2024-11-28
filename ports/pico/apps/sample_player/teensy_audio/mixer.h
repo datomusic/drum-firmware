@@ -39,7 +39,7 @@ struct AudioMixer4 : BufferSource {
       : sources(sources), source_count(source_count) {
 
     for (int i = 0; i < 4; i++) {
-      multiplier[i] = 256;
+      multipliers[i] = 256;
     }
   }
   uint32_t fill_buffer(int16_t *out_samples);
@@ -54,13 +54,13 @@ struct AudioMixer4 : BufferSource {
       gain = -127.0f;
     }
 
-    multiplier[channel] = gain * 256.0f; // TODO: proper roundoff?
+    multipliers[channel] = gain * 256.0f; // TODO: proper roundoff?
   }
 
 private:
   unsigned int source_count;
   BufferSource **sources;
-  int16_t multiplier[4];
+  int16_t multipliers[4];
 };
 
 #endif

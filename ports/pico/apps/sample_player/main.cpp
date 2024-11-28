@@ -23,17 +23,13 @@
 
 #include <vector>
 
+uint master_volume = 10;
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 BufferSource *sounds[2] = {&kick, &snare};
-
 AudioMixer4 mixer(sounds, 2);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
-
-uint volume = 10;
-
-static int16_t samples[AUDIO_BLOCK_SAMPLES];
 
 static void init_clock() {
   // Set PLL_USB 96MHz
@@ -56,16 +52,13 @@ static void fill_audio_buffer(audio_buffer_pool_t *pool) {
     return;
   }
 
-  mixer.fill_buffer(samples);
-  // snare.fill_buffer(samples);
-  // kick.fill_buffer(samples);
-  // sine_fill_buffer(out_buffer);
+  static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
+  mixer.fill_buffer(temp_samples);
 
-  // Convert to 32bit
-
+  // Convert to 32bit stereo
   int32_t *stereo_out_samples = (int32_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    int32_t sample = (volume * samples[i]) << 8u;
+    int32_t sample = (master_volume * temp_samples[i]) << 8u;
     sample = sample + (sample >> 16u);
     stereo_out_samples[i * 2] = sample;
     stereo_out_samples[i * 2 + 1] = sample;
@@ -114,15 +107,13 @@ int main() {
   AudioOutput::init(fill_audio_buffer);
 
   while (true) {
-    /*
-    if (!interactive_ui()) {
-      break;
-    }
-    */
+    // if (!interactive_ui()) { break; }
+
     sleep_ms(1000);
     kick.play();
     snare.play();
+    mixer.gain(1, 0.3);
   }
-  puts("\n");
+
   return 0;
 }

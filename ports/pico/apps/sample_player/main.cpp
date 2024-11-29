@@ -119,14 +119,22 @@ int main() {
 
   while (true) {
     // if (!interactive_ui()) { break; }
+    mixer.gain(0, 0.9);
+    mixer.gain(1, 0.8);
+    mixer.gain(2, 0.3);
+    mixer.gain(3, 0.7);
 
-    sleep_ms(1000);
+    sleep_ms(400);
+    cashreg.play(0.8);
+    hihat.play(0.4);
+    sleep_ms(400);
+    hihat.play(0.8);
+    sleep_ms(400);
+    hihat.play(1.2);
+    sleep_ms(400);
+    hihat.play(1.7);
     kick.play(0.5);
     snare.play(1.5);
-    cashreg.play(1);
-    hihat.play(1);
-    mixer.gain(1, 0.7);
-    mixer.gain(2, 0.3);
   }
 
   return 0;

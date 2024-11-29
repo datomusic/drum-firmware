@@ -9,7 +9,7 @@ static AudioOutput::BufferCallback buffer_callback = nullptr;
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 #define SAMPLE_FREQUENCY 44100
-#define BUFFER_COUNT 3
+#define BUFFER_COUNT 2
 
 static audio_format_t audio_format = {.sample_freq = SAMPLE_FREQUENCY,
                                       .pcm_format = AUDIO_PCM_FORMAT_S32,

@@ -121,8 +121,8 @@ int main() {
     // if (!interactive_ui()) { break; }
 
     sleep_ms(1000);
-    kick.play(1);
-    snare.play(1);
+    kick.play(0);
+    snare.play(1.5);
     cashreg.play(1);
     hihat.play(1);
     mixer.gain(1, 0.7);

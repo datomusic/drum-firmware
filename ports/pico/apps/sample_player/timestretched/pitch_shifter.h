@@ -38,8 +38,8 @@ private:
   double speed;
   int16_t interpolation_samples[4];
   uint32_t source_index;
-  double position;
-  double remainder;
+  uint32_t position;
+  int remainder;
   SampleReader &sample_reader;
   BufferedReader buffered_reader;
 };

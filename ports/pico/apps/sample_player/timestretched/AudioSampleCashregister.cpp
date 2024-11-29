@@ -1,10 +1,9 @@
 // Audio data converted from WAV file by wav2sketch
 
 #include "AudioSampleCashregister.h"
-#include <Arduino.h>
+#include "pico/stdlib.h"
 // Converted from cashregister.wav, using 22050 Hz, u-law encoding
-PROGMEM
-const unsigned int AudioSampleCashregister[5809] = {
+const unsigned int __in_flash() AudioSampleCashregister[5809] = {
 0x02005AB4,0x82060707,0x03010301,0x08038287,0x81820200,0x09120407,0x15091108,0x02080611,
 0x0D050D11,0x8008150C,0x93810480,0x000D8890,0x0A060406,0x06000681,0x80828702,0x89928405,
 0x04820983,0x8C860D05,0x880D0004,0x84000B0B,0x8C8D8C8F,0x84829181,0x14860600,0x0A0C080C,

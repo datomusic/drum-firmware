@@ -18,6 +18,9 @@
 #include "sound.h"
 
 #include "teensy_audio/mixer.h"
+#include "timestretched/AudioSampleCashregister.h"
+#include "timestretched/AudioSampleGong.h"
+#include "timestretched/AudioSampleHihat.h"
 #include "timestretched/AudioSampleKick.h"
 #include "timestretched/AudioSampleSnare.h"
 
@@ -26,8 +29,16 @@
 uint master_volume = 10;
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
-BufferSource *sounds[2] = {&kick, &snare};
-AudioMixer4 mixer(sounds, 2);
+Sound gong(AudioSampleGong, AudioSampleGongSize);
+Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
+Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
+// const int SOUND_COUNT = 3;
+// BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &cashreg, &hihat};
+// BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &hihat};
+const int SOUND_COUNT = 4;
+BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &hihat, &cashreg};
+
+AudioMixer4 mixer(sounds, SOUND_COUNT);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
@@ -110,9 +121,12 @@ int main() {
     // if (!interactive_ui()) { break; }
 
     sleep_ms(1000);
-    kick.play();
-    snare.play();
-    mixer.gain(1, 0.3);
+    kick.play(1);
+    snare.play(1);
+    cashreg.play(1);
+    hihat.play(1);
+    mixer.gain(1, 0.7);
+    mixer.gain(2, 0.3);
   }
 
   return 0;

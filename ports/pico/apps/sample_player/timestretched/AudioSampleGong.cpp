@@ -4,7 +4,7 @@
 #include "pico/stdlib.h"
 // Converted from gong.wav, using 11025 Hz, u-law encoding
 
-const unsigned int __in_flash() AudioSampleGong[27633] = {
+const unsigned int __in_flash() AudioSampleGong[AudioSampleGongSize] = {
 0x0301AFA4,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
 0x00000000,0x00000000,0x00000000,0x00000000,0x00008000,0x00000000,0x00000000,0x80800000,
 0x00000000,0x00000000,0x00000080,0x00000000,0x00000000,0x00000000,0x00000080,0x00000000,

@@ -8,15 +8,13 @@
 #include <stdio.h>
 
 struct Sound : BufferSource {
-  // static double playback_speed = 1;
-
   Sound(const unsigned int *sample_data, const size_t data_length)
       : memory_reader(sample_data, data_length), pitch_shifter(memory_reader) {
   }
 
-  void play() {
+  void play(const double speed) {
     printf("Playing drum\n");
-    // pitch_shifter.set_speed(playback_speed);
+    pitch_shifter.set_speed(speed);
     pitch_shifter.reset();
   }
 

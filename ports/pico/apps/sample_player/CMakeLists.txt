@@ -29,13 +29,14 @@ add_executable(sample_player
     timestretched/AudioSampleKick.cpp
     timestretched/AudioSampleSnare.cpp
     timestretched/AudioSampleGong.cpp
+    timestretched/AudioSampleCashregister.cpp
     timestretched/AudioSampleHihat.cpp
     timestretched/data_ulaw.c
     teensy_audio/mixer.cpp
     teensy_audio/AudioStream.cpp
 )
 
-add_definitions(-DAUDIO_BLOCK_SAMPLES=256)
+add_definitions(-DAUDIO_BLOCK_SAMPLES=512)
 
 target_link_libraries(sample_player
   pico_stdlib

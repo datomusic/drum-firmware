@@ -1,10 +1,10 @@
 #include "pitch_shifter.h"
 
 static int16_t quad_interpolate(int16_t d1, int16_t d2, int16_t d3, int16_t d4,
-                                double x) {
-  float x_1 = x * 1000.0;
-  float x_2 = x_1 * x_1;
-  float x_3 = x_2 * x_1;
+                                int16_t x) {
+  int32_t x_1 = x;
+  int32_t x_2 = x_1 * x_1;
+  int32_t x_3 = x_2 * x_1;
 
   return d1 * (x_3 - 6000 * x_2 + 11000000 * x_1 - 6000000000) / -6000000000 +
          d2 * (x_3 - 5000 * x_2 + 6000000 * x_1) / 2000000000 +
@@ -39,17 +39,24 @@ void PitchShifter::shift_interpolation_samples(int16_t sample) {
 }
 
 uint32_t PitchShifter::read_resampled(int16_t *out) {
+  const uint32_t step = this->speed * 1000;
+  uint32_t step_counter = 0;
+
   for (uint32_t out_sample_index = 0; out_sample_index < AUDIO_BLOCK_SAMPLES;
        ++out_sample_index) {
 
     const int16_t interpolated_value = quad_interpolate(
         interpolation_samples[0], interpolation_samples[1],
-        interpolation_samples[2], interpolation_samples[3], 1.0 + remainder);
+        interpolation_samples[2], interpolation_samples[3], 1);
 
-    this->position += this->speed;
-    const uint32_t new_source_index = (uint32_t)(position);
+    step_counter += step;
+    while (step_counter >= 1000) {
+      step_counter -= 1000;
+      this->position += 1;
+    }
 
-    while (source_index < new_source_index) {
+    const uint32_t pos = this->position;
+    while (source_index < pos) {
       int16_t sample;
       if (!buffered_reader.read_next(sample)) {
         sample = 0;
@@ -59,7 +66,7 @@ uint32_t PitchShifter::read_resampled(int16_t *out) {
       source_index++;
     }
 
-    remainder = position - source_index;
+    remainder = (pos - source_index) * 1000;
 
     *out = interpolated_value;
     out++;

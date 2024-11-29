@@ -1,3 +1,4 @@
 // Audio data converted from WAV file by wav2sketch
 
-extern const unsigned int AudioSampleCashregister[5809];
+#define AudioSampleCashregisterSize 5809
+extern const unsigned int AudioSampleCashregister[AudioSampleCashregisterSize];

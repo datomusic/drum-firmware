@@ -124,16 +124,24 @@ int main() {
     mixer.gain(2, 0.3);
     mixer.gain(3, 0.7);
 
-    sleep_ms(400);
+    sleep_ms(200);
+    kick.play(0.8);
+    sleep_ms(200);
     cashreg.play(0.8);
     hihat.play(0.4);
-    sleep_ms(400);
+    sleep_ms(200);
+    kick.play(1.8);
+    sleep_ms(200);
     hihat.play(0.8);
-    sleep_ms(400);
+    sleep_ms(200);
+    kick.play(0.8);
+    sleep_ms(200);
     hihat.play(1.2);
-    sleep_ms(400);
+    sleep_ms(200);
+    kick.play(1.8);
+    sleep_ms(200);
     hihat.play(1.7);
-    kick.play(0.5);
+    kick.play(0.9);
     snare.play(1.5);
   }
 

@@ -36,7 +36,7 @@ add_executable(sample_player
     teensy_audio/AudioStream.cpp
 )
 
-add_definitions(-DAUDIO_BLOCK_SAMPLES=64)
+add_definitions(-DAUDIO_BLOCK_SAMPLES=32)
 
 target_link_libraries(sample_player
   pico_stdlib

@@ -5,7 +5,7 @@
 #include "timestretched/audio_memory_reader.h"
 #include "timestretched/pitch_shifter.h"
 #include <stdint.h>
-#include <stdio.h>
+// #include <stdio.h>
 
 struct Sound : BufferSource {
   Sound(const unsigned int *sample_data, const size_t data_length)
@@ -13,7 +13,7 @@ struct Sound : BufferSource {
   }
 
   void play(const double speed) {
-    printf("Playing drum\n");
+    // printf("Playing drum\n");
     pitch_shifter.set_speed(speed);
     pitch_shifter.reset();
   }
@@ -23,7 +23,7 @@ struct Sound : BufferSource {
     if (pitch_shifter.has_data()) {
       return pitch_shifter.read_samples(out_samples);
     } else {
-      printf("Filling empty buffer\n");
+      // printf("Filling empty buffer\n");
       for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
         out_samples[i] = 0; // L
       }

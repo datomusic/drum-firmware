@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdio.h>
+// #include <stdio.h>
 
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
@@ -59,7 +59,7 @@ static void init_clock() {
 static void fill_audio_buffer(audio_buffer_pool_t *pool) {
   audio_buffer_t *out_buffer = take_audio_buffer(pool, false);
   if (out_buffer == NULL) {
-    printf("Failed to take audio buffer\n");
+    // printf("Failed to take audio buffer\n");
     return;
   }
 

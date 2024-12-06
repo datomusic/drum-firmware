@@ -18,7 +18,7 @@ struct Sound : BufferSource {
     pitch_shifter.reset();
   }
 
-  uint32_t fill_buffer(int16_t *out_samples) {
+  uint32_t __not_in_flash_func(fill_buffer)(int16_t *out_samples) {
     // printf("Max samples: %i\n", out_buffer->max_sample_count);
     if (pitch_shifter.has_data()) {
       return pitch_shifter.read_samples(out_samples);

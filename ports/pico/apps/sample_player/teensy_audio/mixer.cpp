@@ -4,7 +4,7 @@
 
 static int16_t temp_buffer[AUDIO_BLOCK_SAMPLES];
 
-uint32_t AudioMixer4::fill_buffer(int16_t *out_samples) {
+uint32_t __not_in_flash_func(AudioMixer4::fill_buffer)(int16_t *out_samples) {
   for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
        ++sample_index) {
     out_samples[sample_index] = 0;

@@ -56,7 +56,7 @@ static void init_clock() {
                   96 * MHZ, 96 * MHZ);
 }
 
-static void fill_audio_buffer(audio_buffer_pool_t *pool) {
+static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_pool_t *pool) {
   audio_buffer_t *out_buffer = take_audio_buffer(pool, false);
   if (out_buffer == NULL) {
     // printf("Failed to take audio buffer\n");

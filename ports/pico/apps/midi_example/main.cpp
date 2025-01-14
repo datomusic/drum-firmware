@@ -10,10 +10,27 @@
 #include <math.h>
 #include <stdio.h>
 
-void handleNoteOn(byte channel, byte note, byte velocity) {
+#include "pico/bootrom.h"
+
+#define SYSEX_DATO_ID 0x7D
+#define SYSEX_DUO_ID 0x64
+#define SYSEX_REBOOT_BOOTLOADER 0x0B
+
+static void enter_bootloader() {
+  reset_usb_boot(0, 0);
 }
 
-void handleNoteOff(byte channel, byte note, byte velocity) {
+static void handle_sysex(byte *const data, const unsigned length) {
+  if (data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID &&
+      data[3] == SYSEX_REBOOT_BOOTLOADER) {
+    enter_bootloader();
+  }
+}
+
+void handle_note_on(byte channel, byte note, byte velocity) {
+}
+
+void handle_note_off(byte channel, byte note, byte velocity) {
 }
 
 void led_blinking_task(void);
@@ -23,12 +40,14 @@ int main() {
   board_init();
   DatoUSB::init();
 
-  MIDI::init(
-      MIDI::Callbacks{.note_on = handleNoteOn, .note_off = handleNoteOff});
+  MIDI::init(MIDI::Callbacks{.note_on = handle_note_on,
+                             .note_off = handle_note_off,
+                             .sysex = handle_sysex});
 
   static uint32_t last_ms = board_millis();
   while (1) {
     DatoUSB::background_update();
+    MIDI::read(1);
     led_blinking_task();
     const uint32_t now_ms = board_millis();
     if (now_ms - last_ms > 1000) {

@@ -96,6 +96,8 @@ def update_firmware(firmware_path, data_path, continuous, skip_enter_bootloader=
         print("MBoot interface not found.")
         return False
 
+    time.sleep(1)
+
     with McuBoot(boot_interface) as mboot:
         mboot.get_property(1, 0)
         mboot.fill_memory(0x20202000, 4, 0xC0000007)

@@ -6,6 +6,7 @@
 #include "lib/audio.h"
 #include "output.h"
 #include "rompler.h"
+
 #include <Audio.h>
 #include <AudioStream.h>
 #include <effect_fade.h>
@@ -20,6 +21,7 @@ static AudioConnection connections[] = {
     AudioConnection(Rompler::get_output(), 0, Output::get_input(), 0),
     AudioConnection(Output::get_output(), 0, pop_suppressor, 0),
     AudioConnection(pop_suppressor, 0, speaker_preamp, 0),
+    AudioConnection(speaker_preamp, 0, dac, 0),
     AudioConnection(speaker_preamp, 0, dac, 1)};
 
 static void setup_audio() {
@@ -32,20 +34,22 @@ static void setup_audio() {
   AudioInterrupts();
 }
 
-static void handle_midi_on(byte channel, byte note, byte velocity) {
-  switch (note % 4) {
-  case 0:
+static void handle_note_on(byte channel, byte note, byte _velocity) {
+  Rompler::playback_speed = note / 64.0;
+
+  switch (channel) {
+  case 1:
     Rompler::kick.play();
     break;
 
-  case 1:
+  case 2:
     Rompler::snare.play();
     break;
 
-  case 2:
+  case 3:
     Rompler::hihat.play();
     break;
-  case 3:
+  case 4:
     Rompler::tom.play();
     break;
   }
@@ -80,22 +84,19 @@ static void handle_cc(byte channel, byte cc, byte midi_value) {
 }
 
 int main(void) {
-  App::init(MIDI::Callbacks{.note_on = handle_midi_on, .cc = handle_cc});
+  App::init(MIDI::Callbacks{.note_on = handle_note_on, .cc = handle_cc});
   Audio::amp_disable();
+  Audio::headphone_disable();
 
   dac.begin();
   setup_audio();
-  // Output::set_volume(0.2f);
+  Output::set_volume(0.2f);
   Audio::amp_enable();
+  Audio::headphone_enable();
 
-  int counter = 0;
   while (true) {
-    if (counter++ > 1000000) {
-      counter = 0;
-      MIDI::sendNoteOn(0, 100, 1);
-    }
-
-    App::update();
+    const auto midi_channel = 0; // All channels
+    App::update(midi_channel);
   }
 
   return 0;

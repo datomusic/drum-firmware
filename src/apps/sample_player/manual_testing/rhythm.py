@@ -1,6 +1,7 @@
 import rtmidi
 from rtmidi.midiutil import open_midioutput
 import time
+import random
 
 def find_duo_midi_port():
     for (index, name) in enumerate(rtmidi.MidiOut().get_ports()):
@@ -10,7 +11,7 @@ def find_duo_midi_port():
     return None
 
 
-sequence = [(0,), (2, 1), (3,), (1, 2)]
+sequence = [(0,), (1,), (2,), (3,)]
 
 def main():
     port = find_duo_midi_port()
@@ -19,14 +20,14 @@ def main():
     step = 0
 
     while True:
-        time.sleep(0.5)
-        notes = sequence[step % len(sequence)]
+        samples = sequence[step % len(sequence)]
         step += 1
-        for note in notes:
-            output.send_message([0x90, note, 120])
+        for sample in samples:
+            note =  64 + random.randint(-60, 60)
+            print(f"Sample: {sample}, Note: {note}")
+            output.send_message([0x90 + sample, note, 120])
+        time.sleep(0.3)
 
 
 if __name__ == "__main__":
     main()
-
-

@@ -11,3 +11,4 @@ output.map
 compile_commands.json
 *.o
 *.d
+**/build

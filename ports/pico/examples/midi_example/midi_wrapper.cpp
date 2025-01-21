@@ -1,5 +1,5 @@
 #include "midi_wrapper.h"
-#include "hardware_serial.h"
+#include "pico_uart.h"
 #include <MIDI.h>
 #include <USB-MIDI.h>
 
@@ -7,9 +7,9 @@ static USBMIDI_NAMESPACE::usbMidiTransport usbTransport(0);
 static MIDI_NAMESPACE::MidiInterface<USBMIDI_NAMESPACE::usbMidiTransport>
     usb_midi(usbTransport);
 
-static HardwareSerial serial;
-static MIDI_NAMESPACE::SerialMIDI<HardwareSerial> serialTransport(serial);
-static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<HardwareSerial>>
+static PicoUART serial;
+static MIDI_NAMESPACE::SerialMIDI<PicoUART> serialTransport(serial);
+static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<PicoUART>>
     serial_midi(serialTransport);
 
 #define ALL_TRANSPORTS(function_call)                                          \

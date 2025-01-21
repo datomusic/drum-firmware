@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct HardwareSerial {
+struct PicoUART {
   int available(void) {
     return 0;
   }

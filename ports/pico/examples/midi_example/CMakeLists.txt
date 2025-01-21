@@ -24,6 +24,7 @@ add_executable(midi_example
 
 target_sources(${EXECUTABLE_NAME} PRIVATE
   midi_wrapper.cpp
+  pico_uart.cpp
   ${USB_DIR}/usb.cpp
   ${USB_DIR}/usb_descriptors.c
   ${USB_DIR}/midi_usb_bridge/MIDIUSB.cpp

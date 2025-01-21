@@ -1,24 +1,16 @@
 #ifndef HARDWARE_SERIAL_H_VBZTXRD8
 #define HARDWARE_SERIAL_H_VBZTXRD8
 
+#include "hardware/gpio.h"
+#include "hardware/uart.h"
 #include <stddef.h>
 #include <stdint.h>
 
 struct PicoUART {
-  int available(void) {
-    return 0;
-  }
-
-  int read(void) {
-    return 0;
-  }
-
-  void begin(unsigned long baud_rate) {
-  }
-
-  size_t write(uint8_t byte) {
-    return 0;
-  }
+  void begin(unsigned long baud_rate);
+  uint8_t read(void);
+  size_t write(uint8_t byte);
+  bool available(void);
 };
 
 #endif /* end of include guard: HARDWARE_SERIAL_H_VBZTXRD8 */

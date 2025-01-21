@@ -1,4 +1,5 @@
 #include "midi_wrapper.h"
+#include "hardware_serial.h"
 #include <MIDI.h>
 #include <USB-MIDI.h>
 
@@ -6,15 +7,14 @@ static USBMIDI_NAMESPACE::usbMidiTransport usbTransport(0);
 static MIDI_NAMESPACE::MidiInterface<USBMIDI_NAMESPACE::usbMidiTransport>
     usb_midi(usbTransport);
 
-/*
-static MIDI_NAMESPACE::SerialMIDI<HardwareSerial> serialTransport(Serial);
+static HardwareSerial serial;
+static MIDI_NAMESPACE::SerialMIDI<HardwareSerial> serialTransport(serial);
 static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<HardwareSerial>>
     serial_midi(serialTransport);
-*/
 
 #define ALL_TRANSPORTS(function_call)                                          \
-  usb_midi.function_call;
-  // serial_midi.function_call;                                                   \
+  usb_midi.function_call;                                                      \
+  serial_midi.function_call;
 
 void MIDI::init(const Callbacks &callbacks) {
   ALL_TRANSPORTS(begin());

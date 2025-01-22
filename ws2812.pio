@@ -1,0 +1,7 @@
+.program ws2812
+.side_set 1
+
+.wrap_target
+    out x, 24       side 0 [1]  ; Shift out 24 bits (RGB)
+    mov pins, !x    side 1 [1]  ; Invert and set pin
+.wrap

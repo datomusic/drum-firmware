@@ -22,6 +22,8 @@ int main(void) {
     printf("Closing file\n");
     fclose(fp);
     printf("Opening for reading\n");
+
+    // Path must start with backslash, otherwise writing freezes (or crashes?).
     fp = fopen("/DATO.TXT", "r");
 
     printf("Reading\n");

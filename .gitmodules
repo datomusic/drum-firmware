@@ -22,3 +22,6 @@
 [submodule "ports/pico/pico-extras"]
 	path = ports/pico/pico-extras
 	url = https://github.com/raspberrypi/pico-extras.git
+[submodule "ports/pico/libraries/pico-vfs"]
+	path = ports/pico/libraries/pico-vfs
+	url = https://github.com/oyama/pico-vfs.git

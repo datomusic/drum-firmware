@@ -13,23 +13,29 @@ project(${EXECUTABLE_NAME})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-add_subdirectory(../../libraries/pico-vfs build)
 
 pico_sdk_init()
+add_subdirectory(../../libraries/pico-vfs build)
 
 add_executable(${EXECUTABLE_NAME}
     main.cpp
+    # filesystem.c
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib
+  # pico_util
+  # pico_multicore
+  # blockdevice_sd
+  # filesystem_fat
+  filesystem_vfs
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
-pico_enable_filesystem(${CMAKE_PROJECT_NAME})
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
-pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)
+pico_enable_stdio_uart(${EXECUTABLE_NAME} 0)
 pico_add_extra_outputs(${EXECUTABLE_NAME})
+pico_enable_filesystem(${EXECUTABLE_NAME})

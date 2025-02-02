@@ -1,16 +1,19 @@
-#include "filesystem/vfs.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
+extern "C" bool init_filesystem(bool force_format);
+
 int main(void) {
   stdio_init_all();
-  const auto init_result = fs_init();
+  printf("Startup\n");
 
-  // Give host some time to catch up, otherwise messages can be lost.
   sleep_ms(1000);
 
-  printf("Startup\n");
+  // Give host some time to catch up, otherwise messages can be lost.
+
+  printf("\n\n");
   printf("Initializing fs\n");
+  const auto init_result = init_filesystem(true);
   if (init_result) {
     printf("fs initialized\n");
     printf("Opening file\n");

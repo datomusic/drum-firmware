@@ -19,15 +19,11 @@ add_subdirectory(../../libraries/pico-vfs build)
 
 add_executable(${EXECUTABLE_NAME}
     main.cpp
-    # filesystem.c
+    filesystem.c
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib
-  # pico_util
-  # pico_multicore
-  # blockdevice_sd
-  # filesystem_fat
   filesystem_vfs
 )
 

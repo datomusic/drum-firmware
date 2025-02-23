@@ -4,6 +4,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXECUTABLE_NAME flash_rw_demo)
 
 set(SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-sdk/)
+set(CORE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../core)
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()
@@ -19,7 +20,7 @@ add_subdirectory(../../libraries/pico-vfs build)
 
 add_executable(${EXECUTABLE_NAME}
     main.cpp
-    filesystem.c
+    ${CORE_PATH}/filesystem.c
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE

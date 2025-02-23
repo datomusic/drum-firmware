@@ -10,7 +10,7 @@ uint32_t __not_in_flash_func(AudioMixer4::fill_buffer)(int16_t *out_samples) {
     out_samples[sample_index] = 0;
   }
 
-  for (int channel = 0; channel < source_count; ++channel) {
+  for (unsigned int channel = 0; channel < source_count; ++channel) {
     sources[channel]->fill_buffer(temp_buffer);
     for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
          ++sample_index) {

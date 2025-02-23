@@ -40,7 +40,7 @@ add_executable(${EXECUTABLE_NAME}
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ${CORE_PATH}
+    ${CORE_PATH}/../
 )
 
 add_definitions(-DAUDIO_BLOCK_SAMPLES=32)

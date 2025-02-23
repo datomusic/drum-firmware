@@ -1,7 +1,6 @@
 #include <pico/stdlib.h>
 #include <stdio.h>
-
-extern "C" bool init_filesystem(bool force_format);
+#include "core/filesystem.h"
 
 int main(void) {
   stdio_init_all();

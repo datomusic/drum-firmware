@@ -30,6 +30,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CORE_PATH}/../
 )
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)

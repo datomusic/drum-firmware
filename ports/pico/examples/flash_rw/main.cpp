@@ -4,9 +4,10 @@
 
 int main(void) {
   stdio_init_all();
-  printf("Startup\n");
 
   sleep_ms(1000);
+
+  printf("Startup\n");
 
   // Give host some time to catch up, otherwise messages can be lost.
 

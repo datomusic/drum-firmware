@@ -5,7 +5,7 @@
 int main(void) {
   stdio_init_all();
 
-  sleep_ms(1000);
+  sleep_ms(2000);
 
   printf("Startup\n");
 
@@ -16,14 +16,18 @@ int main(void) {
   const auto init_result = init_filesystem(true);
   if (init_result) {
     printf("fs initialized\n");
-    printf("Opening file\n");
+    printf("Opening file for writing\n");
     FILE *fp = fopen("/DATO.TXT", "w");
 
-    printf("Writing...\n");
-    fprintf(fp, "Rhythm is a dancer!\n");
+    if (fp) {
+      printf("Writing...\n");
+      fprintf(fp, "Rhythm is a flash_rw!\n");
+      printf("Closing file\n");
+      fclose(fp);
+    }else{
+      printf("Error: Failed opening for reading\n");
+    }
 
-    printf("Closing file\n");
-    fclose(fp);
     printf("Opening for reading\n");
 
     // Path must start with backslash, otherwise writing freezes (or crashes?).

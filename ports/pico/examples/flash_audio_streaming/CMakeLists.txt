@@ -43,11 +43,13 @@ add_definitions(-DAUDIO_BLOCK_SAMPLES=32)
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib
   pico_audio_32b
-  pico_audio_i2s_32b
+  # TODO: Enabling this makes writing fail.
+  # Possibly because of interrupts?
+  # pico_audio_i2s_32b
 )
 
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 0)
-pico_enable_filesystem(${EXECUTABLE_NAME})
 pico_add_extra_outputs(${EXECUTABLE_NAME})
+pico_enable_filesystem(${EXECUTABLE_NAME})

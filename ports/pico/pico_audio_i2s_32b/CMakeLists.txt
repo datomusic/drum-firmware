@@ -11,7 +11,6 @@ if (NOT TARGET pico_audio_i2s_32b)
 
     target_link_libraries(pico_audio_i2s_32b INTERFACE
         pico_stdlib
-        pico_multicore
         hardware_dma
         hardware_pio
         hardware_irq

@@ -21,7 +21,7 @@ int main(void) {
 
     if (fp) {
       printf("Writing...\n");
-      fprintf(fp, "Rhythm is a streamish and then some!\n");
+      fprintf(fp, "Rhythm is a working, I think?\n");
       printf("Closing file\n");
       fclose(fp);
     }else{

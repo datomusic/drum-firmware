@@ -43,9 +43,7 @@ add_definitions(-DAUDIO_BLOCK_SAMPLES=32)
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib
   pico_audio_32b
-  # TODO: Enabling this makes writing fail.
-  # Possibly because of interrupts?
-  # pico_audio_i2s_32b
+  pico_audio_i2s_32b
 )
 
 

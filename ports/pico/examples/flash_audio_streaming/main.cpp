@@ -1,48 +1,72 @@
+#include "core/timestretched/AudioSampleSnare.h"
+#include "core/filesystem.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
-#include "core/filesystem.h"
 
-int main(void) {
+#define STORE_SAMPLE 0
+#define REFORMAT false
+
+// Path must start with backslash in order to be valid under the root mount
+// point.
+static const char *file_name = "/snare_sample";
+
+static void store_sample() {
+  printf("Opening file for writing\n");
+  FILE *fp = fopen(file_name, "wb");
+
+  if (!fp) {
+    printf("Error: Write open failed\n");
+    return;
+  }
+
+  auto written = fwrite(AudioSampleSnare, sizeof(AudioSampleSnare[0]),
+                        AudioSampleSnareSize, fp);
+  printf("Wrote %i bytes\n", written);
+  fclose(fp);
+}
+
+static bool init() {
   stdio_init_all();
-
+  // Give host some time to catch up, otherwise messages can be lost.
   sleep_ms(2000);
 
-  printf("Startup 4\n");
-
-  // Give host some time to catch up, otherwise messages can be lost.
-
+  printf("Startup\n");
   printf("\n\n");
   printf("Initializing fs\n");
-  const auto init_result = init_filesystem(true);
-  if (init_result) {
-    printf("fs initialized\n");
-    printf("Opening file for writing\n");
-    FILE *fp = fopen("/DATO.TXT", "w");
+  const auto init_result = init_filesystem(REFORMAT);
+  if (!init_result) {
+    printf("Initialization failed: %i\n", init_result);
+    return false;
+  }
 
-    if (fp) {
-      printf("Writing...\n");
-      fprintf(fp, "Rhythm is a working, I think?\n");
-      printf("Closing file\n");
-      fclose(fp);
-    }else{
-      printf("Error: Failed opening for reading\n");
+  printf("file system initialized\n");
+  return true;
+}
+
+int main(void) {
+  if (!init()) {
+    printf("Init failed!\n");
+    return 1;
+  }
+
+#if STORE_SAMPLE
+  store_sample();
+#endif
+
+  printf("Opening for reading\n");
+
+  FILE *fp = fopen(file_name, "rb");
+  if (fp) {
+    printf("Reading\n");
+    if (fseek(fp, 0, SEEK_END) != 0) {
+      printf("Seek failed!\n");
     }
 
-    printf("Opening for reading\n");
-
-    // Path must start with backslash, otherwise writing freezes (or crashes?).
-    fp = fopen("/DATO.TXT", "r");
-
-    printf("Reading\n");
-    char buffer[128] = {0};
-    fgets(buffer, sizeof(buffer), fp);
-
-    printf("Closing file\n");
+    const auto size = ftell(fp);
+    printf("size: %li\n", size);
     fclose(fp);
-
-    printf("content: %s\n", buffer);
   } else {
-    printf("Initialization failed: %i\n", init_result);
+    printf("Error: Read open failed\n");
   }
 
   printf("Done!\n");

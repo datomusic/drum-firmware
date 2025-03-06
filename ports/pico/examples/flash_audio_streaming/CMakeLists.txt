@@ -26,11 +26,12 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b pico_audio
 
 add_executable(${EXECUTABLE_NAME}
     main.cpp
-    # ${CORE_PATH}/audio_output.cpp
-    # ${CORE_PATH}/timestretched/pitch_shifter.cpp
-    # ${CORE_PATH}/timestretched/audio_memory_reader.cpp
-    # ${CORE_PATH}/timestretched/data_ulaw.c
-    # ${CORE_PATH}/teensy_audio/mixer.cpp
+    ${CORE_PATH}/audio_output.cpp
+    ${CORE_PATH}/timestretched/pitch_shifter.cpp
+    ${CORE_PATH}/timestretched/audio_memory_reader.cpp
+    ${CORE_PATH}/timestretched/AudioSampleSnare.cpp
+    ${CORE_PATH}/timestretched/data_ulaw.c
+    ${CORE_PATH}/teensy_audio/mixer.cpp
     ${CORE_PATH}/filesystem.c
 )
 

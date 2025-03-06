@@ -9,13 +9,15 @@ int main(void) {
 
   printf("Startup\n");
 
-
   printf("\n\n");
   printf("Initializing fs\n");
   const auto init_result = init_filesystem(true);
   if (init_result) {
     printf("fs initialized\n");
     printf("Opening file for writing\n");
+
+    // Path must start with backslash in order to be valid under the root mount
+    // point.
     FILE *fp = fopen("/DATO.TXT", "w");
 
     if (fp) {

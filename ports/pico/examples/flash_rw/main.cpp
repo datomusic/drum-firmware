@@ -1,15 +1,14 @@
+#include "core/filesystem.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
-#include "core/filesystem.h"
 
 int main(void) {
   stdio_init_all();
-
+  // Give host some time to catch up, otherwise messages can be lost.
   sleep_ms(2000);
 
   printf("Startup\n");
 
-  // Give host some time to catch up, otherwise messages can be lost.
 
   printf("\n\n");
   printf("Initializing fs\n");
@@ -24,23 +23,26 @@ int main(void) {
       fprintf(fp, "Rhythm is a flash_rw!\n");
       printf("Closing file\n");
       fclose(fp);
-    }else{
-      printf("Error: Failed opening for reading\n");
+    } else {
+      printf("Error: Failed opening for writing\n");
     }
 
     printf("Opening for reading\n");
 
     // Path must start with backslash, otherwise writing freezes (or crashes?).
     fp = fopen("/DATO.TXT", "r");
+    if (fp) {
+      printf("Reading\n");
+      char buffer[128] = {0};
+      fgets(buffer, sizeof(buffer), fp);
 
-    printf("Reading\n");
-    char buffer[128] = {0};
-    fgets(buffer, sizeof(buffer), fp);
+      printf("Closing file\n");
+      fclose(fp);
 
-    printf("Closing file\n");
-    fclose(fp);
-
-    printf("content: %s\n", buffer);
+      printf("content: %s\n", buffer);
+    } else {
+      printf("Error: Read open failed\n");
+    }
   } else {
     printf("Initialization failed: %i\n", init_result);
   }

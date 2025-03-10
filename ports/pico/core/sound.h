@@ -4,6 +4,7 @@
 #include "buffer_source.h"
 #include "timestretched/audio_memory_reader.h"
 #include "timestretched/pitch_shifter.h"
+#include <pico/stdlib.h>
 #include <stdint.h>
 
 struct Sound : BufferSource {

@@ -40,7 +40,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${CORE_PATH}
 )
 
-add_definitions(-DAUDIO_BLOCK_SAMPLES=32)
+add_definitions(-DAUDIO_BLOCK_SAMPLES=128)
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib

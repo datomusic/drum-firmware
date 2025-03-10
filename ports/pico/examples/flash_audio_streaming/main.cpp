@@ -1,11 +1,11 @@
 #include "core/filesystem.h"
-#include "core/sound.h"
 #include "core/teensy_audio/mixer.h"
 #include "core/timestretched/AudioSampleSnare.h"
-#include <pico/stdlib.h>
-#include <stdio.h>
+#include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
+#include <pico/stdlib.h>
+#include <stdio.h>
 
 #define STORE_SAMPLE 0
 #define REFORMAT false
@@ -15,8 +15,8 @@
 static const char *file_name = "/snare_sample";
 
 static const uint master_volume = 10;
-Sound snare(AudioSampleSnare, AudioSampleSnareSize);
-BufferSource *sounds[1] = {&snare};
+FileSound sound;
+BufferSource *sounds[1] = {&sound};
 AudioMixer4 mixer(sounds, 1);
 
 static void store_sample() {
@@ -100,7 +100,6 @@ int main(void) {
   store_sample();
 #endif
 
-
   printf("Opening for reading\n");
 
   FILE *fp = fopen(file_name, "rb");
@@ -113,18 +112,28 @@ int main(void) {
     const auto size = ftell(fp);
     printf("size: %li\n", size);
     fclose(fp);
+    printf("File closed!\n");
   } else {
     printf("Error: Read open failed\n");
   }
 
+  sound.load(file_name);
 
   printf("Initializing audio output\n");
   AudioOutput::init(fill_audio_buffer);
 
   printf("Entering loop!\n");
+  int counter = 0;
   while (true) {
-    sleep_ms(2000);
-    printf("Playing sample\n");
-    snare.play(1.0);
+    if (++counter > 30000000) {
+      printf("Playing sample\n");
+      counter = 0;
+      sound.play(1.0);
+    }
+
+    if (sound.reader.needs_update) {
+      /*printf("Updating sample\n");*/
+      sound.reader.update();
+    }
   }
 }

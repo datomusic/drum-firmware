@@ -60,7 +60,7 @@ struct FileReader : SampleReader {
     // printf("[FileReader] read samples\n");
     this->needs_update = true;
     if (read_count > 0) {
-      for (int i = 0; i < read_count; ++i) {
+      for (size_t i = 0; i < read_count; ++i) {
         out[i] = buffer[i];
       }
 

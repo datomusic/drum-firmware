@@ -7,8 +7,11 @@
 #include <pico/stdlib.h>
 #include <stdio.h>
 
-#define STORE_SAMPLE 0
+#define STORE_SAMPLE true
 #define REFORMAT false
+
+// Increase if sample gets truncated during write
+#define TMP_BUF_SIZE (1024 * 32)
 
 // Path must start with backslash in order to be valid under the root mount
 // point.
@@ -28,9 +31,25 @@ static void store_sample() {
     return;
   }
 
-  auto written = fwrite(AudioSampleSnare, sizeof(AudioSampleSnare[0]),
-                        AudioSampleSnareSize, fp);
-  printf("Wrote %i bytes\n", written);
+  AudioMemoryReader reader(AudioSampleSnare, AudioSampleSnareSize);
+  reader.reset();
+
+  int16_t buffer[TMP_BUF_SIZE];
+
+  int sample_count = 0;
+  while (reader.has_data() && sample_count + AUDIO_BLOCK_SAMPLES < TMP_BUF_SIZE) {
+    sample_count += reader.read_samples(buffer + sample_count);
+  }
+
+  if (reader.has_data()) {
+    printf("WARNING: Sample truncated!\n");
+  }else{
+    printf("Entire sample was written.\n");
+  }
+
+  printf("sample_count: %i\n", sample_count);
+  auto written = fwrite(buffer, sizeof(buffer[0]), sample_count, fp);
+  printf("Wrote %i samples\n", written);
   fclose(fp);
 }
 

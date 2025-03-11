@@ -18,11 +18,11 @@ struct FileReader : SampleReader {
     this->read_count = 0;
     handle = fopen(file_name, "rb");
     if (!handle) {
-      printf("[FileReader] Failed opening sample!\n");
+      /*printf("[FileReader] Failed opening sample!\n");*/
     } else {
       data_available = false;
       needs_update = false;
-      printf("[FileReader] Loaded sample!\n");
+      /*printf("[FileReader] Loaded sample!\n");*/
       update();
     }
   }
@@ -33,6 +33,7 @@ struct FileReader : SampleReader {
       return;
     }
 
+    // TODO: Convert from source format to int16_t
     read_count = fread(buffer, sizeof(int16_t), AUDIO_BLOCK_SAMPLES, handle);
     // printf("read_count: %i\n", read_count);
     if (read_count < AUDIO_BLOCK_SAMPLES) {
@@ -44,18 +45,18 @@ struct FileReader : SampleReader {
     if (handle) {
       fclose(handle);
       handle = fopen(file_name, "rb");
-      this->needs_update = true;
+      update();
     }
 
     data_available = handle != 0;
-    printf("data_available: %i\n", data_available);
+    /*printf("data_available: %i\n", data_available);*/
   }
 
   bool has_data() {
     return data_available;
   }
 
-  uint32_t read_samples(int16_t *out) {
+  uint32_t __not_in_flash_func(read_samples)(int16_t *out) {
     // printf("[FileReader] read samples\n");
     this->needs_update = true;
     if (read_count > 0) {

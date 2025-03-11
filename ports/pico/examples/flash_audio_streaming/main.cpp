@@ -133,7 +133,9 @@ int main(void) {
 
     if (sound.reader.needs_update) {
       /*printf("Updating sample\n");*/
+      const auto status = save_and_disable_interrupts();
       sound.reader.update();
+      restore_interrupts(status);
     }
   }
 }

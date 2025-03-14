@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include "bsp/board.h"
-#include "lib/usb/usb.h"
-#include "midi_wrapper.h"
+#include "core/usb/usb.h"
+#include "core/midi/midi_wrapper.h"
 #include "tusb.h"
 #include <math.h>
 #include <stdio.h>

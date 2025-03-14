@@ -1,5 +1,5 @@
 #include "MIDIUSB.h"
-#include "lib/usb/usb.h"
+#include "../usb.h"
 
 MidiUSB_ MidiUSB;
 

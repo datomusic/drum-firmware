@@ -13,7 +13,8 @@ project(midi_example)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(USB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib/usb/)
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../libraries)
+set(USB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../core/usb)
 
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -23,8 +24,8 @@ add_executable(midi_example
 )
 
 target_sources(${EXECUTABLE_NAME} PRIVATE
-  midi_wrapper.cpp
-  pico_uart.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../core/midi/midi_wrapper.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../core/pico_uart.cpp
   ${USB_DIR}/usb.cpp
   ${USB_DIR}/usb_descriptors.c
   ${USB_DIR}/midi_usb_bridge/MIDIUSB.cpp
@@ -33,11 +34,11 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
   ${USB_DIR}
   ${USB_DIR}/midi_usb_bridge
-  ${CMAKE_CURRENT_LIST_DIR}/arduino_midi_library/src
-  ${CMAKE_CURRENT_LIST_DIR}/Arduino-USBMIDI/src
+  ${LIB_DIR}/arduino_midi_library/src
+  ${LIB_DIR}/Arduino-USBMIDI/src
 )
 
-include(${CMAKE_CURRENT_LIST_DIR}/arduino_midi_library/src/component_arduino_midi_library.cmake)
+include(${LIB_DIR}/arduino_midi_library/src/component_arduino_midi_library.cmake)
 
 
 target_link_libraries(midi_example
@@ -47,8 +48,8 @@ target_link_libraries(midi_example
 )
 
 target_include_directories(midi_example PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../../../components/arduino_midi_library/src
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/../../
 )
 
 pico_enable_stdio_usb(midi_example 1)

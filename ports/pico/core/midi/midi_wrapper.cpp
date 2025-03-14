@@ -1,5 +1,5 @@
 #include "midi_wrapper.h"
-#include "pico_uart.h"
+#include "../pico_uart.h"
 #include <MIDI.h>
 #include <USB-MIDI.h>
 

@@ -101,17 +101,17 @@ static void handle_sysex(byte *const, const unsigned) {
 
 void handle_note_on(byte, byte note, byte velocity) {
   const float pitch = (float)(velocity) / 64.0;
-  switch (note) {
-  case 1:
+  switch ((note - 1) % 4) {
+  case 0:
     kick.play(pitch);
     break;
-  case 2:
+  case 1:
     snare.play(pitch);
     break;
-  case 3:
+  case 2:
     hihat.play(pitch);
     break;
-  case 4:
+  case 3:
     gong.play(pitch);
     break;
   }

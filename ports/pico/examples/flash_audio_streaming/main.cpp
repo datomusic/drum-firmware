@@ -1,4 +1,3 @@
-#include "bsp/board.h"
 #include "core/filesystem.h"
 #include "core/midi/midi_wrapper.h"
 #include "core/teensy_audio/mixer.h"
@@ -7,23 +6,35 @@
 #include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
+#include "timestretched/AudioSampleGong.h"
+#include "timestretched/AudioSampleHihat.h"
+#include "timestretched/AudioSampleKick.h"
 #include "tusb.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
-#define STORE_SAMPLE false
+#define STORE_SAMPLES false
 #define REFORMAT false
 
-// Path must start with backslash in order to be valid under the root mount
-// point.
-static const char *file_name = "/snare_sample";
+// Path must start with backslash in order to be valid
+// under the root mount point.
 
 static const uint master_volume = 10;
-FileSound sound;
-BufferSource *sounds[1] = {&sound};
-AudioMixer4 mixer(sounds, 1);
+FileSound snare;
+FileSound hihat;
+FileSound kick;
+FileSound gong;
+/*
+FileSound *sounds[4] = {&snare, &kick, &hihat, &gong};
+AudioMixer4 mixer((BufferSource **)sounds, 4);
+*/
 
-static void store_sample() {
+#define SAMPLE_COUNT 4
+FileSound *sounds[SAMPLE_COUNT] = {&hihat, &snare, &kick, &gong};
+AudioMixer4 mixer((BufferSource **)sounds, SAMPLE_COUNT);
+
+static void store_sample(const char *file_name, const unsigned int *sample_data,
+                         const uint32_t data_length) {
   printf("Opening file for writing\n");
   FILE *fp = fopen(file_name, "wb");
 
@@ -32,7 +43,7 @@ static void store_sample() {
     return;
   }
 
-  AudioMemoryReader reader(AudioSampleSnare, AudioSampleSnareSize);
+  AudioMemoryReader reader(sample_data, data_length);
   reader.reset();
 
   int16_t buffer[AUDIO_BLOCK_SAMPLES];
@@ -88,7 +99,22 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_pool_t *pool) {
 static void handle_sysex(byte *const, const unsigned) {
 }
 
-void handle_note_on(byte, byte, byte) {
+void handle_note_on(byte, byte note, byte velocity) {
+  const float pitch = (float)(velocity) / 64.0;
+  switch (note) {
+  case 1:
+    kick.play(pitch);
+    break;
+  case 2:
+    snare.play(pitch);
+    break;
+  case 3:
+    hihat.play(pitch);
+    break;
+  case 4:
+    gong.play(pitch);
+    break;
+  }
 }
 
 void handle_note_off(byte, byte, byte) {
@@ -131,56 +157,32 @@ int main(void) {
     return 1;
   }
 
-#if STORE_SAMPLE
-  store_sample();
+#if STORE_SAMPLES
+  store_sample("/snare", AudioSampleSnare, AudioSampleSnareSize);
+  store_sample("/kick", AudioSampleKick, AudioSampleKickSize);
+  store_sample("/hihat", AudioSampleHihat, AudioSampleHihatSize);
+  store_sample("/gong", AudioSampleGong, AudioSampleGongSize);
 #endif
-
-  printf("Opening for reading\n");
-
-  FILE *fp = fopen(file_name, "rb");
-  if (fp) {
-    printf("Reading\n");
-    if (fseek(fp, 0, SEEK_END) != 0) {
-      printf("Seek failed!\n");
-    }
-
-    const auto size = ftell(fp);
-    printf("size: %li\n", size);
-    fclose(fp);
-    printf("File closed!\n");
-  } else {
-    printf("Error: Read open failed\n");
-  }
-
-  sound.load(file_name);
+  snare.load("/snare");
+  hihat.load("/hihat");
+  kick.load("/kick");
+  gong.load("/gong");
 
   printf("Initializing audio output\n");
   AudioOutput::init(fill_audio_buffer);
 
   printf("Entering loop!\n");
-  int counter = 0;
-
-  static uint32_t last_ms = board_millis();
 
   while (true) {
     DatoUSB::background_update();
     MIDI::read(1);
-
-    const uint32_t now_ms = board_millis();
-    if (now_ms - last_ms > 1000) {
-      last_ms = now_ms;
-      MIDI::sendNoteOn(70, 127, 1);
-
-      printf("Playing sample\n");
-      counter = 0;
-      sound.play(1.0);
-    }
-
-    if (sound.reader.needs_update) {
-      /*printf("Updating sample\n");*/
-      const auto status = save_and_disable_interrupts();
-      sound.reader.update();
-      restore_interrupts(status);
+    for (int i = 0; i < SAMPLE_COUNT; ++i) {
+      FileSound *sound = sounds[i];
+      if (sound->reader.needs_update) {
+        const auto status = save_and_disable_interrupts();
+        sound->reader.update();
+        restore_interrupts(status);
+      }
     }
   }
 }

@@ -32,6 +32,9 @@ add_executable(${EXECUTABLE_NAME}
   ${CORE_PATH}/timestretched/pitch_shifter.cpp
   ${CORE_PATH}/timestretched/audio_memory_reader.cpp
   ${CORE_PATH}/timestretched/AudioSampleSnare.cpp
+  ${CORE_PATH}/timestretched/AudioSampleKick.cpp
+  ${CORE_PATH}/timestretched/AudioSampleGong.cpp
+  ${CORE_PATH}/timestretched/AudioSampleHihat.cpp
   ${CORE_PATH}/timestretched/data_ulaw.c
   ${CORE_PATH}/teensy_audio/mixer.cpp
   ${CORE_PATH}/filesystem.c

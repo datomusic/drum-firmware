@@ -54,3 +54,25 @@ int main(void) {
     sleep_ms(1);
   }
 }
+
+
+
+
+/*
+printf("Opening for reading\n");
+
+FILE *fp = fopen(file_name, "rb");
+if (fp) {
+  printf("Reading\n");
+  if (fseek(fp, 0, SEEK_END) != 0) {
+    printf("Seek failed!\n");
+  }
+
+  const auto size = ftell(fp);
+  printf("size: %li\n", size);
+  fclose(fp);
+  printf("File closed!\n");
+} else {
+  printf("Error: Read open failed\n");
+}
+*/

@@ -12,6 +12,8 @@ set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-extras/)
 include(${SDK_PATH}/pico_sdk_init.cmake)
 include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
+set(USB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../core/usb)
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../libraries)
 
 project(${EXECUTABLE_NAME})
 set(CMAKE_C_STANDARD 11)
@@ -25,25 +27,36 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b/src/pico_a
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b pico_audio_i2s_32b)
 
 add_executable(${EXECUTABLE_NAME}
-    main.cpp
-    ${CORE_PATH}/audio_output.cpp
-    ${CORE_PATH}/timestretched/pitch_shifter.cpp
-    ${CORE_PATH}/timestretched/audio_memory_reader.cpp
-    ${CORE_PATH}/timestretched/AudioSampleSnare.cpp
-    ${CORE_PATH}/timestretched/data_ulaw.c
-    ${CORE_PATH}/teensy_audio/mixer.cpp
-    ${CORE_PATH}/filesystem.c
+  main.cpp
+  ${CORE_PATH}/audio_output.cpp
+  ${CORE_PATH}/timestretched/pitch_shifter.cpp
+  ${CORE_PATH}/timestretched/audio_memory_reader.cpp
+  ${CORE_PATH}/timestretched/AudioSampleSnare.cpp
+  ${CORE_PATH}/timestretched/data_ulaw.c
+  ${CORE_PATH}/teensy_audio/mixer.cpp
+  ${CORE_PATH}/filesystem.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../core/midi/midi_wrapper.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../core/pico_uart.cpp
+  ${USB_DIR}/usb.cpp
+  ${USB_DIR}/usb_descriptors.c
+  ${USB_DIR}/midi_usb_bridge/MIDIUSB.cpp
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ${CORE_PATH}/../
-    ${CORE_PATH}
+  ${CORE_PATH}/../
+  ${CORE_PATH}
+  ${USB_DIR}
+  ${USB_DIR}/midi_usb_bridge
+  ${LIB_DIR}/arduino_midi_library/src
+  ${LIB_DIR}/Arduino-USBMIDI/src
 )
 
 add_definitions(-DAUDIO_BLOCK_SAMPLES=128)
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib
+  tinyusb_device
+  tinyusb_board
   pico_audio_32b
   pico_audio_i2s_32b
 )

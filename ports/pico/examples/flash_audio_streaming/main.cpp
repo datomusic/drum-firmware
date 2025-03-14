@@ -1,9 +1,13 @@
+#include "bsp/board.h"
 #include "core/filesystem.h"
+#include "core/midi/midi_wrapper.h"
 #include "core/teensy_audio/mixer.h"
 #include "core/timestretched/AudioSampleSnare.h"
+#include "core/usb/usb.h"
 #include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
+#include "tusb.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
@@ -81,9 +85,30 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_pool_t *pool) {
   give_audio_buffer(pool, out_buffer);
 }
 
+static void handle_sysex(byte *const, const unsigned) {
+}
+
+void handle_note_on(byte, byte, byte) {
+}
+
+void handle_note_off(byte, byte, byte) {
+}
+
 static bool init() {
   init_clock();
   stdio_init_all();
+  DatoUSB::init();
+  MIDI::init(MIDI::Callbacks{
+      .note_on = handle_note_on,
+      .note_off = handle_note_off,
+      .clock = nullptr,
+      .start = nullptr,
+      .cont = nullptr,
+      .stop = nullptr,
+      .cc = nullptr,
+      .sysex = handle_sysex,
+  });
+
   // Give host some time to catch up, otherwise messages can be lost.
   sleep_ms(2000);
 
@@ -134,8 +159,18 @@ int main(void) {
 
   printf("Entering loop!\n");
   int counter = 0;
+
+  static uint32_t last_ms = board_millis();
+
   while (true) {
-    if (++counter > 30000000) {
+    DatoUSB::background_update();
+    MIDI::read(1);
+
+    const uint32_t now_ms = board_millis();
+    if (now_ms - last_ms > 1000) {
+      last_ms = now_ms;
+      MIDI::sendNoteOn(70, 127, 1);
+
       printf("Playing sample\n");
       counter = 0;
       sound.play(1.0);

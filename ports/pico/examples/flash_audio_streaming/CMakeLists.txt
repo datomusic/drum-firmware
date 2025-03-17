@@ -69,3 +69,7 @@ pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 0)
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 pico_enable_filesystem(${EXECUTABLE_NAME})
+
+# Disable warnings since pico_audio_i2s_32b causes warnings, which error because of -Werror in pico-vfs.
+target_compile_options(${EXECUTABLE_NAME} PRIVATE -w)
+

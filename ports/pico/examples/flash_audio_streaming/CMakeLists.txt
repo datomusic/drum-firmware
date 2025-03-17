@@ -65,7 +65,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
 )
 
 
-pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 0)
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 pico_enable_filesystem(${EXECUTABLE_NAME})

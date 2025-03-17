@@ -2,6 +2,7 @@
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h"
 #include <hardware/flash.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 

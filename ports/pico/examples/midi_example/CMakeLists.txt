@@ -14,7 +14,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../libraries)
-set(USB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../core/usb)
+set(U SB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../core/usb)
 
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()

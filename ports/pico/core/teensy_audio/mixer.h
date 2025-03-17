@@ -58,8 +58,8 @@ struct AudioMixer4 : BufferSource {
   }
 
 private:
-  unsigned int source_count;
   BufferSource **sources;
+  unsigned int source_count;
   int16_t multipliers[4];
 };
 

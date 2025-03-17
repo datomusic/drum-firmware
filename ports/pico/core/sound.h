@@ -4,11 +4,11 @@
 #include "buffer_source.h"
 #include "timestretched/audio_memory_reader.h"
 #include "timestretched/pitch_shifter.h"
+#include <pico/stdlib.h>
 #include <stdint.h>
-// #include <stdio.h>
 
 struct Sound : BufferSource {
-  Sound(const unsigned int *sample_data, const size_t data_length)
+  Sound(const unsigned int *sample_data, const uint32_t data_length)
       : memory_reader(sample_data, data_length), pitch_shifter(memory_reader) {
   }
 

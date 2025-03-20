@@ -28,18 +28,19 @@ static constexpr int32_t DAC_ZERO = 1;
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 
 static audio_format_t audio_format = {.sample_freq = 44100,
-                                      .pcm_format = AUDIO_PCM_FORMAT_S32,
-                                      .channel_count = AUDIO_CHANNEL_STEREO};
+                                      // .pcm_format = AUDIO_PCM_FORMAT_S32,
+                                      .format = AUDIO_BUFFER_FORMAT_PCM_S16,
+                                      .channel_count = 1};
 
 static audio_buffer_format_t producer_format = {.format = &audio_format,
                                                 .sample_stride = 8};
 
-static audio_i2s_config_t i2s_config = {.data_pin = PICO_AUDIO_I2S_DATA_PIN,
-                                        .clock_pin_base =
-                                            PICO_AUDIO_I2S_CLOCK_PIN_BASE,
-                                        .dma_channel0 = 0,
-                                        .dma_channel1 = 1,
-                                        .pio_sm = 0};
+struct audio_i2s_config i2s_config = {
+    .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+    .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+    .dma_channel = 0,
+    .pio_sm = 0,
+};
 
 static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
 uint32_t step0 = 0x200000;
@@ -57,7 +58,7 @@ void i2s_audio_deinit() {
   decode_flg = false;
 
   audio_i2s_set_enabled(false);
-  audio_i2s_end();
+  // audio_i2s_end();
 
   audio_buffer_t *ab;
   ab = take_audio_buffer(ap, false);
@@ -92,7 +93,7 @@ audio_buffer_pool_t *i2s_audio_init(uint32_t sample_freq) {
   bool __unused ok;
   const audio_format_t *output_format;
 
-  output_format = audio_i2s_setup(&audio_format, &audio_format, &i2s_config);
+  output_format = audio_i2s_setup(&audio_format, &i2s_config);
   if (!output_format) {
     panic("PicoAudio: Unable to open audio device.\n");
   }

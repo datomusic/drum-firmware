@@ -25,9 +25,6 @@
 #define SINE_WAVE_TABLE_LEN 2048
 #define SAMPLES_PER_BUFFER 256
 
-#define PICO_AUDIO_I2S_DATA_PIN 18
-#define PICO_AUDIO_I2S_CLOCK_PIN_BASE 16
-
 static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
 
 struct audio_buffer_pool *init_audio() {

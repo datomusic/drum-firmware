@@ -32,10 +32,9 @@ target_link_libraries(sine_test
 target_compile_definitions(sine_test PRIVATE
   # compile time configuration of I2S
   PICO_AUDIO_I2S_MONO_INPUT=1
-  #define for our example code
   USE_AUDIO_I2S=1
-# PICO_AUDIO_I2S_DATA_PIN=22
-# PICO_AUDIO_I2S_CLOCK_PIN_BASE=23
+  PICO_AUDIO_I2S_DATA_PIN=18
+  PICO_AUDIO_I2S_CLOCK_PIN_BASE=16
 # PICO_DEFAULT_UART=0
 # PICO_DEFAULT_UART_TX_PIN=28
 # PICO_DEFAULT_UART_RX_PIN=29

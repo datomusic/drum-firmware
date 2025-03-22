@@ -71,10 +71,7 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   // Convert to 32bit stereo
   int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    const int16_t sample = (master_volume * temp_samples[i]) << 8u;
-    // sample = sample + (sample >> 16u);
-    stereo_out_samples[i] = sample;
-    // stereo_out_samples[i * 2 + 1] = sample;
+    stereo_out_samples[i] = (master_volume * temp_samples[i]) >> 8u;
   }
 
   out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;

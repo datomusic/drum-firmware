@@ -4,9 +4,10 @@
 #include "pico/audio.h"
 
 namespace AudioOutput {
-typedef void (*BufferCallback)(audio_buffer_pool_t *);
+typedef void (*BufferCallback)(audio_buffer_t *);
 
-void init(BufferCallback callback);
+void init();
+bool update(AudioOutput::BufferCallback callback);
 void deinit();
 
 } // namespace AudioOutput

@@ -6,6 +6,9 @@
 
 // #include <stdio.h>
 
+#define PICO_AUDIO_I2S_DATA_PIN 18
+#define PICO_AUDIO_I2S_CLOCK_PIN_BASE 16
+
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "hardware/pll.h"
@@ -24,6 +27,7 @@
 #include "timestretched/AudioSampleKick.h"
 #include "timestretched/AudioSampleSnare.h"
 
+#include <stdio.h>
 #include <vector>
 
 uint master_volume = 10;
@@ -42,6 +46,7 @@ AudioMixer4 mixer(sounds, SOUND_COUNT);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
+/*
 static void init_clock() {
   // Set PLL_USB 96MHz
   pll_init(pll_usb, 1, 1536 * MHZ, 4, 4);
@@ -55,28 +60,24 @@ static void init_clock() {
   clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
                   96 * MHZ, 96 * MHZ);
 }
+*/
 
-static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_pool_t *pool) {
-  audio_buffer_t *out_buffer = take_audio_buffer(pool, false);
-  if (out_buffer == NULL) {
-    // printf("Failed to take audio buffer\n");
-    return;
-  }
+static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
+  // printf("Filling buffer\n");
 
   static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
   mixer.fill_buffer(temp_samples);
 
   // Convert to 32bit stereo
-  int32_t *stereo_out_samples = (int32_t *)out_buffer->buffer->bytes;
+  int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    int32_t sample = (master_volume * temp_samples[i]) << 8u;
-    sample = sample + (sample >> 16u);
-    stereo_out_samples[i * 2] = sample;
-    stereo_out_samples[i * 2 + 1] = sample;
+    const int16_t sample = (master_volume * temp_samples[i]) << 8u;
+    // sample = sample + (sample >> 16u);
+    stereo_out_samples[i] = sample;
+    // stereo_out_samples[i * 2 + 1] = sample;
   }
 
   out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
-  give_audio_buffer(pool, out_buffer);
 }
 
 /*
@@ -104,45 +105,68 @@ static bool interactive_ui() {
 */
 
 int main() {
-  init_clock();
+  // init_clock();
   stdio_init_all();
+  sleep_ms(2000);
+  printf("Startup!\n");
 
   // DCDC PSM control
   // 0: PFM mode (best efficiency)
   // 1: PWM mode (improved ripple)
+  /*
   gpio_init(PIN_DCDC_PSM_CTRL);
   gpio_set_dir(PIN_DCDC_PSM_CTRL, GPIO_OUT);
   gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
+  */
 
-  // fill_sine_table();
-  AudioOutput::init(fill_audio_buffer);
+  AudioOutput::init();
+
+  printf("Entering main loop\n");
+
+  uint32_t last_ms = to_ms_since_boot(get_absolute_time());
+  uint32_t accum_ms = last_ms;
 
   while (true) {
-    // if (!interactive_ui()) { break; }
-    mixer.gain(0, 0.9);
-    mixer.gain(1, 0.8);
-    mixer.gain(2, 0.3);
-    mixer.gain(3, 0.7);
+    const auto now = to_ms_since_boot(get_absolute_time());
+    const auto diff_ms = now - last_ms;
+    last_ms = now;
 
-    sleep_ms(200);
-    kick.play(0.8);
-    sleep_ms(200);
-    cashreg.play(0.8);
-    hihat.play(0.4);
-    sleep_ms(200);
-    kick.play(1.8);
-    sleep_ms(200);
-    hihat.play(0.8);
-    sleep_ms(200);
-    kick.play(0.8);
-    sleep_ms(200);
-    hihat.play(1.2);
-    sleep_ms(200);
-    kick.play(1.8);
-    sleep_ms(200);
-    hihat.play(1.7);
-    kick.play(0.9);
-    snare.play(1.5);
+    accum_ms += diff_ms;
+
+    if (!AudioOutput::update(fill_audio_buffer)) {
+      // printf("Tick!\n");
+      // if (!interactive_ui()) { break; }
+
+      if (accum_ms > 800) {
+        printf("Playing kick\n");
+        accum_ms = 0;
+        mixer.gain(0, 0.9);
+        mixer.gain(1, 0.8);
+        mixer.gain(2, 0.3);
+        mixer.gain(3, 0.7);
+        kick.play(0.8);
+      }
+
+      /*
+      sleep_ms(200);
+      cashreg.play(0.8);
+      hihat.play(0.4);
+      sleep_ms(200);
+      kick.play(1.8);
+      sleep_ms(200);
+      hihat.play(0.8);
+      sleep_ms(200);
+      kick.play(0.8);
+      sleep_ms(200);
+      hihat.play(1.2);
+      sleep_ms(200);
+      kick.play(1.8);
+      sleep_ms(200);
+      hihat.play(1.7);
+      kick.play(0.9);
+      snare.play(1.5);
+      */
+    }
   }
 
   return 0;

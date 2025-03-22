@@ -2,33 +2,31 @@
 #include "pico/audio.h"
 #include "pico/audio_i2s.h"
 #include "pico/stdlib.h"
+#include <stdio.h>
 
 static audio_buffer_pool_t *producer_pool;
 static bool running = false;
-static AudioOutput::BufferCallback buffer_callback = nullptr;
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 #define SAMPLE_FREQUENCY 44100
-#define BUFFER_COUNT 2
+// #define SAMPLE_FREQUENCY 24000
+#define BUFFER_COUNT 3
 
 static audio_format_t audio_format = {.sample_freq = SAMPLE_FREQUENCY,
-                                      .pcm_format = AUDIO_PCM_FORMAT_S32,
-                                      .channel_count = AUDIO_CHANNEL_STEREO};
+                                      .format = AUDIO_BUFFER_FORMAT_PCM_S16,
+                                      .channel_count = 1};
 
-static audio_buffer_format_t producer_format = {
-    .format = &audio_format,
-    .sample_stride = 8}; // 4 bytes per sample, stereo, which means 8 bytes per
-                         // stereo sampling point
+static audio_buffer_format_t producer_format = {.format = &audio_format,
+                                                .sample_stride = 2};
 
-static audio_i2s_config_t i2s_config = {.data_pin = PICO_AUDIO_I2S_DATA_PIN,
-                                        .clock_pin_base =
-                                            PICO_AUDIO_I2S_CLOCK_PIN_BASE,
-                                        .dma_channel0 = 0,
-                                        .dma_channel1 = 1,
-                                        .pio_sm = 0};
+struct audio_i2s_config i2s_config = {
+    .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+    .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+    .dma_channel = 0,
+    .pio_sm = 0,
+};
 
-void AudioOutput::init(BufferCallback callback) {
-  buffer_callback = callback;
+void AudioOutput::init() {
   audio_format.sample_freq = SAMPLE_FREQUENCY;
 
   producer_pool = audio_new_producer_pool(&producer_format, BUFFER_COUNT,
@@ -37,7 +35,7 @@ void AudioOutput::init(BufferCallback callback) {
   bool __unused ok;
   const audio_format_t *output_format;
 
-  output_format = audio_i2s_setup(&audio_format, &audio_format, &i2s_config);
+  output_format = audio_i2s_setup(&audio_format, &i2s_config);
   if (!output_format) {
     panic("PicoAudio: Unable to open audio device.\n");
   }
@@ -45,9 +43,11 @@ void AudioOutput::init(BufferCallback callback) {
   ok = audio_i2s_connect(producer_pool);
   assert(ok);
 
+  /*
   for (int i = 0; i < BUFFER_COUNT; ++i) {
     callback(producer_pool);
   }
+  */
 
   audio_i2s_set_enabled(true);
 
@@ -58,7 +58,6 @@ void AudioOutput::deinit() {
   running = false;
 
   audio_i2s_set_enabled(false);
-  audio_i2s_end();
 
   audio_buffer_t *buffer;
 
@@ -74,16 +73,17 @@ void AudioOutput::deinit() {
   producer_pool = nullptr;
 }
 
-extern "C" {
-// callback from:
-//   void __isr __time_critical_func(audio_i2s_dma_irq_handler)()
-//   defined at my_pico_audio_i2s/audio_i2s.c
-//   where i2s_callback_func() is declared with __attribute__((weak))
-void i2s_callback_func() {
+bool AudioOutput::update(AudioOutput::BufferCallback callback) {
   if (running) {
-    if (buffer_callback) {
-      buffer_callback(producer_pool);
+    // printf("RUNNING\n");
+    audio_buffer_t *buffer = take_audio_buffer(producer_pool, false);
+    if (buffer != nullptr) {
+      // printf("GOT BUFFER\n");
+      callback(buffer);
+      give_audio_buffer(producer_pool, buffer);
+      return false;
     }
   }
-}
+
+  return false;
 }

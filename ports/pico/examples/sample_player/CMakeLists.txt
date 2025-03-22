@@ -20,9 +20,6 @@ set(CMAKE_CXX_STANDARD 17)
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b/src/pico_audio_32b pico_audio_32b)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b pico_audio_i2s_32b)
-
 add_executable(${EXECUTABLE_NAME}
     main.cpp
     ${CORE_PATH}/audio_output.cpp
@@ -44,13 +41,21 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 
 add_definitions(-DAUDIO_BLOCK_SAMPLES=32)
 
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  PICO_AUDIO_I2S_MONO_INPUT=1
+  USE_AUDIO_I2S=1
+  PICO_AUDIO_I2S_DATA_PIN=18
+  PICO_AUDIO_I2S_CLOCK_PIN_BASE=16
+)
+
 target_link_libraries(${EXECUTABLE_NAME}
   pico_stdlib
-  pico_audio_32b
-  pico_audio_i2s_32b
+  hardware_dma
+  hardware_pio
+  hardware_irq
+  pico_audio_i2s
 )
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)
-
 pico_add_extra_outputs(${EXECUTABLE_NAME})

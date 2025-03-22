@@ -23,8 +23,6 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 add_subdirectory(../../libraries/pico-vfs build)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b/src/pico_audio_32b pico_audio_32b)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../pico_audio_i2s_32b pico_audio_i2s_32b)
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
@@ -56,12 +54,21 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 
 add_definitions(-DAUDIO_BLOCK_SAMPLES=128)
 
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  PICO_AUDIO_I2S_MONO_INPUT=1
+  USE_AUDIO_I2S=1
+  PICO_AUDIO_I2S_DATA_PIN=18
+  PICO_AUDIO_I2S_CLOCK_PIN_BASE=16
+)
+
+
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   pico_stdlib
   tinyusb_device
   tinyusb_board
-  pico_audio_32b
-  pico_audio_i2s_32b
+  hardware_pio
+  hardware_irq
+  pico_audio_i2s
 )
 
 

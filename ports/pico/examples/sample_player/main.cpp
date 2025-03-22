@@ -46,7 +46,6 @@ AudioMixer4 mixer(sounds, SOUND_COUNT);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
-/*
 static void init_clock() {
   // Set PLL_USB 96MHz
   pll_init(pll_usb, 1, 1536 * MHZ, 4, 4);
@@ -60,7 +59,6 @@ static void init_clock() {
   clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
                   96 * MHZ, 96 * MHZ);
 }
-*/
 
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   // printf("Filling buffer\n");
@@ -102,7 +100,7 @@ static bool interactive_ui() {
 */
 
 int main() {
-  // init_clock();
+  init_clock();
   stdio_init_all();
   sleep_ms(2000);
   printf("Startup!\n");
@@ -110,11 +108,9 @@ int main() {
   // DCDC PSM control
   // 0: PFM mode (best efficiency)
   // 1: PWM mode (improved ripple)
-  /*
   gpio_init(PIN_DCDC_PSM_CTRL);
   gpio_set_dir(PIN_DCDC_PSM_CTRL, GPIO_OUT);
   gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
-  */
 
   AudioOutput::init();
 

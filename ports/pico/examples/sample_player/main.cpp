@@ -40,9 +40,9 @@ Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 // BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &cashreg, &hihat};
 // BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &hihat};
 const int SOUND_COUNT = 4;
-BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &hihat, &cashreg};
+Sound *sounds[SOUND_COUNT] = {&kick, &snare, &hihat, &cashreg};
 
-AudioMixer4 mixer(sounds, SOUND_COUNT);
+AudioMixer4 mixer((BufferSource **)sounds, SOUND_COUNT);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
@@ -119,6 +119,11 @@ int main() {
   uint32_t last_ms = to_ms_since_boot(get_absolute_time());
   uint32_t accum_ms = last_ms;
 
+  auto sound_index = 0;
+  auto pitch_index = 0;
+  const auto pitch_count = 5;
+  const float pitches[pitch_count] = {0.6, 0.3, 1, 1.9, 1.4};
+
   while (true) {
     const auto now = to_ms_since_boot(get_absolute_time());
     const auto diff_ms = now - last_ms;
@@ -130,14 +135,20 @@ int main() {
       // printf("Tick!\n");
       // if (!interactive_ui()) { break; }
 
-      if (accum_ms > 800) {
-        printf("Playing kick\n");
+      if (accum_ms > 300) {
         accum_ms = 0;
+        printf("Playing sound\n");
+
         mixer.gain(0, 0.9);
         mixer.gain(1, 0.8);
         mixer.gain(2, 0.3);
         mixer.gain(3, 0.7);
-        kick.play(0.8);
+
+        auto sound = sounds[sound_index];
+        pitch_index = (pitch_index + 1) % pitch_count;
+        const auto pitch = pitches[pitch_index];
+        sound->play(pitch);
+        sound_index = (sound_index + 1) % SOUND_COUNT;
       }
 
       /*

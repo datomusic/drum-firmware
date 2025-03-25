@@ -32,7 +32,6 @@ add_executable(${EXECUTABLE_NAME}
     ${CORE_PATH}/timestretched/AudioSampleHihat.cpp
     ${CORE_PATH}/timestretched/data_ulaw.c
     ${CORE_PATH}/teensy_audio/mixer.cpp
-    ${CORE_PATH}/teensy_audio/AudioStream.cpp
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE

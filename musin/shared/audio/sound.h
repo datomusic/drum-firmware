@@ -2,8 +2,8 @@
 #define SOUND_H_2P4SDIWG
 
 #include "buffer_source.h"
-#include "timestretched/audio_memory_reader.h"
-#include "timestretched/pitch_shifter.h"
+#include "audio_memory_reader.h"
+#include "pitch_shifter.h"
 #include <pico/stdlib.h>
 #include <stdint.h>
 

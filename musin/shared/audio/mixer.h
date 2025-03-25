@@ -28,8 +28,8 @@
 #ifndef mixer_h_
 #define mixer_h_
 
-#include "../audio_output.h"
-#include "../buffer_source.h"
+#include "audio_output.h"
+#include "buffer_source.h"
 #include <stdint.h>
 #include <vector>
 

@@ -15,17 +15,17 @@
 #include "hardware/structs/clocks.h"
 #include "sine_source.h"
 
-#include "audio_output.h"
+#include "audio/audio_output.h"
+#include "audio/sound.h"
 #include "pico/audio.h"
 #include "pico/stdlib.h"
-#include "sound.h"
 
-#include "teensy_audio/mixer.h"
-#include "timestretched/AudioSampleCashregister.h"
-#include "timestretched/AudioSampleGong.h"
-#include "timestretched/AudioSampleHihat.h"
-#include "timestretched/AudioSampleKick.h"
-#include "timestretched/AudioSampleSnare.h"
+#include "audio/mixer.h"
+#include "samples/AudioSampleCashregister.h"
+#include "samples/AudioSampleGong.h"
+#include "samples/AudioSampleHihat.h"
+#include "samples/AudioSampleKick.h"
+#include "samples/AudioSampleSnare.h"
 
 #include <stdio.h>
 #include <vector>

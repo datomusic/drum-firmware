@@ -3,9 +3,10 @@ cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXECUTABLE_NAME sample_player)
 
-set(CORE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../core)
-set(SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-sdk/)
-set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-extras/)
+set(MUSIN_SHARED ${CMAKE_CURRENT_SOURCE_DIR}/../../musin/shared/)
+set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../support/)
+set(SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../musin/ports/pico/pico-sdk/)
+set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../musin/ports/pico/pico-extras/)
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()
@@ -22,20 +23,21 @@ pico_sdk_init()
 
 add_executable(${EXECUTABLE_NAME}
     main.cpp
-    ${CORE_PATH}/audio_output.cpp
-    ${CORE_PATH}/timestretched/pitch_shifter.cpp
-    ${CORE_PATH}/timestretched/audio_memory_reader.cpp
-    ${CORE_PATH}/timestretched/AudioSampleKick.cpp
-    ${CORE_PATH}/timestretched/AudioSampleSnare.cpp
-    ${CORE_PATH}/timestretched/AudioSampleGong.cpp
-    ${CORE_PATH}/timestretched/AudioSampleCashregister.cpp
-    ${CORE_PATH}/timestretched/AudioSampleHihat.cpp
-    ${CORE_PATH}/timestretched/data_ulaw.c
-    ${CORE_PATH}/teensy_audio/mixer.cpp
+    ${MUSIN_SHARED}/audio/audio_output.cpp
+    ${MUSIN_SHARED}/audio/pitch_shifter.cpp
+    ${MUSIN_SHARED}/audio/audio_memory_reader.cpp
+    ${MUSIN_SHARED}/audio/data_ulaw.c
+    ${MUSIN_SHARED}/audio/mixer.cpp
+    ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleKick.cpp
+    ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleSnare.cpp
+    ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleGong.cpp
+    ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleCashregister.cpp
+    ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHihat.cpp
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ${CORE_PATH}
+    ${MUSIN_SHARED}
+    ${EXAMPLES_SUPPORT_PATH}
 )
 
 add_definitions(-DAUDIO_BLOCK_SAMPLES=32)

@@ -14,11 +14,11 @@
 	path = ports/imxrt/apps/sample_player/test/Catch2
 	url = git@github.com:catchorg/Catch2.git
 [submodule "ports/pico/pico-sdk"]
-	path = ports/pico/pico-sdk
+	path = musin/ports/pico/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
 [submodule "ports/pico/pico-extras"]
-	path = ports/pico/pico-extras
+	path = musin/ports/pico/pico-extras
 	url = https://github.com/raspberrypi/pico-extras.git
 [submodule "ports/pico/libraries/pico-vfs"]
-	path = ports/pico/libraries/pico-vfs
+	path = musin/ports/pico/libraries/pico-vfs
 	url = https://github.com/oyama/pico-vfs.git

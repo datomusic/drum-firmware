@@ -13,19 +13,19 @@
 #include "hardware/pio.h"
 #include "hardware/pll.h"
 #include "hardware/structs/clocks.h"
-#include "sine_source.h"
-
-#include "audio/audio_output.h"
-#include "audio/sound.h"
 #include "pico/audio.h"
 #include "pico/stdlib.h"
 
+#include "audio/audio_output.h"
 #include "audio/mixer.h"
+#include "audio/sound.h"
+
 #include "samples/AudioSampleCashregister.h"
 #include "samples/AudioSampleGong.h"
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
+#include "sine_source.h"
 
 #include <stdio.h>
 #include <vector>

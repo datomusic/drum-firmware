@@ -13,6 +13,3 @@ add_executable(${EXECUTABLE_NAME}
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_filesystem(${EXECUTABLE_NAME})
-
-pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
-pico_enable_stdio_uart(${EXECUTABLE_NAME} 0)

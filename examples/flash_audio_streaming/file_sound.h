@@ -1,10 +1,10 @@
 #ifndef FILE_SOUND_H_QZUFVAE4
 #define FILE_SOUND_H_QZUFVAE4
 
-#include "buffer_source.h"
-#include "core/timestretched/sample_reader.h"
-#include "timestretched/audio_memory_reader.h"
-#include "timestretched/pitch_shifter.h"
+#include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/buffer_source.h"
+#include "musin/audio/pitch_shifter.h"
+#include "musin/audio/sample_reader.h"
 #include <pico/stdlib.h>
 #include <stdint.h>
 #include <stdio.h>

@@ -13,30 +13,21 @@ include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
 macro(musin_init TARGET)
 
-  set(MUSIN_SHARED ${MUSIN_ROOT}/shared)
-  set(LIB_DIR ${MUSIN_ROOT}/ports/pico/libraries)
-  set(MUSIN_AUDIO ${MUSIN_SHARED}/audio)
-  set(MUSIN_USB ${MUSIN_SHARED}/usb)
-
-  add_subdirectory(${LIB_DIR}/pico-vfs build)
+  set(MUSIN_LIBRARIES ${MUSIN_ROOT}/ports/pico/libraries)
+  set(MUSIN_AUDIO ${MUSIN_ROOT}/audio)
+  set(MUSIN_USB ${MUSIN_ROOT}/usb)
 
   target_include_directories(${TARGET} PRIVATE
-    ${MUSIN_SHARED}
+    ${MUSIN_ROOT}/..
     ${MUSIN_USB}
-    ${LIB_DIR}/arduino_midi_library/src
-    ${LIB_DIR}/Arduino-USBMIDI/src
+    ${MUSIN_LIBRARIES}/arduino_midi_library/src
+    ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src
   )
 
   target_sources(${TARGET} PRIVATE
-    ${MUSIN_AUDIO}/audio_output.cpp
-    ${MUSIN_AUDIO}/pitch_shifter.cpp
-    ${MUSIN_AUDIO}/audio_memory_reader.cpp
-    ${MUSIN_AUDIO}/data_ulaw.c
-    ${MUSIN_AUDIO}/mixer.cpp
-    # ${MUSIN_USB}/usb.cpp
-    # ${MUSIN_USB}/usb_descriptors.c
-    # ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
-    # ${MUSIN_SHARED}/filesystem/filesystem.c
+    ${MUSIN_USB}/usb.cpp
+    ${MUSIN_USB}/usb_descriptors.c
+    ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
   )
 
   target_compile_definitions(${TARGET} PRIVATE
@@ -49,7 +40,6 @@ macro(musin_init TARGET)
     hardware_dma
     hardware_pio
     hardware_irq
-    pico_audio_i2s
     tinyusb_device
     tinyusb_board
   )
@@ -57,6 +47,39 @@ macro(musin_init TARGET)
   pico_sdk_init()
   pico_add_extra_outputs(${TARGET})
 
-  # pico_enable_filesystem(${EXECUTABLE_NAME})
+endmacro()
 
+macro(musin_init_audio TARGET)
+  target_sources(${TARGET} PRIVATE
+    ${MUSIN_AUDIO}/audio_output.cpp
+    ${MUSIN_AUDIO}/pitch_shifter.cpp
+    ${MUSIN_AUDIO}/audio_memory_reader.cpp
+    ${MUSIN_AUDIO}/data_ulaw.c
+    ${MUSIN_AUDIO}/mixer.cpp
+    ${MUSIN_USB}/usb.cpp
+    ${MUSIN_USB}/usb_descriptors.c
+    ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
+  )
+
+  target_link_libraries(${TARGET} PRIVATE
+    pico_audio_i2s
+  )
+endmacro()
+
+macro(musin_init_filesystem TARGET)
+
+  add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
+
+  target_sources(${TARGET} PRIVATE
+    ${MUSIN_ROOT}/filesystem/filesystem.c
+  )
+
+  target_link_libraries(${TARGET} PRIVATE
+    filesystem_vfs
+  )
+
+  pico_enable_filesystem(${TARGET})
+
+  # Disable warnings since pico_audio_i2s_32b causes warnings, which error because of -Werror in pico-vfs.
+  target_compile_options(${TARGET} PRIVATE -w)
 endmacro()

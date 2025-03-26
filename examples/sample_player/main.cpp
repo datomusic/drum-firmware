@@ -16,9 +16,9 @@
 #include "pico/audio.h"
 #include "pico/stdlib.h"
 
-#include "audio/audio_output.h"
-#include "audio/mixer.h"
-#include "audio/sound.h"
+#include "musin/audio/audio_output.h"
+#include "musin/audio/mixer.h"
+#include "musin/audio/sound.h"
 
 #include "samples/AudioSampleCashregister.h"
 #include "samples/AudioSampleGong.h"

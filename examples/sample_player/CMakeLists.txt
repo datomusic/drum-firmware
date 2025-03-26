@@ -8,7 +8,6 @@ set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../support/)
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../musin/musin_init.cmake)
 
 project(${EXECUTABLE_NAME})
-pico_sdk_init()
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
@@ -30,6 +29,7 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 )
 
 musin_init(${EXECUTABLE_NAME})
+musin_init_audio(${EXECUTABLE_NAME})
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)

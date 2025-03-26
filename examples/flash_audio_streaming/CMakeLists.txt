@@ -3,17 +3,16 @@ cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXECUTABLE_NAME flash_audio_streaming)
 
-set(CORE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../core)
-set(SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-sdk/)
-set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-extras/)
+set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../support/)
+set(SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../musin/ports/pico/pico-sdk/)
+set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../musin/ports/pico/pico-extras/)
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()
 include(${SDK_PATH}/pico_sdk_init.cmake)
 include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
-set(USB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../core/usb)
-set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../libraries)
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries)
 
 project(${EXECUTABLE_NAME})
 set(CMAKE_C_STANDARD 11)
@@ -22,32 +21,34 @@ set(CMAKE_CXX_STANDARD 17)
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(../../libraries/pico-vfs build)
+add_subdirectory(${LIB_DIR}/pico-vfs build)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../musin/musin_init.cmake)
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
-  ${CORE_PATH}/audio_output.cpp
-  ${CORE_PATH}/timestretched/pitch_shifter.cpp
-  ${CORE_PATH}/timestretched/audio_memory_reader.cpp
-  ${CORE_PATH}/timestretched/AudioSampleSnare.cpp
-  ${CORE_PATH}/timestretched/AudioSampleKick.cpp
-  ${CORE_PATH}/timestretched/AudioSampleGong.cpp
-  ${CORE_PATH}/timestretched/AudioSampleHihat.cpp
-  ${CORE_PATH}/timestretched/data_ulaw.c
-  ${CORE_PATH}/teensy_audio/mixer.cpp
-  ${CORE_PATH}/filesystem.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../core/midi/midi_wrapper.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/../../core/pico_uart.cpp
-  ${USB_DIR}/usb.cpp
-  ${USB_DIR}/usb_descriptors.c
-  ${USB_DIR}/midi_usb_bridge/MIDIUSB.cpp
+  ${MUSIN_ROOT}/shared/audio/audio_output.cpp
+  ${MUSIN_ROOT}/shared/audio/pitch_shifter.cpp
+  ${MUSIN_ROOT}/shared/audio/audio_memory_reader.cpp
+  ${MUSIN_ROOT}/shared/audio/data_ulaw.c
+  ${MUSIN_ROOT}/shared/audio/mixer.cpp
+  ${MUSIN_ROOT}/shared/filesystem/filesystem.c
+  ${MUSIN_ROOT}/shared/midi/midi_wrapper.cpp
+  ${MUSIN_ROOT}/shared/pico_uart.cpp
+  ${MUSIN_ROOT}/shared/usb/usb.cpp
+  ${MUSIN_ROOT}/shared/usb/usb_descriptors.c
+  ${MUSIN_ROOT}/shared/usb/midi_usb_bridge/MIDIUSB.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleKick.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleSnare.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleGong.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleCashregister.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHihat.cpp
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-  ${CORE_PATH}/../
-  ${CORE_PATH}
-  ${USB_DIR}
-  ${USB_DIR}/midi_usb_bridge
+  ${MUSIN_ROOT}/shared
+  ${MUSIN_ROOT}/shared/usb
+  ${MUSIN_ROOT}/shared/usb/midi_usb_bridge
   ${LIB_DIR}/arduino_midi_library/src
   ${LIB_DIR}/Arduino-USBMIDI/src
 )

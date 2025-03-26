@@ -20,3 +20,4 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 )
 
 musin_init(${EXECUTABLE_NAME})
+musin_init_usb_midi(${EXECUTABLE_NAME})

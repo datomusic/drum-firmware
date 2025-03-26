@@ -2,6 +2,7 @@
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/usb/usb.h"
+#include "tusb.h"
 
 // TODO: Pico stdio stuff should live in shared code
 #include <pico/stdlib.h>
@@ -11,37 +12,6 @@
 #define SHOULD_REFORMAT false
 
 static const uint master_volume = 10;
-
-static bool init() {
-  stdio_init_all();
-
-  Musin::Usb::init();
-  MIDI::init(MIDI::Callbacks{
-      .note_on = nullptr,
-      .note_off = nullptr,
-      .clock = nullptr,
-      .start = nullptr,
-      .cont = nullptr,
-      .stop = nullptr,
-      .cc = nullptr,
-      .sysex = nullptr,
-  });
-
-  // Give host some time to catch up, otherwise messages can be lost.
-  sleep_ms(2000);
-
-  printf("Startup\n");
-  printf("\n\n");
-  printf("Initializing fs\n");
-  const auto init_result = init_filesystem(SHOULD_REFORMAT);
-  if (!init_result) {
-    printf("Initialization failed: %i\n", init_result);
-    return false;
-  }
-
-  printf("file system initialized\n");
-  return true;
-}
 
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
 
@@ -56,6 +26,35 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
 }
 
+static bool init() {
+  Musin::Usb::init();
+  stdio_init_all();
+
+  MIDI::init(MIDI::Callbacks{
+      .note_on = nullptr,
+      .note_off = nullptr,
+      .clock = nullptr,
+      .start = nullptr,
+      .cont = nullptr,
+      .stop = nullptr,
+      .cc = nullptr,
+      .sysex = nullptr,
+  });
+
+  printf("Startup\n\n");
+
+  printf("Initializing filesystem\n");
+
+  if (!init_filesystem(SHOULD_REFORMAT)) {
+    printf("Filesystem initialization failed\n");
+    return false;
+  }
+
+  printf("Filesystem initialized\n");
+
+  return true;
+}
+
 int main(void) {
   if (!init()) {
     printf("Init failed!\n");
@@ -68,8 +67,7 @@ int main(void) {
   printf("Entering main loop!\n");
 
   while (true) {
-    // AudioOutput::update(fill_audio_buffer);
-
+    AudioOutput::update(fill_audio_buffer);
     Musin::Usb::background_update();
     MIDI::read(1);
   }

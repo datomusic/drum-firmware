@@ -27,7 +27,6 @@ macro(musin_init TARGET)
   )
 
   pico_sdk_init()
-  pico_enable_stdio_usb(${TARGET} 1)
   pico_enable_stdio_uart(${TARGET} 1)
   pico_add_extra_outputs(${TARGET})
 
@@ -54,10 +53,6 @@ macro(musin_init_usb_midi TARGET)
     tinyusb_board
   )
 
-  # Using USB-MIDI will currently break stdio-over-usb, until we've defined a CDC device in the usb descriptors.
-  # Currently we then get this warning from tinyusb: "stdio USB was configured along with user use of TinyUSB device mode, but CDC is not enabled"
-  # Reference for defining CDC device: https://github.com/raspberrypi/pico-sdk/tree/master/src/rp2_common/pico_stdio_usb
-  pico_enable_stdio_usb(${TARGET} 0)
 endmacro()
 
 macro(musin_init_audio TARGET)
@@ -98,6 +93,6 @@ macro(musin_init_filesystem TARGET)
 
   pico_enable_filesystem(${TARGET})
 
-  # Disable warnings since pico_audio_i2s_32b causes warnings, which error because of -Werror in pico-vfs.
+  # Disable warnings since pico_extras audio causes warnings, which error because of -Werror in pico-vfs.
   target_compile_options(${TARGET} PRIVATE -w)
 endmacro()

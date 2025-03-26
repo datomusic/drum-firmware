@@ -31,5 +31,5 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 musin_init(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
 
-pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)

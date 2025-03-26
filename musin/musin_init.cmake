@@ -20,6 +20,7 @@ macro(musin_init TARGET)
   target_include_directories(${TARGET} PRIVATE
     ${MUSIN_ROOT}/..
     ${MUSIN_USB}
+    ${MUSIN_USB}/midi_usb_bridge
     ${MUSIN_LIBRARIES}/arduino_midi_library/src
     ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src
   )
@@ -28,11 +29,8 @@ macro(musin_init TARGET)
     ${MUSIN_USB}/usb.cpp
     ${MUSIN_USB}/usb_descriptors.c
     ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
-  )
-
-  target_compile_definitions(${TARGET} PRIVATE
-    PICO_AUDIO_I2S_MONO_INPUT=1
-    USE_AUDIO_I2S=1
+    ${MUSIN_ROOT}/midi/midi_wrapper.cpp
+    ${MUSIN_ROOT}/pico_uart.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE
@@ -56,9 +54,11 @@ macro(musin_init_audio TARGET)
     ${MUSIN_AUDIO}/audio_memory_reader.cpp
     ${MUSIN_AUDIO}/data_ulaw.c
     ${MUSIN_AUDIO}/mixer.cpp
-    ${MUSIN_USB}/usb.cpp
-    ${MUSIN_USB}/usb_descriptors.c
-    ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
+  )
+
+  target_compile_definitions(${TARGET} PRIVATE
+    PICO_AUDIO_I2S_MONO_INPUT=1
+    USE_AUDIO_I2S=1
   )
 
   target_link_libraries(${TARGET} PRIVATE

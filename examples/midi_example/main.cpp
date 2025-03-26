@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include "bsp/board.h"
-#include "core/usb/usb.h"
-#include "core/midi/midi_wrapper.h"
+#include "musin/usb/usb.h"
+#include "musin/midi/midi_wrapper.h"
 #include "tusb.h"
 #include <math.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ void led_blinking_task(void);
 int main() {
   // stdio_init_all();
   board_init();
-  DatoUSB::init();
+  Musin::Usb::init();
 
   MIDI::init(MIDI::Callbacks{.note_on = handle_note_on,
                              .note_off = handle_note_off,
@@ -46,7 +46,7 @@ int main() {
 
   static uint32_t last_ms = board_millis();
   while (1) {
-    DatoUSB::background_update();
+    Musin::Usb::background_update();
     MIDI::read(1);
     led_blinking_task();
     const uint32_t now_ms = board_millis();

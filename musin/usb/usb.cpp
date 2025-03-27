@@ -6,7 +6,10 @@
 #define USB_DEVICE_INSTANCE 0
 #endif
 
-bool DatoUSB::background_update(void) {
+namespace Musin {
+namespace Usb {
+
+bool background_update(void) {
   if (tusb_inited()) {
     tud_task();
     return true;
@@ -15,11 +18,11 @@ bool DatoUSB::background_update(void) {
   }
 }
 
-void DatoUSB::disconnect() {
+void disconnect() {
   tud_disconnect();
 }
 
-bool DatoUSB::midi_read(uint8_t packet[4]) {
+bool midi_read(uint8_t packet[4]) {
   bool ret = false;
   if (tud_midi_available()) {
     tud_midi_packet_read(packet);
@@ -29,10 +32,13 @@ bool DatoUSB::midi_read(uint8_t packet[4]) {
   return ret;
 }
 
-void DatoUSB::midi_send(const uint8_t packet[4]) {
+void midi_send(const uint8_t packet[4]) {
   tud_midi_packet_write(packet);
 }
 
-void DatoUSB::init() {
+void init() {
   tusb_init();
 }
+
+} // namespace Usb
+} // namespace Musin

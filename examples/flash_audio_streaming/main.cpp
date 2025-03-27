@@ -1,15 +1,15 @@
-#include "core/filesystem.h"
-#include "core/midi/midi_wrapper.h"
-#include "core/teensy_audio/mixer.h"
-#include "core/timestretched/AudioSampleSnare.h"
-#include "core/usb/usb.h"
 #include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
-#include "timestretched/AudioSampleGong.h"
-#include "timestretched/AudioSampleHihat.h"
-#include "timestretched/AudioSampleKick.h"
+#include "musin/audio/mixer.h"
+#include "musin/filesystem/filesystem.h"
+#include "musin/midi/midi_wrapper.h"
+#include "samples/AudioSampleGong.h"
+#include "samples/AudioSampleHihat.h"
+#include "samples/AudioSampleKick.h"
+#include "samples/AudioSampleSnare.h"
 #include "tusb.h"
+#include "musin/usb/usb.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
@@ -115,7 +115,7 @@ void handle_note_off(byte, byte, byte) {
 static bool init() {
   init_clock();
   stdio_init_all();
-  DatoUSB::init();
+  Musin::Usb::init();
   MIDI::init(MIDI::Callbacks{
       .note_on = handle_note_on,
       .note_off = handle_note_off,
@@ -167,7 +167,7 @@ int main(void) {
 
   while (true) {
     AudioOutput::update(fill_audio_buffer);
-    DatoUSB::background_update();
+    Musin::Usb::background_update();
     MIDI::read(1);
     for (int i = 0; i < SAMPLE_COUNT; ++i) {
       FileSound *sound = sounds[i];

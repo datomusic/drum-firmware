@@ -41,7 +41,13 @@ static bool init() {
       .sysex = nullptr,
   });
 
-  printf("Startup\n\n");
+  // stdio over USB doesn't always work directly after statup.
+  // Adding sleeps doesn't seem to help, but printing some dots does.
+  for (int i = 0; i < 10; ++i) {
+    printf(".\n");
+  }
+
+  printf("Startup\n");
 
   printf("Initializing filesystem\n");
 
@@ -65,7 +71,6 @@ int main(void) {
   AudioOutput::init();
 
   printf("Entering main loop!\n");
-  printf("With MIDI?\n");
 
   while (true) {
     AudioOutput::update(fill_audio_buffer);

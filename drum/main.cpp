@@ -65,6 +65,7 @@ int main(void) {
   AudioOutput::init();
 
   printf("Entering main loop!\n");
+  printf("With MIDI?\n");
 
   while (true) {
     AudioOutput::update(fill_audio_buffer);

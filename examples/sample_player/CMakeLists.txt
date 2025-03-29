@@ -3,9 +3,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXECUTABLE_NAME sample_player)
 
-set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../support/)
+set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../musin/musin_init.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
 
 project(${EXECUTABLE_NAME})
 

@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.13...3.27)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-sdk/)
-set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../pico-extras/)
+set(SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/../../pico-sdk/)
+set(SDK_EXTRAS_PATH ${CMAKE_CURRENT_LIST_DIR}/../../pico-extras/)
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()

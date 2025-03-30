@@ -51,7 +51,7 @@ static bool init() {
 
   printf("Initializing filesystem\n");
 
-  if (!init_filesystem(SHOULD_REFORMAT)) {
+  if (!Musin::Filesystem::init(SHOULD_REFORMAT)) {
     printf("Filesystem initialization failed\n");
     return false;
   }

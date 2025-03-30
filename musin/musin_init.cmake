@@ -89,7 +89,7 @@ macro(musin_init_filesystem TARGET)
   add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
 
   target_sources(${TARGET} PRIVATE
-    ${MUSIN_ROOT}/filesystem/filesystem.c
+    ${MUSIN_ROOT}/filesystem/filesystem.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE

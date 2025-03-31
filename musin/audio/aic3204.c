@@ -270,6 +270,7 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint16_t baudrate) {
     // --- Wait for soft-stepping completion ---
     if (success) {
         printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+        absolute_time_t start_time = get_absolute_time();
         absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
         bool soft_stepping_complete = false;
         uint8_t status_reg = 0;
@@ -281,7 +282,9 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint16_t baudrate) {
                 // Check bits 7:6 (mask 0xC0)
                 if ((status_reg & 0xC0) == 0xC0) {
                     soft_stepping_complete = true;
-                    printf("Soft-stepping complete (Reg 0x%02X = 0x%02X).\n", SOFT_STEPPING_REG, status_reg);
+                    absolute_time_t end_time = get_absolute_time();
+                    int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
+                    printf("Soft-stepping complete in %lld ms (Reg 0x%02X = 0x%02X).\n", elapsed_us / 1000, SOFT_STEPPING_REG, status_reg);
                     break; // Exit loop
                 }
             } else {

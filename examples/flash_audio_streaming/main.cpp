@@ -1,6 +1,8 @@
 #include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
+#include "hardware/sync.h"
+#include "hardware/structs/clocks.h"
 #if defined(DATO_SUBMARINE)
 #include "musin/audio/aic3204.h"
 #endif
@@ -143,7 +145,7 @@ static bool init() {
   printf("Startup\n");
   printf("\n\n");
   printf("Initializing fs\n");
-  const auto init_result = init_filesystem(REFORMAT);
+  const auto init_result = Musin::Filesystem::init(REFORMAT);
   if (!init_result) {
     printf("Initialization failed: %i\n", init_result);
     return false;

@@ -8,6 +8,9 @@ set(MUSIN_USB ${MUSIN_ROOT}/usb)
 set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
 set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
 
+# Add custom board directory before SDK init
+list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/../../boards)
+
 # initialize pico-sdk from submodule
 # note: this must happen before project()
 include(${SDK_PATH}/pico_sdk_init.cmake)

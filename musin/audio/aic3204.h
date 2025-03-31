@@ -17,7 +17,7 @@
 
 // C-style interface functions
 bool aic3204_init(unsigned int sda_pin, unsigned int scl_pin, unsigned int baudrate);
-bool aic3204_write_register(unsigned int page, unsigned int reg_addr, unsigned int value);
-bool aic3204_read_register(unsigned int page, unsigned int reg_addr, unsigned int* read_value);
+bool aic3204_write_register(uint8_t page, uint8_t reg_addr, uint8_t value);
+bool aic3204_read_register(uint8_t page, uint8_t reg_addr, uint8_t* read_value);
 
 #endif // MUSIN_AUDIO_AIC3204_H

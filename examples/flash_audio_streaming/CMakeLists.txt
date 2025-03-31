@@ -26,7 +26,14 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
   PICO_AUDIO_I2S_DATA_PIN=18
   PICO_AUDIO_I2S_CLOCK_PIN_BASE=16
+  $<$<BOOL:${DATO_SUBMARINE}>:DATO_SUBMARINE>
 )
+
+if(DATO_SUBMARINE)
+  target_sources(${EXECUTABLE_NAME} PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/audio/aic3204.c
+  )
+endif()
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})

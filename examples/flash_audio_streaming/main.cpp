@@ -3,9 +3,7 @@
 #include "hardware/pll.h"
 #include "hardware/sync.h"
 #include "hardware/structs/clocks.h"
-#if defined(DATO_SUBMARINE)
 #include "musin/audio/aic3204.h"
-#endif
 #include "musin/audio/mixer.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
@@ -121,7 +119,7 @@ static bool init() {
   init_clock();
 #ifdef DATO_SUBMARINE
   // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
-  if (!aic3204_init(0, 1, 400000)) {
+  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 400000)) {
     printf("Failed to initialize AIC3204 codec!\n");
     return false;
   }

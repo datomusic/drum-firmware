@@ -72,6 +72,7 @@ macro(musin_init_audio TARGET)
     ${MUSIN_AUDIO}/audio_memory_reader.cpp
     ${MUSIN_AUDIO}/data_ulaw.c
     ${MUSIN_AUDIO}/mixer.cpp
+    ${MUSIN_AUDIO}/aic3204.c
   )
 
   target_compile_definitions(${TARGET} PRIVATE
@@ -82,6 +83,7 @@ macro(musin_init_audio TARGET)
   target_link_libraries(${TARGET} PRIVATE
     hardware_dma
     hardware_pio
+    hardware_i2c
     hardware_irq
     pico_audio_i2s
   )

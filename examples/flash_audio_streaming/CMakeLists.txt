@@ -16,7 +16,6 @@ add_executable(${EXECUTABLE_NAME}
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleGong.cpp
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleCashregister.cpp
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHihat.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/../../musin/audio/aic3204.c
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE

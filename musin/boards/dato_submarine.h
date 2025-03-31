@@ -2,6 +2,8 @@
  * Custom board definition for DATO Submarine
  */
 
+// pico_cmake_set PICO_PLATFORM=rp2350
+
 #ifndef _BOARDS_DATO_SUBMARINE_H
 #define _BOARDS_DATO_SUBMARINE_H
 

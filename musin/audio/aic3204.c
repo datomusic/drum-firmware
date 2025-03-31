@@ -1,5 +1,6 @@
 // --- aic3204.c ---
 #include "aic3204.h"
+#include <stdbool.h>
 #include <stdio.h> // For printf debugging
 #include "pico/time.h" // For sleep_ms, get_absolute_time, time_reached
 #include "hardware/gpio.h" // For pin validation

@@ -2,6 +2,7 @@
 #define MUSIN_AUDIO_AIC3204_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define AIC3204_I2C_ADDR 0x18
 #define AIC3204_SOFT_STEPPING_TIMEOUT_MS 1000

@@ -19,6 +19,8 @@
 #define STORE_SAMPLES false
 #define REFORMAT false
 
+#define MIDI_CHANNEL 1
+
 // Path must start with backslash in order to be valid
 // under the root mount point.
 
@@ -95,6 +97,7 @@ static void handle_sysex(byte *const, const unsigned) {
 }
 
 void handle_note_on(byte, byte note, byte velocity) {
+  printf("Received midi note %d\n", note);
   const float pitch = (float)(velocity) / 64.0;
   switch ((note - 1) % 4) {
   case 0:
@@ -117,13 +120,6 @@ void handle_note_off(byte, byte, byte) {
 
 static bool init() {
   init_clock();
-#ifdef DATO_SUBMARINE
-  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
-  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 400000)) {
-    printf("Failed to initialize AIC3204 codec!\n");
-    return false;
-  }
-#endif
   stdio_init_all();
   Musin::Usb::init();
   MIDI::init(MIDI::Callbacks{
@@ -139,6 +135,14 @@ static bool init() {
 
   // Give host some time to catch up, otherwise messages can be lost.
   sleep_ms(2000);
+
+#ifdef DATO_SUBMARINE
+  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
+  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 400000U)) {
+    printf("Failed to initialize AIC3204 codec\n");
+    return false;
+  }
+#endif
 
   printf("Startup\n");
   printf("\n\n");
@@ -178,7 +182,7 @@ int main(void) {
   while (true) {
     AudioOutput::update(fill_audio_buffer);
     Musin::Usb::background_update();
-    MIDI::read(1);
+    MIDI::read(MIDI_CHANNEL);
     for (int i = 0; i < SAMPLE_COUNT; ++i) {
       FileSound *sound = sounds[i];
       if (sound->reader.needs_update) {

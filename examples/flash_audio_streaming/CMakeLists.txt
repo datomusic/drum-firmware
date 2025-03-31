@@ -26,12 +26,6 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
 )
 
-if(DATO_SUBMARINE)
-  target_sources(${EXECUTABLE_NAME} PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../../musin/audio/aic3204.c
-  )
-endif()
-
 musin_init(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})

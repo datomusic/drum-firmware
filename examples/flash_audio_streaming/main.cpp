@@ -1,7 +1,7 @@
 #include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
-#ifdef DATO_SUBMARINE
+#if defined(DATO_SUBMARINE)
 #include "musin/audio/aic3204.h"
 #endif
 #include "musin/audio/mixer.h"

@@ -133,7 +133,7 @@ static bool init() {
   printf("Startup\n");
   printf("\n\n");
   printf("Initializing fs\n");
-  const auto init_result = init_filesystem(REFORMAT);
+  const auto init_result = Musin::Filesystem::init(REFORMAT);
   if (!init_result) {
     printf("Initialization failed: %i\n", init_result);
     return false;

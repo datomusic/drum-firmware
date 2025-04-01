@@ -119,7 +119,6 @@ void handle_note_off(byte, byte, byte) {
 }
 
 static bool init() {
-  init_clock();
   stdio_init_all();
   Musin::Usb::init();
   MIDI::init(MIDI::Callbacks{
@@ -132,13 +131,13 @@ static bool init() {
       .cc = nullptr,
       .sysex = handle_sysex,
   });
-
+  init_clock();
   // Give host some time to catch up, otherwise messages can be lost.
   sleep_ms(2000);
 
 #ifdef DATO_SUBMARINE
   // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
-  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 400000U)) {
+  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U)) {
     printf("Failed to initialize AIC3204 codec\n");
     return false;
   }

@@ -26,15 +26,15 @@
 #define PICO_DEFAULT_I2C 0
 #endif
 #ifndef PICO_DEFAULT_I2C_SDA_PIN
-#define PICO_DEFAULT_I2C_SDA_PIN 18  // GP18
+#define PICO_DEFAULT_I2C_SDA_PIN 18
 #endif
 #ifndef PICO_DEFAULT_I2C_SCL_PIN
-#define PICO_DEFAULT_I2C_SCL_PIN 19  // GP19
+#define PICO_DEFAULT_I2C_SCL_PIN 19
 #endif
 
 // --- WS2812 ---
 #ifndef PICO_DEFAULT_WS2812_PIN
-#define PICO_DEFAULT_WS2812_PIN 16  // GP16
+#define PICO_DEFAULT_WS2812_PIN 16
 #endif
 
 // --- Audio ---

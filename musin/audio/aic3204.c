@@ -253,6 +253,7 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint16_t baudrate) {
 
     // --- Output Driver Configuration (Page 1) ---
     // Headphone Routing & Gain (0dB)
+    success &= aic3204_write_register(0x01, 0x14, 0x05); // Slowly ramp up HP drivers
     success &= aic3204_write_register(0x01, 0x0C, 0x08); // DAC_L -> HPL
     success &= aic3204_write_register(0x01, 0x0D, 0x08); // DAC_R -> HPR
     success &= aic3204_write_register(0x01, 0x10, 0x00); // HPL Gain 0dB
@@ -296,8 +297,8 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint16_t baudrate) {
         }
 
         if (!soft_stepping_complete) {
-            printf("AIC3204 Error: Timeout waiting for soft-stepping completion.\n");
-            success = false; // Mark initialization as failed
+            printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
+            // Do not mark initialization as failed. There might be a slight pop
         }
     }
 

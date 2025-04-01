@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 // C-style interface functions
-bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint16_t baudrate);
+bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate);
 bool aic3204_write_register(uint8_t page, uint8_t reg_addr, uint8_t value);
 bool aic3204_read_register(uint8_t page, uint8_t reg_addr, uint8_t* read_value);
 

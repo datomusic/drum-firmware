@@ -162,7 +162,7 @@ bool aic3204_read_register(uint8_t page, uint8_t reg_addr, uint8_t *read_value) 
 }
 
 
-bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint16_t baudrate) {
+bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
     printf("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...\n", sda_pin, scl_pin);
 
     // Determine I2C instance based on pins

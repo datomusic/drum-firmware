@@ -8,6 +8,9 @@ set(MUSIN_USB ${MUSIN_ROOT}/usb)
 set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
 set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
 
+# Add custom board directory before SDK init
+list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
+
 # initialize pico-sdk from submodule
 # note: this must happen before project()
 include(${SDK_PATH}/pico_sdk_init.cmake)
@@ -69,6 +72,7 @@ macro(musin_init_audio TARGET)
     ${MUSIN_AUDIO}/audio_memory_reader.cpp
     ${MUSIN_AUDIO}/data_ulaw.c
     ${MUSIN_AUDIO}/mixer.cpp
+    ${MUSIN_AUDIO}/aic3204.c
   )
 
   target_compile_definitions(${TARGET} PRIVATE
@@ -79,6 +83,7 @@ macro(musin_init_audio TARGET)
   target_link_libraries(${TARGET} PRIVATE
     hardware_dma
     hardware_pio
+    hardware_i2c
     hardware_irq
     pico_audio_i2s
   )

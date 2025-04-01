@@ -9,10 +9,9 @@
 // Wrap C SDK headers
 extern "C" {
 #include "pico/time.h" // For absolute_time_t, nil_time
-// Note: hardware/gpio.h is NOT included here, only needed in .cpp
 }
 
-namespace drum_drivers {
+namespace Musin::UI {
 
 /**
  * @brief Represents the possible states of a single key.
@@ -164,6 +163,6 @@ private:
 
 }; // class Keypad_HC138
 
-} // namespace drum_drivers
+} // namespace Musin::UI
 
 #endif // DRUM_DRIVERS_KEYPAD_HC138_H

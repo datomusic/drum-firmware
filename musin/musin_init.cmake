@@ -101,3 +101,15 @@ macro(musin_init_filesystem TARGET)
   # Disable warnings since pico_extras audio causes warnings, which error because of -Werror in pico-vfs.
   target_compile_options(${TARGET} PRIVATE -w)
 endmacro()
+
+macro(musin_init_ui TARGET)
+  set(MUSIN_UI ${MUSIN_ROOT}/ui)
+
+  target_sources(${TARGET} PRIVATE
+    ${MUSIN_UI}/keypad_hc138.cpp
+  )
+
+  target_link_libraries(${TARGET} PRIVATE
+    hardware_gpio
+  )
+endmacro()

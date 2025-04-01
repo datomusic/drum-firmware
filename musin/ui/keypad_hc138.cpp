@@ -8,7 +8,7 @@ extern "C" {
 #include "pico/time.h"   // For get_absolute_time, absolute_time_diff_us, nil_time
 }
 
-namespace drum_drivers {
+namespace Musin::UI {
 
 // --- Constructor Implementation ---
 Keypad_HC138::Keypad_HC138(std::uint8_t num_rows, std::uint8_t num_cols,
@@ -17,8 +17,8 @@ Keypad_HC138::Keypad_HC138(std::uint8_t num_rows, std::uint8_t num_cols,
                            KeyData* key_data_buffer,
                            std::uint32_t scan_interval_us,
                            std::uint32_t debounce_time_us,
-                           std::uint32_t hold_time_us)
-  : _num_rows(num_rows),
+                           std::uint32_t hold_time_us):
+    _num_rows(num_rows),
     _num_cols(num_cols),
     _decoder_address_pins(decoder_address_pins),
     _col_pins(col_pins),
@@ -101,6 +101,7 @@ bool Keypad_HC138::scan() {
     // Adjust timing based on hardware specifics. 1-5us is often sufficient.
     // Use SDK delay for precision if needed: busy_wait_us(2);
     // Or rely on the loop overhead if fast enough.
+    busy_wait_us(2);
 
     for (std::uint8_t c = 0; c < _num_cols; ++c) {
       // Read raw state: LOW (false) means pressed (row LOW, col pulled HIGH)

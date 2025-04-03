@@ -34,10 +34,23 @@ DrumPizza::DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
               scan_interval_us,
               debounce_time_us,
               hold_time_us),
-      _led_data_pin_gpio(led_data_pin_gpio),
-      _led_data_return_pin_gpio(led_data_return_pin_gpio)
+      // Initialize _leds before _keypad_addr_pins_gpio etc. if declared earlier in header
+      _leds(LED_PIO_INSTANCE,                     // PIO instance for LEDs
+            LED_SM_INDEX,                         // State machine index
+            led_data_pin_gpio,                    // LED data pin GPIO number
+            led_data_return_pin_gpio.has_value() ? (NUM_LEDS + 1) : NUM_LEDS, // Number of LEDs
+            Musin::UI::RGBOrder::GRB,             // Color order
+            255,                                  // Initial brightness (will be corrected in init)
+            std::nullopt),                        // No color correction for now
+      _keypad_addr_pins_gpio(keypad_addr_pins_gpio), // Store keypad address pins
+      _led_data_pin_gpio(led_data_pin_gpio),         // Store LED data pin
+      _led_data_return_pin_gpio(led_data_return_pin_gpio) // Store optional return pin
 {
-    // Constructor body (if needed for other initializations)
+    // Constructor body:
+    // - _keypad is initialized above.
+    // - _leds is initialized above with default brightness.
+    // - Pin numbers are stored.
+    // Actual hardware init and brightness setting happens in init().
 }
 
 

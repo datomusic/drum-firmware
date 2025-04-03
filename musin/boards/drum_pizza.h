@@ -213,11 +213,15 @@ private:
     // Keypad driver instance
     Musin::UI::Keypad_HC138 _keypad;
 
-    // LED pin configuration
+    // LED driver instance
+    Musin::UI::WS2812 _leds;
+
+    // Pin configuration storage (needed by init or other methods)
+    const std::array<uint, 3> _keypad_addr_pins_gpio; // Added in a previous step, ensure it's here
     const uint _led_data_pin_gpio;
     const std::optional<uint> _led_data_return_pin_gpio;
 
-    // Add members for other components like Analog Mux driver, LED driver etc. later
+    // Add members for other components like Analog Mux driver etc. later
 
 }; // class DrumPizza
 

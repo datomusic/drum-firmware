@@ -19,7 +19,7 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 - **Minimal Includes**: Keep includes minimal
 - **Interface Definition**: Define interfaces using `class` and `struct` with proper access specifiers
 - **Inline Functions**: Define small member functions in headers for implicit inlining
-- **Documentation**: Use Doxygen-style comments
+- **Documentation**: Use Doxygen-style comments *where necessary* to explain complex logic or non-obvious behavior. Avoid verbose comments for self-explanatory code.
 
 ## 3. Source Files (.cpp)
 - Implement non-trivial functions here

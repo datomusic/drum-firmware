@@ -186,7 +186,7 @@ private:
     Musin::UI::WS2812 _leds;
 
     // Pin configuration storage (needed by init or other methods)
-    const std::array<unsigned int, 3> _keypad_addr_pins_gpio; // Added in a previous step, ensure it's here
+    const std::array<unsigned int, 4> _address_pins_gpio; // Changed size to 4, renamed for clarity
     const unsigned int _led_data_pin_gpio;
     const std::optional<unsigned int> _led_data_return_pin_gpio;
 

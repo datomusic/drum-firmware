@@ -2,11 +2,14 @@
 #define MUSIN_HAL_ANALOG_IN_H
 
 #include <cstdint>
+#include <vector> // For storing address pins
 
 // Wrap C SDK headers
 extern "C" {
 #include "hardware/adc.h"
-#include "pico/assert.h" // For assertions
+#include "hardware/gpio.h" // Needed for gpio functions
+#include "pico/assert.h"   // For assertions
+#include "pico/time.h"     // For busy_wait_us
 }
 
 namespace Musin::HAL {
@@ -87,7 +90,146 @@ private:
    * @return ADC channel number (0-4), or asserts if the pin is invalid.
    */
   static uint pin_to_adc_channel(uint pin);
+
+  // --- Helper Functions ---
+  /**
+   * @brief Sets the state of multiple GPIO pins based on a binary value.
+   * Used to control multiplexer address lines.
+   * @param address_pins Vector of GPIO pin numbers (index 0 = LSB).
+   * @param address_value The address value to set.
+   */
+  static void set_mux_address(const std::vector<uint>& address_pins, uint8_t address_value);
+
 };
+
+
+/**
+ * @brief Interface for reading an analog input pin via an 8-channel multiplexer (e.g., 74HC4051).
+ * Requires 3 address pins.
+ */
+class AnalogInMux8 {
+public:
+  /**
+   * @brief Construct an AnalogInMux8 instance.
+   *
+   * @param adc_pin The GPIO pin connected to the ADC input (must be ADC capable: 26, 27, 28).
+   * @param address_pins Vector containing the 3 GPIO pin numbers for the mux address lines (index 0=LSB/S0, 1=S1, 2=MSB/S2).
+   * @param channel_address The specific channel (0-7) on the multiplexer for this input.
+   * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
+   */
+  AnalogInMux8(uint adc_pin,
+                 const std::vector<uint>& address_pins,
+                 uint8_t channel_address,
+                 uint32_t address_settle_time_us = 5); // Default 5us settle time
+
+  // Prevent copying and assignment
+  AnalogInMux8(const AnalogInMux8&) = delete;
+  AnalogInMux8& operator=(const AnalogInMux8&) = delete;
+
+  /**
+   * @brief Initialize the ADC, ADC GPIO pin, and address GPIO pins.
+   * Must be called once before reading.
+   */
+  void init();
+
+  /**
+   * @brief Read the analog value from the configured mux channel (scaled to 16-bit).
+   * Sets the mux address, waits briefly, then reads the ADC.
+   * @return The 16-bit representation of the analog reading (0-65520). Returns 0 if not initialized.
+   */
+  std::uint16_t read() const;
+
+  /**
+   * @brief Read the raw 12-bit analog value from the configured mux channel.
+   * Sets the mux address, waits briefly, then reads the ADC.
+   * @return The raw 12-bit ADC reading (0-4095). Returns 0 if not initialized.
+   */
+  std::uint16_t read_raw() const;
+
+  /**
+   * @brief Read the analog value and convert it to voltage.
+   * Sets the mux address, waits briefly, then reads the ADC.
+   * @return The calculated voltage as a float. Returns 0.0f if not initialized.
+   */
+  float read_voltage() const;
+
+private:
+  const uint _adc_pin;
+  const uint _adc_channel;
+  const std::vector<uint> _address_pins;
+  const uint8_t _channel_address;
+  const uint32_t _address_settle_time_us;
+  bool _initialized = false;
+
+  // Constants reused from AnalogIn
+  static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
+  static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
+};
+
+
+/**
+ * @brief Interface for reading an analog input pin via a 16-channel multiplexer (e.g., 74HC4067).
+ * Requires 4 address pins.
+ */
+class AnalogInMux16 {
+public:
+  /**
+   * @brief Construct an AnalogInMux16 instance.
+   *
+   * @param adc_pin The GPIO pin connected to the ADC input (must be ADC capable: 26, 27, 28).
+   * @param address_pins Vector containing the 4 GPIO pin numbers for the mux address lines (index 0=LSB/S0, ..., 3=MSB/S3).
+   * @param channel_address The specific channel (0-15) on the multiplexer for this input.
+   * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
+   */
+  AnalogInMux16(uint adc_pin,
+                  const std::vector<uint>& address_pins,
+                  uint8_t channel_address,
+                  uint32_t address_settle_time_us = 5); // Default 5us settle time
+
+  // Prevent copying and assignment
+  AnalogInMux16(const AnalogInMux16&) = delete;
+  AnalogInMux16& operator=(const AnalogInMux16&) = delete;
+
+  /**
+   * @brief Initialize the ADC, ADC GPIO pin, and address GPIO pins.
+   * Must be called once before reading.
+   */
+  void init();
+
+  /**
+   * @brief Read the analog value from the configured mux channel (scaled to 16-bit).
+   * Sets the mux address, waits briefly, then reads the ADC.
+   * @return The 16-bit representation of the analog reading (0-65520). Returns 0 if not initialized.
+   */
+  std::uint16_t read() const;
+
+  /**
+   * @brief Read the raw 12-bit analog value from the configured mux channel.
+   * Sets the mux address, waits briefly, then reads the ADC.
+   * @return The raw 12-bit ADC reading (0-4095). Returns 0 if not initialized.
+   */
+  std::uint16_t read_raw() const;
+
+  /**
+   * @brief Read the analog value and convert it to voltage.
+   * Sets the mux address, waits briefly, then reads the ADC.
+   * @return The calculated voltage as a float. Returns 0.0f if not initialized.
+   */
+  float read_voltage() const;
+
+private:
+  const uint _adc_pin;
+  const uint _adc_channel;
+  const std::vector<uint> _address_pins;
+  const uint8_t _channel_address;
+  const uint32_t _address_settle_time_us;
+  bool _initialized = false;
+
+  // Constants reused from AnalogIn
+  static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
+  static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
+};
+
 
 } // namespace Musin::HAL
 

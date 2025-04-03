@@ -4,7 +4,7 @@
 #include "pico/stdlib.h"
 #include "musin/boards/drum_pizza.h"
 #include "musin/ui/keypad_hc138.h" // For KeyState definition if needed
-#include "musin/ui/ws2812.h"       // For WS2812 definition if needed
+#include "musin/hal/ws2812.h"       // For WS2812 definition if needed
 
 // --- Pin Mapping (Example for Raspberry Pi Pico) ---
 // Adjust these based on your actual wiring between Pico and Drum Pizza J1

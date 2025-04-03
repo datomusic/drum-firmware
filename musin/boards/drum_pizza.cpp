@@ -7,7 +7,7 @@ extern "C" {
 #include "hardware/gpio.h"
 #include "pico/time.h" // For sleep_us
 }
-#include "musin/ui/ws2812.h"       // Include WS2812 implementation details
+#include "musin/hal/ws2812.h"       // Include WS2812 implementation details
 
 namespace Musin::Boards {
 
@@ -36,7 +36,7 @@ DrumPizza::DrumPizza(const std::array<uint, 4>& address_pins_gpio, // Changed si
               hold_time_us),
       _leds(led_data_pin_gpio,
             led_data_return_pin_gpio.has_value() ? (NUM_LEDS + 1) : NUM_LEDS,
-            Musin::UI::RGBOrder::GRB,
+            Musin::HAL::RGBOrder::GRB,
             255, // Initial brightness (will be corrected in init)
             std::nullopt),
       _address_pins_gpio(address_pins_gpio),

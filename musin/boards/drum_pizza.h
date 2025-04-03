@@ -9,7 +9,7 @@
 #include <cstddef> // For size_t
 #include <optional> // For optional LED return pin
 #include "musin/ui/keypad_hc138.h" // Include the keypad driver header
-#include "musin/ui/ws2812.h"       // Include the WS2812 driver header
+#include "musin/hal/ws2812.h"       // Include the WS2812 driver header
 
 // Wrap C SDK headers needed for PIO definition
 extern "C" {
@@ -74,13 +74,13 @@ public:
      * @brief Get a reference to the WS2812 LED driver instance.
      * @return Reference to the WS2812 object.
      */
-    Musin::UI::WS2812& leds() { return _leds; }
+    Musin::HAL::WS2812& leds() { return _leds; }
 
     /**
      * @brief Get a const reference to the WS2812 LED driver instance.
      * @return Const reference to the WS2812 object.
      */
-    const Musin::UI::WS2812& leds() const { return _leds; }
+    const Musin::HAL::WS2812& leds() const { return _leds; }
 
 
     // --- Named Pin Definitions (Mapped from J1 Connector) ---
@@ -183,7 +183,7 @@ private:
     Musin::UI::Keypad_HC138 _keypad;
 
     // LED driver instance
-    Musin::UI::WS2812 _leds;
+    Musin::HAL::WS2812 _leds;
 
     // Pin configuration storage (needed by init or other methods)
     const std::array<unsigned int, 4> _address_pins_gpio; // Changed size to 4, renamed for clarity

@@ -102,8 +102,8 @@ public:
         _COUNT          // Helper to get the number of enum values if needed
     };
 
-    // --- General Configuration ---
-    // Board revision detection pins (if needed by software) - Uses NamedPin enum
+// --- General Configuration ---
+// Board revision detection pins (if needed by software) - Uses NamedPin enum
 static constexpr NamedPin PIN_BOARD_ADDR0 = NamedPin::ADDR_0; // Example
 static constexpr NamedPin PIN_BOARD_ADDR1 = NamedPin::ADDR_1; // Example
 static constexpr NamedPin PIN_BOARD_ADDR2 = NamedPin::ADDR_2; // Example
@@ -173,33 +173,6 @@ static constexpr std::uint32_t LED_STEP6_START = 24; // Includes LEDs 24, 25, 26
 static constexpr std::uint32_t LED_STEP7_START = 28; // Includes LEDs 28, 29, 30, 31
 static constexpr std::uint32_t LED_DRUMPAD_4   = 32;
 static constexpr std::uint32_t LED_STEP8_START = 33; // Includes LEDs 33, 34, 35, 36
-// Helper function to get the 4 LEDs for a given step (1-indexed)
-static constexpr std::array<std::uint32_t, 4> get_step_leds(std::uint8_t step_index_1_based) {
-    // Note: This calculation assumes the LED indexing pattern holds.
-    // step_index_1_based: 1 -> 1, 2, 3, 4
-    // step_index_1_based: 2 -> 6, 7, 8, 9
-    // step_index_1_based: 3 -> 10, 11, 12, 13
-    // ...
-    // Formula: start_index = (step_index_1_based <= 1 ? 1 : (step_index_1_based - 1) * 4 + (step_index_1_based <= 1 ? 0 : 2))
-    // Let's use a simpler lookup based on the defined start indices
-    uint32_t start_index = 0; // Needs to be non-const for the switch
-    switch(step_index_1_based) {
-        case 1: start_index = LED_STEP1_START; break;
-        case 2: start_index = LED_STEP2_START; break;
-        case 3: start_index = LED_STEP3_START; break;
-        case 4: start_index = LED_STEP4_START; break;
-        case 5: start_index = LED_STEP5_START; break;
-        case 6: start_index = LED_STEP6_START; break;
-        case 7: start_index = LED_STEP7_START; break;
-        case 8: start_index = LED_STEP8_START; break;
-        default: // Should not happen for 8 steps
-                 // Return an invalid array or handle error appropriately
-                 // Consider adding an assertion or returning std::optional
-                 return {0, 0, 0, 0}; // Example: return invalid indices
-        }
-         // Ensure step_index is valid (1-8) before calling this or add checks
-        return {start_index, start_index + 1, start_index + 2, start_index + 3};
-    }
 
 private:
     // Internal buffer for keypad state data

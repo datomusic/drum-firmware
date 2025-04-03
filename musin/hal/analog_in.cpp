@@ -1,6 +1,12 @@
 #include "analog_in.h"
 
-// No need for extern "C" block here as headers handle it
+// Include necessary Pico SDK headers for implementation
+extern "C" {
+#include "hardware/adc.h"
+#include "hardware/gpio.h"
+#include "pico/assert.h"
+#include "pico/time.h"
+}
 
 namespace Musin::HAL {
 

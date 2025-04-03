@@ -3,14 +3,8 @@
 
 #include <cstdint>
 #include <vector> // For storing address pins
-
-// Wrap C SDK headers
-extern "C" {
-#include "hardware/adc.h"
-#include "hardware/gpio.h" // Needed for gpio functions
-#include "pico/assert.h"   // For assertions
-#include "pico/time.h"     // For busy_wait_us
-}
+// Standard types are sufficient for the interface definition.
+// Platform-specific SDK headers are now included in the .cpp file.
 
 namespace Musin::HAL {
 

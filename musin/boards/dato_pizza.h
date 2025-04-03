@@ -8,9 +8,6 @@
 #include <array>
 #include <cstddef> // For size_t
 
-#include <array>
-#include <cstddef> // For size_t
-
 // No direct SDK includes here, as this file defines the board interface,
 // not the microcontroller mapping.
 

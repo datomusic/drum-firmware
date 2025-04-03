@@ -23,7 +23,7 @@ public:
    * @param enable_temp_sensor If true and pin is 29, enables the temperature sensor.
    *                           Defaults to false. Ignored for pins other than 29.
    */
-  explicit AnalogIn(uint pin, bool enable_temp_sensor = false);
+  explicit AnalogIn(std::uint32_t pin, bool enable_temp_sensor = false);
 
   AnalogIn(const AnalogIn&) = delete;
   AnalogIn& operator=(const AnalogIn&) = delete;
@@ -72,8 +72,8 @@ private:
   static constexpr float ADC_MAX_VALUE = 4095.0f; // Maximum raw ADC value (12-bit)
 
 
-  const uint _pin;
-  const uint _adc_channel;
+  const std::uint32_t _pin;
+  const std::uint32_t _adc_channel; // Keep consistent, though derived internally
   const bool _enable_temp_sensor;
   bool _initialized = false;
 
@@ -82,7 +82,7 @@ private:
    * @param pin GPIO pin number (26-29).
    * @return ADC channel number (0-4), or asserts if the pin is invalid.
    */
-  static uint pin_to_adc_channel(uint pin);
+  static std::uint32_t pin_to_adc_channel(std::uint32_t pin);
 
   // --- Helper Functions ---
   /**
@@ -91,7 +91,7 @@ private:
    * @param address_pins Vector of GPIO pin numbers (index 0 = LSB).
    * @param address_value The address value to set.
    */
-  static void set_mux_address(const std::vector<uint>& address_pins, uint8_t address_value);
+  static void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value);
 
 };
 
@@ -110,10 +110,10 @@ public:
    * @param channel_address The specific channel (0-7) on the multiplexer for this input.
    * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
    */
-  AnalogInMux8(uint adc_pin,
-                 const std::vector<uint>& address_pins,
+  AnalogInMux8(std::uint32_t adc_pin,
+                 const std::vector<std::uint32_t>& address_pins,
                  uint8_t channel_address,
-                 uint32_t address_settle_time_us = 5);
+                 std::uint32_t address_settle_time_us = 5);
 
   AnalogInMux8(const AnalogInMux8&) = delete;
   AnalogInMux8& operator=(const AnalogInMux8&) = delete;

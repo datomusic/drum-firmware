@@ -12,7 +12,7 @@ namespace Musin::HAL {
 
 // --- Static Helper Implementation (Shared) ---
 
-void AnalogIn::set_mux_address(const std::vector<uint>& address_pins, uint8_t address_value) {
+void AnalogIn::set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value) {
     hard_assert(address_pins.size() <= 8);
     for (size_t i = 0; i < address_pins.size(); ++i) {
         gpio_put(address_pins[i], (address_value >> i) & 1);
@@ -22,7 +22,7 @@ void AnalogIn::set_mux_address(const std::vector<uint>& address_pins, uint8_t ad
 
 // --- AnalogIn Implementation ---
 
-uint AnalogIn::pin_to_adc_channel(uint pin) {
+std::uint32_t AnalogIn::pin_to_adc_channel(std::uint32_t pin) {
   // RP2040 specific: GPIO 26=ADC0, 27=ADC1, 28=ADC2, 29=ADC3 (Temp Sensor)
   hard_assert(pin >= 26 && pin <= 29); // Ensure valid ADC pin
   return pin - 26;
@@ -30,7 +30,7 @@ uint AnalogIn::pin_to_adc_channel(uint pin) {
 
 // --- Constructor Implementation ---
 
-AnalogIn::AnalogIn(uint pin, bool enable_temp_sensor) :
+AnalogIn::AnalogIn(std::uint32_t pin, bool enable_temp_sensor) :
   _pin(pin),
   _adc_channel(pin_to_adc_channel(pin)),
   _enable_temp_sensor(enable_temp_sensor && (_adc_channel == 3)),
@@ -85,10 +85,10 @@ float AnalogIn::read_voltage() const {
 
 // --- AnalogInMux8 Implementation ---
 
-AnalogInMux8::AnalogInMux8(uint adc_pin,
-                           const std::vector<uint>& address_pins,
+AnalogInMux8::AnalogInMux8(std::uint32_t adc_pin,
+                           const std::vector<std::uint32_t>& address_pins,
                            uint8_t channel_address,
-                           uint32_t address_settle_time_us) :
+                           std::uint32_t address_settle_time_us) :
   _adc_pin(adc_pin),
   _adc_channel(AnalogIn::pin_to_adc_channel(adc_pin)),
   _address_pins(address_pins),
@@ -109,7 +109,7 @@ void AnalogInMux8::init() {
     adc_gpio_init(_adc_pin);
 
     // Init address pins as outputs
-    for (uint pin : _address_pins) {
+    for (std::uint32_t pin : _address_pins) {
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_OUT);
         gpio_put(pin, 0);
@@ -147,10 +147,10 @@ float AnalogInMux8::read_voltage() const {
 
 // --- AnalogInMux16 Implementation ---
 
-AnalogInMux16::AnalogInMux16(uint adc_pin,
-                             const std::vector<uint>& address_pins,
+AnalogInMux16::AnalogInMux16(std::uint32_t adc_pin,
+                             const std::vector<std::uint32_t>& address_pins,
                              uint8_t channel_address,
-                             uint32_t address_settle_time_us) :
+                             std::uint32_t address_settle_time_us) :
   _adc_pin(adc_pin),
   _adc_channel(AnalogIn::pin_to_adc_channel(adc_pin)),
   _address_pins(address_pins),
@@ -171,7 +171,7 @@ void AnalogInMux16::init() {
     adc_gpio_init(_adc_pin);
 
     // Init address pins as outputs
-    for (uint pin : _address_pins) {
+    for (std::uint32_t pin : _address_pins) {
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_OUT);
         gpio_put(pin, 0);

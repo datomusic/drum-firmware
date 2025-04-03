@@ -10,9 +10,9 @@ extern "C" {
 
 namespace Musin::HAL {
 
-// --- Static Helper Implementation (Shared) ---
+// --- Free Helper Function Implementations ---
 
-void AnalogIn::set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value) {
+void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value) {
     hard_assert(address_pins.size() <= 8);
     for (size_t i = 0; i < address_pins.size(); ++i) {
         gpio_put(address_pins[i], (address_value >> i) & 1);
@@ -20,9 +20,9 @@ void AnalogIn::set_mux_address(const std::vector<std::uint32_t>& address_pins, u
 }
 
 
-// --- AnalogIn Implementation ---
+// --- Free Helper Function Implementations (Continued) ---
 
-std::uint32_t AnalogIn::pin_to_adc_channel(std::uint32_t pin) {
+std::uint32_t pin_to_adc_channel(std::uint32_t pin) {
   // RP2040 specific: GPIO 26=ADC0, 27=ADC1, 28=ADC2, 29=ADC3 (Temp Sensor)
   hard_assert(pin >= 26 && pin <= 29); // Ensure valid ADC pin
   return pin - 26;
@@ -32,7 +32,7 @@ std::uint32_t AnalogIn::pin_to_adc_channel(std::uint32_t pin) {
 
 AnalogIn::AnalogIn(std::uint32_t pin, bool enable_temp_sensor) :
   _pin(pin),
-  _adc_channel(pin_to_adc_channel(pin)),
+  _adc_channel(Musin::HAL::pin_to_adc_channel(pin)), // Call free function
   _enable_temp_sensor(enable_temp_sensor && (_adc_channel == 3)),
   _initialized(false)
 {}
@@ -90,7 +90,7 @@ AnalogInMux8::AnalogInMux8(std::uint32_t adc_pin,
                            uint8_t channel_address,
                            std::uint32_t address_settle_time_us) :
   _adc_pin(adc_pin),
-  _adc_channel(AnalogIn::pin_to_adc_channel(adc_pin)),
+  _adc_channel(Musin::HAL::pin_to_adc_channel(adc_pin)), // Call free function
   _address_pins(address_pins),
   _channel_address(channel_address),
   _address_settle_time_us(address_settle_time_us),
@@ -123,7 +123,7 @@ std::uint16_t AnalogInMux8::read_raw() const {
         return 0;
     }
 
-    AnalogIn::set_mux_address(_address_pins, _channel_address);
+    Musin::HAL::set_mux_address(_address_pins, _channel_address); // Call free function
 
     // Wait for the multiplexer and signal to settle (optional but recommended)
     if (_address_settle_time_us > 0) {
@@ -152,7 +152,7 @@ AnalogInMux16::AnalogInMux16(std::uint32_t adc_pin,
                              uint8_t channel_address,
                              std::uint32_t address_settle_time_us) :
   _adc_pin(adc_pin),
-  _adc_channel(AnalogIn::pin_to_adc_channel(adc_pin)),
+  _adc_channel(Musin::HAL::pin_to_adc_channel(adc_pin)), // Call free function
   _address_pins(address_pins),
   _channel_address(channel_address),
   _address_settle_time_us(address_settle_time_us),
@@ -185,7 +185,7 @@ std::uint16_t AnalogInMux16::read_raw() const {
         return 0;
     }
 
-    AnalogIn::set_mux_address(_address_pins, _channel_address);
+    Musin::HAL::set_mux_address(_address_pins, _channel_address); // Call free function
 
     // Wait for the multiplexer and signal to settle
     if (_address_settle_time_us > 0) {

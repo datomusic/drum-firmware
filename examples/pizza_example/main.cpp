@@ -8,19 +8,19 @@
 
 // --- Pin Mapping (Example for Raspberry Pi Pico) ---
 // Adjust these based on your actual wiring between Pico and Drum Pizza J1
-constexpr unsigned int PIN_ADDR_0 = 5;  // J1 Pin 5
-constexpr unsigned int PIN_ADDR_1 = 6;  // J1 Pin 6
-constexpr unsigned int PIN_ADDR_2 = 7;  // J1 Pin 7
+constexpr unsigned int PIN_ADDR_0 = 29;
+constexpr unsigned int PIN_ADDR_1 = 6;
+constexpr unsigned int PIN_ADDR_2 = 7;
+constexpr unsigned int PIN_ADDR_3 = 9;
 
-constexpr unsigned int PIN_RING_1 = 16; // J1 Pin 16
-constexpr unsigned int PIN_RING_2 = 15; // J1 Pin 15
-constexpr unsigned int PIN_RING_3 = 14; // J1 Pin 14
-constexpr unsigned int PIN_RING_4 = 12; // J1 Pin 12
-constexpr unsigned int PIN_RING_5 = 11; // J1 Pin 11
+constexpr unsigned int PIN_RING_1 = 15;
+constexpr unsigned int PIN_RING_2 = 14;
+constexpr unsigned int PIN_RING_3 = 13;
+constexpr unsigned int PIN_RING_4 = 11;
+constexpr unsigned int PIN_RING_5 = 10;
 
-constexpr unsigned int PIN_LED_DATA_OUT = 19; // J1 Pin 19
-// Define if LED_DATA_RETURN (J1 Pin 18) is connected back to a Pico GPIO
-// constexpr unsigned int PIN_LED_DATA_RET = 18; // Example if connected
+constexpr unsigned int PIN_LED_DATA_OUT = 16; // J1 Pin 19
+
 const std::optional<unsigned int> led_return_pin = std::nullopt; // Use std::nullopt if not connected
 // const std::optional<unsigned int> led_return_pin = PIN_LED_DATA_RET; // Use if connected
 

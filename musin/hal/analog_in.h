@@ -79,12 +79,6 @@ private:
   const bool _enable_temp_sensor;
   bool _initialized = false;
 
-  /**
-   * @brief Converts a GPIO pin number to its corresponding ADC channel number.
-   * @param pin GPIO pin number (26-29).
-   * @return ADC channel number (0-4), or asserts if the pin is invalid.
-   */
-  static std::uint32_t pin_to_adc_channel(std::uint32_t pin);
 
   // --- Helper Functions ---
   /**
@@ -94,6 +88,13 @@ private:
    * @param address_value The address value to set.
    */
   static void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value);
+
+  /**
+   * @brief Converts a GPIO pin number to its corresponding ADC channel number.
+   * @param pin GPIO pin number (26-29).
+   * @return ADC channel number (0-4), or asserts if the pin is invalid.
+   */
+  static std::uint32_t pin_to_adc_channel(std::uint32_t pin);
 
 };
 

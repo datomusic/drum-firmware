@@ -11,7 +11,6 @@ extern "C" {
 
 namespace Musin::Boards {
 
-// Enum to represent detected external pin state
 enum class ExternalPinState {
     FLOATING,
     PULL_UP,

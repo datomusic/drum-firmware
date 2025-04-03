@@ -115,13 +115,13 @@ macro(musin_init_ui TARGET)
     ${MUSIN_UI}/ws2812.cpp
   )
 
-  set(PIO_TARGET_NAME ${TARGET}_ws2812_pio)
-  pico_generate_pio_header(${PIO_TARGET_NAME} ${MUSIN_UI}/ws2812.pio)
-  # Linking the generated PIO target handles the dependency implicitly
-  # add_dependencies(${TARGET} ${PIO_TARGET_NAME}) # Remove this line
+  # Generate PIO header using the main target name.
+  # This modifies the target to include the generated header path.
+  pico_generate_pio_header(${TARGET} ${MUSIN_UI}/ws2812.pio)
 
+  # Link required hardware libraries. The dependency on the PIO header
+  # generation is handled internally by pico_generate_pio_header.
   target_link_libraries(${TARGET} PRIVATE
-    ${PIO_TARGET_NAME} # Link the generated PIO library
     hardware_gpio     # For keypad
     hardware_pio      # For WS2812
     hardware_clocks   # For WS2812

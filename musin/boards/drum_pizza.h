@@ -44,7 +44,7 @@ public:
      * @param debounce_time_us Keypad debounce time (microseconds).
      * @param hold_time_us Keypad hold time (microseconds).
      */
-    DrumPizza(const std::array<unsigned int, 3>& keypad_addr_pins_gpio,
+    DrumPizza(const std::array<unsigned int, 4>& address_pins_gpio, // Changed size to 4
               const std::array<unsigned int, 5>& keypad_col_pins_gpio,
               unsigned int led_data_pin_gpio,
               std::optional<unsigned int> led_data_return_pin_gpio = std::nullopt,

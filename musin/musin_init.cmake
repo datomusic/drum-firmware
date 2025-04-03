@@ -115,9 +115,14 @@ macro(musin_init_ui TARGET)
     ${MUSIN_UI}/ws2812.cpp
   )
 
+  set(PIO_TARGET_NAME ${TARGET}_ws2812_pio)
+  pico_generate_pio_header(${PIO_TARGET_NAME} ${MUSIN_UI}/ws2812.pio)
+  add_dependencies(${TARGET} ${PIO_TARGET_NAME})
+
   target_link_libraries(${TARGET} PRIVATE
-    hardware_gpio
-    hardware_pio
-    hardware_dma
+    hardware_gpio     # For keypad
+    hardware_pio      # For WS2812
+    hardware_clocks   # For WS2812
+    hardware_dma      # Example if needed by other UI components
   )
 endmacro()

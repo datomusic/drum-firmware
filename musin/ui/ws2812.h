@@ -163,12 +163,8 @@ private:
     bool _initialized = false;
 
     // --- PIO Program Info ---
-    // Static members related to the PIO program itself.
-    // We need a way to ensure the program is added to the PIO instance only once.
-    static bool _pio_program_loaded[NUM_PIOS]; // Track loading per PIO instance
-    static unsigned int _loaded_pio_program_offset[NUM_PIOS]; // Store offset per PIO instance
-    static const struct pio_program* _pio_program_ptr; // Pointer to the program struct
-    static bool load_pio_program_once(PIO pio, unsigned int& offset_out); // Helper to load program once per PIO
+    // PIO program loading and SM claiming are now handled dynamically in init()
+    // using SDK helpers. Static tracking is no longer needed here.
 
 }; // class WS2812
 

@@ -38,6 +38,7 @@ WS2812::WS2812(uint data_pin, uint num_leds, // PIO and SM removed from construc
     assert(pio == pio0 || pio == pio1);
     assert(sm_index < NUM_PIO_STATE_MACHINES);
     assert(num_leds > 0);
+    // _pio and _sm_index are initialized to invalid values above.
 }
 
 bool WS2812::init() {
@@ -45,56 +46,38 @@ bool WS2812::init() {
         return true; // Already initialized
     }
 
-    // --- Load PIO Program (if needed for this PIO instance) ---
-    if (!load_pio_program_once(_pio, _pio_program_offset)) {
-        return false; // Failed to load program (e.g., PIO full)
+    // --- Claim free PIO/SM and Load Program ---
+    // Use the SDK helper to find a free PIO instance and state machine,
+    // add the ws2812 program, and get the assigned resources.
+    // We use the _for_gpio_range variant to ensure compatibility with high GPIOs if needed.
+    PIO pio_instance; // Local variable to receive the chosen PIO
+    int sm_idx;       // Local variable to receive the chosen SM index
+    uint offset;      // Local variable to receive the program offset
+
+    // Note: The ws2812_program struct is defined in the generated ws2812.pio.h
+    bool success = pio_claim_free_sm_and_add_program_for_gpio_range(
+        &ws2812_program, &pio_instance, &sm_idx, &offset, _data_pin, 1, true);
+
+    if (!success) {
+        // printf("Error: Failed to claim free PIO state machine or add WS2812 program.\n");
+        return false;
     }
 
-    // --- Claim State Machine ---
-    // Use pio_claim_sm instead of checking sm_is_claimed for atomicity,
-    // although in typical single-threaded init it doesn't matter much.
-    // pio_claim_sm is deprecated, use sm_claim
-    // int claim_result = pio_claim_sm(_pio, _sm_index); // Deprecated
-    // A simple check is often sufficient if init is controlled:
-    if (pio_sm_is_claimed(_pio, _sm_index)) {
-         // printf("Error: Cannot claim PIO%u state machine %u - already claimed.\n", pio_get_index(_pio), _sm_index);
-         // Optionally, treat as success if already initialized by another instance? No, let's be strict.
-         return false;
-    }
-    pio_sm_claim(_pio, _sm_index); // Claim it now
+    // Store the claimed resources
+    _pio = pio_instance;
+    _sm_index = static_cast<unsigned int>(sm_idx); // Cast from int to unsigned int
+    _pio_program_offset = offset;
 
-
-    // --- Configure State Machine ---
-    pio_sm_config sm_config = ws2812_program_get_default_config(_pio_program_offset);
-
-    // Map the state machine's side-set pin group to the data pin
-    sm_config_set_sideset_pins(&sm_config, _data_pin);
-
-    // Configure FIFO joining: TX FIFO only needed, join them for max depth
-    sm_config_set_fifo_join(&sm_config, PIO_FIFO_JOIN_TX);
-
-    // Configure clock divider based on system clock
-    // WS2812 requires 800kHz signal.
-    // The PIO program from ws2812.pio takes 2 cycles per bit.
-    // Required PIO freq = 800,000 bits/sec * 2 cycles/bit = 1,600,000 Hz = 1.6 MHz
-    float freq = 1.6f * 1000 * 1000;
-    float div = (float)clock_get_hz(clk_sys) / freq;
-    sm_config_set_clkdiv(&sm_config, div);
-
-    // Configure shift direction: MSB first, autopull enabled
-    sm_config_set_out_shift(&sm_config, false, true, 24); // Shift right (MSB first), autopull every 24 bits
-
-    // --- Initialize GPIO ---
-    pio_gpio_init(_pio, _data_pin);
-    pio_sm_set_consecutive_pindirs(_pio, _sm_index, _data_pin, 1, true); // Set pin to output
-
-    // --- Load Config and Enable SM ---
-    pio_sm_init(_pio, _sm_index, _pio_program_offset, &sm_config);
-    pio_sm_set_enabled(_pio, _sm_index, true);
+    // --- Initialize State Machine using C-SDK Helper ---
+    // The ws2812_program_init function is defined in the ws2812.pio.h file (via the % c-sdk block)
+    // It handles GPIO init, SM config (sideset, clkdiv, shift), SM init, and enabling.
+    // We need to pass the claimed resources and configuration parameters.
+    // Assuming 800kHz frequency and not RGBW (standard WS2812 is 24-bit color).
+    ws2812_program_init(_pio, _sm_index, _pio_program_offset, _data_pin, 800000, false); // false for IS_RGBW
 
     _initialized = true;
-    // printf("Info: WS2812 driver initialized on PIO%u SM%u Pin%u\n", pio_get_index(_pio), _sm_index, _data_pin);
-    return true;
+    // printf("Info: WS2812 driver initialized on PIO%u SM%u Pin%u (Offset %u)\n", pio_get_index(_pio), _sm_index, _data_pin, _pio_program_offset);
+    return true; // Indicate success
 }
 
 

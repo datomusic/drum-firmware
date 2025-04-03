@@ -2,14 +2,16 @@
 #define MUSIN_UI_DRUMPAD_H
 
 #include <cstdint>
-#include <array>
 #include <optional>
+// #include <vector> // Removed as it's not directly needed now
+#include <type_traits> // For static_assert
+
+#include "musin/hal/analog_in.h" // Include the AnalogIn header
 
 // Wrap C SDK headers
 extern "C" {
 #include "pico/time.h" // For absolute_time_t, time_us_64, etc.
-#include "hardware/gpio.h"
-#include "hardware/adc.h"
+// No longer need direct gpio/adc includes here
 }
 
 namespace Musin::UI {

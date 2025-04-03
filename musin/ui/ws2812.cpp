@@ -51,7 +51,7 @@ bool WS2812::init() {
     // add the ws2812 program, and get the assigned resources.
     // We use the _for_gpio_range variant to ensure compatibility with high GPIOs if needed.
     PIO pio_instance; // Local variable to receive the chosen PIO
-    int sm_idx;       // Local variable to receive the chosen SM index
+    uint sm_idx;      // Local variable to receive the chosen SM index (Changed type to uint)
     uint offset;      // Local variable to receive the program offset
 
     // Note: The ws2812_program struct is defined in the generated ws2812.pio.h

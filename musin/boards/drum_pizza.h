@@ -30,13 +30,13 @@ public:
      */
     void init();
 
-    // --- J1 Connector Pin Definitions ---
-    // Represents the pins on the 20-pin J1 connector.
-// Ground and Power pins are included for completeness but might not be
-// directly used in software pin mapping logic. NC pins are also listed.
-enum class J1PinName : std::uint8_t {
-    PIN_1_MUX_IO,
-    PIN_2_GND,
+    // --- Named Pin Definitions (Mapped from J1 Connector) ---
+    // Represents the logical pins corresponding to the physical J1 connector pins.
+    // Ground, Power, and NC pins are included for completeness but might not be
+    // directly used in software pin mapping logic.
+    enum class NamedPin : std::uint8_t {
+        MUX_IO,         // J1 Pin 1
+        GND_PIN2,       // J1 Pin 2 (Ground)
     PIN_3_P3V3A,
     PIN_4_GND,
     PIN_5_ADDR_0,
@@ -68,19 +68,19 @@ enum class J1PinName : std::uint8_t {
 static constexpr std::uint8_t KEYPAD_ROWS = 8;
 static constexpr std::uint8_t KEYPAD_COLS = 5;
 
-// Keypad uses decoder address lines and column lines from J1
-static constexpr std::array<J1PinName, 3> keypad_decoder_address_pins = {
-    J1PinName::PIN_5_ADDR_0, // Decoder A0
-    J1PinName::PIN_6_ADDR_1, // Decoder A1
-    J1PinName::PIN_7_ADDR_2  // Decoder A2
+// Keypad uses decoder address lines and column lines (referenced by NamedPin)
+static constexpr std::array<NamedPin, 3> keypad_decoder_address_pins = {
+    NamedPin::ADDR_0, // Decoder A0 (J1 Pin 5)
+    NamedPin::ADDR_1, // Decoder A1 (J1 Pin 6)
+    NamedPin::ADDR_2  // Decoder A2 (J1 Pin 7)
 };
 
-static constexpr J1PinName keypad_column_pins[KEYPAD_COLS] = {
-    J1PinName::PIN_16_RING1, // Column 0
-    J1PinName::PIN_15_RING2, // Column 1
-    J1PinName::PIN_14_RING3, // Column 2
-    J1PinName::PIN_12_RING4, // Column 3
-    J1PinName::PIN_11_RING5  // Column 4
+static constexpr NamedPin keypad_column_pins[KEYPAD_COLS] = {
+    NamedPin::RING1, // Column 0 (J1 Pin 16)
+    NamedPin::RING2, // Column 1 (J1 Pin 15)
+    NamedPin::RING3, // Column 2 (J1 Pin 14)
+    NamedPin::RING4, // Column 3 (J1 Pin 12)
+    NamedPin::RING5  // Column 4 (J1 Pin 11)
 };
 
 // Symbolic names for columns, matching the array index above
@@ -95,12 +95,12 @@ enum class KeypadColumn : std::uint8_t {
 // --- Analog Input Configuration ---
 static constexpr std::uint8_t NUM_ANALOG_INPUTS = 16;
 
-// Analog MUX uses address lines (shared with keypad) and a select line from J1
-static constexpr J1PinName PIN_MUX_IO       = J1PinName::PIN_1_MUX_IO;     // Shared MUX I/O
-static constexpr J1PinName PIN_MUX_SELECT   = J1PinName::PIN_10_ADDR_3;    // MUX selection (ADDR3)
+// Analog MUX uses address lines (shared with keypad) and a select line (referenced by NamedPin)
+static constexpr NamedPin PIN_MUX_IO       = NamedPin::MUX_IO;     // Shared MUX I/O (J1 Pin 1)
+static constexpr NamedPin PIN_MUX_SELECT   = NamedPin::ADDR_3;     // MUX selection (J1 Pin 10)
 // MUX Address pins (A0, A1, A2) are shared: keypad_decoder_address_pins
 
-// Enum mapping MUX address (0-15) to control function. This is independent of GPIOs.
+// Enum mapping MUX address (0-15) to control function. This is independent of NamedPin/GPIOs.
 enum class AnalogInput : std::uint8_t {
     PITCH3     = 0,
     SWING      = 1,
@@ -123,9 +123,9 @@ enum class AnalogInput : std::uint8_t {
 // --- LED Output Configuration ---
 static constexpr std::uint32_t NUM_LEDS = 37;
 
-// LED strip data line from J1
-static constexpr J1PinName PIN_LED_DATA = J1PinName::PIN_19_LED_DATA;
-// static constexpr J1PinName PIN_LED_DATA_RETURN = J1PinName::PIN_18_LED_DATA_RETURN; // Optional
+// LED strip data line (referenced by NamedPin)
+static constexpr NamedPin PIN_LED_DATA = NamedPin::LED_DATA; // J1 Pin 19
+// static constexpr NamedPin PIN_LED_DATA_RETURN = NamedPin::LED_DATA_RETURN; // Optional (J1 Pin 18)
 
 // Symbolic indices for specific LEDs (0-indexed)
 static constexpr std::uint32_t LED_PLAY_BUTTON = 0;

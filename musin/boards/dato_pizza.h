@@ -8,13 +8,16 @@
 #include <array>
 #include <cstddef> // For size_t
 
+#include <array>
+#include <cstddef> // For size_t
+
 // No direct SDK includes here, as this file defines the board interface,
 // not the microcontroller mapping.
 
-namespace Musin::Boards::DrumPizza {
+namespace Musin::Boards {
 
 /**
- * @brief Hardware interface definitions for the DRUM-Pizza 0.1 control board.
+ * @brief Represents the DRUM-Pizza 0.1 control board hardware interface.
  *
  * This header provides constants, named connector pins, and configurations
  * based on the DRUM-Pizza 0.1 specification and its J1 connector.
@@ -22,9 +25,16 @@ namespace Musin::Boards::DrumPizza {
  * microcontroller GPIOs it might be connected to. A separate mapping layer
  * is needed to translate these named pins to actual GPIO numbers.
  */
+class DrumPizza {
+public:
+    /**
+     * @brief Initialize the board specific components (if any).
+     * Currently empty, placeholder for future use.
+     */
+    void init();
 
-// --- J1 Connector Pin Definitions ---
-// Represents the pins on the 20-pin J1 connector.
+    // --- J1 Connector Pin Definitions ---
+    // Represents the pins on the 20-pin J1 connector.
 // Ground and Power pins are included for completeness but might not be
 // directly used in software pin mapping logic. NC pins are also listed.
 enum class J1PinName : std::uint8_t {
@@ -143,7 +153,7 @@ static constexpr std::array<std::uint32_t, 4> get_step_leds(std::uint8_t step_in
     // ...
     // Formula: start_index = (step_index_1_based <= 1 ? 1 : (step_index_1_based - 1) * 4 + (step_index_1_based <= 1 ? 0 : 2))
     // Let's use a simpler lookup based on the defined start indices
-    uint32_t start_index = 0;
+    uint32_t start_index = 0; // Needs to be non-const for the switch
     switch(step_index_1_based) {
         case 1: start_index = LED_STEP1_START; break;
         case 2: start_index = LED_STEP2_START; break;
@@ -155,13 +165,18 @@ static constexpr std::array<std::uint32_t, 4> get_step_leds(std::uint8_t step_in
         case 8: start_index = LED_STEP8_START; break;
         default: // Should not happen for 8 steps
                  // Return an invalid array or handle error appropriately
+                 // Consider adding an assertion or returning std::optional
                  return {0, 0, 0, 0}; // Example: return invalid indices
+        }
+         // Ensure step_index is valid (1-8) before calling this or add checks
+        return {start_index, start_index + 1, start_index + 2, start_index + 3};
     }
-     // Ensure step_index is valid (1-8) before calling this or add checks
-    return {start_index, start_index + 1, start_index + 2, start_index + 3};
-}
 
+// Private members if needed in the future
+// private:
 
-} // namespace Musin::Boards::DrumPizza
+}; // class DrumPizza
+
+} // namespace Musin::Boards
 
 #endif // MUSIN_BOARDS_DATO_PIZZA_H

@@ -178,8 +178,14 @@ static constexpr std::array<std::uint32_t, 4> get_step_leds(std::uint8_t step_in
         return {start_index, start_index + 1, start_index + 2, start_index + 3};
     }
 
-// Private members if needed in the future
-// private:
+private:
+    // Internal buffer for keypad state data
+    std::array<Musin::UI::KeyData, KEYPAD_ROWS * KEYPAD_COLS> _key_data_buffer;
+
+    // Keypad driver instance
+    Musin::UI::Keypad_HC138 _keypad;
+
+    // Add members for other components like Analog Mux driver, LED driver etc. later
 
 }; // class DrumPizza
 

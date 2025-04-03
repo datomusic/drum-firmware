@@ -1,54 +1,30 @@
 # CMakeLists.txt for the Drum Pizza example
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.13...3.27)
 
-# Pull in SDK (must be before project)
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(EXECUTABLE_NAME pizza_example)
 
-project(pizza_example C CXX ASM)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+# Include the common Musin CMake initialization script
+# This handles SDK inclusion, project setup, standard options, etc.
+include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
 
-# Initialize the SDK
-pico_sdk_init()
+project(${EXECUTABLE_NAME})
 
-# --- PIO Programs ---
-# Add the PIO file relative to this example's CMakeLists.txt
-# Assuming the musin library structure is accessible relative to this example
-pico_generate_pio_header(pizza_example_pio ${CMAKE_CURRENT_LIST_DIR}/../../musin/ui/ws2812.pio)
-
-# --- Executable ---
-add_executable(pizza_example)
-
-# Add source files
-target_sources(pizza_example PRIVATE
-    main.cpp
-    # Add required Musin library source files
-    ${CMAKE_CURRENT_LIST_DIR}/../../musin/boards/drum_pizza.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ui/keypad_hc138.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ui/ws2812.cpp
+# Define the executable target with its main source file
+add_executable(${EXECUTABLE_NAME}
+  main.cpp
 )
 
-# Add include directories (to find musin headers)
-target_include_directories(pizza_example PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../..
-)
+# Initialize base Musin library dependencies (includes, sources, links, stdio, outputs)
+musin_init(${EXECUTABLE_NAME})
 
-# Link libraries
-target_link_libraries(pizza_example PRIVATE
-    pico_stdlib
-    hardware_pio      # Needed for WS2812
-    hardware_clocks   # Needed for WS2812 clock calculation
-    hardware_gpio     # Needed by keypad_hc138 and drum_pizza init checks
-)
+# Initialize Musin UI library dependencies
+# Handles keypad_hc138.cpp, ws2812.cpp, ws2812.pio generation, and linking gpio, pio, clocks
+musin_init_ui(${EXECUTABLE_NAME})
 
-# Ensure the PIO header generation happens before compiling the executable
-# Use the target name defined in pico_generate_pio_header
-add_dependencies(pizza_example pizza_example_pio)
+# Initialize Musin board support dependencies
+# Should handle drum_pizza.cpp (assuming musin_init_boards macro exists/will exist)
+musin_init_boards(${EXECUTABLE_NAME})
 
-# Add USB Mass Storage Device support for flashing (optional)
-pico_enable_stdio_usb(pizza_example 1)
-pico_enable_stdio_uart(pizza_example 1)
-
-# Create map/bin/hex file etc.
-pico_add_extra_outputs(pizza_example)
+# Note: stdio setup (USB/UART) and extra outputs (uf2) are handled by musin_init()

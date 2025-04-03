@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <array>
 #include <cstddef> // For size_t
+#include <optional> // For optional LED return pin
 #include "musin/ui/keypad_hc138.h" // Include the keypad driver header
 
 // No direct SDK includes here, as this file defines the board interface,
@@ -30,12 +31,16 @@ public:
      *
      * @param keypad_addr_pins_gpio Array of 3 GPIO pin numbers corresponding to NamedPin::ADDR_0, ADDR_1, ADDR_2.
      * @param keypad_col_pins_gpio Array of 5 GPIO pin numbers corresponding to NamedPin::RING1 to RING5.
+     * @param led_data_pin_gpio GPIO pin number corresponding to NamedPin::LED_DATA.
+     * @param led_data_return_pin_gpio Optional GPIO pin number corresponding to NamedPin::LED_DATA_RETURN.
      * @param scan_interval_us Keypad scan interval (microseconds).
      * @param debounce_time_us Keypad debounce time (microseconds).
      * @param hold_time_us Keypad hold time (microseconds).
      */
     DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
               const std::array<uint, 5>& keypad_col_pins_gpio,
+              uint led_data_pin_gpio,
+              std::optional<uint> led_data_return_pin_gpio = std::nullopt,
               std::uint32_t scan_interval_us = Musin::UI::Keypad_HC138::DEFAULT_SCAN_INTERVAL_US,
               std::uint32_t debounce_time_us = Musin::UI::Keypad_HC138::DEFAULT_DEBOUNCE_TIME_US,
               std::uint32_t hold_time_us = Musin::UI::Keypad_HC138::DEFAULT_HOLD_TIME_US);
@@ -184,6 +189,10 @@ private:
 
     // Keypad driver instance
     Musin::UI::Keypad_HC138 _keypad;
+
+    // LED pin configuration
+    const uint _led_data_pin_gpio;
+    const std::optional<uint> _led_data_return_pin_gpio;
 
     // Add members for other components like Analog Mux driver, LED driver etc. later
 

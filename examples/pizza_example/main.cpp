@@ -20,6 +20,7 @@ constexpr unsigned int PIN_RING_4 = 11;
 constexpr unsigned int PIN_RING_5 = 10;
 
 constexpr unsigned int PIN_LED_DATA_OUT = 16; // J1 Pin 19
+constexpr unsigned int PIN_LED_ENABLE = 20;   // GPIO for enabling LED power
 
 const std::optional<unsigned int> led_return_pin = std::nullopt; // Use std::nullopt if not connected
 // const std::optional<unsigned int> led_return_pin = PIN_LED_DATA_RET; // Use if connected
@@ -49,6 +50,12 @@ int main() {
     printf("Initializing board hardware...\n");
     board.init();
     printf("Board initialization complete.\n");
+
+    // --- Enable LED Power ---
+    printf("Enabling LED power (GPIO %u)...\n", PIN_LED_ENABLE);
+    gpio_init(PIN_LED_ENABLE);
+    gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT);
+    gpio_put(PIN_LED_ENABLE, 1); // Set high to enable
 
     // --- LED Chaser State ---
     unsigned int current_led_index = 0;

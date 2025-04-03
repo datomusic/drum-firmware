@@ -71,17 +71,7 @@ public:
    */
   float read_voltage() const;
 
-private:
-  // Constants moved to public section
-
-  const std::uint32_t _pin;
-  const std::uint32_t _adc_channel; // Keep consistent, though derived internally
-  const bool _enable_temp_sensor;
-  bool _initialized = false;
-
-
-  // --- Helper Functions ---
-
+  // --- Public Static Helper Functions ---
   /**
    * @brief Converts a GPIO pin number to its corresponding ADC channel number.
    * @param pin GPIO pin number (26-29).
@@ -96,6 +86,18 @@ private:
    * @param address_value The address value to set.
    */
   static void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value);
+
+
+private:
+  // Constants moved to public section
+
+  const std::uint32_t _pin;
+  const std::uint32_t _adc_channel; // Keep consistent, though derived internally
+  const bool _enable_temp_sensor;
+  bool _initialized = false;
+
+
+  // --- Helper Functions ---
 
 };
 

@@ -14,17 +14,12 @@ project(${EXECUTABLE_NAME})
 # Define the executable target with its main source file
 add_executable(${EXECUTABLE_NAME}
   main.cpp
+  # Add board source file directly
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/boards/drum_pizza.cpp
 )
 
-# Initialize base Musin library dependencies (includes, sources, links, stdio, outputs)
 musin_init(${EXECUTABLE_NAME})
-
-# Initialize Musin UI library dependencies
-# Handles keypad_hc138.cpp, ws2812.cpp, ws2812.pio generation, and linking gpio, pio, clocks
 musin_init_ui(${EXECUTABLE_NAME})
 
-# Initialize Musin board support dependencies
-# Should handle drum_pizza.cpp (assuming musin_init_boards macro exists/will exist)
-musin_init_boards(${EXECUTABLE_NAME})
-
-# Note: stdio setup (USB/UART) and extra outputs (uf2) are handled by musin_init()
+# Board sources are added directly above
+# musin_init_boards(${EXECUTABLE_NAME})

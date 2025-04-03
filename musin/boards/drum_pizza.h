@@ -37,32 +37,32 @@ public:
     enum class NamedPin : std::uint8_t {
         MUX_IO,         // J1 Pin 1
         GND_PIN2,       // J1 Pin 2 (Ground)
-    PIN_3_P3V3A,
-    PIN_4_GND,
-    PIN_5_ADDR_0,
-    PIN_6_ADDR_1,
-    PIN_7_ADDR_2,
-    PIN_8_NC,
-    PIN_9_GND,
-    PIN_10_ADDR_3,
-    PIN_11_RING5,
-    PIN_12_RING4,
-    PIN_13_GND,
-    PIN_14_RING3,
-    PIN_15_RING2,
-    PIN_16_RING1,
-    PIN_17_NC,
-    PIN_18_LED_DATA_RETURN,
-    PIN_19_LED_DATA,
-    PIN_20_VLED,
-    _COUNT // Helper to get the number of enum values if needed
-};
+        P3V3A,          // J1 Pin 3 (Power)
+        GND_PIN4,       // J1 Pin 4 (Ground)
+        ADDR_0,         // J1 Pin 5
+        ADDR_1,         // J1 Pin 6
+        ADDR_2,         // J1 Pin 7
+        NC_PIN8,        // J1 Pin 8 (Not Connected)
+        GND_PIN9,       // J1 Pin 9 (Ground)
+        ADDR_3,         // J1 Pin 10 (Multiplexer Select)
+        RING5,          // J1 Pin 11 (Column 5)
+        RING4,          // J1 Pin 12 (Column 4)
+        GND_PIN13,      // J1 Pin 13 (Ground)
+        RING3,          // J1 Pin 14 (Column 3)
+        RING2,          // J1 Pin 15 (Column 2)
+        RING1,          // J1 Pin 16 (Column 1)
+        NC_PIN17,       // J1 Pin 17 (Not Connected)
+        LED_DATA_RETURN,// J1 Pin 18
+        LED_DATA,       // J1 Pin 19
+        VLED,           // J1 Pin 20 (Power)
+        _COUNT          // Helper to get the number of enum values if needed
+    };
 
-// --- General Configuration ---
-// Board revision detection pins (if needed by software) - Uses J1 names
-// static constexpr J1PinName PIN_BOARD_ADDR0 = J1PinName::PIN_5_ADDR_0; // Example
-// static constexpr J1PinName PIN_BOARD_ADDR1 = J1PinName::PIN_6_ADDR_1; // Example
-// static constexpr J1PinName PIN_BOARD_ADDR2 = J1PinName::PIN_7_ADDR_2; // Example
+    // --- General Configuration ---
+    // Board revision detection pins (if needed by software) - Uses NamedPin enum
+    // static constexpr NamedPin PIN_BOARD_ADDR0 = NamedPin::ADDR_0; // Example
+    // static constexpr NamedPin PIN_BOARD_ADDR1 = NamedPin::ADDR_1; // Example
+    // static constexpr NamedPin PIN_BOARD_ADDR2 = NamedPin::ADDR_2; // Example
 
 // --- Keypad Configuration ---
 static constexpr std::uint8_t KEYPAD_ROWS = 8;

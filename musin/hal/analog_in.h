@@ -81,13 +81,6 @@ private:
 
 
   // --- Helper Functions ---
-  /**
-   * @brief Sets the state of multiple GPIO pins based on a binary value.
-   * Used to control multiplexer address lines.
-   * @param address_pins Vector of GPIO pin numbers (index 0 = LSB).
-   * @param address_value The address value to set.
-   */
-  static void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value);
 
   /**
    * @brief Converts a GPIO pin number to its corresponding ADC channel number.
@@ -95,6 +88,14 @@ private:
    * @return ADC channel number (0-4), or asserts if the pin is invalid.
    */
   static std::uint32_t pin_to_adc_channel(std::uint32_t pin);
+
+  /**
+   * @brief Sets the state of multiple GPIO pins based on a binary value.
+   * Used to control multiplexer address lines.
+   * @param address_pins Vector of GPIO pin numbers (index 0 = LSB).
+   * @param address_value The address value to set.
+   */
+  static void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value);
 
 };
 

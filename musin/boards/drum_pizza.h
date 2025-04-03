@@ -48,10 +48,10 @@ public:
      * @param debounce_time_us Keypad debounce time (microseconds).
      * @param hold_time_us Keypad hold time (microseconds).
      */
-    DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
-              const std::array<uint, 5>& keypad_col_pins_gpio,
-              uint led_data_pin_gpio,
-              std::optional<uint> led_data_return_pin_gpio = std::nullopt,
+    DrumPizza(const std::array<unsigned int, 3>& keypad_addr_pins_gpio,
+              const std::array<unsigned int, 5>& keypad_col_pins_gpio,
+              unsigned int led_data_pin_gpio,
+              std::optional<unsigned int> led_data_return_pin_gpio = std::nullopt,
               std::uint32_t scan_interval_us = Musin::UI::Keypad_HC138::DEFAULT_SCAN_INTERVAL_US,
               std::uint32_t debounce_time_us = Musin::UI::Keypad_HC138::DEFAULT_DEBOUNCE_TIME_US,
               std::uint32_t hold_time_us = Musin::UI::Keypad_HC138::DEFAULT_HOLD_TIME_US);
@@ -217,9 +217,9 @@ private:
     Musin::UI::WS2812 _leds;
 
     // Pin configuration storage (needed by init or other methods)
-    const std::array<uint, 3> _keypad_addr_pins_gpio; // Added in a previous step, ensure it's here
-    const uint _led_data_pin_gpio;
-    const std::optional<uint> _led_data_return_pin_gpio;
+    const std::array<unsigned int, 3> _keypad_addr_pins_gpio; // Added in a previous step, ensure it's here
+    const unsigned int _led_data_pin_gpio;
+    const std::optional<unsigned int> _led_data_return_pin_gpio;
 
     // Add members for other components like Analog Mux driver etc. later
 

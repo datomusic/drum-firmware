@@ -6,6 +6,7 @@ extern "C" {
 #include <stdio.h> // For printf
 #include "hardware/gpio.h"
 #include "pico/time.h" // For sleep_us
+}
 #include "musin/ui/ws2812.h"       // Include WS2812 implementation details
 
 namespace Musin::Boards {

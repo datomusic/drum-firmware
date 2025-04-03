@@ -146,11 +146,11 @@ public:
   float read_voltage() const;
 
 private:
-  const uint _adc_pin;
-  const uint _adc_channel;
-  const std::vector<uint> _address_pins;
+  const std::uint32_t _adc_pin;
+  const std::uint32_t _adc_channel;
+  const std::vector<std::uint32_t> _address_pins;
   const uint8_t _channel_address;
-  const uint32_t _address_settle_time_us;
+  const std::uint32_t _address_settle_time_us;
   bool _initialized = false;
 
   static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
@@ -172,10 +172,10 @@ public:
    * @param channel_address The specific channel (0-15) on the multiplexer for this input.
    * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
    */
-  AnalogInMux16(uint adc_pin,
-                  const std::vector<uint>& address_pins,
+  AnalogInMux16(std::uint32_t adc_pin,
+                  const std::vector<std::uint32_t>& address_pins,
                   uint8_t channel_address,
-                  uint32_t address_settle_time_us = 5); // Default 5us settle time
+                  std::uint32_t address_settle_time_us = 5);
 
   // Prevent copying and assignment
   AnalogInMux16(const AnalogInMux16&) = delete;
@@ -209,11 +209,11 @@ public:
   float read_voltage() const;
 
 private:
-  const uint _adc_pin;
-  const uint _adc_channel;
-  const std::vector<uint> _address_pins;
+  const std::uint32_t _adc_pin;
+  const std::uint32_t _adc_channel;
+  const std::vector<std::uint32_t> _address_pins;
   const uint8_t _channel_address;
-  const uint32_t _address_settle_time_us;
+  const std::uint32_t _address_settle_time_us;
   bool _initialized = false;
 
   static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;

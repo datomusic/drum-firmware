@@ -16,6 +16,12 @@ namespace Musin::HAL {
  */
 class AnalogIn {
 public:
+  // --- Public Constants ---
+  // ADC reference voltage (typically 3.3V for RP2040)
+  static constexpr float ADC_REFERENCE_VOLTAGE = 3.3f;
+  // Maximum raw ADC value (12-bit)
+  static constexpr float ADC_MAX_VALUE = 4095.0f;
+
   /**
    * @brief Construct an AnalogIn instance for a specific GPIO pin.
    *
@@ -66,11 +72,7 @@ public:
   float read_voltage() const;
 
 private:
-  // ADC reference voltage (typically 3.3V for RP2040)
-  static constexpr float ADC_REFERENCE_VOLTAGE = 3.3f;
-  // Maximum raw ADC value (12-bit)
-  static constexpr float ADC_MAX_VALUE = 4095.0f; // Maximum raw ADC value (12-bit)
-
+  // Constants moved to public section
 
   const std::uint32_t _pin;
   const std::uint32_t _adc_channel; // Keep consistent, though derived internally

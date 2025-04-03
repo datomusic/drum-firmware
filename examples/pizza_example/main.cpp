@@ -32,13 +32,14 @@ int main() {
     printf("Starting Drum Pizza Example...\n");
 
     // --- Configure Board Pins ---
-    const std::array<unsigned int, 3> keypad_addr_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+    // Address pins (4 needed for analog mux, first 3 used by keypad)
+    const std::array<unsigned int, 4> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
     const std::array<unsigned int, 5> keypad_col_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4, PIN_RING_5};
 
     // --- Create Board Instance ---
     // This constructor initializes the keypad and LED driver members internally
     Musin::Boards::DrumPizza board(
-        keypad_addr_pins,
+        address_pins, // Pass the 4 address pins
         keypad_col_pins,
         PIN_LED_DATA_OUT,
         led_return_pin

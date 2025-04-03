@@ -19,7 +19,7 @@ enum class ExternalPinState {
     UNDETERMINED
 };
 
-DrumPizza::DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
+DrumPizza::DrumPizza(const std::array<uint, 4>& address_pins_gpio, // Changed size to 4
                      const std::array<uint, 5>& keypad_col_pins_gpio,
                      uint led_data_pin_gpio,
                      std::optional<uint> led_data_return_pin_gpio,
@@ -29,7 +29,7 @@ DrumPizza::DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
     : // Initialize _key_data_buffer implicitly (default constructor for array elements)
       _keypad(KEYPAD_ROWS, // Member initialization order matters
               KEYPAD_COLS,
-              keypad_addr_pins_gpio,
+              {address_pins_gpio[0], address_pins_gpio[1], address_pins_gpio[2]}, // Pass only first 3 pins to keypad
               keypad_col_pins_gpio.data(), // Pass pointer to the underlying array data
               _key_data_buffer.data(),     // Pass pointer to the internal buffer
               scan_interval_us,
@@ -41,7 +41,7 @@ DrumPizza::DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
             Musin::UI::RGBOrder::GRB,             // Color order
             255,                                  // Initial brightness (will be corrected in init)
             std::nullopt),                        // No color correction for now
-      _keypad_addr_pins_gpio(keypad_addr_pins_gpio), // Store keypad address pins
+      _address_pins_gpio(address_pins_gpio), // Store all 4 address pins
       _led_data_pin_gpio(led_data_pin_gpio),         // Store LED data pin
       _led_data_return_pin_gpio(led_data_return_pin_gpio) // Store optional return pin
 {
@@ -128,10 +128,11 @@ void DrumPizza::init() {
 
     // --- Check initial external pin states before configuring components ---
     printf("DrumPizza: Checking external pin states...\n");
-    // Keypad Address Pins (ADDR_0, ADDR_1, ADDR_2) - Check state for info
-    check_external_pin_state(_keypad_addr_pins_gpio[0], "ADDR_0");
-    check_external_pin_state(_keypad_addr_pins_gpio[1], "ADDR_1");
-    check_external_pin_state(_keypad_addr_pins_gpio[2], "ADDR_2");
+    // Address Pins (ADDR_0, ADDR_1, ADDR_2, ADDR_3) - Check state for info
+    check_external_pin_state(_address_pins_gpio[0], "ADDR_0");
+    check_external_pin_state(_address_pins_gpio[1], "ADDR_1");
+    check_external_pin_state(_address_pins_gpio[2], "ADDR_2");
+    check_external_pin_state(_address_pins_gpio[3], "ADDR_3"); // Check the 4th address pin
 
     // LED Data Pin - Check state to determine brightness
     ExternalPinState led_pin_state = check_external_pin_state(_led_data_pin_gpio, "LED_DATA");

@@ -35,7 +35,8 @@ public:
     /**
      * @brief Construct a DrumPizza board interface instance.
      *
-     * @param keypad_addr_pins_gpio Array of 3 GPIO pin numbers corresponding to NamedPin::ADDR_0, ADDR_1, ADDR_2.
+     * @param address_pins_gpio Array of 4 GPIO pin numbers corresponding to NamedPin::ADDR_0, ADDR_1, ADDR_2, ADDR_3.
+     *                          The first 3 are used by the keypad decoder, all 4 might be used by other components (e.g., analog mux).
      * @param keypad_col_pins_gpio Array of 5 GPIO pin numbers corresponding to NamedPin::RING1 to RING5.
      * @param led_data_pin_gpio GPIO pin number corresponding to NamedPin::LED_DATA.
      * @param led_data_return_pin_gpio Optional GPIO pin number corresponding to NamedPin::LED_DATA_RETURN.

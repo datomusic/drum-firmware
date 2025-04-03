@@ -146,8 +146,9 @@ void DrumPizza::init() {
     // LEDs
     printf("DrumPizza: Initializing LEDs...\n");
     // Set brightness based on pin state check
-    // 42% brightness = 255 * 0.42 = 107.1 -> 107
-    uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 107 : 255;
+    // If the pin is pulled up, assume SK6812, so 12mA per channel. Set brighness to 100
+    // If it is pulled down, assume SK6805, so 5mA per channel. Set brightness to full
+    uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
     printf("DrumPizza: Setting initial LED brightness to %u (based on pin state: %d)\n",
            initial_brightness, static_cast<int>(led_pin_state));
     _leds.set_brightness(initial_brightness);

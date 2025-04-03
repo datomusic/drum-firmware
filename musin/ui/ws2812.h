@@ -50,7 +50,7 @@ public:
      * @param initial_brightness Optional initial brightness (0-255, default 255).
      * @param color_correction Optional color correction value (e.g., 0xFFB0F0, default none).
      */
-    WS2812(PIO pio, unsigned int sm_index, unsigned int data_pin, unsigned int num_leds,
+    WS2812(unsigned int data_pin, unsigned int num_leds, // PIO and SM are now determined dynamically in init()
            RGBOrder order = RGBOrder::GRB,
            uint8_t initial_brightness = 255,
            std::optional<uint32_t> color_correction = std::nullopt);

@@ -18,35 +18,16 @@ extern "C" {
 
 namespace Musin::UI {
 
-// Define static members
-bool WS2812::_pio_program_loaded[NUM_PIOS] = {false}; // Initialize all to false
-uint WS2812::_loaded_pio_program_offset[NUM_PIOS] = {0};
-const struct pio_program* WS2812::_pio_program_ptr = &ws2812_program; // From ws2812.pio.h
+// Static members for manual program loading are removed.
 
-// Helper to load the PIO program only once per PIO instance
-bool WS2812::load_pio_program_once(PIO pio, uint& offset_out) {
-    uint pio_index = pio_get_index(pio);
-    assert(pio_index < NUM_PIOS);
-
-    if (!_pio_program_loaded[pio_index]) {
-        if (!pio_can_add_program(pio, _pio_program_ptr)) {
-            // printf("Error: Cannot add WS2812 PIO program to PIO%u - not enough space.\n", pio_index);
-            return false; // Not enough space
-        }
-        _loaded_pio_program_offset[pio_index] = pio_add_program(pio, _pio_program_ptr);
-        _pio_program_loaded[pio_index] = true;
-        // printf("Info: WS2812 PIO program loaded to PIO%u at offset %u.\n", pio_index, _loaded_pio_program_offset[pio_index]);
-    }
-    offset_out = _loaded_pio_program_offset[pio_index];
-    return true;
-}
+// Helper function load_pio_program_once is removed.
 
 
-WS2812::WS2812(PIO pio, uint sm_index, uint data_pin, uint num_leds,
+WS2812::WS2812(uint data_pin, uint num_leds, // PIO and SM removed from constructor args
                RGBOrder order, uint8_t initial_brightness,
                std::optional<uint32_t> color_correction)
-    : _pio(pio),
-      _sm_index(sm_index),
+    : _pio(nullptr), // Initialize PIO to null, will be set in init()
+      _sm_index(UINT_MAX), // Initialize SM index to invalid, will be set in init()
       _data_pin(data_pin),
       _num_leds(num_leds),
       _order(order),
@@ -147,6 +128,8 @@ void WS2812::show() {
     }
     for (uint32_t packed_color : _pixel_buffer) {
         // PIO expects 24 bits, left-aligned in the 32-bit FIFO word (<< 8)
+        // Ensure _pio and _sm_index are valid before calling this
+        assert(_pio != nullptr && _sm_index != UINT_MAX);
         pio_sm_put_blocking(_pio, _sm_index, packed_color << 8);
     }
     // Note: A delay after the last bit might be needed for some WS2812 variants

@@ -33,9 +33,10 @@ namespace Musin::Boards {
 class DrumPizza {
 public:
     // --- Constants for Hardware Resources ---
-    // TODO: Make these configurable if multiple DrumPizzas or other PIO devices are used
-    static constexpr PIO LED_PIO_INSTANCE = pio0;
-    static constexpr unsigned int LED_SM_INDEX = 0;
+    // PIO instance and SM index for LEDs are now determined dynamically
+    // by the WS2812 driver during its init() call.
+    // static constexpr PIO LED_PIO_INSTANCE = pio0; // Removed
+    // static constexpr unsigned int LED_SM_INDEX = 0; // Removed
 
     /**
      * @brief Construct a DrumPizza board interface instance.

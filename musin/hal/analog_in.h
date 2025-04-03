@@ -1,8 +1,9 @@
 #ifndef MUSIN_HAL_ANALOG_IN_H
+#ifndef MUSIN_HAL_ANALOG_IN_H
 #define MUSIN_HAL_ANALOG_IN_H
 
 #include <cstdint>
-#include <vector> // For storing address pins
+#include <vector>
 // Standard types are sufficient for the interface definition.
 // Platform-specific SDK headers are now included in the .cpp file.
 
@@ -25,7 +26,6 @@ public:
    */
   explicit AnalogIn(uint pin, bool enable_temp_sensor = false);
 
-  // Prevent copying and assignment
   AnalogIn(const AnalogIn&) = delete;
   AnalogIn& operator=(const AnalogIn&) = delete;
 
@@ -70,7 +70,7 @@ private:
   // ADC reference voltage (typically 3.3V for RP2040)
   static constexpr float ADC_REFERENCE_VOLTAGE = 3.3f;
   // Maximum raw ADC value (12-bit)
-  static constexpr float ADC_MAX_VALUE = 4095.0f;
+  static constexpr float ADC_MAX_VALUE = 4095.0f; // Maximum raw ADC value (12-bit)
 
 
   const uint _pin;
@@ -155,7 +155,6 @@ private:
   const uint32_t _address_settle_time_us;
   bool _initialized = false;
 
-  // Constants reused from AnalogIn
   static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
   static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
 };
@@ -219,7 +218,6 @@ private:
   const uint32_t _address_settle_time_us;
   bool _initialized = false;
 
-  // Constants reused from AnalogIn
   static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
   static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
 };

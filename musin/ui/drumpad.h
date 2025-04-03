@@ -3,14 +3,13 @@
 
 #include <cstdint>
 #include <optional>
-// #include <vector> // Removed as it's not directly needed now
 #include <type_traits> // For static_assert
 
-#include "musin/hal/analog_in.h" // Include the AnalogIn header
+#include "musin/hal/analog_in.h"
 
 // Wrap C SDK headers
 extern "C" {
-#include "pico/time.h" // For absolute_time_t, time_us_64, etc.
+#include "pico/time.h"
 // No longer need direct gpio/adc includes here
 }
 
@@ -159,7 +158,7 @@ private:
     uint8_t calculate_velocity(uint64_t time_diff_us) const;
 
     // --- Configuration (initialized in constructor) ---
-    AnalogReader& _reader; // Reference to the analog input reader
+    AnalogReader& _reader;
     // Removed ADC/address pin members
     const std::uint16_t _noise_threshold;
     const std::uint16_t _press_threshold;
@@ -232,18 +231,17 @@ bool Drumpad<AnalogReader>::update() {
     absolute_time_t now = get_absolute_time();
     uint64_t time_since_last_update = absolute_time_diff_us(_last_update_time, now);
 
-    if (time_us_64() == 0 || time_since_last_update >= _scan_interval_us) {
+    if (is_nil_time(_last_update_time) || time_since_last_update >= _scan_interval_us) {
         // Clear event flags from the previous cycle
         _just_pressed = false;
         _just_released = false;
-        _last_velocity = std::nullopt; // Clear velocity from previous hit
+        _last_velocity = std::nullopt;
 
         // Read the ADC value using the provided reader
         // Assumes the reader handles mux addressing if necessary
         std::uint16_t current_adc_value = _reader.read_raw(); // Use read_raw() for 12-bit value
         _last_adc_value = current_adc_value;
 
-        // Update the state machine based on the new reading
         update_state_machine(current_adc_value, now);
 
         _last_update_time = now;
@@ -263,7 +261,7 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
             if (current_adc_value >= _press_threshold) {
                 _current_state = DrumpadState::RISING;
                 _state_transition_time = now;
-                _velocity_low_time = nil_time; // Reset velocity timing
+                _velocity_low_time = nil_time;
                 _velocity_high_time = nil_time;
             }
             break;
@@ -309,24 +307,24 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
              }
             break;
 
-        case DrumpadState::FALLING:
-            if (current_adc_value < _release_threshold) {
-                _current_state = DrumpadState::DEBOUNCING_RELEASE;
-                _state_transition_time = now; // Start debounce timer
-            } else if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
-                 // Check if it went back up and met hold criteria
-                 _current_state = DrumpadState::HOLDING;
-                 // Keep _state_transition_time from PEAKING entry
+       case DrumpadState::FALLING:
+           if (current_adc_value < _release_threshold) {
+               _current_state = DrumpadState::DEBOUNCING_RELEASE;
+               _state_transition_time = now;
+           } else if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
+                // Check if it went back up and met hold criteria
+                _current_state = DrumpadState::HOLDING;
+                // Keep _state_transition_time from PEAKING entry
             }
             // Could potentially go back to RISING/PEAKING if signal increases significantly again? (Retrigger logic - complex)
             break;
 
-        case DrumpadState::HOLDING:
-            if (current_adc_value < _release_threshold) { // Check against release, not hold threshold, to start release
-                _current_state = DrumpadState::DEBOUNCING_RELEASE;
-                _state_transition_time = now; // Start debounce timer
-            }
-            break;
+       case DrumpadState::HOLDING:
+           if (current_adc_value < _release_threshold) { // Check against release, not hold threshold, to start release
+               _current_state = DrumpadState::DEBOUNCING_RELEASE;
+               _state_transition_time = now;
+           }
+           break;
 
         case DrumpadState::DEBOUNCING_RELEASE:
             if (current_adc_value >= _release_threshold) {

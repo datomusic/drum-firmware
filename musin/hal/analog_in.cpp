@@ -10,16 +10,11 @@ extern "C" {
 
 namespace Musin::HAL {
 
-// --- Static Helper Implementation (AnalogIn) ---
-
 // --- Static Helper Implementation (Shared) ---
 
-// Defined in header, implementation here
 void AnalogIn::set_mux_address(const std::vector<uint>& address_pins, uint8_t address_value) {
-    hard_assert(address_pins.size() <= 8); // Max 8 address pins reasonable for uint8_t value
+    hard_assert(address_pins.size() <= 8);
     for (size_t i = 0; i < address_pins.size(); ++i) {
-        // Set pin state based on the corresponding bit in address_value
-        // (address_value >> i) & 1 extracts the i-th bit (LSB = bit 0)
         gpio_put(address_pins[i], (address_value >> i) & 1);
     }
 }
@@ -37,8 +32,8 @@ uint AnalogIn::pin_to_adc_channel(uint pin) {
 
 AnalogIn::AnalogIn(uint pin, bool enable_temp_sensor) :
   _pin(pin),
-  _adc_channel(pin_to_adc_channel(pin)), // Derive channel from pin
-  _enable_temp_sensor(enable_temp_sensor && (_adc_channel == 3)), // Only enable if channel is 3 (pin 29)
+  _adc_channel(pin_to_adc_channel(pin)),
+  _enable_temp_sensor(enable_temp_sensor && (_adc_channel == 3)),
   _initialized(false)
 {}
 
@@ -46,16 +41,12 @@ AnalogIn::AnalogIn(uint pin, bool enable_temp_sensor) :
 
 void AnalogIn::init() {
   if (_initialized) {
-    return; // Already initialized
+    return;
   }
 
-  // Initialize ADC system if not already done (safe to call multiple times)
   adc_init();
-
-  // Initialize the specific GPIO pin for ADC use
   adc_gpio_init(_pin);
 
-  // Enable temperature sensor if requested and applicable
   if (_enable_temp_sensor) {
     adc_set_temp_sensor_enabled(true);
   }
@@ -65,33 +56,21 @@ void AnalogIn::init() {
 
 std::uint16_t AnalogIn::read() const {
   if (!_initialized) {
-    // Or consider asserting: hard_assert(_initialized);
     return 0;
   }
 
-  // Select the ADC channel for this pin
   adc_select_input(_adc_channel);
-
-  // Perform the conversion
   std::uint16_t result12bit = adc_read();
-
-  // Scale 12-bit result (0-4095) to 16-bit (0-65520)
-  // Left shift by 4 is equivalent to multiplying by 16.
-  // This maps the 12-bit range to the upper part of the 16-bit range.
-  std::uint16_t result16bit = result12bit << 4;
+  std::uint16_t result16bit = result12bit << 4; // Scale 12-bit to 16-bit
 
   return result16bit;
 }
 
 std::uint16_t AnalogIn::read_raw() const {
    if (!_initialized) {
-    // Or consider asserting: hard_assert(_initialized);
     return 0;
   }
-   // Select the ADC channel for this pin
   adc_select_input(_adc_channel);
-
-  // Perform the conversion and return the raw 12-bit value
   return adc_read();
 }
 
@@ -99,11 +78,7 @@ float AnalogIn::read_voltage() const {
   if (!_initialized) {
     return 0.0f;
   }
-  // Read the raw 12-bit value
   std::uint16_t raw_value = read_raw();
-
-  // Convert the raw 12-bit value to voltage
-  // voltage = (raw_value / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE
   return (static_cast<float>(raw_value) / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE;
 }
 
@@ -130,7 +105,6 @@ void AnalogInMux8::init() {
         return;
     }
 
-    // Init ADC system and the specific ADC pin
     adc_init();
     adc_gpio_init(_adc_pin);
 
@@ -138,7 +112,7 @@ void AnalogInMux8::init() {
     for (uint pin : _address_pins) {
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_OUT);
-        gpio_put(pin, 0); // Default to address 0 initially
+        gpio_put(pin, 0);
     }
 
     _initialized = true;
@@ -149,7 +123,6 @@ std::uint16_t AnalogInMux8::read_raw() const {
         return 0;
     }
 
-    // Set the multiplexer address
     AnalogIn::set_mux_address(_address_pins, _channel_address);
 
     // Wait for the multiplexer and signal to settle (optional but recommended)
@@ -157,17 +130,13 @@ std::uint16_t AnalogInMux8::read_raw() const {
         busy_wait_us(_address_settle_time_us);
     }
 
-    // Select the ADC input channel (connected to the mux output)
     adc_select_input(_adc_channel);
-
-    // Perform the conversion
-    return adc_read(); // Returns 12-bit value
+    return adc_read();
 }
 
 std::uint16_t AnalogInMux8::read() const {
     std::uint16_t raw = read_raw();
-    // Scale 12-bit to 16-bit
-    return raw << 4;
+    return raw << 4; // Scale 12-bit to 16-bit
 }
 
 float AnalogInMux8::read_voltage() const {
@@ -198,7 +167,6 @@ void AnalogInMux16::init() {
         return;
     }
 
-    // Init ADC system and the specific ADC pin
     adc_init();
     adc_gpio_init(_adc_pin);
 
@@ -206,7 +174,7 @@ void AnalogInMux16::init() {
     for (uint pin : _address_pins) {
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_OUT);
-        gpio_put(pin, 0); // Default to address 0 initially
+        gpio_put(pin, 0);
     }
 
     _initialized = true;
@@ -217,7 +185,6 @@ std::uint16_t AnalogInMux16::read_raw() const {
         return 0;
     }
 
-    // Set the multiplexer address
     AnalogIn::set_mux_address(_address_pins, _channel_address);
 
     // Wait for the multiplexer and signal to settle
@@ -225,17 +192,13 @@ std::uint16_t AnalogInMux16::read_raw() const {
         busy_wait_us(_address_settle_time_us);
     }
 
-    // Select the ADC input channel (connected to the mux output)
     adc_select_input(_adc_channel);
-
-    // Perform the conversion
-    return adc_read(); // Returns 12-bit value
+    return adc_read();
 }
 
 std::uint16_t AnalogInMux16::read() const {
     std::uint16_t raw = read_raw();
-    // Scale 12-bit to 16-bit
-    return raw << 4;
+    return raw << 4; // Scale 12-bit to 16-bit
 }
 
 float AnalogInMux16::read_voltage() const {

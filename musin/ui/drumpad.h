@@ -274,37 +274,27 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
             // Check for velocity high threshold crossing
             if (!is_nil_time(_velocity_low_time) && current_adc_value >= _velocity_high_threshold) {
                  _velocity_high_time = now;
-                 _current_state = DrumpadState::PEAKING; // Transition to peaking once high threshold is hit
-                 _state_transition_time = now; // Reset state timer for peaking/falling/hold logic
+                 _current_state = DrumpadState::PEAKING;
+                 _state_transition_time = now;
 
-                 // Calculate velocity immediately
                  uint64_t diff = absolute_time_diff_us(_velocity_low_time, _velocity_high_time);
                  _last_velocity = calculate_velocity(diff);
-                 _just_pressed = true; // Signal the press event here
+                 _just_pressed = true;
             } else if (current_adc_value < _release_threshold) {
-                 // Signal dropped below release threshold before hitting velocity high (e.g., very light tap)
-                 // Treat as a release without a full velocity calculation? Or assign min velocity?
-                 // Option: Go directly to debounce release
+                 // Signal dropped below release threshold before hitting velocity high
                  _current_state = DrumpadState::DEBOUNCING_RELEASE;
                  _state_transition_time = now;
-                 // Optionally set _just_pressed = true and _last_velocity = 0 or some minimum?
-                 // For now, just transition to release debounce.
             }
             // Add a timeout? If it stays in RISING too long without hitting high threshold?
             break;
 
-        case DrumpadState::PEAKING:
-             // Velocity is already calculated when entering this state.
-             // Now wait for the signal to fall or stabilize for hold.
-             if (current_adc_value < _velocity_high_threshold) { // Start falling
-                 _current_state = DrumpadState::FALLING;
-                 // Keep _state_transition_time from PEAKING entry to measure hold duration later
-             }
-             // Check for hold condition starting from PEAKING entry time
-             if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
-                 _current_state = DrumpadState::HOLDING;
-                 // Keep _state_transition_time
-             }
+       case DrumpadState::PEAKING:
+            if (current_adc_value < _velocity_high_threshold) {
+                _current_state = DrumpadState::FALLING;
+            }
+            if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
+                _current_state = DrumpadState::HOLDING;
+            }
             break;
 
        case DrumpadState::FALLING:
@@ -331,18 +321,17 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
                 // Bounced back up - return to previous relevant state.
                 // Need to know if we came from HOLDING or FALLING/RISING.
                 // Simplification: Go back to FALLING, assuming it won't bounce high enough for HOLDING immediately.
-                // More robust: store previous state before debounce.
-                 _current_state = DrumpadState::FALLING; // Or HOLDING if previous was HOLDING?
-                 // Reset state transition time? Or use the original peak time? Let's reset.
-                 _state_transition_time = now; // Treat bounce back as new state entry
-            } else if (time_in_state >= _debounce_time_us) {
-                // Debounce time elapsed, confirm release
-                _current_state = DrumpadState::IDLE;
+                // Simplification: Go back to FALLING. More robust: store previous state.
+                _current_state = DrumpadState::FALLING;
                 _state_transition_time = now;
-                _just_released = true; // Signal the release event
-                _last_adc_value = 0; // Reset last value on idle
-                _velocity_low_time = nil_time; // Clear timing info
-                _velocity_high_time = nil_time;
+           } else if (time_in_state >= _debounce_time_us) {
+               // Debounce time elapsed, confirm release
+               _current_state = DrumpadState::IDLE;
+               _state_transition_time = now;
+               _just_released = true;
+               _last_adc_value = 0;
+               _velocity_low_time = nil_time;
+               _velocity_high_time = nil_time;
             }
             break;
     }

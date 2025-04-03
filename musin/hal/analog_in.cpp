@@ -90,7 +90,7 @@ AnalogInMux8::AnalogInMux8(uint adc_pin,
                            uint8_t channel_address,
                            uint32_t address_settle_time_us) :
   _adc_pin(adc_pin),
-  _adc_channel(AnalogIn::pin_to_adc_channel(adc_pin)), // Reuse helper
+  _adc_channel(AnalogIn::pin_to_adc_channel(adc_pin)),
   _address_pins(address_pins),
   _channel_address(channel_address),
   _address_settle_time_us(address_settle_time_us),

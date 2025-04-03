@@ -114,9 +114,8 @@ public:
   AnalogInMux8(uint adc_pin,
                  const std::vector<uint>& address_pins,
                  uint8_t channel_address,
-                 uint32_t address_settle_time_us = 5); // Default 5us settle time
+                 uint32_t address_settle_time_us = 5);
 
-  // Prevent copying and assignment
   AnalogInMux8(const AnalogInMux8&) = delete;
   AnalogInMux8& operator=(const AnalogInMux8&) = delete;
 

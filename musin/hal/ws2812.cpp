@@ -16,7 +16,7 @@ extern "C" {
 // The build system (CMake) must be configured to generate this.
 #include "ws2812.pio.h"
 
-namespace Musin::UI {
+namespace Musin::HAL { // Correct namespace
 
 // Static members for manual program loading are removed.
 
@@ -191,4 +191,4 @@ uint32_t WS2812::pack_color(uint8_t r, uint8_t g, uint8_t b) const {
 }
 
 
-} // namespace Musin::UI
+} // namespace Musin::HAL

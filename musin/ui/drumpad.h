@@ -31,10 +31,21 @@ enum class DrumpadState : std::uint8_t {
  *
  * This driver reads an ADC channel after setting address lines for a multiplexer.
  * It handles debouncing, detects press, release, hold events, and calculates velocity
- * based on the time taken to cross two defined thresholds.
+ * based on the time taken to cross two defined thresholds using an external analog reader.
+ *
+ * @tparam AnalogReader Type of the analog input object (e.g., AnalogIn, AnalogInMux8).
+ *                      Must provide a `read_raw()` method returning std::uint16_t.
  */
+template <typename AnalogReader>
 class Drumpad {
 public:
+    // Type check for the AnalogReader
+    // Concept would be better in C++20, but static_assert works for C++17
+    // This check is basic; it doesn't guarantee the method signature perfectly.
+    static_assert(std::is_member_function_pointer_v<decltype(&AnalogReader::read_raw)>,
+                  "AnalogReader must have a 'read_raw' method.");
+    // Could add more checks, e.g., for return type if needed, but gets complex.
+
     // --- Constants ---
     // Default Thresholds (ADC values 0-4095 for 12-bit)
     static constexpr std::uint16_t DEFAULT_NOISE_THRESHOLD = 50;
@@ -68,28 +79,22 @@ public:
      * @param debounce_time_us Time duration for debouncing release transitions in microseconds.
      * @param hold_time_us Minimum time the pad must be above hold_threshold after peaking to be considered 'held'.
      */
-    Drumpad(uint adc_pin,
-            const std::vector<uint>& address_pins, // Use vector for flexibility in address pin count
-            uint8_t address_value,
-            std::uint16_t noise_threshold = DEFAULT_NOISE_THRESHOLD,
-            std::uint16_t press_threshold = DEFAULT_PRESS_THRESHOLD,
-            std::uint16_t velocity_low_threshold = DEFAULT_VELOCITY_LOW_THRESHOLD,
-            std::uint16_t velocity_high_threshold = DEFAULT_VELOCITY_HIGH_THRESHOLD,
-            std::uint16_t release_threshold = DEFAULT_RELEASE_THRESHOLD,
-            std::uint16_t hold_threshold = DEFAULT_HOLD_THRESHOLD,
-            std::uint32_t scan_interval_us = DEFAULT_SCAN_INTERVAL_US,
-            std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
-            std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US);
+    explicit Drumpad(AnalogReader& reader, // Accept reference to the analog reader
+                     std::uint16_t noise_threshold = DEFAULT_NOISE_THRESHOLD,
+                     std::uint16_t press_threshold = DEFAULT_PRESS_THRESHOLD,
+                     std::uint16_t velocity_low_threshold = DEFAULT_VELOCITY_LOW_THRESHOLD,
+                     std::uint16_t velocity_high_threshold = DEFAULT_VELOCITY_HIGH_THRESHOLD,
+                     std::uint16_t release_threshold = DEFAULT_RELEASE_THRESHOLD,
+                     std::uint16_t hold_threshold = DEFAULT_HOLD_THRESHOLD,
+                     std::uint32_t scan_interval_us = DEFAULT_SCAN_INTERVAL_US,
+                     std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
+                     std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US);
 
     // Prevent copying and assignment
     Drumpad(const Drumpad&) = delete;
     Drumpad& operator=(const Drumpad&) = delete;
 
-    /**
-     * @brief Initialize GPIO pins for address lines and the ADC.
-     * Must be called once before starting updates.
-     */
-    void init();
+    // No init() needed here anymore, assumes reader is initialized externally.
 
     /**
      * @brief Performs an update cycle if the scan interval has elapsed.
@@ -135,17 +140,7 @@ public:
 
 
 private:
-    /**
-     * @brief Sets the multiplexer address pins based on the configured address value.
-     */
-    void set_address_pins();
-
-    /**
-     * @brief Reads the ADC value for the configured ADC pin.
-     * Assumes ADC is initialized and the correct channel is selected externally if needed (beyond mux).
-     * @return The 12-bit ADC reading.
-     */
-    std::uint16_t read_adc();
+    // Removed set_address_pins() and read_adc()
 
     /**
      * @brief Updates the internal state machine based on the new ADC reading and timings.
@@ -162,10 +157,8 @@ private:
     uint8_t calculate_velocity(uint64_t time_diff_us) const;
 
     // --- Configuration (initialized in constructor) ---
-    const uint _adc_pin;
-    const uint _adc_channel; // Derived from adc_pin
-    const std::vector<uint> _address_pins;
-    const uint8_t _address_value;
+    AnalogReader& _reader; // Reference to the analog input reader
+    // Removed ADC/address pin members
     const std::uint16_t _noise_threshold;
     const std::uint16_t _press_threshold;
     const std::uint16_t _velocity_low_threshold;
@@ -189,9 +182,201 @@ private:
     bool _just_released = false;
     std::optional<uint8_t> _last_velocity = std::nullopt;
 
-    bool _initialized = false;
+    // Removed _initialized flag, relies on external reader initialization
 
 }; // class Drumpad
+
+
+// ============================================================================
+// Template Implementation
+// ============================================================================
+
+// --- Constructor Implementation ---
+template <typename AnalogReader>
+Drumpad<AnalogReader>::Drumpad(AnalogReader& reader,
+                               std::uint16_t noise_threshold,
+                               std::uint16_t press_threshold,
+                               std::uint16_t velocity_low_threshold,
+                               std::uint16_t velocity_high_threshold,
+                               std::uint16_t release_threshold,
+                               std::uint16_t hold_threshold,
+                               std::uint32_t scan_interval_us,
+                               std::uint32_t debounce_time_us,
+                               std::uint32_t hold_time_us) :
+    _reader(reader), // Store reference to the reader
+    _noise_threshold(noise_threshold),
+    _press_threshold(press_threshold),
+    _velocity_low_threshold(velocity_low_threshold),
+    _velocity_high_threshold(velocity_high_threshold),
+    _release_threshold(release_threshold),
+    _hold_threshold(hold_threshold),
+    _scan_interval_us(scan_interval_us),
+    _debounce_time_us(debounce_time_us),
+    _hold_time_us(hold_time_us),
+    _current_state(DrumpadState::IDLE),
+    _last_adc_value(0),
+    _last_update_time(nil_time),
+    _state_transition_time(nil_time),
+    _velocity_low_time(nil_time),
+    _velocity_high_time(nil_time),
+    _just_pressed(false),
+    _just_released(false),
+    _last_velocity(std::nullopt)
+{}
+
+// --- Update Method ---
+template <typename AnalogReader>
+bool Drumpad<AnalogReader>::update() {
+    absolute_time_t now = get_absolute_time();
+    uint64_t time_since_last_update = absolute_time_diff_us(_last_update_time, now);
+
+    if (time_us_64() == 0 || time_since_last_update >= _scan_interval_us) {
+        // Clear event flags from the previous cycle
+        _just_pressed = false;
+        _just_released = false;
+        _last_velocity = std::nullopt; // Clear velocity from previous hit
+
+        // Read the ADC value using the provided reader
+        // Assumes the reader handles mux addressing if necessary
+        std::uint16_t current_adc_value = _reader.read_raw(); // Use read_raw() for 12-bit value
+        _last_adc_value = current_adc_value;
+
+        // Update the state machine based on the new reading
+        update_state_machine(current_adc_value, now);
+
+        _last_update_time = now;
+        return true; // Update was performed
+    }
+    return false; // Scan interval not elapsed
+}
+
+
+// --- State Machine Update ---
+template <typename AnalogReader>
+void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value, absolute_time_t now) {
+    uint64_t time_in_state = absolute_time_diff_us(_state_transition_time, now);
+
+    switch (_current_state) {
+        case DrumpadState::IDLE:
+            if (current_adc_value >= _press_threshold) {
+                _current_state = DrumpadState::RISING;
+                _state_transition_time = now;
+                _velocity_low_time = nil_time; // Reset velocity timing
+                _velocity_high_time = nil_time;
+            }
+            break;
+
+        case DrumpadState::RISING:
+            // Check for velocity low threshold crossing
+            if (is_nil_time(_velocity_low_time) && current_adc_value >= _velocity_low_threshold) {
+                _velocity_low_time = now;
+            }
+            // Check for velocity high threshold crossing
+            if (!is_nil_time(_velocity_low_time) && current_adc_value >= _velocity_high_threshold) {
+                 _velocity_high_time = now;
+                 _current_state = DrumpadState::PEAKING; // Transition to peaking once high threshold is hit
+                 _state_transition_time = now; // Reset state timer for peaking/falling/hold logic
+
+                 // Calculate velocity immediately
+                 uint64_t diff = absolute_time_diff_us(_velocity_low_time, _velocity_high_time);
+                 _last_velocity = calculate_velocity(diff);
+                 _just_pressed = true; // Signal the press event here
+            } else if (current_adc_value < _release_threshold) {
+                 // Signal dropped below release threshold before hitting velocity high (e.g., very light tap)
+                 // Treat as a release without a full velocity calculation? Or assign min velocity?
+                 // Option: Go directly to debounce release
+                 _current_state = DrumpadState::DEBOUNCING_RELEASE;
+                 _state_transition_time = now;
+                 // Optionally set _just_pressed = true and _last_velocity = 0 or some minimum?
+                 // For now, just transition to release debounce.
+            }
+            // Add a timeout? If it stays in RISING too long without hitting high threshold?
+            break;
+
+        case DrumpadState::PEAKING:
+             // Velocity is already calculated when entering this state.
+             // Now wait for the signal to fall or stabilize for hold.
+             if (current_adc_value < _velocity_high_threshold) { // Start falling
+                 _current_state = DrumpadState::FALLING;
+                 // Keep _state_transition_time from PEAKING entry to measure hold duration later
+             }
+             // Check for hold condition starting from PEAKING entry time
+             if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
+                 _current_state = DrumpadState::HOLDING;
+                 // Keep _state_transition_time
+             }
+            break;
+
+        case DrumpadState::FALLING:
+            if (current_adc_value < _release_threshold) {
+                _current_state = DrumpadState::DEBOUNCING_RELEASE;
+                _state_transition_time = now; // Start debounce timer
+            } else if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
+                 // Check if it went back up and met hold criteria
+                 _current_state = DrumpadState::HOLDING;
+                 // Keep _state_transition_time from PEAKING entry
+            }
+            // Could potentially go back to RISING/PEAKING if signal increases significantly again? (Retrigger logic - complex)
+            break;
+
+        case DrumpadState::HOLDING:
+            if (current_adc_value < _release_threshold) { // Check against release, not hold threshold, to start release
+                _current_state = DrumpadState::DEBOUNCING_RELEASE;
+                _state_transition_time = now; // Start debounce timer
+            }
+            break;
+
+        case DrumpadState::DEBOUNCING_RELEASE:
+            if (current_adc_value >= _release_threshold) {
+                // Bounced back up - return to previous relevant state.
+                // Need to know if we came from HOLDING or FALLING/RISING.
+                // Simplification: Go back to FALLING, assuming it won't bounce high enough for HOLDING immediately.
+                // More robust: store previous state before debounce.
+                 _current_state = DrumpadState::FALLING; // Or HOLDING if previous was HOLDING?
+                 // Reset state transition time? Or use the original peak time? Let's reset.
+                 _state_transition_time = now; // Treat bounce back as new state entry
+            } else if (time_in_state >= _debounce_time_us) {
+                // Debounce time elapsed, confirm release
+                _current_state = DrumpadState::IDLE;
+                _state_transition_time = now;
+                _just_released = true; // Signal the release event
+                _last_adc_value = 0; // Reset last value on idle
+                _velocity_low_time = nil_time; // Clear timing info
+                _velocity_high_time = nil_time;
+            }
+            break;
+    }
+}
+
+// --- Velocity Calculation ---
+template <typename AnalogReader>
+uint8_t Drumpad<AnalogReader>::calculate_velocity(uint64_t time_diff_us) const {
+    // Clamp time difference to expected range
+    if (time_diff_us <= MIN_VELOCITY_TIME_US) {
+        return 127; // Max velocity for fastest hits
+    }
+    if (time_diff_us >= MAX_VELOCITY_TIME_US) {
+        return 1; // Min velocity for slowest hits (or 0?)
+    }
+
+    // Inverse linear mapping: velocity = 127 * (1 - (time - min_time) / (max_time - min_time))
+    // Scale to 1-127 range
+    uint64_t time_range = MAX_VELOCITY_TIME_US - MIN_VELOCITY_TIME_US;
+    uint64_t adjusted_time = time_diff_us - MIN_VELOCITY_TIME_US;
+
+    // Calculate velocity (floating point for intermediate step might be simpler)
+    // float velocity_f = 1.0f + 126.0f * (1.0f - (float)adjusted_time / (float)time_range);
+    // return static_cast<uint8_t>(velocity_f);
+
+    // Integer calculation:
+    // velocity = 1 + 126 * (time_range - adjusted_time) / time_range
+    // Use 64-bit intermediate to avoid overflow
+    uint64_t velocity_scaled = 126ULL * (time_range - adjusted_time);
+    uint8_t velocity = 1 + static_cast<uint8_t>(velocity_scaled / time_range);
+
+    return velocity; // Range 1-127
+}
+
 
 } // namespace Musin::UI
 

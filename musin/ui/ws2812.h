@@ -50,7 +50,7 @@ public:
      * @param initial_brightness Optional initial brightness (0-255, default 255).
      * @param color_correction Optional color correction value (e.g., 0xFFB0F0, default none).
      */
-    WS2812(PIO pio, uint sm_index, uint data_pin, uint num_leds,
+    WS2812(PIO pio, unsigned int sm_index, unsigned int data_pin, unsigned int num_leds,
            RGBOrder order = RGBOrder::GRB,
            uint8_t initial_brightness = 255,
            std::optional<uint32_t> color_correction = std::nullopt);
@@ -118,9 +118,9 @@ public:
 
     /**
      * @brief Get the number of LEDs managed by this driver.
-     * @return uint Number of LEDs.
+     * @return unsigned int Number of LEDs.
      */
-    uint get_num_leds() const;
+    unsigned int get_num_leds() const;
 
 private:
     /**
@@ -150,25 +150,25 @@ private:
 
     // --- Configuration ---
     PIO _pio;
-    uint _sm_index;
-    uint _data_pin;
-    uint _num_leds;
+    unsigned int _sm_index;
+    unsigned int _data_pin;
+    unsigned int _num_leds;
     RGBOrder _order;
     uint8_t _brightness;
     std::optional<uint32_t> _color_correction;
 
     // --- State ---
     std::vector<uint32_t> _pixel_buffer; // Stores packed 24-bit color values after adjustments
-    uint _pio_program_offset = 0;        // Offset of the loaded PIO program within the PIO instance
+    unsigned int _pio_program_offset = 0;        // Offset of the loaded PIO program within the PIO instance
     bool _initialized = false;
 
     // --- PIO Program Info ---
     // Static members related to the PIO program itself.
     // We need a way to ensure the program is added to the PIO instance only once.
     static bool _pio_program_loaded[NUM_PIOS]; // Track loading per PIO instance
-    static uint _loaded_pio_program_offset[NUM_PIOS]; // Store offset per PIO instance
+    static unsigned int _loaded_pio_program_offset[NUM_PIOS]; // Store offset per PIO instance
     static const struct pio_program* _pio_program_ptr; // Pointer to the program struct
-    static bool load_pio_program_once(PIO pio, uint& offset_out); // Helper to load program once per PIO
+    static bool load_pio_program_once(PIO pio, unsigned int& offset_out); // Helper to load program once per PIO
 
 }; // class WS2812
 

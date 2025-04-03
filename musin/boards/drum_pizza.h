@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <array>
 #include <cstddef> // For size_t
+#include "musin/ui/keypad_hc138.h" // Include the keypad driver header
 
 // No direct SDK includes here, as this file defines the board interface,
 // not the microcontroller mapping.
@@ -25,10 +26,38 @@ namespace Musin::Boards {
 class DrumPizza {
 public:
     /**
-     * @brief Initialize the board specific components (if any).
-     * Currently empty, placeholder for future use.
+     * @brief Construct a DrumPizza board interface instance.
+     *
+     * @param keypad_addr_pins_gpio Array of 3 GPIO pin numbers corresponding to NamedPin::ADDR_0, ADDR_1, ADDR_2.
+     * @param keypad_col_pins_gpio Array of 5 GPIO pin numbers corresponding to NamedPin::RING1 to RING5.
+     * @param scan_interval_us Keypad scan interval (microseconds).
+     * @param debounce_time_us Keypad debounce time (microseconds).
+     * @param hold_time_us Keypad hold time (microseconds).
+     */
+    DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
+              const std::array<uint, 5>& keypad_col_pins_gpio,
+              std::uint32_t scan_interval_us = Musin::UI::Keypad_HC138::DEFAULT_SCAN_INTERVAL_US,
+              std::uint32_t debounce_time_us = Musin::UI::Keypad_HC138::DEFAULT_DEBOUNCE_TIME_US,
+              std::uint32_t hold_time_us = Musin::UI::Keypad_HC138::DEFAULT_HOLD_TIME_US);
+
+    /**
+     * @brief Initialize the hardware components managed by this board class.
+     * Must be called after construction, typically once at startup.
      */
     void init();
+
+    /**
+     * @brief Get a reference to the keypad driver instance.
+     * @return Reference to the Keypad_HC138 object.
+     */
+    Musin::UI::Keypad_HC138& keypad() { return _keypad; }
+
+    /**
+     * @brief Get a const reference to the keypad driver instance.
+     * @return Const reference to the Keypad_HC138 object.
+     */
+    const Musin::UI::Keypad_HC138& keypad() const { return _keypad; }
+
 
     // --- Named Pin Definitions (Mapped from J1 Connector) ---
     // Represents the logical pins corresponding to the physical J1 connector pins.
@@ -60,22 +89,10 @@ static constexpr NamedPin PIN_BOARD_ADDR2 = NamedPin::ADDR_2; // Example
 static constexpr std::uint8_t KEYPAD_ROWS = 8;
 static constexpr std::uint8_t KEYPAD_COLS = 5;
 
-// Keypad uses decoder address lines and column lines (referenced by NamedPin)
-static constexpr std::array<NamedPin, 3> keypad_decoder_address_pins = {
-    NamedPin::ADDR_0, // Decoder A0 (J1 Pin 5)
-    NamedPin::ADDR_1, // Decoder A1 (J1 Pin 6)
-    NamedPin::ADDR_2  // Decoder A2 (J1 Pin 7)
-};
+// Note: The static constexpr arrays for NamedPin keypad pins have been removed.
+// The actual GPIO pin numbers are now passed to the constructor.
 
-static constexpr NamedPin keypad_column_pins[KEYPAD_COLS] = {
-    NamedPin::RING1, // Column 0 (J1 Pin 16)
-    NamedPin::RING2, // Column 1 (J1 Pin 15)
-    NamedPin::RING3, // Column 2 (J1 Pin 14)
-    NamedPin::RING4, // Column 3 (J1 Pin 12)
-    NamedPin::RING5  // Column 4 (J1 Pin 11)
-};
-
-// Symbolic names for columns, matching the array index above
+// Symbolic names for columns, matching the physical layout and driver indexing
 enum class KeypadColumn : std::uint8_t {
     RING1 = 0, // Drum 1 Sequencer
     RING2 = 1, // Drum 2 Sequencer

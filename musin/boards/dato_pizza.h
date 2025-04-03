@@ -1,8 +1,6 @@
 /*
  * Custom board definition for DATO Pizza
  */
-
-
 #ifndef MUSIN_BOARDS_DATO_PIZZA_H
 #define MUSIN_BOARDS_DATO_PIZZA_H
 

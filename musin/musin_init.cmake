@@ -112,9 +112,12 @@ macro(musin_init_ui TARGET)
 
   target_sources(${TARGET} PRIVATE
     ${MUSIN_UI}/keypad_hc138.cpp
+    ${MUSIN_UI}/ws2812.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE
     hardware_gpio
+    hardware_pio
+    hardware_dma
   )
 endmacro()

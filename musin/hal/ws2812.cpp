@@ -1,4 +1,4 @@
-#include "musin/ui/ws2812.h"
+#include "musin/hal/ws2812.h"
 #include <algorithm> // For std::min, std::fill
 #include <vector>
 

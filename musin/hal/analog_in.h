@@ -1,5 +1,4 @@
 #ifndef MUSIN_HAL_ANALOG_IN_H
-#ifndef MUSIN_HAL_ANALOG_IN_H
 #define MUSIN_HAL_ANALOG_IN_H
 
 #include <cstdint>

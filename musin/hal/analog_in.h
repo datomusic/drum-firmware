@@ -59,7 +59,23 @@ public:
    */
   std::uint16_t read_raw() const;
 
+  /**
+   * @brief Read the analog value and convert it to voltage.
+   *
+   * Assumes the standard ADC reference voltage (typically 3.3V).
+   *
+   * @return The calculated voltage as a float.
+   *         Returns 0.0f if the class has not been initialized.
+   */
+  float read_voltage() const;
+
 private:
+  // ADC reference voltage (typically 3.3V for RP2040)
+  static constexpr float ADC_REFERENCE_VOLTAGE = 3.3f;
+  // Maximum raw ADC value (12-bit)
+  static constexpr float ADC_MAX_VALUE = 4095.0f;
+
+
   const uint _pin;
   const uint _adc_channel;
   const bool _enable_temp_sensor;

@@ -77,4 +77,17 @@ std::uint16_t AnalogIn::read_raw() const {
   return adc_read();
 }
 
+float AnalogIn::read_voltage() const {
+  if (!_initialized) {
+    return 0.0f;
+  }
+  // Read the raw 12-bit value
+  std::uint16_t raw_value = read_raw();
+
+  // Convert the raw 12-bit value to voltage
+  // voltage = (raw_value / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE
+  return (static_cast<float>(raw_value) / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE;
+}
+
+
 } // namespace Musin::HAL

@@ -6,9 +6,17 @@ extern "C" {
 #include <stdio.h> // For printf
 #include "hardware/gpio.h"
 #include "pico/time.h" // For sleep_us
-}
+#include "musin/ui/ws2812.h"       // Include WS2812 implementation details
 
 namespace Musin::Boards {
+
+// Enum to represent detected external pin state
+enum class ExternalPinState {
+    FLOATING,
+    PULL_UP,
+    PULL_DOWN,
+    UNDETERMINED
+};
 
 DrumPizza::DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
                      const std::array<uint, 5>& keypad_col_pins_gpio,
@@ -32,9 +40,12 @@ DrumPizza::DrumPizza(const std::array<uint, 3>& keypad_addr_pins_gpio,
     // Constructor body (if needed for other initializations)
 }
 
-// Helper function to check and print external pin state
-static void print_external_pin_state(uint gpio, const char* name) {
+
+// Helper function to check external pin state
+// Returns the detected state.
+static ExternalPinState check_external_pin_state(uint gpio, const char* name) {
     // 1. Initialize pin as input
+    // Note: gpio_init is safe to call multiple times
     gpio_init(gpio);
     gpio_set_dir(gpio, GPIO_IN);
 
@@ -63,69 +74,81 @@ static void print_external_pin_state(uint gpio, const char* name) {
     // printf("DEBUG: Pin %u (%s) - Read with pull-down: %d\n", gpio, name, pulldown_read);
 
     // 8. Determine external state based on readings
-    const char* external_state;
-    if (!initial_read && pullup_read) {
-        // Initially low, pulled high by internal pull-up.
-        // If it's also pulled low by internal pull-down, it's floating.
-        if (!pulldown_read) {
-             external_state = "Floating";
-        } else {
-             // Stays high with pull-down? Unexpected, maybe very weak pull-down fighting something?
-             external_state = "Floating (or Weak Pull-down)"; // Best guess
-        }
+    ExternalPinState determined_state;
+    const char* state_str; // For printing
+
+    if (!initial_read && pullup_read && !pulldown_read) {
+        // Reads LOW with no pull, HIGH with pull-up, LOW with pull-down -> Floating
+        determined_state = ExternalPinState::FLOATING;
+        state_str = "Floating";
+    } else if (initial_read && pullup_read && !pulldown_read) {
+         // Reads HIGH with no pull, HIGH with pull-up, LOW with pull-down -> Floating (alternative)
+        determined_state = ExternalPinState::FLOATING;
+        state_str = "Floating";
     } else if (!initial_read && !pullup_read) {
-        // Initially low, stays low even with internal pull-up -> Strong External Pull-down
-        external_state = "External Pull-down";
-    } else if (initial_read && !pulldown_read) {
-        // Initially high, pulled low by internal pull-down.
-        // If it also reads high with internal pull-up, it's floating.
-         if (pullup_read) {
-             external_state = "Floating";
-         } else {
-             // Stays low with pull-up? Unexpected, maybe very weak pull-up fighting something?
-             external_state = "Floating (or Weak Pull-up)"; // Best guess
-         }
+        // Reads LOW with no pull, LOW with pull-up -> Strong External Pull-down
+        determined_state = ExternalPinState::PULL_DOWN;
+        state_str = "External Pull-down";
     } else if (initial_read && pulldown_read) {
-        // Initially high, stays high even with internal pull-down -> Strong External Pull-up
-        external_state = "External Pull-up";
+        // Reads HIGH with no pull, HIGH with pull-down -> Strong External Pull-up
+        determined_state = ExternalPinState::PULL_UP;
+        state_str = "External Pull-up";
     } else {
-        // Covers cases like: initial=0, pullup=0, pulldown=1 or initial=1, pullup=0, pulldown=1
-        external_state = "Undetermined / Inconsistent Reads";
+        // Other combinations are less clear or indicate potential issues
+        // e.g., initial=0, pullup=1, pulldown=1 (weak pull-down?)
+        // e.g., initial=1, pullup=0, pulldown=0 (weak pull-up?)
+        determined_state = ExternalPinState::UNDETERMINED;
+        state_str = "Undetermined / Inconsistent Reads";
     }
 
-    printf("DrumPizza Init: Pin %u (%s) external state: %s\n", gpio, name, external_state);
+    printf("DrumPizza Init: Pin %u (%s) external state check result: %s\n", gpio, name, state_str);
 
     // 9. Disable pulls again before returning/proceeding
     gpio_disable_pulls(gpio);
-    sleep_us(10);
+    sleep_us(10); // Allow time for pulls to disable if needed
+
+    return determined_state;
 }
 
 
 void DrumPizza::init() {
     printf("DrumPizza Initializing...\n");
 
-    // --- Check initial external pin states before configuring them ---
+    // --- Check initial external pin states before configuring components ---
     printf("DrumPizza: Checking external pin states...\n");
-    // Keypad Address Pins (ADDR_0, ADDR_1, ADDR_2)
-    // Note: We need access to the keypad address pins here. They should be stored as members.
-    // Assuming _keypad_addr_pins_gpio is a member std::array<uint, 3>
-    print_external_pin_state(_keypad_addr_pins_gpio[0], "ADDR_0");
-    print_external_pin_state(_keypad_addr_pins_gpio[1], "ADDR_1");
-    print_external_pin_state(_keypad_addr_pins_gpio[2], "ADDR_2");
+    // Keypad Address Pins (ADDR_0, ADDR_1, ADDR_2) - Check state for info
+    check_external_pin_state(_keypad_addr_pins_gpio[0], "ADDR_0");
+    check_external_pin_state(_keypad_addr_pins_gpio[1], "ADDR_1");
+    check_external_pin_state(_keypad_addr_pins_gpio[2], "ADDR_2");
 
-    // LED Data Pin
-    print_external_pin_state(_led_data_pin_gpio, "LED_DATA");
+    // LED Data Pin - Check state to determine brightness
+    ExternalPinState led_pin_state = check_external_pin_state(_led_data_pin_gpio, "LED_DATA");
 
     // --- Initialize Components ---
-    printf("DrumPizza: Initializing Keypad...\n");
-    // Initialize the keypad GPIOs (this will set address pins to output)
-    _keypad.init();
 
+    // Keypad
+    printf("DrumPizza: Initializing Keypad...\n");
+    _keypad.init(); // Configures keypad pins (addr=out, col=in+pullup)
+
+    // LEDs
     printf("DrumPizza: Initializing LEDs...\n");
-    // TODO: Initialize LED driver here using _led_data_pin_gpio
-    // For now, just ensure the pin is initialized if not done elsewhere
-    gpio_init(_led_data_pin_gpio);
-    // LED driver will set direction later (likely output)
+    // Set brightness based on pin state check
+    // 42% brightness = 255 * 0.42 = 107.1 -> 107
+    uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 107 : 255;
+    printf("DrumPizza: Setting initial LED brightness to %u (based on pin state: %d)\n",
+           initial_brightness, static_cast<int>(led_pin_state));
+    _leds.set_brightness(initial_brightness);
+
+    // Initialize the WS2812 driver (configures PIO and LED pin)
+    if (!_leds.init()) {
+        // Handle LED initialization failure (e.g., print error, panic)
+        printf("Error: Failed to initialize WS2812 LED driver!\n");
+        // Depending on requirements, might panic here: panic("WS2812 Init Failed");
+    } else {
+        // Optional: Clear LEDs on startup
+        _leds.clear();
+        _leds.show();
+    }
 
     // Initialize other components here (e.g., Analog Mux) when added
 

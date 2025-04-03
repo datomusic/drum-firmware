@@ -9,6 +9,12 @@
 #include <cstddef> // For size_t
 #include <optional> // For optional LED return pin
 #include "musin/ui/keypad_hc138.h" // Include the keypad driver header
+#include "musin/ui/ws2812.h"       // Include the WS2812 driver header
+
+// Wrap C SDK headers needed for PIO definition
+extern "C" {
+#include "hardware/pio.h"
+}
 
 // No direct SDK includes here, as this file defines the board interface,
 // not the microcontroller mapping.
@@ -26,6 +32,11 @@ namespace Musin::Boards {
  */
 class DrumPizza {
 public:
+    // --- Constants for Hardware Resources ---
+    // TODO: Make these configurable if multiple DrumPizzas or other PIO devices are used
+    static constexpr PIO LED_PIO_INSTANCE = pio0;
+    static constexpr unsigned int LED_SM_INDEX = 0;
+
     /**
      * @brief Construct a DrumPizza board interface instance.
      *
@@ -62,6 +73,18 @@ public:
      * @return Const reference to the Keypad_HC138 object.
      */
     const Musin::UI::Keypad_HC138& keypad() const { return _keypad; }
+
+    /**
+     * @brief Get a reference to the WS2812 LED driver instance.
+     * @return Reference to the WS2812 object.
+     */
+    Musin::UI::WS2812& leds() { return _leds; }
+
+    /**
+     * @brief Get a const reference to the WS2812 LED driver instance.
+     * @return Const reference to the WS2812 object.
+     */
+    const Musin::UI::WS2812& leds() const { return _leds; }
 
 
     // --- Named Pin Definitions (Mapped from J1 Connector) ---

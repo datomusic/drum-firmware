@@ -1,8 +1,8 @@
 /*
  * Custom board definition for DATO Pizza
  */
-#ifndef MUSIN_BOARDS_DATO_PIZZA_H
-#define MUSIN_BOARDS_DATO_PIZZA_H
+#ifndef MUSIN_BOARDS_DRUM_PIZZA_H
+#define MUSIN_BOARDS_DRUM_PIZZA_H
 
 #include <cstdint>
 #include <array>
@@ -176,4 +176,4 @@ static constexpr std::array<std::uint32_t, 4> get_step_leds(std::uint8_t step_in
 
 } // namespace Musin::Boards
 
-#endif // MUSIN_BOARDS_DATO_PIZZA_H
+#endif // MUSIN_BOARDS_DRUM_PIZZA_H

@@ -100,7 +100,7 @@ void handle_cc(byte channel, byte controller, byte value) {
     if (controller == 7) { // MIDI Volume Control (CC7)
         // Direct mapping: MIDI 0-127 to -127-0 (0dB at max)
         int8_t volume = value - 127;
-        aic3204_amp_set_volume(volume);
+        aic3204_dac_set_volume(volume);
         printf("Set volume to %d (CC7 value: %d)\n", volume, value);
     }
 }
@@ -151,7 +151,7 @@ static bool init() {
     return false;
   }
   // Set initial volume to 0dB (max)
-  aic3204_amp_set_volume(0);
+  aic3204_dac_set_volume(0);
 #endif
 
   printf("Startup\n");

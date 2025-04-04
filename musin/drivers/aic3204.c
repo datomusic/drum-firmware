@@ -350,9 +350,9 @@ bool aic3204_amp_set_enabled(bool enable) {
     return false;
 }
 
-bool aic3204_amp_set_volume(int8_t volume) {
+bool aic3204_dac_set_volume(int8_t volume) {
     if (volume < -127 || volume > 48) {
-        printf("AIC3204 Error: Volume %d is invalid. Valid range: -127 to +48\n", volume);
+        printf("AIC3204 Error: DAC volume %d invalid. Valid range: -127 to +48\n", volume);
         return false;
     }
 
@@ -361,13 +361,13 @@ bool aic3204_amp_set_volume(int8_t volume) {
     
     // Set both channel volumes
     bool success = true;
-    success &= aic3204_write_register(0x00, 0x41, reg_value); // Left channel
-    success &= aic3204_write_register(0x00, 0x42, reg_value); // Right channel
+    success &= aic3204_write_register(0x00, 0x41, reg_value); // Left DAC
+    success &= aic3204_write_register(0x00, 0x42, reg_value); // Right DAC
 
     if (success) {
-        printf("AIC3204: Volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
+        printf("AIC3204: DAC volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
     } else {
-        printf("AIC3204 Error: Failed to write volume registers\n");
+        printf("AIC3204 Error: Failed to write DAC volume registers\n");
     }
     
     return success;

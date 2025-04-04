@@ -337,3 +337,13 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
 
     return true; // Initialization successful
 }
+
+bool aic3204_amp_enable(void) {
+    // MFP4 (0x37) Configuration: GPIO Output = High (0x05)
+    return aic3204_write_register(0x00, 0x37, 0x05);
+}
+
+bool aic3204_amp_disable(void) {
+    // MFP4 (0x37) Configuration: GPIO Output = Low (0x00)
+    return aic3204_write_register(0x00, 0x37, 0x00);
+}

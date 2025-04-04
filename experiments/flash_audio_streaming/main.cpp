@@ -3,7 +3,7 @@
 #include "hardware/pll.h"
 #include "hardware/sync.h"
 #include "hardware/structs/clocks.h"
-#include "musin/audio/aic3204.h"
+#include "musin/drivers/aic3204.h"
 #include "musin/audio/mixer.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"

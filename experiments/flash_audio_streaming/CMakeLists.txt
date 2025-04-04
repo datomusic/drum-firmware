@@ -27,6 +27,7 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 )
 
 musin_init(${EXECUTABLE_NAME})
+musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 musin_init_filesystem(${EXECUTABLE_NAME})

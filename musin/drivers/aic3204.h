@@ -1,5 +1,5 @@
-#ifndef MUSIN_AUDIO_AIC3204_H
-#define MUSIN_AUDIO_AIC3204_H
+#ifndef MUSIN_DRIVERS_AIC3204_H
+#define MUSIN_DRIVERS_AIC3204_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -20,4 +20,4 @@ bool aic3204_amp_set_enabled(bool enable);
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#endif /* MUSIN_AUDIO_AIC3204_H */
+#endif /* MUSIN_DRIVERS_AIC3204_H */

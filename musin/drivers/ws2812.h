@@ -1,5 +1,5 @@
-#ifndef MUSIN_HAL_WS2812_H // Corrected include guard name
-#define MUSIN_HAL_WS2812_H
+#ifndef MUSIN_DRIVERS_WS2812_H // Updated include guard name
+#define MUSIN_DRIVERS_WS2812_H
 
 #include <cstdint>
 #include <vector>

@@ -350,8 +350,32 @@ bool aic3204_amp_set_enabled(bool enable) {
     return false;
 }
 
-bool aic3204_amp_set_volume(uint16_t volume) {
-    printf("AIC3204: Volume control stub (vol=%u)\n", volume);
-    (void)volume; // Mark as unused for now
-    return true; // Pretend success
+bool aic3204_amp_set_volume(int8_t volume) {
+#if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
+    // Validate input range
+    if (volume < -127 || volume > 48) {
+        printf("AIC3204 Error: Volume %d is invalid. Valid range: -127 to +48\n", volume);
+        return false;
+    }
+
+    // Convert to unsigned register value (two's complement preserved)
+    uint8_t reg_value = (uint8_t)volume;
+    
+    // Set both channel volumes
+    bool success = true;
+    success &= aic3204_write_register(0x00, 0x41, reg_value); // Left channel
+    success &= aic3204_write_register(0x00, 0x42, reg_value); // Right channel
+
+    if (success) {
+        printf("AIC3204: Volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
+    } else {
+        printf("AIC3204 Error: Failed to write volume registers\n");
+    }
+    
+    return success;
+#else
+    (void)volume; // Silence unused parameter warning
+    printf("AIC3204 Warning: Volume control not available\n");
+    return false;
+#endif
 }

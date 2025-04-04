@@ -326,6 +326,12 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
 
     printf("AIC3204 register initialization complete.\n");
 
+    aic3204_amp_enable();
+    
+    return true; // Initialization successful
+}
+
+bool aic3204_amp_enable(void) {
 #if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
     printf("Enabling external AMP via Codec GPIO MFP4 (HIGH)...\n");
     bool amp_success = aic3204_write_register(0x00, 0x37, 0x05); // MFP4 = GPIO Output, Data = 1 (HIGH)
@@ -333,17 +339,22 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
         printf("AIC3204 Warning: Failed to set MFP4 HIGH to enable amp.\n");
     }
     sleep_ms(10); // Small delay after enabling amp
+    return amp_success;
 #endif
-
-    return true; // Initialization successful
-}
-
-bool aic3204_amp_enable(void) {
-    // MFP4 (0x37) Configuration: GPIO Output = High (0x05)
-    return aic3204_write_register(0x00, 0x37, 0x05);
+    printf("AIC3204 Warning: External AMP is not managed through the codec.");
+    return false;
 }
 
 bool aic3204_amp_disable(void) {
-    // MFP4 (0x37) Configuration: GPIO Output = Low (0x00)
-    return aic3204_write_register(0x00, 0x37, 0x00);
+#if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
+    printf("Enabling external AMP via Codec GPIO MFP4 (HIGH)...\n");
+    bool amp_success = aic3204_write_register(0x00, 0x37, 0x00); // MFP4 = GPIO Output, Data = 1 (HIGH)
+    if (!amp_success) {
+        printf("AIC3204 Warning: Failed to set MFP4 HIGH to enable amp.\n");
+    }
+    sleep_ms(10); // Small delay after enabling amp
+    return amp_success;
+#endif
+    printf("AIC3204 Warning: External AMP is not managed through the codec.");
+    return false;
 }

@@ -19,6 +19,7 @@ add_executable(${EXECUTABLE_NAME}
 )
 
 musin_init(${EXECUTABLE_NAME})
+musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})
 

@@ -326,14 +326,49 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
 
     printf("AIC3204 register initialization complete.\n");
 
-#if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
-    printf("Enabling external AMP via Codec GPIO MFP4 (HIGH)...\n");
-    bool amp_success = aic3204_write_register(0x00, 0x37, 0x05); // MFP4 = GPIO Output, Data = 1 (HIGH)
-    if (!amp_success) {
-        printf("AIC3204 Warning: Failed to set MFP4 HIGH to enable amp.\n");
-    }
-    sleep_ms(10); // Small delay after enabling amp
-#endif
-
+    aic3204_amp_set_enabled(true);
+    
     return true; // Initialization successful
+}
+
+bool aic3204_amp_set_enabled(bool enable) {
+#if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
+    printf("%s external AMP via Codec GPIO MFP4 (%s)...\n", 
+           enable ? "Enabling" : "Disabling", 
+           enable ? "HIGH" : "LOW");
+    uint8_t value = enable ? 0x05 : 0x00;
+    bool amp_success = aic3204_write_register(0x00, 0x37, value);
+    if (!amp_success) {
+        printf("AIC3204 Warning: Failed to set MFP4 %s to %s amp.\n", 
+               enable ? "HIGH" : "LOW", 
+               enable ? "enable" : "disable");
+    }
+    sleep_ms(10); // Small delay after changing amp state
+    return amp_success;
+#endif
+    printf("AIC3204 Warning: External AMP is not managed through the codec.");
+    return false;
+}
+
+bool aic3204_dac_set_volume(int8_t volume) {
+    if (volume < -127 || volume > 48) {
+        printf("AIC3204 Error: DAC volume %d invalid. Valid range: -127 to +48\n", volume);
+        return false;
+    }
+
+    // Convert to unsigned register value (two's complement preserved)
+    uint8_t reg_value = (uint8_t)volume;
+    
+    // Set both channel volumes
+    bool success = true;
+    success &= aic3204_write_register(0x00, 0x41, reg_value); // Left DAC
+    success &= aic3204_write_register(0x00, 0x42, reg_value); // Right DAC
+
+    if (success) {
+        printf("AIC3204: DAC volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
+    } else {
+        printf("AIC3204 Error: Failed to write DAC volume registers\n");
+    }
+    
+    return success;
 }

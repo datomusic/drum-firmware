@@ -25,6 +25,9 @@
  * THE SOFTWARE.
  */
 
+#ifndef DSPINST_H
+#define DSPINST_H
+
 #include <stdint.h>
 
 // computes limit((val >> rshift), 2**bits)
@@ -150,3 +153,5 @@ static inline void clr_q_psr(void) {
       "msr APSR_nzcvq,%0\n"
       : [t] "=&r"(t)::"cc");
 }
+
+#endif // DSPINST_H

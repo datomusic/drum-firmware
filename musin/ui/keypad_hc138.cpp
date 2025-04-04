@@ -249,4 +249,4 @@ void Keypad_HC138::update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key
 
 // Note: Private member variables are defined in the header file.
 
-} // namespace drum_drivers
+} // namespace Musin::UI // Corrected closing namespace comment

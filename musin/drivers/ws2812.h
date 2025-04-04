@@ -1,5 +1,5 @@
-#ifndef MUSIN_HAL_WS2812_H // Corrected include guard name
-#define MUSIN_HAL_WS2812_H
+#ifndef MUSIN_DRIVERS_WS2812_H // Updated include guard name
+#define MUSIN_DRIVERS_WS2812_H
 
 #include <cstdint>
 #include <vector>
@@ -15,7 +15,7 @@ extern "C" {
 // The .cpp file will include the actual generated header.
 struct pio_program;
 
-namespace Musin::HAL { // Corrected namespace
+namespace Musin::Drivers { // Updated namespace
 
 /**
  * @brief Defines the order of Red, Green, and Blue components for WS2812 LEDs.
@@ -168,6 +168,6 @@ private:
 
 }; // class WS2812
 
-} // namespace Musin::HAL
+} // namespace Musin::Drivers // Corrected closing namespace comment
 
-#endif // MUSIN_HAL_WS2812_H
+#endif // MUSIN_DRIVERS_WS2812_H // Corrected endif comment

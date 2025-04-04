@@ -72,7 +72,6 @@ macro(musin_init_audio TARGET)
     ${MUSIN_AUDIO}/audio_memory_reader.cpp
     ${MUSIN_AUDIO}/data_ulaw.c
     ${MUSIN_AUDIO}/mixer.cpp
-    ${MUSIN_AUDIO}/aic3204.c
   )
 
   target_compile_definitions(${TARGET} PRIVATE
@@ -123,15 +122,30 @@ macro(musin_init_hal TARGET)
   set(MUSIN_HAL ${MUSIN_ROOT}/hal)
 
   target_sources(${TARGET} PRIVATE
-    ${MUSIN_HAL}/ws2812.cpp
     ${MUSIN_HAL}/analog_in.cpp
   )
-
-  pico_generate_pio_header(${TARGET} ${MUSIN_HAL}/ws2812.pio)
 
   target_link_libraries(${TARGET} PRIVATE
     hardware_pio
     hardware_dma
     hardware_adc
   )
-endmacro()
+endmacro()                                                                                                                                                                      
+                                                                                                                                                                                
+                                                                                                                                                       
+macro(musin_init_drivers TARGET)                                                                                                                                                
+    set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)                                                                                                                         
+                                        
+    target_sources(${TARGET} PRIVATE                                                                                                                                              
+      ${MUSIN_DRIVERS}/aic3204.c                                                                                                                                                  
+      ${MUSIN_DRIVERS}/ws2812.cpp                                                                                                                                                 
+    )                                                                                                                                                                             
+                                                                                                                                                                                                                                                                                                                   
+    pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)                                                                                                               
+                                                                                                                                                                                  
+    target_link_libraries(${TARGET} PRIVATE                                                                                                                                       
+      hardware_i2c # For aic3204                                                                                                                                                  
+      hardware_pio # For ws2812                                                                                                                                                   
+      hardware_dma # For ws2812 (potentially, or for PIO interaction)                                                                                                             
+    )                                                                                                                                                                             
+  endmacro()             

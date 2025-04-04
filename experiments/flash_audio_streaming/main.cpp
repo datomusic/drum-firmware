@@ -3,7 +3,7 @@
 #include "hardware/pll.h"
 #include "hardware/sync.h"
 #include "hardware/structs/clocks.h"
-#include "musin/audio/aic3204.h"
+#include "musin/drivers/aic3204.h"
 #include "musin/audio/mixer.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
@@ -96,6 +96,15 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
 static void handle_sysex(byte *const, const unsigned) {
 }
 
+void handle_cc(byte channel, byte controller, byte value) {
+    if (controller == 7) { // MIDI Volume Control (CC7)
+        // Direct mapping: MIDI 0-127 to -127-0 (0dB at max)
+        int8_t volume = value - 127;
+        aic3204_dac_set_volume(volume);
+        printf("Set volume to %d (CC7 value: %d)\n", volume, value);
+    }
+}
+
 void handle_note_on(byte, byte note, byte velocity) {
   printf("Received midi note %d\n", note);
   const float pitch = (float)(velocity) / 64.0;
@@ -128,7 +137,7 @@ static bool init() {
       .start = nullptr,
       .cont = nullptr,
       .stop = nullptr,
-      .cc = nullptr,
+      .cc = handle_cc,
       .sysex = handle_sysex,
   });
   init_clock();
@@ -141,6 +150,8 @@ static bool init() {
     printf("Failed to initialize AIC3204 codec\n");
     return false;
   }
+  // Set initial volume to 0dB (max)
+  aic3204_dac_set_volume(0);
 #endif
 
   printf("Startup\n");

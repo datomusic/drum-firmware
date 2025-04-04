@@ -168,6 +168,6 @@ private:
 
 }; // class WS2812
 
-} // namespace Musin::HAL
+} // namespace Musin::Drivers // Corrected closing namespace comment
 
-#endif // MUSIN_HAL_WS2812_H
+#endif // MUSIN_DRIVERS_WS2812_H // Corrected endif comment

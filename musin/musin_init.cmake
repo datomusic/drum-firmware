@@ -118,3 +118,20 @@ macro(musin_init_ui TARGET)
     hardware_gpio
   )
 endmacro()
+
+macro(musin_init_hal TARGET)
+  set(MUSIN_HAL ${MUSIN_ROOT}/hal)
+
+  target_sources(${TARGET} PRIVATE
+    ${MUSIN_HAL}/ws2812.cpp
+    ${MUSIN_HAL}/analog_in.cpp
+  )
+
+  pico_generate_pio_header(${TARGET} ${MUSIN_HAL}/ws2812.pio)
+
+  target_link_libraries(${TARGET} PRIVATE
+    hardware_pio
+    hardware_dma
+    hardware_adc
+  )
+endmacro()

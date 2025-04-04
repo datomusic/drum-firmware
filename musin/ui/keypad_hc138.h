@@ -3,12 +3,12 @@
 #define DRUM_DRIVERS_KEYPAD_HC138_H
 
 #include <cstdint>
-#include <cstddef> // For size_t
-#include <array>   // For fixed-size decoder pins array
+#include <cstddef>
+#include <array>
 
 // Wrap C SDK headers
 extern "C" {
-#include "pico/time.h" // For absolute_time_t, nil_time
+#include "pico/time.h"
 }
 
 namespace Musin::UI {
@@ -159,7 +159,7 @@ private:
 
   // --- State ---
   KeyData* _key_data;                  // Pointer to user-provided buffer for key states
-  absolute_time_t _last_scan_time;
+  absolute_time_t _last_scan_time = nil_time; // Initialize to nil_time
 
 }; // class Keypad_HC138
 

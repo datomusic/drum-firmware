@@ -19,12 +19,13 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 - **Minimal Includes**: Keep includes minimal
 - **Interface Definition**: Define interfaces using `class` and `struct` with proper access specifiers
 - **Inline Functions**: Define small member functions in headers for implicit inlining
-- **Documentation**: Use Doxygen-style comments
+- **Documentation**: Use Doxygen-style comments *where necessary* to explain complex logic or non-obvious behavior. Avoid verbose comments for self-explanatory code.
 
 ## 3. Source Files (.cpp)
 - Implement non-trivial functions here
 - Use anonymous namespaces for internal linkage (preferred over `static`)
 - Include corresponding header first
+- Avoid verbose comments for self-explanatory code.
 
 ## 4. Platform Abstraction and Portability
 - Wrap C SDK hardware in C++ classes using RAII
@@ -57,7 +58,7 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 - Interact with C build system defines (`PICO_NO_FPGA_CHECK`, etc.)
 - Use weak symbols for behavior overrides
 
-## Embedded Guidelines
+## 10. Embedded Guidelines
 - Avoid dynamic memory allocation (no `new`/`malloc`)
 - Prefer fixed-size containers
 - Be mindful of stack usage

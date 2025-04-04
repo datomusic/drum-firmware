@@ -1,11 +1,11 @@
 # DRUM Firmware Repository
 
-This repository contains the firmware and related code for the DRUM project, primarily targeting the Raspberry Pi Pico (RP2040).
+This repository contains the firmware and related code for the DRUM project.
 
 ## Directory Structure:
 
 - `musin/`: Core C++ firmware source code.
-  - `hal/`: Hardware Abstraction Layer for RP2040 peripherals.
+  - `hal/`: Hardware Abstraction Layer for RP2350 peripherals.
   - `audio/`: Audio processing components.
   - `ui/`: User interface elements.
   - `usb/`: USB communication handling.

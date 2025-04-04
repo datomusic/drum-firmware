@@ -15,7 +15,7 @@ extern "C" {
 // The .cpp file will include the actual generated header.
 struct pio_program;
 
-namespace Musin::HAL { // Corrected namespace
+namespace Musin::Drivers { // Updated namespace
 
 /**
  * @brief Defines the order of Red, Green, and Blue components for WS2812 LEDs.

@@ -1,4 +1,4 @@
-#include "musin/hal/ws2812.h"
+#include "musin/drivers/ws2812.h" // Updated include path
 #include <algorithm> // For std::min, std::fill
 #include <vector>
 

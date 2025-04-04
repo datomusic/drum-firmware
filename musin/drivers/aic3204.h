@@ -21,4 +21,4 @@ bool aic3204_amp_disable(void);
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#endif // MUSIN_AUDIO_AIC3204_H
+#endif /* MUSIN_AUDIO_AIC3204_H */

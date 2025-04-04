@@ -5,6 +5,7 @@ This repository contains the firmware and related code for the DRUM project.
 ## Directory Structure:
 - `drum/`: Application C++ source code
 - `musin/`: Core C++ library source code.
+  - `drivers/`: Hardware device drivers (e.g., codecs, sensors).
   - `hal/`: Hardware Abstraction Layer for RP2350 peripherals.
   - `audio/`: Audio processing components.
   - `ui/`: User interface elements.

@@ -23,7 +23,7 @@ namespace Musin::HAL { // Correct namespace
 // Helper function load_pio_program_once is removed.
 
 
-WS2812::WS2812(uint data_pin, uint num_leds, // PIO and SM removed from constructor args
+WS2812::WS2812(unsigned int data_pin, unsigned int num_leds, // Use unsigned int
                RGBOrder order, uint8_t initial_brightness,
                std::optional<uint32_t> color_correction)
     : _pio(nullptr), // Initialize PIO to null, will be set in init()
@@ -35,10 +35,9 @@ WS2812::WS2812(uint data_pin, uint num_leds, // PIO and SM removed from construc
       _color_correction(color_correction),
       _pixel_buffer(num_leds, 0) // Allocate buffer and initialize to black
 {
-    assert(pio == pio0 || pio == pio1);
-    assert(sm_index < NUM_PIO_STATE_MACHINES);
+    // Asserts for pio/sm_index removed as they are no longer constructor arguments.
+    // Assert for num_leds is reasonable.
     assert(num_leds > 0);
-    // _pio and _sm_index are initialized to invalid values above.
 }
 
 bool WS2812::init() {
@@ -50,9 +49,9 @@ bool WS2812::init() {
     // Use the SDK helper to find a free PIO instance and state machine,
     // add the ws2812 program, and get the assigned resources.
     // We use the _for_gpio_range variant to ensure compatibility with high GPIOs if needed.
-    PIO pio_instance; // Local variable to receive the chosen PIO
-    uint sm_idx;      // Local variable to receive the chosen SM index (Changed type to uint)
-    uint offset;      // Local variable to receive the program offset
+    PIO pio_instance;          // Local variable to receive the chosen PIO
+    unsigned int sm_idx;       // Local variable to receive the chosen SM index (Use unsigned int)
+    unsigned int offset;       // Local variable to receive the program offset
 
     // Note: The ws2812_program struct is defined in the generated ws2812.pio.h
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(
@@ -65,7 +64,7 @@ bool WS2812::init() {
 
     // Store the claimed resources
     _pio = pio_instance;
-    _sm_index = static_cast<unsigned int>(sm_idx); // Cast from int to unsigned int
+    _sm_index = sm_idx; // No cast needed if local is unsigned int
     _pio_program_offset = offset;
 
     // --- Initialize State Machine using C-SDK Helper ---
@@ -81,7 +80,7 @@ bool WS2812::init() {
 }
 
 
-void WS2812::set_pixel(uint index, uint8_t r, uint8_t g, uint8_t b) {
+void WS2812::set_pixel(unsigned int index, uint8_t r, uint8_t g, uint8_t b) { // Use unsigned int
     if (!_initialized || index >= _num_leds) {
         // Consider assertion failure in debug builds: assert(index < _num_leds && _initialized);
         return; // Ignore if not initialized or index out of bounds
@@ -92,7 +91,7 @@ void WS2812::set_pixel(uint index, uint8_t r, uint8_t g, uint8_t b) {
     _pixel_buffer[index] = pack_color(final_r, final_g, final_b);
 }
 
-void WS2812::set_pixel(uint index, uint32_t color) {
+void WS2812::set_pixel(unsigned int index, uint32_t color) { // Use unsigned int
      if (!_initialized || index >= _num_leds) {
         // assert(index < _num_leds && _initialized);
         return;
@@ -141,7 +140,7 @@ uint8_t WS2812::get_brightness() const {
     return _brightness;
 }
 
-uint WS2812::get_num_leds() const {
+unsigned int WS2812::get_num_leds() const { // Already unsigned int, good.
     return _num_leds;
 }
 

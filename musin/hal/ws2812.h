@@ -1,5 +1,5 @@
-#ifndef MUSIN_UI_WS2812_H
-#define MUSIN_UI_WS2812_H
+#ifndef MUSIN_HAL_WS2812_H // Corrected include guard name
+#define MUSIN_HAL_WS2812_H
 
 #include <cstdint>
 #include <vector>
@@ -78,7 +78,7 @@ public:
      * @param g Green component (0-255).
      * @param b Blue component (0-255).
      */
-    void set_pixel(uint index, uint8_t r, uint8_t g, uint8_t b);
+    void set_pixel(unsigned int index, uint8_t r, uint8_t g, uint8_t b);
 
     /**
      * @brief Set the color of a single pixel using a 24-bit RGB value.
@@ -88,7 +88,7 @@ public:
      * @param index The 0-based index of the pixel. Must be less than num_leds.
      * @param color The 24-bit color (e.g., 0xRRGGBB).
      */
-    void set_pixel(uint index, uint32_t color);
+    void set_pixel(unsigned int index, uint32_t color);
 
     /**
      * @brief Send the current pixel buffer data to the physical LED strip via PIO.
@@ -120,7 +120,7 @@ public:
      * @brief Get the number of LEDs managed by this driver.
      * @return unsigned int Number of LEDs.
      */
-    unsigned int get_num_leds() const;
+    unsigned int get_num_leds() const; // Already uses unsigned int, good.
 
 private:
     /**
@@ -170,4 +170,4 @@ private:
 
 } // namespace Musin::HAL
 
-#endif // MUSIN_HAL_WS2812_H // Also update the include guard name
+#endif // MUSIN_HAL_WS2812_H

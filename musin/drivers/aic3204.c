@@ -351,8 +351,6 @@ bool aic3204_amp_set_enabled(bool enable) {
 }
 
 bool aic3204_amp_set_volume(int8_t volume) {
-#if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
-    // Validate input range
     if (volume < -127 || volume > 48) {
         printf("AIC3204 Error: Volume %d is invalid. Valid range: -127 to +48\n", volume);
         return false;
@@ -373,9 +371,4 @@ bool aic3204_amp_set_volume(int8_t volume) {
     }
     
     return success;
-#else
-    (void)volume; // Silence unused parameter warning
-    printf("AIC3204 Warning: Volume control not available\n");
-    return false;
-#endif
 }

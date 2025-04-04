@@ -349,3 +349,14 @@ bool aic3204_amp_set_enabled(bool enable) {
     printf("AIC3204 Warning: External AMP is not managed through the codec.");
     return false;
 }
+
+bool aic3204_amp_set_volume(uint16_t volume) {
+#if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
+    // TODO: Implement actual volume control
+    printf("AIC3204: Volume control stub (vol=%u)\n", volume);
+    (void)volume; // Mark as unused for now
+    return true; // Pretend success
+#endif
+    printf("AIC3204 Warning: External AMP volume control not available");
+    return false;
+}

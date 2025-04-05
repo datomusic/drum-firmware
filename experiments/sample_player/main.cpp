@@ -9,10 +9,6 @@
 #define PICO_AUDIO_I2S_DATA_PIN 18
 #define PICO_AUDIO_I2S_CLOCK_PIN_BASE 16
 
-#include "hardware/clocks.h"
-#include "hardware/pio.h"
-#include "hardware/pll.h"
-#include "hardware/structs/clocks.h"
 #include "pico/audio.h"
 #include "pico/stdlib.h"
 
@@ -28,7 +24,6 @@
 #include "sine_source.h"
 
 #include <stdio.h>
-#include <vector>
 
 uint master_volume = 10;
 Sound kick(AudioSampleKick, AudioSampleKickSize);
@@ -36,29 +31,13 @@ Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
-// const int SOUND_COUNT = 3;
-// BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &cashreg, &hihat};
-// BufferSource *sounds[SOUND_COUNT] = {&kick, &snare, &hihat};
 const int SOUND_COUNT = 4;
+
 Sound *sounds[SOUND_COUNT] = {&kick, &snare, &hihat, &cashreg};
 
 AudioMixer4 mixer((BufferSource **)sounds, SOUND_COUNT);
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
-
-static void init_clock() {
-  // Set PLL_USB 96MHz
-  pll_init(pll_usb, 1, 1536 * MHZ, 4, 4);
-  clock_configure(clk_usb, 0, CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                  96 * MHZ, 48 * MHZ);
-  // Change clk_sys to be 96MHz.
-  clock_configure(clk_sys, CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
-                  CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 96 * MHZ,
-                  96 * MHZ);
-  // CLK peri is clocked from clk_sys so need to change clk_peri's freq
-  clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-                  96 * MHZ, 96 * MHZ);
-}
 
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   // printf("Filling buffer\n");
@@ -75,32 +54,7 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
 }
 
-/*
-static bool interactive_ui() {
-  int c = getchar_timeout_us(0);
-  if (c >= 0) {
-    if (c == '-' && sound.volume)
-      sound.volume--;
-    if ((c == '=' || c == '+') && sound.volume < 256)
-      sound.volume++;
-    if (c == 'q') {
-      AudioOutput::deinit();
-      return false;
-    }
-
-    if (c == 'p') {
-      sound.play();
-    }
-
-    printf("volume = %d      \r", sound.volume);
-  }
-
-  return true;
-}
-*/
-
 int main() {
-  init_clock();
   stdio_init_all();
   sleep_ms(2000);
   printf("Startup!\n");
@@ -128,13 +82,9 @@ int main() {
     const auto now = to_ms_since_boot(get_absolute_time());
     const auto diff_ms = now - last_ms;
     last_ms = now;
-
     accum_ms += diff_ms;
 
     if (!AudioOutput::update(fill_audio_buffer)) {
-      // printf("Tick!\n");
-      // if (!interactive_ui()) { break; }
-
       if (accum_ms > 300) {
         accum_ms = 0;
         printf("Playing sound\n");
@@ -150,26 +100,6 @@ int main() {
         sound->play(pitch);
         sound_index = (sound_index + 1) % SOUND_COUNT;
       }
-
-      /*
-      sleep_ms(200);
-      cashreg.play(0.8);
-      hihat.play(0.4);
-      sleep_ms(200);
-      kick.play(1.8);
-      sleep_ms(200);
-      hihat.play(0.8);
-      sleep_ms(200);
-      kick.play(0.8);
-      sleep_ms(200);
-      hihat.play(1.2);
-      sleep_ms(200);
-      kick.play(1.8);
-      sleep_ms(200);
-      hihat.play(1.7);
-      kick.play(0.9);
-      snare.play(1.5);
-      */
     }
   }
 

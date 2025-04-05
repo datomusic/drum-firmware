@@ -1,4 +1,4 @@
-#ifndef MUSIN_DRIVERS_WS2812_H // Updated include guard name
+#ifndef MUSIN_DRIVERS_WS2812_H
 #define MUSIN_DRIVERS_WS2812_H
 
 #include <cstdint>
@@ -15,7 +15,7 @@ extern "C" {
 // The .cpp file will include the actual generated header.
 struct pio_program;
 
-namespace Musin::Drivers { // Updated namespace
+namespace Musin::Drivers {
 
 /**
  * @brief Defines the order of Red, Green, and Blue components for WS2812 LEDs.
@@ -50,7 +50,7 @@ public:
      * @param initial_brightness Optional initial brightness (0-255, default 255).
      * @param color_correction Optional color correction value (e.g., 0xFFB0F0, default none).
      */
-    WS2812(unsigned int data_pin, unsigned int num_leds, // PIO and SM are now determined dynamically in init()
+    WS2812(unsigned int data_pin, unsigned int num_leds, // PIO/SM determined in init()
            RGBOrder order = RGBOrder::GRB,
            uint8_t initial_brightness = 255,
            std::optional<uint32_t> color_correction = std::nullopt);
@@ -120,7 +120,7 @@ public:
      * @brief Get the number of LEDs managed by this driver.
      * @return unsigned int Number of LEDs.
      */
-    unsigned int get_num_leds() const; // Already uses unsigned int, good.
+    unsigned int get_num_leds() const;
 
 private:
     /**
@@ -158,8 +158,8 @@ private:
     std::optional<uint32_t> _color_correction;
 
     // --- State ---
-    std::vector<uint32_t> _pixel_buffer; // Stores packed 24-bit color values after adjustments
-    unsigned int _pio_program_offset = 0;        // Offset of the loaded PIO program within the PIO instance
+    std::vector<uint32_t> _pixel_buffer;
+    unsigned int _pio_program_offset = 0;
     bool _initialized = false;
 
     // --- PIO Program Info ---
@@ -168,6 +168,6 @@ private:
 
 }; // class WS2812
 
-} // namespace Musin::Drivers // Corrected closing namespace comment
+} // namespace Musin::Drivers
 
-#endif // MUSIN_DRIVERS_WS2812_H // Corrected endif comment
+#endif // MUSIN_DRIVERS_WS2812_H

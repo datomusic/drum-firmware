@@ -420,8 +420,8 @@ bool aic3204_dac_set_volume(int8_t volume) {
         _current_dac_volume = volume; // Update cached volume on successful write
     } else {
         printf("AIC3204 Error: Failed to write DAC volume registers\n");
-        // Consider if _current_dac_volume should be invalidated on failure?
-        // For now, leave it as the last known *successful* value.
+        // Invalidate cached volume on failure, forcing a rewrite next time
+        _current_dac_volume = INT8_MIN; // Use a value outside the valid range (-127 to +48)
     }
     
     return success;

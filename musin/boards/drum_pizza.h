@@ -72,15 +72,15 @@ public:
 
     /**
      * @brief Get a reference to the WS2812 LED driver instance.
-     * @return Reference to the WS2812 object.
+     * @return Reference to the WS2812<NUM_LEDS> object.
      */
-    Musin::Drivers::WS2812& leds() { return _leds; }
+    Musin::Drivers::WS2812<NUM_LEDS>& leds() { return _leds; }
 
     /**
      * @brief Get a const reference to the WS2812 LED driver instance.
-     * @return Const reference to the WS2812 object.
+     * @return Const reference to the WS2812<NUM_LEDS> object.
      */
-    const Musin::Drivers::WS2812& leds() const { return _leds; }
+    const Musin::Drivers::WS2812<NUM_LEDS>& leds() const { return _leds; }
 
 
     // --- Named Pin Definitions (Mapped from J1 Connector) ---
@@ -182,8 +182,8 @@ private:
     // Keypad driver instance
     Musin::UI::Keypad_HC138 _keypad;
 
-    // LED driver instance
-    Musin::Drivers::WS2812 _leds;
+    // LED driver instance (templated with the number of LEDs)
+    Musin::Drivers::WS2812<NUM_LEDS> _leds;
 
     // Pin configuration storage (needed by init or other methods)
     const std::array<unsigned int, 4> _address_pins_gpio; // Changed size to 4, renamed for clarity

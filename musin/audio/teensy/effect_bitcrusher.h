@@ -29,11 +29,19 @@
 #ifndef effect_bitcrusher_h_
 #define effect_bitcrusher_h_
 
-#include "AudioStream.h"
+#include "../audio_output.h"
+// #include "AudioStream.h"
 
-class AudioEffectBitcrusher : public AudioStream {
+// class AudioEffectBitcrusher : public AudioStream {
+class AudioEffectBitcrusher {
 public:
+  /*
   AudioEffectBitcrusher(void) : AudioStream(1, inputQueueArray) {
+  }
+  */
+
+  bool active() const {
+    return !(crushBits == 16 && sampleStep <= 1);
   }
 
   void bits(uint8_t b) {
@@ -44,24 +52,22 @@ public:
     crushBits = b;
   }
 
-  /*
   void sampleRate(float hz) {
-    int n = (AUDIO_SAMPLE_RATE_EXACT / hz) + 0.5f;
+    int n = (AudioOutput::SAMPLE_FREQUENCY / hz) + 0.5f;
     if (n < 1)
       n = 1;
     else if (n > 64)
       n = 64;
     sampleStep = n;
   }
-  */
 
-  virtual void update(void);
+  bool update(int16_t *samples, uint32_t sample_count);
 
 private:
-  uint8_t crushBits;  // 16 = off
-  uint8_t sampleStep; // the number of samples to double up. This simple
+  uint8_t crushBits = 16;  // 16 = off
+  uint8_t sampleStep = 64; // the number of samples to double up. This simple
                       // technique only allows a few stepped positions.
-  audio_block_t *inputQueueArray[1];
+  // audio_block_t *inputQueueArray[1];
 };
 
 #endif

@@ -17,7 +17,8 @@
 
 #include "musin/audio/audio_output.h"
 #include "musin/audio/mixer.h"
-#include "musin/audio/teensy/effect_bitcrusher.h"
+// #include "musin/audio/teensy/effect_bitcrusher.h"
+#include "crusher.h"
 #include "musin/audio/teensy/filter_variable.h"
 #include "musin/audio/sound.h"
 
@@ -37,11 +38,12 @@ Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 const etl::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 
-AudioEffectBitcrusher crusher;
+// AudioEffectBitcrusher crusher;
+Crusher crusher(mixer);
 AudioFilterStateVariable filter;
 
-// BufferSource& output = crusher;
-static BufferSource& output = mixer;
+BufferSource& output = crusher;
+// static BufferSource& output = mixer;
 
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
@@ -60,6 +62,7 @@ int main() {
   sleep_ms(1000);
   printf("Startup!\n");
 
+  crusher.sampleRate(2489.0f);
   AudioOutput::init();
 
   uint32_t last_ms = to_ms_since_boot(get_absolute_time());
@@ -77,7 +80,7 @@ int main() {
     accum_ms += diff_ms;
 
     if (!AudioOutput::update(fill_audio_buffer)) {
-      if (accum_ms > 300) {
+      if (accum_ms > 1000) {
         accum_ms = 0;
         printf("Playing sound\n");
 

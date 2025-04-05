@@ -12,11 +12,9 @@ static audio_buffer_pool_t *producer_pool;
 static bool running = false;
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
-#define SAMPLE_FREQUENCY 44100
-// #define SAMPLE_FREQUENCY 24000
 #define BUFFER_COUNT 3
 
-static audio_format_t audio_format = {.sample_freq = SAMPLE_FREQUENCY,
+static audio_format_t audio_format = {.sample_freq = AudioOutput::SAMPLE_FREQUENCY,
                                       .format = AUDIO_BUFFER_FORMAT_PCM_S16,
                                       .channel_count = 1};
 

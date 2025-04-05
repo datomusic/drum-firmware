@@ -17,6 +17,7 @@ bool aic3204_write_register(uint8_t page, uint8_t reg_addr, uint8_t value);
 bool aic3204_read_register(uint8_t page, uint8_t reg_addr, uint8_t* read_value);
 bool aic3204_amp_set_enabled(bool enable);
 bool aic3204_dac_set_volume(int8_t volume);
+bool aic3204_route_in_to_headphone(bool enable);
 
 #ifdef __cplusplus
 } // extern "C"

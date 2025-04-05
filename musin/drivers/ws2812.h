@@ -1,4 +1,4 @@
-#ifndef MUSIN_DRIVERS_WS2812_H // Updated include guard name
+#ifndef MUSIN_DRIVERS_WS2812_H
 #define MUSIN_DRIVERS_WS2812_H
 
 #include <cstdint>
@@ -15,7 +15,7 @@ extern "C" {
 // The .cpp file will include the actual generated header.
 struct pio_program;
 
-namespace Musin::Drivers { // Updated namespace
+namespace Musin::Drivers {
 
 /**
  * @brief Defines the order of Red, Green, and Blue components for WS2812 LEDs.
@@ -50,7 +50,7 @@ public:
      * @param initial_brightness Optional initial brightness (0-255, default 255).
      * @param color_correction Optional color correction value (e.g., 0xFFB0F0, default none).
      */
-    WS2812(unsigned int data_pin, unsigned int num_leds, // PIO and SM are now determined dynamically in init()
+    WS2812(unsigned int data_pin, unsigned int num_leds, // PIO/SM determined in init()
            RGBOrder order = RGBOrder::GRB,
            uint8_t initial_brightness = 255,
            std::optional<uint32_t> color_correction = std::nullopt);
@@ -103,6 +103,19 @@ public:
     void clear();
 
     /**
+     * @brief Reduce the brightness of all pixels currently in the buffer.
+     * This directly modifies the RGB values stored in the buffer by subtracting
+     * `fade_amount` from each component (R, G, B), clamping at 0.
+     * Does not update the physical LEDs until show() is called.
+     * Note: This fades the *current* buffer values, which already include
+     * any previously applied brightness or color correction scaling from
+     * set_pixel calls.
+     *
+     * @param fade_amount The amount (0-255) to subtract from each color component.
+     */
+    void fade_by(uint8_t fade_amount);
+
+    /**
      * @brief Set the global brightness level. Affects subsequent set_pixel() calls.
      * Does not modify the colors already in the buffer until set_pixel is called again.
      *
@@ -120,7 +133,7 @@ public:
      * @brief Get the number of LEDs managed by this driver.
      * @return unsigned int Number of LEDs.
      */
-    unsigned int get_num_leds() const; // Already uses unsigned int, good.
+    unsigned int get_num_leds() const;
 
 private:
     /**
@@ -148,6 +161,18 @@ private:
      */
     uint32_t pack_color(uint8_t r, uint8_t g, uint8_t b) const;
 
+    /**
+     * @brief Unpack RGB components from a 24-bit integer based on the configured order.
+     * Internal helper used by methods like fade_by.
+     *
+     * @param packed_color Packed 24-bit color value.
+     * @param r Output Red component.
+     * @param g Output Green component.
+     * @param b Output Blue component.
+     */
+    void unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const;
+
+
     // --- Configuration ---
     PIO _pio;
     unsigned int _sm_index;
@@ -158,8 +183,8 @@ private:
     std::optional<uint32_t> _color_correction;
 
     // --- State ---
-    std::vector<uint32_t> _pixel_buffer; // Stores packed 24-bit color values after adjustments
-    unsigned int _pio_program_offset = 0;        // Offset of the loaded PIO program within the PIO instance
+    std::vector<uint32_t> _pixel_buffer;
+    unsigned int _pio_program_offset = 0;
     bool _initialized = false;
 
     // --- PIO Program Info ---
@@ -168,6 +193,6 @@ private:
 
 }; // class WS2812
 
-} // namespace Musin::Drivers // Corrected closing namespace comment
+} // namespace Musin::Drivers
 
-#endif // MUSIN_DRIVERS_WS2812_H // Corrected endif comment
+#endif // MUSIN_DRIVERS_WS2812_H

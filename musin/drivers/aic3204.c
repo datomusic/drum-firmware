@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h> // For printf debugging
+#include <limits.h> // For INT8_MIN
 #include "pico/time.h" // For sleep_ms, get_absolute_time, time_reached
 #include "hardware/gpio.h" // For pin validation
 #include "hardware/i2c.h"
@@ -10,6 +11,7 @@
 // --- Static Variables ---
 static i2c_inst_t* _i2c_inst = NULL; // Pointer to the I2C instance used
 static uint8_t _current_page = 0xFF; // Cache the current page, 0xFF indicates unknown/uninitialized
+static int8_t _current_dac_volume = 0; // Cache the last successfully set DAC volume (0dB default)
 
 // --- Internal Helper Functions ---
 
@@ -95,6 +97,68 @@ static bool _aic3204_select_page(uint8_t page) {
     }
     return true;
 }
+
+/**
+ * @brief Checks if the AIC3204 is currently performing soft-stepping.
+ * Reads Page 1, Register 63 (0x3F) and checks bits 7:6.
+ *
+ * @return true if soft-stepping is active (bits 7:6 are not both 1), false otherwise or on read error.
+ */
+static bool _aic3204_is_soft_stepping(void) {
+    uint8_t status_reg = 0;
+    const uint8_t SOFT_STEPPING_PAGE = 1;
+    const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
+    const uint8_t SOFT_STEPPING_COMPLETE_MASK = 0xC0; // Bits 7:6
+
+    if (aic3204_read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, &status_reg)) {
+        // Soft stepping is active if the completion bits are NOT set
+        return (status_reg & SOFT_STEPPING_COMPLETE_MASK) != SOFT_STEPPING_COMPLETE_MASK;
+    } else {
+        // Read failed, assume stepping might be active or state is unknown.
+        // Returning true prevents potentially harmful writes during unknown state.
+        printf("AIC3204 Warning: Failed to read soft-stepping status register. Assuming active.\n");
+        return true;
+    }
+}
+
+
+/**
+ * @brief Waits for the AIC3204's internal soft-stepping procedures to complete.
+ * This typically happens after powering up output drivers.
+ * Polls Page 1, Register 63 (0x3F) until bits 7:6 are set, or a timeout occurs.
+ *
+ * @return true if soft-stepping completed within the timeout, false otherwise.
+ */
+static bool _aic3204_wait_for_soft_stepping(void) {
+    printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+    absolute_time_t start_time = get_absolute_time();
+    absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+    bool stepping_active = true;
+
+    while (stepping_active && !time_reached(timeout_time)) {
+        stepping_active = _aic3204_is_soft_stepping();
+        if (!stepping_active) {
+            // Stepping finished (or read failed and we assume finished for the wait)
+            break;
+        }
+        // Wait a bit before polling again
+        sleep_ms(10);
+    }
+
+    if (stepping_active) { // Still active after timeout
+        printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
+        // Do not mark initialization as failed. There might be a slight pop
+        return false; // Indicate timeout
+    } else {
+        absolute_time_t end_time = get_absolute_time();
+        int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
+        // We don't have the final status_reg value here easily without another read,
+        // so the log message is slightly less informative.
+        printf("Soft-stepping complete (or read failed) after %lld ms.\n", elapsed_us / 1000);
+        return true; // Indicate completion (or assumed completion on read fail)
+    }
+}
+
 
 // --- Public API Functions ---
 
@@ -270,36 +334,11 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
 
     // --- Wait for soft-stepping completion ---
     if (success) {
-        printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-        absolute_time_t start_time = get_absolute_time();
-        absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-        bool soft_stepping_complete = false;
-        uint8_t status_reg = 0;
-        const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
-
-        while (!time_reached(timeout_time)) {
-            // Read Page 1, Register 63 (0x3F)
-            if (aic3204_read_register(1, SOFT_STEPPING_REG, &status_reg)) {
-                // Check bits 7:6 (mask 0xC0)
-                if ((status_reg & 0xC0) == 0xC0) {
-                    soft_stepping_complete = true;
-                    absolute_time_t end_time = get_absolute_time();
-                    int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
-                    printf("Soft-stepping complete in %lld ms (Reg 0x%02X = 0x%02X).\n", elapsed_us / 1000, SOFT_STEPPING_REG, status_reg);
-                    break; // Exit loop
-                }
-            } else {
-                // Read failed, maybe retry or abort? Let's retry after a delay.
-                printf("Warning: Failed to read soft-stepping status register.\n");
-            }
-            // Wait a bit before polling again
-            sleep_ms(10);
-        }
-
-        if (!soft_stepping_complete) {
-            printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
-            // Do not mark initialization as failed. There might be a slight pop
-        }
+        // Call the helper function to wait for soft-stepping
+        // The helper function already prints messages on success/timeout
+        _aic3204_wait_for_soft_stepping();
+        // Note: We don't change 'success' based on soft-stepping timeout,
+        // as per the original logic (just print a warning).
     }
 
     // --- Final DAC Setup (Page 0) ---
@@ -356,9 +395,21 @@ bool aic3204_dac_set_volume(int8_t volume) {
         return false;
     }
 
+    // Check if the volume is already set to the requested value
+    if (volume == _current_dac_volume) {
+        printf("AIC3204: DAC volume already set to %+d (%.1fdB). No change.\n", volume, volume * 0.5f);
+        return true; // No need to write
+    }
+
+    // Check if the codec is currently soft-stepping
+    if (_aic3204_is_soft_stepping()) {
+        printf("AIC3204 Warning: Cannot set DAC volume while soft-stepping is active.\n");
+        return false; // Indicate failure due to soft-stepping
+    }
+
     // Convert to unsigned register value (two's complement preserved)
     uint8_t reg_value = (uint8_t)volume;
-    
+
     // Set both channel volumes
     bool success = true;
     success &= aic3204_write_register(0x00, 0x41, reg_value); // Left DAC
@@ -366,9 +417,72 @@ bool aic3204_dac_set_volume(int8_t volume) {
 
     if (success) {
         printf("AIC3204: DAC volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
+        _current_dac_volume = volume; // Update cached volume on successful write
     } else {
         printf("AIC3204 Error: Failed to write DAC volume registers\n");
+        // Invalidate cached volume on failure, forcing a rewrite next time
+        _current_dac_volume = INT8_MIN; // Use a value outside the valid range (-127 to +48)
     }
     
+    return success;
+}
+
+bool aic3204_route_in_to_headphone(bool enable) {
+    const uint8_t PAGE = 1;
+    const uint8_t HPL_REG = 0x0C;
+    const uint8_t HPR_REG = 0x0D;
+    const uint8_t IN1_TO_HP_MASK = (1 << 2); // Bit 2 controls IN1_L/R to HPL/R Mux
+
+    uint8_t current_hpl_val = 0;
+    uint8_t current_hpr_val = 0;
+    bool success = true;
+
+    printf("AIC3204: %s routing IN1 to Headphone Output.\n", enable ? "Enabling" : "Disabling");
+
+    // --- Modify HPL Routing (Register 0x0C) ---
+    success &= aic3204_read_register(PAGE, HPL_REG, &current_hpl_val);
+    if (success) {
+        uint8_t new_hpl_val;
+        if (enable) {
+            new_hpl_val = current_hpl_val | IN1_TO_HP_MASK; // Set bit 2
+        } else {
+            new_hpl_val = current_hpl_val & ~IN1_TO_HP_MASK; // Clear bit 2
+        }
+
+        // Only write if the value actually changed
+        if (new_hpl_val != current_hpl_val) {
+            success &= aic3204_write_register(PAGE, HPL_REG, new_hpl_val);
+            if (!success) {
+                printf("AIC3204 Error: Failed to write HPL routing register (0x%02X).\n", HPL_REG);
+            }
+        }
+    } else {
+        printf("AIC3204 Error: Failed to read HPL routing register (0x%02X).\n", HPL_REG);
+    }
+
+    // --- Modify HPR Routing (Register 0x0D) ---
+    // Proceed only if the previous steps were successful
+    if (success) {
+        success &= aic3204_read_register(PAGE, HPR_REG, &current_hpr_val);
+        if (success) {
+            uint8_t new_hpr_val;
+            if (enable) {
+                new_hpr_val = current_hpr_val | IN1_TO_HP_MASK; // Set bit 2
+            } else {
+                new_hpr_val = current_hpr_val & ~IN1_TO_HP_MASK; // Clear bit 2
+            }
+
+            // Only write if the value actually changed
+            if (new_hpr_val != current_hpr_val) {
+                success &= aic3204_write_register(PAGE, HPR_REG, new_hpr_val);
+                 if (!success) {
+                    printf("AIC3204 Error: Failed to write HPR routing register (0x%02X).\n", HPR_REG);
+                }
+            }
+        } else {
+            printf("AIC3204 Error: Failed to read HPR routing register (0x%02X).\n", HPR_REG);
+        }
+    }
+
     return success;
 }

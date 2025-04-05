@@ -34,11 +34,11 @@ DrumPizza::DrumPizza(const std::array<uint, 4>& address_pins_gpio, // Changed si
               scan_interval_us,
               debounce_time_us,
               hold_time_us),
-      _leds(led_data_pin_gpio,
-            led_data_return_pin_gpio.has_value() ? (NUM_LEDS + 1) : NUM_LEDS,
-            Musin::Drivers::RGBOrder::GRB, // Updated namespace for RGBOrder
+      _leds(led_data_pin_gpio, // Pass only the data pin
+            // Removed num_leds argument: led_data_return_pin_gpio.has_value() ? (NUM_LEDS + 1) : NUM_LEDS,
+            Musin::Drivers::RGBOrder::GRB, // Pass RGBOrder as the second argument
             255, // Initial brightness (will be corrected in init)
-            std::nullopt),
+            std::nullopt), // Pass color correction
       _address_pins_gpio(address_pins_gpio),
       _led_data_pin_gpio(led_data_pin_gpio),
       _led_data_return_pin_gpio(led_data_return_pin_gpio)

@@ -11,13 +11,9 @@
 #include "musin/ui/keypad_hc138.h" // Include the keypad driver header
 #include "musin/drivers/ws2812.h"       // Include the WS2812 driver header
 
-// Wrap C SDK headers needed for PIO definition
-extern "C" {
-#include "hardware/pio.h"
-}
-
 // No direct SDK includes here, as this file defines the board interface,
 // not the microcontroller mapping.
+// hardware/pio.h is included by ws2812.h
 
 namespace Musin::Boards {
 

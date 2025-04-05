@@ -97,6 +97,29 @@ static bool _aic3204_select_page(uint8_t page) {
     return true;
 }
 
+/**
+ * @brief Checks if the AIC3204 is currently performing soft-stepping.
+ * Reads Page 1, Register 63 (0x3F) and checks bits 7:6.
+ *
+ * @return true if soft-stepping is active (bits 7:6 are not both 1), false otherwise or on read error.
+ */
+static bool _aic3204_is_soft_stepping(void) {
+    uint8_t status_reg = 0;
+    const uint8_t SOFT_STEPPING_PAGE = 1;
+    const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
+    const uint8_t SOFT_STEPPING_COMPLETE_MASK = 0xC0; // Bits 7:6
+
+    if (aic3204_read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, &status_reg)) {
+        // Soft stepping is active if the completion bits are NOT set
+        return (status_reg & SOFT_STEPPING_COMPLETE_MASK) != SOFT_STEPPING_COMPLETE_MASK;
+    } else {
+        // Read failed, assume stepping might be active or state is unknown.
+        // Returning true prevents potentially harmful writes during unknown state.
+        printf("AIC3204 Warning: Failed to read soft-stepping status register. Assuming active.\n");
+        return true;
+    }
+}
+
 
 /**
  * @brief Waits for the AIC3204's internal soft-stepping procedures to complete.
@@ -109,35 +132,30 @@ static bool _aic3204_wait_for_soft_stepping(void) {
     printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
     absolute_time_t start_time = get_absolute_time();
     absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-    bool soft_stepping_complete = false;
-    uint8_t status_reg = 0;
-    const uint8_t SOFT_STEPPING_PAGE = 1;
-    const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
+    bool stepping_active = true;
 
-    while (!time_reached(timeout_time)) {
-        // Read Page 1, Register 63 (0x3F)
-        if (aic3204_read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, &status_reg)) {
-            // Check bits 7:6 (mask 0xC0) - Headphone Driver and Output Driver flags
-            if ((status_reg & 0xC0) == 0xC0) {
-                soft_stepping_complete = true;
-                absolute_time_t end_time = get_absolute_time();
-                int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
-                printf("Soft-stepping complete in %lld ms (Reg 0x%02X = 0x%02X).\n", elapsed_us / 1000, SOFT_STEPPING_REG, status_reg);
-                break; // Exit loop
-            }
-        } else {
-            // Read failed, maybe retry or abort? Let's retry after a delay.
-            printf("Warning: Failed to read soft-stepping status register.\n");
+    while (stepping_active && !time_reached(timeout_time)) {
+        stepping_active = _aic3204_is_soft_stepping();
+        if (!stepping_active) {
+            // Stepping finished (or read failed and we assume finished for the wait)
+            break;
         }
         // Wait a bit before polling again
         sleep_ms(10);
     }
 
-    if (!soft_stepping_complete) {
+    if (stepping_active) { // Still active after timeout
         printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
         // Do not mark initialization as failed. There might be a slight pop
+        return false; // Indicate timeout
+    } else {
+        absolute_time_t end_time = get_absolute_time();
+        int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
+        // We don't have the final status_reg value here easily without another read,
+        // so the log message is slightly less informative.
+        printf("Soft-stepping complete (or read failed) after %lld ms.\n", elapsed_us / 1000);
+        return true; // Indicate completion (or assumed completion on read fail)
     }
-    return soft_stepping_complete; // Return status
 }
 
 
@@ -380,6 +398,12 @@ bool aic3204_dac_set_volume(int8_t volume) {
     if (volume == _current_dac_volume) {
         printf("AIC3204: DAC volume already set to %+d (%.1fdB). No change.\n", volume, volume * 0.5f);
         return true; // No need to write
+    }
+
+    // Check if the codec is currently soft-stepping
+    if (_aic3204_is_soft_stepping()) {
+        printf("AIC3204 Warning: Cannot set DAC volume while soft-stepping is active.\n");
+        return false; // Indicate failure due to soft-stepping
     }
 
     // Convert to unsigned register value (two's complement preserved)

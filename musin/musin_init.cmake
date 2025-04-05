@@ -29,6 +29,7 @@ macro(musin_init TARGET)
 
   target_link_libraries(${TARGET} PRIVATE
     pico_stdlib
+    etl::etl
   )
 
   pico_sdk_init()

@@ -10,8 +10,8 @@
 #define PICO_AUDIO_I2S_CLOCK_PIN_BASE 16
 
 #include "etl/array.h"
-#include <stdio.h>
 #include <cstdint>
+#include <stdio.h>
 
 #include "pico/audio.h"
 
@@ -32,8 +32,8 @@ Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-const etl::array sounds{&kick, &snare, &hihat, &cashreg};
-AudioMixer4 mixer((BufferSource **)sounds.data(), sounds.size());
+const etl::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
+AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];

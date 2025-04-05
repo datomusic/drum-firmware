@@ -28,20 +28,20 @@
 #ifndef mixer_h_
 #define mixer_h_
 
-#include "audio_output.h"
 #include "buffer_source.h"
+#include "etl/array.h"
 #include <stdint.h>
-#include <vector>
 
 struct AudioMixer4 : BufferSource {
-  AudioMixer4(BufferSource **sources, unsigned int source_count)
-      : sources(sources), source_count(source_count) {
-
+  // Copies the array of sources, without taking ownership of the contained pointers.
+  AudioMixer4(const etl::array<BufferSource *, 4> &sources) : sources(sources) {
     for (int i = 0; i < 4; i++) {
       multipliers[i] = 256;
     }
   }
+
   uint32_t fill_buffer(int16_t *out_samples);
+
   void gain(unsigned int channel, float gain) {
     if (channel >= 4) {
       return;
@@ -57,8 +57,7 @@ struct AudioMixer4 : BufferSource {
   }
 
 private:
-  BufferSource **sources;
-  unsigned int source_count;
+  etl::array<BufferSource *, 4> sources;
   int16_t multipliers[4];
 };
 

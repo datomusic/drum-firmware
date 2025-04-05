@@ -21,6 +21,10 @@ extern "C" {
 
 namespace Musin::Boards {
 
+// --- LED Output Configuration ---
+// Moved outside the class so it's available for template instantiation
+static constexpr std::uint32_t NUM_LEDS = 37;
+
 /**
  * @brief Represents the DRUM-Pizza 0.1 control board hardware interface.
  *
@@ -153,8 +157,6 @@ enum class AnalogInput : std::uint8_t {
     VOLUME     = 15
 };
 
-// --- LED Output Configuration ---
-static constexpr std::uint32_t NUM_LEDS = 37;
 
 // LED strip data line (referenced by NamedPin)
 static constexpr NamedPin PIN_LED_DATA = NamedPin::LED_DATA; // J1 Pin 19

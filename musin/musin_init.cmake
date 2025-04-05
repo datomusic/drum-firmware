@@ -38,6 +38,11 @@ macro(musin_init TARGET)
   pico_enable_stdio_usb(${TARGET} 1)
   pico_add_extra_outputs(${TARGET})
 
+  target_compile_options(${TARGET} PRIVATE -Wall -Wextra)
+
+  set_source_files_properties(${SDK_EXTRAS_PATH}/src/rp2_common/pico_audio_i2s/audio_i2s.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
+  set_source_files_properties(${SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)
+
 endmacro()
 
 macro(musin_init_usb_midi TARGET)
@@ -106,9 +111,6 @@ macro(musin_init_filesystem TARGET)
   )
 
   pico_enable_filesystem(${TARGET})
-
-  # Disable warnings since pico_extras audio causes warnings, which error because of -Werror in pico-vfs.
-  target_compile_options(${TARGET} PRIVATE -w)
 endmacro()
 
 macro(musin_init_ui TARGET)

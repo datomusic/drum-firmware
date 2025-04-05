@@ -76,15 +76,15 @@ public:
 
     /**
      * @brief Get a reference to the WS2812 LED driver instance.
-     * @return Reference to the WS2812<NUM_LEDS> object.
+     * @return Reference to the WS2812<Musin::Boards::NUM_LEDS> object.
      */
-    Musin::Drivers::WS2812<NUM_LEDS>& leds() { return _leds; }
+    Musin::Drivers::WS2812<Musin::Boards::NUM_LEDS>& leds() { return _leds; }
 
     /**
      * @brief Get a const reference to the WS2812 LED driver instance.
-     * @return Const reference to the WS2812<NUM_LEDS> object.
+     * @return Const reference to the WS2812<Musin::Boards::NUM_LEDS> object.
      */
-    const Musin::Drivers::WS2812<NUM_LEDS>& leds() const { return _leds; }
+    const Musin::Drivers::WS2812<Musin::Boards::NUM_LEDS>& leds() const { return _leds; }
 
 
     // --- Named Pin Definitions (Mapped from J1 Connector) ---

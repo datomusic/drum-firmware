@@ -9,8 +9,11 @@
 #define PICO_AUDIO_I2S_DATA_PIN 18
 #define PICO_AUDIO_I2S_CLOCK_PIN_BASE 16
 
+#include "etl/array.h"
+#include <stdio.h>
+#include <cstdint>
+
 #include "pico/audio.h"
-#include "pico/stdlib.h"
 
 #include "musin/audio/audio_output.h"
 #include "musin/audio/mixer.h"
@@ -21,32 +24,21 @@
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
-#include "sine_source.h"
 
-#include <stdio.h>
-
-#include "etl/array.h"
-
-uint master_volume = 10;
+const uint8_t master_volume = 10;
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-etl::array<Sound*, 4> sounds = {&kick, &snare, &hihat, &cashreg};
-
+const etl::array sounds{&kick, &snare, &hihat, &cashreg};
 AudioMixer4 mixer((BufferSource **)sounds.data(), sounds.size());
 
-static const uint32_t PIN_DCDC_PSM_CTRL = 23;
-
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
-  // printf("Filling buffer\n");
-
   static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
   mixer.fill_buffer(temp_samples);
 
-  // Convert to 32bit stereo
   int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
     stereo_out_samples[i] = (master_volume * temp_samples[i]) >> 8u;
@@ -57,28 +49,19 @@ static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
 
 int main() {
   stdio_init_all();
-  sleep_ms(2000);
+  sleep_ms(1000);
   printf("Startup!\n");
 
-  // DCDC PSM control
-  // 0: PFM mode (best efficiency)
-  // 1: PWM mode (improved ripple)
-  gpio_init(PIN_DCDC_PSM_CTRL);
-  gpio_set_dir(PIN_DCDC_PSM_CTRL, GPIO_OUT);
-  gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
-
   AudioOutput::init();
-
-  printf("Entering main loop\n");
 
   uint32_t last_ms = to_ms_since_boot(get_absolute_time());
   uint32_t accum_ms = last_ms;
 
   auto sound_index = 0;
   auto pitch_index = 0;
-  const auto pitch_count = 5;
-  const float pitches[pitch_count] = {0.6, 0.3, 1, 1.9, 1.4};
+  const etl::array pitches{0.6, 0.3, 1, 1.9, 1.4};
 
+  printf("Entering main loop\n");
   while (true) {
     const auto now = to_ms_since_boot(get_absolute_time());
     const auto diff_ms = now - last_ms;
@@ -95,8 +78,8 @@ int main() {
         mixer.gain(2, 0.3);
         mixer.gain(3, 0.7);
 
-        auto sound = sounds[sound_index];
-        pitch_index = (pitch_index + 1) % pitch_count;
+        const auto sound = sounds[sound_index];
+        pitch_index = (pitch_index + 1) % pitches.size();
         const auto pitch = pitches[pitch_index];
         sound->play(pitch);
         sound_index = (sound_index + 1) % sounds.size();

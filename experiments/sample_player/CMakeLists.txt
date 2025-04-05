@@ -24,8 +24,6 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
-  PICO_AUDIO_I2S_DATA_PIN=18
-  PICO_AUDIO_I2S_CLOCK_PIN_BASE=16
 )
 
 musin_init(${EXECUTABLE_NAME})

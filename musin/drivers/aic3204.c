@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h> // For printf debugging
+#include <limits.h> // For INT8_MIN
 #include "pico/time.h" // For sleep_ms, get_absolute_time, time_reached
 #include "hardware/gpio.h" // For pin validation
 #include "hardware/i2c.h"

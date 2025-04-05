@@ -203,7 +203,7 @@ private:
 
 }; // class WS2812
 
-}; // class WS2812
+// }; // class WS2812 <-- REMOVED closing brace for namespace here
 
 
 // =============================================================================
@@ -415,6 +415,6 @@ void WS2812<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& 
 }
 
 
-} // namespace Musin::Drivers
+} // namespace Musin::Drivers // <-- ADDED closing brace for namespace here
 
 #endif // MUSIN_DRIVERS_WS2812_H

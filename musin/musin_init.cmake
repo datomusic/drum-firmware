@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(MUSIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
 set(MUSIN_LIBRARIES ${MUSIN_ROOT}/ports/pico/libraries)
 set(MUSIN_USB ${MUSIN_ROOT}/usb)
+set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)
 
 set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
 set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
@@ -75,6 +76,7 @@ macro(musin_init_audio TARGET)
     ${MUSIN_AUDIO}/audio_memory_reader.cpp
     ${MUSIN_AUDIO}/data_ulaw.c
     ${MUSIN_AUDIO}/mixer.cpp
+    ${MUSIN_DRIVERS}/aic3204.c # Codec-specific driver, but the only audio codec we are using currently.
   )
 
   target_compile_definitions(${TARGET} PRIVATE
@@ -137,17 +139,14 @@ endmacro()
                                                                                                                                                                                 
                                                                                                                                                        
 macro(musin_init_drivers TARGET)                                                                                                                                                
-    set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)                                                                                                                         
                                         
     target_sources(${TARGET} PRIVATE                                                                                                                                              
-      ${MUSIN_DRIVERS}/aic3204.c                                                                                                                                                  
       ${MUSIN_DRIVERS}/ws2812.cpp                                                                                                                                                 
     )                                                                                                                                                                             
                                                                                                                                                                                                                                                                                                                    
     pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)                                                                                                               
                                                                                                                                                                                   
     target_link_libraries(${TARGET} PRIVATE                                                                                                                                       
-      hardware_i2c # For aic3204                                                                                                                                                  
       hardware_pio # For ws2812                                                                                                                                                   
       hardware_dma # For ws2812 (potentially, or for PIO interaction)                                                                                                             
     )                                                                                                                                                                             

@@ -25,17 +25,18 @@
 
 #include <stdio.h>
 
+#include "etl/array.h"
+
 uint master_volume = 10;
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
-const int SOUND_COUNT = 4;
 
-Sound *sounds[SOUND_COUNT] = {&kick, &snare, &hihat, &cashreg};
+etl::array<Sound*, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 
-AudioMixer4 mixer((BufferSource **)sounds, SOUND_COUNT);
+AudioMixer4 mixer((BufferSource **)sounds.data(), sounds.size());
 
 static const uint32_t PIN_DCDC_PSM_CTRL = 23;
 
@@ -98,7 +99,7 @@ int main() {
         pitch_index = (pitch_index + 1) % pitch_count;
         const auto pitch = pitches[pitch_index];
         sound->play(pitch);
-        sound_index = (sound_index + 1) % SOUND_COUNT;
+        sound_index = (sound_index + 1) % sounds.size();
       }
     }
   }

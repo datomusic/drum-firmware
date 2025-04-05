@@ -4,6 +4,10 @@
 #include "pico/stdlib.h"
 #include <stdio.h>
 
+#ifdef DATO_SUBMARINE
+#include "musin/drivers/aic3204.h"
+#endif
+
 static audio_buffer_pool_t *producer_pool;
 static bool running = false;
 
@@ -26,7 +30,19 @@ struct audio_i2s_config i2s_config = {
     .pio_sm = 0,
 };
 
-void AudioOutput::init() {
+bool AudioOutput::init() {
+#ifdef DATO_SUBMARINE
+  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
+  printf("Initializing AIC3204 codec\n");
+  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN,
+                    100'000U)) {
+    printf("Failed to initialize AIC3204 codec\n");
+    return false;
+  }
+  // Set initial volume to 0dB (max)
+  aic3204_dac_set_volume(0);
+#endif
+
   audio_format.sample_freq = SAMPLE_FREQUENCY;
 
   producer_pool = audio_new_producer_pool(&producer_format, BUFFER_COUNT,
@@ -52,6 +68,8 @@ void AudioOutput::init() {
   audio_i2s_set_enabled(true);
 
   running = true;
+
+  return true;
 }
 
 void AudioOutput::deinit() {

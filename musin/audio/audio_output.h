@@ -6,7 +6,7 @@
 namespace AudioOutput {
 typedef void (*BufferCallback)(audio_buffer_t *);
 
-void init();
+bool init();
 bool update(AudioOutput::BufferCallback callback);
 void deinit();
 

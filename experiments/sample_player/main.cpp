@@ -17,6 +17,7 @@
 
 #include "musin/audio/audio_output.h"
 #include "musin/audio/mixer.h"
+#include "musin/audio/bitcrusher.h"
 #include "musin/audio/sound.h"
 
 #include "samples/AudioSampleCashregister.h"
@@ -35,9 +36,14 @@ Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 const etl::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 
+Bitcrusher crusher;
+
+// BufferSource& output = crusher;
+static BufferSource& output = mixer;
+
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
-  mixer.fill_buffer(temp_samples);
+  output.fill_buffer(temp_samples);
 
   int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {

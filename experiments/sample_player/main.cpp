@@ -18,7 +18,7 @@
 #include "musin/audio/audio_output.h"
 #include "musin/audio/mixer.h"
 // #include "musin/audio/teensy/effect_bitcrusher.h"
-#include "crusher.h"
+#include "musin/audio/crusher.h"
 #include "musin/audio/teensy/filter_variable.h"
 #include "musin/audio/sound.h"
 

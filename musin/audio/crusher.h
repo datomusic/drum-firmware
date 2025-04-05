@@ -31,25 +31,14 @@
 
 #include "audio_output.h"
 #include "buffer_source.h"
-#include "etl/vector.h"
 
 struct Crusher : BufferSource {
   Crusher(BufferSource &source) : source(source) {
   }
 
-  uint32_t fill_buffer(int16_t *out_samples) {
+  uint32_t fill_buffer(AudioBlock &out_samples) {
     const auto sample_count = source.fill_buffer(out_samples);
-
-    // TODO: Remove this when fill_buffer is adjusted to take a vector instead.
-    etl::vector<int16_t, AUDIO_BLOCK_SAMPLES> temp_samples(
-        out_samples, out_samples + sample_count);
-
-    crush(temp_samples);
-
-    for (uint32_t i = 0; i < sample_count; ++i) {
-      out_samples[i] = temp_samples[i];
-    }
-
+    crush(out_samples);
     return sample_count;
   }
 
@@ -71,7 +60,7 @@ struct Crusher : BufferSource {
   }
 
 private:
-  void crush(etl::vector<int16_t, AUDIO_BLOCK_SAMPLES> &samples);
+  void crush(AudioBlock &samples);
 
   BufferSource &source;
   uint8_t crushBits = 16; // 16 = off

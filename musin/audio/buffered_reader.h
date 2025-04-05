@@ -35,7 +35,7 @@ struct BufferedReader {
 
 private:
   SampleReader &reader;
-  int16_t buffer[AUDIO_BLOCK_SAMPLES];
+  AudioBlock buffer;
   uint32_t bytes_read = 0;
   uint32_t read_position = 0;
 };

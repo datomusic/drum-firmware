@@ -2,9 +2,11 @@
 #include "dspinst.h"
 #include <stdint.h>
 
-static int16_t temp_buffer[AUDIO_BLOCK_SAMPLES];
+static AudioBlock temp_buffer;
 
-uint32_t AudioMixer4::fill_buffer(int16_t *out_samples) {
+uint32_t AudioMixer4::fill_buffer(AudioBlock &out_samples) {
+  out_samples.resize(AUDIO_BLOCK_SAMPLES);
+
   for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
        ++sample_index) {
     out_samples[sample_index] = 0;
@@ -22,5 +24,6 @@ uint32_t AudioMixer4::fill_buffer(int16_t *out_samples) {
     }
   }
 
+  // printf("size: %i\n", out_samples.size());
   return AUDIO_BLOCK_SAMPLES;
 }

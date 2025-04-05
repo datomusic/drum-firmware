@@ -4,7 +4,7 @@
 #include "pico/audio.h"
 
 namespace AudioOutput {
-  static const int SAMPLE_FREQUENCY = 44100;
+static const int SAMPLE_FREQUENCY = 44100;
 
 typedef void (*BufferCallback)(audio_buffer_t *);
 

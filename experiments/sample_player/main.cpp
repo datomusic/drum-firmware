@@ -46,7 +46,7 @@ BufferSource& output = crusher;
 // static BufferSource& output = mixer;
 
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
-  static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
+  static AudioBlock temp_samples;
   output.fill_buffer(temp_samples);
 
   int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;

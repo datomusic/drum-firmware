@@ -19,8 +19,8 @@
 #include "musin/audio/mixer.h"
 // #include "musin/audio/teensy/effect_bitcrusher.h"
 #include "musin/audio/crusher.h"
-#include "musin/audio/teensy/filter_variable.h"
 #include "musin/audio/sound.h"
+#include "musin/audio/teensy/filter_variable.h"
 
 #include "samples/AudioSampleCashregister.h"
 #include "samples/AudioSampleGong.h"
@@ -42,20 +42,8 @@ AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 Crusher crusher(mixer);
 AudioFilterStateVariable filter;
 
-BufferSource& output = crusher;
+BufferSource &master_source = crusher;
 // static BufferSource& output = mixer;
-
-static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
-  static AudioBlock temp_samples;
-  output.fill_buffer(temp_samples);
-
-  int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
-  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    stereo_out_samples[i] = (master_volume * temp_samples[i]) >> 8u;
-  }
-
-  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
-}
 
 int main() {
   stdio_init_all();
@@ -79,7 +67,7 @@ int main() {
     last_ms = now;
     accum_ms += diff_ms;
 
-    if (!AudioOutput::update(fill_audio_buffer)) {
+    if (!AudioOutput::update(master_source, master_volume)) {
       if (accum_ms > 1000) {
         accum_ms = 0;
         printf("Playing sound\n");

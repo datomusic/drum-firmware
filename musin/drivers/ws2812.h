@@ -36,28 +36,29 @@ enum class RGBOrder {
  * correction, and communication via a PIO state machine.
  * Assumes the corresponding PIO program (e.g., ws2812.pio) has been compiled
  * and linked via the build system.
+ *
+ * @tparam NUM_LEDS The number of LEDs in the strip (compile-time constant).
  */
+template <size_t NUM_LEDS>
 class WS2812 {
+    static_assert(NUM_LEDS > 0, "WS2812: NUM_LEDS must be greater than 0");
 public:
     /**
      * @brief Construct a WS2812 driver instance.
      *
-     * @param pio The PIO instance to use (pio0 or pio1).
-     * @param sm_index The state machine index within the PIO (0-3) to claim.
      * @param data_pin The GPIO pin connected to the WS2812 data input.
-     * @param num_leds The number of LEDs in the strip.
      * @param order The color order of the LEDs (e.g., RGBOrder::GRB).
      * @param initial_brightness Optional initial brightness (0-255, default 255).
      * @param color_correction Optional color correction value (e.g., 0xFFB0F0, default none).
      */
-    WS2812(unsigned int data_pin, unsigned int num_leds, // PIO/SM determined in init()
+    WS2812(unsigned int data_pin, // Removed num_leds parameter
            RGBOrder order = RGBOrder::GRB,
            uint8_t initial_brightness = 255,
            std::optional<uint32_t> color_correction = std::nullopt);
 
     // Prevent copying and assignment
-    WS2812(const WS2812&) = delete;
-    WS2812& operator=(const WS2812&) = delete;
+    WS2812(const WS2812<NUM_LEDS>&) = delete;
+    WS2812& operator=(const WS2812<NUM_LEDS>&) = delete;
 
     /**
      * @brief Initialize the PIO state machine for WS2812 communication.
@@ -130,10 +131,10 @@ public:
     uint8_t get_brightness() const;
 
     /**
-     * @brief Get the number of LEDs managed by this driver.
-     * @return unsigned int Number of LEDs.
+     * @brief Get the number of LEDs managed by this driver (compile-time constant).
+     * @return constexpr size_t Number of LEDs.
      */
-    unsigned int get_num_leds() const;
+    constexpr size_t get_num_leds() const;
 
 private:
     /**
@@ -174,17 +175,17 @@ private:
 
 
     // --- Configuration ---
-    PIO _pio;
-    unsigned int _sm_index;
+    PIO _pio; // Assigned during init()
+    unsigned int _sm_index; // Assigned during init()
     unsigned int _data_pin;
-    unsigned int _num_leds;
+    // unsigned int _num_leds; // Removed, use NUM_LEDS template parameter
     RGBOrder _order;
     uint8_t _brightness;
     std::optional<uint32_t> _color_correction;
 
     // --- State ---
-    std::vector<uint32_t> _pixel_buffer;
-    unsigned int _pio_program_offset = 0;
+    std::array<uint32_t, NUM_LEDS> _pixel_buffer; // Fixed-size buffer
+    unsigned int _pio_program_offset = 0; // Assigned during init()
     bool _initialized = false;
 
     // --- PIO Program Info ---
@@ -192,6 +193,218 @@ private:
     // using SDK helpers. Static tracking is no longer needed here.
 
 }; // class WS2812
+
+}; // class WS2812
+
+
+// =============================================================================
+// Template Method Implementations
+// =============================================================================
+// Must be defined in the header file for template classes.
+
+template <size_t NUM_LEDS>
+WS2812<NUM_LEDS>::WS2812(unsigned int data_pin,
+                         RGBOrder order, uint8_t initial_brightness,
+                         std::optional<uint32_t> color_correction)
+    : _pio(nullptr), // Initialized in init()
+      _sm_index(UINT_MAX), // Initialized in init()
+      _data_pin(data_pin),
+      // _num_leds(num_leds), // Removed
+      _order(order),
+      _brightness(initial_brightness),
+      _color_correction(color_correction),
+      _pixel_buffer{} // Default-initialize array elements to 0 (black)
+{
+    // No assertion needed for NUM_LEDS > 0 due to static_assert
+}
+
+template <size_t NUM_LEDS>
+bool WS2812<NUM_LEDS>::init() {
+    if (_initialized) {
+        return true;
+    }
+
+    // --- Claim free PIO/SM and Load Program ---
+    PIO pio_instance;
+    unsigned int sm_idx;
+    unsigned int offset;
+
+    bool success = pio_claim_free_sm_and_add_program_for_gpio_range(
+        &ws2812_program, &pio_instance, &sm_idx, &offset, _data_pin, 1, true);
+
+    if (!success) {
+        // Consider logging an error here if a logging mechanism exists
+        // printf("WS2812 Error: Failed to claim PIO/SM or load program for pin %u\n", _data_pin);
+        return false;
+    }
+
+    _pio = pio_instance;
+    _sm_index = sm_idx;
+    _pio_program_offset = offset;
+
+    // --- Initialize State Machine using C-SDK Helper ---
+    ws2812_program_init(_pio, _sm_index, _pio_program_offset, _data_pin, 800000, false /* IS_RGBW */);
+
+    _initialized = true;
+    // printf("WS2812 Info: Initialized %u LEDs on PIO%u SM%u Pin%u\n", NUM_LEDS, pio_get_index(_pio), _sm_index, _data_pin);
+    return true;
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::set_pixel(unsigned int index, uint8_t r, uint8_t g, uint8_t b) {
+    if (!_initialized || index >= NUM_LEDS) { // Use NUM_LEDS for check
+        assert(index < NUM_LEDS && _initialized); // Optional: Assert in debug builds
+        return;
+    }
+
+    uint8_t final_r, final_g, final_b;
+    apply_brightness_and_correction(r, g, b, final_r, final_g, final_b);
+    _pixel_buffer[index] = pack_color(final_r, final_g, final_b);
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::set_pixel(unsigned int index, uint32_t color) {
+     if (!_initialized || index >= NUM_LEDS) { // Use NUM_LEDS for check
+        assert(index < NUM_LEDS && _initialized); // Optional: Assert in debug builds
+        return;
+    }
+    // Extract components assuming standard 0xRRGGBB format input
+    uint8_t r = (color >> 16) & 0xFF;
+    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t b = color & 0xFF;
+    set_pixel(index, r, g, b); // Reuse RGB version for brightness/correction
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::show() {
+    if (!_initialized) {
+        assert(_initialized); // Optional: Assert in debug builds
+        return;
+    }
+    assert(_pio != nullptr && _sm_index != UINT_MAX);
+
+    for (uint32_t packed_color : _pixel_buffer) {
+        // PIO expects 24 bits, left-aligned in the 32-bit FIFO word
+        pio_sm_put_blocking(_pio, _sm_index, packed_color << 8);
+    }
+    // Note: Potential need for delay here (see original comments)
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::clear() {
+     if (!_initialized) {
+        assert(_initialized); // Optional: Assert in debug builds
+        return;
+    }
+    // Use std::fill on the std::array
+    std::fill(_pixel_buffer.begin(), _pixel_buffer.end(), 0);
+    // Note: Does not call show().
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::fade_by(uint8_t fade_amount) {
+    if (!_initialized) {
+        assert(_initialized); // Optional: Assert in debug builds
+        return;
+    }
+    if (fade_amount == 0) {
+        return; // Nothing to do
+    }
+
+    for (uint32_t& packed_color : _pixel_buffer) { // Iterate through std::array
+        if (packed_color == 0) continue; // Skip black pixels
+
+        uint8_t r, g, b;
+        unpack_color(packed_color, r, g, b);
+
+        // Subtract fade_amount, clamping at 0
+        r = (r > fade_amount) ? (r - fade_amount) : 0;
+        g = (g > fade_amount) ? (g - fade_amount) : 0;
+        b = (b > fade_amount) ? (b - fade_amount) : 0;
+
+        packed_color = pack_color(r, g, b);
+    }
+    // Note: Does not call show().
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::set_brightness(uint8_t brightness) {
+    // Store brightness; applied during the next set_pixel call.
+    _brightness = brightness;
+}
+
+template <size_t NUM_LEDS>
+uint8_t WS2812<NUM_LEDS>::get_brightness() const {
+    return _brightness;
+}
+
+template <size_t NUM_LEDS>
+constexpr size_t WS2812<NUM_LEDS>::get_num_leds() const {
+    return NUM_LEDS; // Return template parameter
+}
+
+// --- Private Helper Methods ---
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
+                                                       uint8_t& out_r, uint8_t& out_g, uint8_t& out_b) const {
+    // 1. Apply Brightness
+    uint16_t brightness_scale = _brightness + (_brightness == 255 ? 0 : 1);
+    r = (uint8_t)(( (uint16_t)r * brightness_scale ) >> 8);
+    g = (uint8_t)(( (uint16_t)g * brightness_scale ) >> 8);
+    b = (uint8_t)(( (uint16_t)b * brightness_scale ) >> 8);
+
+    // 2. Apply Color Correction
+    if (_color_correction.has_value()) {
+        uint32_t correction = _color_correction.value();
+        uint8_t correct_r = (correction >> 16) & 0xFF;
+        uint8_t correct_g = (correction >> 8) & 0xFF;
+        uint8_t correct_b = correction & 0xFF;
+
+        r = (uint8_t)(( (uint16_t)r * (correct_r + (correct_r == 255 ? 0 : 1)) ) >> 8);
+        g = (uint8_t)(( (uint16_t)g * (correct_g + (correct_g == 255 ? 0 : 1)) ) >> 8);
+        b = (uint8_t)(( (uint16_t)b * (correct_b + (correct_b == 255 ? 0 : 1)) ) >> 8);
+    }
+
+    out_r = r;
+    out_g = g;
+    out_b = b;
+}
+
+template <size_t NUM_LEDS>
+uint32_t WS2812<NUM_LEDS>::pack_color(uint8_t r, uint8_t g, uint8_t b) const {
+    uint32_t packed = 0;
+    switch (_order) {
+        case RGBOrder::RGB: packed = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b; break;
+        case RGBOrder::RBG: packed = ((uint32_t)r << 16) | ((uint32_t)b << 8) | g; break;
+        case RGBOrder::GRB: packed = ((uint32_t)g << 16) | ((uint32_t)r << 8) | b; break;
+        case RGBOrder::GBR: packed = ((uint32_t)g << 16) | ((uint32_t)b << 8) | r; break;
+        case RGBOrder::BRG: packed = ((uint32_t)b << 16) | ((uint32_t)r << 8) | g; break;
+        case RGBOrder::BGR: packed = ((uint32_t)b << 16) | ((uint32_t)g << 8) | r; break;
+    }
+    return packed;
+}
+
+template <size_t NUM_LEDS>
+void WS2812<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const {
+    switch (_order) {
+        case RGBOrder::RGB:
+            r = (packed_color >> 16) & 0xFF; g = (packed_color >> 8) & 0xFF; b = packed_color & 0xFF; break;
+        case RGBOrder::RBG:
+            r = (packed_color >> 16) & 0xFF; b = (packed_color >> 8) & 0xFF; g = packed_color & 0xFF; break;
+        case RGBOrder::GRB:
+            g = (packed_color >> 16) & 0xFF; r = (packed_color >> 8) & 0xFF; b = packed_color & 0xFF; break;
+        case RGBOrder::GBR:
+            g = (packed_color >> 16) & 0xFF; b = (packed_color >> 8) & 0xFF; r = packed_color & 0xFF; break;
+        case RGBOrder::BRG:
+            b = (packed_color >> 16) & 0xFF; r = (packed_color >> 8) & 0xFF; g = packed_color & 0xFF; break;
+        case RGBOrder::BGR:
+            b = (packed_color >> 16) & 0xFF; g = (packed_color >> 8) & 0xFF; r = packed_color & 0xFF; break;
+        default:
+            r = g = b = 0; break;
+    }
+}
+
 
 } // namespace Musin::Drivers
 

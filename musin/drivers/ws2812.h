@@ -103,6 +103,19 @@ public:
     void clear();
 
     /**
+     * @brief Reduce the brightness of all pixels currently in the buffer.
+     * This directly modifies the RGB values stored in the buffer by subtracting
+     * `fade_amount` from each component (R, G, B), clamping at 0.
+     * Does not update the physical LEDs until show() is called.
+     * Note: This fades the *current* buffer values, which already include
+     * any previously applied brightness or color correction scaling from
+     * set_pixel calls.
+     *
+     * @param fade_amount The amount (0-255) to subtract from each color component.
+     */
+    void fade_by(uint8_t fade_amount);
+
+    /**
      * @brief Set the global brightness level. Affects subsequent set_pixel() calls.
      * Does not modify the colors already in the buffer until set_pixel is called again.
      *
@@ -147,6 +160,18 @@ private:
      * @return uint32_t Packed 24-bit color value in the correct order for the PIO.
      */
     uint32_t pack_color(uint8_t r, uint8_t g, uint8_t b) const;
+
+    /**
+     * @brief Unpack RGB components from a 24-bit integer based on the configured order.
+     * Internal helper used by methods like fade_by.
+     *
+     * @param packed_color Packed 24-bit color value.
+     * @param r Output Red component.
+     * @param g Output Green component.
+     * @param b Output Blue component.
+     */
+    void unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const;
+
 
     // --- Configuration ---
     PIO _pio;

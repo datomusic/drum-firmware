@@ -122,6 +122,32 @@ void WS2812::clear() {
     // Note: Does not call show(). User must call show() to update LEDs.
 }
 
+void WS2812::fade_by(uint8_t fade_amount) {
+    if (!_initialized) {
+        // assert(_initialized); // Optional: Assert in debug builds
+        return;
+    }
+    if (fade_amount == 0) {
+        return; // Nothing to do
+    }
+
+    for (uint32_t& packed_color : _pixel_buffer) {
+        if (packed_color == 0) continue; // Skip black pixels
+
+        uint8_t r, g, b;
+        unpack_color(packed_color, r, g, b);
+
+        // Subtract fade_amount, clamping at 0
+        r = (r > fade_amount) ? (r - fade_amount) : 0;
+        g = (g > fade_amount) ? (g - fade_amount) : 0;
+        b = (b > fade_amount) ? (b - fade_amount) : 0;
+
+        packed_color = pack_color(r, g, b);
+    }
+    // Note: Does not call show(). User must call show() to update LEDs.
+}
+
+
 void WS2812::set_brightness(uint8_t brightness) {
     // Store brightness; applied during the next set_pixel call.
     _brightness = brightness;
@@ -178,6 +204,45 @@ uint32_t WS2812::pack_color(uint8_t r, uint8_t g, uint8_t b) const {
         case RGBOrder::BGR: packed = ((uint32_t)b << 16) | ((uint32_t)g << 8) | r; break;
     }
     return packed;
+}
+
+void WS2812::unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const {
+    // Reverse the packing logic based on the configured order
+    switch (_order) {
+        case RGBOrder::RGB:
+            r = (packed_color >> 16) & 0xFF;
+            g = (packed_color >> 8) & 0xFF;
+            b = packed_color & 0xFF;
+            break;
+        case RGBOrder::RBG:
+            r = (packed_color >> 16) & 0xFF;
+            b = (packed_color >> 8) & 0xFF;
+            g = packed_color & 0xFF;
+            break;
+        case RGBOrder::GRB: // Common
+            g = (packed_color >> 16) & 0xFF;
+            r = (packed_color >> 8) & 0xFF;
+            b = packed_color & 0xFF;
+            break;
+        case RGBOrder::GBR:
+            g = (packed_color >> 16) & 0xFF;
+            b = (packed_color >> 8) & 0xFF;
+            r = packed_color & 0xFF;
+            break;
+        case RGBOrder::BRG:
+            b = (packed_color >> 16) & 0xFF;
+            r = (packed_color >> 8) & 0xFF;
+            g = packed_color & 0xFF;
+            break;
+        case RGBOrder::BGR:
+            b = (packed_color >> 16) & 0xFF;
+            g = (packed_color >> 8) & 0xFF;
+            r = packed_color & 0xFF;
+            break;
+        default: // Should not happen with enum class, but handle defensively
+            r = g = b = 0;
+            break;
+    }
 }
 
 

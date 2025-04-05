@@ -31,10 +31,11 @@
 
 #include "AudioStream.h"
 
-class Bitcrusher : public AudioStream {
+class AudioEffectBitcrusher : public AudioStream {
 public:
-  Bitcrusher(void) : AudioStream(1, inputQueueArray) {
+  AudioEffectBitcrusher(void) : AudioStream(1, inputQueueArray) {
   }
+
   void bits(uint8_t b) {
     if (b > 16)
       b = 16;

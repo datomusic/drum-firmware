@@ -26,7 +26,7 @@
  */
 
 #include "filter_variable.h"
-#include "dspinst.h"
+#include "../dspinst.h"
 
 // State Variable Filter (Chamberlin) with 2X oversampling
 // http://www.musicdsp.org/showArchiveComment.php?ArchiveID=92

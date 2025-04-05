@@ -28,9 +28,9 @@
  * THE SOFTWARE.
  */
 
-#include "bitcrusher.h"
+#include "effect_bitcrusher.h"
 
-void Bitcrusher::update(void) {
+void AudioEffectBitcrusher::update(void) {
   audio_block_t *block;
   uint32_t i;
   uint32_t sampleSquidge,

@@ -30,61 +30,57 @@
 
 #include "effect_bitcrusher.h"
 
-bool AudioEffectBitcrusher::update(int16_t *samples, const uint32_t sample_count) {
-  // audio_block_t *block;
+void AudioEffectBitcrusher::update(void) {
+  audio_block_t *block;
   uint32_t i;
   uint32_t sampleSquidge,
       sampleSqueeze; // squidge is bitdepth, squeeze is for samplerate
 
-  // if (active()) {
+  if (crushBits == 16 && sampleStep <= 1) {
     // nothing to do. Output is sent through clean, then exit the function
-    /*
     block = receiveReadOnly();
     if (!block)
       return;
     transmit(block);
     release(block);
-    */
-    // return false;
-  // }
+    return;
+  }
   // start of processing functions. Could be more elegant based on external
   // functions but left like this to enable code optimisation later.
-  /*
   block = receiveWritable();
   if (!block)
     return;
-  */
 
   if (sampleStep <= 1) { // no sample rate mods, just crush the bitdepth.
-    for (i = 0; i < sample_count; i++) {
+    for (i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
       // shift bits right to cut off fine detail sampleSquidge is a
       // uint32 so sign extension will not occur, fills with zeroes.
-      sampleSquidge = /* block->data[i] */ samples[i] >> (16 - crushBits);
+      sampleSquidge = block->data[i] >> (16 - crushBits);
       // shift bits left again to regain the volume level.
       // fills with zeroes.
-      /* block->data[i] */ samples[i] = sampleSquidge << (16 - crushBits);
+      block->data[i] = sampleSquidge << (16 - crushBits);
     }
-  } else if (crushBits == 16) {
-    // bitcrusher not being used, samplerate mods only.
+  } else if (crushBits ==
+             16) { // bitcrusher not being used, samplerate mods only.
     i = 0;
-    while (i < sample_count) {
+    while (i < AUDIO_BLOCK_SAMPLES) {
       // save the root sample. this will pick up a root
       // sample every _sampleStep_ samples.
-      sampleSqueeze = samples[i]; // block->data[i];
-      for (int j = 0; j < sampleStep && i < sample_count; j++) {
+      sampleSqueeze = block->data[i];
+      for (int j = 0; j < sampleStep && i < AUDIO_BLOCK_SAMPLES; j++) {
         // for each repeated sample, paste in the current
         // root sample, then move onto the next step.
-        /* block->data[i] */ samples[i] = sampleSqueeze;
+        block->data[i] = sampleSqueeze;
         i++;
       }
     }
   } else { // both being used. crush those bits and mash those samples.
     i = 0;
-    while (i < sample_count) {
+    while (i < AUDIO_BLOCK_SAMPLES) {
       // save the root sample. this will pick up a root sample
       // every _sampleStep_ samples.
-      sampleSqueeze = samples[i]; // block->data[i];
-      for (int j = 0; j < sampleStep && i < sample_count; j++) {
+      sampleSqueeze = block->data[i];
+      for (int j = 0; j < sampleStep && i < AUDIO_BLOCK_SAMPLES; j++) {
         // shift bits right to cut off fine detail sampleSquidge
         // is a uint32 so sign extension will not occur, fills
         // with zeroes.
@@ -92,16 +88,11 @@ bool AudioEffectBitcrusher::update(int16_t *samples, const uint32_t sample_count
         // shift bits left again to regain the volume level.
         // fills with zeroes. paste into buffer sample +
         // sampleStep offset.
-        /* block->data[i] */ samples[i] = sampleSquidge << (16 - crushBits);
+        block->data[i] = sampleSquidge << (16 - crushBits);
         i++;
       }
     }
   }
-
-  return true;
-
-  /*
   transmit(block);
   release(block);
-  */
 }

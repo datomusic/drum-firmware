@@ -10,6 +10,7 @@
 // --- Static Variables ---
 static i2c_inst_t* _i2c_inst = NULL; // Pointer to the I2C instance used
 static uint8_t _current_page = 0xFF; // Cache the current page, 0xFF indicates unknown/uninitialized
+static int8_t _current_dac_volume = 0; // Cache the last successfully set DAC volume (0dB default)
 
 // --- Internal Helper Functions ---
 
@@ -375,9 +376,15 @@ bool aic3204_dac_set_volume(int8_t volume) {
         return false;
     }
 
+    // Check if the volume is already set to the requested value
+    if (volume == _current_dac_volume) {
+        printf("AIC3204: DAC volume already set to %+d (%.1fdB). No change.\n", volume, volume * 0.5f);
+        return true; // No need to write
+    }
+
     // Convert to unsigned register value (two's complement preserved)
     uint8_t reg_value = (uint8_t)volume;
-    
+
     // Set both channel volumes
     bool success = true;
     success &= aic3204_write_register(0x00, 0x41, reg_value); // Left DAC
@@ -385,8 +392,11 @@ bool aic3204_dac_set_volume(int8_t volume) {
 
     if (success) {
         printf("AIC3204: DAC volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
+        _current_dac_volume = volume; // Update cached volume on successful write
     } else {
         printf("AIC3204 Error: Failed to write DAC volume registers\n");
+        // Consider if _current_dac_volume should be invalidated on failure?
+        // For now, leave it as the last known *successful* value.
     }
     
     return success;

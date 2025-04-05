@@ -40,7 +40,7 @@ struct AudioMixer4 : BufferSource {
     }
   }
 
-  uint32_t fill_buffer(AudioBlock &out);
+  void fill_buffer(AudioBlock &out);
 
   void gain(unsigned int channel, float gain) {
     if (channel >= 4) {

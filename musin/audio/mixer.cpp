@@ -4,7 +4,7 @@
 
 static AudioBlock temp_buffer;
 
-uint32_t AudioMixer4::fill_buffer(AudioBlock &out_samples) {
+void AudioMixer4::fill_buffer(AudioBlock &out_samples) {
   out_samples.resize(AUDIO_BLOCK_SAMPLES);
 
   for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
@@ -23,7 +23,4 @@ uint32_t AudioMixer4::fill_buffer(AudioBlock &out_samples) {
       out_samples[sample_index] = signed_saturate_rshift(value, 16, 0);
     }
   }
-
-  // printf("size: %i\n", out_samples.size());
-  return AUDIO_BLOCK_SAMPLES;
 }

@@ -18,17 +18,17 @@ struct Sound : BufferSource {
     pitch_shifter.reset();
   }
 
-  uint32_t __not_in_flash_func(fill_buffer)(AudioBlock& out_samples) {
+  void __not_in_flash_func(fill_buffer)(AudioBlock& out_samples) {
     // printf("Max samples: %i\n", out_buffer->max_sample_count);
     if (pitch_shifter.has_data()) {
-      return pitch_shifter.read_samples(out_samples);
+      pitch_shifter.read_samples(out_samples);
     } else {
+      // TODO: Should set size to 0 instead?
+      out_samples.resize(AUDIO_BLOCK_SAMPLES);
       // printf("Filling empty buffer\n");
       for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
         out_samples[i] = 0; // L
       }
-
-      return AUDIO_BLOCK_SAMPLES;
     }
   }
 

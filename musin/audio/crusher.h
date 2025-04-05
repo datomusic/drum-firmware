@@ -36,10 +36,9 @@ struct Crusher : BufferSource {
   Crusher(BufferSource &source) : source(source) {
   }
 
-  uint32_t fill_buffer(AudioBlock &out_samples) {
-    const auto sample_count = source.fill_buffer(out_samples);
+  void fill_buffer(AudioBlock &out_samples) {
+    source.fill_buffer(out_samples);
     crush(out_samples);
-    return sample_count;
   }
 
   void bits(uint8_t b) {

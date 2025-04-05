@@ -18,6 +18,7 @@
 #include "musin/audio/audio_output.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/bitcrusher.h"
+#include "musin/audio/filter_variable.h"
 #include "musin/audio/sound.h"
 
 #include "samples/AudioSampleCashregister.h"
@@ -37,6 +38,7 @@ const etl::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 
 Bitcrusher crusher;
+AudioFilterStateVariable filter;
 
 // BufferSource& output = crusher;
 static BufferSource& output = mixer;

@@ -96,6 +96,50 @@ static bool _aic3204_select_page(uint8_t page) {
     return true;
 }
 
+
+/**
+ * @brief Waits for the AIC3204's internal soft-stepping procedures to complete.
+ * This typically happens after powering up output drivers.
+ * Polls Page 1, Register 63 (0x3F) until bits 7:6 are set, or a timeout occurs.
+ *
+ * @return true if soft-stepping completed within the timeout, false otherwise.
+ */
+static bool _aic3204_wait_for_soft_stepping(void) {
+    printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+    absolute_time_t start_time = get_absolute_time();
+    absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+    bool soft_stepping_complete = false;
+    uint8_t status_reg = 0;
+    const uint8_t SOFT_STEPPING_PAGE = 1;
+    const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
+
+    while (!time_reached(timeout_time)) {
+        // Read Page 1, Register 63 (0x3F)
+        if (aic3204_read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, &status_reg)) {
+            // Check bits 7:6 (mask 0xC0) - Headphone Driver and Output Driver flags
+            if ((status_reg & 0xC0) == 0xC0) {
+                soft_stepping_complete = true;
+                absolute_time_t end_time = get_absolute_time();
+                int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
+                printf("Soft-stepping complete in %lld ms (Reg 0x%02X = 0x%02X).\n", elapsed_us / 1000, SOFT_STEPPING_REG, status_reg);
+                break; // Exit loop
+            }
+        } else {
+            // Read failed, maybe retry or abort? Let's retry after a delay.
+            printf("Warning: Failed to read soft-stepping status register.\n");
+        }
+        // Wait a bit before polling again
+        sleep_ms(10);
+    }
+
+    if (!soft_stepping_complete) {
+        printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
+        // Do not mark initialization as failed. There might be a slight pop
+    }
+    return soft_stepping_complete; // Return status
+}
+
+
 // --- Public API Functions ---
 
 bool aic3204_write_register(uint8_t page, uint8_t reg_addr, uint8_t value) {
@@ -270,36 +314,11 @@ bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
 
     // --- Wait for soft-stepping completion ---
     if (success) {
-        printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-        absolute_time_t start_time = get_absolute_time();
-        absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-        bool soft_stepping_complete = false;
-        uint8_t status_reg = 0;
-        const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
-
-        while (!time_reached(timeout_time)) {
-            // Read Page 1, Register 63 (0x3F)
-            if (aic3204_read_register(1, SOFT_STEPPING_REG, &status_reg)) {
-                // Check bits 7:6 (mask 0xC0)
-                if ((status_reg & 0xC0) == 0xC0) {
-                    soft_stepping_complete = true;
-                    absolute_time_t end_time = get_absolute_time();
-                    int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
-                    printf("Soft-stepping complete in %lld ms (Reg 0x%02X = 0x%02X).\n", elapsed_us / 1000, SOFT_STEPPING_REG, status_reg);
-                    break; // Exit loop
-                }
-            } else {
-                // Read failed, maybe retry or abort? Let's retry after a delay.
-                printf("Warning: Failed to read soft-stepping status register.\n");
-            }
-            // Wait a bit before polling again
-            sleep_ms(10);
-        }
-
-        if (!soft_stepping_complete) {
-            printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
-            // Do not mark initialization as failed. There might be a slight pop
-        }
+        // Call the helper function to wait for soft-stepping
+        // The helper function already prints messages on success/timeout
+        _aic3204_wait_for_soft_stepping();
+        // Note: We don't change 'success' based on soft-stepping timeout,
+        // as per the original logic (just print a warning).
     }
 
     // --- Final DAC Setup (Page 0) ---

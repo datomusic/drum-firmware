@@ -7,3 +7,6 @@
 [submodule "ports/pico/libraries/pico-vfs"]
 	path = musin/ports/pico/libraries/pico-vfs
 	url = https://github.com/oyama/pico-vfs.git
+[submodule "lib/etl"]
+	path = lib/etl
+	url = https://github.com/ETLCPP/etl.git

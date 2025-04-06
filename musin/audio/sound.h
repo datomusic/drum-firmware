@@ -1,8 +1,8 @@
 #ifndef SOUND_H_2P4SDIWG
 #define SOUND_H_2P4SDIWG
 
-#include "buffer_source.h"
 #include "audio_memory_reader.h"
+#include "buffer_source.h"
 #include "pitch_shifter.h"
 #include <pico/stdlib.h>
 #include <stdint.h>
@@ -18,15 +18,13 @@ struct Sound : BufferSource {
     pitch_shifter.reset();
   }
 
-  void __not_in_flash_func(fill_buffer)(AudioBlock& out_samples) {
+  void __not_in_flash_func(fill_buffer)(AudioBlock &out_samples) {
     // printf("Max samples: %i\n", out_buffer->max_sample_count);
     if (pitch_shifter.has_data()) {
       pitch_shifter.read_samples(out_samples);
     } else {
-      // TODO: Should set size to 0 instead?
-      out_samples.resize(AUDIO_BLOCK_SAMPLES);
       // printf("Filling empty buffer\n");
-      for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
+      for (size_t i = 0; i < out_samples.size(); i++) {
         out_samples[i] = 0; // L
       }
     }

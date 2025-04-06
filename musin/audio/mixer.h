@@ -33,7 +33,8 @@
 #include <stdint.h>
 
 struct AudioMixer4 : BufferSource {
-  // Copies the array of sources, without taking ownership of the contained pointers.
+  // Copies the array of sources, without taking ownership of the contained
+  // pointers.
   AudioMixer4(const etl::array<BufferSource *, 4> &sources) : sources(sources) {
     for (int i = 0; i < 4; i++) {
       multipliers[i] = 256;

@@ -1,20 +1,18 @@
 #include "mixer.h"
 #include "dspinst.h"
-#include <stdint.h>
+#include <cstddef>
 
 static AudioBlock temp_buffer;
 
 void AudioMixer4::fill_buffer(AudioBlock &out_samples) {
-  out_samples.resize(AUDIO_BLOCK_SAMPLES);
-
-  for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
+  for (size_t sample_index = 0; sample_index < out_samples.size();
        ++sample_index) {
     out_samples[sample_index] = 0;
   }
 
   for (unsigned int channel = 0; channel < sources.size(); ++channel) {
     sources[channel]->fill_buffer(temp_buffer);
-    for (int sample_index = 0; sample_index < AUDIO_BLOCK_SAMPLES;
+    for (size_t sample_index = 0; sample_index < out_samples.size();
          ++sample_index) {
       const int16_t multiplier = multipliers[channel];
 

@@ -105,9 +105,8 @@ std::uint32_t pin_to_adc_channel(std::uint32_t pin);
  */
 template <typename Container>
 void set_mux_address(const Container& address_pins, uint8_t address_value);
-
-
-/**
+ 
+ 
 /**
  * @brief Generic interface for reading an analog input pin via a multiplexer.
  * @tparam NumAddressPins The number of address lines required by the multiplexer (e.g., 3 for 8-channel, 4 for 16-channel).

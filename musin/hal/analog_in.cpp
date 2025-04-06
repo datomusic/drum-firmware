@@ -7,17 +7,31 @@ extern "C" {
 #include "pico/assert.h"
 #include "pico/time.h"
 }
+#include <vector> // Keep for the original set_mux_address if needed elsewhere, or remove
+#include <array>  // Include for std::array
 
 namespace Musin::HAL {
 
 // --- Free Helper Function Implementations ---
 
-void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value) {
-    hard_assert(address_pins.size() <= 8);
+// Template implementation for set_mux_address
+template <typename Container>
+void set_mux_address(const Container& address_pins, uint8_t address_value) {
+    // No hard_assert on size here, rely on the caller or class template constraints
     for (size_t i = 0; i < address_pins.size(); ++i) {
+        // Ensure we don't read past the end if container is smaller than expected bits
+        if (i >= sizeof(address_value) * 8) break;
         gpio_put(address_pins[i], (address_value >> i) & 1);
     }
 }
+
+// --- Explicit Instantiation for common containers ---
+// Explicitly instantiate the template function for the array sizes we use.
+template void set_mux_address<std::array<std::uint32_t, 3>>(const std::array<std::uint32_t, 3>&, uint8_t);
+template void set_mux_address<std::array<std::uint32_t, 4>>(const std::array<std::uint32_t, 4>&, uint8_t);
+// If you still need the vector version elsewhere, keep its definition and add:
+// template void set_mux_address<std::vector<std::uint32_t>>(const std::vector<std::uint32_t>&, uint8_t);
+// Otherwise, the old vector implementation can be removed.
 
 
 // --- Free Helper Function Implementations (Continued) ---
@@ -80,27 +94,30 @@ float AnalogIn::read_voltage() const {
   }
   std::uint16_t raw_value = read_raw();
   return (static_cast<float>(raw_value) / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE;
-}
 
 
-// --- AnalogInMux8 Implementation ---
+// --- Template Implementation for AnalogInMux<NumAddressPins> ---
 
-AnalogInMux8::AnalogInMux8(std::uint32_t adc_pin,
-                           const std::vector<std::uint32_t>& address_pins,
-                           uint8_t channel_address,
-                           std::uint32_t address_settle_time_us) :
+template <size_t NumAddressPins>
+AnalogInMux<NumAddressPins>::AnalogInMux(std::uint32_t adc_pin,
+                                         const std::array<std::uint32_t, NumAddressPins>& address_pins,
+                                         uint8_t channel_address,
+                                         std::uint32_t address_settle_time_us) :
   _adc_pin(adc_pin),
-  _adc_channel(Musin::HAL::pin_to_adc_channel(adc_pin)), // Call free function
-  _address_pins(address_pins),
+  _adc_channel(Musin::HAL::pin_to_adc_channel(adc_pin)),
+  _address_pins(address_pins), // Directly initialize std::array member
   _channel_address(channel_address),
   _address_settle_time_us(address_settle_time_us),
   _initialized(false)
 {
-    hard_assert(address_pins.size() == 3); // Mux8 requires exactly 3 address pins
-    hard_assert(channel_address < 8);      // Valid channel range 0-7
+    // Runtime check for valid channel address for this mux configuration
+    hard_assert(channel_address < MAX_CHANNELS);
+    // The check for the correct number of address pins is handled by std::array
+    // and the template parameter itself.
 }
 
-void AnalogInMux8::init() {
+template <size_t NumAddressPins>
+void AnalogInMux<NumAddressPins>::init() {
     if (_initialized) {
         return;
     }
@@ -109,83 +126,23 @@ void AnalogInMux8::init() {
     adc_gpio_init(_adc_pin);
 
     // Init address pins as outputs
-    for (std::uint32_t pin : _address_pins) {
+    for (std::uint32_t pin : _address_pins) { // Iterate over std::array
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_OUT);
-        gpio_put(pin, 0);
+        gpio_put(pin, 0); // Initialize to 0
     }
 
     _initialized = true;
 }
 
-std::uint16_t AnalogInMux8::read_raw() const {
+template <size_t NumAddressPins>
+std::uint16_t AnalogInMux<NumAddressPins>::read_raw() const {
     if (!_initialized) {
         return 0;
     }
 
-    Musin::HAL::set_mux_address(_address_pins, _channel_address); // Call free function
-
-    // Wait for the multiplexer and signal to settle (optional but recommended)
-    if (_address_settle_time_us > 0) {
-        busy_wait_us(_address_settle_time_us);
-    }
-
-    adc_select_input(_adc_channel);
-    return adc_read();
-}
-
-std::uint16_t AnalogInMux8::read() const {
-    std::uint16_t raw = read_raw();
-    return raw << 4; // Scale 12-bit to 16-bit
-}
-
-float AnalogInMux8::read_voltage() const {
-    std::uint16_t raw = read_raw();
-    return (static_cast<float>(raw) / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE;
-}
-
-
-// --- AnalogInMux16 Implementation ---
-
-AnalogInMux16::AnalogInMux16(std::uint32_t adc_pin,
-                             const std::vector<std::uint32_t>& address_pins,
-                             uint8_t channel_address,
-                             std::uint32_t address_settle_time_us) :
-  _adc_pin(adc_pin),
-  _adc_channel(Musin::HAL::pin_to_adc_channel(adc_pin)), // Call free function
-  _address_pins(address_pins),
-  _channel_address(channel_address),
-  _address_settle_time_us(address_settle_time_us),
-  _initialized(false)
-{
-    hard_assert(address_pins.size() == 4); // Mux16 requires exactly 4 address pins
-    hard_assert(channel_address < 16);     // Valid channel range 0-15
-}
-
-void AnalogInMux16::init() {
-    if (_initialized) {
-        return;
-    }
-
-    adc_init();
-    adc_gpio_init(_adc_pin);
-
-    // Init address pins as outputs
-    for (std::uint32_t pin : _address_pins) {
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_OUT);
-        gpio_put(pin, 0);
-    }
-
-    _initialized = true;
-}
-
-std::uint16_t AnalogInMux16::read_raw() const {
-    if (!_initialized) {
-        return 0;
-    }
-
-    Musin::HAL::set_mux_address(_address_pins, _channel_address); // Call free function
+    // Call the templated helper function, explicitly providing the template argument
+    Musin::HAL::set_mux_address<std::array<std::uint32_t, NumAddressPins>>(_address_pins, _channel_address);
 
     // Wait for the multiplexer and signal to settle
     if (_address_settle_time_us > 0) {
@@ -196,15 +153,23 @@ std::uint16_t AnalogInMux16::read_raw() const {
     return adc_read();
 }
 
-std::uint16_t AnalogInMux16::read() const {
+template <size_t NumAddressPins>
+std::uint16_t AnalogInMux<NumAddressPins>::read() const {
     std::uint16_t raw = read_raw();
     return raw << 4; // Scale 12-bit to 16-bit
 }
 
-float AnalogInMux16::read_voltage() const {
+template <size_t NumAddressPins>
+float AnalogInMux<NumAddressPins>::read_voltage() const {
     std::uint16_t raw = read_raw();
     return (static_cast<float>(raw) / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE;
 }
+
+// --- Explicit Template Instantiation ---
+// You MUST explicitly instantiate the template class versions you intend to use
+// because the implementation is in the .cpp file.
+template class AnalogInMux<3>; // For AnalogInMux8 alias
+template class AnalogInMux<4>; // For AnalogInMux16 alias
 
 
 } // namespace Musin::HAL

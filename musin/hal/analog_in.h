@@ -2,7 +2,9 @@
 #define MUSIN_HAL_ANALOG_IN_H
 
 #include <cstdint>
-#include <vector>
+#include <array>   // Use std::array instead of std::vector for fixed size
+#include <type_traits> // For static_assert
+
 // Standard types are sufficient for the interface definition.
 // Platform-specific SDK headers are now included in the .cpp file.
 
@@ -97,135 +99,93 @@ std::uint32_t pin_to_adc_channel(std::uint32_t pin);
 /**
  * @brief Sets the state of multiple GPIO pins based on a binary value.
  * Used to control multiplexer address lines.
- * @param address_pins Vector of GPIO pin numbers (index 0 = LSB).
+ * @tparam Container Type of the container holding address pins (e.g., std::array).
+ * @param address_pins Container of GPIO pin numbers (index 0 = LSB).
  * @param address_value The address value to set.
  */
-void set_mux_address(const std::vector<std::uint32_t>& address_pins, uint8_t address_value);
+template <typename Container>
+void set_mux_address(const Container& address_pins, uint8_t address_value);
 
 
 /**
- * @brief Interface for reading an analog input pin via an 8-channel multiplexer (e.g., 74HC4051).
- * Requires 3 address pins.
- */
-class AnalogInMux8 {
-public:
-  /**
-   * @brief Construct an AnalogInMux8 instance.
-   *
-   * @param adc_pin The GPIO pin connected to the ADC input (must be ADC capable: 26, 27, 28).
-   * @param address_pins Vector containing the 3 GPIO pin numbers for the mux address lines (index 0=LSB/S0, 1=S1, 2=MSB/S2).
-   * @param channel_address The specific channel (0-7) on the multiplexer for this input.
-   * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
-   */
-  AnalogInMux8(std::uint32_t adc_pin,
-                 const std::vector<std::uint32_t>& address_pins,
-                 uint8_t channel_address,
-                 std::uint32_t address_settle_time_us = 5);
-
-  AnalogInMux8(const AnalogInMux8&) = delete;
-  AnalogInMux8& operator=(const AnalogInMux8&) = delete;
-
-  /**
-   * @brief Initialize the ADC, ADC GPIO pin, and address GPIO pins.
-   * Must be called once before reading.
-   */
-  void init();
-
-  /**
-   * @brief Read the analog value from the configured mux channel (scaled to 16-bit).
-   * Sets the mux address, waits briefly, then reads the ADC.
-   * @return The 16-bit representation of the analog reading (0-65520). Returns 0 if not initialized.
-   */
-  std::uint16_t read() const;
-
-  /**
-   * @brief Read the raw 12-bit analog value from the configured mux channel.
-   * Sets the mux address, waits briefly, then reads the ADC.
-   * @return The raw 12-bit ADC reading (0-4095). Returns 0 if not initialized.
-   */
-  std::uint16_t read_raw() const;
-
-  /**
-   * @brief Read the analog value and convert it to voltage.
-   * Sets the mux address, waits briefly, then reads the ADC.
-   * @return The calculated voltage as a float. Returns 0.0f if not initialized.
-   */
-  float read_voltage() const;
-
-private:
-  const std::uint32_t _adc_pin;
-  const std::uint32_t _adc_channel;
-  const std::vector<std::uint32_t> _address_pins;
-  const uint8_t _channel_address;
-  const std::uint32_t _address_settle_time_us;
-  bool _initialized = false;
-
-  static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
-  static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
-};
-
-
 /**
- * @brief Interface for reading an analog input pin via a 16-channel multiplexer (e.g., 74HC4067).
- * Requires 4 address pins.
+ * @brief Generic interface for reading an analog input pin via a multiplexer.
+ * @tparam NumAddressPins The number of address lines required by the multiplexer (e.g., 3 for 8-channel, 4 for 16-channel).
  */
-class AnalogInMux16 {
+template <size_t NumAddressPins>
+class AnalogInMux {
 public:
-  /**
-   * @brief Construct an AnalogInMux16 instance.
-   *
-   * @param adc_pin The GPIO pin connected to the ADC input (must be ADC capable: 26, 27, 28).
-   * @param address_pins Vector containing the 4 GPIO pin numbers for the mux address lines (index 0=LSB/S0, ..., 3=MSB/S3).
-   * @param channel_address The specific channel (0-15) on the multiplexer for this input.
-   * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
-   */
-  AnalogInMux16(std::uint32_t adc_pin,
-                  const std::vector<std::uint32_t>& address_pins,
-                  uint8_t channel_address,
-                  std::uint32_t address_settle_time_us = 5);
+    // Calculate max channels based on address pins
+    static constexpr uint8_t MAX_CHANNELS = (1 << NumAddressPins);
 
-  // Prevent copying and assignment
-  AnalogInMux16(const AnalogInMux16&) = delete;
-  AnalogInMux16& operator=(const AnalogInMux16&) = delete;
+    // Compile-time check for supported address pin counts
+    static_assert(NumAddressPins > 0 && NumAddressPins <= 4,
+                  "AnalogInMux supports 1 to 4 address pins (2 to 16 channels)");
 
-  /**
-   * @brief Initialize the ADC, ADC GPIO pin, and address GPIO pins.
-   * Must be called once before reading.
-   */
-  void init();
+    /**
+     * @brief Construct an AnalogInMux instance.
+     *
+     * @param adc_pin The GPIO pin connected to the ADC input (must be ADC capable: 26, 27, 28).
+     * @param address_pins Array containing the GPIO pin numbers for the mux address lines (index 0=LSB/S0, ..., NumAddressPins-1=MSB).
+     * @param channel_address The specific channel (0 to MAX_CHANNELS - 1) on the multiplexer for this input.
+     * @param address_settle_time_us Microseconds to wait after setting address pins before reading ADC.
+     */
+    AnalogInMux(std::uint32_t adc_pin,
+                const std::array<std::uint32_t, NumAddressPins>& address_pins,
+                uint8_t channel_address,
+                std::uint32_t address_settle_time_us = 5);
 
-  /**
-   * @brief Read the analog value from the configured mux channel (scaled to 16-bit).
-   * Sets the mux address, waits briefly, then reads the ADC.
-   * @return The 16-bit representation of the analog reading (0-65520). Returns 0 if not initialized.
-   */
-  std::uint16_t read() const;
+    // Prevent copying and assignment
+    AnalogInMux(const AnalogInMux&) = delete;
+    AnalogInMux& operator=(const AnalogInMux&) = delete;
 
-  /**
-   * @brief Read the raw 12-bit analog value from the configured mux channel.
-   * Sets the mux address, waits briefly, then reads the ADC.
-   * @return The raw 12-bit ADC reading (0-4095). Returns 0 if not initialized.
-   */
-  std::uint16_t read_raw() const;
+    /**
+     * @brief Initialize the ADC, ADC GPIO pin, and address GPIO pins.
+     * Must be called once before reading.
+     */
+    void init();
 
-  /**
-   * @brief Read the analog value and convert it to voltage.
-   * Sets the mux address, waits briefly, then reads the ADC.
-   * @return The calculated voltage as a float. Returns 0.0f if not initialized.
-   */
-  float read_voltage() const;
+    /**
+     * @brief Read the analog value from the configured mux channel (scaled to 16-bit).
+     * Sets the mux address, waits briefly, then reads the ADC.
+     * @return The 16-bit representation of the analog reading (0-65520). Returns 0 if not initialized.
+     */
+    std::uint16_t read() const;
+
+    /**
+     * @brief Read the raw 12-bit analog value from the configured mux channel.
+     * Sets the mux address, waits briefly, then reads the ADC.
+     * @return The raw 12-bit ADC reading (0-4095). Returns 0 if not initialized.
+     */
+    std::uint16_t read_raw() const;
+
+    /**
+     * @brief Read the analog value and convert it to voltage.
+     * Sets the mux address, waits briefly, then reads the ADC.
+     * @return The calculated voltage as a float. Returns 0.0f if not initialized.
+     */
+    float read_voltage() const;
 
 private:
-  const std::uint32_t _adc_pin;
-  const std::uint32_t _adc_channel;
-  const std::vector<std::uint32_t> _address_pins;
-  const uint8_t _channel_address;
-  const std::uint32_t _address_settle_time_us;
-  bool _initialized = false;
+    const std::uint32_t _adc_pin;
+    const std::uint32_t _adc_channel;
+    const std::array<std::uint32_t, NumAddressPins> _address_pins; // Use std::array
+    const uint8_t _channel_address;
+    const std::uint32_t _address_settle_time_us;
+    bool _initialized = false;
 
-  static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
-  static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
+    // Use constants from AnalogIn for consistency
+    static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
+    static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
 };
+
+// --- Convenience Type Aliases ---
+
+/// Alias for an 8-channel multiplexer (3 address pins).
+using AnalogInMux8 = AnalogInMux<3>;
+
+/// Alias for a 16-channel multiplexer (4 address pins).
+using AnalogInMux16 = AnalogInMux<4>;
 
 
 } // namespace Musin::HAL

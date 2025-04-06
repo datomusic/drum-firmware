@@ -84,10 +84,9 @@ struct Filter {
   }
 
   void update_variable(const AudioBlock &input_samples, const AudioBlock &control, Outputs& outputs);
-  // void update_static(AudioBlock &input_samples, Outputs& outputs);
+  void update_fixed(const AudioBlock &input_samples, Outputs& outputs);
 
 private:
-  void filter_fixed(const int16_t *in, int16_t *lp, int16_t *bp, int16_t *hp);
 
   int32_t setting_fcenter;
   int32_t setting_fmult;

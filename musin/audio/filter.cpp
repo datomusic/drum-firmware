@@ -46,13 +46,18 @@
 // no audible difference.
 // #define IMPROVE_EXPONENTIAL_ACCURACY
 
-void Filter::filter_fixed(const int16_t *in, int16_t *lp, int16_t *bp,
-                          int16_t *hp) {
-  const int16_t *end = in + AUDIO_BLOCK_SAMPLES;
+void Filter::update_fixed(const AudioBlock &in, Filter::Outputs &outputs) {
+  const int16_t *end = in.cend();
+  const int16_t *input_iterator = in.cbegin();
+
   int32_t input, inputprev;
   int32_t lowpass, bandpass, highpass;
   int32_t lowpasstmp, bandpasstmp, highpasstmp;
   int32_t fmult, damp;
+
+  int16_t *lowpass_iterator = outputs.lowpass.begin();
+  int16_t *bandpass_iterator = outputs.bandpass.begin();
+  int16_t *highpass_iterator = outputs.highpass.begin();
 
   fmult = setting_fmult;
   damp = setting_damp;
@@ -60,7 +65,7 @@ void Filter::filter_fixed(const int16_t *in, int16_t *lp, int16_t *bp,
   lowpass = state_lowpass;
   bandpass = state_bandpass;
   do {
-    input = (*in++) << 12;
+    input = (*input_iterator++) << 12;
     lowpass = lowpass + MULT(fmult, bandpass);
     highpass = ((input + inputprev) >> 1) - lowpass - MULT(damp, bandpass);
     inputprev = input;
@@ -74,10 +79,10 @@ void Filter::filter_fixed(const int16_t *in, int16_t *lp, int16_t *bp,
     lowpasstmp = signed_saturate_rshift(lowpass + lowpasstmp, 16, 13);
     bandpasstmp = signed_saturate_rshift(bandpass + bandpasstmp, 16, 13);
     highpasstmp = signed_saturate_rshift(highpass + highpasstmp, 16, 13);
-    *lp++ = lowpasstmp;
-    *bp++ = bandpasstmp;
-    *hp++ = highpasstmp;
-  } while (in < end);
+    *lowpass_iterator++ = lowpasstmp;
+    *bandpass_iterator++ = bandpasstmp;
+    *highpass_iterator++ = highpasstmp;
+  } while (input_iterator< end);
   state_inputprev = inputprev;
   state_lowpass = lowpass;
   state_bandpass = bandpass;
@@ -89,9 +94,9 @@ void Filter::update_variable(const AudioBlock &in, const AudioBlock &ctl,
   const int16_t *input_iterator = in.cbegin();
   const int16_t *ctl_iterator = ctl.cbegin();
 
-  int16_t* lowpass_iterator = outputs.lowpass.begin();
-  int16_t* bandpass_iterator = outputs.bandpass.begin();
-  int16_t* highpass_iterator = outputs.highpass.begin();
+  int16_t *lowpass_iterator = outputs.lowpass.begin();
+  int16_t *bandpass_iterator = outputs.bandpass.begin();
+  int16_t *highpass_iterator = outputs.highpass.begin();
 
   int32_t input, inputprev, control;
   int32_t lowpass, bandpass, highpass;
@@ -107,9 +112,9 @@ void Filter::update_variable(const AudioBlock &in, const AudioBlock &ctl,
   bandpass = state_bandpass;
   do {
     // compute fmult using control input, fcenter and octavemult
-    control = *ctl_iterator++;        // signal is always 15 fractional bits
-    control *= octavemult;   // octavemult range: 0 to 28671 (12 frac bits)
-    n = control & 0x7FFFFFF; // 27 fractional control bits
+    control = *ctl_iterator++; // signal is always 15 fractional bits
+    control *= octavemult;     // octavemult range: 0 to 28671 (12 frac bits)
+    n = control & 0x7FFFFFF;   // 27 fractional control bits
 #ifdef IMPROVE_EXPONENTIAL_ACCURACY
     // exp2 polynomial suggested by Stefan Stenzel on "music-dsp"
     // mail list, Wed, 3 Sep 2014 10:08:55 +0200

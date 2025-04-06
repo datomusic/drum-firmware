@@ -23,11 +23,11 @@ void PitchShifter::reset() {
   buffered_reader.reset();
 }
 
-void PitchShifter::read_samples(AudioBlock &out) {
+uint32_t PitchShifter::read_samples(AudioBlock &out) {
   if (this->speed < 1.01 && this->speed > 0.99) {
-    sample_reader.read_samples(out);
+    return sample_reader.read_samples(out);
   } else {
-    read_resampled(out);
+    return read_resampled(out);
   }
 }
 
@@ -38,10 +38,8 @@ void PitchShifter::shift_interpolation_samples(int16_t sample) {
   interpolation_samples[3] = sample;
 }
 
-void PitchShifter::read_resampled(AudioBlock &out) {
-  out.resize(AUDIO_BLOCK_SAMPLES);
-
-  for (uint32_t out_sample_index = 0; out_sample_index < AUDIO_BLOCK_SAMPLES;
+uint32_t PitchShifter::read_resampled(AudioBlock &out) {
+  for (uint32_t out_sample_index = 0; out_sample_index < out.size();
        ++out_sample_index) {
 
     const int16_t interpolated_value = quad_interpolate(
@@ -65,4 +63,6 @@ void PitchShifter::read_resampled(AudioBlock &out) {
 
     out[out_sample_index] = interpolated_value;
   }
+
+  return out.size();
 }

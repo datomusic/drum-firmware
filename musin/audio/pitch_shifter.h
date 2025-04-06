@@ -19,7 +19,7 @@ struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  void read_samples(AudioBlock &out);
+  uint32_t read_samples(AudioBlock &out);
 
   void set_speed(const float speed) {
     if (speed < 0.2) {
@@ -32,7 +32,7 @@ struct PitchShifter : SampleReader {
   }
 
 private:
-  void read_resampled(AudioBlock &out);
+  uint32_t read_resampled(AudioBlock &out);
   void shift_interpolation_samples(int16_t sample);
 
   float speed;

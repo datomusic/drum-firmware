@@ -20,8 +20,7 @@ struct BufferedReader {
   // Reader interface
   bool read_next(int16_t &out) {
     if (read_position >= bytes_read) {
-      reader.read_samples(buffer);
-      bytes_read = buffer.size();
+      bytes_read = reader.read_samples(buffer);
       read_position = 0;
     }
 

@@ -44,7 +44,7 @@ struct AudioMemoryReader : SampleReader {
   }
 
   // Reader interface
-  void read_samples(AudioBlock &out);
+  uint32_t read_samples(AudioBlock &out);
 
 private:
   bool read_next(uint32_t &out) {

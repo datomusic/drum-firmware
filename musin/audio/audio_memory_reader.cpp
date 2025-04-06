@@ -43,7 +43,7 @@ void AudioMemoryReader::reset() {
   encoding = format >> 24;
 }
 
-void AudioMemoryReader::read_samples(AudioBlock &out_samples) {
+uint32_t AudioMemoryReader::read_samples(AudioBlock &out_samples) {
   uint32_t tmp32, consumed = 0, samples_written = 0;
   int16_t s0, s1, s2, s3, s4;
   int i;
@@ -180,8 +180,7 @@ void AudioMemoryReader::read_samples(AudioBlock &out_samples) {
 
   default:
     encoding = 0;
-    out_samples.resize(samples_written);
-    return;
+    return samples_written;
   }
 
   prior = s0;
@@ -197,5 +196,5 @@ void AudioMemoryReader::read_samples(AudioBlock &out_samples) {
     }
   }
 
-  out_samples.resize(samples_written);
+  return samples_written;
 }

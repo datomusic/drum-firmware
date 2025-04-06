@@ -8,8 +8,7 @@ struct SampleReader {
   virtual void reset() = 0;
   virtual bool has_data() = 0;
 
-  // Always reads up to AUDIO_BLOCK_SAMPLES
-  virtual void read_samples(AudioBlock &out) = 0;
+  virtual uint32_t read_samples(AudioBlock &out) = 0;
 };
 
 #endif /* end of include guard: READER_H_IOD4JYAV */

@@ -16,22 +16,25 @@ extern "C" {
 #include "musin/hal/analog_in.h" // Includes AnalogIn and AnalogInMux
 #include "musin/ui/drumpad.h"    // Includes Drumpad template
 
+#include <cstdint> // Include for std::uint32_t
+
 // --- Pin Mapping (Adjust to your hardware wiring) ---
 // Define GPIO pins connected to the DrumPizza J1 connector based on a common setup
-constexpr uint PIN_MUX_IO = 26; // ADC0
+// Use std::uint32_t for pin types to match constructor expectations
+constexpr std::uint32_t PIN_MUX_IO = 26; // ADC0
 
-constexpr uint PIN_ADDR_0 = 10; // Mux S0 / Keypad A0
-constexpr uint PIN_ADDR_1 = 11; // Mux S1 / Keypad A1
-constexpr uint PIN_ADDR_2 = 12; // Mux S2 / Keypad A2
-constexpr uint PIN_ADDR_3 = 13; // Mux S3 / Mux Select
+constexpr std::uint32_t PIN_ADDR_0 = 10; // Mux S0 / Keypad A0
+constexpr std::uint32_t PIN_ADDR_1 = 11; // Mux S1 / Keypad A1
+constexpr std::uint32_t PIN_ADDR_2 = 12; // Mux S2 / Keypad A2
+constexpr std::uint32_t PIN_ADDR_3 = 13; // Mux S3 / Mux Select
 
-constexpr uint PIN_RING_1 = 20; // Keypad Col 0 (Ring 1)
-constexpr uint PIN_RING_2 = 19; // Keypad Col 1 (Ring 2)
-constexpr uint PIN_RING_3 = 18; // Keypad Col 2 (Ring 3)
-constexpr uint PIN_RING_4 = 17; // Keypad Col 3 (Ring 4)
-constexpr uint PIN_RING_5 = 16; // Keypad Col 4 (Ring 5)
+constexpr std::uint32_t PIN_RING_1 = 20; // Keypad Col 0 (Ring 1)
+constexpr std::uint32_t PIN_RING_2 = 19; // Keypad Col 1 (Ring 2)
+constexpr std::uint32_t PIN_RING_3 = 18; // Keypad Col 2 (Ring 3)
+constexpr std::uint32_t PIN_RING_4 = 17; // Keypad Col 3 (Ring 4)
+constexpr std::uint32_t PIN_RING_5 = 16; // Keypad Col 4 (Ring 5)
 
-constexpr uint PIN_LED_DATA = 21;
+constexpr std::uint32_t PIN_LED_DATA = 21;
 // constexpr uint PIN_LED_DATA_RETURN = 22; // Optional return pin
 
 // --- Main Application ---
@@ -46,12 +49,14 @@ int main() {
 
     // --- Configure Board Pins ---
     // Use all 4 address pins for DrumPizza constructor, even if keypad only uses 3
-    const std::array<unsigned int, 4> address_pins_gpio = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
-    const std::array<unsigned int, 5> keypad_col_pins_gpio = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4, PIN_RING_5};
+    // Use std::uint32_t for the array element type
+    const std::array<std::uint32_t, 4> address_pins_gpio = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
+    const std::array<std::uint32_t, 5> keypad_col_pins_gpio = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4, PIN_RING_5};
 
     // --- Instantiate Board ---
     // DrumPizza handles keypad and LED setup via its init()
     printf("Instantiating DrumPizza board...\n");
+    // Pass the std::uint32_t arrays to the DrumPizza constructor
     Musin::Boards::DrumPizza board(
         address_pins_gpio,
         keypad_col_pins_gpio,

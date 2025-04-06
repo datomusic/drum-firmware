@@ -11,15 +11,15 @@
 #include "musin/ui/keypad_hc138.h" // Include the keypad driver header
 #include "musin/drivers/ws2812.h"       // Include the WS2812 driver header
 
-// Wrap C SDK headers needed for PIO definition
-extern "C" {
-#include "hardware/pio.h"
-}
-
 // No direct SDK includes here, as this file defines the board interface,
 // not the microcontroller mapping.
+// hardware/pio.h is included by ws2812.h
 
 namespace Musin::Boards {
+
+// --- LED Output Configuration ---
+// Moved outside the class so it's available for template instantiation
+static constexpr std::uint32_t NUM_LEDS = 37;
 
 /**
  * @brief Represents the DRUM-Pizza 0.1 control board hardware interface.
@@ -44,10 +44,10 @@ public:
      * @param debounce_time_us Keypad debounce time (microseconds).
      * @param hold_time_us Keypad hold time (microseconds).
      */
-    DrumPizza(const std::array<unsigned int, 4>& address_pins_gpio, // Changed size to 4
-              const std::array<unsigned int, 5>& keypad_col_pins_gpio,
-              unsigned int led_data_pin_gpio,
-              std::optional<unsigned int> led_data_return_pin_gpio = std::nullopt,
+    DrumPizza(const std::array<std::uint32_t, 4>& address_pins_gpio, // Use std::uint32_t
+              const std::array<std::uint32_t, 5>& keypad_col_pins_gpio, // Use std::uint32_t
+              std::uint32_t led_data_pin_gpio,                         // Use std::uint32_t
+              std::optional<std::uint32_t> led_data_return_pin_gpio = std::nullopt, // Use std::uint32_t
               std::uint32_t scan_interval_us = Musin::UI::Keypad_HC138::DEFAULT_SCAN_INTERVAL_US,
               std::uint32_t debounce_time_us = Musin::UI::Keypad_HC138::DEFAULT_DEBOUNCE_TIME_US,
               std::uint32_t hold_time_us = Musin::UI::Keypad_HC138::DEFAULT_HOLD_TIME_US);
@@ -72,15 +72,15 @@ public:
 
     /**
      * @brief Get a reference to the WS2812 LED driver instance.
-     * @return Reference to the WS2812 object.
+     * @return Reference to the WS2812<Musin::Boards::NUM_LEDS> object.
      */
-    Musin::Drivers::WS2812& leds() { return _leds; }
+    Musin::Drivers::WS2812<Musin::Boards::NUM_LEDS>& leds() { return _leds; }
 
     /**
      * @brief Get a const reference to the WS2812 LED driver instance.
-     * @return Const reference to the WS2812 object.
+     * @return Const reference to the WS2812<Musin::Boards::NUM_LEDS> object.
      */
-    const Musin::Drivers::WS2812& leds() const { return _leds; }
+    const Musin::Drivers::WS2812<Musin::Boards::NUM_LEDS>& leds() const { return _leds; }
 
 
     // --- Named Pin Definitions (Mapped from J1 Connector) ---
@@ -153,8 +153,6 @@ enum class AnalogInput : std::uint8_t {
     VOLUME     = 15
 };
 
-// --- LED Output Configuration ---
-static constexpr std::uint32_t NUM_LEDS = 37;
 
 // LED strip data line (referenced by NamedPin)
 static constexpr NamedPin PIN_LED_DATA = NamedPin::LED_DATA; // J1 Pin 19
@@ -182,13 +180,13 @@ private:
     // Keypad driver instance
     Musin::UI::Keypad_HC138 _keypad;
 
-    // LED driver instance
-    Musin::Drivers::WS2812 _leds;
+    // LED driver instance (templated with the number of LEDs)
+    Musin::Drivers::WS2812<NUM_LEDS> _leds;
 
     // Pin configuration storage (needed by init or other methods)
-    const std::array<unsigned int, 4> _address_pins_gpio; // Changed size to 4, renamed for clarity
-    const unsigned int _led_data_pin_gpio;
-    const std::optional<unsigned int> _led_data_return_pin_gpio;
+    const std::array<std::uint32_t, 4> _address_pins_gpio; // Use std::uint32_t
+    const std::uint32_t _led_data_pin_gpio;                // Use std::uint32_t
+    const std::optional<std::uint32_t> _led_data_return_pin_gpio; // Use std::uint32_t
 
     // Add members for other components like Analog Mux driver etc. later
 

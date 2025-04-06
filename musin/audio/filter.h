@@ -83,11 +83,11 @@ struct Filter {
     setting_octavemult = n * 4096.0f;
   }
 
-  void update_variable(const AudioBlock &input_samples, const AudioBlock &control, Outputs& outputs);
-  void update_fixed(const AudioBlock &input_samples, Outputs& outputs);
+  void update_variable(const AudioBlock &input_samples,
+                       const AudioBlock &control, Outputs &outputs);
+  void update_fixed(const AudioBlock &input_samples, Outputs &outputs);
 
 private:
-
   int32_t setting_fcenter;
   int32_t setting_fmult;
   int32_t setting_octavemult;
@@ -95,6 +95,22 @@ private:
   int32_t state_inputprev;
   int32_t state_lowpass;
   int32_t state_bandpass;
+};
+
+struct Lowpass : BufferSource {
+  Lowpass(BufferSource &from) : from(from) {
+  }
+
+  void fill_buffer(AudioBlock &out_samples) {
+    from.fill_buffer(out_samples);
+    filter.update_fixed(out_samples, outputs);
+    etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(),
+              out_samples.begin());
+  }
+
+  BufferSource &from;
+  Filter::Outputs outputs;
+  Filter filter;
 };
 
 #endif

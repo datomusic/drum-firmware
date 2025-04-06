@@ -1,26 +1,12 @@
-/**
- * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
-// #include <stdio.h>
-
-#define PICO_AUDIO_I2S_DATA_PIN 18
-#define PICO_AUDIO_I2S_CLOCK_PIN_BASE 16
-
 #include "etl/array.h"
 #include <cstdint>
 #include <stdio.h>
 
-#include "pico/audio.h"
-
 #include "musin/audio/audio_output.h"
-#include "musin/audio/mixer.h"
-// #include "musin/audio/teensy/effect_bitcrusher.h"
 #include "musin/audio/crusher.h"
+#include "musin/audio/filter.h"
+#include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
-#include "musin/audio/teensy/filter_variable.h"
 
 #include "samples/AudioSampleCashregister.h"
 #include "samples/AudioSampleGong.h"
@@ -38,19 +24,20 @@ Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 const etl::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 
-// AudioEffectBitcrusher crusher;
 Crusher crusher(mixer);
-AudioFilterStateVariable filter;
 
-BufferSource &master_source = crusher;
+// Lowpass lowpass(mixer);
+Lowpass lowpass(crusher);
+
 // static BufferSource& output = mixer;
+// BufferSource &master_source = crusher;
+BufferSource &master_source = lowpass;
 
 int main() {
   stdio_init_all();
   sleep_ms(1000);
   printf("Startup!\n");
 
-  crusher.sampleRate(2489.0f);
   AudioOutput::init();
 
   uint32_t last_ms = to_ms_since_boot(get_absolute_time());
@@ -58,7 +45,15 @@ int main() {
 
   auto sound_index = 0;
   auto pitch_index = 0;
+  auto freq_index = 0;
+  auto crush_index = 0;
+
   const etl::array pitches{0.6, 0.3, 1, 1.9, 1.4};
+  const etl::array freqs{200.0f,  500.0f,  700.0f,   1200.0f,
+                         2000.0f, 5000.0f, 10000.0f, 20000.0f};
+  const etl::array crush_rates{2489.0f, 44100};
+
+  lowpass.filter.resonance(3.0f);
 
   printf("Entering main loop\n");
   while (true) {
@@ -68,7 +63,7 @@ int main() {
     accum_ms += diff_ms;
 
     if (!AudioOutput::update(master_source, master_volume)) {
-      if (accum_ms > 1000) {
+      if (accum_ms > 500) {
         accum_ms = 0;
         printf("Playing sound\n");
 
@@ -79,9 +74,22 @@ int main() {
 
         const auto sound = sounds[sound_index];
         pitch_index = (pitch_index + 1) % pitches.size();
+
         const auto pitch = pitches[pitch_index];
         sound->play(pitch);
         sound_index = (sound_index + 1) % sounds.size();
+
+        if (sound_index == 0) {
+          freq_index = (freq_index + 1) % freqs.size();
+          crush_index = (crush_index + 1) % crush_rates.size();
+
+          const auto freq = freqs[freq_index];
+          const auto crush = crush_rates[crush_index];
+
+          printf("freq: %f, crush: %f\n", freq, crush);
+          lowpass.filter.frequency(freq);
+          crusher.sampleRate(crush);
+        }
       }
     }
   }

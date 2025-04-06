@@ -83,6 +83,11 @@ void Filter::update_fixed(const AudioBlock &in, Filter::Outputs &outputs) {
     *bandpass_iterator++ = bandpasstmp;
     *highpass_iterator++ = highpasstmp;
   } while (input_iterator< end);
+
+  outputs.highpass.resize(in.size());
+  outputs.bandpass.resize(in.size());
+  outputs.lowpass.resize(in.size());
+
   state_inputprev = inputprev;
   state_lowpass = lowpass;
   state_bandpass = bandpass;
@@ -175,6 +180,10 @@ void Filter::update_variable(const AudioBlock &in, const AudioBlock &ctl,
   state_inputprev = inputprev;
   state_lowpass = lowpass;
   state_bandpass = bandpass;
+
+  outputs.highpass.resize(in.size());
+  outputs.bandpass.resize(in.size());
+  outputs.lowpass.resize(in.size());
 }
 
 /*

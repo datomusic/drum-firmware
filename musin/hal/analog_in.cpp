@@ -94,6 +94,7 @@ float AnalogIn::read_voltage() const {
   }
   std::uint16_t raw_value = read_raw();
   return (static_cast<float>(raw_value) / ADC_MAX_VALUE) * ADC_REFERENCE_VOLTAGE;
+} // <-- Added missing closing brace
 
 
 // --- Template Implementation for AnalogInMux<NumAddressPins> ---

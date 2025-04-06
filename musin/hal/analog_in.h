@@ -2,12 +2,9 @@
 #define MUSIN_HAL_ANALOG_IN_H
 
 #include <cstdint>
-#include <cstddef> // For size_t
-#include <array>   // Use std::array instead of std::vector for fixed size
-#include <type_traits> // For static_assert
-
-// Standard types are sufficient for the interface definition.
-// Platform-specific SDK headers are now included in the .cpp file.
+#include <cstddef>
+#include <array>
+#include <type_traits>
 
 namespace Musin::HAL {
 
@@ -76,19 +73,11 @@ public:
 
 
 private:
-  // Constants moved to public section
-
   const std::uint32_t _pin;
-  const std::uint32_t _adc_channel; // Keep consistent, though derived internally
+  const std::uint32_t _adc_channel;
   const bool _enable_temp_sensor;
   bool _initialized = false;
-
-
-  // --- Helper Functions ---
-
 };
-
-// --- Free Helper Functions ---
 
 /**
  * @brief Converts a GPIO pin number to its corresponding ADC channel number (RP2040 specific).
@@ -115,10 +104,7 @@ void set_mux_address(const Container& address_pins, uint8_t address_value);
 template <size_t NumAddressPins>
 class AnalogInMux {
 public:
-    // Calculate max channels based on address pins
     static constexpr uint8_t MAX_CHANNELS = (1 << NumAddressPins);
-
-    // Compile-time check for supported address pin counts
     static_assert(NumAddressPins > 0 && NumAddressPins <= 4,
                   "AnalogInMux supports 1 to 4 address pins (2 to 16 channels)");
 
@@ -169,17 +155,14 @@ public:
 private:
     const std::uint32_t _adc_pin;
     const std::uint32_t _adc_channel;
-    const std::array<std::uint32_t, NumAddressPins> _address_pins; // Use std::array
+    const std::array<std::uint32_t, NumAddressPins> _address_pins;
     const uint8_t _channel_address;
     const std::uint32_t _address_settle_time_us;
     bool _initialized = false;
 
-    // Use constants from AnalogIn for consistency
     static constexpr float ADC_REFERENCE_VOLTAGE = AnalogIn::ADC_REFERENCE_VOLTAGE;
     static constexpr float ADC_MAX_VALUE = AnalogIn::ADC_MAX_VALUE;
 };
-
-// --- Convenience Type Aliases ---
 
 /// Alias for an 8-channel multiplexer (3 address pins).
 using AnalogInMux8 = AnalogInMux<3>;

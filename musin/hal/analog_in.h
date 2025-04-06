@@ -2,6 +2,7 @@
 #define MUSIN_HAL_ANALOG_IN_H
 
 #include <cstdint>
+#include <cstddef> // For size_t
 #include <array>   // Use std::array instead of std::vector for fixed size
 #include <type_traits> // For static_assert
 

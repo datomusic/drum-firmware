@@ -46,8 +46,8 @@
 // no audible difference.
 // #define IMPROVE_EXPONENTIAL_ACCURACY
 
-void Filter::update_fixed(const int16_t *in, int16_t *lp,
-                                            int16_t *bp, int16_t *hp) {
+void Filter::filter_fixed(const int16_t *in, int16_t *lp, int16_t *bp,
+                          int16_t *hp) {
   const int16_t *end = in + AUDIO_BLOCK_SAMPLES;
   int32_t input, inputprev;
   int32_t lowpass, bandpass, highpass;
@@ -83,9 +83,8 @@ void Filter::update_fixed(const int16_t *in, int16_t *lp,
   state_bandpass = bandpass;
 }
 
-void Filter::update_variable(const int16_t *in,
-                                               const int16_t *ctl, int16_t *lp,
-                                               int16_t *bp, int16_t *hp) {
+void Filter::filter_variable(const int16_t *in, const int16_t *ctl, int16_t *lp,
+                             int16_t *bp, int16_t *hp) {
   const int16_t *end = in + AUDIO_BLOCK_SAMPLES;
   int32_t input, inputprev, control;
   int32_t lowpass, bandpass, highpass;
@@ -166,59 +165,8 @@ void Filter::update_variable(const int16_t *in,
   state_bandpass = bandpass;
 }
 
-void Filter::update(void) {
-  /*
-  audio_block_t *input_block = nullptr, *control_block = nullptr;
-  audio_block_t *lowpass_block = nullptr, *bandpass_block = nullptr,
-                *highpass_block = nullptr;
-
-  input_block = receiveReadOnly(0);
-  control_block = receiveReadOnly(1);
-  if (!input_block) {
-    if (control_block)
-      release(control_block);
-    return;
-  }
-  lowpass_block = allocate();
-  if (!lowpass_block) {
-    release(input_block);
-    if (control_block)
-      release(control_block);
-    return;
-  }
-  bandpass_block = allocate();
-  if (!bandpass_block) {
-    release(input_block);
-    release(lowpass_block);
-    if (control_block)
-      release(control_block);
-    return;
-  }
-  highpass_block = allocate();
-  if (!highpass_block) {
-    release(input_block);
-    release(lowpass_block);
-    release(bandpass_block);
-    if (control_block)
-      release(control_block);
-    return;
-  }
-
-  if (control_block) {
-    update_variable(input_block->data, control_block->data, lowpass_block->data,
-                    bandpass_block->data, highpass_block->data);
-    release(control_block);
-  } else {
-    update_fixed(input_block->data, lowpass_block->data, bandpass_block->data,
-                 highpass_block->data);
-  }
-  release(input_block);
-  transmit(lowpass_block, 0);
-  release(lowpass_block);
-  transmit(bandpass_block, 1);
-  release(bandpass_block);
-  transmit(highpass_block, 2);
-  release(highpass_block);
-  return;
-  */
+void Filter::update_variable(AudioBlock &input, AudioBlock &control,
+                     Filter::Outputs &outputs) {
+  filter_variable(input.begin(), control.begin(), outputs.lowpass.begin(),
+                  outputs.bandpass.begin(), outputs.highpass.begin());
 }

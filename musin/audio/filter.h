@@ -29,12 +29,16 @@
 #define filter_variable_h_
 
 #include "audio_output.h"
-#include "buffer_source.h"
 #include <cstdint>
 #include <etl/math.h>
 
-class Filter : BufferSource {
-public:
+struct Filter {
+  struct Outputs {
+    AudioBlock lowpass;
+    AudioBlock bandpass;
+    AudioBlock highpass;
+  };
+
   Filter() {
     frequency(1000);
     octaveControl(1.0); // default values
@@ -67,6 +71,7 @@ public:
     // TODO: allow lower Q when frequency is lower
     setting_damp = (1.0f / q) * 1073741824.0f;
   }
+
   void octaveControl(float n) {
     // filter's corner frequency is Fcenter * 2^(control * N)
     // where "control" ranges from -1.0 to +1.0
@@ -77,11 +82,13 @@ public:
       n = 6.9999f;
     setting_octavemult = n * 4096.0f;
   }
-  virtual void update(void);
+
+  void update_variable(AudioBlock &input_samples, AudioBlock &control, Outputs& outputs);
+  // void update_static(AudioBlock &input_samples, Outputs& outputs);
 
 private:
-  void update_fixed(const int16_t *in, int16_t *lp, int16_t *bp, int16_t *hp);
-  void update_variable(const int16_t *in, const int16_t *ctl, int16_t *lp,
+  void filter_fixed(const int16_t *in, int16_t *lp, int16_t *bp, int16_t *hp);
+  void filter_variable(const int16_t *in, const int16_t *ctl, int16_t *lp,
                        int16_t *bp, int16_t *hp);
   int32_t setting_fcenter;
   int32_t setting_fmult;

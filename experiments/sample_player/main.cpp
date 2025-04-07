@@ -38,6 +38,11 @@ BufferSource &master_source = filter;
 // MIDI channel (0-indexed for internal use, corresponds to channel 1)
 #define MIDI_CHANNEL 0
 
+// --- Pitch storage ---
+// Store the last received pitch speed for each sound (initialized to 1.0)
+std::array<float, 4> current_pitches = {1.0f, 1.0f, 1.0f, 1.0f};
+
+
 void handle_note_on(byte channel, byte note, byte velocity) {
   printf("NoteOn Received: Ch%d Note%d Vel%d\n", channel, note, velocity);
   if (channel != MIDI_CHANNEL) return;
@@ -49,7 +54,11 @@ void handle_note_on(byte channel, byte note, byte velocity) {
       return;
   }
 
-  sound_ptrs[sound_index]->play();
+  // Retrieve the stored pitch speed for this sound
+  float pitch_speed_to_play = current_pitches[sound_index];
+  sound_ptrs[sound_index]->play(pitch_speed_to_play);
+
+  printf("NoteOn: Ch%d Note%d Vel%d -> Sound%d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed_to_play);
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {
@@ -76,8 +85,13 @@ void handle_cc(byte channel, byte controller, byte value) {
   {
       int sound_idx = controller - 16;
       if (sound_idx >= 0 && sound_idx < sound_ptrs.size()) {
-          sound_ptrs[sound_idx]->pitch(normalized_value);
-          printf("  -> Pitch Sound %d\n", sound_idx);
+          // Map normalized_value [0.0, 1.0] to desired pitch speed range, e.g., [0.1, 4.0]
+          const float min_speed = 0.1f;
+          const float max_speed = 4.0f;
+          float target_speed = min_speed + normalized_value * (max_speed - min_speed);
+          // Store the calculated pitch speed
+          current_pitches[sound_idx] = target_speed;
+          printf("  -> Stored Pitch Speed %.2f for Sound %d\n", target_speed, sound_idx);
       }
   }
   break;

@@ -4,8 +4,8 @@
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
-#include "musin/midi/midi_wrapper.h" // Added
-#include "musin/usb/usb.h"           // Added
+#include "musin/midi/midi_wrapper.h"
+#include "musin/usb/usb.h"
 #include "pico/time.h"
 #include "samples/AudioSampleClapdr110_16bit_44kw.h"
 #include "samples/AudioSampleSnare100_16bit_44kw.h"
@@ -13,7 +13,7 @@
 #include "samples/AudioSampleHatdr55_16bit_44kw.h"
 #include "musin/audio/sound.h"
 #include <array>
-#include <cmath> // For powf
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <etl/array.h>
@@ -38,9 +38,6 @@ const int KICK_CHANNEL = 10;  // Channel 10
 const int SNARE_CHANNEL = 11; // Channel 11
 const int HIHAT_CHANNEL = 12; // Channel 12
 const int CLAP_CHANNEL = 13;// Channel 13
-
-// Base note for pitch calculation (C3 = 1.0 speed) - No longer used for pitch
-// const int BASE_NOTE = 48;
 
 // Array to store the current pitch speed for each sound channel, controlled by Pitch Bend
 // Index mapping: 0=Kick, 1=Snare, 2=Hihat, 3=Clap
@@ -72,15 +69,11 @@ void handle_note_on(byte channel, byte note, byte velocity) {
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {
-  // No channel check needed if we don't act on note off per channel
   //printf("NoteOff: Ch %d Note %d Vel %d\n", channel, note, velocity);
 }
 
 void handle_cc(byte channel, byte controller, byte value) {
-  // CC messages might still be global or intended for a specific channel.
-  // For now, assume global control for Volume, Filter, Crusher.
-  // Remove channel check if CCs are global. Add channel check if CCs are per-instrument.
-  // if (channel != SOME_GLOBAL_CC_CHANNEL) return; // Example if CCs were on a specific channel
+  // Assume global control for Volume, Filter, Crusher.
 
   float normalized_value = static_cast<float>(value) / 127.0f;
 
@@ -91,13 +84,11 @@ void handle_cc(byte channel, byte controller, byte value) {
     AudioOutput::volume(normalized_value);
     break;
 
-  // Removed CC 16-19 handling (Pitch is now controlled by Note Number)
-
   case 75: // Filter Frequency (Global)
-    lowpass.filter.frequency(normalized_value * 100000.0f); // Use normalized wrapper
+    lowpass.filter.frequency(normalized_value * 10000.0f); 
     break;
   case 76: // Filter Resonance (Global)
-    lowpass.filter.resonance(normalized_value); // Use normalized wrapper
+    lowpass.filter.resonance(normalized_value);
     break;
 
   case 77: // Crusher Bits (Squish) (Global)

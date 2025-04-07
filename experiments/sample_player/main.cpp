@@ -141,9 +141,9 @@ void handle_pitch_bend(const byte channel, const int bend) {
 }
 
 
-void handle_sysex(const byte *const data, const unsigned length) {
+void handle_sysex(byte *data, const unsigned length) { // Removed const from data pointer type
     //printf("SysEx received: %u bytes\n", length);
-    // Note: data pointer itself is const, now pointing to const data
+    // Note: data pointer itself is NOT const anymore
 }
 
 

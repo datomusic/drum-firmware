@@ -21,7 +21,7 @@ Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-const etl::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
+const std::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
 
 Crusher crusher(mixer);
@@ -48,10 +48,10 @@ int main() {
   auto freq_index = 0;
   auto crush_index = 0;
 
-  const etl::array pitches{0.6, 0.3, 1, 1.9, 1.4};
-  const etl::array freqs{200.0f,  500.0f,  700.0f,   1200.0f,
+  const std::array pitches{0.6, 0.3, 1, 1.9, 1.4};
+  const std::array freqs{200.0f,  500.0f,  700.0f,   1200.0f,
                          2000.0f, 5000.0f, 10000.0f, 20000.0f};
-  const etl::array crush_rates{2489.0f, 44100};
+  const std::array crush_rates{2489.0f, 44100};
 
   lowpass.filter.resonance(3.0f);
 

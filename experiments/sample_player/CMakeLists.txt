@@ -24,9 +24,14 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
-  PICO_AUDIO_I2S_DATA_PIN=18
-  PICO_AUDIO_I2S_CLOCK_PIN_BASE=16
 )
+
+
+if(SWAP_AUDIO_CLOCK)
+  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
+  )
+endif(SWAP_AUDIO_CLOCK)
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})

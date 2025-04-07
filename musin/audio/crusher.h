@@ -1,6 +1,7 @@
 /* Audio Library for Teensy 3.X
- * Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
- *
+ * Copyright (c) 2014, Jonathan Payne (jon@jonnypayne.com)
+ * Based on Effect_Fade by Paul Stoffregen
+
  * Development of this audio library was funded by PJRC.COM, LLC by sales of
  * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
  * open source software by purchasing Teensy or other PJRC products.
@@ -14,7 +15,7 @@
  *
  * The above copyright notice, development funding notice, and this permission
  * notice shall be included in all copies or substantial portions of the
- * Software.
+ Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,47 +26,45 @@
  * THE SOFTWARE.
  */
 
-#ifndef AUDIO_MEMORY_READER_H_R6GTYSPZ
-#define AUDIO_MEMORY_READER_H_R6GTYSPZ
+#ifndef CRUSHER_H_4BACOXIO
+#define CRUSHER_H_4BACOXIO
 
-#include "sample_reader.h"
-#include <stdint.h>
+#include "audio_output.h"
+#include "buffer_source.h"
 
-struct AudioMemoryReader : SampleReader {
-  AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
-      : encoding(0), sample_data(sample_data), data_length(data_length) {};
-
-  // Reader interface
-  void reset();
-
-  // Reader interface
-  bool has_data() {
-    return this->encoding > 0;
+struct Crusher : BufferSource {
+  Crusher(BufferSource &source) : source(source) {
   }
 
-  // Reader interface
-  uint32_t read_samples(AudioBlock &out);
+  void fill_buffer(AudioBlock &out_samples) {
+    source.fill_buffer(out_samples);
+    crush(out_samples);
+  }
+
+  void bits(uint8_t b) {
+    if (b > 16)
+      b = 16;
+    else if (b == 0)
+      b = 1;
+    crushBits = b;
+  }
+
+  void sampleRate(const float hz) {
+    int n = (AudioOutput::SAMPLE_FREQUENCY / hz) + 0.5f;
+    if (n < 1)
+      n = 1;
+    else if (n > 64)
+      n = 64;
+    sampleStep = n;
+  }
 
 private:
-  bool read_next(uint32_t &out) {
-    const unsigned int *end = this->beginning + this->data_length - 1;
-    if (next == end) {
-      encoding = 0;
-      return false;
-    } else {
-      out = *next;
-      ++next;
-      return true;
-    }
-  }
+  void crush(AudioBlock &samples);
 
-  volatile uint8_t encoding;
-  const unsigned int *const sample_data;
-  const uint32_t data_length;
-  const unsigned int *next;
-  const unsigned int *beginning;
-  uint32_t remaining_length;
-  int16_t prior;
+  BufferSource &source;
+  uint8_t crushBits = 16; // 16 = off
+  uint8_t sampleStep = 1; // the number of samples to double up. This simple
+                          // technique only allows a few stepped positions.
 };
 
-#endif /* end of include guard: AUDIO_MEMORY_READER_H_R6GTYSPZ */
+#endif /* end of include guard: CRUSHER_H_4BACOXIO */

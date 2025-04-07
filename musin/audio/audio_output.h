@@ -1,13 +1,13 @@
 #ifndef AUDIO_OUTPUT_H_5M07E3OB
 #define AUDIO_OUTPUT_H_5M07E3OB
 
-#include "pico/audio.h"
+#include "buffer_source.h"
 
 namespace AudioOutput {
-typedef void (*BufferCallback)(audio_buffer_t *);
+static const int SAMPLE_FREQUENCY = 44100;
 
 bool init();
-bool update(AudioOutput::BufferCallback callback);
+bool update(BufferSource &source, uint8_t volume);
 void deinit();
 
 } // namespace AudioOutput

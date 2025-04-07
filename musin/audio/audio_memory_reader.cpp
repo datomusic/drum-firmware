@@ -43,12 +43,14 @@ void AudioMemoryReader::reset() {
   encoding = format >> 24;
 }
 
-uint32_t AudioMemoryReader::read_samples(int16_t *out) {
+uint32_t AudioMemoryReader::read_samples(AudioBlock &out_samples) {
   uint32_t tmp32, consumed = 0, samples_written = 0;
   int16_t s0, s1, s2, s3, s4;
   int i;
 
   s0 = prior;
+
+  auto out = out_samples.begin();
 
   switch (encoding) {
   case 0x01: // u-law encoded, 44100 Hz, Mono

@@ -2,7 +2,6 @@
 #include "pico/audio.h"
 #include "pico/audio_i2s.h"
 #include "pico/stdlib.h"
-#include <stdio.h>
 
 #ifdef DATO_SUBMARINE
 #include "musin/drivers/aic3204.h"
@@ -12,11 +11,10 @@ static audio_buffer_pool_t *producer_pool;
 static bool running = false;
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
-#define SAMPLE_FREQUENCY 44100
-// #define SAMPLE_FREQUENCY 24000
 #define BUFFER_COUNT 3
 
-static audio_format_t audio_format = {.sample_freq = SAMPLE_FREQUENCY,
+static audio_format_t audio_format = {.sample_freq =
+                                          AudioOutput::SAMPLE_FREQUENCY,
                                       .format = AUDIO_BUFFER_FORMAT_PCM_S16,
                                       .channel_count = 1};
 
@@ -91,13 +89,23 @@ void AudioOutput::deinit() {
   producer_pool = nullptr;
 }
 
-bool AudioOutput::update(AudioOutput::BufferCallback callback) {
+bool AudioOutput::update(BufferSource &source, const uint8_t volume) {
   if (running) {
     // printf("RUNNING\n");
     audio_buffer_t *buffer = take_audio_buffer(producer_pool, false);
     if (buffer != nullptr) {
       // printf("GOT BUFFER\n");
-      callback(buffer);
+
+      AudioBlock block;
+      source.fill_buffer(block);
+
+      int16_t *stereo_out_samples = (int16_t *)buffer->buffer->bytes;
+      for (size_t i = 0; i < block.size(); ++i) {
+        stereo_out_samples[i] = (volume * block[i]) >> 8u;
+      }
+
+      buffer->sample_count = block.size();
+
       give_audio_buffer(producer_pool, buffer);
       return false;
     }

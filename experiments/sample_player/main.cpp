@@ -56,16 +56,23 @@ int main() {
   lowpass.filter.resonance(3.0f);
 
   printf("Entering main loop\n");
+
+  // Set initial volume (e.g., 0.5 = -63.5dB + 63.5dB = -31.75dB approx)
+  AudioOutput::volume(0.5f); // Example: Set volume to roughly half
+
   while (true) {
     const auto now = to_ms_since_boot(get_absolute_time());
     const auto diff_ms = now - last_ms;
     last_ms = now;
     accum_ms += diff_ms;
 
-    if (!AudioOutput::update(master_source, master_volume)) {
+    // Update audio output without volume parameter
+    if (!AudioOutput::update(master_source)) {
+      // If update returns false, it means no buffer was available.
+      // This is the condition under which we should trigger new events.
       if (accum_ms > 500) {
         accum_ms = 0;
-        printf("Playing sound\n");
+        // printf("Playing sound\n"); // Reduce log spam
 
         mixer.gain(0, 0.9);
         mixer.gain(1, 0.8);

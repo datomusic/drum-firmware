@@ -94,10 +94,10 @@ void handle_cc(byte channel, byte controller, byte value) {
   // Removed CC 16-19 handling (Pitch is now controlled by Note Number)
 
   case 75: // Filter Frequency (Global)
-    lowpass.frequency(normalized_value); // Use normalized wrapper
+    lowpass.filter.frequency(normalized_value * 100000.0f); // Use normalized wrapper
     break;
   case 76: // Filter Resonance (Global)
-    lowpass.resonance(normalized_value); // Use normalized wrapper
+    lowpass.filter.resonance(normalized_value); // Use normalized wrapper
     break;
 
   case 77: // Crusher Bits (Squish) (Global)
@@ -140,8 +140,8 @@ int main() {
   }
 
   // Set initial parameters (can be overridden by MIDI CC)
-  lowpass.frequency(1.0f); // Filter fully open
-  lowpass.resonance(0.0f); // Minimum resonance
+  lowpass.filter.frequency(10000.0f); 
+  lowpass.filter.resonance(0.0f); // Minimum resonance
   crusher.squish(0.0f);   // No bit crush
   crusher.squeeze(0.0f);  // No rate crush
 

@@ -30,7 +30,8 @@ Crusher crusher(mixer);
 Lowpass filter(crusher);
 
 // Output from Filter goes to AudioOutput
-BufferSource &master_source = filter;
+// BufferSource &master_source = filter; // Bypass effects for debugging
+BufferSource &master_source = mixer; // Send mixer output directly
 
 // MIDI channel (1-indexed for internal use, corresponds to channel 1)
 #define MIDI_CHANNEL 1

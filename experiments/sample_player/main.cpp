@@ -18,9 +18,6 @@
 #include <cstdio>
 #include <etl/array.h>
 
-using namespace Musin::Audio;
-using MIDI::byte;
-
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
@@ -36,18 +33,18 @@ Lowpass lowpass(crusher);
 // Output from Filter goes to AudioOutput
 BufferSource &master_source = lowpass; // Send filter output
 
-// Default MIDI channels for sounds (0-indexed)
-const int KICK_CHANNEL = 9;  // Channel 10
-const int SNARE_CHANNEL = 10; // Channel 11
-const int HIHAT_CHANNEL = 11; // Channel 12
-const int CASHREG_CHANNEL = 12;// Channel 13
+// Default MIDI channels for sounds (1-indexed)
+const int KICK_CHANNEL = 10;  // Channel 10
+const int SNARE_CHANNEL = 11; // Channel 11
+const int HIHAT_CHANNEL = 12; // Channel 12
+const int CASHREG_CHANNEL = 13;// Channel 13
 
 // Base note for pitch calculation (C4 = 1.0 speed)
 const int BASE_NOTE = 60;
 
 
 void handle_note_on(byte channel, byte note, byte velocity) {
-  printf("NoteOn Received: Ch%d Note%d Vel%d\n", channel + 1, note, velocity);
+  printf("NoteOn Received: Ch %d Note %d Vel %d\n", channel, note, velocity);
 
   // Determine which sound corresponds to the channel
   int sound_index = -1;
@@ -68,12 +65,12 @@ void handle_note_on(byte channel, byte note, byte velocity) {
   // Trigger the sound with the calculated pitch speed
   sound_ptrs[sound_index]->play(pitch_speed);
 
-  printf("NoteOn: Ch%d Note%d Vel%d -> Sound%d @ Speed %.2f\n", channel + 1, note, velocity, sound_index, pitch_speed);
+  printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {
   // No channel check needed if we don't act on note off per channel
-  printf("NoteOff: Ch%d Note%d Vel%d\n", channel + 1, note, velocity);
+  printf("NoteOff: Ch %d Note %d Vel %d\n", channel, note, velocity);
 }
 
 void handle_cc(byte channel, byte controller, byte value) {
@@ -84,7 +81,7 @@ void handle_cc(byte channel, byte controller, byte value) {
 
   float normalized_value = static_cast<float>(value) / 127.0f;
 
-  printf("CC: Ch%d CC%d Val%d (Norm: %.2f)\n", channel, controller, value, normalized_value);
+  printf("CC: Ch %d CC %d Val %d (Norm: %.2f)\n", channel, controller, value, normalized_value);
 
   switch (controller) {
   case 7: // Master Volume

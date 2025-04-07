@@ -27,6 +27,7 @@ void MIDI::init(const Callbacks &callbacks) {
   ALL_TRANSPORTS(setHandleStop(callbacks.stop));
   ALL_TRANSPORTS(setHandleContinue(callbacks.cont));
   ALL_TRANSPORTS(setHandleControlChange(callbacks.cc));
+  ALL_TRANSPORTS(setHandlePitchBend(callbacks.pitch_bend)); // Register pitch bend handler
   ALL_TRANSPORTS(setHandleSystemExclusive(callbacks.sysex));
 }
 
@@ -56,6 +57,10 @@ void MIDI::sendNoteOn(const byte note, const byte velocity,
 void MIDI::sendNoteOff(const byte note, const byte velocity,
                        const byte channel) {
   ALL_TRANSPORTS(sendNoteOff(note, velocity, channel));
+}
+
+void MIDI::sendPitchBend(const int bend, const byte channel) {
+  ALL_TRANSPORTS(sendPitchBend(bend, channel));
 }
 
 void MIDI::sendSysEx(const unsigned length, const byte *bytes) {

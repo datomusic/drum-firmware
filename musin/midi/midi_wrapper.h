@@ -27,6 +27,7 @@ void sendRealTime(midi::MidiType message);
 void sendControlChange(byte cc, byte value, byte channel);
 void sendNoteOn(byte inNoteNumber, byte inVelocity, byte inChannel);
 void sendNoteOff(byte inNoteNumber, byte inVelocity, byte inChannel);
+void sendPitchBend(int bend, byte channel); // Added sendPitchBend declaration
 void sendSysEx(unsigned length, const byte *bytes);
 
 }; // namespace MIDI

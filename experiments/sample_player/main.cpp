@@ -9,17 +9,14 @@
 #include "musin/audio/sound.h"
 
 #include "samples/AudioSampleCashregister.h"
-#include "samples/AudioSampleGong.h"
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
 
 template<typename T, size_t N> using array = etl::array<T, N>;
 
-const uint8_t master_volume = 10;
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
-Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
@@ -27,12 +24,8 @@ const etl::array<BufferSource *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
 AudioMixer<4> mixer(sounds);
 
 Crusher crusher(mixer);
-
-// Lowpass lowpass(mixer);
 Lowpass lowpass(crusher);
 
-// static BufferSource& output = mixer;
-// BufferSource &master_source = crusher;
 BufferSource &master_source = lowpass;
 
 int main() {

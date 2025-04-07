@@ -15,6 +15,9 @@
 #include "samples/AudioSampleSnare.h"
 
 #include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/file_reader.h"
+
+using Musin::Audio::FileReader;
 
 struct MemorySound {
   MemorySound(const unsigned int *sample_data, const uint32_t data_length)
@@ -24,6 +27,8 @@ struct MemorySound {
   AudioMemoryReader reader;
   Sound sound;
 };
+
+FileReader reader;
 
 const uint8_t master_volume = 10;
 

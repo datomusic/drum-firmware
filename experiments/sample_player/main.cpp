@@ -58,11 +58,10 @@ void handle_note_on(byte channel, byte note, byte velocity) {
       return; // Ignore notes on other channels
   }
 
-  // Calculate pitch speed based on note number relative to BASE_NOTE
-  int semitones_diff = note - BASE_NOTE;
-  float pitch_speed = powf(2.0f, static_cast<float>(semitones_diff) / 12.0f);
+  // Retrieve the current pitch speed for this channel (set by pitch bend)
+  float pitch_speed = channel_pitch_speed[sound_index];
 
-  // Trigger the sound with the calculated pitch speed
+  // Trigger the sound with the current pitch speed
   sound_ptrs[sound_index]->play(pitch_speed);
 
   // printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
@@ -109,6 +108,37 @@ void handle_cc(byte channel, byte controller, byte value) {
   }
 }
 
+void handle_pitch_bend(byte channel, int bend) {
+    // MIDI pitch bend value is 14-bit (0-16383), center is 8192.
+
+    // Determine which sound corresponds to the channel
+    int sound_index = -1;
+    if (channel == KICK_CHANNEL) sound_index = 0;
+    else if (channel == SNARE_CHANNEL) sound_index = 1;
+    else if (channel == HIHAT_CHANNEL) sound_index = 2;
+    else if (channel == CLAP_CHANNEL) sound_index = 3;
+
+    if (sound_index == -1) {
+        // printf("PitchBend: Ignored (Wrong Channel %d)\n", channel);
+        return; // Ignore pitch bend on other channels
+    }
+
+    // Normalize bend value from 0-16383 to -1.0 to +1.0
+    // 8192 is center (0.0), 0 is min (-1.0), 16383 is max (+1.0)
+    float normalized_bend = (static_cast<float>(bend) - 8192.0f) / 8191.0f;
+
+    // Map normalized bend (-1 to +1) to speed (0.5 to 2.0) exponentially
+    // This corresponds to a pitch range of +/- 1 octave.
+    // speed = 2 ^ normalized_bend
+    float speed = powf(2.0f, normalized_bend);
+
+    // Store the calculated speed for the channel
+    channel_pitch_speed[sound_index] = speed;
+
+    // printf("PitchBend: Ch %d Bend %d -> Sound %d Speed %.3f\n", channel, bend, sound_index, speed);
+}
+
+
 void handle_sysex(byte *const data, const unsigned length) {
     //printf("SysEx received: %u bytes\n", length);
 }
@@ -125,10 +155,11 @@ int main() {
       .cont = nullptr,
       .stop = nullptr,
       .cc = handle_cc,
+      .pitch_bend = handle_pitch_bend, // Add pitch bend handler
       .sysex = handle_sysex,
   });
 
-  printf("Sample Player Starting with MIDI Control...\n");
+  printf("Sample Player Starting with MIDI Control (Pitch Bend Enabled)...\n");
   sleep_ms(1000); // Allow USB/MIDI enumeration
 
   if (!AudioOutput::init()) {

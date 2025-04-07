@@ -11,14 +11,11 @@
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
-#include "sound.h"
+#include "musin/audio/sound.h"
 #include <array> // Use std::array for consistency
 #include <cstdint>
 #include <cstdio>
 #include <etl/array.h>
-
-using namespace Musin::Audio;
-using MIDI::byte; // Use byte type from MIDI wrapper
 
 // --- Audio Setup ---
 Sound kick(AudioSampleKick, AudioSampleKickSize);
@@ -40,32 +37,31 @@ Lowpass filter(crusher); // Crusher -> Filter
 BufferSource &master_source = filter; // Output from Filter goes to AudioOutput
 
 // --- MIDI Configuration ---
-#define MIDI_CHANNEL 0 // Listen on channel 1 (0-indexed internally)
+#define MIDI_CHANNEL 1
 
 // --- MIDI Callback Functions ---
 
 void handle_note_on(byte channel, byte note, byte velocity) {
+  printf("NoteOn Received: Ch%d Note%d Vel%d\n", channel, note, velocity);
   if (channel != MIDI_CHANNEL) return;
 
   // Map MIDI note number to sound index (e.g., notes 36, 37, 38, 39)
   // Adjust the base note (36) as needed.
   int sound_index = (note - 36);
   if (sound_index < 0 || sound_index >= sound_ptrs.size()) {
-      printf("NoteOn: Ch%d Note%d Vel%d -> Ignored (Out of range)\n", channel + 1, note, velocity);
+      printf("NoteOn: Ch%d Note%d Vel%d -> Ignored (Out of range)\n", channel, note, velocity);
       return; // Ignore notes outside the mapped range
   }
 
 
   // Trigger the sound using the simple play() method. Pitch is set via CC.
   sound_ptrs[sound_index]->play();
-
-  printf("NoteOn: Ch%d Note%d Vel%d -> Sound%d\n", channel + 1, note, velocity, sound_index);
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {
   if (channel != MIDI_CHANNEL) return;
   // Currently no action on Note Off, samples play to completion.
-  printf("NoteOff: Ch%d Note%d Vel%d\n", channel + 1, note, velocity);
+  printf("NoteOff: Ch%d Note%d Vel%d\n", channel, note, velocity);
 }
 
 void handle_cc(byte channel, byte controller, byte value) {
@@ -73,7 +69,7 @@ void handle_cc(byte channel, byte controller, byte value) {
 
   float normalized_value = static_cast<float>(value) / 127.0f;
 
-  printf("CC: Ch%d CC%d Val%d (Norm: %.2f)\n", channel + 1, controller, value, normalized_value);
+  printf("CC: Ch%d CC%d Val%d (Norm: %.2f)\n", channel, controller, value, normalized_value);
 
   switch (controller) {
   case 7: // Master Volume
@@ -147,13 +143,13 @@ int main() {
   }
 
   // Set initial parameters for effects (can be overridden by MIDI CC)
-  filter.frequency(0.5f); // Default 50% frequency
+  filter.frequency(1.0f); // Default 50% frequency
   filter.resonance(0.0f); // Default minimum resonance (0.707)
   crusher.squish(0.0f);   // No bit crush initially (16 bits)
   crusher.squeeze(0.0f);  // No rate crush initially (SAMPLE_FREQ)
 
   // Set initial master volume (can be overridden by MIDI CC 7)
-  AudioOutput::volume(0.7f); // Example: Set volume to 70%
+  AudioOutput::volume(0.3f);
 
   printf("Entering main loop\n");
 

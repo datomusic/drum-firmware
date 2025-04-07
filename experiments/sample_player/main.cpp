@@ -27,10 +27,10 @@ const std::array<Sound *, 4> sound_ptrs = {&kick, &snare, &hihat, &cashreg};
 AudioMixer<4> mixer(&kick, &snare, &hihat, &cashreg);
 
 Crusher crusher(mixer);
-Lowpass filter(crusher);
+Lowpass lowpass(crusher);
 
 // Output from Filter goes to AudioOutput
-BufferSource &master_source = filter; // Send filter output
+BufferSource &master_source = lowpass; // Send filter output
 
 // MIDI channel (1-indexed for internal use, corresponds to channel 1)
 #define MIDI_CHANNEL 1
@@ -94,10 +94,10 @@ void handle_cc(byte channel, byte controller, byte value) {
   break;
 
   case 75: // Filter Frequency
-    filter.frequency(normalized_value);
+    lowpass.filter.frequency(normalized_value);
     break;
   case 76: // Filter Resonance
-    filter.resonance(normalized_value);
+    lowpass.filter.resonance(normalized_value);
     break;
 
   case 77: // Crusher Bits (Squish)
@@ -140,13 +140,13 @@ int main() {
   }
 
   // Set initial parameters (can be overridden by MIDI CC)
-  filter.frequency(1.0f); // Filter fully open
-  filter.resonance(0.0f); // Minimum resonance
+  lowpass.filter.frequency(10000.0f);
+  lowpass.filter.resonance(0.0f);
   crusher.squish(0.0f);   // No bit crush
   crusher.squeeze(0.0f);  // No rate crush
 
   // Set initial volume (can be overridden by MIDI CC 7)
-  AudioOutput::volume(0.7f); // Default volume
+  AudioOutput::volume(1.0f); // Default volume
 
   printf("Entering main loop\n");
 

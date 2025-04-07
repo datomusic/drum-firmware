@@ -58,7 +58,7 @@ int main() {
   printf("Entering main loop\n");
 
   // Set initial volume (e.g., 0.5 = -63.5dB + 63.5dB = -31.75dB approx)
-  AudioOutput::volume(0.5f); // Example: Set volume to roughly half
+  AudioOutput::volume(1.0f); // Example: Set volume to roughly half
 
   while (true) {
     const auto now = to_ms_since_boot(get_absolute_time());
@@ -70,7 +70,7 @@ int main() {
     if (!AudioOutput::update(master_source)) {
       // If update returns false, it means no buffer was available.
       // This is the condition under which we should trigger new events.
-      if (accum_ms > 500) {
+      if (accum_ms > 200) {
         accum_ms = 0;
         // printf("Playing sound\n"); // Reduce log spam
 

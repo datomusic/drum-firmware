@@ -93,7 +93,7 @@ void handle_cc(byte channel, byte controller, byte value) {
     }
     break;
   case 76: // Filter Resonance (Global)
-    lowpass.filter.resonance(normalized_value);
+    lowpass.filter.resonance(normalized_value * 5.0f);
     break;
 
   case 77: // Crusher Bits (Squish) (Global)

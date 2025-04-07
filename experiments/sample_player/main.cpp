@@ -39,8 +39,12 @@ const int SNARE_CHANNEL = 11; // Channel 11
 const int HIHAT_CHANNEL = 12; // Channel 12
 const int CLAP_CHANNEL = 13;// Channel 13
 
-// Base note for pitch calculation (C3 = 1.0 speed)
-const int BASE_NOTE = 48;
+// Base note for pitch calculation (C3 = 1.0 speed) - No longer used for pitch
+// const int BASE_NOTE = 48;
+
+// Array to store the current pitch speed for each sound channel, controlled by Pitch Bend
+// Index mapping: 0=Kick, 1=Snare, 2=Hihat, 3=Clap
+std::array<float, 4> channel_pitch_speed = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
 void handle_note_on(byte channel, byte note, byte velocity) {

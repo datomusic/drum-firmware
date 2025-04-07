@@ -33,6 +33,11 @@ void MIDI::read(const byte channel) {
   ALL_TRANSPORTS(read(channel));
 }
 
+// Overload for reading all channels (OMNI)
+void MIDI::read() {
+  ALL_TRANSPORTS(read());
+}
+
 void MIDI::sendRealTime(const midi::MidiType message) {
   ALL_TRANSPORTS(sendRealTime(message));
 }

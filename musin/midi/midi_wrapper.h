@@ -19,7 +19,10 @@ struct Callbacks {
 };
 
 void init(const Callbacks &callbacks);
+/** @brief Read MIDI messages for a specific channel. */
 void read(byte channel);
+/** @brief Read MIDI messages for all channels (OMNI). */
+void read();
 void sendRealTime(midi::MidiType message);
 void sendControlChange(byte cc, byte value, byte channel);
 void sendNoteOn(byte inNoteNumber, byte inVelocity, byte inChannel);

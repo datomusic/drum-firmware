@@ -30,6 +30,7 @@
 
 #include "audio_output.h"
 #include <cstdint>
+#include <cmath> // Include for std::log, std::exp
 #include <etl/math.h>
 
 struct Filter {
@@ -112,10 +113,10 @@ private:
       // Logarithmic mapping: 0.0 -> 20Hz, 1.0 -> SAMPLE_FREQ / 2.5f
       const float min_freq = 20.0f;
       const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 2.5f;
-      const float log_min = etl::log(min_freq);
-      const float log_max = etl::log(max_freq);
+      const float log_min = std::log(min_freq); // Use std::log
+      const float log_max = std::log(max_freq); // Use std::log
       const float log_freq = log_min + freq_normalized * (log_max - log_min);
-      const float freq_hz = etl::exp(log_freq);
+      const float freq_hz = std::exp(log_freq); // Use std::exp
       frequency(freq_hz); // Call the original frequency setter
   }
   // Internal resonance calculation based on normalized input

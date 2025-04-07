@@ -22,23 +22,71 @@
  * SOFTWARE.
  */
 
-#ifndef effect_waveshaper_h_
-#define effect_waveshaper_h_
+/**
+ * @file waveshaper.h
+ * @brief Defines a waveshaper audio effect based on lookup table interpolation.
+ * Adapted from the Teensy Audio Library effect by Damien Clarke.
+ */
 
-#include "audio_output.h"
+#ifndef MUSIN_WAVESHAPER_H_
+#define MUSIN_WAVESHAPER_H_
+
+#include "block.h" // For AudioBlock
 #include "buffer_source.h"
+#include "etl/vector.h" // For etl::vector
+#include <cstddef>     // For size_t
+#include <cstdint>     // For int16_t, uint16_t
+#include <cmath>       // For std::log2, std::pow
 
-class AudioEffectWaveshaper : public AudioStream
-{
-  public:
-    AudioEffectWaveshaper(void): AudioStream(1, inputQueueArray), waveshape(nullptr) {}
-    ~AudioEffectWaveshaper();
-    virtual void update(void);
-    void shape(float* waveshape, int length);
-  private:
-    audio_block_t *inputQueueArray[1];
-    int16_t* waveshape;
-    int16_t lerpshift;
+/**
+ * @brief Applies waveshaping distortion to an audio signal using a lookup table.
+ *
+ * The shape of the distortion is defined by an array provided via the `shape()` method.
+ * The input signal is used as an index into the table, with linear interpolation
+ * applied between table points.
+ */
+struct Waveshaper : BufferSource {
+public:
+  /**
+   * @brief Maximum size of the waveshaper lookup table (number of points).
+   * Must be a power of two plus one (e.g., 257, 513, 1025).
+   * 1025 points require ~2KB of RAM.
+   */
+  static constexpr size_t MAX_WAVESHAPE_SIZE = 1025;
+
+  /**
+   * @brief Constructs a Waveshaper effect.
+   * @param source The BufferSource providing the input audio signal.
+   */
+  Waveshaper(BufferSource &source) : source(source), lerpshift(0) {}
+
+  // Note: No destructor needed as etl::vector manages its own memory (statically allocated).
+
+  /**
+   * @brief Fills the output buffer by applying the waveshaping effect.
+   * Fetches audio from the source, then applies the waveshaping based on the
+   * current lookup table. If no shape is set, the audio passes through unchanged.
+   * @param out_samples The AudioBlock to fill/modify.
+   */
+  void fill_buffer(AudioBlock &out_samples) override;
+
+  /**
+   * @brief Sets the waveshape lookup table.
+   *
+   * @param new_shape A pointer to an array of floats defining the shape.
+   *                  Values should typically be in the range [-1.0, 1.0].
+   *                  The values are scaled and copied into an internal int16_t table.
+   * @param length The number of points in the `new_shape` array.
+   *               Must be greater than 1 and less than or equal to MAX_WAVESHAPE_SIZE.
+   *               For optimal interpolation, `length - 1` should be a power of two
+   *               (e.g., length = 257, 513, 1025). If not, performance might be slightly reduced.
+   */
+  void shape(const float *new_shape, size_t length);
+
+private:
+  BufferSource &source;
+  etl::vector<int16_t, MAX_WAVESHAPE_SIZE> waveshape_table;
+  int16_t lerpshift; // Precalculated shift amount for interpolation index
 };
 
-#endif
+#endif // MUSIN_WAVESHAPER_H_

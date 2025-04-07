@@ -82,6 +82,7 @@ macro(musin_init_audio TARGET)
     ${MUSIN_AUDIO}/data_ulaw.c
     ${MUSIN_AUDIO}/mixer.cpp
     ${MUSIN_AUDIO}/crusher.cpp
+    ${MUSIN_AUDIO}/waveshaper.cpp # Added waveshaper
     ${MUSIN_AUDIO}/filter.cpp
     ${MUSIN_DRIVERS}/aic3204.c # Codec-specific driver, but the only audio codec we are using currently.
   )

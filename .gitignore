@@ -13,4 +13,4 @@ compile_commands.json
 *.d
 **/build
 .aider*
-lib/etl/*
+lib/etl

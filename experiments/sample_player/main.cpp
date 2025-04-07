@@ -1,102 +1,176 @@
-#include "etl/array.h"
-#include <cstdint>
-#include <stdio.h>
-
 #include "musin/audio/audio_output.h"
+#include "musin/audio/block.h"
+#include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
-#include "musin/audio/sound.h"
-
+#include "musin/midi/midi_wrapper.h" // Added
+#include "musin/usb/usb.h"           // Added
+#include "pico/time.h"
 #include "samples/AudioSampleCashregister.h"
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
+#include "sound.h"
+#include <array> // Use std::array for consistency
+#include <cstdint>
+#include <cstdio>
+#include <etl/array.h>
 
-template<typename T, size_t N> using array = etl::array<T, N>;
+using namespace Musin::Audio;
+using MIDI::byte; // Use byte type from MIDI wrapper
 
+// --- Audio Setup ---
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-const etl::array<BufferSource *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
-AudioMixer<4> mixer(sounds);
+// Store pointers for MIDI access
+const std::array<Sound *, 4> sound_ptrs = {&kick, &snare, &hihat, &cashreg};
 
-Crusher crusher(mixer);
-Lowpass lowpass(crusher);
+// Construct mixer directly with the source pointers
+AudioMixer<4> mixer(&kick, &snare, &hihat, &cashreg);
 
-BufferSource &master_source = lowpass;
+// Apply effects in the desired order
+Crusher crusher(mixer); // Mixer -> Crusher
+Lowpass filter(crusher); // Crusher -> Filter
+
+// Use the final effect in the chain as the master source
+BufferSource &master_source = filter; // Output from Filter goes to AudioOutput
+
+// --- MIDI Configuration ---
+#define MIDI_CHANNEL 0 // Listen on channel 1 (0-indexed internally)
+
+// --- MIDI Callback Functions ---
+
+void handle_note_on(byte channel, byte note, byte velocity) {
+  if (channel != MIDI_CHANNEL) return;
+
+  // Map MIDI note number to sound index (e.g., notes 36, 37, 38, 39)
+  // Adjust the base note (36) as needed.
+  int sound_index = (note - 36);
+  if (sound_index < 0 || sound_index >= sound_ptrs.size()) {
+      printf("NoteOn: Ch%d Note%d Vel%d -> Ignored (Out of range)\n", channel + 1, note, velocity);
+      return; // Ignore notes outside the mapped range
+  }
+
+
+  // Trigger the sound using the simple play() method. Pitch is set via CC.
+  sound_ptrs[sound_index]->play();
+
+  printf("NoteOn: Ch%d Note%d Vel%d -> Sound%d\n", channel + 1, note, velocity, sound_index);
+}
+
+void handle_note_off(byte channel, byte note, byte velocity) {
+  if (channel != MIDI_CHANNEL) return;
+  // Currently no action on Note Off, samples play to completion.
+  printf("NoteOff: Ch%d Note%d Vel%d\n", channel + 1, note, velocity);
+}
+
+void handle_cc(byte channel, byte controller, byte value) {
+  if (channel != MIDI_CHANNEL) return;
+
+  float normalized_value = static_cast<float>(value) / 127.0f;
+
+  printf("CC: Ch%d CC%d Val%d (Norm: %.2f)\n", channel + 1, controller, value, normalized_value);
+
+  switch (controller) {
+  case 7: // Master Volume
+    AudioOutput::volume(normalized_value);
+    break;
+
+  // --- Pitch Control ---
+  case 16: // Pitch Sound 1 (Kick)
+  case 17: // Pitch Sound 2 (Snare)
+  case 18: // Pitch Sound 3 (Hihat)
+  case 19: // Pitch Sound 4 (Cashreg)
+  {
+      int sound_idx = controller - 16;
+      if (sound_idx >= 0 && sound_idx < sound_ptrs.size()) {
+          sound_ptrs[sound_idx]->pitch(normalized_value);
+          printf("  -> Pitch Sound %d\n", sound_idx);
+      }
+  }
+  break;
+
+  // --- Filter Control ---
+  case 75: // Filter Frequency
+    filter.frequency(normalized_value);
+    break;
+  case 76: // Filter Resonance
+    filter.resonance(normalized_value);
+    break;
+
+  // --- Crusher Control ---
+  case 77: // Crusher Bits (Squish)
+    crusher.squish(normalized_value);
+    break;
+  case 78: // Crusher Rate (Squeeze)
+    crusher.squeeze(normalized_value);
+    break;
+
+  default:
+    // Unassigned CC
+    break;
+  }
+}
+
+void handle_sysex(byte *const data, const unsigned length) {
+    // Handle SysEx if needed
+    printf("SysEx received: %u bytes\n", length);
+}
+
 
 int main() {
   stdio_init_all();
-  sleep_ms(1000);
-  printf("Startup!\n");
+  Musin::Usb::init(); // Initialize USB first
+  MIDI::init(MIDI::Callbacks{ // Initialize MIDI with callbacks
+      .note_on = handle_note_on,
+      .note_off = handle_note_off,
+      .clock = nullptr,
+      .start = nullptr,
+      .cont = nullptr,
+      .stop = nullptr,
+      .cc = handle_cc,
+      .sysex = handle_sysex,
+  });
 
-  AudioOutput::init();
+  printf("Sample Player Starting with MIDI Control...\n");
+  sleep_ms(1000); // Allow USB/MIDI enumeration
 
-  uint32_t last_ms = to_ms_since_boot(get_absolute_time());
-  uint32_t accum_ms = last_ms;
+  // Initialize audio output
+  if (!AudioOutput::init()) {
+    printf("Audio output initialization failed!\n");
+    while (true)
+      ; // Halt
+  }
 
-  auto sound_index = 0;
-  auto pitch_index = 0;
-  auto freq_index = 0;
-  auto crush_index = 0;
+  // Set initial parameters for effects (can be overridden by MIDI CC)
+  filter.frequency(0.5f); // Default 50% frequency
+  filter.resonance(0.0f); // Default minimum resonance (0.707)
+  crusher.squish(0.0f);   // No bit crush initially (16 bits)
+  crusher.squeeze(0.0f);  // No rate crush initially (SAMPLE_FREQ)
 
-  const array pitches{0.6f, 0.3f, 1.0f, 1.9f, 1.4f};
-  const array freqs{200.0f,  500.0f,  700.0f,   1200.0f,
-                         2000.0f, 5000.0f, 10000.0f, 20000.0f};
-  const array crush_rates{2489.0f, 44100.0f}; // Also make 44100 a float
-
-  lowpass.filter.resonance(3.0f);
+  // Set initial master volume (can be overridden by MIDI CC 7)
+  AudioOutput::volume(0.7f); // Example: Set volume to 70%
 
   printf("Entering main loop\n");
 
-  // Set initial volume (e.g., 0.5 = -63.5dB + 63.5dB = -31.75dB approx)
-  AudioOutput::volume(1.0f); // Example: Set volume to roughly half
-
   while (true) {
-    const auto now = to_ms_since_boot(get_absolute_time());
-    const auto diff_ms = now - last_ms;
-    last_ms = now;
-    accum_ms += diff_ms;
+    // Handle background tasks for USB
+    Musin::Usb::background_update();
 
-    // Update audio output without volume parameter
-    if (!AudioOutput::update(master_source)) {
-      // If update returns false, it means no buffer was available.
-      // This is the condition under which we should trigger new events.
-      if (accum_ms > 200) {
-        accum_ms = 0;
-        // printf("Playing sound\n"); // Reduce log spam
+    // Read and process incoming MIDI messages
+    MIDI::read(MIDI_CHANNEL);
 
-        mixer.gain(0, 0.9);
-        mixer.gain(1, 0.8);
-        mixer.gain(2, 0.3);
-        mixer.gain(3, 0.7);
+    // Update audio output (fetches data through the chain)
+    AudioOutput::update(master_source);
 
-        // Get the BufferSource pointer
-        const auto sound_buffer_source = sounds[sound_index];
-        pitch_index = (pitch_index + 1) % pitches.size();
-
-        const auto pitch = pitches[pitch_index];
-        // Cast to Sound* before calling play()
-        static_cast<Sound*>(sound_buffer_source)->play(pitch);
-        sound_index = (sound_index + 1) % sounds.size();
-
-        if (sound_index == 0) {
-          freq_index = (freq_index + 1) % freqs.size();
-          crush_index = (crush_index + 1) % crush_rates.size();
-
-          const auto freq = freqs[freq_index];
-          const auto crush = crush_rates[crush_index];
-
-          printf("freq: %f, crush: %f\n", freq, crush);
-          lowpass.filter.frequency(freq);
-          crusher.sampleRate(crush);
-        }
-      }
-    }
+    // No automatic triggering needed anymore
+    // The old timer-based logic is removed.
   }
 
+  AudioOutput::deinit(); // Should not be reached
   return 0;
 }

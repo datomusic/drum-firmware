@@ -96,7 +96,7 @@ int main() {
 
         const auto pitch = pitches[pitch_index];
         // Cast to Sound* before calling play()
-        static_cast<Sound *>(sound_buffer_source)->play(pitch);
+        static_cast<Sound*>(sound_buffer_source)->play(pitch);
         sound_index = (sound_index + 1) % sounds.size();
 
         if (sound_index == 0) {

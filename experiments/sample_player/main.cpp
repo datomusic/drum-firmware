@@ -14,15 +14,28 @@
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
 
-const uint8_t master_volume = 10;
-Sound kick(AudioSampleKick, AudioSampleKickSize);
-Sound snare(AudioSampleSnare, AudioSampleSnareSize);
-Sound gong(AudioSampleGong, AudioSampleGongSize);
-Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
-Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
+#include "musin/audio/audio_memory_reader.h"
 
-const etl::array<BufferSource *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
-AudioMixer<4> mixer(sounds);
+struct MemorySound {
+  MemorySound(const unsigned int *sample_data, const uint32_t data_length)
+      : reader(sample_data, data_length), sound(Sound(reader)) {
+  }
+
+  AudioMemoryReader reader;
+  Sound sound;
+};
+
+const uint8_t master_volume = 10;
+
+MemorySound kick(AudioSampleKick, AudioSampleKickSize);
+MemorySound snare(AudioSampleSnare, AudioSampleSnareSize);
+MemorySound gong(AudioSampleGong, AudioSampleGongSize);
+MemorySound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
+MemorySound hihat(AudioSampleHihat, AudioSampleHihatSize);
+
+const etl::array<BufferSource *, 4> sounds = {&kick.sound, &snare.sound,
+                                              &hihat.sound, &cashreg.sound};
+AudioMixer mixer(sounds);
 
 Crusher crusher(mixer);
 
@@ -78,7 +91,7 @@ int main() {
 
         const auto pitch = pitches[pitch_index];
         // Cast to Sound* before calling play()
-        static_cast<Sound*>(sound_buffer_source)->play(pitch);
+        static_cast<Sound *>(sound_buffer_source)->play(pitch);
         sound_index = (sound_index + 1) % sounds.size();
 
         if (sound_index == 0) {

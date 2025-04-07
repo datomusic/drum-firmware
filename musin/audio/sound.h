@@ -1,15 +1,12 @@
 #ifndef SOUND_H_2P4SDIWG
 #define SOUND_H_2P4SDIWG
 
-#include "audio_memory_reader.h"
 #include "buffer_source.h"
 #include "pitch_shifter.h"
 #include <pico/stdlib.h>
-#include <stdint.h>
 
 struct Sound : BufferSource {
-  Sound(const unsigned int *sample_data, const uint32_t data_length)
-      : memory_reader(sample_data, data_length), pitch_shifter(memory_reader) {
+  Sound(SampleReader &reader) : pitch_shifter(reader) {
   }
 
   void play(const double speed) {
@@ -30,7 +27,6 @@ struct Sound : BufferSource {
     }
   }
 
-  AudioMemoryReader memory_reader;
   PitchShifter pitch_shifter;
 };
 

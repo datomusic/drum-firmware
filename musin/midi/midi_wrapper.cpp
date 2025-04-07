@@ -17,7 +17,8 @@ static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<PicoUART>>
   serial_midi.function_call;
 
 void MIDI::init(const Callbacks &callbacks) {
-  ALL_TRANSPORTS(begin());
+  // Initialize in OMNI mode to listen on all channels
+  ALL_TRANSPORTS(begin(MIDI_CHANNEL_OMNI));
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));
   ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));

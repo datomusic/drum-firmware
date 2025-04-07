@@ -82,11 +82,11 @@ struct Crusher : BufferSource {
       // Logarithmic mapping: 0.0 -> SAMPLE_FREQ, 1.0 -> SAMPLE_FREQ/64
       const float min_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f;
       const float max_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
-      const float log_min = etl::log(min_rate);
-      const float log_max = etl::log(max_rate);
+      const float log_min = std::log(min_rate); // Use std::log
+      const float log_max = std::log(max_rate); // Use std::log
       // Inverse mapping: squeeze=0 -> log_max, squeeze=1 -> log_min
       const float log_rate = log_max - clamped_squeeze * (log_max - log_min);
-      const float rate_hz = etl::exp(log_rate);
+      const float rate_hz = std::exp(log_rate); // Use std::exp
       sampleRate(rate_hz);
   }
 

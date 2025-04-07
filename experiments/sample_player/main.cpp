@@ -84,8 +84,13 @@ void handle_cc(byte channel, byte controller, byte value) {
     AudioOutput::volume(normalized_value);
     break;
 
-  case 75: // Filter Frequency (Global)
-    lowpass.filter.frequency(normalized_value * 10000.0f); 
+  case 75: // Filter Frequency (Global) - Exponential Scaling
+    {
+      const float min_freq = 20.0f;
+      const float max_freq = 10000.0f;
+      float freq = min_freq * powf(max_freq / min_freq, normalized_value);
+      lowpass.filter.frequency(freq);
+    }
     break;
   case 76: // Filter Resonance (Global)
     lowpass.filter.resonance(normalized_value);

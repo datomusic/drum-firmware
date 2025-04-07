@@ -48,10 +48,10 @@ int main() {
   auto freq_index = 0;
   auto crush_index = 0;
 
-  const std::array pitches{0.6, 0.3, 1, 1.9, 1.4};
+  const std::array pitches{0.6f, 0.3f, 1.0f, 1.9f, 1.4f};
   const std::array freqs{200.0f,  500.0f,  700.0f,   1200.0f,
                          2000.0f, 5000.0f, 10000.0f, 20000.0f};
-  const std::array crush_rates{2489.0f, 44100};
+  const std::array crush_rates{2489.0f, 44100.0f}; // Also make 44100 a float
 
   lowpass.filter.resonance(3.0f);
 

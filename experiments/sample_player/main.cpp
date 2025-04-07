@@ -44,7 +44,7 @@ const int BASE_NOTE = 60;
 
 
 void handle_note_on(byte channel, byte note, byte velocity) {
-  printf("NoteOn Received: Ch %d Note %d Vel %d\n", channel, note, velocity);
+  //printf("NoteOn Received: Ch %d Note %d Vel %d\n", channel, note, velocity);
 
   // Determine which sound corresponds to the channel
   int sound_index = -1;
@@ -65,12 +65,12 @@ void handle_note_on(byte channel, byte note, byte velocity) {
   // Trigger the sound with the calculated pitch speed
   sound_ptrs[sound_index]->play(pitch_speed);
 
-  printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
+  //printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {
   // No channel check needed if we don't act on note off per channel
-  printf("NoteOff: Ch %d Note %d Vel %d\n", channel, note, velocity);
+  //printf("NoteOff: Ch %d Note %d Vel %d\n", channel, note, velocity);
 }
 
 void handle_cc(byte channel, byte controller, byte value) {
@@ -81,7 +81,7 @@ void handle_cc(byte channel, byte controller, byte value) {
 
   float normalized_value = static_cast<float>(value) / 127.0f;
 
-  printf("CC: Ch %d CC %d Val %d (Norm: %.2f)\n", channel, controller, value, normalized_value);
+  //printf("CC: Ch %d CC %d Val %d (Norm: %.2f)\n", channel, controller, value, normalized_value);
 
   switch (controller) {
   case 7: // Master Volume
@@ -110,7 +110,7 @@ void handle_cc(byte channel, byte controller, byte value) {
 }
 
 void handle_sysex(byte *const data, const unsigned length) {
-    printf("SysEx received: %u bytes\n", length);
+    //printf("SysEx received: %u bytes\n", length);
 }
 
 

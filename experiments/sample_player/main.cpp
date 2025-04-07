@@ -7,10 +7,10 @@
 #include "musin/midi/midi_wrapper.h" // Added
 #include "musin/usb/usb.h"           // Added
 #include "pico/time.h"
-#include "samples/AudioSampleCashregister.h"
-#include "samples/AudioSampleHihat.h"
-#include "samples/AudioSampleKick.h"
-#include "samples/AudioSampleSnare.h"
+#include "samples/AudioSampleClapdr110_16bit_44kw.h"
+#include "samples/AudioSampleSnare100_16bit_44kw.h"
+#include "samples/AudioSampleKickc78_16bit_44kw.h"
+#include "samples/AudioSampleHatdr55_16bit_44kw.h"
 #include "musin/audio/sound.h"
 #include <array>
 #include <cmath> // For powf
@@ -18,14 +18,14 @@
 #include <cstdio>
 #include <etl/array.h>
 
-Sound kick(AudioSampleKick, AudioSampleKickSize);
-Sound snare(AudioSampleSnare, AudioSampleSnareSize);
-Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
-Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
+Sound kick(AudioSampleKickc78_16bit_44kw, AudioSampleKickc78_16bit_44kwSize);
+Sound snare(AudioSampleSnare100_16bit_44kw, AudioSampleSnare100_16bit_44kwSize);
+Sound clap(AudioSampleClapdr110_16bit_44kw, AudioSampleClapdr110_16bit_44kwSize);
+Sound hihat(AudioSampleHatdr55_16bit_44kw, AudioSampleHatdr55_16bit_44kwSize);
 
-const std::array<Sound *, 4> sound_ptrs = {&kick, &snare, &hihat, &cashreg};
+const std::array<Sound *, 4> sound_ptrs = {&kick, &snare, &hihat, &clap};
 
-AudioMixer<4> mixer(&kick, &snare, &hihat, &cashreg);
+AudioMixer<4> mixer(&kick, &snare, &hihat, &clap);
 
 Crusher crusher(mixer);
 Lowpass lowpass(crusher);
@@ -37,10 +37,10 @@ BufferSource &master_source = lowpass; // Send filter output
 const int KICK_CHANNEL = 10;  // Channel 10
 const int SNARE_CHANNEL = 11; // Channel 11
 const int HIHAT_CHANNEL = 12; // Channel 12
-const int CASHREG_CHANNEL = 13;// Channel 13
+const int CLAP_CHANNEL = 13;// Channel 13
 
-// Base note for pitch calculation (C4 = 1.0 speed)
-const int BASE_NOTE = 60;
+// Base note for pitch calculation (C3 = 1.0 speed)
+const int BASE_NOTE = 48;
 
 
 void handle_note_on(byte channel, byte note, byte velocity) {
@@ -51,7 +51,7 @@ void handle_note_on(byte channel, byte note, byte velocity) {
   if (channel == KICK_CHANNEL) sound_index = 0;
   else if (channel == SNARE_CHANNEL) sound_index = 1;
   else if (channel == HIHAT_CHANNEL) sound_index = 2;
-  else if (channel == CASHREG_CHANNEL) sound_index = 3;
+  else if (channel == CLAP_CHANNEL) sound_index = 3;
 
   if (sound_index == -1) {
       // printf("NoteOn: Ignored (Wrong Channel)\n");
@@ -65,7 +65,7 @@ void handle_note_on(byte channel, byte note, byte velocity) {
   // Trigger the sound with the calculated pitch speed
   sound_ptrs[sound_index]->play(pitch_speed);
 
-  //printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
+  // printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {

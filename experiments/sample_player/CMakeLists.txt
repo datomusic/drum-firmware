@@ -11,11 +11,10 @@ project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
-  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleKick.cpp
-  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleSnare.cpp
-  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleGong.cpp
-  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleCashregister.cpp
-  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHihat.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleKickc78_16bit_44kw.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHatdr55_16bit_44kw.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleSnare100_16bit_44kw.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleClapdr110_16bit_44kw.cpp
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE

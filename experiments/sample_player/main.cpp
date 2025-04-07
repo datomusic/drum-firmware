@@ -94,10 +94,10 @@ void handle_cc(byte channel, byte controller, byte value) {
   break;
 
   case 75: // Filter Frequency
-    lowpass.filter.frequency(normalized_value);
+    lowpass.frequency(normalized_value); // Use the Lowpass wrapper method
     break;
   case 76: // Filter Resonance
-    lowpass.filter.resonance(normalized_value);
+    lowpass.resonance(normalized_value); // Use the Lowpass wrapper method
     break;
 
   case 77: // Crusher Bits (Squish)

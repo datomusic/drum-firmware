@@ -20,6 +20,8 @@ add_executable(${EXECUTABLE_NAME}
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
   ${EXAMPLES_SUPPORT_PATH}
+  # Add path to the Arduino MIDI library source for midi_Defs.h etc.
+  ${CMAKE_SOURCE_DIR}/musin/ports/pico/libraries/arduino_midi_library/src
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

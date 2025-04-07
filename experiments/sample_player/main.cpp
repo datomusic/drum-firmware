@@ -13,9 +13,13 @@
 #include "samples/AudioSampleSnare.h"
 #include "musin/audio/sound.h"
 #include <array>
+#include <cmath> // For powf
 #include <cstdint>
 #include <cstdio>
 #include <etl/array.h>
+
+using namespace Musin::Audio;
+using MIDI::byte;
 
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
@@ -32,39 +36,51 @@ Lowpass lowpass(crusher);
 // Output from Filter goes to AudioOutput
 BufferSource &master_source = lowpass; // Send filter output
 
-// MIDI channel (1-indexed for internal use, corresponds to channel 1)
-#define MIDI_CHANNEL 1
+// Default MIDI channels for sounds (0-indexed)
+const int KICK_CHANNEL = 9;  // Channel 10
+const int SNARE_CHANNEL = 10; // Channel 11
+const int HIHAT_CHANNEL = 11; // Channel 12
+const int CASHREG_CHANNEL = 12;// Channel 13
 
-// --- Pitch storage ---
-// Store the last received pitch speed for each sound (initialized to 1.0)
-std::array<float, 4> current_pitches = {1.0f, 1.0f, 1.0f, 1.0f};
+// Base note for pitch calculation (C4 = 1.0 speed)
+const int BASE_NOTE = 60;
 
 
 void handle_note_on(byte channel, byte note, byte velocity) {
-  printf("NoteOn Received: Ch%d Note%d Vel%d\n", channel, note, velocity);
-  if (channel != MIDI_CHANNEL) return;
+  printf("NoteOn Received: Ch%d Note%d Vel%d\n", channel + 1, note, velocity);
 
-  // Map MIDI note 60+ to sound index 0+
-  int sound_index = (note - 60);
-  if (sound_index < 0 || sound_index >= sound_ptrs.size()) {
-      printf("NoteOn: Ch%d Note%d Vel%d -> Ignored (Out of range)\n", channel, note, velocity);
-      return;
+  // Determine which sound corresponds to the channel
+  int sound_index = -1;
+  if (channel == KICK_CHANNEL) sound_index = 0;
+  else if (channel == SNARE_CHANNEL) sound_index = 1;
+  else if (channel == HIHAT_CHANNEL) sound_index = 2;
+  else if (channel == CASHREG_CHANNEL) sound_index = 3;
+
+  if (sound_index == -1) {
+      // printf("NoteOn: Ignored (Wrong Channel)\n");
+      return; // Ignore notes on other channels
   }
 
-  // Retrieve the stored pitch speed for this sound
-  float pitch_speed_to_play = current_pitches[sound_index];
-  sound_ptrs[sound_index]->play(pitch_speed_to_play);
+  // Calculate pitch speed based on note number relative to BASE_NOTE
+  int semitones_diff = note - BASE_NOTE;
+  float pitch_speed = powf(2.0f, static_cast<float>(semitones_diff) / 12.0f);
 
-  printf("NoteOn: Ch%d Note%d Vel%d -> Sound%d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed_to_play);
+  // Trigger the sound with the calculated pitch speed
+  sound_ptrs[sound_index]->play(pitch_speed);
+
+  printf("NoteOn: Ch%d Note%d Vel%d -> Sound%d @ Speed %.2f\n", channel + 1, note, velocity, sound_index, pitch_speed);
 }
 
 void handle_note_off(byte channel, byte note, byte velocity) {
-  if (channel != MIDI_CHANNEL) return;
-  printf("NoteOff: Ch%d Note%d Vel%d\n", channel, note, velocity);
+  // No channel check needed if we don't act on note off per channel
+  printf("NoteOff: Ch%d Note%d Vel%d\n", channel + 1, note, velocity);
 }
 
 void handle_cc(byte channel, byte controller, byte value) {
-  if (channel != MIDI_CHANNEL) return;
+  // CC messages might still be global or intended for a specific channel.
+  // For now, assume global control for Volume, Filter, Crusher.
+  // Remove channel check if CCs are global. Add channel check if CCs are per-instrument.
+  // if (channel != SOME_GLOBAL_CC_CHANNEL) return; // Example if CCs were on a specific channel
 
   float normalized_value = static_cast<float>(value) / 127.0f;
 
@@ -75,35 +91,19 @@ void handle_cc(byte channel, byte controller, byte value) {
     AudioOutput::volume(normalized_value);
     break;
 
-  case 16: // Pitch Sound 1 (Kick)
-  case 17: // Pitch Sound 2 (Snare)
-  case 18: // Pitch Sound 3 (Hihat)
-  case 19: // Pitch Sound 4 (Cashreg)
-  {
-      int sound_idx = controller - 16;
-      if (sound_idx >= 0 && sound_idx < sound_ptrs.size()) {
-          // Map normalized_value [0.0, 1.0] to desired pitch speed range, e.g., [0.1, 4.0]
-          const float min_speed = 0.1f;
-          const float max_speed = 4.0f;
-          float target_speed = min_speed + normalized_value * (max_speed - min_speed);
-          // Store the calculated pitch speed
-          current_pitches[sound_idx] = target_speed;
-          printf("  -> Stored Pitch Speed %.2f for Sound %d\n", target_speed, sound_idx);
-      }
-  }
-  break;
+  // Removed CC 16-19 handling (Pitch is now controlled by Note Number)
 
-  case 75: // Filter Frequency
-    lowpass.filter.frequency(normalized_value * 10000.0f);
+  case 75: // Filter Frequency (Global)
+    lowpass.frequency(normalized_value); // Use normalized wrapper
     break;
-  case 76: // Filter Resonance
-    lowpass.filter.resonance(normalized_value);
+  case 76: // Filter Resonance (Global)
+    lowpass.resonance(normalized_value); // Use normalized wrapper
     break;
 
-  case 77: // Crusher Bits (Squish)
+  case 77: // Crusher Bits (Squish) (Global)
     crusher.squish(normalized_value);
     break;
-  case 78: // Crusher Rate (Squeeze)
+  case 78: // Crusher Rate (Squeeze) (Global)
     crusher.squeeze(normalized_value);
     break;
 
@@ -140,8 +140,8 @@ int main() {
   }
 
   // Set initial parameters (can be overridden by MIDI CC)
-  lowpass.filter.frequency(10000.0f);
-  lowpass.filter.resonance(0.0f);
+  lowpass.frequency(1.0f); // Filter fully open
+  lowpass.resonance(0.0f); // Minimum resonance
   crusher.squish(0.0f);   // No bit crush
   crusher.squeeze(0.0f);  // No rate crush
 
@@ -152,7 +152,7 @@ int main() {
 
   while (true) {
     Musin::Usb::background_update();
-    MIDI::read(MIDI_CHANNEL);
+    MIDI::read(); // Read all channels
     AudioOutput::update(master_source);
   }
 

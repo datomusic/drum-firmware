@@ -21,8 +21,8 @@ Sound gong(AudioSampleGong, AudioSampleGongSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 Sound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-const std::array<Sound *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
-AudioMixer4 mixer({sounds[0], sounds[1], sounds[2], sounds[3]});
+const etl::array<BufferSource *, 4> sounds = {&kick, &snare, &hihat, &cashreg};
+AudioMixer<4> mixer(sounds);
 
 Crusher crusher(mixer);
 

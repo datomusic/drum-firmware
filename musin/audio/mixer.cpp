@@ -1,5 +1,11 @@
+/**
+ * @file mixer.cpp
+ * @brief Implementation details for the AudioMixer (currently minimal).
+ *
+ * Since AudioMixer is a template class, its implementation resides primarily
+ * in the header file (`mixer.h`). This source file is kept for potential
+ * future non-template helper functions or static members related to the mixer.
+ */
 #include "mixer.h"
 
-// Implementation is now in the header file because it's a template class.
-// This file can be kept for potential future non-template additions
-// or removed from the build if it's no longer needed.
+// No implementation needed here as AudioMixer is fully defined in the header.

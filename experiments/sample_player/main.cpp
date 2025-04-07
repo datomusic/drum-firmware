@@ -72,11 +72,13 @@ int main() {
         mixer.gain(2, 0.3);
         mixer.gain(3, 0.7);
 
-        const auto sound = sounds[sound_index];
+        // Get the BufferSource pointer
+        const auto sound_buffer_source = sounds[sound_index];
         pitch_index = (pitch_index + 1) % pitches.size();
 
         const auto pitch = pitches[pitch_index];
-        sound->play(pitch);
+        // Cast to Sound* before calling play()
+        static_cast<Sound*>(sound_buffer_source)->play(pitch);
         sound_index = (sound_index + 1) % sounds.size();
 
         if (sound_index == 0) {

@@ -31,6 +31,7 @@
 
 #include "audio_output.h"
 #include "buffer_source.h"
+#include <cmath> // Include for std::round
 
 struct Crusher : BufferSource {
   Crusher(BufferSource &source) : source(source) {
@@ -52,7 +53,7 @@ struct Crusher : BufferSource {
   void sampleRate(const float hz) {
     // Clamp frequency to valid range before calculating step
     float clamped_hz = etl::clamp(hz, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
-    int n = static_cast<int>(etl::round(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / clamped_hz));
+    int n = static_cast<int>(std::round(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / clamped_hz)); // Use std::round
     // Clamp step to [1, 64]
     sampleStep = etl::clamp(n, 1, 64);
   }
@@ -67,7 +68,7 @@ struct Crusher : BufferSource {
       float clamped_squish = etl::clamp(squish_normalized, 0.0f, 1.0f);
       // Map 0.0 -> 16, 1.0 -> 1
       float b_float = 16.0f - clamped_squish * 15.0f;
-      bits(static_cast<uint8_t>(etl::round(b_float)));
+      bits(static_cast<uint8_t>(std::round(b_float))); // Use std::round
   }
 
   /**

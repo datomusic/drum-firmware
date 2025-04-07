@@ -17,9 +17,6 @@
 #include <cstdio>
 #include <etl/array.h>
 
-using namespace Musin::Audio;
-using MIDI::byte;
-
 Sound kick(AudioSampleKick, AudioSampleKickSize);
 Sound snare(AudioSampleSnare, AudioSampleSnareSize);
 Sound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
@@ -35,8 +32,8 @@ Lowpass filter(crusher);
 // Output from Filter goes to AudioOutput
 BufferSource &master_source = filter;
 
-// MIDI channel (0-indexed for internal use, corresponds to channel 1)
-#define MIDI_CHANNEL 0
+// MIDI channel (1-indexed for internal use, corresponds to channel 1)
+#define MIDI_CHANNEL 1
 
 // --- Pitch storage ---
 // Store the last received pitch speed for each sound (initialized to 1.0)
@@ -47,8 +44,8 @@ void handle_note_on(byte channel, byte note, byte velocity) {
   printf("NoteOn Received: Ch%d Note%d Vel%d\n", channel, note, velocity);
   if (channel != MIDI_CHANNEL) return;
 
-  // Map MIDI note 36+ to sound index 0+
-  int sound_index = (note - 36);
+  // Map MIDI note 60+ to sound index 0+
+  int sound_index = (note - 60);
   if (sound_index < 0 || sound_index >= sound_ptrs.size()) {
       printf("NoteOn: Ch%d Note%d Vel%d -> Ignored (Out of range)\n", channel, note, velocity);
       return;

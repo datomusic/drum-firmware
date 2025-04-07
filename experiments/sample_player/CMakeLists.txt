@@ -20,8 +20,6 @@ add_executable(${EXECUTABLE_NAME}
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
   ${EXAMPLES_SUPPORT_PATH}
-  # Add path to the Arduino MIDI library source for midi_Defs.h etc.
-  ${CMAKE_SOURCE_DIR}/musin/ports/pico/libraries/arduino_midi_library/src
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -36,4 +34,6 @@ if(SWAP_AUDIO_CLOCK)
 endif(SWAP_AUDIO_CLOCK)
 
 musin_init(${EXECUTABLE_NAME})
+musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
+musin_init_usb_midi(${EXECUTABLE_NAME})

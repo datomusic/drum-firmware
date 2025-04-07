@@ -25,6 +25,11 @@
  * THE SOFTWARE.
  */
 
+/**
+ * @file mixer.h
+ * @brief Defines the AudioMixer template class for mixing multiple audio sources.
+ */
+
 #ifndef mixer_h_
 #define mixer_h_
 

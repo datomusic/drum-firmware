@@ -1,17 +1,19 @@
-#include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
-#include "hardware/sync.h"
 #include "hardware/structs/clocks.h"
+#include "hardware/sync.h"
+#include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/file_reader.h"
 #include "musin/audio/mixer.h"
+#include "musin/audio/sound.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
+#include "musin/usb/usb.h"
 #include "samples/AudioSampleGong.h"
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
 #include "tusb.h"
-#include "musin/usb/usb.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
@@ -19,6 +21,16 @@
 #define REFORMAT false
 
 #define MIDI_CHANNEL 1
+
+using Musin::Audio::FileReader;
+
+struct FileSound {
+  FileSound() : sound(Sound(reader)) {
+  }
+
+  FileReader reader;
+  Sound sound;
+};
 
 // Path must start with backslash in order to be valid
 // under the root mount point.
@@ -35,7 +47,9 @@ AudioMixer4 mixer((BufferSource **)sounds, 4);
 
 #define SAMPLE_COUNT 4
 FileSound *sounds[SAMPLE_COUNT] = {&hihat, &snare, &kick, &gong};
-AudioMixer4 mixer((BufferSource **)sounds, SAMPLE_COUNT);
+const etl::array<BufferSource *, 4> sources = {&hihat.sound, &snare.sound,
+                                               &kick.sound, &gong.sound};
+AudioMixer mixer(sources);
 
 static void store_sample(const char *file_name, const unsigned int *sample_data,
                          const uint32_t data_length) {
@@ -109,10 +123,10 @@ void handle_note_on(byte, byte note, byte velocity) {
   const float pitch = (float)(velocity) / 64.0;
   switch ((note - 1) % 4) {
   case 0:
-    kick.play(pitch);
+    kick.sound.play(pitch);
     break;
   case 1:
-    snare.play(pitch);
+    snare.sound.play(pitch);
     break;
   case 2:
     hihat.play(pitch);
@@ -168,10 +182,10 @@ int main(void) {
   store_sample("/hihat", AudioSampleHihat, AudioSampleHihatSize);
   store_sample("/gong", AudioSampleGong, AudioSampleGongSize);
 #endif
-  snare.load("/snare");
-  hihat.load("/hihat");
-  kick.load("/kick");
-  gong.load("/gong");
+  snare.reader.load("/snare");
+  hihat.reader.load("/hihat");
+  kick.reader.load("/kick");
+  gong.reader.load("/gong");
 
   printf("Initializing audio output\n");
   AudioOutput::init();

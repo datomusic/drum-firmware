@@ -1,3 +1,8 @@
+#include "etl/array.h"
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+
 #include "musin/audio/audio_output.h"
 #include "musin/audio/block.h"
 #include "musin/audio/buffer_source.h"
@@ -6,26 +11,41 @@
 #include "musin/audio/mixer.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/usb/usb.h"
+
 #include "pico/time.h"
+
 #include "samples/AudioSampleClapdr110_16bit_44kw.h"
 #include "samples/AudioSampleSnare100_16bit_44kw.h"
 #include "samples/AudioSampleKickc78_16bit_44kw.h"
 #include "samples/AudioSampleHatdr55_16bit_44kw.h"
+
 #include "musin/audio/sound.h"
-#include <array>
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
-#include <etl/array.h>
+#include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/file_reader.h"
 
-Sound kick(AudioSampleKickc78_16bit_44kw, AudioSampleKickc78_16bit_44kwSize);
-Sound snare(AudioSampleSnare100_16bit_44kw, AudioSampleSnare100_16bit_44kwSize);
-Sound clap(AudioSampleClapdr110_16bit_44kw, AudioSampleClapdr110_16bit_44kwSize);
-Sound hihat(AudioSampleHatdr55_16bit_44kw, AudioSampleHatdr55_16bit_44kwSize);
 
-const etl::array<Sound*, 4> sound_ptrs = {&kick, &snare, &hihat, &clap}; // Make array const
 
-AudioMixer<4> mixer(&kick, &snare, &hihat, &clap);
+using Musin::Audio::FileReader;
+
+struct MemorySound {
+  MemorySound(const unsigned int *sample_data, const uint32_t data_length)
+      : reader(sample_data, data_length), sound(Sound(reader)) {
+  }
+
+  AudioMemoryReader reader;
+  Sound sound;
+};
+
+FileReader reader;
+
+MemorySound kick(AudioSampleKickc78_16bit_44kw, AudioSampleKickc78_16bit_44kwSize);
+MemorySound snare(AudioSampleSnare100_16bit_44kw, AudioSampleSnare100_16bit_44kwSize);
+MemorySound clap(AudioSampleClapdr110_16bit_44kw, AudioSampleClapdr110_16bit_44kwSize);
+MemorySound hihat(AudioSampleHatdr55_16bit_44kw, AudioSampleHatdr55_16bit_44kwSize);
+
+const etl::array<BufferSource*, 4> sound_ptrs = {&kick.sound, &snare.sound, &hihat.sound, &clap.sound}; // Make array const
+
+AudioMixer<4> mixer(sound_ptrs);
 
 Crusher crusher(mixer);
 Lowpass lowpass(crusher);
@@ -64,7 +84,7 @@ void handle_note_on(const byte channel, [[maybe_unused]] const byte note, [[mayb
   float pitch_speed = channel_pitch_speed[sound_index];
 
   // Trigger the sound with the current pitch speed
-  sound_ptrs[sound_index]->play(pitch_speed);
+  static_cast<Sound*>(sound_ptrs[sound_index])->play(pitch_speed);
 
   // printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
 }

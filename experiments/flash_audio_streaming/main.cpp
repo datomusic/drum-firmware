@@ -3,10 +3,11 @@
 #include "hardware/structs/clocks.h"
 #include "hardware/sync.h"
 #include "musin/audio/audio_memory_reader.h"
-#include "musin/audio/block.h" // Include AudioBlock definition
+#include "musin/audio/block.h"
 #include "musin/audio/file_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
+#include "musin/audio/audio_output.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/usb/usb.h"
@@ -50,7 +51,7 @@ AudioMixer4 mixer((BufferSource **)sounds, 4);
 FileSound *sounds[SAMPLE_COUNT] = {&hihat, &snare, &kick, &gong};
 const etl::array<BufferSource *, 4> sources = {&hihat.sound, &snare.sound,
                                                &kick.sound, &gong.sound};
-AudioMixer mixer(sources);
+AudioMixer<4> mixer(sources);
 
 static void store_sample(const char *file_name, const unsigned int *sample_data,
                          const uint32_t data_length) {
@@ -113,11 +114,11 @@ static void __not_in_flash_func fill_audio_buffer(audio_buffer_t *out_buffer) {
 static void handle_sysex(byte *const, const unsigned) {
 }
 
-void handle_cc(byte channel, byte controller, byte value) {
+void handle_cc([[maybe_unused]] byte channel, byte controller, byte value) {
     if (controller == 7) { // MIDI Volume Control (CC7)
         // Direct mapping: MIDI 0-127 to -127-0 (0dB at max)
         int8_t volume = value - 127;
-        aic3204_dac_set_volume(volume);
+        AudioOutput::volume(volume);
         printf("Set volume to %d (CC7 value: %d)\n", volume, value);
     }
 }
@@ -133,10 +134,10 @@ void handle_note_on(byte, byte note, byte velocity) {
     snare.sound.play(pitch);
     break;
   case 2:
-    hihat.play(pitch);
+    hihat.sound.play(pitch);
     break;
   case 3:
-    gong.play(pitch);
+    gong.sound.play(pitch);
     break;
   }
 }
@@ -155,6 +156,7 @@ static bool init() {
       .cont = nullptr,
       .stop = nullptr,
       .cc = handle_cc,
+      .pitch_bend = nullptr,
       .sysex = handle_sysex,
   });
   init_clock();

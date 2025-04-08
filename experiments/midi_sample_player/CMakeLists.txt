@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(EXECUTABLE_NAME sample_player)
+set(PICO_BOARD dato_submarine)
+
+set(EXECUTABLE_NAME midi_sample_player)
 
 set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 

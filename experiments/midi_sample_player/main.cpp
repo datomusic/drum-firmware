@@ -43,21 +43,20 @@ MemorySound snare(AudioSampleSnare100_16bit_44kw, AudioSampleSnare100_16bit_44kw
 MemorySound clap(AudioSampleClapdr110_16bit_44kw, AudioSampleClapdr110_16bit_44kwSize);
 MemorySound hihat(AudioSampleHatdr55_16bit_44kw, AudioSampleHatdr55_16bit_44kwSize);
 
-const etl::array<BufferSource*, 4> sound_ptrs = {&kick.sound, &snare.sound, &hihat.sound, &clap.sound}; // Make array const
+const etl::array<BufferSource*, 4> sound_ptrs = {&kick.sound, &snare.sound, &hihat.sound, &clap.sound};
 
 AudioMixer<4> mixer(sound_ptrs);
 
 Crusher crusher(mixer);
 Lowpass lowpass(crusher);
 
-// Output from Filter goes to AudioOutput
-BufferSource &master_source = lowpass; // Send filter output
+BufferSource &master_source = lowpass;
 
 // Default MIDI channels for sounds (1-indexed)
-constexpr std::uint8_t KICK_CHANNEL = 10;  // Channel 10
-constexpr std::uint8_t SNARE_CHANNEL = 11; // Channel 11
-constexpr std::uint8_t HIHAT_CHANNEL = 12; // Channel 12
-constexpr std::uint8_t CLAP_CHANNEL = 13;  // Channel 13
+constexpr std::uint8_t KICK_CHANNEL = 10;
+constexpr std::uint8_t SNARE_CHANNEL = 11;
+constexpr std::uint8_t HIHAT_CHANNEL = 12;
+constexpr std::uint8_t CLAP_CHANNEL = 13;
 
 // Array to store the current pitch speed for each sound channel, controlled by Pitch Bend
 // Index mapping: 0=Kick, 1=Snare, 2=Hihat, 3=Clap
@@ -67,7 +66,6 @@ etl::array<float, 4> channel_pitch_speed = {1.0f, 1.0f, 1.0f, 1.0f};
 void handle_note_on(const byte channel, [[maybe_unused]] const byte note, [[maybe_unused]] const byte velocity) {
   //printf("NoteOn Received: Ch %d Note %d Vel %d\n", channel, note, velocity);
 
-  // Determine which sound corresponds to the channel
   int sound_index = -1;
   if (channel == KICK_CHANNEL) sound_index = 0;
   else if (channel == SNARE_CHANNEL) sound_index = 1;
@@ -76,7 +74,6 @@ void handle_note_on(const byte channel, [[maybe_unused]] const byte note, [[mayb
 
   if (sound_index == -1)
   {
-    // printf("NoteOn: Ignored (Wrong Channel)\n");
     return; // Ignore notes on other channels
   }
 
@@ -141,7 +138,6 @@ void handle_pitch_bend(const byte channel, const int bend) {
 
     if (sound_index == -1)
     {
-      // printf("PitchBend: Ignored (Wrong Channel %d)\n", channel);
       return; // Ignore pitch bend on other channels
     }
 
@@ -161,9 +157,9 @@ void handle_pitch_bend(const byte channel, const int bend) {
 }
 
 
-void handle_sysex([[maybe_unused]] byte *data, [[maybe_unused]] const unsigned length) { // Removed const from data pointer type
+void handle_sysex([[maybe_unused]] byte *data, [[maybe_unused]] const unsigned length) {
     //printf("SysEx received: %u bytes\n", length);
-    // Note: data pointer itself is NOT const anymore
+
 }
 
 
@@ -178,7 +174,7 @@ int main() {
       .cont = nullptr,
       .stop = nullptr,
       .cc = handle_cc,
-      .pitch_bend = handle_pitch_bend, // Add pitch bend handler
+      .pitch_bend = handle_pitch_bend,
       .sysex = handle_sysex,
   });
 
@@ -188,7 +184,7 @@ int main() {
   if (!AudioOutput::init())
   {
     printf("Audio output initialization failed!\n");
-    while (true) {} // Halt - Added braces
+    while (true) {} // Halt
   }
 
   // Set initial parameters (can be overridden by MIDI CC)
@@ -198,13 +194,13 @@ int main() {
   crusher.squeeze(0.0f);  // No rate crush
 
   // Set initial volume (can be overridden by MIDI CC 7)
-  AudioOutput::volume(1.0f); // Default volume
+  AudioOutput::volume(1.0f);
 
   printf("Entering main loop\n");
 
   while (true) {
     Musin::Usb::background_update();
-    MIDI::read(); // Read all channels
+    MIDI::read();
     AudioOutput::update(master_source);
   }
 

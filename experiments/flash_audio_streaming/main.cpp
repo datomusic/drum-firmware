@@ -95,7 +95,7 @@ static void init_clock() {
                   96 * MHZ, 96 * MHZ);
 }
 
-static void __not_in_flash_func fill_audio_buffer(audio_buffer_t *out_buffer) {
+static __not_in_flash_func void fill_audio_buffer(audio_buffer_t *out_buffer) {
   // printf("Filling buffer\n");
 
   static AudioBlock temp_samples; // Use AudioBlock

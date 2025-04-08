@@ -4,7 +4,7 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 
 ## 1. Language and Style
 - Indentation: 2 spaces
-- Primarily use C++17
+- Primarily use C++20
 - Follow consistent naming conventions:
   - `snake_case` for functions, methods, and variables (common in embedded C++)
   - `UPPER_SNAKE_CASE` for macros and compile-time constants (`enum class` members can be `PascalCase` or `UPPER_SNAKE_CASE`)
@@ -42,7 +42,7 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 ## 6. Error Handling and Assertions
 - Avoid exceptions in performance-critical/ISR code
 - Return `pico_error_codes` or custom error enums
-- Use `std::optional<T>` (C++17) for optional values
+- Use `std::optional<T>` (C++20) for optional values
 - Use `panic()` for unrecoverable errors
 - Use `assert()` and `static_assert`
 
@@ -63,3 +63,9 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 - Prefer fixed-size containers
 - Be mindful of stack usage
 - Use `const` and `static` appropriately
+
+## 11. AI coding editor guidelines
+- Prevent comments at the end of a line explaining edits or behaviour
+- Do not add comments about changes or edits
+- Always keep existing behaviour unless instructed otherwise
+- Do not fix errors in code that is not directly related to the requested edit

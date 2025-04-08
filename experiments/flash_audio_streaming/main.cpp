@@ -1,17 +1,21 @@
-#include "file_sound.h"
 #include "hardware/clocks.h"
 #include "hardware/pll.h"
-#include "hardware/sync.h"
 #include "hardware/structs/clocks.h"
+#include "hardware/sync.h"
+#include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/block.h"
+#include "musin/audio/file_reader.h"
 #include "musin/audio/mixer.h"
+#include "musin/audio/sound.h"
+#include "musin/audio/audio_output.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
+#include "musin/usb/usb.h"
 #include "samples/AudioSampleGong.h"
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
 #include "tusb.h"
-#include "musin/usb/usb.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
@@ -19,6 +23,16 @@
 #define REFORMAT false
 
 #define MIDI_CHANNEL 1
+
+using Musin::Audio::FileReader;
+
+struct FileSound {
+  FileSound() : sound(Sound(reader)) {
+  }
+
+  FileReader reader;
+  Sound sound;
+};
 
 // Path must start with backslash in order to be valid
 // under the root mount point.
@@ -35,7 +49,9 @@ AudioMixer4 mixer((BufferSource **)sounds, 4);
 
 #define SAMPLE_COUNT 4
 FileSound *sounds[SAMPLE_COUNT] = {&hihat, &snare, &kick, &gong};
-AudioMixer4 mixer((BufferSource **)sounds, SAMPLE_COUNT);
+const etl::array<BufferSource *, 4> sources = {&hihat.sound, &snare.sound,
+                                               &kick.sound, &gong.sound};
+AudioMixer<4> mixer(sources);
 
 static void store_sample(const char *file_name, const unsigned int *sample_data,
                          const uint32_t data_length) {
@@ -50,15 +66,17 @@ static void store_sample(const char *file_name, const unsigned int *sample_data,
   AudioMemoryReader reader(sample_data, data_length);
   reader.reset();
 
-  int16_t buffer[AUDIO_BLOCK_SAMPLES];
+  AudioBlock buffer; // Use AudioBlock instead of raw array
 
   int written = 0;
   while (reader.has_data()) {
-    const auto sample_count = reader.read_samples(buffer);
-    written += fwrite(buffer, sizeof(buffer[0]), sample_count, fp);
+    const auto sample_count = reader.read_samples(buffer); // Pass AudioBlock
+    // Access data pointer and use correct element size for fwrite
+    // Need to access the underlying data pointer of the AudioBlock's etl::array
+    written += fwrite(buffer.begin(), sizeof(int16_t), sample_count, fp);
   }
 
-  printf("Wrote %i samples\n", written);
+  printf("Wrote %d samples\n", written); // Use %d for int
   printf("Closing file\n");
   fclose(fp);
 }
@@ -77,29 +95,30 @@ static void init_clock() {
                   96 * MHZ, 96 * MHZ);
 }
 
-static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
+static __not_in_flash_func void fill_audio_buffer(audio_buffer_t *out_buffer) {
   // printf("Filling buffer\n");
 
-  static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
-  mixer.fill_buffer(temp_samples);
+  static AudioBlock temp_samples; // Use AudioBlock
+  mixer.fill_buffer(temp_samples); // Pass AudioBlock
 
   // Convert to 32bit stereo
   int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+    // Access samples using operator[]
     stereo_out_samples[i] = (master_volume * temp_samples[i]) >> 8u;
   }
 
-  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
+  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES; // Assuming fill_buffer filled the whole block
 }
 
 static void handle_sysex(byte *const, const unsigned) {
 }
 
-void handle_cc(byte channel, byte controller, byte value) {
+void handle_cc([[maybe_unused]] byte channel, byte controller, byte value) {
     if (controller == 7) { // MIDI Volume Control (CC7)
         // Direct mapping: MIDI 0-127 to -127-0 (0dB at max)
         int8_t volume = value - 127;
-        aic3204_dac_set_volume(volume);
+        AudioOutput::volume(volume);
         printf("Set volume to %d (CC7 value: %d)\n", volume, value);
     }
 }
@@ -109,16 +128,16 @@ void handle_note_on(byte, byte note, byte velocity) {
   const float pitch = (float)(velocity) / 64.0;
   switch ((note - 1) % 4) {
   case 0:
-    kick.play(pitch);
+    kick.sound.play(pitch);
     break;
   case 1:
-    snare.play(pitch);
+    snare.sound.play(pitch);
     break;
   case 2:
-    hihat.play(pitch);
+    hihat.sound.play(pitch);
     break;
   case 3:
-    gong.play(pitch);
+    gong.sound.play(pitch);
     break;
   }
 }
@@ -137,6 +156,7 @@ static bool init() {
       .cont = nullptr,
       .stop = nullptr,
       .cc = handle_cc,
+      .pitch_bend = nullptr,
       .sysex = handle_sysex,
   });
   init_clock();
@@ -168,10 +188,10 @@ int main(void) {
   store_sample("/hihat", AudioSampleHihat, AudioSampleHihatSize);
   store_sample("/gong", AudioSampleGong, AudioSampleGongSize);
 #endif
-  snare.load("/snare");
-  hihat.load("/hihat");
-  kick.load("/kick");
-  gong.load("/gong");
+  snare.reader.load("/snare");
+  hihat.reader.load("/hihat");
+  kick.reader.load("/kick");
+  gong.reader.load("/gong");
 
   printf("Initializing audio output\n");
   AudioOutput::init();

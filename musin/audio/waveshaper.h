@@ -1,5 +1,5 @@
 /*
- * Waveshaper for Teensy 3.X audio
+ * Waveshaper for Teensy 3.X audio, adjusted for Musin
  *
  * Copyright (c) 2017 Damien Clarke, http://damienclarke.me
  *

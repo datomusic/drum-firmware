@@ -80,7 +80,7 @@ int main() {
     last_ms = now;
     accum_ms += diff_ms;
 
-    if (!AudioOutput::update(master_source, master_volume)) {
+    if (!AudioOutput::update(master_source)) {
       if (accum_ms > 500) {
         accum_ms = 0;
         printf("Playing sound\n");

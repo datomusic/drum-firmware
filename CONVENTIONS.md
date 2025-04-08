@@ -63,3 +63,9 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 - Prefer fixed-size containers
 - Be mindful of stack usage
 - Use `const` and `static` appropriately
+
+## 11. AI coding editor guidelines
+- Prevent comments at the end of a line explaining edits or behaviour
+- Do not add comments about changes or edits
+- Always keep existing behaviour unless instructed otherwise
+- Do not fix errors in code that is not directly related to the requested edit

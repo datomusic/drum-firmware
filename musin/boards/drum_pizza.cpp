@@ -99,7 +99,7 @@ static ExternalPinState check_external_pin_state(std::uint32_t gpio, const char*
         state_str = "Undetermined / Inconsistent Reads";
     }
 
-    printf("DrumPizza Init: Pin %u (%s) external state check result: %s\n", gpio, name, state_str);
+    printf("DrumPizza Init: Pin %lu (%s) external state check result: %s\n", gpio, name, state_str);
 
     gpio_disable_pulls(gpio);
     sleep_us(10);

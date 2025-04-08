@@ -3,6 +3,7 @@
 #include "hardware/structs/clocks.h"
 #include "hardware/sync.h"
 #include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/block.h" // Include AudioBlock definition
 #include "musin/audio/file_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
@@ -64,15 +65,17 @@ static void store_sample(const char *file_name, const unsigned int *sample_data,
   AudioMemoryReader reader(sample_data, data_length);
   reader.reset();
 
-  int16_t buffer[AUDIO_BLOCK_SAMPLES];
+  AudioBlock buffer; // Use AudioBlock instead of raw array
 
   int written = 0;
   while (reader.has_data()) {
-    const auto sample_count = reader.read_samples(buffer);
-    written += fwrite(buffer, sizeof(buffer[0]), sample_count, fp);
+    const auto sample_count = reader.read_samples(buffer); // Pass AudioBlock
+    // Access data pointer and use correct element size for fwrite
+    // Need to access the underlying data pointer of the AudioBlock's etl::array
+    written += fwrite(buffer.begin(), sizeof(int16_t), sample_count, fp);
   }
 
-  printf("Wrote %i samples\n", written);
+  printf("Wrote %d samples\n", written); // Use %d for int
   printf("Closing file\n");
   fclose(fp);
 }
@@ -94,16 +97,17 @@ static void init_clock() {
 static void __not_in_flash_func(fill_audio_buffer)(audio_buffer_t *out_buffer) {
   // printf("Filling buffer\n");
 
-  static int16_t temp_samples[AUDIO_BLOCK_SAMPLES];
-  mixer.fill_buffer(temp_samples);
+  static AudioBlock temp_samples; // Use AudioBlock
+  mixer.fill_buffer(temp_samples); // Pass AudioBlock
 
   // Convert to 32bit stereo
   int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+    // Access samples using operator[]
     stereo_out_samples[i] = (master_volume * temp_samples[i]) >> 8u;
   }
 
-  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES;
+  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES; // Assuming fill_buffer filled the whole block
 }
 
 static void handle_sysex(byte *const, const unsigned) {

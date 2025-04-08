@@ -23,7 +23,7 @@ Sound snare(AudioSampleSnare100_16bit_44kw, AudioSampleSnare100_16bit_44kwSize);
 Sound clap(AudioSampleClapdr110_16bit_44kw, AudioSampleClapdr110_16bit_44kwSize);
 Sound hihat(AudioSampleHatdr55_16bit_44kw, AudioSampleHatdr55_16bit_44kwSize);
 
-const std::array<Sound*, 4> sound_ptrs = {&kick, &snare, &hihat, &clap}; // Make array const
+const etl::array<Sound*, 4> sound_ptrs = {&kick, &snare, &hihat, &clap}; // Make array const
 
 AudioMixer<4> mixer(&kick, &snare, &hihat, &clap);
 
@@ -41,10 +41,10 @@ constexpr std::uint8_t CLAP_CHANNEL = 13;  // Channel 13
 
 // Array to store the current pitch speed for each sound channel, controlled by Pitch Bend
 // Index mapping: 0=Kick, 1=Snare, 2=Hihat, 3=Clap
-std::array<float, 4> channel_pitch_speed = {1.0f, 1.0f, 1.0f, 1.0f};
+etl::array<float, 4> channel_pitch_speed = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
-void handle_note_on(const byte channel, const byte note, const byte velocity) {
+void handle_note_on(const byte channel, [[maybe_unused]] const byte note, [[maybe_unused]] const byte velocity) {
   //printf("NoteOn Received: Ch %d Note %d Vel %d\n", channel, note, velocity);
 
   // Determine which sound corresponds to the channel
@@ -69,11 +69,11 @@ void handle_note_on(const byte channel, const byte note, const byte velocity) {
   // printf("NoteOn: Ch %d Note %d Vel %d -> Sound %d @ Speed %.2f\n", channel, note, velocity, sound_index, pitch_speed);
 }
 
-void handle_note_off(const byte channel, const byte note, const byte velocity) {
+void handle_note_off([[maybe_unused]] const byte channel, [[maybe_unused]] const byte note, [[maybe_unused]] const byte velocity) {
   //printf("NoteOff: Ch %d Note %d Vel %d\n", channel, note, velocity);
 }
 
-void handle_cc(const byte channel, const byte controller, const byte value) {
+void handle_cc([[maybe_unused]] const byte channel, const byte controller, const byte value) {
   // Assume global control for Volume, Filter, Crusher.
 
   float normalized_value = static_cast<float>(value) / 127.0f;
@@ -141,7 +141,7 @@ void handle_pitch_bend(const byte channel, const int bend) {
 }
 
 
-void handle_sysex(byte *data, const unsigned length) { // Removed const from data pointer type
+void handle_sysex([[maybe_unused]] byte *data, [[maybe_unused]] const unsigned length) { // Removed const from data pointer type
     //printf("SysEx received: %u bytes\n", length);
     // Note: data pointer itself is NOT const anymore
 }

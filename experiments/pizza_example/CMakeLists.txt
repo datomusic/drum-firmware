@@ -3,26 +3,58 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(PICO_BOARD dato_submarine)
+set(PICO_BOARD dato_submarine) # Keep board setting if needed, or remove if handled by SDK/Musin
 set(EXECUTABLE_NAME pizza_example)
 
-# Include the common Musin CMake initialization script
-# This handles SDK inclusion, project setup, standard options, etc.
-include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
+# --- Pico SDK Setup ---
+# Assume PICO_SDK_PATH is set in the environment or by a parent CMakeLists
+include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
+# Include extras if needed by the project directly or by Musin components
+include($ENV{PICO_SDK_PATH}/../pico-extras/external/pico_extras_import.cmake)
 
 project(${EXECUTABLE_NAME})
+set(CMAKE_CXX_STANDARD 20) # Ensure CXX standard is set
 
-# Define the executable target with its main source file
+# --- Musin Setup ---
+# Add the Musin library definitions by including its directory
+add_subdirectory(../../musin musin_build)
+# Include the remaining macros from the old init file (will be removed later)
+include(../../musin/musin_init.cmake)
+
+# --- Executable Definition ---
 add_executable(${EXECUTABLE_NAME}
   main.cpp
-  # Add board source file directly
+  # Add board source file directly (will likely become part of a musin::board_drum_pizza library)
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/boards/drum_pizza.cpp
 )
 
-musin_init(${EXECUTABLE_NAME})
+# --- Link Libraries ---
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE
+    # Core Musin library (provides pico_uart, etl, pico_stdlib, hardware_uart)
+    musin::core
+
+    # Pico SDK hardware libraries (Keep direct links for now, will be dependencies of musin::* libs)
+    hardware_adc      # For analog_in (will move to musin::hal)
+    hardware_gpio     # For keypad_hc138, analog_in mux pins (will move to musin::ui/hal)
+    hardware_pio      # For ws2812 (will move to musin::drivers)
+    hardware_dma      # For ws2812 (potentially) (will move to musin::drivers)
+    hardware_clocks   # For ws2812 timing (will move to musin::drivers)
+
+    # Add other SDK libs if needed directly by main.cpp
+)
+
+# --- Use remaining Musin macros (will be replaced by linking musin::* libs) ---
+# musin_init(${EXECUTABLE_NAME}) # Replaced by linking musin::core and explicit Pico setup
 musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})
 
-# Board sources are added directly above
-# musin_init_boards(${EXECUTABLE_NAME})
+# --- Final Pico Setup for the Executable ---
+pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+pico_add_extra_outputs(${EXECUTABLE_NAME})
+target_compile_options(${EXECUTABLE_NAME} PRIVATE -Wall -Wextra)
+
+# --- Suppress Warnings (Keep for now, might move to specific Musin targets) ---
+# set_source_files_properties(${SDK_EXTRAS_PATH}/src/rp2_common/pico_audio_i2s/audio_i2s.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
+# set_source_files_properties(${SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)

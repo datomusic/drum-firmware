@@ -35,20 +35,24 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
 
 # --- Musin Component Libraries ---
 
-# musin::core
+# musin_core (Internal static library)
 # Basic utilities, UART wrapper, common dependencies
-add_library(musin::core STATIC
+add_library(musin_core STATIC
     ${MUSIN_ROOT}/pico_uart.cpp
 )
-target_include_directories(musin::core PUBLIC
+target_include_directories(musin_core PUBLIC
     # Public include path allows applications to use #include "musin/pico_uart.h" etc.
     ${MUSIN_ROOT}/..
 )
-target_link_libraries(musin::core PUBLIC
+target_link_libraries(musin_core PUBLIC
     pico_stdlib     # Needed by pico_uart.cpp and commonly used
     hardware_uart   # Needed by pico_uart.cpp
     etl::etl        # Common dependency
 )
+
+# musin::core (Public alias)
+add_library(musin::core ALIAS musin_core)
+
 
 # --- Add other component definitions below ---
 # (e.g., musin::hal, musin::drivers, musin::ui, musin::audio, musin::usb_midi, musin::filesystem)

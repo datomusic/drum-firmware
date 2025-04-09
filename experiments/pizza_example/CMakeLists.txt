@@ -3,14 +3,8 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(PICO_BOARD dato_submarine) # Keep board setting if needed, or remove if handled by SDK/Musin
+set(PICO_BOARD dato_submarine)
 set(EXECUTABLE_NAME pizza_example)
-
-# --- Pico SDK Setup ---
-# Assume PICO_SDK_PATH is set in the environment or by a parent CMakeLists
-include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
-# Include extras if needed by the project directly or by Musin components
-include($ENV{PICO_SDK_PATH}/../pico-extras/external/pico_extras_import.cmake)
 
 project(${EXECUTABLE_NAME})
 set(CMAKE_CXX_STANDARD 20) # Ensure CXX standard is set
@@ -18,6 +12,14 @@ set(CMAKE_CXX_STANDARD 20) # Ensure CXX standard is set
 # --- Musin Setup ---
 # Add the Musin library definitions by including its directory
 add_subdirectory(../../musin musin_build)
+
+# --- Pico SDK Setup ---
+# Assume PICO_SDK_PATH is set in the environment or by a parent CMakeLists
+include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
+# Include extras if needed by the project directly or by Musin components
+include($ENV{PICO_SDK_PATH}/../pico-extras/external/pico_extras_import.cmake)
+
+
 # Include the remaining macros from the old init file (will be removed later)
 include(../../musin/musin_init.cmake)
 

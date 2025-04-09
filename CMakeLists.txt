@@ -111,3 +111,9 @@ target_link_libraries(drum_pad_test PRIVATE
 add_dependencies(drum_pad_test ws2812_pio_lib)
 
 pico_add_extra_outputs(drum_pad_test)
+
+
+# ====================================================================
+# Pizza Example Experiment
+# ====================================================================
+add_subdirectory(experiments/pizza_example)

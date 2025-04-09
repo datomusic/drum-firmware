@@ -3,33 +3,26 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(PICO_BOARD dato_submarine)
+set(PICO_BOARD dato_submarine) # Keep board setting if needed for this specific example
 set(EXECUTABLE_NAME pizza_example)
 
-project(${EXECUTABLE_NAME})
-set(CMAKE_CXX_STANDARD 20) # Ensure CXX standard is set
+# project(${EXECUTABLE_NAME}) # Remove project() call - handled by top-level
+# set(CMAKE_CXX_STANDARD 20) # Remove - handled by top-level or Musin
 
 # --- Musin Setup ---
 # Add the Musin library definitions by including its directory
+# This needs to happen before the executable is defined if musin libs are needed.
 # This should happen BEFORE pico_sdk_init if Musin defines components
 # that rely on SDK functions during configuration.
 add_subdirectory(../../musin musin_build)
 
 # --- Pico SDK Setup ---
-# pico_sdk_init() initializes the SDK for the project.
-# It uses PICO_SDK_PATH which should be set globally (by env or top-level CMakeLists.txt)
-pico_sdk_init()
-
-# Include extras import script AFTER pico_sdk_init()
-# PICO_EXTRAS_PATH should also be set globally
-if (EXISTS ${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
-    include(${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
-else()
-    message(WARNING "Pico Extras import script not found at ${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake")
-endif()
+# SDK and Extras initialization is handled by the top-level CMakeLists.txt
+# pico_sdk_init() # Remove
+# include(${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake) # Remove
 
 # Include the remaining macros from the old init file (will be removed later)
-# This needs PICO_EXTRAS_PATH to be set for warning suppression logic inside.
+# This needs PICO_EXTRAS_PATH to be set (which it is, by the top-level file).
 include(../../musin/musin_init.cmake)
 
 # --- Executable Definition ---

@@ -32,6 +32,10 @@ add_executable(${EXECUTABLE_NAME}
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/boards/drum_pizza.cpp
 )
 
+# --- PIO Generation ---
+# Generate the PIO header required by the WS2812 driver used in this example
+pico_generate_pio_header(${EXECUTABLE_NAME} ${CMAKE_CURRENT_LIST_DIR}/../../musin/drivers/ws2812.pio)
+
 # --- Link Libraries ---
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     # Core Musin library (provides pico_uart, etl, pico_stdlib, hardware_uart)

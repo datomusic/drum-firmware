@@ -115,14 +115,15 @@ macro(musin_init_hal TARGET)
   )
 endmacro()                                                                                                                                                                      
                                                                                                                                                                                 
-                                                                                                                                                       
+                                                                                                                                                                                
 macro(musin_init_drivers TARGET)                                                                                                                                                
                                         
     target_sources(${TARGET} PRIVATE                                                                                                                                              
       ${MUSIN_DRIVERS}/ws2812.cpp                                                                                                                                                 
     )                                                                                                                                                                             
-                                                                                                                                                                                                                                                                                                                   
-    pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)                                                                                                               
+                                                                                                                                                                                  
+    # PIO generation should be handled per-target in the target's CMakeLists.txt
+    # pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)                                                                                                               
                                                                                                                                                                                   
     target_link_libraries(${TARGET} PRIVATE                                                                                                                                       
       hardware_pio # For ws2812                                                                                                                                                   

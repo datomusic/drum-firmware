@@ -15,12 +15,10 @@ set(MUSIN_UI ${MUSIN_ROOT}/ui)
 set(MUSIN_HAL ${MUSIN_ROOT}/hal)
 
 # --- Pico SDK and Extras Setup ---
-# Assume SDK_PATH and SDK_EXTRAS_PATH are set by the environment or a parent CMakeLists
-# If not, uncomment and adjust these lines:
-set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
-set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
+# Assume PICO_SDK_PATH and PICO_EXTRAS_PATH are set by the environment or the parent CMakeLists.txt
+# This file should not redefine them.
 
-# Add custom board directory before SDK init
+# Add custom board directory (this is okay to do here)
 list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 
 # Initialize pico-sdk from submodule

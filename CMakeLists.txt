@@ -1,12 +1,42 @@
 cmake_minimum_required(VERSION 3.12)
 
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+# --- Pico SDK & Extras Path Setup ---
+# Check if PICO_SDK_PATH is set, otherwise provide a default relative path
+# Assumes SDK is located within musin/ports/pico/ relative to project root
+if (NOT DEFINED ENV{PICO_SDK_PATH} AND NOT DEFINED PICO_SDK_PATH)
+    set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/musin/ports/pico/pico-sdk CACHE PATH "Path to Pico SDK")
+    message(STATUS "PICO_SDK_PATH not set, defaulting to ${PICO_SDK_PATH}")
+elseif(DEFINED ENV{PICO_SDK_PATH} AND NOT DEFINED PICO_SDK_PATH)
+    set(PICO_SDK_PATH $ENV{PICO_SDK_PATH} CACHE PATH "Path to Pico SDK")
+    message(STATUS "PICO_SDK_PATH taken from environment: ${PICO_SDK_PATH}")
+endif()
+
+if (NOT EXISTS ${PICO_SDK_PATH})
+    message(FATAL_ERROR "Pico SDK path not found: ${PICO_SDK_PATH}. Please set PICO_SDK_PATH environment variable or ensure the default path is correct.")
+endif()
+
+# Assume pico-extras is a sibling directory to pico-sdk
+get_filename_component(PICO_SDK_PARENT_DIR ${PICO_SDK_PATH} DIRECTORY)
+set(PICO_EXTRAS_PATH ${PICO_SDK_PARENT_DIR}/pico-extras CACHE PATH "Path to Pico Extras")
+if (NOT EXISTS ${PICO_EXTRAS_PATH})
+    message(WARNING "Pico Extras path not found: ${PICO_EXTRAS_PATH}. Some features might be unavailable.")
+endif()
+
+# Include the SDK import script BEFORE project()
+include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 project(ws2812_blink C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
+# Initialize the SDK AFTER project()
 pico_sdk_init()
+
+# Include extras import script AFTER pico_sdk_init()
+if (EXISTS ${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
+    include(${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
+endif()
+
 
 # --- PIO Programs ---
 # Generate the header for the WS2812 PIO program

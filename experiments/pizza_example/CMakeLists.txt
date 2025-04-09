@@ -11,16 +11,25 @@ set(CMAKE_CXX_STANDARD 20) # Ensure CXX standard is set
 
 # --- Musin Setup ---
 # Add the Musin library definitions by including its directory
+# This should happen BEFORE pico_sdk_init if Musin defines components
+# that rely on SDK functions during configuration.
 add_subdirectory(../../musin musin_build)
 
 # --- Pico SDK Setup ---
-# Assume PICO_SDK_PATH is set in the environment or by a parent CMakeLists
-include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
-# Include extras if needed by the project directly or by Musin components
-include($ENV{PICO_SDK_PATH}/../pico-extras/external/pico_extras_import.cmake)
+# pico_sdk_init() initializes the SDK for the project.
+# It uses PICO_SDK_PATH which should be set globally (by env or top-level CMakeLists.txt)
+pico_sdk_init()
 
+# Include extras import script AFTER pico_sdk_init()
+# PICO_EXTRAS_PATH should also be set globally
+if (EXISTS ${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
+    include(${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
+else()
+    message(WARNING "Pico Extras import script not found at ${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake")
+endif()
 
 # Include the remaining macros from the old init file (will be removed later)
+# This needs PICO_EXTRAS_PATH to be set for warning suppression logic inside.
 include(../../musin/musin_init.cmake)
 
 # --- Executable Definition ---

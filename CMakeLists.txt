@@ -39,11 +39,7 @@ endif()
 
 
 # --- PIO Programs ---
-# Generate the header for the WS2812 PIO program
-# The target name here (ws2812_pio_lib) doesn't really matter, it's just
-# used internally by CMake to track the generation step.
-# The important part is that it generates ws2812.pio.h in the build directory.
-pico_generate_pio_header(ws2812_pio_lib ${CMAKE_CURRENT_LIST_DIR}/musin/ui/ws2812.pio)
+# PIO headers are generated per-target using pico_generate_pio_header below.
 
 
 # --- Executable ---
@@ -71,8 +67,8 @@ target_link_libraries(ws2812_blink PRIVATE
     hardware_gpio     # Needed by keypad_hc138 and drum_pizza init checks
 )
 
-# Ensure the PIO header generation happens before compiling the executable
-add_dependencies(ws2812_blink ws2812_pio_lib)
+# Generate PIO header for this target
+pico_generate_pio_header(ws2812_blink ${CMAKE_CURRENT_LIST_DIR}/musin/drivers/ws2812.pio) # Corrected path to drivers dir
 
 pico_add_extra_outputs(ws2812_blink)
 
@@ -105,10 +101,8 @@ target_link_libraries(drum_pad_test PRIVATE
     # hardware_dma    # Add if ws2812 uses DMA
 )
 
-# Ensure the PIO header generation happens before compiling this executable too
-# If ws2812_pio_lib is defined globally, this might not be strictly needed,
-# but it doesn't hurt to be explicit.
-add_dependencies(drum_pad_test ws2812_pio_lib)
+# Generate PIO header for this target
+pico_generate_pio_header(drum_pad_test ${CMAKE_CURRENT_LIST_DIR}/musin/drivers/ws2812.pio) # Corrected path to drivers dir
 
 pico_add_extra_outputs(drum_pad_test)
 

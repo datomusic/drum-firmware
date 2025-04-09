@@ -1,49 +1,22 @@
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 20)
+# This file previously contained initialization macros.
+# Its functionality is being migrated to musin/CMakeLists.txt
+# which defines library targets (e.g., musin::core, musin::hal).
+#
+# Applications should now use add_subdirectory(path/to/musin)
+# and link against the specific musin::* libraries they need.
 
+# Keep remaining macros for now, they will be refactored into library definitions later.
+
+# Define path variables needed by remaining macros
 set(MUSIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
 set(MUSIN_LIBRARIES ${MUSIN_ROOT}/ports/pico/libraries)
 set(MUSIN_USB ${MUSIN_ROOT}/usb)
 set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)
+set(MUSIN_AUDIO ${MUSIN_ROOT}/audio)
+set(MUSIN_UI ${MUSIN_ROOT}/ui)
+set(MUSIN_HAL ${MUSIN_ROOT}/hal)
+set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/) # Keep for warning suppression
 
-set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
-set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
-
-# Add custom board directory before SDK init
-list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
-
-# initialize pico-sdk from submodule
-# note: this must happen before project()
-include(${SDK_PATH}/pico_sdk_init.cmake)
-include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
-
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
-
-macro(musin_init TARGET)
-  target_include_directories(${TARGET} PRIVATE
-    ${MUSIN_ROOT}/..
-  )
-
-  target_sources(${TARGET} PRIVATE
-    ${MUSIN_ROOT}/pico_uart.cpp
-  )
-
-  target_link_libraries(${TARGET} PRIVATE
-    pico_stdlib
-    etl::etl
-  )
-
-  pico_sdk_init()
-  pico_enable_stdio_uart(${TARGET} 1)
-  pico_enable_stdio_usb(${TARGET} 1)
-  pico_add_extra_outputs(${TARGET})
-
-  target_compile_options(${TARGET} PRIVATE -Wall -Wextra)
-
-  set_source_files_properties(${SDK_EXTRAS_PATH}/src/rp2_common/pico_audio_i2s/audio_i2s.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
-  set_source_files_properties(${SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)
-
-endmacro()
 
 macro(musin_init_usb_midi TARGET)
 

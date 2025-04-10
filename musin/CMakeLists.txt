@@ -15,6 +15,7 @@ set(MUSIN_HAL ${MUSIN_ROOT}/hal)
 
 # --- Pico SDK and Extras Setup ---
 # Add custom board directory (this is okay to do here)
+list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 
 
 # --- Pico SDK and Toolchain Setup ---

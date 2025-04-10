@@ -36,11 +36,6 @@ include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 # Initialize the Pico SDK *after* the board and toolchain are set
 pico_sdk_init()
 
-# Enable stdio USB and UART by default for all Musin components
-pico_enable_stdio_usb(musin_core 1)
-pico_enable_stdio_uart(musin_core 1)
-
-
 # --- External Libraries ---
 # Ensure ETL is added. If it depends on SDK types, it should also assume
 # the SDK is initialized by the application.
@@ -65,6 +60,9 @@ target_link_libraries(musin_core PUBLIC
 # musin::core (Public alias)
 add_library(musin::core ALIAS musin_core)
 
+# Enable stdio USB and UART by default for all Musin components
+pico_enable_stdio_usb(musin_core 1)
+pico_enable_stdio_uart(musin_core 1)
 
 # --- musin::hal ---
 # Internal static library containing the implementation
@@ -233,9 +231,9 @@ target_include_directories(musin_usb_midi_internal PRIVATE
 )
 # This definition often needs to be applied to the *final executable*
 # for TinyUSB stack configuration. Document this requirement for users.
-# target_compile_definitions(musin_usb_midi_internal PRIVATE
-#   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
-# )
+target_compile_definitions(musin_usb_midi_internal PRIVATE
+   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
+)
 target_link_libraries(musin_usb_midi_internal PRIVATE
   musin::core
   pico_stdio_usb # Needed for tusb_config.h -> pico/stdio_usb.h

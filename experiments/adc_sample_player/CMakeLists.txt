@@ -13,7 +13,7 @@ set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 # Set the specific path for the toolchain executables (used by the toolchain file)
 # Note: The path should point to the root of the toolchain, not the bin directory itself.
 # The toolchain file expects to find 'bin/arm-none-eabi-gcc', etc. relative to this path.
-set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi CACHE PATH "Path to ARM GCC toolchain binaries")
+# set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi CACHE PATH "Path to ARM GCC toolchain binaries")
 # --- End Pico SDK and Toolchain Setup ---
 
 # --- Pico SDK and Extras Setup ---
@@ -46,7 +46,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
   ${EXAMPLES_SUPPORT_PATH}
 )
 
-target_compile_definitions(${EXECUTABLE_NAME} PUBLIC # Use PUBLIC to propagate to dependencies
+target_compile_definitions(${EXECUTABLE_NAME} PUBLIC
   AUDIO_BLOCK_SAMPLES=32
 )
 
@@ -59,7 +59,6 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     musin::drivers    # For audio codec (aic3204) used by musin::audio
     musin::audio      # For audio processing (Mixer, Sound, etc.)
     musin::usb_midi   # For USB MIDI input/output
-    musin::filesystem # For filesystem
     # Add any other direct SDK dependencies if needed, though most should be transitive
 )
 
@@ -69,6 +68,11 @@ if(SWAP_AUDIO_CLOCK)
   )
 endif(SWAP_AUDIO_CLOCK)
 
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
+)
+
 pico_enable_filesystem(${EXECUTABLE_NAME})
+pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_add_extra_outputs(${EXECUTABLE_NAME})

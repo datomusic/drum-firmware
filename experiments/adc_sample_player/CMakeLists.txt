@@ -47,8 +47,8 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
   ${EXAMPLES_SUPPORT_PATH}
 )
 
-target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
-  # AUDIO_BLOCK_SAMPLES is now defined by musin::audio interface
+target_compile_definitions(${EXECUTABLE_NAME} PUBLIC # Use PUBLIC to propagate to dependencies
+  AUDIO_BLOCK_SAMPLES=32 # Application-defined block size
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
 )
 

@@ -207,10 +207,6 @@ target_link_libraries(musin_audio_interface INTERFACE
   pico_audio_i2s
   etl::etl       # Audio headers use etl::array
 )
-# Define the audio block size publicly for the interface
-target_compile_definitions(musin_audio_interface INTERFACE
-  AUDIO_BLOCK_SAMPLES=32 # Default block size
-)
 # Public alias with '::' syntax
 add_library(musin::audio ALIAS musin_audio_interface)
 

@@ -36,6 +36,11 @@ include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 # Initialize the Pico SDK *after* the board and toolchain are set
 pico_sdk_init()
 
+# Suppress missing-field-initializers warning for pico_audio_i2s
+if(TARGET pico_audio_i2s)
+    target_compile_options(pico_audio_i2s PRIVATE -Wno-missing-field-initializers)
+endif()
+
 # --- External Libraries ---
 # Ensure ETL is added. If it depends on SDK types, it should also assume
 # the SDK is initialized by the application.

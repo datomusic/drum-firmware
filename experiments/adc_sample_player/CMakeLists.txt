@@ -1,29 +1,31 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(PICO_BOARD dato_submarine)
-
 set(EXECUTABLE_NAME adc_sample_player)
+set(PICO_BOARD dato_submarine)
 
 set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
 
+set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin CACHE PATH "ARM GCC toolchain")
+
 # Project definition first
-project(${EXECUTABLE_NAME} C CXX ASM)
+project(${EXECUTABLE_NAME})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-# Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
+set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk/)
+set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
+
+list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_PATH}/boards)
+
+
 add_subdirectory(${MUSIN_PATH} musin_build)
 
-# Set the board *after* Musin has added its board directory
-set(PICO_BOARD dato_submarine)
+include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-# Initialize the Pico SDK *after* the board and header dirs are set
 pico_sdk_init()
 
-# Import SDK definitions *after* init
-include(pico_sdk_import.cmake)
 
 # Define the executable
 add_executable(${EXECUTABLE_NAME}

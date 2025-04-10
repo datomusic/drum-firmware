@@ -9,24 +9,28 @@ set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
 
 set(SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk/)
+set(SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk/)
 set(SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 
-include(${SDK_PATH}/pico_sdk_init.cmake) # Assuming this is done by the application's pico_sdk_init()
-include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake) # Assuming this is done by the application
-
-# Include the Pico SDK initialization (assuming it's found)
-include(pico_sdk_import.cmake)
-
+# Project definition first
 project(${EXECUTABLE_NAME} C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-# Initialize the Pico SDK
-pico_sdk_init()
-
-# Add the Musin library subdirectory
+# Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
 add_subdirectory(${MUSIN_PATH} musin_build)
 
+# Now set the board *after* Musin has added its board directory
+set(PICO_BOARD dato_submarine)
+
+# Initialize the Pico SDK *after* the board and header dirs are set
+pico_sdk_init()
+
+# Import SDK definitions *after* init
+include(pico_sdk_import.cmake)
+# include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake) # Only if extras are actually needed and initialized
+
+# Define the executable
 add_executable(${EXECUTABLE_NAME}
   main.cpp
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleKickc78_16bit_44kw.cpp

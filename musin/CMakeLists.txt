@@ -91,9 +91,10 @@ add_library(musin_drivers_internal STATIC
 target_include_directories(musin_drivers_internal PRIVATE
   ${MUSIN_DRIVERS}
 )
-# Note: PIO generation (pico_generate_pio_header) should be handled by the
-# final application target that *uses* a PIO-based driver (like ws2812).
-# The application needs to include the generated header.
+# Generate the PIO header required by ws2812.cpp and add its include path
+# to the musin_drivers_internal target.
+pico_generate_pio_header(musin_drivers_internal ${MUSIN_DRIVERS}/ws2812.pio)
+
 target_link_libraries(musin_drivers_internal PRIVATE
   musin::core
   hardware_pio # For ws2812

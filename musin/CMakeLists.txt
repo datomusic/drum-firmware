@@ -229,11 +229,7 @@ target_include_directories(musin_usb_midi_internal PRIVATE
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Needed for USB-MIDI.h
   ${MUSIN_ROOT}/midi # For midi_wrapper.h
 )
-# This definition often needs to be applied to the *final executable*
-# for TinyUSB stack configuration. Document this requirement for users.
-target_compile_definitions(musin_usb_midi_internal PRIVATE
-   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
-)
+# This definition is applied to the interface library to ensure it's propagated to all users
 target_link_libraries(musin_usb_midi_internal PRIVATE
   musin::core
   pico_stdio_usb # Needed for tusb_config.h -> pico/stdio_usb.h
@@ -248,6 +244,10 @@ target_include_directories(musin_usb_midi_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/usb/usb.h", "musin/midi/midi_wrapper.h"
   ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Expose USB-MIDI headers if needed
+)
+# Add compile definitions publicly to ensure they're propagated to all users
+target_compile_definitions(musin_usb_midi_interface INTERFACE
+  PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
 )
 target_link_libraries(musin_usb_midi_interface INTERFACE
   musin_usb_midi_internal

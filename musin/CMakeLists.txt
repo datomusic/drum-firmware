@@ -60,7 +60,10 @@ target_link_libraries(musin_core PUBLIC
 # musin::core (Public alias)
 add_library(musin::core ALIAS musin_core)
 
-set_source_files_properties(${PICO_SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)
+set_source_files_properties(
+    ${PICO_SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp 
+    PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers
+)
 
 # Enable stdio USB and UART by default for all Musin components
 pico_enable_stdio_usb(musin_core 1)

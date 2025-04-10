@@ -230,6 +230,7 @@ target_include_directories(musin_usb_midi_internal PRIVATE
 # )
 target_link_libraries(musin_usb_midi_internal PRIVATE
   musin::core
+  pico_stdio_usb # Needed for tusb_config.h -> pico/stdio_usb.h
   tinyusb_device
   tinyusb_board
   # pico_stdlib # Should be linked by tinyusb or musin::core

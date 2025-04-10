@@ -23,6 +23,13 @@ list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_PATH}/boards)
 # Set the board *after* Musin has added its board directory
 set(PICO_BOARD dato_submarine)   
 
+# --- Add this after setting PICO_BOARD ---
+# Force timer instance selection for RP2350
+add_compile_definitions(
+    PICO_DEFAULT_TIMER_INSTANCE=0
+    PICO_DEFAULT_TIMER=0
+)
+
 # Import SDK definitions *after* init
 include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
@@ -55,6 +62,7 @@ target_compile_definitions(${EXECUTABLE_NAME} PUBLIC # Use PUBLIC to propagate t
 # Link against required libraries
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     pico_stdlib       # Base SDK library
+    hardware_timer    # Explicitly add timer hardware library
     musin::core       # Core Musin utilities
     musin::hal        # For AnalogInMux
     musin::drivers    # For audio codec (aic3204) used by musin::audio

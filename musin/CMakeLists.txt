@@ -58,7 +58,6 @@ target_link_libraries(musin_core PUBLIC
     hardware_uart   # Needed by pico_uart.cpp
     etl::etl        # Common dependency
 )
-
 # musin::core (Public alias)
 add_library(musin::core ALIAS musin_core)
 

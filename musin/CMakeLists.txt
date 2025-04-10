@@ -183,6 +183,7 @@ target_include_directories(musin_audio_internal PRIVATE
 target_compile_definitions(musin_audio_internal PRIVATE
   PICO_AUDIO_I2S_MONO_INPUT=1
   USE_AUDIO_I2S=1
+  AUDIO_BLOCK_SAMPLES=32  # Define the missing symbol
 )
 target_link_libraries(musin_audio_internal PRIVATE
   musin::core

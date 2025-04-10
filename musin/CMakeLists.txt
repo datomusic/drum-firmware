@@ -15,7 +15,6 @@ set(MUSIN_HAL ${MUSIN_ROOT}/hal)
 
 # --- Pico SDK and Extras Setup ---
 # Add custom board directory (this is okay to do here)
-list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 
 # Initialize pico-sdk from submodule
 # Note: This might be better done in the top-level application CMakeLists
@@ -254,7 +253,7 @@ add_library(musin::usb_midi ALIAS musin_usb_midi_interface)
 # Assuming pico-vfs is added elsewhere (e.g., by the application or a top-level CMakeLists)
 # and provides the 'filesystem_vfs' target.
 # If Musin should *always* include pico-vfs, uncomment the add_subdirectory line.
-# add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
+add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
 
 # Internal static library
 add_library(musin_filesystem_internal STATIC

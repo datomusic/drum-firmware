@@ -38,7 +38,7 @@ pico_sdk_init()
 
 # Suppress missing-field-initializers warning for pico_audio_i2s
 if(TARGET pico_audio_i2s)
-    target_compile_options(pico_audio_i2s PRIVATE -Wno-missing-field-initializers)
+    target_compile_options(pico_audio_i2s INTERFACE -Wno-missing-field-initializers)
 endif()
 
 # --- External Libraries ---
@@ -65,10 +65,6 @@ target_link_libraries(musin_core PUBLIC
 # musin::core (Public alias)
 add_library(musin::core ALIAS musin_core)
 
-set_source_files_properties(
-    ${PICO_SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp 
-    PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers
-)
 
 # Enable stdio USB and UART by default for all Musin components
 pico_enable_stdio_usb(musin_core 1)

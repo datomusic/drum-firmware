@@ -247,6 +247,7 @@ target_link_libraries(musin_usb_midi_interface INTERFACE
   musin_usb_midi_internal
   # Propagate public dependencies
   musin::core
+  pico_stdio_usb # Propagate dependency needed for stdio over USB
   tinyusb_device
   tinyusb_board
 )

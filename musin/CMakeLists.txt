@@ -36,6 +36,10 @@ include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 # Initialize the Pico SDK *after* the board and toolchain are set
 pico_sdk_init()
 
+# Enable stdio USB and UART by default for all Musin components
+pico_enable_stdio_usb(musin_core 1)
+pico_enable_stdio_uart(musin_core 1)
+
 
 # --- External Libraries ---
 # Ensure ETL is added. If it depends on SDK types, it should also assume

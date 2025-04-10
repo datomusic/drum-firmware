@@ -34,6 +34,10 @@ add_subdirectory(${MUSIN_PATH} musin_build)
 set(PICO_BOARD dato_submarine)
 
 
+# After SDK init, enable stdio transports
+pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)  # Enable UART (for debugging)
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)   # Enable USB
+
 # Define the executable
 add_executable(${EXECUTABLE_NAME}
   main.cpp

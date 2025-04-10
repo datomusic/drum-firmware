@@ -33,8 +33,6 @@ add_subdirectory(${MUSIN_PATH} musin_build)
 # Set the board *after* Musin has added its board directory
 set(PICO_BOARD dato_submarine)
 
-# Initialize the Pico SDK *after* the board and toolchain are set
-pico_sdk_init()
 
 # Define the executable
 add_executable(${EXECUTABLE_NAME}
@@ -73,6 +71,4 @@ if(SWAP_AUDIO_CLOCK)
 endif(SWAP_AUDIO_CLOCK)
 
 pico_enable_filesystem(${EXECUTABLE_NAME})
-
-# Add standard Pico outputs (UF2, etc.)
 pico_add_extra_outputs(${EXECUTABLE_NAME})

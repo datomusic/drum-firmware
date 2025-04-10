@@ -33,6 +33,9 @@ include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 # Initialize the Pico SDK *after* the board and toolchain are set
 pico_sdk_init()
 
+# Import targets from pico-extras (like pico_audio)
+include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
+
 # --- External Libraries ---
 # Ensure ETL is added. If it depends on SDK types, it should also assume
 # the SDK is initialized by the application.

@@ -242,10 +242,10 @@ target_compile_definitions(musin_usb_midi_internal PRIVATE
 )
 target_link_libraries(musin_usb_midi_internal PRIVATE
   musin::core
-  pico_stdio_usb # Needed for tusb_config.h -> pico/stdio_usb.h
+  pico_stdlib           # Provides pico/stdio_usb.h implementation
+  pico_stdio_usb        # Link the stdio USB implementation
   tinyusb_device
   tinyusb_board
-  # pico_stdlib # Should be linked by tinyusb or musin::core
 )
 
 # Public interface library (simple name)
@@ -253,6 +253,9 @@ add_library(musin_usb_midi_interface INTERFACE)
 target_include_directories(musin_usb_midi_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/usb/usb.h", "musin/midi/midi_wrapper.h"
   ${MUSIN_USB}     # Direct path to tusb_config.h
+  ${PICO_SDK_PATH}/src/common/pico_stdlib/include
+  ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include
+  ${PICO_SDK_PATH}/src/rp2040/hardware_regs/include
   ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Expose USB-MIDI headers if needed
 )

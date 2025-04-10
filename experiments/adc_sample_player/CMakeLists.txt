@@ -6,6 +6,13 @@ set(PICO_BOARD dato_submarine)
 set(EXECUTABLE_NAME adc_sample_player)
 
 set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
+set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
+
+set(SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk/)
+set(SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
+
+include(${SDK_PATH}/pico_sdk_init.cmake) # Assuming this is done by the application's pico_sdk_init()
+include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake) # Assuming this is done by the application
 
 # Include the Pico SDK initialization (assuming it's found)
 include(pico_sdk_import.cmake)
@@ -18,7 +25,7 @@ set(CMAKE_CXX_STANDARD 20)
 pico_sdk_init()
 
 # Add the Musin library subdirectory
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../musin musin_build)
+add_subdirectory(${MUSIN_PATH} musin_build)
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp

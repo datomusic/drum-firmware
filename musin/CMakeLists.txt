@@ -275,7 +275,8 @@ target_include_directories(musin_filesystem_internal PRIVATE
 )
 target_link_libraries(musin_filesystem_internal PRIVATE
   musin::core
-  filesystem_vfs # Provided by pico-vfs
+  filesystem_vfs      # Provided by pico-vfs (for VFS API)
+  filesystem_littlefs # Provided by pico-vfs (for lfs.h include path)
 )
 
 # Public interface library (simple name)

@@ -7,8 +7,7 @@ set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
 
 # --- Pico SDK and Toolchain Setup ---
-# Define the SDK path *first*
-set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk CACHE PATH "Path to the Pico SDK")
+set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk/)
 set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 
 # Set the specific path for the toolchain executables (used by the toolchain file)
@@ -19,27 +18,19 @@ set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi CA
 
 # --- Pico SDK and Extras Setup ---
 list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_PATH}/boards)
+set(PICO_BOARD dato_submarine)
 
-# Set the board *after* Musin has added its board directory
-set(PICO_BOARD dato_submarine)   
-
-# --- Add this after setting PICO_BOARD ---
-# Force timer instance selection for RP2350
-add_compile_definitions(
-    PICO_DEFAULT_TIMER_INSTANCE=0
-    PICO_DEFAULT_TIMER=0
-)
-
-# Import SDK definitions *after* init
-include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
+include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
 # Project definition - Now CMake knows to use the toolchain file for compiler detection
 project(${EXECUTABLE_NAME} C CXX ASM) # Add ASM language for SDK compatibility
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)    
 
-# Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
-# Musin's CMakeLists should *not* call pico_sdk_init() itself.
+pico_sdk_init()
+
+# The Musin library expects the Pico SDK to be initialized
 add_subdirectory(${MUSIN_PATH} musin_build)                                                                                                              
 
 # Define the executable

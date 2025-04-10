@@ -15,26 +15,19 @@ set(MUSIN_HAL ${MUSIN_ROOT}/hal)
 
 # --- Pico SDK and Extras Setup ---
 # Add custom board directory (this is okay to do here)
-list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
+# list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 
 
-# --- Pico SDK and Toolchain Setup ---
-# Define the SDK path *first*
-set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk CACHE PATH "Path to the Pico SDK")
-set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
+# # --- Pico SDK and Toolchain Setup ---
+# # Define the SDK path *first*
+# set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk CACHE PATH "Path to the Pico SDK")
+# set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 
-# Initialize pico-sdk from submodule
-# Note: This might be better done in the top-level application CMakeLists
-# if Musin is intended to be usable outside a Pico context eventually.
+# # Initialize the Pico SDK *after* the board and header dirs are set
+# include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+# # Import targets from pico-extras (like pico_audio)
+# include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
-# Initialize the Pico SDK *after* the board and header dirs are set
-include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
-# Import targets from pico-extras (like pico_audio)
-include(${PICO_SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
-
-
-# Initialize the Pico SDK *after* the board and toolchain are set
-pico_sdk_init()
 
 # Suppress missing-field-initializers warning for pico_audio_i2s
 if(TARGET pico_audio_i2s)
@@ -64,7 +57,6 @@ target_link_libraries(musin_core PUBLIC
 )
 # musin::core (Public alias)
 add_library(musin::core ALIAS musin_core)
-
 
 # Enable stdio USB and UART by default for all Musin components
 pico_enable_stdio_usb(musin_core 1)
@@ -253,9 +245,7 @@ add_library(musin_usb_midi_interface INTERFACE)
 target_include_directories(musin_usb_midi_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/usb/usb.h", "musin/midi/midi_wrapper.h"
   ${MUSIN_USB}     # Direct path to tusb_config.h
-  ${PICO_SDK_PATH}/src/common/pico_stdlib/include
   ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include
-  ${PICO_SDK_PATH}/src/rp2040/hardware_regs/include
   ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Expose USB-MIDI headers if needed
 )

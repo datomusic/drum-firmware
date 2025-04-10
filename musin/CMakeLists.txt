@@ -66,12 +66,12 @@ target_link_libraries(musin_hal_internal PRIVATE
   # hardware_pio    # Uncomment if any HAL component uses PIO directly
 )
 
-# Public interface library
-add_library(musin::hal INTERFACE)
-target_include_directories(musin::hal INTERFACE
+# Public interface library (simple name)
+add_library(musin_hal_interface INTERFACE)
+target_include_directories(musin_hal_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/hal/analog_in.h"
 )
-target_link_libraries(musin::hal INTERFACE
+target_link_libraries(musin_hal_interface INTERFACE
   musin_hal_internal # Link the implementation
   # Propagate public dependencies to users
   musin::core
@@ -79,6 +79,8 @@ target_link_libraries(musin::hal INTERFACE
   hardware_gpio
   # hardware_dma # Only propagate if needed by the public interface/headers
 )
+# Public alias with '::' syntax
+add_library(musin::hal ALIAS musin_hal_interface)
 
 
 # --- musin::drivers ---
@@ -101,12 +103,12 @@ target_link_libraries(musin_drivers_internal PRIVATE
   hardware_clocks # For ws2812 PIO init helper
 )
 
-# Public interface library
-add_library(musin::drivers INTERFACE)
-target_include_directories(musin::drivers INTERFACE
+# Public interface library (simple name)
+add_library(musin_drivers_interface INTERFACE)
+target_include_directories(musin_drivers_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/drivers/ws2812.h"
 )
-target_link_libraries(musin::drivers INTERFACE
+target_link_libraries(musin_drivers_interface INTERFACE
   musin_drivers_internal
   # Propagate public dependencies
   musin::core
@@ -114,6 +116,8 @@ target_link_libraries(musin::drivers INTERFACE
   hardware_i2c
   hardware_clocks
 )
+# Public alias with '::' syntax
+add_library(musin::drivers ALIAS musin_drivers_interface)
 
 
 # --- musin::ui ---
@@ -131,18 +135,20 @@ target_link_libraries(musin_ui_internal PRIVATE
   pico_stdlib # For time functions used in keypad_hc138
 )
 
-# Public interface library
-add_library(musin::ui INTERFACE)
-target_include_directories(musin::ui INTERFACE
+# Public interface library (simple name)
+add_library(musin_ui_interface INTERFACE)
+target_include_directories(musin_ui_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/ui/keypad_hc138.h"
 )
-target_link_libraries(musin::ui INTERFACE
+target_link_libraries(musin_ui_interface INTERFACE
   musin_ui_internal
   # Propagate public dependencies
   musin::core
   hardware_gpio
   pico_stdlib
 )
+# Public alias with '::' syntax
+add_library(musin::ui ALIAS musin_ui_interface)
 
 
 # --- musin::audio ---
@@ -176,12 +182,12 @@ target_link_libraries(musin_audio_internal PRIVATE
   pico_audio_i2s
 )
 
-# Public interface library
-add_library(musin::audio INTERFACE)
-target_include_directories(musin::audio INTERFACE
+# Public interface library (simple name)
+add_library(musin_audio_interface INTERFACE)
+target_include_directories(musin_audio_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/audio/mixer.h"
 )
-target_link_libraries(musin::audio INTERFACE
+target_link_libraries(musin_audio_interface INTERFACE
   musin_audio_internal
   # Propagate public dependencies
   musin::core
@@ -189,6 +195,8 @@ target_link_libraries(musin::audio INTERFACE
   pico_audio_i2s
   etl::etl       # Audio headers use etl::array
 )
+# Public alias with '::' syntax
+add_library(musin::audio ALIAS musin_audio_interface)
 
 
 # --- musin::usb_midi ---
@@ -219,21 +227,23 @@ target_link_libraries(musin_usb_midi_internal PRIVATE
   # pico_stdlib # Should be linked by tinyusb or musin::core
 )
 
-# Public interface library
-add_library(musin::usb_midi INTERFACE)
-target_include_directories(musin::usb_midi INTERFACE
+# Public interface library (simple name)
+add_library(musin_usb_midi_interface INTERFACE)
+target_include_directories(musin_usb_midi_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/usb/usb.h", "musin/midi/midi_wrapper.h"
   ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
 )
-target_link_libraries(musin::usb_midi INTERFACE
+target_link_libraries(musin_usb_midi_interface INTERFACE
   musin_usb_midi_internal
   # Propagate public dependencies
   musin::core
   tinyusb_device
   tinyusb_board
 )
+# Public alias with '::' syntax
+add_library(musin::usb_midi ALIAS musin_usb_midi_interface)
 # Add compile definitions publicly if they affect the interface or usage
-# target_compile_definitions(musin::usb_midi INTERFACE
+# target_compile_definitions(musin_usb_midi_interface INTERFACE
 #   SOME_PUBLIC_DEFINE=1
 # )
 
@@ -258,17 +268,19 @@ target_link_libraries(musin_filesystem_internal PRIVATE
   filesystem_vfs # Provided by pico-vfs
 )
 
-# Public interface library
-add_library(musin::filesystem INTERFACE)
-target_include_directories(musin::filesystem INTERFACE
+# Public interface library (simple name)
+add_library(musin_filesystem_interface INTERFACE)
+target_include_directories(musin_filesystem_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/filesystem/filesystem.h"
 )
-target_link_libraries(musin::filesystem INTERFACE
+target_link_libraries(musin_filesystem_interface INTERFACE
   musin_filesystem_internal
   # Propagate public dependencies
   musin::core
   filesystem_vfs
 )
+# Public alias with '::' syntax
+add_library(musin::filesystem ALIAS musin_filesystem_interface)
 # IMPORTANT: The application linking against musin::filesystem *must* call
 # pico_enable_filesystem(your_app_target) in its own CMakeLists.txt
 

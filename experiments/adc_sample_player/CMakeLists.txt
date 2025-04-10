@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.15...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXECUTABLE_NAME adc_sample_player)
-# PICO_BOARD is set later, after Musin is added
 
 set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
@@ -18,21 +17,23 @@ set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi CACHE PATH "Path to ARM GCC toolchain binaries")
 # --- End Pico SDK and Toolchain Setup ---
 
+# --- Pico SDK and Extras Setup ---
+list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_PATH}/boards)
+
+# Set the board *after* Musin has added its board directory
+set(PICO_BOARD dato_submarine)   
+
 # Import SDK definitions *after* init
 include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 # Project definition - Now CMake knows to use the toolchain file for compiler detection
 project(${EXECUTABLE_NAME} C CXX ASM) # Add ASM language for SDK compatibility
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20)    
 
 # Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
 # Musin's CMakeLists should *not* call pico_sdk_init() itself.
-add_subdirectory(${MUSIN_PATH} musin_build)
-
-# Set the board *after* Musin has added its board directory
-set(PICO_BOARD dato_submarine)
-set(PICO_PLATFORM rp2350-arm-s)  # Critical for RP2350 vs RP2040                                                                                                                         
+add_subdirectory(${MUSIN_PATH} musin_build)                                                                                                              
 
 # Define the executable
 add_executable(${EXECUTABLE_NAME}

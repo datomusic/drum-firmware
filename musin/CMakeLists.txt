@@ -14,11 +14,6 @@ set(MUSIN_UI ${MUSIN_ROOT}/ui)
 set(MUSIN_HAL ${MUSIN_ROOT}/hal)
 
 # --- Pico SDK and Extras Setup ---
-# We'll move these out of Musin and into the application CMakeLists later
-set(PICO_SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
-set(PICO_SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
-
-
 # Add custom board directory (this is okay to do here)
 list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 
@@ -26,7 +21,6 @@ list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 # Note: This might be better done in the top-level application CMakeLists
 # if Musin is intended to be usable outside a Pico context eventually.
 # For now, keep it here for simplicity with current examples.
-# include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake) # REMOVED - Application should import SDK
 # Initialize the Pico SDK *after* the board and header dirs are set
 # pico_sdk_init() # REMOVED - Application must call this *after* setting PICO_BOARD
 

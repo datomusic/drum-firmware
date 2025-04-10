@@ -25,8 +25,11 @@ list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 # Note: This might be better done in the top-level application CMakeLists
 # if Musin is intended to be usable outside a Pico context eventually.
 # For now, keep it here for simplicity with current examples.
-# include(${SDK_PATH}/pico_sdk_init.cmake) # Assuming this is done by the application's pico_sdk_init()
-# include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake) # Assuming this is done by the application
+set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
+set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
+
+include(${SDK_PATH}/pico_sdk_init.cmake) # Assuming this is done by the application's pico_sdk_init()
+include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake) # Assuming this is done by the application
 
 # --- External Libraries ---
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)

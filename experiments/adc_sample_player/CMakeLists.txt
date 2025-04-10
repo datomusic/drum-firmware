@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13...3.27)
+cmake_minimum_required(VERSION 3.15...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXECUTABLE_NAME adc_sample_player)
@@ -32,6 +32,7 @@ add_subdirectory(${MUSIN_PATH} musin_build)
 
 # Set the board *after* Musin has added its board directory
 set(PICO_BOARD dato_submarine)
+set(PICO_PLATFORM rp2350-arm-s)  # Critical for RP2350 vs RP2040                                                                                                                         
 
 # Define the executable
 add_executable(${EXECUTABLE_NAME}

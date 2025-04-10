@@ -1,5 +1,5 @@
 # Musin Project CMake Build File
-cmake_minimum_required(VERSION 3.13) # INTERFACE libraries benefit from newer versions
+cmake_minimum_required(VERSION 3.15)
 
 # --- Basic Project Setup ---
 set(CMAKE_C_STANDARD 11)

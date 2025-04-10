@@ -13,10 +13,17 @@ project(${EXECUTABLE_NAME} C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-set(PICO_BOARD dato_submarine)
-
 # Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
 add_subdirectory(${MUSIN_PATH} musin_build)
+
+# Set the board *after* Musin has added its board directory
+set(PICO_BOARD dato_submarine)
+
+# Initialize the Pico SDK *after* the board and header dirs are set
+pico_sdk_init()
+
+# Import SDK definitions *after* init
+include(pico_sdk_import.cmake)
 
 # Define the executable
 add_executable(${EXECUTABLE_NAME}

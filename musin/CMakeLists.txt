@@ -167,16 +167,14 @@ add_library(musin_audio_internal STATIC
   ${MUSIN_AUDIO}/audio_output.cpp
   ${MUSIN_AUDIO}/pitch_shifter.cpp
   ${MUSIN_AUDIO}/audio_memory_reader.cpp
-  ${MUSIN_AUDIO}/data_ulaw.c # Note: This is C code
+  ${MUSIN_AUDIO}/data_ulaw.c
   ${MUSIN_AUDIO}/mixer.cpp
   ${MUSIN_AUDIO}/crusher.cpp
   ${MUSIN_AUDIO}/waveshaper.cpp
   ${MUSIN_AUDIO}/filter.cpp
-  # Note: aic3204.c is now part of musin::drivers
 )
 target_include_directories(musin_audio_internal PRIVATE
   ${MUSIN_AUDIO}
-  # ${MUSIN_DRIVERS} # No longer needed directly, use musin::drivers target
 )
 target_compile_definitions(musin_audio_internal PRIVATE
   PICO_AUDIO_I2S_MONO_INPUT=1

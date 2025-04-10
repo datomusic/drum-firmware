@@ -10,7 +10,7 @@ set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
 # --- Pico SDK and Toolchain Setup ---
 # Define the SDK path *first*
 set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk CACHE PATH "Path to the Pico SDK")
-set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/) # Define if needed
+set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 
 # Set the specific path for the toolchain executables (used by the toolchain file)
 # Note: The path should point to the root of the toolchain, not the bin directory itself.
@@ -26,7 +26,6 @@ project(${EXECUTABLE_NAME} C CXX ASM) # Add ASM language for SDK compatibility
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-
 # Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
 # Musin's CMakeLists should *not* call pico_sdk_init() itself.
 add_subdirectory(${MUSIN_PATH} musin_build)
@@ -36,9 +35,6 @@ set(PICO_BOARD dato_submarine)
 
 # Initialize the Pico SDK *after* the board and toolchain are set
 pico_sdk_init()
-
-
-
 
 # Define the executable
 add_executable(${EXECUTABLE_NAME}
@@ -55,7 +51,6 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
-  # Add TinyUSB reset definition required by musin::usb_midi usage
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
 )
 
@@ -67,6 +62,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     musin::drivers    # For audio codec (aic3204) used by musin::audio
     musin::audio      # For audio processing (Mixer, Sound, etc.)
     musin::usb_midi   # For USB MIDI input/output
+    musin::filesystem # For filesystem
     # Add any other direct SDK dependencies if needed, though most should be transitive
 )
 
@@ -75,6 +71,8 @@ if(SWAP_AUDIO_CLOCK)
     PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
   )
 endif(SWAP_AUDIO_CLOCK)
+
+pico_enable_filesystem(${EXECUTABLE_NAME})
 
 # Add standard Pico outputs (UF2, etc.)
 pico_add_extra_outputs(${EXECUTABLE_NAME})

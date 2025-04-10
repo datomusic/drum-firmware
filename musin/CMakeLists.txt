@@ -60,9 +60,10 @@ target_link_libraries(musin_core PUBLIC
 # musin::core (Public alias)
 add_library(musin::core ALIAS musin_core)
 
-# Enable stdio UART by default for all Musin components
-# NOTE: pico_stdio_usb is intentionally *not* enabled here, as musin::usb_midi
-# provides its own TinyUSB stack. Enabling both causes conflicts.
+set_source_files_properties(${PICO_SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)
+
+# Enable stdio USB and UART by default for all Musin components
+pico_enable_stdio_usb(musin_core 1)
 pico_enable_stdio_uart(musin_core 1)
 
 # --- musin::hal ---
@@ -230,7 +231,11 @@ target_include_directories(musin_usb_midi_internal PRIVATE
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Needed for USB-MIDI.h
   ${MUSIN_ROOT}/midi # For midi_wrapper.h
 )
-# This definition is applied to the interface library to ensure it's propagated to all users
+# This definition often needs to be applied to the *final executable*
+# for TinyUSB stack configuration. Document this requirement for users.
+target_compile_definitions(musin_usb_midi_internal PRIVATE
+   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
+)
 target_link_libraries(musin_usb_midi_internal PRIVATE
   musin::core
   pico_stdio_usb # Needed for tusb_config.h -> pico/stdio_usb.h
@@ -246,15 +251,10 @@ target_include_directories(musin_usb_midi_interface INTERFACE
   ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Expose USB-MIDI headers if needed
 )
-# Add compile definitions publicly if they affect the interface or usage
-# target_compile_definitions(musin_usb_midi_interface INTERFACE
-#   SOME_PUBLIC_DEFINE=1
-# )
 target_link_libraries(musin_usb_midi_interface INTERFACE
   musin_usb_midi_internal
   # Propagate public dependencies
   musin::core
-  pico_stdio_usb # Propagate dependency needed for stdio over USB
   tinyusb_device
   tinyusb_board
 )

@@ -252,6 +252,7 @@ target_link_libraries(musin_usb_midi_internal PRIVATE
 add_library(musin_usb_midi_interface INTERFACE)
 target_include_directories(musin_usb_midi_interface INTERFACE
   ${MUSIN_ROOT}/.. # Expose includes like "musin/usb/usb.h", "musin/midi/midi_wrapper.h"
+  ${MUSIN_USB}     # Direct path to tusb_config.h
   ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
   ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src     # Expose USB-MIDI headers if needed
 )

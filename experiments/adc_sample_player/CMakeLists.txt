@@ -2,29 +2,44 @@ cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXECUTABLE_NAME adc_sample_player)
-set(PICO_BOARD dato_submarine)
+# PICO_BOARD is set later, after Musin is added
 
 set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 set(MUSIN_PATH ${CMAKE_CURRENT_LIST_DIR}/../../musin)
 
-set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin CACHE PATH "ARM GCC toolchain")
+# --- Pico SDK and Toolchain Setup ---
+# Define the SDK path *first*
+set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk CACHE PATH "Path to the Pico SDK")
+set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/) # Define if needed
 
-# Project definition first
-project(${EXECUTABLE_NAME})
+# Set the toolchain file *before* the project() command
+set(CMAKE_TOOLCHAIN_FILE ${PICO_SDK_PATH}/cmake/pico_arm_gcc_toolchain.cmake CACHE FILEPATH "CMake toolchain file")
+
+# Set the specific path for the toolchain executables (used by the toolchain file)
+# Note: The path should point to the root of the toolchain, not the bin directory itself.
+# The toolchain file expects to find 'bin/arm-none-eabi-gcc', etc. relative to this path.
+set(PICO_TOOLCHAIN_PATH /Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi CACHE PATH "Path to ARM GCC toolchain binaries")
+# --- End Pico SDK and Toolchain Setup ---
+
+
+# Project definition - Now CMake knows to use the toolchain file for compiler detection
+project(${EXECUTABLE_NAME} C CXX ASM) # Add ASM language for SDK compatibility
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-set(PICO_SDK_PATH ${MUSIN_PATH}/ports/pico/pico-sdk/)
-set(PICO_SDK_EXTRAS_PATH ${MUSIN_PATH}/ports/pico/pico-extras/)
 
-list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_PATH}/boards)
-
-
+# Add the Musin library subdirectory *first* so it can set PICO_BOARD_HEADER_DIRS
+# Musin's CMakeLists should *not* call pico_sdk_init() itself.
 add_subdirectory(${MUSIN_PATH} musin_build)
 
-include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+# Set the board *after* Musin has added its board directory
+set(PICO_BOARD dato_submarine)
 
+# Initialize the Pico SDK *after* the board and toolchain are set
 pico_sdk_init()
+
+# Import SDK definitions *after* init
+include(pico_sdk_import.cmake)
 
 
 # Define the executable

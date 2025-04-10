@@ -40,6 +40,7 @@ add_executable(${EXECUTABLE_NAME}
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHatdr55_16bit_44kw.cpp
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleSnare100_16bit_44kw.cpp
   ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleClapdr110_16bit_44kw.cpp
+  ${MUSIN_PATH}/usb/usb_descriptors.c
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE

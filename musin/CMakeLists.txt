@@ -52,10 +52,233 @@ target_link_libraries(musin_core PUBLIC
 add_library(musin::core ALIAS musin_core)
 
 
-# --- Add other component definitions below ---
-# (e.g., musin::hal, musin::drivers, musin::ui, musin::audio, musin::usb_midi, musin::filesystem)
-# These will be added in subsequent steps.
+# --- musin::hal ---
+# Internal static library containing the implementation
+add_library(musin_hal_internal STATIC
+  ${MUSIN_HAL}/analog_in.cpp
+)
+target_include_directories(musin_hal_internal PRIVATE
+  ${MUSIN_HAL} # For internal headers if any
+)
+target_link_libraries(musin_hal_internal PRIVATE
+  musin::core     # Depends on core utilities/types
+  hardware_adc
+  hardware_dma    # Often used with ADC
+  hardware_gpio   # For pin configuration
+  # hardware_pio    # Uncomment if any HAL component uses PIO directly
+)
+
+# Public interface library
+add_library(musin::hal INTERFACE)
+target_include_directories(musin::hal INTERFACE
+  ${MUSIN_ROOT}/.. # Expose includes like "musin/hal/analog_in.h"
+)
+target_link_libraries(musin::hal INTERFACE
+  musin_hal_internal # Link the implementation
+  # Propagate public dependencies to users
+  musin::core
+  hardware_adc
+  hardware_gpio
+  # hardware_dma # Only propagate if needed by the public interface/headers
+)
+
+
+# --- musin::drivers ---
+# Internal static library
+add_library(musin_drivers_internal STATIC
+  ${MUSIN_DRIVERS}/ws2812.cpp
+  ${MUSIN_DRIVERS}/aic3204.c # Note: This is C code
+)
+target_include_directories(musin_drivers_internal PRIVATE
+  ${MUSIN_DRIVERS}
+)
+# Note: PIO generation (pico_generate_pio_header) should be handled by the
+# final application target that *uses* a PIO-based driver (like ws2812).
+# The application needs to include the generated header.
+target_link_libraries(musin_drivers_internal PRIVATE
+  musin::core
+  hardware_pio # For ws2812
+  hardware_dma # For ws2812 / PIO interaction
+  hardware_i2c # For aic3204
+  hardware_clocks # For ws2812 PIO init helper
+)
+
+# Public interface library
+add_library(musin::drivers INTERFACE)
+target_include_directories(musin::drivers INTERFACE
+  ${MUSIN_ROOT}/.. # Expose includes like "musin/drivers/ws2812.h"
+)
+target_link_libraries(musin::drivers INTERFACE
+  musin_drivers_internal
+  # Propagate public dependencies
+  musin::core
+  hardware_pio
+  hardware_i2c
+  hardware_clocks
+)
+
+
+# --- musin::ui ---
+# Internal static library
+add_library(musin_ui_internal STATIC
+  ${MUSIN_UI}/keypad_hc138.cpp
+  # Add other UI source files here (e.g., drumpad.cpp if it exists)
+)
+target_include_directories(musin_ui_internal PRIVATE
+  ${MUSIN_UI}
+)
+target_link_libraries(musin_ui_internal PRIVATE
+  musin::core
+  hardware_gpio
+  pico_stdlib # For time functions used in keypad_hc138
+)
+
+# Public interface library
+add_library(musin::ui INTERFACE)
+target_include_directories(musin::ui INTERFACE
+  ${MUSIN_ROOT}/.. # Expose includes like "musin/ui/keypad_hc138.h"
+)
+target_link_libraries(musin::ui INTERFACE
+  musin_ui_internal
+  # Propagate public dependencies
+  musin::core
+  hardware_gpio
+  pico_stdlib
+)
+
+
+# --- musin::audio ---
+# Internal static library
+add_library(musin_audio_internal STATIC
+  ${MUSIN_AUDIO}/audio_output.cpp
+  ${MUSIN_AUDIO}/pitch_shifter.cpp
+  ${MUSIN_AUDIO}/audio_memory_reader.cpp
+  ${MUSIN_AUDIO}/data_ulaw.c # Note: This is C code
+  ${MUSIN_AUDIO}/mixer.cpp
+  ${MUSIN_AUDIO}/crusher.cpp
+  ${MUSIN_AUDIO}/waveshaper.cpp
+  ${MUSIN_AUDIO}/filter.cpp
+  # Note: aic3204.c is now part of musin::drivers
+)
+target_include_directories(musin_audio_internal PRIVATE
+  ${MUSIN_AUDIO}
+  # ${MUSIN_DRIVERS} # No longer needed directly, use musin::drivers target
+)
+target_compile_definitions(musin_audio_internal PRIVATE
+  PICO_AUDIO_I2S_MONO_INPUT=1
+  USE_AUDIO_I2S=1
+)
+target_link_libraries(musin_audio_internal PRIVATE
+  musin::core
+  musin::drivers # Depends on the codec driver (aic3204)
+  hardware_dma
+  hardware_pio   # For pico_audio_i2s
+  hardware_i2c   # Needed by aic3204 via musin::drivers
+  hardware_irq
+  pico_audio_i2s
+)
+
+# Public interface library
+add_library(musin::audio INTERFACE)
+target_include_directories(musin::audio INTERFACE
+  ${MUSIN_ROOT}/.. # Expose includes like "musin/audio/mixer.h"
+)
+target_link_libraries(musin::audio INTERFACE
+  musin_audio_internal
+  # Propagate public dependencies
+  musin::core
+  musin::drivers # Expose driver dependency (e.g., for codec control)
+  pico_audio_i2s
+  etl::etl       # Audio headers use etl::array
+)
+
+
+# --- musin::usb_midi ---
+# Requires TinyUSB to be set up by the application's pico_sdk_init()
+# Internal static library
+add_library(musin_usb_midi_internal STATIC
+  ${MUSIN_USB}/usb.cpp
+  ${MUSIN_USB}/usb_descriptors.c # Note: This is C code
+  ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
+  ${MUSIN_ROOT}/midi/midi_wrapper.cpp
+)
+target_include_directories(musin_usb_midi_internal PRIVATE
+  ${MUSIN_USB}
+  ${MUSIN_USB}/midi_usb_bridge
+  ${MUSIN_LIBRARIES}/arduino_midi_library/src # Assumes this path is correct
+  # ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src # Seems superseded by arduino_midi_library
+  ${MUSIN_ROOT}/midi # For midi_wrapper.h
+)
+# This definition often needs to be applied to the *final executable*
+# for TinyUSB stack configuration. Document this requirement for users.
+# target_compile_definitions(musin_usb_midi_internal PRIVATE
+#   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
+# )
+target_link_libraries(musin_usb_midi_internal PRIVATE
+  musin::core
+  tinyusb_device
+  tinyusb_board
+  # pico_stdlib # Should be linked by tinyusb or musin::core
+)
+
+# Public interface library
+add_library(musin::usb_midi INTERFACE)
+target_include_directories(musin::usb_midi INTERFACE
+  ${MUSIN_ROOT}/.. # Expose includes like "musin/usb/usb.h", "musin/midi/midi_wrapper.h"
+  ${MUSIN_LIBRARIES}/arduino_midi_library/src # Expose MIDI library headers (Defs.h etc)
+)
+target_link_libraries(musin::usb_midi INTERFACE
+  musin_usb_midi_internal
+  # Propagate public dependencies
+  musin::core
+  tinyusb_device
+  tinyusb_board
+)
+# Add compile definitions publicly if they affect the interface or usage
+# target_compile_definitions(musin::usb_midi INTERFACE
+#   SOME_PUBLIC_DEFINE=1
+# )
+
+
+# --- musin::filesystem ---
+# Requires pico-vfs to be added via add_subdirectory in the application
+# or potentially here if Musin always bundles it.
+# Assuming pico-vfs is added elsewhere (e.g., by the application or a top-level CMakeLists)
+# and provides the 'filesystem_vfs' target.
+# If Musin should *always* include pico-vfs, uncomment the add_subdirectory line.
+# add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
+
+# Internal static library
+add_library(musin_filesystem_internal STATIC
+  ${MUSIN_ROOT}/filesystem/filesystem.cpp
+)
+target_include_directories(musin_filesystem_internal PRIVATE
+  ${MUSIN_ROOT}/filesystem
+)
+target_link_libraries(musin_filesystem_internal PRIVATE
+  musin::core
+  filesystem_vfs # Provided by pico-vfs
+)
+
+# Public interface library
+add_library(musin::filesystem INTERFACE)
+target_include_directories(musin::filesystem INTERFACE
+  ${MUSIN_ROOT}/.. # Expose includes like "musin/filesystem/filesystem.h"
+)
+target_link_libraries(musin::filesystem INTERFACE
+  musin_filesystem_internal
+  # Propagate public dependencies
+  musin::core
+  filesystem_vfs
+)
+# IMPORTANT: The application linking against musin::filesystem *must* call
+# pico_enable_filesystem(your_app_target) in its own CMakeLists.txt
+
 
 # --- Global Settings (Optional) ---
 # Apply common warnings across all Musin components if desired
-# target_compile_options(musin::core PUBLIC -Wall -Wextra) # Example
+# find_package(Warnings) # Example using a hypothetical Warnings package
+# set(MUSIN_WARNINGS -Wall -Wextra -Wpedantic)
+# target_compile_options(musin_core PRIVATE ${MUSIN_WARNINGS})
+# target_compile_options(musin_hal_internal PRIVATE ${MUSIN_WARNINGS})
+# ... etc for all internal static libs

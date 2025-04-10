@@ -7,9 +7,18 @@ set(EXECUTABLE_NAME adc_sample_player)
 
 set(EXAMPLES_SUPPORT_PATH ${CMAKE_CURRENT_LIST_DIR}/../support/)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
+# Include the Pico SDK initialization (assuming it's found)
+include(pico_sdk_import.cmake)
 
-project(${EXECUTABLE_NAME})
+project(${EXECUTABLE_NAME} C CXX ASM)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
+
+# Initialize the Pico SDK
+pico_sdk_init()
+
+# Add the Musin library subdirectory
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../musin musin_build)
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
@@ -25,8 +34,20 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
+  # Add TinyUSB reset definition required by musin::usb_midi usage
+  PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
 )
 
+# Link against required libraries
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE
+    pico_stdlib       # Base SDK library
+    musin::core       # Core Musin utilities
+    musin::hal        # For AnalogInMux
+    musin::drivers    # For audio codec (aic3204) used by musin::audio
+    musin::audio      # For audio processing (Mixer, Sound, etc.)
+    musin::usb_midi   # For USB MIDI input/output
+    # Add any other direct SDK dependencies if needed, though most should be transitive
+)
 
 if(SWAP_AUDIO_CLOCK)
   target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -34,8 +55,5 @@ if(SWAP_AUDIO_CLOCK)
   )
 endif(SWAP_AUDIO_CLOCK)
 
-musin_init(${EXECUTABLE_NAME})
-musin_init_hal(${EXECUTABLE_NAME})
-musin_init_drivers(${EXECUTABLE_NAME})
-musin_init_audio(${EXECUTABLE_NAME})
-musin_init_usb_midi(${EXECUTABLE_NAME})
+# Add standard Pico outputs (UF2, etc.)
+pico_add_extra_outputs(${EXECUTABLE_NAME})

@@ -261,6 +261,8 @@ add_library(musin_filesystem_internal STATIC
 )
 target_include_directories(musin_filesystem_internal PRIVATE
   ${MUSIN_ROOT}/filesystem
+  # Explicitly add the include dir for lfs.h from the pico-vfs submodule
+  ${MUSIN_ROOT}/ports/pico/libraries/pico-vfs/littlefs
 )
 target_link_libraries(musin_filesystem_internal PRIVATE
   musin::core

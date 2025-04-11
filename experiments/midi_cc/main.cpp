@@ -23,8 +23,15 @@ constexpr auto PIN_ADDR_3 = 9;
 
 constexpr auto PIN_ADC = 28;
 
+constexpr unsigned int PIN_RING_1 = 15;
+constexpr unsigned int PIN_RING_2 = 14;
+constexpr unsigned int PIN_RING_3 = 13;
+constexpr unsigned int PIN_RING_4 = 11;
+constexpr unsigned int PIN_RING_5 = 10;
+
 // Static array for multiplexer address pins
 const std::array<std::uint32_t, 4> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
+const std::array<std::uint32_t, 5> columns_pins = {PIN_RING_1, PIN_RING_2, PING_RING_3, PIN_RING_4, PIN_RING_5};
 
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
   printf("%x:%3d\n", cc_number, value);

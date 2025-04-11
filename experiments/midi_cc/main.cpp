@@ -1,25 +1,24 @@
 
-#include "pico/stdlib.h"
+#include <array>
 #include <cstdint>
 #include <cstdio>
-#include "pico/time.h"
-#include <array>
-#include <iterator> // For std::size
+#include <iterator>
 
-#include "observers.h"
+#include "pico/stdlib.h"
+#include "pico/time.h"
 
 #include "musin/ui/analog_control.h"
 #include "musin/ui/keypad_hc138.h"
-#include "etl/span.h" // Required for keypad buffer span
-
-using Musin::UI::AnalogControl;
-using Musin::UI::Keypad_HC138;
-using Musin::UI::KeyData;
+#include "etl/span.h"
 
 extern "C" {
   #include "hardware/adc.h"
   #include "hardware/gpio.h"
 }
+
+using Musin::UI::AnalogControl;
+using Musin::UI::Keypad_HC138;
+using Musin::UI::KeyData;
 
 constexpr auto PIN_ADDR_0 = 29;
 constexpr auto PIN_ADDR_1 = 6;
@@ -28,11 +27,11 @@ constexpr auto PIN_ADDR_3 = 9;
 
 constexpr auto PIN_ADC = 28;
 
-constexpr unsigned int PIN_RING_1 = 15;
-constexpr unsigned int PIN_RING_2 = 14;
-constexpr unsigned int PIN_RING_3 = 13;
-constexpr unsigned int PIN_RING_4 = 11;
-constexpr unsigned int PIN_RING_5 = 10;
+constexpr auto PIN_RING_1 = 15;
+constexpr auto PIN_RING_2 = 14;
+constexpr auto PIN_RING_3 = 13;
+constexpr auto PIN_RING_4 = 11;
+constexpr auto PIN_RING_5 = 10;
 
 // Static array for multiplexer address pins (AnalogControls use 4)
 const std::array<std::uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
@@ -43,7 +42,7 @@ const std::array<uint, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADD
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8; // Using 3 address pins allows up to 8 rows
-constexpr uint8_t KEYPAD_COLS = 5; // Based on keypad_columns_pins size
+constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins); // Based on keypad_columns_pins size
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
 // Static buffer for keypad key states
@@ -53,7 +52,10 @@ static std::array<KeyData, KEYPAD_TOTAL_KEYS> keypad_key_data_buffer;
 static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers = 1 (or more if needed)
     keypad_decoder_pins,
     keypad_columns_pins,
-    etl::span<KeyData>(keypad_key_data_buffer) // Create span from the buffer
+    etl::span<KeyData>(keypad_key_data_buffer), // Create span from the buffer
+    10'000U, // 10ms scan time
+    5'000U,  //  5ms debounce time
+    1'000'000U // 1 second hold time
 );
 // --- End Keypad Configuration ---
 
@@ -65,8 +67,8 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
   printf("MIDI CC %u: %u\n", cc_number, value);
 }
 
-
 // --- Keypad MIDI Map Observer Implementation ---
+#include "observers.h"
 
 // Define the mapping from key index (0-39) to MIDI CC number
 // Example: Starting at CC 32 and incrementing. Customize as needed.
@@ -79,13 +81,10 @@ static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
     return map;
 }();
 
-// Static instance of the new keypad observer
 static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
 // --- End Keypad MIDI Map Observer ---
 
-
 // Define MIDI observers statically
-// These will be allocated at compile time
 static MIDICCObserver cc_observers[] = {
   {16, 0, send_midi_cc},
   {17, 0, send_midi_cc},
@@ -106,7 +105,7 @@ static MIDICCObserver cc_observers[] = {
 };
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static AnalogControl<1> mux_controls[] = {
+static AnalogControl<1> mux_controls[] = { // Unique ID, ADC pin, address pins, address
   {10, PIN_ADC, analog_address_pins, 0 },
   {11, PIN_ADC, analog_address_pins, 1 },
   {12, PIN_ADC, analog_address_pins, 2 },
@@ -127,7 +126,6 @@ static AnalogControl<1> mux_controls[] = {
 
 
 int main() {
-  // Initialize system
   stdio_init_all();
   
   sleep_ms(1000);
@@ -137,10 +135,9 @@ int main() {
   // Initialize Keypad
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
-  // Register the new map observer
+  
   if (!keypad.add_observer(&keypad_map_observer)) {
       printf("Error: Could not add keypad map observer!\n");
-      // Handle error appropriately if needed
   }
 
   // Ensure control and observer arrays have the same size before iterating
@@ -156,7 +153,7 @@ int main() {
   printf("Initialized %zu analog controls\n", std::size(mux_controls));
 
   while (true) {
-      // Update all mux controls
+      // Update all analog mux controls - observers will be notified automatically
       for (auto& control : mux_controls) {
           control.update();
       }

@@ -120,7 +120,6 @@ macro(musin_init_ui TARGET)
   set(MUSIN_UI ${MUSIN_ROOT}/ui)
 
   target_sources(${TARGET} PRIVATE
-    ${MUSIN_UI}/keypad_hc138.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE

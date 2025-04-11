@@ -201,7 +201,7 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::remove_observer(KeypadObserve
 
 // --- update_key_state() Implementation ---
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
-void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key_pressed, absolute_time_t now) {
+void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key_pressed, absolute_time_t now) {
   // Get mutable reference to the key's data using the span and template parameters
   KeyData& key = _key_data[r * NumCols + c];
 

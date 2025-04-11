@@ -27,23 +27,19 @@ Keypad_HC138<NumRows, NumCols, MaxObservers>::Keypad_HC138(
     _scan_interval_us(scan_interval_us),
     _debounce_time_us(debounce_time_us),
     _hold_time_us(hold_time_us),
-    // Store the key data buffer span
-    _key_data(key_data_buffer),
+    // _internal_key_data is default-initialized (member array)
     // Initialize time
     _last_scan_time(nil_time)
     // Note: _decoder_address_pins and _col_pins vectors are default-initialized here
 {
   // --- Runtime Input Validation ---
   // static_asserts in the header handle dimension range checks.
-  // We still need to check the provided span size at runtime.
-  constexpr size_t expected_size = static_cast<size_t>(NumRows) * NumCols;
-  if (_key_data.size() != expected_size) {
-      panic("Keypad_HC138: Key data buffer span size (%d) does not match expected size (%d).",
-            _key_data.size(), expected_size);
-  }
+  // No need to check span size anymore.
 
-   // Initialize the key data buffer provided by the user via the span
-   for (KeyData& key : _key_data) {
+   // Initialize the internal key data buffer
+   // (Default initialization of KeyData structs might be sufficient,
+   // but explicit zeroing is safer if KeyData changes)
+   for (KeyData& key : _internal_key_data) {
        key = {}; // Default initialize KeyData structs
    }
 

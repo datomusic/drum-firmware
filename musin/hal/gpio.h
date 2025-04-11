@@ -25,7 +25,7 @@ public:
     GpioPin& operator=(GpioPin&&) = delete;
 
     void set_direction(GpioDirection dir);
-    void put(bool value);
+    void write(bool value);
     bool get() const;
     void enable_pullup();
     // Add enable_pulldown(), disable_pulls() etc. if needed later

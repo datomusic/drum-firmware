@@ -56,7 +56,7 @@ void Keypad_HC138<NumRows, NumCols>::init() {
   for (uint pin : _decoder_address_pins) {
     gpio_init(pin);
     gpio_set_dir(pin, GPIO_OUT);
-    gpio_put(pin, 0); // Start with address 0
+    gpio_put(pin, 0); // Start with address 0 // TODO: Use GpioPin abstraction here later
   }
 
   // Initialize Column Pins (Inputs with Pull-ups) - Iterate through the std::array
@@ -157,6 +157,7 @@ void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
   if (row >= 8) return;
 
   // Set A0, A1, A2 based on row number bits
+  // TODO: Use GpioPin abstraction here later
   gpio_put(_decoder_address_pins[0], (row >> 0) & 1); // A0 = LSB
   gpio_put(_decoder_address_pins[1], (row >> 1) & 1); // A1
   gpio_put(_decoder_address_pins[2], (row >> 2) & 1); // A2 = MSB

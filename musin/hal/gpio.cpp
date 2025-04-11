@@ -15,7 +15,7 @@ void GpioPin::set_direction(GpioDirection dir) {
     gpio_set_dir(_pin, static_cast<bool>(dir));
 }
 
-void GpioPin::put(bool value) {
+void GpioPin::write(bool value) {
     gpio_put(_pin, value);
 }
 

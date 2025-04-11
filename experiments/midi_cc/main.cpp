@@ -37,7 +37,7 @@ void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value) {
 
 // Define MIDI observers statically
 // These will be allocated at compile time
-static Musin::Controller::MIDICCObserver cc_observers[] = {
+static MIDICCObserver cc_observers[] = {
   {16, 0, send_midi_cc},  // CC 16, channel 1
   {17, 0, send_midi_cc},  // CC 17, channel 1
   {18, 0, send_midi_cc},  // CC 18, channel 1

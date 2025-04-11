@@ -20,18 +20,18 @@ using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
 using Musin::UI::KeyData;
 
-constexpr auto PIN_ADDR_0 = 29;
-constexpr auto PIN_ADDR_1 = 6;
-constexpr auto PIN_ADDR_2 = 7;
-constexpr auto PIN_ADDR_3 = 9;
+constexpr uint32_t PIN_ADDR_0 = 29;
+constexpr uint32_t PIN_ADDR_1 = 6;
+constexpr uint32_t PIN_ADDR_2 = 7;
+constexpr uint32_t PIN_ADDR_3 = 9;
 
-constexpr auto PIN_ADC = 28;
+constexpr uint32_t PIN_ADC = 28;
 
-constexpr auto PIN_RING_1 = 15;
-constexpr auto PIN_RING_2 = 14;
-constexpr auto PIN_RING_3 = 13;
-constexpr auto PIN_RING_4 = 11;
-constexpr auto PIN_RING_5 = 10;
+constexpr uint32_t PIN_RING_1 = 15;
+constexpr uint32_t PIN_RING_2 = 14;
+constexpr uint32_t PIN_RING_3 = 13;
+constexpr uint32_t PIN_RING_4 = 11;
+constexpr uint32_t PIN_RING_5 = 10;
 
 // Static array for multiplexer address pins (AnalogControls use 4)
 const std::array<std::uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
@@ -42,17 +42,14 @@ const std::array<uint, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADD
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8; // Using 3 address pins allows up to 8 rows
-constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins); // Based on keypad_columns_pins size
+constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
-// No longer need external buffer
-// static std::array<KeyData, KEYPAD_TOTAL_KEYS> keypad_key_data_buffer;
 
 // Static instance of the keypad driver
 static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers = 1 (or more if needed)
     keypad_decoder_pins,
     keypad_columns_pins,
-    // No buffer argument needed
     10'000U, // 10ms scan time
     5'000U,  //  5ms debounce time
     1'000'000U // 1 second hold time

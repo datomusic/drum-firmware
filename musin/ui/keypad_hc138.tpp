@@ -222,13 +222,11 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
           KeyState next_state = KeyState::PRESSED;
           key.transition_time = now; // Record press time for hold check
           key.just_pressed = true;   // Set event flag
-          printf("[%u,%u] State -> PRESSED\n", r, c); // DEBUG
           notify_pressed(r, c);      // Notify observers
 
           // Check immediately if hold time is zero or very small
            if (_hold_time_us == 0 || absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
                next_state = KeyState::HOLDING;
-               printf("[%u,%u] State -> HOLDING (from DEBOUNCE)\n", r, c); // DEBUG
                notify_held(r, c); // Notify observers about hold
            }
           key.state = next_state;
@@ -246,7 +244,6 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
         // Still pressed, check if hold time has passed
         if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
           key.state = KeyState::HOLDING;
-          printf("[%u,%u] State -> HOLDING (from PRESSED)\n", r, c); // DEBUG
           notify_held(r, c); // Notify observers about hold
           // Note: transition_time remains the original press time
         }
@@ -275,7 +272,6 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
           key.state = KeyState::IDLE;
           key.transition_time = nil_time;
           key.just_released = true; // Set event flag
-          printf("[%u,%u] State -> IDLE\n", r, c); // DEBUG
           notify_released(r, c);    // Notify observers
         }
         // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
@@ -322,7 +318,6 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_released(uint8_t r, ui
 
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_held(uint8_t r, uint8_t c) {
-    printf("Notifying held for [%u,%u]\n", r, c); // DEBUG
     for (auto* observer : _observers) {
         if (observer) {
             observer->on_key_held(r, c);

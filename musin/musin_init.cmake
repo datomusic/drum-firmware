@@ -132,6 +132,7 @@ macro(musin_init_hal TARGET)
 
   target_sources(${TARGET} PRIVATE
     ${MUSIN_HAL}/analog_in.cpp
+    ${MUSIN_HAL}/gpio.cpp # Add the new GPIO source file
   )
 
   target_link_libraries(${TARGET} PRIVATE

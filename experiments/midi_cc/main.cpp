@@ -5,8 +5,11 @@
 #include "pico/time.h"
 #include <array>
 
-#include "analog_control.h"
-#include "musin/hal/analog_in.h"
+// Include the specific MIDI observer implementation for this experiment
+#include "analog_control.h" 
+// Include the core AnalogControl class from the musin library
+#include "musin/ui/analog_control.h" 
+#include "musin/hal/analog_in.h" // Still needed for AnalogInMux types if used directly
 
 extern "C" {
   #include "hardware/adc.h"
@@ -46,16 +49,16 @@ static Musin::Controller::MIDICCObserver cc_observers[] = {
   {24, 0, send_midi_cc}   // CC 24, channel 1
 };
 
-// Statically allocate multiplexed controls
-static Musin::Controller::AnalogControl<1> mux_controls[8] = {
-  {10, PIN_ADC, address_pins, 3 },
-  {11, PIN_ADC, address_pins, 4 },
-  {12, PIN_ADC, address_pins, 8 },
-  {13, PIN_ADC, address_pins, 15 },
-  {14, PIN_ADC, address_pins, 4 },
-  {15, PIN_ADC, address_pins, 5 },
-  {16, PIN_ADC, address_pins, 6 },
-  {17, PIN_ADC, address_pins, 7 }
+// Statically allocate multiplexed controls using the class from musin::ui
+static Musin::UI::AnalogControl<1> mux_controls[8] = {
+  {10, PIN_ADC, address_pins, 3 }, // ID 10, Mux Channel 3
+  {11, PIN_ADC, address_pins, 4 }, // ID 11, Mux Channel 4
+  {12, PIN_ADC, address_pins, 8 }, // ID 12, Mux Channel 8
+  {13, PIN_ADC, address_pins, 15 }, // ID 13, Mux Channel 15
+  {14, PIN_ADC, address_pins, 0 }, // ID 14, Mux Channel 0 (Example)
+  {15, PIN_ADC, address_pins, 1 }, // ID 15, Mux Channel 1 (Example)
+  {16, PIN_ADC, address_pins, 2 }, // ID 16, Mux Channel 2 (Example)
+  {17, PIN_ADC, address_pins, 5 }  // ID 17, Mux Channel 5 (Example) - Corrected index
 };
 
 

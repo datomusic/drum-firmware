@@ -5,6 +5,9 @@
 #include "pico/time.h"
 #include <array>
 
+#include "analog_control.h"
+#include "musin/hal/analog_in.h"
+
 extern "C" {
   #include "hardware/adc.h"
   #include "hardware/gpio.h"
@@ -15,7 +18,43 @@ constexpr auto PIN_ADDR_1 = 6;
 constexpr auto PIN_ADDR_2 = 7;
 constexpr auto PIN_ADDR_3 = 9;
 
-constexpr auto PIN_ADC = 28;
+const uint32_t PIN_ADC = 28;
+
+// Static array for multiplexer address pins
+const std::array<unsigned int, 3> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+
+static Musin::HAL::AnalogInMux<3> pot(PIN_ADC, address_pins, 0);
+
+void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value) {
+  printf("%x:%3d  ", cc_number, value);
+}
+
+// Define MIDI observers statically
+// These will be allocated at compile time
+static Musin::Controller::MIDICCObserver cc_observers[] = {
+  {16, 0, send_midi_cc},  // CC 16, channel 1
+  {17, 0, send_midi_cc},  // CC 17, channel 1
+  {18, 0, send_midi_cc},  // CC 18, channel 1
+  {19, 0, send_midi_cc},  // CC 19, channel 1
+  {20, 0, send_midi_cc},  // CC 20, channel 1
+  {21, 0, send_midi_cc},  // CC 21, channel 1
+  {22, 0, send_midi_cc},  // CC 22, channel 1
+  {23, 0, send_midi_cc},  // CC 23, channel 1
+  {24, 0, send_midi_cc}   // CC 24, channel 1
+};
+
+// Statically allocate multiplexed controls
+// static Musin::Controller::AnalogControl<1> mux_controls[8] = {
+//   {10, PIN_ADC, address_pins, 0 },
+//   {11, PIN_ADC, address_pins, 1 },
+//   {12, PIN_ADC, address_pins, 2 },
+//   {13, PIN_ADC, address_pins, 3 },
+//   {14, PIN_ADC, address_pins, 4 },
+//   {15, PIN_ADC, address_pins, 5 },
+//   {16, PIN_ADC, address_pins, 6 },
+//   {17, PIN_ADC, address_pins, 7 }
+// };
+
 
 int main() {
   // Initialize system
@@ -25,29 +64,16 @@ int main() {
 
   printf("MIDI CC demo");
   
-  // Initialize all controls
-  // direct_control.init();
-  // direct_control.add_observer(&cc_observers[0]);
-  
+
   adc_init();
   adc_gpio_init(PIN_ADC);
+  pot.init();
 
-  gpio_init(PIN_ADDR_0);
-  gpio_set_dir(PIN_ADDR_0, GPIO_OUT);
-  gpio_put(PIN_ADDR_0, 0);
+  // for (int i = 0; i < 8; i++) {
+  //   mux_controls[i].init();
+  //   mux_controls[i].add_observer(&cc_observers[i+1]);
+  // }
 
-  gpio_init(PIN_ADDR_1);
-  gpio_set_dir(PIN_ADDR_1, GPIO_OUT);
-  gpio_put(PIN_ADDR_1, 0);
-
-  gpio_init(PIN_ADDR_2);
-  gpio_set_dir(PIN_ADDR_2, GPIO_OUT);
-  gpio_put(PIN_ADDR_2, 0);
-
-  gpio_init(PIN_ADDR_3);
-  gpio_set_dir(PIN_ADDR_3, GPIO_OUT);
-  gpio_put(PIN_ADDR_3, 0);
-  
   // Main control loop
   while (true) {
       // Update direct control
@@ -55,16 +81,11 @@ int main() {
       
       // Update all mux controls
       adc_select_input(2);
-      for(uint8_t address = 0; address < 16; address++) {
-        gpio_put(PIN_ADDR_0, (address & 1));
-        gpio_put(PIN_ADDR_1, ((address >> 1) & 1));
-        gpio_put(PIN_ADDR_2, ((address >> 2) & 1));
-        gpio_put(PIN_ADDR_3, ((address >> 3) & 1));
-        sleep_us(10);
-        printf("%x:%3d  ", address, adc_read()>>3);
-      }
-
-      
+      printf("Pot value: \t", pot.read_raw());
+      // Update all mux controls
+      // for (auto& control : mux_controls) {
+      //     control.update();
+      // }
       // Add a small delay to avoid oversampling
       sleep_ms(50);
       printf("\n");

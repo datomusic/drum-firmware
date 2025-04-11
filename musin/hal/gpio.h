@@ -28,7 +28,8 @@ public:
     void write(bool value);
     bool get() const;
     void enable_pullup();
-    // Add enable_pulldown(), disable_pulls() etc. if needed later
+    void enable_pulldown();
+    void disable_pulls();
 
 private:
     const std::uint32_t _pin;

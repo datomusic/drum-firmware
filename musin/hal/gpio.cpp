@@ -27,4 +27,12 @@ void GpioPin::enable_pullup() {
     gpio_pull_up(_pin);
 }
 
+void GpioPin::enable_pulldown() {
+    gpio_pull_down(_pin);
+}
+
+void GpioPin::disable_pulls() {
+    gpio_disable_pulls(_pin);
+}
+
 } // namespace Musin::HAL

@@ -5,29 +5,22 @@
 #include <cstdint>
 #include <array>
 #include <algorithm> // For std::clamp
+#include "etl/observer.h" // Include ETL observer pattern
 
 namespace Musin::UI {
+
+/**
+ * @brief Event data structure for analog control notifications
+ */
+struct AnalogControlEvent {
+    uint16_t control_id;
+    float value;
+    uint16_t raw_value;
+};
 
 // Forward declaration
 template<uint8_t MaxObservers>
 class AnalogControl;
-
-/**
- * @brief Observer interface for analog control changes
- */
-class AnalogControlObserverBase {
-public:
-    virtual ~AnalogControlObserverBase() = default;
-    
-    /**
-     * @brief Called when an observed analog control value changes
-     * 
-     * @param control_id ID of the control that changed
-     * @param new_value The new normalized value (0.0f to 1.0f)
-     * @param raw_value The new raw ADC value
-     */
-    virtual void on_value_changed(uint16_t control_id, float new_value, uint16_t raw_value) = 0;
-};
 
 
 /**
@@ -37,7 +30,7 @@ public:
  * @tparam MaxObservers Maximum number of observers for this control
  */
 template<uint8_t MaxObservers = 1>
-class AnalogControl {
+class AnalogControl : public etl::observable<AnalogControlEvent, MaxObservers> {
 public:
     /**
      * @brief Constructor for direct ADC pin connection
@@ -91,12 +84,6 @@ public:
     uint16_t get_id() const { return _id; }
     
     /**
-     * @brief Add an observer to be notified of value changes
-     * @return true if observer added, false if array is full
-     */
-    bool add_observer(AnalogControlObserverBase* observer);
-    
-    /**
      * @brief Set the filtering coefficient
      * 
      * @param alpha Filter coefficient (0.0f = heavy filtering, 1.0f = no filtering)
@@ -131,9 +118,6 @@ private:
         Musin::HAL::AnalogInMux16 _mux16;
     };
     
-    // Observer array with fixed maximum size
-    AnalogControlObserverBase* _observers[MaxObservers];
-    uint8_t _observer_count = 0;
     
     // Internal methods
     void notify_observers();
@@ -152,11 +136,6 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, float 
       _threshold(threshold),
       _input_type(InputType::Direct),
       _analog_in(adc_pin) { // Construct directly in the union member
-    
-    // Initialize observer array
-    for (uint8_t i = 0; i < MaxObservers; i++) {
-        _observers[i] = nullptr;
-    }
 }
 
 template<uint8_t MaxObservers>
@@ -169,11 +148,6 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin,
     
     // Use placement new to construct the mux in the union
     new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
-    
-    // Initialize observer array
-    for (uint8_t i = 0; i < MaxObservers; i++) {
-        _observers[i] = nullptr;
-    }
 }
 
 template<uint8_t MaxObservers>
@@ -186,11 +160,6 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin,
     
     // Use placement new to construct the mux in the union
     new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
-    
-    // Initialize observer array
-    for (uint8_t i = 0; i < MaxObservers; i++) {
-        _observers[i] = nullptr;
-    }
 }
 
 template<uint8_t MaxObservers>
@@ -255,29 +224,10 @@ bool AnalogControl<MaxObservers>::update() {
     return false;
 }
 
-template<uint8_t MaxObservers>
-bool AnalogControl<MaxObservers>::add_observer(AnalogControlObserverBase* observer) {
-    if (!observer) {
-        return false;
-    }
-    
-    // Check if we have space
-    if (_observer_count >= MaxObservers) {
-        return false; // Observer array full
-    }
-    
-    // Add to the array
-    _observers[_observer_count++] = observer;
-    return true;
-}
 
 template<uint8_t MaxObservers>
 void AnalogControl<MaxObservers>::notify_observers() {
-    for (uint8_t i = 0; i < _observer_count; i++) {
-        if (_observers[i]) {
-            _observers[i]->on_value_changed(_id, _current_value, _current_raw);
-        }
-    }
+    this->notify_observers(AnalogControlEvent{_id, _current_value, _current_raw});
 }
 
 // Explicit template instantiation can be added here if needed for specific MaxObservers values

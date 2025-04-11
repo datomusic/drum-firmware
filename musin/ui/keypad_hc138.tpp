@@ -12,7 +12,7 @@ extern "C" {
 #include "pico/time.h"   // For get_absolute_time, absolute_time_diff_us, nil_time
 }
 
-namespace Musin::UI {
+// Note: Definitions are already within Musin::UI namespace via keypad_hc138.h include
 
 // --- Constructor Implementation ---
 template<std::uint8_t NumRows, std::uint8_t NumCols>
@@ -252,5 +252,3 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
 }
 
 // Note: Private member variables are defined in the header file.
-
-} // namespace Musin::UI // Corrected closing namespace comment

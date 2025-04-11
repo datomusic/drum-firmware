@@ -21,7 +21,7 @@ constexpr auto PIN_ADDR_3 = 9;
 const uint32_t PIN_ADC = 28;
 
 // Static array for multiplexer address pins
-const std::array<unsigned int, 3> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+const std::array<std::uint32_t, 3> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
 
 static Musin::HAL::AnalogInMux<3> pot(PIN_ADC, address_pins, 0);
 

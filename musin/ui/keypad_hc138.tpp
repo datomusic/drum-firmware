@@ -23,14 +23,15 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
                            std::uint32_t scan_interval_us,
                            std::uint32_t debounce_time_us,
                            std::uint32_t hold_time_us):
-    // NumRows and NumCols are template parameters, no need to store them as members
-    _decoder_address_pins(decoder_address_pins),
-    _col_pins(col_pins), // Store reference to the array
-    _key_data(key_data_buffer), // Store the span
+    // Store timing parameters
     _scan_interval_us(scan_interval_us),
     _debounce_time_us(debounce_time_us),
     _hold_time_us(hold_time_us),
+    // Store the key data buffer span
+    _key_data(key_data_buffer),
+    // Initialize time
     _last_scan_time(nil_time)
+    // Note: _decoder_address_pins and _col_pins vectors are default-initialized here
 {
   // --- Runtime Input Validation ---
   // static_asserts in the header handle dimension range checks.
@@ -60,19 +61,17 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
 template<std::uint8_t NumRows, std::uint8_t NumCols>
 void Keypad_HC138<NumRows, NumCols>::init() {
   // Initialize Decoder Address Pins (Outputs)
-  for (uint pin : _decoder_address_pins) {
-    gpio_init(pin);
-    gpio_set_dir(pin, GPIO_OUT);
-    gpio_put(pin, 0); // Start with address 0 // TODO: Use GpioPin abstraction here later
+  for (auto& pin : _decoder_address_pins) { // Iterate over GpioPin vector
+    pin.set_direction(Musin::HAL::GpioDirection::OUT);
+    pin.write(false); // Start with address 0
   }
 
-  // Initialize Column Pins (Inputs with Pull-ups) - Iterate through the std::array
-  for (uint pin : _col_pins) {
-    gpio_init(pin);
-    gpio_set_dir(pin, GPIO_IN);
-    gpio_pull_up(pin);
+  // Initialize Column Pins (Inputs with Pull-ups) - Iterate through the GpioPin vector
+  for (auto& pin : _col_pins) { // Iterate over GpioPin vector
+    pin.set_direction(Musin::HAL::GpioDirection::IN);
+    pin.enable_pullup();
     // Optional: Enable hysteresis for potentially noisy inputs
-    // gpio_set_input_hysteresis_enabled(pin, true);
+    // pin.set_hysteresis(true); // Assuming a set_hysteresis method exists
   }
 
   _last_scan_time = get_absolute_time();
@@ -109,7 +108,7 @@ bool Keypad_HC138<NumRows, NumCols>::scan() {
 
     for (std::uint8_t c = 0; c < NumCols; ++c) { // Use template parameter
       // Read raw state: LOW (false) means pressed (row LOW, col pulled HIGH)
-      bool raw_key_pressed = !gpio_get(_col_pins[c]); // Access std::array element
+      bool raw_key_pressed = !_col_pins[c].read(); // Use GpioPin::read()
 
       // Update state machine for this key
       update_key_state(r, c, raw_key_pressed, now);
@@ -164,10 +163,9 @@ void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
   if (row >= 8) return;
 
   // Set A0, A1, A2 based on row number bits
-  // TODO: Use GpioPin abstraction here later
-  gpio_put(_decoder_address_pins[0], (row >> 0) & 1); // A0 = LSB
-  gpio_put(_decoder_address_pins[1], (row >> 1) & 1); // A1
-  gpio_put(_decoder_address_pins[2], (row >> 2) & 1); // A2 = MSB
+  _decoder_address_pins[0].write((row >> 0) & 1); // A0 = LSB
+  _decoder_address_pins[1].write((row >> 1) & 1); // A1
+  _decoder_address_pins[2].write((row >> 2) & 1); // A2 = MSB
 }
 
 

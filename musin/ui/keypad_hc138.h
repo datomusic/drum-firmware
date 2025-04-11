@@ -16,6 +16,43 @@ extern "C" {
 
 namespace Musin::UI {
 
+// Forward declaration
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+class Keypad_HC138;
+
+/**
+ * @brief Observer interface for keypad events.
+ *
+ * Implement this interface to receive notifications about key presses,
+ * releases, and holds from a Keypad_HC138 instance.
+ */
+class KeypadObserverBase {
+public:
+    virtual ~KeypadObserverBase() = default;
+
+    /**
+     * @brief Called when a key transitions to the PRESSED state (after debounce).
+     * @param row The row index of the key.
+     * @param col The column index of the key.
+     */
+    virtual void on_key_pressed(uint8_t row, uint8_t col) = 0;
+
+    /**
+     * @brief Called when a key transitions to the IDLE state (after debounce).
+     * @param row The row index of the key.
+     * @param col The column index of the key.
+     */
+    virtual void on_key_released(uint8_t row, uint8_t col) = 0;
+
+    /**
+     * @brief Called when a key transitions to the HOLDING state.
+     * @param row The row index of the key.
+     * @param col The column index of the key.
+     */
+    virtual void on_key_held(uint8_t row, uint8_t col) = 0;
+};
+
+
 /**
  * @brief Represents the possible states of a single key.
  */
@@ -46,8 +83,9 @@ struct KeyData {
  *
  * @tparam NumRows Number of rows (1-8).
  * @tparam NumCols Number of columns (>0).
+ * @tparam MaxObservers Maximum number of observers that can be attached.
  */
-template<std::uint8_t NumRows, std::uint8_t NumCols>
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers = 1>
 class Keypad_HC138 {
 public:
     // --- Compile-time validation ---
@@ -138,6 +176,21 @@ public:
   /** @brief Get the configured number of columns (compile-time). */
   constexpr std::uint8_t get_num_cols() const { return NumCols; }
 
+  /**
+   * @brief Add an observer to be notified of key events.
+   * @param observer Pointer to the observer instance. Must not be null.
+   * @return true if the observer was added successfully, false if the observer list is full or observer is null.
+   */
+  bool add_observer(KeypadObserverBase* observer);
+
+  /**
+   * @brief Remove an observer from the notification list.
+   * @param observer Pointer to the observer instance to remove.
+   * @return true if the observer was found and removed, false otherwise.
+   */
+  bool remove_observer(KeypadObserverBase* observer);
+
+
 private:
   /**
    * @brief Sets the decoder address pins (A0, A1, A2) to select a specific row output (Y0-Y7).
@@ -168,6 +221,12 @@ private:
   // --- State ---
   etl::span<KeyData> _key_data;        // Span wrapping user-provided buffer
   absolute_time_t _last_scan_time = nil_time; // Initialize to nil_time
+  etl::vector<KeypadObserverBase*, MaxObservers> _observers; // Storage for observers
+
+  // --- Private Notification Helpers ---
+  void notify_pressed(uint8_t r, uint8_t c);
+  void notify_released(uint8_t r, uint8_t c);
+  void notify_held(uint8_t r, uint8_t c);
 
 }; // class Keypad_HC138
 

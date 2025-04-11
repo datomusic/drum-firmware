@@ -15,8 +15,8 @@ extern "C" {
 // Note: Definitions are already within Musin::UI namespace via keypad_hc138.h include
 
 // --- Constructor Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+Keypad_HC138<NumRows, NumCols, MaxObservers>::Keypad_HC138(
                            const std::array<uint, 3>& decoder_address_pins,
                            const std::array<uint, NumCols>& col_pins,
                            etl::span<KeyData> key_data_buffer,
@@ -58,8 +58,8 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
 
 
 // --- init() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-void Keypad_HC138<NumRows, NumCols>::init() {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+void Keypad_HC138<NumRows, NumCols, MaxObservers>::init() {
   // Initialize Decoder Address Pins (Outputs)
   for (auto& pin : _decoder_address_pins) { // Iterate over GpioPin vector
     pin.set_direction(Musin::HAL::GpioDirection::OUT);
@@ -79,8 +79,8 @@ void Keypad_HC138<NumRows, NumCols>::init() {
 
 
 // --- scan() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::scan() {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::scan() {
   absolute_time_t now = get_absolute_time();
   uint64_t diff_us = absolute_time_diff_us(_last_scan_time, now);
 
@@ -123,8 +123,8 @@ bool Keypad_HC138<NumRows, NumCols>::scan() {
 
 
 // --- is_pressed() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::is_pressed(std::uint8_t row, std::uint8_t col) const {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::is_pressed(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
   const KeyState current_state = _key_data[row * NumCols + col].state; // Use template parameter
   return (current_state == KeyState::PRESSED || current_state == KeyState::HOLDING);
@@ -132,32 +132,32 @@ bool Keypad_HC138<NumRows, NumCols>::is_pressed(std::uint8_t row, std::uint8_t c
 
 
 // --- was_pressed() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::was_pressed(std::uint8_t row, std::uint8_t col) const {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::was_pressed(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
   return _key_data[row * NumCols + col].just_pressed; // Use template parameter
 }
 
 
 // --- was_released() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::was_released(std::uint8_t row, std::uint8_t col) const {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::was_released(std::uint8_t row, std::uint8_t col) const {
    if (row >= NumRows || col >= NumCols) return false; // Use template parameters
   return _key_data[row * NumCols + col].just_released; // Use template parameter
 }
 
 
 // --- is_held() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::is_held(std::uint8_t row, std::uint8_t col) const {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::is_held(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
   return (_key_data[row * NumCols + col].state == KeyState::HOLDING); // Use template parameter
 }
 
 
 // --- select_row() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+void Keypad_HC138<NumRows, NumCols, MaxObservers>::select_row(std::uint8_t row) {
   // Ensure row is within valid range for the decoder (0-7)
   // This check prevents issues even if _num_rows is smaller
   if (row >= 8) return;
@@ -169,8 +169,38 @@ void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
 }
 
 
+// --- Observer Management Implementation ---
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::add_observer(KeypadObserverBase* observer) {
+    if (!observer || _observers.full()) {
+        return false;
+    }
+    // Avoid adding duplicates
+    for (const auto* obs : _observers) {
+        if (obs == observer) {
+            return true; // Already added
+        }
+    }
+    _observers.push_back(observer);
+    return true;
+}
+
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+bool Keypad_HC138<NumRows, NumCols, MaxObservers>::remove_observer(KeypadObserverBase* observer) {
+    if (!observer) {
+        return false;
+    }
+    auto it = etl::find(_observers.begin(), _observers.end(), observer);
+    if (it != _observers.end()) {
+        _observers.erase(it);
+        return true;
+    }
+    return false;
+}
+
+
 // --- update_key_state() Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols>
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key_pressed, absolute_time_t now) {
   // Get mutable reference to the key's data using the span and template parameters
   KeyData& key = _key_data[r * NumCols + c];
@@ -189,13 +219,17 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
         // Still pressed, check if debounce time has passed
         if (absolute_time_diff_us(key.transition_time, now) >= _debounce_time_us) {
           // Debounce confirmed, transition to PRESSED
-          key.state = KeyState::PRESSED;
+          KeyState next_state = KeyState::PRESSED;
           key.transition_time = now; // Record press time for hold check
           key.just_pressed = true;   // Set event flag
+          notify_pressed(r, c);      // Notify observers
+
           // Check immediately if hold time is zero or very small
            if (_hold_time_us == 0 || absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
-               key.state = KeyState::HOLDING;
+               next_state = KeyState::HOLDING;
+               notify_held(r, c); // Notify observers about hold
            }
+          key.state = next_state;
         }
         // else: Debounce time not yet elapsed, remain in DEBOUNCING_PRESS
       } else {
@@ -237,6 +271,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
           key.state = KeyState::IDLE;
           key.transition_time = nil_time;
           key.just_released = true; // Set event flag
+          notify_released(r, c);    // Notify observers
         }
         // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
       } else {
@@ -248,6 +283,9 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
          // Need to access the original transition time stored in the key data itself
          if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
                key.state = KeyState::HOLDING;
+               // Don't notify hold again if it bounced back quickly? Or should we?
+               // For simplicity, let's assume going back to PRESSED is enough.
+               // If HOLDING is re-entered from PRESSED state, it will be notified there.
          }
 
         // Do NOT reset transition_time, keep the original press time for hold calculation.

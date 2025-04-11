@@ -143,9 +143,149 @@ private:
     float _last_notified_value = -1.0f; // Store the last value that triggered a notification
 };
 
-} // namespace Musin::UI
+// --- Template Implementation ---
+// Implementation is included directly in the header for template classes
 
-// Include implementation for template class
-#include "analog_control.cpp"
+template<uint8_t MaxObservers>
+AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, float threshold)
+    : _id(id), 
+      _threshold(threshold),
+      _input_type(InputType::Direct),
+      _analog_in(adc_pin) { // Construct directly in the union member
+    
+    // Initialize observer array
+    for (uint8_t i = 0; i < MaxObservers; i++) {
+        _observers[i] = nullptr;
+    }
+}
+
+template<uint8_t MaxObservers>
+AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, 
+                                          const std::array<std::uint32_t, 3>& mux_address_pins,
+                                          uint8_t mux_channel, float threshold)
+    : _id(id), 
+      _threshold(threshold),
+      _input_type(InputType::Mux8) {
+    
+    // Use placement new to construct the mux in the union
+    new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
+    
+    // Initialize observer array
+    for (uint8_t i = 0; i < MaxObservers; i++) {
+        _observers[i] = nullptr;
+    }
+}
+
+template<uint8_t MaxObservers>
+AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, 
+                                          const std::array<std::uint32_t, 4>& mux_address_pins,
+                                          uint8_t mux_channel, float threshold)
+    : _id(id), 
+      _threshold(threshold),
+      _input_type(InputType::Mux16) {
+    
+    // Use placement new to construct the mux in the union
+    new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
+    
+    // Initialize observer array
+    for (uint8_t i = 0; i < MaxObservers; i++) {
+        _observers[i] = nullptr;
+    }
+}
+
+template<uint8_t MaxObservers>
+void AnalogControl<MaxObservers>::init() {
+    // Initialize the appropriate hardware
+    switch (_input_type) {
+        case InputType::Direct:
+            _analog_in.init();
+            break;
+        case InputType::Mux8:
+            _mux8.init();
+            break;
+        case InputType::Mux16:
+            _mux16.init();
+            break;
+    }
+    // Initialize filtered value to the first reading to avoid large initial jump
+    read_input(); 
+    _last_notified_value = _current_value; 
+}
+
+template<uint8_t MaxObservers>
+void AnalogControl<MaxObservers>::read_input() {
+    float raw_normalized = 0.0f;
+    
+    // Read from either direct ADC or multiplexer
+    switch (_input_type) {
+        case InputType::Direct:
+            raw_normalized = _analog_in.read();
+            _current_raw = _analog_in.read_raw();
+            break;
+        case InputType::Mux8:
+            raw_normalized = _mux8.read();
+            _current_raw = _mux8.read_raw();
+            break;
+        case InputType::Mux16:
+            raw_normalized = _mux16.read();
+            _current_raw = _mux16.read_raw();
+            break;
+    }
+    
+    // Apply filtering using a simple IIR low-pass filter
+    // Make sure _filtered_value is initialized properly (e.g., in init() or constructor)
+    _filtered_value = (_filter_alpha * raw_normalized) + 
+                     ((1.0f - _filter_alpha) * _filtered_value);
+    
+    // Update current value (which represents the filtered value)
+    _current_value = _filtered_value;
+}
+
+template<uint8_t MaxObservers>
+bool AnalogControl<MaxObservers>::update() {
+    // Read and filter input - this updates _current_value
+    read_input();
+    
+    // Check if the filtered value changed beyond threshold compared to the last notified value
+    if (std::abs(_current_value - _last_notified_value) > _threshold) {
+        notify_observers(); // Notify with the current filtered value
+        _last_notified_value = _current_value; // Update the last notified value
+        return true;
+    }
+    return false;
+}
+
+template<uint8_t MaxObservers>
+bool AnalogControl<MaxObservers>::add_observer(AnalogControlObserverBase* observer) {
+    if (!observer) {
+        return false;
+    }
+    
+    // Check if we have space
+    if (_observer_count >= MaxObservers) {
+        return false; // Observer array full
+    }
+    
+    // Add to the array
+    _observers[_observer_count++] = observer;
+    return true;
+}
+
+template<uint8_t MaxObservers>
+void AnalogControl<MaxObservers>::notify_observers() {
+    for (uint8_t i = 0; i < _observer_count; i++) {
+        if (_observers[i]) {
+            _observers[i]->on_value_changed(_id, _current_value, _current_raw);
+        }
+    }
+}
+
+// Explicit template instantiation can be added here if needed for specific MaxObservers values
+// e.g., template class AnalogControl<1>; 
+//      template class AnalogControl<4>;
+// This helps with compile times if you know the common sizes you'll use,
+// but requires the implementation to be visible (which it now is).
+
+} // namespace Musin::UI
 
 #endif // MUSIN_UI_ANALOG_CONTROL_H

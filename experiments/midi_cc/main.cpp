@@ -52,7 +52,7 @@ constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 static std::array<KeyData, KEYPAD_TOTAL_KEYS> keypad_key_data_buffer;
 
 // Static instance of the keypad driver
-static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
+static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers = 1 (or more if needed)
     keypad_decoder_pins,
     keypad_columns_pins,
     etl::span<KeyData>(keypad_key_data_buffer) // Create span from the buffer

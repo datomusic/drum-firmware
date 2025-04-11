@@ -17,6 +17,7 @@
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
 using Musin::UI::KeyData;
+using Musin::UI::KeypadObserverBase; // Add base class using declaration
 
 extern "C" {
   #include "hardware/adc.h"

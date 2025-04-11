@@ -55,14 +55,13 @@ void AnalogIn::init() {
   _initialized = true;
 }
 
-std::uint16_t AnalogIn::read() const {
+float AnalogIn::read() const {
   if (!_initialized) {
-    return 0;
+    return 0.0f;
   }
-
-  adc_select_input(_adc_channel);
-  std::uint16_t result12bit = adc_read();
-  return result12bit << 4; // Scale 12-bit to 16-bit
+  std::uint16_t raw_value = read_raw();
+  // Normalize the 12-bit raw value to a float between 0.0 and 1.0
+  return static_cast<float>(raw_value) / ADC_MAX_VALUE;
 }
 
 std::uint16_t AnalogIn::read_raw() const {
@@ -134,9 +133,10 @@ std::uint16_t AnalogInMux<NumAddressPins>::read_raw() const {
 }
 
 template <size_t NumAddressPins>
-std::uint16_t AnalogInMux<NumAddressPins>::read() const {
+float AnalogInMux<NumAddressPins>::read() const {
     std::uint16_t raw = read_raw();
-    return raw << 4;
+    // Normalize the 12-bit raw value to a float between 0.0 and 1.0
+    return static_cast<float>(raw) / ADC_MAX_VALUE;
 }
 
 template <size_t NumAddressPins>

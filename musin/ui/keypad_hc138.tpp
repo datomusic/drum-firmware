@@ -295,4 +295,33 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
   } // end switch
 }
 
+
+// --- Private Notification Helpers Implementation ---
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_pressed(uint8_t r, uint8_t c) {
+    for (auto* observer : _observers) {
+        if (observer) {
+            observer->on_key_pressed(r, c);
+        }
+    }
+}
+
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_released(uint8_t r, uint8_t c) {
+    for (auto* observer : _observers) {
+        if (observer) {
+            observer->on_key_released(r, c);
+        }
+    }
+}
+
+template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_held(uint8_t r, uint8_t c) {
+    for (auto* observer : _observers) {
+        if (observer) {
+            observer->on_key_held(r, c);
+        }
+    }
+}
+
 // Note: Private member variables are defined in the header file.

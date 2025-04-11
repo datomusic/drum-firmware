@@ -11,7 +11,7 @@
  * Statically configured, no dynamic memory allocation.
  * This remains specific to the experiment.
  */
-struct MIDICCObserver : public AnalogControlObserverBase {
+struct MIDICCObserver : public Musin::UI::AnalogControlObserverBase {
     const uint8_t cc_number;
     const uint8_t midi_channel;
     

@@ -18,6 +18,7 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 )
 
 musin_init(${EXECUTABLE_NAME})
+musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 
 pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)

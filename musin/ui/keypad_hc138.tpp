@@ -6,8 +6,8 @@
 // We only need implementation-specific includes here.
 
 // Wrap C SDK headers needed for implementation
+// hardware/gpio.h is no longer needed directly
 extern "C" {
-#include "hardware/gpio.h"
 #include "pico/assert.h" // For panic etc.
 #include "pico/time.h"   // For get_absolute_time, absolute_time_diff_us, nil_time
 }
@@ -40,11 +40,18 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
       panic("Keypad_HC138: Key data buffer span size (%d) does not match expected size (%d).",
             _key_data.size(), expected_size);
   }
-  // No need to check _col_pins for null, it's a reference.
 
    // Initialize the key data buffer provided by the user via the span
    for (KeyData& key : _key_data) {
        key = {}; // Default initialize KeyData structs
+   }
+
+   // Construct GpioPin objects in the vectors using the provided pin numbers
+   for(uint pin_num : decoder_address_pins) {
+       _decoder_address_pins.emplace_back(pin_num);
+   }
+   for(uint pin_num : col_pins) {
+       _col_pins.emplace_back(pin_num);
    }
 }
 

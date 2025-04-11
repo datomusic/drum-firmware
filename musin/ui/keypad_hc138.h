@@ -2,10 +2,12 @@
 #ifndef DRUM_DRIVERS_KEYPAD_HC138_H
 #define DRUM_DRIVERS_KEYPAD_HC138_H
 
-#include <cstdint>
-#include <cstddef>
+#include "musin/hal/gpio.h" // Include the GPIO abstraction
+#include "etl/span.h"       // Include ETL span
+#include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
 #include <array>
-#include "etl/span.h" // Include ETL span
+#include <cstddef>
+#include <cstdint>
 
 // Wrap C SDK headers
 extern "C" {
@@ -156,8 +158,9 @@ private:
 
   // --- Configuration (initialized in constructor) ---
   // NumRows and NumCols are now template parameters
-  const std::array<uint, 3> _decoder_address_pins; // Fixed size array for 3 address pins
-  const std::array<uint, NumCols>& _col_pins;      // Reference to user's column pin array
+  // Store GpioPin objects directly using fixed-size vectors
+  etl::vector<Musin::HAL::GpioPin, 3> _decoder_address_pins;
+  etl::vector<Musin::HAL::GpioPin, NumCols> _col_pins;
   const std::uint32_t _scan_interval_us;
   const std::uint32_t _debounce_time_us;
   const std::uint32_t _hold_time_us;

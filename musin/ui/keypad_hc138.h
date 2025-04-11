@@ -172,7 +172,4 @@ private:
 #include "keypad_hc138.tpp"
 
 } // namespace Musin::UI
-
-// Removed extra closing brace here
-
 #endif // DRUM_DRIVERS_KEYPAD_HC138_H

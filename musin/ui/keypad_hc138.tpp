@@ -246,6 +246,8 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
         // Still pressed, check if hold time has passed
         if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
           key.state = KeyState::HOLDING;
+          printf("[%u,%u] State -> HOLDING (from PRESSED)\n", r, c); // DEBUG
+          notify_held(r, c); // Notify observers about hold
           // Note: transition_time remains the original press time
         }
         // else: Hold time not yet elapsed, remain in PRESSED

@@ -1,4 +1,4 @@
-// static_example_main.cpp
+
 #include "pico/stdlib.h"
 #include <cstdint>
 #include <cstdio>
@@ -6,18 +6,15 @@
 #include <array>
 #include <iterator> // For std::size
 
-// Include the specific MIDI observer implementation for this experiment
-#include "midi_cc_observer.h"
-// Include the core AnalogControl class from the musin library
+#include "observers.h"
+
 #include "musin/ui/analog_control.h"
-// Include the Keypad driver
 #include "musin/ui/keypad_hc138.h"
 #include "etl/span.h" // Required for keypad buffer span
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
 using Musin::UI::KeyData;
-using Musin::UI::KeypadObserverBase; // Add base class using declaration
 
 extern "C" {
   #include "hardware/adc.h"
@@ -81,50 +78,6 @@ static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
     }
     return map;
 }();
-
-
-struct KeypadMIDICCMapObserver : public KeypadObserverBase {
-    const std::array<uint8_t, KEYPAD_TOTAL_KEYS>& _cc_map;
-    const uint8_t _midi_channel;
-    const MIDISendFn _send_midi;
-
-    // Constructor
-    constexpr KeypadMIDICCMapObserver(
-        const std::array<uint8_t, KEYPAD_TOTAL_KEYS>& map,
-        uint8_t channel,
-        MIDISendFn sender)
-        : _cc_map(map), _midi_channel(channel), _send_midi(sender) {}
-
-    void on_key_pressed(uint8_t row, uint8_t col) override {
-        uint8_t key_index = row * KEYPAD_COLS + col;
-        if (key_index < _cc_map.size()) {
-            uint8_t cc_number = _cc_map[key_index];
-            if (cc_number != 0) { // Check if a valid CC was assigned
-                 _send_midi(_midi_channel, cc_number, 100); // Send CC ON
-            }
-        }
-    }
-
-    void on_key_released(uint8_t row, uint8_t col) override {
-         uint8_t key_index = row * KEYPAD_COLS + col;
-        if (key_index < _cc_map.size()) {
-            uint8_t cc_number = _cc_map[key_index];
-            if (cc_number != 0) { // Check if a valid CC was assigned
-                 _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
-            }
-        }
-    }
-
-    void on_key_held(uint8_t row, uint8_t col) override {
-      uint8_t key_index = row * KEYPAD_COLS + col;
-      if (key_index < _cc_map.size()) {
-          uint8_t cc_number = _cc_map[key_index];
-          if (cc_number != 0) { // Check if a valid CC was assigned
-               _send_midi(_midi_channel, cc_number, 127); // Send CC ON
-          }
-      }
-    }
-};
 
 // Static instance of the new keypad observer
 static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);

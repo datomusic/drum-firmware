@@ -133,8 +133,8 @@ int main() {
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
   
-  if (!keypad.add_observer(&keypad_map_observer)) {
-      printf("Error: Could not add keypad map observer!\n");
+  if (!keypad.attach(keypad_map_observer)) {
+      printf("Error: Could not attach keypad map observer!\n");
   }
 
   // Ensure control and observer arrays have the same size before iterating

@@ -5,6 +5,7 @@
 #include "musin/hal/gpio.h" // Include the GPIO abstraction
 #include "etl/span.h"       // Include ETL span
 #include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
+#include "etl/observer.h"   // Include ETL observer pattern
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -16,41 +17,24 @@ extern "C" {
 
 namespace Musin::UI {
 
+/**
+ * @brief Event data structure for keypad notifications
+ */
+struct KeypadEvent {
+    enum class Type : uint8_t { 
+        Pressed, 
+        Released, 
+        Held 
+    };
+    
+    uint8_t row;
+    uint8_t col;
+    Type type;
+};
+
 // Forward declaration
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 class Keypad_HC138;
-
-/**
- * @brief Observer interface for keypad events.
- *
- * Implement this interface to receive notifications about key presses,
- * releases, and holds from a Keypad_HC138 instance.
- */
-class KeypadObserverBase {
-public:
-    virtual ~KeypadObserverBase() = default;
-
-    /**
-     * @brief Called when a key transitions to the PRESSED state (after debounce).
-     * @param row The row index of the key.
-     * @param col The column index of the key.
-     */
-    virtual void on_key_pressed(uint8_t row, uint8_t col) = 0;
-
-    /**
-     * @brief Called when a key transitions to the IDLE state (after debounce).
-     * @param row The row index of the key.
-     * @param col The column index of the key.
-     */
-    virtual void on_key_released(uint8_t row, uint8_t col) = 0;
-
-    /**
-     * @brief Called when a key transitions to the HOLDING state.
-     * @param row The row index of the key.
-     * @param col The column index of the key.
-     */
-    virtual void on_key_held(uint8_t row, uint8_t col) = 0;
-};
 
 
 /**
@@ -86,7 +70,7 @@ struct KeyData {
  * @tparam MaxObservers Maximum number of observers that can be attached.
  */
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers = 1>
-class Keypad_HC138 {
+class Keypad_HC138 : public etl::observable<KeypadEvent, MaxObservers> {
 public:
     // --- Compile-time validation ---
     static_assert(NumRows > 0 && NumRows <= 8, "Keypad_HC138: NumRows must be between 1 and 8.");
@@ -176,19 +160,6 @@ public:
   /** @brief Get the configured number of columns (compile-time). */
   constexpr std::uint8_t get_num_cols() const { return NumCols; }
 
-  /**
-   * @brief Add an observer to be notified of key events.
-   * @param observer Pointer to the observer instance. Must not be null.
-   * @return true if the observer was added successfully, false if the observer list is full or observer is null.
-   */
-  bool add_observer(KeypadObserverBase* observer);
-
-  /**
-   * @brief Remove an observer from the notification list.
-   * @param observer Pointer to the observer instance to remove.
-   * @return true if the observer was found and removed, false otherwise.
-   */
-  bool remove_observer(KeypadObserverBase* observer);
 
 
 private:
@@ -221,12 +192,11 @@ private:
   // --- State ---
   std::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer
   absolute_time_t _last_scan_time = nil_time; // Initialize to nil_time
-  etl::vector<KeypadObserverBase*, MaxObservers> _observers; // Storage for observers
 
-  // --- Private Notification Helpers ---
-  void notify_pressed(uint8_t r, uint8_t c);
-  void notify_released(uint8_t r, uint8_t c);
-  void notify_held(uint8_t r, uint8_t c);
+  // --- Private Notification Helper ---
+  void notify_event(uint8_t r, uint8_t c, KeypadEvent::Type type) {
+    this->notify_observers(KeypadEvent{r, c, type});
+  }
 
 }; // class Keypad_HC138
 

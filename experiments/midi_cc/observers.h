@@ -32,7 +32,7 @@ struct MIDICCObserver : public Musin::UI::AnalogControlObserverBase {
     }
 };
 
-struct KeypadMIDICCMapObserver : public Musin::UI::KeypadObserverBase {
+struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
     const std::array<uint8_t, KEYPAD_TOTAL_KEYS>& _cc_map;
     const uint8_t _midi_channel;
     const MIDISendFn _send_midi;
@@ -44,34 +44,24 @@ struct KeypadMIDICCMapObserver : public Musin::UI::KeypadObserverBase {
         MIDISendFn sender)
         : _cc_map(map), _midi_channel(channel), _send_midi(sender) {}
 
-    void on_key_pressed(uint8_t row, uint8_t col) override {
-        uint8_t key_index = row * KEYPAD_COLS + col;
-        if (key_index < _cc_map.size()) {
-            uint8_t cc_number = _cc_map[key_index];
-            if (cc_number != 0) { // Check if a valid CC was assigned
-                 _send_midi(_midi_channel, cc_number, 100); // Send CC ON
-            }
-        }
-    }
+    void notification(const Musin::UI::KeypadEvent& event) override {
+        uint8_t key_index = event.row * KEYPAD_COLS + event.col;
+        if (key_index >= _cc_map.size()) return;
 
-    void on_key_released(uint8_t row, uint8_t col) override {
-         uint8_t key_index = row * KEYPAD_COLS + col;
-        if (key_index < _cc_map.size()) {
-            uint8_t cc_number = _cc_map[key_index];
-            if (cc_number != 0) { // Check if a valid CC was assigned
-                 _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
-            }
-        }
-    }
+        uint8_t cc_number = _cc_map[key_index];
+        if (cc_number == 0) return; // Check if a valid CC was assigned
 
-    void on_key_held(uint8_t row, uint8_t col) override {
-      uint8_t key_index = row * KEYPAD_COLS + col;
-      if (key_index < _cc_map.size()) {
-          uint8_t cc_number = _cc_map[key_index];
-          if (cc_number != 0) { // Check if a valid CC was assigned
-               _send_midi(_midi_channel, cc_number, 127); // Send CC ON
-          }
-      }
+        switch(event.type) {
+            case Musin::UI::KeypadEvent::Type::Pressed:
+                _send_midi(_midi_channel, cc_number, 100); // Send CC ON
+                break;
+            case Musin::UI::KeypadEvent::Type::Released:
+                _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
+                break;
+            case Musin::UI::KeypadEvent::Type::Held:
+                _send_midi(_midi_channel, cc_number, 127); // Send CC HOLD
+                break;
+        }
     }
 };
 

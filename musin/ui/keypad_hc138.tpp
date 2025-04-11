@@ -165,34 +165,6 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::select_row(std::uint8_t row) 
 }
 
 
-// --- Observer Management Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
-bool Keypad_HC138<NumRows, NumCols, MaxObservers>::add_observer(KeypadObserverBase* observer) {
-    if (!observer || _observers.full()) {
-        return false;
-    }
-    // Avoid adding duplicates
-    for (const auto* obs : _observers) {
-        if (obs == observer) {
-            return true; // Already added
-        }
-    }
-    _observers.push_back(observer);
-    return true;
-}
-
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
-bool Keypad_HC138<NumRows, NumCols, MaxObservers>::remove_observer(KeypadObserverBase* observer) {
-    if (!observer) {
-        return false;
-    }
-    auto it = etl::find(_observers.begin(), _observers.end(), observer);
-    if (it != _observers.end()) {
-        _observers.erase(it);
-        return true;
-    }
-    return false;
-}
 
 
 // --- update_key_state() Implementation ---
@@ -218,12 +190,12 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
           KeyState next_state = KeyState::PRESSED;
           key.transition_time = now; // Record press time for hold check
           key.just_pressed = true;   // Set event flag
-          notify_pressed(r, c);      // Notify observers
+          notify_event(r, c, KeypadEvent::Type::Pressed); // Notify observers
 
           // Check immediately if hold time is zero or very small
            if (_hold_time_us == 0 || absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
                next_state = KeyState::HOLDING;
-               notify_held(r, c); // Notify observers about hold
+               notify_event(r, c, KeypadEvent::Type::Held); // Notify observers about hold
            }
           key.state = next_state;
         }
@@ -240,7 +212,7 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
         // Still pressed, check if hold time has passed
         if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
           key.state = KeyState::HOLDING;
-          notify_held(r, c); // Notify observers about hold
+          notify_event(r, c, KeypadEvent::Type::Held); // Notify observers about hold
           // Note: transition_time remains the original press time
         }
         // else: Hold time not yet elapsed, remain in PRESSED
@@ -268,7 +240,7 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
           key.state = KeyState::IDLE;
           key.transition_time = nil_time;
           key.just_released = true; // Set event flag
-          notify_released(r, c);    // Notify observers
+          notify_event(r, c, KeypadEvent::Type::Released); // Notify observers
         }
         // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
       } else {
@@ -293,32 +265,5 @@ void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t
 }
 
 
-// --- Private Notification Helpers Implementation ---
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
-void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_pressed(uint8_t r, uint8_t c) {
-    for (auto* observer : _observers) {
-        if (observer) {
-            observer->on_key_pressed(r, c);
-        }
-    }
-}
-
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
-void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_released(uint8_t r, uint8_t c) {
-    for (auto* observer : _observers) {
-        if (observer) {
-            observer->on_key_released(r, c);
-        }
-    }
-}
-
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
-void Keypad_HC138<NumRows, NumCols, MaxObservers>::notify_held(uint8_t r, uint8_t c) {
-    for (auto* observer : _observers) {
-        if (observer) {
-            observer->on_key_held(r, c);
-        }
-    }
-}
 
 // Note: Private member variables are defined in the header file.

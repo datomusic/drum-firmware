@@ -133,7 +133,7 @@ int main() {
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
   
-  if (!keypad.attach(keypad_map_observer)) {
+  if (!keypad.add_observer(keypad_map_observer)) {
       printf("Error: Could not attach keypad map observer!\n");
   }
 
@@ -144,7 +144,7 @@ int main() {
   // Initialize Analog Controls using std::size to determine the loop bounds
   for (size_t i = 0; i < std::size(mux_controls); ++i) {
     mux_controls[i].init();
-    if (!mux_controls[i].attach(cc_observers[i])) {
+    if (!mux_controls[i].add_observer(cc_observers[i])) {
         printf("Error: Could not attach observer for analog control %zu (ID: %u)\n", i, mux_controls[i].get_id());
         // Handle error appropriately if needed
     }

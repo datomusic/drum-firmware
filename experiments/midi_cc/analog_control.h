@@ -32,6 +32,5 @@ struct MIDICCObserver : public Musin::UI::AnalogControlObserverBase {
     }
 };
 
-/**
 
 #endif // EXPERIMENTS_MIDI_CC_ANALOG_CONTROL_OBSERVER_H

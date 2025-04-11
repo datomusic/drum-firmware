@@ -163,6 +163,9 @@ private:
     // Internal methods
     void notify_observers();
     void read_input();
+
+    // Value tracking
+    float _last_notified_value = -1.0f; // Store the last value that triggered a notification
 };
 
 } // namespace Musin::Controller

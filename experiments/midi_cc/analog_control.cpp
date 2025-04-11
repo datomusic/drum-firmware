@@ -100,18 +100,15 @@ void AnalogControl<MaxObservers>::read_input() {
 
 template<uint8_t MaxObservers>
 bool AnalogControl<MaxObservers>::update() {
-    // Remember previous value
-    float previous_value = _current_value;
-    
-    // Read and filter input
+    // Read and filter input - this updates _current_value
     read_input();
     
-    // Check if value changed beyond threshold
-    if (std::abs(_current_value - previous_value) > _threshold) {
-        notify_observers();
+    // Check if the filtered value changed beyond threshold compared to the last notified value
+    if (std::abs(_current_value - _last_notified_value) > _threshold) {
+        notify_observers(); // Notify with the current filtered value
+        _last_notified_value = _current_value; // Update the last notified value
         return true;
     }
-    
     return false;
 }
 

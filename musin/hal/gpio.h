@@ -26,7 +26,7 @@ public:
 
     void set_direction(GpioDirection dir);
     void write(bool value);
-    bool get() const;
+    bool read() const;
     void enable_pullup();
     void enable_pulldown();
     void disable_pulls();

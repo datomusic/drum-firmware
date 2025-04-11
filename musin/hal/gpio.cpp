@@ -19,7 +19,7 @@ void GpioPin::write(bool value) {
     gpio_put(_pin, value);
 }
 
-bool GpioPin::get() const {
+bool GpioPin::read() const {
     return gpio_get(_pin);
 }
 

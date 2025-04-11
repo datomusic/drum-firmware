@@ -117,11 +117,17 @@ int main() {
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
 
-  // Initialize Analog Controls
-  for (int i = 0; i < 8; i++) {
+  // Ensure control and observer arrays have the same size before iterating
+  static_assert(std::size(mux_controls) == std::size(cc_observers), 
+                "Mismatch between number of controls and observers");
+
+  // Initialize Analog Controls using std::size to determine the loop bounds
+  for (size_t i = 0; i < std::size(mux_controls); ++i) {
     mux_controls[i].init();
     mux_controls[i].add_observer(&cc_observers[i]);
   }
+
+  printf("Initialized %zu analog controls\n", std::size(mux_controls));
 
   while (true) {
       // Update all mux controls

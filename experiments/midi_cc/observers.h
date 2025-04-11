@@ -23,7 +23,7 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
     constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
         : cc_number(cc), midi_channel(channel), _send_midi(sender) {}
     
-    void notification(Musin::UI::AnalogControlEvent& event) override {
+    void notification(Musin::UI::AnalogControlEvent event) override {
         // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
         uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
         
@@ -44,7 +44,7 @@ struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
         MIDISendFn sender)
         : _cc_map(map), _midi_channel(channel), _send_midi(sender) {}
 
-    void notification(Musin::UI::KeypadEvent& event) override {
+    void notification(Musin::UI::KeypadEvent event) override {
         uint8_t key_index = event.row * KEYPAD_COLS + event.col;
         if (key_index >= _cc_map.size()) return;
 

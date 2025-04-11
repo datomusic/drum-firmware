@@ -19,7 +19,7 @@ template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 Keypad_HC138<NumRows, NumCols, MaxObservers>::Keypad_HC138(
                            const std::array<uint, 3>& decoder_address_pins,
                            const std::array<uint, NumCols>& col_pins,
-                           etl::span<KeyData> key_data_buffer,
+                           // No key_data_buffer parameter
                            std::uint32_t scan_interval_us,
                            std::uint32_t debounce_time_us,
                            std::uint32_t hold_time_us):

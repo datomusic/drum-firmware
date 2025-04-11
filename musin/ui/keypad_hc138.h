@@ -124,17 +124,17 @@ public:
   /**
    * @brief Checks if a specific key is currently in the HOLDING state.
    *
-   * @param row Row index (0 to num_rows-1).
-   * @param col Column index (0 to num_cols-1).
+   * @param row Row index (0 to NumRows-1).
+   * @param col Column index (0 to NumCols-1).
    * @return true if the key state is HOLDING, false otherwise.
    */
   bool is_held(std::uint8_t row, std::uint8_t col) const;
 
-  /** @brief Get the configured number of rows. */
-  std::uint8_t get_num_rows() const { return _num_rows; }
+  /** @brief Get the configured number of rows (compile-time). */
+  constexpr std::uint8_t get_num_rows() const { return NumRows; }
 
-  /** @brief Get the configured number of columns. */
-  std::uint8_t get_num_cols() const { return _num_cols; }
+  /** @brief Get the configured number of columns (compile-time). */
+  constexpr std::uint8_t get_num_cols() const { return NumCols; }
 
 private:
   /**

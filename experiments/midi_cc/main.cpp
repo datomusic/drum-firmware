@@ -147,7 +147,10 @@ int main() {
   // Initialize Analog Controls using std::size to determine the loop bounds
   for (size_t i = 0; i < std::size(mux_controls); ++i) {
     mux_controls[i].init();
-    mux_controls[i].add_observer(&cc_observers[i]);
+    if (!mux_controls[i].add_observer(&cc_observers[i])) {
+        printf("Error: Could not add observer for analog control %zu (ID: %u)\n", i, mux_controls[i].get_id());
+        // Handle error appropriately if needed
+    }
   }
 
   printf("Initialized %zu analog controls\n", std::size(mux_controls));

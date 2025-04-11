@@ -6,10 +6,10 @@
 #include <array>
 
 // Include the specific MIDI observer implementation for this experiment
-#include "analog_control.h" 
+#include "midi_cc_observer.h"
 // Include the core AnalogControl class from the musin library
 #include "musin/ui/analog_control.h" 
-#include "musin/hal/analog_in.h" // Still needed for AnalogInMux types if used directly
+using Musin::UI::AnalogControl;
 
 extern "C" {
   #include "hardware/adc.h"
@@ -26,12 +26,7 @@ constexpr auto PIN_ADC = 28;
 // Static array for multiplexer address pins
 const std::array<std::uint32_t, 4> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
 
-// static Musin::HAL::AnalogInMux<4> POT1(PIN_ADC, address_pins, 3);
-// static Musin::HAL::AnalogInMux<4> POT3(PIN_ADC, address_pins, 4);
-// static Musin::HAL::AnalogInMux<4> POT5(PIN_ADC, address_pins, 8);
-// static Musin::HAL::AnalogInMux<4> POT7(PIN_ADC, address_pins, 15);
-
-void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value) {
+void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
   printf("%x:%3d\n", cc_number, value);
 }
 
@@ -50,7 +45,7 @@ static MIDICCObserver cc_observers[] = {
 };
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static Musin::UI::AnalogControl<1> mux_controls[8] = {
+static AnalogControl<1> mux_controls[8] = {
   {10, PIN_ADC, address_pins, 3 }, // ID 10, Mux Channel 3
   {11, PIN_ADC, address_pins, 4 }, // ID 11, Mux Channel 4
   {12, PIN_ADC, address_pins, 8 }, // ID 12, Mux Channel 8
@@ -72,16 +67,10 @@ int main() {
 
   for (int i = 0; i < 8; i++) {
     mux_controls[i].init();
-    mux_controls[i].add_observer(&cc_observers[i+1]);
+    mux_controls[i].add_observer(&cc_observers[i]);
   }
 
-  // Main control loop
   while (true) {
-      // Update direct control
-      // direct_control.update();
-      
-      // Update all mux controls
-      // 
       // Update all mux controls
       for (auto& control : mux_controls) {
           control.update();

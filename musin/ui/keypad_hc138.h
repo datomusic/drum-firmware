@@ -109,7 +109,7 @@ public:
    */
   Keypad_HC138(const std::array<uint, 3>& decoder_address_pins,
                const std::array<uint, NumCols>& col_pins, // Use std::array reference
-               etl::span<KeyData> key_data_buffer,       // Use etl::span
+               // No longer need key_data_buffer parameter
                std::uint32_t scan_interval_us = DEFAULT_SCAN_INTERVAL_US,
                std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
                std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US);

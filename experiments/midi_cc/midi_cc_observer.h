@@ -15,7 +15,7 @@ struct MIDICCObserver : public Musin::UI::AnalogControlObserverBase {
     const uint8_t cc_number;
     const uint8_t midi_channel;
     
-    // Function pointer to MIDI sender (no std::function)
+    // Function pointer type defined elsewhere (e.g., main.cpp)
     using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
     const MIDISendFn send_midi;
     

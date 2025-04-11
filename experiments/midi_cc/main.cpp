@@ -60,45 +60,70 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers
 );
 // --- End Keypad Configuration ---
 
+// Define the function pointer type needed by observers
+using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
 
+// The actual MIDI sending function (currently prints)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
   printf("MIDI CC %u: %u\n", cc_number, value);
 }
 
-// --- Keypad MIDI Observer Implementation ---
-struct KeypadMIDICC : public KeypadObserverBase {
-    // Starting CC number for keypad keys
-    static constexpr uint8_t START_CC = 32;
-    // MIDI channel to send on
-    static constexpr uint8_t MIDI_CHANNEL = 0;
+
+// --- Keypad MIDI Map Observer Implementation ---
+
+// Define the mapping from key index (0-39) to MIDI CC number
+// Example: Starting at CC 32 and incrementing. Customize as needed.
+static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
+    std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
+    for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
+        // Ensure CC stays within 0-119 range
+        map[i] = (32 + i) <= 119 ? (32 + i) : 0; // Assign 0 if out of range
+    }
+    return map;
+}();
+
+
+struct KeypadMIDICCMapObserver : public KeypadObserverBase {
+    const std::array<uint8_t, KEYPAD_TOTAL_KEYS>& _cc_map;
+    const uint8_t _midi_channel;
+    const MIDISendFn _send_midi;
+
+    // Constructor
+    constexpr KeypadMIDICCMapObserver(
+        const std::array<uint8_t, KEYPAD_TOTAL_KEYS>& map,
+        uint8_t channel,
+        MIDISendFn sender)
+        : _cc_map(map), _midi_channel(channel), _send_midi(sender) {}
 
     void on_key_pressed(uint8_t row, uint8_t col) override {
         uint8_t key_index = row * KEYPAD_COLS + col;
-        uint8_t cc_number = START_CC + key_index;
-        // Ensure CC number doesn't exceed 119 (standard range)
-        if (cc_number <= 119) {
-            send_midi_cc(MIDI_CHANNEL, cc_number, 127); // Send CC ON
+        if (key_index < _cc_map.size()) {
+            uint8_t cc_number = _cc_map[key_index];
+            if (cc_number != 0) { // Check if a valid CC was assigned
+                 _send_midi(_midi_channel, cc_number, 127); // Send CC ON
+            }
         }
     }
 
     void on_key_released(uint8_t row, uint8_t col) override {
-        uint8_t key_index = row * KEYPAD_COLS + col;
-        uint8_t cc_number = START_CC + key_index;
-        // Ensure CC number doesn't exceed 119 (standard range)
-        if (cc_number <= 119) {
-            send_midi_cc(MIDI_CHANNEL, cc_number, 0); // Send CC OFF
+         uint8_t key_index = row * KEYPAD_COLS + col;
+        if (key_index < _cc_map.size()) {
+            uint8_t cc_number = _cc_map[key_index];
+            if (cc_number != 0) { // Check if a valid CC was assigned
+                 _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
+            }
         }
     }
 
-    // We don't need to do anything on hold for this example
     void on_key_held(uint8_t row, uint8_t col) override {
-        // No action needed
+        // No action needed for hold in this example
     }
 };
 
-// Static instance of the keypad observer
-static KeypadMIDICC keypad_observer;
-// --- End Keypad MIDI Observer ---
+// Static instance of the new keypad observer
+static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
+// --- End Keypad MIDI Map Observer ---
+
 
 // Define MIDI observers statically
 // These will be allocated at compile time
@@ -153,9 +178,9 @@ int main() {
   // Initialize Keypad
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
-  // Register the observer
-  if (!keypad.add_observer(&keypad_observer)) {
-      printf("Error: Could not add keypad observer!\n");
+  // Register the new map observer
+  if (!keypad.add_observer(&keypad_map_observer)) {
+      printf("Error: Could not add keypad map observer!\n");
       // Handle error appropriately if needed
   }
 

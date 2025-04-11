@@ -18,12 +18,15 @@ constexpr auto PIN_ADDR_1 = 6;
 constexpr auto PIN_ADDR_2 = 7;
 constexpr auto PIN_ADDR_3 = 9;
 
-const uint32_t PIN_ADC = 28;
+constexpr auto PIN_ADC = 28;
 
 // Static array for multiplexer address pins
-const std::array<std::uint32_t, 3> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+const std::array<std::uint32_t, 4> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
 
-static Musin::HAL::AnalogInMux<3> pot(PIN_ADC, address_pins, 0);
+static Musin::HAL::AnalogInMux<4> POT1(PIN_ADC, address_pins, 3);
+static Musin::HAL::AnalogInMux<4> POT3(PIN_ADC, address_pins, 4);
+static Musin::HAL::AnalogInMux<4> POT5(PIN_ADC, address_pins, 8);
+static Musin::HAL::AnalogInMux<4> POT7(PIN_ADC, address_pins, 15);
 
 void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value) {
   printf("%x:%3d  ", cc_number, value);
@@ -63,11 +66,11 @@ int main() {
   sleep_ms(1000);
 
   printf("MIDI CC demo");
-  
 
-  adc_init();
-  adc_gpio_init(PIN_ADC);
-  pot.init();
+  POT1.init();
+  POT3.init();
+  POT5.init();
+  POT7.init();
 
   // for (int i = 0; i < 8; i++) {
   //   mux_controls[i].init();
@@ -80,8 +83,11 @@ int main() {
       // direct_control.update();
       
       // Update all mux controls
-      adc_select_input(2);
-      printf("Pot value: \t", pot.read_raw());
+      // 
+      printf("POT1: %d\t", POT1.read_raw());
+      printf("\tPOT3: %d\t", POT3.read_raw());
+      printf("\tPOT5: %d\t", POT5.read_raw());
+      printf("\tPOT7: %d\t", POT7.read_raw());
       // Update all mux controls
       // for (auto& control : mux_controls) {
       //     control.update();

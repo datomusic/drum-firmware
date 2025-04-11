@@ -100,7 +100,7 @@ struct KeypadMIDICCMapObserver : public KeypadObserverBase {
         if (key_index < _cc_map.size()) {
             uint8_t cc_number = _cc_map[key_index];
             if (cc_number != 0) { // Check if a valid CC was assigned
-                 _send_midi(_midi_channel, cc_number, 127); // Send CC ON
+                 _send_midi(_midi_channel, cc_number, 100); // Send CC ON
             }
         }
     }
@@ -116,7 +116,13 @@ struct KeypadMIDICCMapObserver : public KeypadObserverBase {
     }
 
     void on_key_held(uint8_t row, uint8_t col) override {
-        // No action needed for hold in this example
+      uint8_t key_index = row * KEYPAD_COLS + col;
+      if (key_index < _cc_map.size()) {
+          uint8_t cc_number = _cc_map[key_index];
+          if (cc_number != 0) { // Check if a valid CC was assigned
+               _send_midi(_midi_channel, cc_number, 127); // Send CC ON
+          }
+      }
     }
 };
 

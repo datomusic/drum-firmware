@@ -219,7 +219,7 @@ private:
   const std::uint32_t _hold_time_us;
 
   // --- State ---
-  etl::span<KeyData> _key_data;        // Span wrapping user-provided buffer
+  std::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer
   absolute_time_t _last_scan_time = nil_time; // Initialize to nil_time
   etl::vector<KeypadObserverBase*, MaxObservers> _observers; // Storage for observers
 

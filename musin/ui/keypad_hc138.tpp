@@ -90,8 +90,8 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::scan() {
   _last_scan_time = now;
 
   // --- Clear transient flags before scan ---
-  // Use the span for iteration
-  for (KeyData& key : _key_data) {
+  // Use the internal array for iteration
+  for (KeyData& key : _internal_key_data) {
       key.just_pressed = false;
       key.just_released = false;
   }
@@ -126,7 +126,7 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::scan() {
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 bool Keypad_HC138<NumRows, NumCols, MaxObservers>::is_pressed(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
-  const KeyState current_state = _key_data[row * NumCols + col].state; // Use template parameter
+  const KeyState current_state = _internal_key_data[row * NumCols + col].state; // Use internal array
   return (current_state == KeyState::PRESSED || current_state == KeyState::HOLDING);
 }
 
@@ -135,7 +135,7 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::is_pressed(std::uint8_t row, 
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 bool Keypad_HC138<NumRows, NumCols, MaxObservers>::was_pressed(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
-  return _key_data[row * NumCols + col].just_pressed; // Use template parameter
+  return _internal_key_data[row * NumCols + col].just_pressed; // Use internal array
 }
 
 
@@ -143,7 +143,7 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::was_pressed(std::uint8_t row,
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 bool Keypad_HC138<NumRows, NumCols, MaxObservers>::was_released(std::uint8_t row, std::uint8_t col) const {
    if (row >= NumRows || col >= NumCols) return false; // Use template parameters
-  return _key_data[row * NumCols + col].just_released; // Use template parameter
+  return _internal_key_data[row * NumCols + col].just_released; // Use internal array
 }
 
 
@@ -151,7 +151,7 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::was_released(std::uint8_t row
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 bool Keypad_HC138<NumRows, NumCols, MaxObservers>::is_held(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
-  return (_key_data[row * NumCols + col].state == KeyState::HOLDING); // Use template parameter
+  return (_internal_key_data[row * NumCols + col].state == KeyState::HOLDING); // Use internal array
 }
 
 
@@ -202,8 +202,8 @@ bool Keypad_HC138<NumRows, NumCols, MaxObservers>::remove_observer(KeypadObserve
 // --- update_key_state() Implementation ---
 template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
 void Keypad_HC138<NumRows, NumCols, MaxObservers>::update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key_pressed, absolute_time_t now) {
-  // Get mutable reference to the key's data using the span and template parameters
-  KeyData& key = _key_data[r * NumCols + c];
+  // Get mutable reference to the key's data using the internal array
+  KeyData& key = _internal_key_data[r * NumCols + c]; // Use internal array
 
   switch (key.state) {
     case KeyState::IDLE:

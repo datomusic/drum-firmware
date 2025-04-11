@@ -45,14 +45,14 @@ constexpr uint8_t KEYPAD_ROWS = 8; // Using 3 address pins allows up to 8 rows
 constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins); // Based on keypad_columns_pins size
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
-// Static buffer for keypad key states
-static std::array<KeyData, KEYPAD_TOTAL_KEYS> keypad_key_data_buffer;
+// No longer need external buffer
+// static std::array<KeyData, KEYPAD_TOTAL_KEYS> keypad_key_data_buffer;
 
 // Static instance of the keypad driver
 static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers = 1 (or more if needed)
     keypad_decoder_pins,
     keypad_columns_pins,
-    etl::span<KeyData>(keypad_key_data_buffer), // Create span from the buffer
+    // No buffer argument needed
     10'000U, // 10ms scan time
     5'000U,  //  5ms debounce time
     1'000'000U // 1 second hold time

@@ -20,19 +20,15 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, float 
 
 template<uint8_t MaxObservers>
 AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, 
-                                          const uint32_t (&mux_address_pins)[3],
+                                          const std::array<std::uint32_t, 3>& mux_address_pins,
                                           uint8_t mux_channel, float threshold)
     : _id(id), 
       _threshold(threshold),
       _input_type(InputType::Mux8) {
     
-    // Convert C-style array to std::array for the mux constructor
-    std::array<uint32_t, 3> address_pins = {
-        mux_address_pins[0], mux_address_pins[1], mux_address_pins[2]
-    };
-    
     // Use placement new to construct the mux in the union
-    new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, address_pins, mux_channel);
+    // Pass the std::array directly
+    new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
     
     // Initialize observer array
     for (uint8_t i = 0; i < MaxObservers; i++) {
@@ -42,20 +38,15 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin,
 
 template<uint8_t MaxObservers>
 AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, 
-                                          const uint32_t (&mux_address_pins)[4],
+                                          const std::array<std::uint32_t, 4>& mux_address_pins,
                                           uint8_t mux_channel, float threshold)
     : _id(id), 
       _threshold(threshold),
       _input_type(InputType::Mux16) {
     
-    // Convert C-style array to std::array for the mux constructor
-    std::array<uint32_t, 4> address_pins = {
-        mux_address_pins[0], mux_address_pins[1], 
-        mux_address_pins[2], mux_address_pins[3]
-    };
-    
     // Use placement new to construct the mux in the union
-    new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, address_pins, mux_channel);
+    // Pass the std::array directly
+    new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
     
     // Initialize observer array
     for (uint8_t i = 0; i < MaxObservers; i++) {

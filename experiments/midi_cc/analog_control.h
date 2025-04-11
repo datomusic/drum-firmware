@@ -77,14 +77,14 @@ public:
      * @brief Constructor for multiplexed ADC connection (8-channel)
      */
     AnalogControl(uint16_t id, uint32_t adc_pin, 
-                 const uint32_t (&mux_address_pins)[3],
+                 const std::array<std::uint32_t, 3>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f);
     
     /**
      * @brief Constructor for multiplexed ADC connection (16-channel)
      */
     AnalogControl(uint16_t id, uint32_t adc_pin, 
-                 const uint32_t (&mux_address_pins)[4],
+                 const std::array<std::uint32_t, 4>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f);
     
     /**

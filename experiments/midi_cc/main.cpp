@@ -4,6 +4,7 @@
 #include <cstdio>
 #include "pico/time.h"
 #include <array>
+#include <iterator> // For std::size
 
 // Include the specific MIDI observer implementation for this experiment
 #include "midi_cc_observer.h"

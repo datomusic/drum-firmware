@@ -57,7 +57,7 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers
 // --- End Keypad Configuration ---
 
 // Define the function pointer type needed by observers
-using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+
 
 // The actual MIDI sending function (currently prints)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {

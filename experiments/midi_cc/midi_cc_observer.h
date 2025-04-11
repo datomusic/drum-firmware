@@ -23,7 +23,7 @@ struct MIDICCObserver : public Musin::UI::AnalogControlObserverBase {
     constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
         : cc_number(cc), midi_channel(channel), send_midi(sender) {}
     
-    void on_value_changed(uint16_t control_id, float new_value, uint16_t raw_value) override {
+    void on_value_changed([[maybe_unused]] uint16_t control_id, float new_value, [[maybe_unused]] uint16_t raw_value) override {
         // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
         uint8_t cc_value = static_cast<uint8_t>(new_value * 127.0f);
         

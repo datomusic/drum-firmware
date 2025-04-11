@@ -66,27 +66,42 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
 // Define MIDI observers statically
 // These will be allocated at compile time
 static MIDICCObserver cc_observers[] = {
-  {16, 0, send_midi_cc},  // CC 16, channel 1
-  {17, 0, send_midi_cc},  // CC 17, channel 1
-  {18, 0, send_midi_cc},  // CC 18, channel 1
-  {19, 0, send_midi_cc},  // CC 19, channel 1
-  {20, 0, send_midi_cc},  // CC 20, channel 1
-  {21, 0, send_midi_cc},  // CC 21, channel 1
-  {22, 0, send_midi_cc},  // CC 22, channel 1
-  {23, 0, send_midi_cc},  // CC 23, channel 1
-  {24, 0, send_midi_cc}   // CC 24, channel 1
+  {16, 0, send_midi_cc},
+  {17, 0, send_midi_cc},
+  {18, 0, send_midi_cc},
+  {19, 0, send_midi_cc},
+  {20, 0, send_midi_cc},
+  {21, 0, send_midi_cc},
+  {22, 0, send_midi_cc},
+  {23, 0, send_midi_cc},
+  {24, 0, send_midi_cc},
+  {25, 0, send_midi_cc},
+  {26, 0, send_midi_cc},
+  {27, 0, send_midi_cc},
+  {28, 0, send_midi_cc},
+  {29, 0, send_midi_cc},
+  {30, 0, send_midi_cc},
+  {31, 0, send_midi_cc}
 };
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static AnalogControl<1> mux_controls[8] = {
-  {10, PIN_ADC, analog_address_pins, 3 }, // ID 10, Mux Channel 3
-  {11, PIN_ADC, analog_address_pins, 4 }, // ID 11, Mux Channel 4
-  {12, PIN_ADC, analog_address_pins, 8 }, // ID 12, Mux Channel 8
-  {13, PIN_ADC, analog_address_pins, 15 }, // ID 13, Mux Channel 15
-  {14, PIN_ADC, analog_address_pins, 0 }, // ID 14, Mux Channel 0 (Example)
-  {15, PIN_ADC, analog_address_pins, 1 }, // ID 15, Mux Channel 1 (Example)
-  {16, PIN_ADC, analog_address_pins, 2 }, // ID 16, Mux Channel 2 (Example)
-  {17, PIN_ADC, analog_address_pins, 5 }  // ID 17, Mux Channel 5 (Example) - Corrected index
+static AnalogControl<1> mux_controls[] = {
+  {10, PIN_ADC, analog_address_pins, 0 },
+  {11, PIN_ADC, analog_address_pins, 1 },
+  {12, PIN_ADC, analog_address_pins, 2 },
+  {13, PIN_ADC, analog_address_pins, 3 },
+  {14, PIN_ADC, analog_address_pins, 4 },
+  {15, PIN_ADC, analog_address_pins, 5 },
+  {16, PIN_ADC, analog_address_pins, 6 },
+  {17, PIN_ADC, analog_address_pins, 7 },
+  {18, PIN_ADC, analog_address_pins, 8 },
+  {19, PIN_ADC, analog_address_pins, 9 },
+  {20, PIN_ADC, analog_address_pins, 10 },
+  {21, PIN_ADC, analog_address_pins, 11 },
+  {22, PIN_ADC, analog_address_pins, 12 },
+  {23, PIN_ADC, analog_address_pins, 13 },
+  {24, PIN_ADC, analog_address_pins, 14 },
+  {25, PIN_ADC, analog_address_pins, 15 }
 };
 
 

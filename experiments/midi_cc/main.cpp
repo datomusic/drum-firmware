@@ -64,6 +64,41 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
   printf("MIDI CC %u: %u\n", cc_number, value);
 }
 
+// --- Keypad MIDI Observer Implementation ---
+struct KeypadMIDICC : public KeypadObserverBase {
+    // Starting CC number for keypad keys
+    static constexpr uint8_t START_CC = 32;
+    // MIDI channel to send on
+    static constexpr uint8_t MIDI_CHANNEL = 0;
+
+    void on_key_pressed(uint8_t row, uint8_t col) override {
+        uint8_t key_index = row * KEYPAD_COLS + col;
+        uint8_t cc_number = START_CC + key_index;
+        // Ensure CC number doesn't exceed 119 (standard range)
+        if (cc_number <= 119) {
+            send_midi_cc(MIDI_CHANNEL, cc_number, 127); // Send CC ON
+        }
+    }
+
+    void on_key_released(uint8_t row, uint8_t col) override {
+        uint8_t key_index = row * KEYPAD_COLS + col;
+        uint8_t cc_number = START_CC + key_index;
+        // Ensure CC number doesn't exceed 119 (standard range)
+        if (cc_number <= 119) {
+            send_midi_cc(MIDI_CHANNEL, cc_number, 0); // Send CC OFF
+        }
+    }
+
+    // We don't need to do anything on hold for this example
+    void on_key_held(uint8_t row, uint8_t col) override {
+        // No action needed
+    }
+};
+
+// Static instance of the keypad observer
+static KeypadMIDICC keypad_observer;
+// --- End Keypad MIDI Observer ---
+
 // Define MIDI observers statically
 // These will be allocated at compile time
 static MIDICCObserver cc_observers[] = {
@@ -117,6 +152,11 @@ int main() {
   // Initialize Keypad
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
+  // Register the observer
+  if (!keypad.add_observer(&keypad_observer)) {
+      printf("Error: Could not add keypad observer!\n");
+      // Handle error appropriately if needed
+  }
 
   // Ensure control and observer arrays have the same size before iterating
   static_assert(std::size(mux_controls) == std::size(cc_observers), 
@@ -136,22 +176,8 @@ int main() {
           control.update();
       }
 
-      // Scan the keypad
-      if (keypad.scan()) {
-          // Check each key if a scan happened
-          for (uint8_t r = 0; r < KEYPAD_ROWS; ++r) {
-              for (uint8_t c = 0; c < KEYPAD_COLS; ++c) {
-                  if (keypad.was_pressed(r, c)) {
-                      // Calculate a simple key number (0 to 39)
-                      uint key_num = r * KEYPAD_COLS + c;
-                      printf("Key Pressed: %u (Row: %u, Col: %u)\n", key_num, r, c);
-                  }
-                  // Optional: Check for release or hold
-                  // if (keypad.was_released(r, c)) { ... }
-                  // if (keypad.is_held(r, c)) { ... }
-              }
-          }
-      }
+      // Scan the keypad - observers will be notified automatically
+      keypad.scan();
 
       // Add a small delay to yield time
       sleep_ms(1);

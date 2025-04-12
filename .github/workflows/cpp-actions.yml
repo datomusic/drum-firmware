@@ -1,4 +1,4 @@
-name: Test and lint c++
+name: C++
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
         env:
           cache-name: cache-catch2
         with:
-          path: musin_test/build/Catch2
+          path: musin_test/Catch2
           key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-

@@ -73,7 +73,7 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
 
-      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+      - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
         name: Checkout etl
         run: git submodule update --init lib/etl
 

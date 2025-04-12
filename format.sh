@@ -24,6 +24,8 @@ function run(){
     -not -path './musin/drivers/*' \
     -not -path './musin/boards/*' \
     -not -path './musin/audio/waveshaper.*' \
+    -not -path './musin/audio/buffered_reader.h' \
+    -not -path './musin/audio/audio_memory_reader.h' \
     -not -path './experiments/support/samples/*' \
     -not -path './experiments/pizza_example/*' \
     -not -path './experiments/midi_sample_player/*' \

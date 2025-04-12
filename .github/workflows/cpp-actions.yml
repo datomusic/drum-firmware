@@ -19,6 +19,9 @@ jobs:
       - name: Check formatting
         run: bash format.sh check
 
+      - name: Checkout Catch2
+        run: git submodule update --init musin_test/Catch2
+
       - name: Test Musin
         working-directory: musin_test
         run: bash ./run_tests.sh

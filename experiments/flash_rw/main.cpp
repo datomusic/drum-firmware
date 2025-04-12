@@ -55,9 +55,6 @@ int main(void) {
   }
 }
 
-
-
-
 /*
 printf("Opening for reading\n");
 

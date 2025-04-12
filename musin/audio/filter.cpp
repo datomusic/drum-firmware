@@ -82,7 +82,7 @@ void Filter::update_fixed(const AudioBlock &in, Filter::Outputs &outputs) {
     *lowpass_iterator++ = lowpasstmp;
     *bandpass_iterator++ = bandpasstmp;
     *highpass_iterator++ = highpasstmp;
-  } while (input_iterator< end);
+  } while (input_iterator < end);
 
   state_inputprev = inputprev;
   state_lowpass = lowpass;
@@ -123,9 +123,8 @@ void Filter::update_variable(const AudioBlock &in, const AudioBlock &ctl,
     n = multiply_accumulate_32x32_rshift32_rounded(536870912, x, 1494202713);
     int32_t sq = multiply_32x32_rshift32_rounded(x, x);
     n = multiply_accumulate_32x32_rshift32_rounded(n, sq, 1934101615);
-    n = n + (multiply_32x32_rshift32_rounded(
-                 sq, multiply_32x32_rshift32_rounded(x, 1358044250))
-             << 1);
+    n = n +
+        (multiply_32x32_rshift32_rounded(sq, multiply_32x32_rshift32_rounded(x, 1358044250)) << 1);
     n = n << 1;
 #else
     // exp2 algorithm by Laurent de Soras
@@ -149,9 +148,8 @@ void Filter::update_variable(const AudioBlock &in, const AudioBlock &ctl,
     // From "Fast Polynomial Approximations to Sine and Cosine"
     // Charles K Garrett, http://krisgarrett.net/
     fmult = (multiply_32x32_rshift32_rounded(fmult, 2145892402) +
-             multiply_32x32_rshift32_rounded(
-                 multiply_32x32_rshift32_rounded(fmult, fmult),
-                 multiply_32x32_rshift32_rounded(fmult, -1383276101)))
+             multiply_32x32_rshift32_rounded(multiply_32x32_rshift32_rounded(fmult, fmult),
+                                             multiply_32x32_rshift32_rounded(fmult, -1383276101)))
             << 1;
 #endif
     // now do the state variable filter as normal, using fmult

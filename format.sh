@@ -12,6 +12,7 @@ function run(){
   find "$root" -regex '.*\.\(h\|c\|cpp\|hpp\|cc\|cxx\)' \
     -not -path '*build*' \
     -not -path '*.ccls-cache*' \
+    -not -path './musin_test/Catch2/*' \
     -not -path './musin/ports/pico/libraries/*' \
     -not -path './musin/ports/pico/pico-sdk/*' \
     -not -path './musin/ports/pico/pico-extras/*' \
@@ -39,3 +40,4 @@ function check(){
 run ./experiments
 run ./drum
 run ./musin
+run ./musin_test

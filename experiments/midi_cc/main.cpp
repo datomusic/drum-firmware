@@ -63,22 +63,17 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
  * Statically configured, no dynamic memory allocation.
  * This remains specific to the experiment.
  */
-struct MIDICCObserver {
+struct CCMapping {
   const uint8_t cc_number;
   const uint8_t midi_channel;
   
-  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  
   // Constructor
-  constexpr MIDICCObserver(uint8_t cc, uint8_t channel)
+  constexpr CCMapping(const uint8_t cc, const uint8_t channel = 0)
       : cc_number(cc), midi_channel(channel) {}
   
-  constexpr void operator () (const float value, MIDISendFn sender) const {
+  constexpr uint8_t map(const float value) const {
       // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
-      const uint8_t cc_value = static_cast<uint8_t>(value * 127.0f);
-      
-      // Send MIDI CC message through function pointer
-      sender(midi_channel, cc_number, cc_value);
+      return static_cast<uint8_t>(value * 127.0f);
   }
 };
 
@@ -132,23 +127,23 @@ static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_c
 // --- End Keypad MIDI Map Observer ---
 
 // Define MIDI observers statically
-static etl::array<MIDICCObserver, 16> cc_observers = {{
-  {16, 0},
-  {17, 0},
-  {18, 0},
-  {19, 0},
-  {20, 0},
-  {21, 0},
-  {22, 0},
-  {23, 0},
-  {24, 0},
-  {25, 0},
-  {26, 0},
-  {27, 0},
-  {28, 0},
-  {29, 0},
-  {30, 0},
-  {31, 0}
+static etl::array<CCMapping, 16> cc_mappings = {{
+  CCMapping(16),
+  CCMapping(17),
+  CCMapping(18),
+  CCMapping(19),
+  CCMapping(20),
+  CCMapping(21),
+  CCMapping(22),
+  CCMapping(23),
+  CCMapping(24),
+  CCMapping(25),
+  CCMapping(26),
+  CCMapping(27),
+  CCMapping(28),
+  CCMapping(29),
+  CCMapping(30),
+  CCMapping(31)
 }};
 
 // Statically allocate multiplexed controls using the class from musin::ui
@@ -172,6 +167,18 @@ static etl::array<AnalogControl, 16> mux_controls = {{
 }};
 
 
+static void read_analog_controls() {
+  size_t control_index = 0;
+  for (size_t i = 0; i < mux_controls.size(); ++i) {
+    const auto result = mux_controls[i].update();
+    if (result.has_value()) {
+      const auto mapping = cc_mappings[control_index];
+      const uint8_t value = mapping.map(result.value().value);
+      send_midi_cc(mapping.midi_channel, mapping.cc_number, value);
+    }
+  }
+}
+
 int main() {
   stdio_init_all();
   
@@ -193,14 +200,7 @@ int main() {
   printf("Initialized %zu analog controls\n", std::size(mux_controls));
 
   while (true) {
-      // Update all analog mux controls - observers will be notified automatically
-      size_t control_index = 0;
-      for (size_t i = 0; i < mux_controls.size(); ++i) {
-        const auto result = mux_controls[i].update();
-        if (result.has_value()) {
-          cc_observers[control_index](result.value().value, send_midi_cc);
-        }
-      }
+      read_analog_controls();
 
       // Scan the keypad - observers will be notified automatically
       keypad.scan();

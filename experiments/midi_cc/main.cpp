@@ -18,7 +18,6 @@ extern "C" {
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
-using Musin::UI::KeyData;
 
 constexpr uint32_t PIN_ADDR_0 = 29;
 constexpr uint32_t PIN_ADDR_1 = 6;

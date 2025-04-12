@@ -18,10 +18,6 @@ struct AnalogControlEvent {
     uint16_t raw_value;
 };
 
-// Forward declaration
-class AnalogControl;
-
-
 /**
  * @brief Represents a physical analog control (pot, fader, etc)
  * Using compile-time configuration and static allocation

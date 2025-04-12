@@ -10,8 +10,7 @@ static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
 
 static void fill_sine_table() {
   for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
-    sine_wave_table[i] =
-        32767 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN));
+    sine_wave_table[i] = 32767 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN));
   }
 }
 
@@ -21,8 +20,7 @@ uint32_t pos0 = 0;
 uint32_t pos1 = 0;
 const uint32_t pos_max = 0x10000 * SINE_WAVE_TABLE_LEN;
 
-static void sine_fill_buffer(const unsigned int volume,
-                             audio_buffer_t *buffer) {
+static void sine_fill_buffer(const unsigned int volume, audio_buffer_t *buffer) {
   int32_t *samples = (int32_t *)buffer->buffer->bytes;
   for (unsigned int i = 0; i < buffer->max_sample_count; i++) {
     int32_t value0 = (volume * sine_wave_table[pos0 >> 16u]) << 8u;

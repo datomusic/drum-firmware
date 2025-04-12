@@ -38,7 +38,8 @@ MemorySound gong(AudioSampleGong, AudioSampleGongSize);
 MemorySound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 MemorySound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-const etl::array<BufferSource *, 4> sounds = {&kick.sound, &snare.sound, &hihat.sound, &cashreg.sound};
+const etl::array<BufferSource *, 4> sounds = {&kick.sound, &snare.sound, &hihat.sound,
+                                              &cashreg.sound};
 AudioMixer mixer(sounds);
 
 Crusher crusher(mixer);

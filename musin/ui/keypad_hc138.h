@@ -33,7 +33,7 @@ struct KeypadEvent {
 };
 
 // Forward declaration
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers>
+template<std::uint8_t NumRows, std::uint8_t NumCols>
 class Keypad_HC138;
 
 

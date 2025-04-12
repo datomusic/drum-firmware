@@ -54,10 +54,6 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers
     5'000U,  //  5ms debounce time
     1'000'000U // 1 second hold time
 );
-// --- End Keypad Configuration ---
-
-// Define the function pointer type needed by observers
-
 
 
 // The actual MIDI sending function (currently prints)
@@ -66,7 +62,65 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
 }
 
 // --- Keypad MIDI Map Observer Implementation ---
-#include "observers.h"
+/**
+ * @brief MIDI CC observer implementation
+ * Statically configured, no dynamic memory allocation.
+ * This remains specific to the experiment.
+ */
+struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
+  const uint8_t cc_number;
+  const uint8_t midi_channel;
+  
+  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+  const MIDISendFn _send_midi;
+  
+  // Constructor
+  constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
+      : cc_number(cc), midi_channel(channel), _send_midi(sender) {}
+  
+  void notification(Musin::UI::AnalogControlEvent event) override {
+      // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
+      uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+      
+      // Send MIDI CC message through function pointer
+      _send_midi(midi_channel, cc_number, cc_value);
+  }
+};
+
+struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
+  const std::array<uint8_t, 40>& _cc_map; // Assuming 40 keys (8 rows x 5 cols)
+  const uint8_t _midi_channel;
+
+  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+  const MIDISendFn _send_midi;
+
+  // Constructor
+  constexpr KeypadMIDICCMapObserver(
+      const std::array<uint8_t, 40>& map,
+      uint8_t channel,
+      MIDISendFn sender)
+      : _cc_map(map), _midi_channel(channel), _send_midi(sender) {}
+
+  void notification(Musin::UI::KeypadEvent event) override {
+      uint8_t key_index = event.row * 5 + event.col; // Assuming 5 columns
+      if (key_index >= _cc_map.size()) return;
+
+      uint8_t cc_number = _cc_map[key_index];
+      if (cc_number == 0) return; // Check if a valid CC was assigned
+
+      switch(event.type) {
+          case Musin::UI::KeypadEvent::Type::Pressed:
+              _send_midi(_midi_channel, cc_number, 100); // Send CC ON
+              break;
+          case Musin::UI::KeypadEvent::Type::Released:
+              _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
+              break;
+          case Musin::UI::KeypadEvent::Type::Held:
+              _send_midi(_midi_channel, cc_number, 127); // Send CC HOLD
+              break;
+      }
+  }
+};
 
 // Define the mapping from key index (0-39) to MIDI CC number
 // Example: Starting at CC 32 and incrementing. Customize as needed.
@@ -134,9 +188,7 @@ int main() {
   keypad.init();
   printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
   
-  if (!keypad.add_observer(keypad_map_observer)) {
-      printf("Error: Could not attach keypad map observer!\n");
-  }
+  keypad.add_observer(keypad_map_observer);
 
   // Ensure control and observer arrays have the same size before iterating
   static_assert(std::size(mux_controls) == std::size(cc_observers), 
@@ -145,10 +197,7 @@ int main() {
   // Initialize Analog Controls using std::size to determine the loop bounds
   for (size_t i = 0; i < std::size(mux_controls); ++i) {
     mux_controls[i].init();
-    if (!mux_controls[i].add_observer(cc_observers[i])) {
-        printf("Error: Could not attach observer for analog control %zu (ID: %u)\n", i, mux_controls[i].get_id());
-        // Handle error appropriately if needed
-    }
+    mux_controls[i].add_observer(cc_observers[i]);
   }
 
   printf("Initialized %zu analog controls\n", std::size(mux_controls));

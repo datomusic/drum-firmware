@@ -52,8 +52,10 @@ struct Crusher : BufferSource {
 
   void sampleRate(const float hz) {
     // Clamp frequency to valid range before calculating step
-    float clamped_hz = etl::clamp(hz, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
-    int n = static_cast<int>(std::round(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / clamped_hz)); // Use std::round
+    float clamped_hz = etl::clamp(hz, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f,
+                                  static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
+    int n = static_cast<int>(std::round(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) /
+                                        clamped_hz)); // Use std::round
     // Clamp step to [1, 64]
     sampleStep = etl::clamp(n, 1, 64);
   }
@@ -65,10 +67,10 @@ struct Crusher : BufferSource {
    * @param squish_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void squish(float squish_normalized) {
-      float clamped_squish = etl::clamp(squish_normalized, 0.0f, 1.0f);
-      // Map 0.0 -> 16, 1.0 -> 1
-      float b_float = 16.0f - clamped_squish * 15.0f;
-      bits(static_cast<uint8_t>(std::round(b_float))); // Use std::round
+    float clamped_squish = etl::clamp(squish_normalized, 0.0f, 1.0f);
+    // Map 0.0 -> 16, 1.0 -> 1
+    float b_float = 16.0f - clamped_squish * 15.0f;
+    bits(static_cast<uint8_t>(std::round(b_float))); // Use std::round
   }
 
   /**
@@ -78,18 +80,17 @@ struct Crusher : BufferSource {
    * @param squeeze_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void squeeze(float squeeze_normalized) {
-      float clamped_squeeze = etl::clamp(squeeze_normalized, 0.0f, 1.0f);
-      // Logarithmic mapping: 0.0 -> SAMPLE_FREQ, 1.0 -> SAMPLE_FREQ/64
-      const float min_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f;
-      const float max_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
-      const float log_min = std::log(min_rate); // Use std::log
-      const float log_max = std::log(max_rate); // Use std::log
-      // Inverse mapping: squeeze=0 -> log_max, squeeze=1 -> log_min
-      const float log_rate = log_max - clamped_squeeze * (log_max - log_min);
-      const float rate_hz = std::exp(log_rate); // Use std::exp
-      sampleRate(rate_hz);
+    float clamped_squeeze = etl::clamp(squeeze_normalized, 0.0f, 1.0f);
+    // Logarithmic mapping: 0.0 -> SAMPLE_FREQ, 1.0 -> SAMPLE_FREQ/64
+    const float min_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f;
+    const float max_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
+    const float log_min = std::log(min_rate); // Use std::log
+    const float log_max = std::log(max_rate); // Use std::log
+    // Inverse mapping: squeeze=0 -> log_max, squeeze=1 -> log_min
+    const float log_rate = log_max - clamped_squeeze * (log_max - log_min);
+    const float rate_hz = std::exp(log_rate); // Use std::exp
+    sampleRate(rate_hz);
   }
-
 
 private:
   void crush(AudioBlock &samples);

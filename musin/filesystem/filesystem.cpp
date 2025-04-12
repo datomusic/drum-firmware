@@ -10,8 +10,7 @@ namespace Musin::Filesystem {
 
 bool init(bool force_format) {
   printf("init_filesystem, force_format: %b\n", force_format);
-  blockdevice_t *flash =
-      blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
+  blockdevice_t *flash = blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
   filesystem_t *lfs = filesystem_littlefs_create(500, 16);
 
   printf("Mounting filesystem\n");

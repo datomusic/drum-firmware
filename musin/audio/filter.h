@@ -29,8 +29,8 @@
 #define filter_variable_h_
 
 #include "audio_output.h"
-#include <cstdint>
 #include <cmath> // Include for std::log, std::exp
+#include <cstdint>
 #include <etl/math.h>
 
 struct Filter {
@@ -55,13 +55,11 @@ struct Filter {
     else if (freq > AudioOutput::SAMPLE_FREQUENCY / 2.5f)
       freq = AudioOutput::SAMPLE_FREQUENCY / 2.5f;
     setting_fcenter =
-        (freq * (3.141592654f / (AudioOutput::SAMPLE_FREQUENCY * 2.0f))) *
-        2147483647.0f;
+        (freq * (3.141592654f / (AudioOutput::SAMPLE_FREQUENCY * 2.0f))) * 2147483647.0f;
     // TODO: should we use an approximation when freq is not a const,
     // so the sinf() function isn't linked?
     setting_fmult =
-        sinf(freq * (3.141592654f / (AudioOutput::SAMPLE_FREQUENCY * 2.0f))) *
-        2147483647.0f;
+        sinf(freq * (3.141592654f / (AudioOutput::SAMPLE_FREQUENCY * 2.0f))) * 2147483647.0f;
   }
 
   void resonance(float q) {
@@ -84,8 +82,8 @@ struct Filter {
     setting_octavemult = n * 4096.0f;
   }
 
-  void update_variable(const AudioBlock &input_samples,
-                       const AudioBlock &control, Outputs &outputs);
+  void update_variable(const AudioBlock &input_samples, const AudioBlock &control,
+                       Outputs &outputs);
   void update_fixed(const AudioBlock &input_samples, Outputs &outputs);
 
   /**
@@ -94,7 +92,7 @@ struct Filter {
    * @param freq_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void frequency_normalized(float freq_normalized) {
-      calculate_frequency(etl::clamp(freq_normalized, 0.0f, 1.0f));
+    calculate_frequency(etl::clamp(freq_normalized, 0.0f, 1.0f));
   }
 
   /**
@@ -103,29 +101,28 @@ struct Filter {
    * @param res_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void resonance_normalized(float res_normalized) {
-      calculate_resonance(etl::clamp(res_normalized, 0.0f, 1.0f));
+    calculate_resonance(etl::clamp(res_normalized, 0.0f, 1.0f));
   }
-
 
 private:
   // Internal frequency calculation based on normalized input
   void calculate_frequency(float freq_normalized) {
-      // Logarithmic mapping: 0.0 -> 20Hz, 1.0 -> SAMPLE_FREQ / 2.5f
-      const float min_freq = 20.0f;
-      const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 2.5f;
-      const float log_min = std::log(min_freq); // Use std::log
-      const float log_max = std::log(max_freq); // Use std::log
-      const float log_freq = log_min + freq_normalized * (log_max - log_min);
-      const float freq_hz = std::exp(log_freq); // Use std::exp
-      frequency(freq_hz); // Call the original frequency setter
+    // Logarithmic mapping: 0.0 -> 20Hz, 1.0 -> SAMPLE_FREQ / 2.5f
+    const float min_freq = 20.0f;
+    const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 2.5f;
+    const float log_min = std::log(min_freq); // Use std::log
+    const float log_max = std::log(max_freq); // Use std::log
+    const float log_freq = log_min + freq_normalized * (log_max - log_min);
+    const float freq_hz = std::exp(log_freq); // Use std::exp
+    frequency(freq_hz);                       // Call the original frequency setter
   }
   // Internal resonance calculation based on normalized input
   void calculate_resonance(float res_normalized) {
-      // Linear mapping: 0.0 -> 0.7, 1.0 -> 5.0
-      const float min_q = 0.7f;
-      const float max_q = 5.0f;
-      const float q = min_q + res_normalized * (max_q - min_q);
-      resonance(q); // Call the original resonance setter
+    // Linear mapping: 0.0 -> 0.7, 1.0 -> 5.0
+    const float min_q = 0.7f;
+    const float max_q = 5.0f;
+    const float q = min_q + res_normalized * (max_q - min_q);
+    resonance(q); // Call the original resonance setter
   }
 
   int32_t setting_fcenter;
@@ -144,24 +141,22 @@ struct Lowpass : BufferSource {
   void fill_buffer(AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
-    etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(),
-              out_samples.begin());
+    etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(), out_samples.begin());
   }
 
   /**
    * @brief Sets the filter cutoff frequency using a normalized value [0.0, 1.0].
    */
   void frequency(float freq_normalized) {
-      filter.frequency_normalized(freq_normalized);
+    filter.frequency_normalized(freq_normalized);
   }
 
   /**
    * @brief Sets the filter resonance using a normalized value [0.0, 1.0].
    */
   void resonance(float res_normalized) {
-      filter.resonance_normalized(res_normalized);
+    filter.resonance_normalized(res_normalized);
   }
-
 
   BufferSource &from;
   Filter::Outputs outputs;

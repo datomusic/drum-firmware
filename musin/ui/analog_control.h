@@ -23,7 +23,7 @@ struct AnalogControlEvent {
  * @brief Represents a physical analog control (pot, fader, etc)
  * Using compile-time configuration and static allocation
  */
-class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, 4> {
+class AnalogControl {
 public:
     /**
      * @brief Constructor for direct ADC pin connection
@@ -203,8 +203,6 @@ std::optional<AnalogControlEvent> AnalogControl::update() {
     
     // Check if the filtered value changed beyond threshold compared to the last notified value
     if (std::abs(_current_value - _last_notified_value) > _threshold) {
-        this->notify_observers(AnalogControlEvent{_id, _current_value, _current_raw});
-        _last_notified_value = _current_value; // Update the last notified value
         return AnalogControlEvent{_id, _current_value, _current_raw};
     }
 

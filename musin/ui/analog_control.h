@@ -19,18 +19,14 @@ struct AnalogControlEvent {
 };
 
 // Forward declaration
-template<uint8_t MaxObservers>
 class AnalogControl;
 
 
 /**
  * @brief Represents a physical analog control (pot, fader, etc)
  * Using compile-time configuration and static allocation
- * 
- * @tparam MaxObservers Maximum number of observers for this control
  */
-template<uint8_t MaxObservers = 1>
-class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, MaxObservers> {
+class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, 4> {
 public:
     /**
      * @brief Constructor for direct ADC pin connection
@@ -129,18 +125,16 @@ private:
 // --- Template Implementation ---
 // Implementation is included directly in the header for template classes
 
-template<uint8_t MaxObservers>
-AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, float threshold)
+AnalogControl::AnalogControl(uint16_t id, uint32_t adc_pin, float threshold)
     : _id(id), 
       _threshold(threshold),
       _input_type(InputType::Direct),
       _analog_in(adc_pin) { // Construct directly in the union member
 }
 
-template<uint8_t MaxObservers>
-AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, 
-                                          const std::array<std::uint32_t, 3>& mux_address_pins,
-                                          uint8_t mux_channel, float threshold)
+AnalogControl::AnalogControl(uint16_t id, uint32_t adc_pin, 
+                            const std::array<std::uint32_t, 3>& mux_address_pins,
+                            uint8_t mux_channel, float threshold)
     : _id(id), 
       _threshold(threshold),
       _input_type(InputType::Mux8) {
@@ -149,10 +143,9 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin,
     new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
 }
 
-template<uint8_t MaxObservers>
-AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin, 
-                                          const std::array<std::uint32_t, 4>& mux_address_pins,
-                                          uint8_t mux_channel, float threshold)
+AnalogControl::AnalogControl(uint16_t id, uint32_t adc_pin, 
+                            const std::array<std::uint32_t, 4>& mux_address_pins,
+                            uint8_t mux_channel, float threshold)
     : _id(id), 
       _threshold(threshold),
       _input_type(InputType::Mux16) {
@@ -161,8 +154,7 @@ AnalogControl<MaxObservers>::AnalogControl(uint16_t id, uint32_t adc_pin,
     new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
 }
 
-template<uint8_t MaxObservers>
-void AnalogControl<MaxObservers>::init() {
+void AnalogControl::init() {
     // Initialize the appropriate hardware
     switch (_input_type) {
         case InputType::Direct:
@@ -180,8 +172,7 @@ void AnalogControl<MaxObservers>::init() {
     _last_notified_value = _current_value; 
 }
 
-template<uint8_t MaxObservers>
-void AnalogControl<MaxObservers>::read_input() {
+void AnalogControl::read_input() {
     float raw_normalized = 0.0f;
     
     // Read from either direct ADC or multiplexer
@@ -209,8 +200,7 @@ void AnalogControl<MaxObservers>::read_input() {
     _current_value = _filtered_value;
 }
 
-template<uint8_t MaxObservers>
-bool AnalogControl<MaxObservers>::update() {
+bool AnalogControl::update() {
     // Read and filter input - this updates _current_value
     read_input();
     

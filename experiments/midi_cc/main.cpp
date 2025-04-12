@@ -47,7 +47,7 @@ constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
 
 // Static instance of the keypad driver
-static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, 1> keypad( // Specify MaxObservers = 1 (or more if needed)
+static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
     keypad_decoder_pins,
     keypad_columns_pins,
     10'000U, // 10ms scan time
@@ -157,7 +157,7 @@ static MIDICCObserver cc_observers[] = {
 };
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static AnalogControl<1> mux_controls[] = { // Unique ID, ADC pin, address pins, address
+static AnalogControl mux_controls[] = { // Unique ID, ADC pin, address pins, address
   {10, PIN_ADC, analog_address_pins, 0 },
   {11, PIN_ADC, analog_address_pins, 1 },
   {12, PIN_ADC, analog_address_pins, 2 },

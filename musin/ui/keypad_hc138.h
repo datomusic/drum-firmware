@@ -69,8 +69,8 @@ struct KeyData {
  * @tparam NumCols Number of columns (>0).
  * @tparam MaxObservers Maximum number of observers that can be attached.
  */
-template<std::uint8_t NumRows, std::uint8_t NumCols, std::uint8_t MaxObservers = 1>
-class Keypad_HC138 : public etl::observable<etl::observer<KeypadEvent>, MaxObservers> {
+template<std::uint8_t NumRows, std::uint8_t NumCols>
+class Keypad_HC138 : public etl::observable<etl::observer<KeypadEvent>, 4> {
 public:
     // --- Compile-time validation ---
     static_assert(NumRows > 0 && NumRows <= 8, "Keypad_HC138: NumRows must be between 1 and 8.");

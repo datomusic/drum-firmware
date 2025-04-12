@@ -19,4 +19,8 @@ jobs:
       - name: Check formatting
         run: bash format.sh check
 
+      - name: Test Musin
+        working-directory: musin_test
+        run: bash ./run_tests.sh
+
 

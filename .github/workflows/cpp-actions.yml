@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  lint:
+  Lint:
     runs-on: ubuntu-latest
     steps:
       - name: Install clang-format
@@ -21,6 +21,12 @@ jobs:
 
       - name: Check formatting
         run: bash format.sh check
+
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Checkout Catch2
         run: git submodule update --init musin_test/Catch2

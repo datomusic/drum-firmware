@@ -41,8 +41,19 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
             
-      - name: Checkout Catch2
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Checkout Catch2
         run: git submodule update --init musin_test/Catch2
+
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Build Catch2
+        working-directory: musin_test/Catch2
+        run: cmake -B build -S . -DBUILD_TESTING=OFF
+
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Install Catch2
+        working-directory: musin_test/Catch2
+        run: sudo cmake --build build/ --target install
 
       - name: Checkout etl
         run: git submodule update --init lib/etl

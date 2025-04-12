@@ -55,7 +55,21 @@ jobs:
         working-directory: musin_test/Catch2
         run: sudo cmake --build build/ --target install
 
-      - name: Checkout etl
+      - id: cache-etl
+        name: Cache Catch2
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-etl
+        with:
+          path: lib/etl
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Checkout etl
         run: git submodule update --init lib/etl
 
       - name: Test Musin

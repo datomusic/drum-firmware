@@ -120,7 +120,6 @@ private:
     
     
     // Internal methods
-    void notify_observers();
     void read_input();
 
     // Value tracking

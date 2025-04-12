@@ -29,6 +29,8 @@ constexpr uint32_t PIN_RING_3 = 13;
 constexpr uint32_t PIN_RING_4 = 11;
 constexpr uint32_t PIN_RING_5 = 10;
 
+// Static array for multiplexer address pins (AnalogControls use 4)
+const std::array<std::uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
 // Static array for keypad column pins
 const std::array<uint, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4, PIN_RING_5};
 // Static array for keypad decoder address pins (uses first 3)
@@ -150,31 +152,24 @@ static etl::array<MIDICCObserver, 16> cc_observers = {{
   {31, 0, send_midi_cc}
 }};
 
-
-static const auto config = AnalogControl::Config<4>{
-  .mux_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3},
-  .adc_pin = PIN_ADC,
-  .mux_channel = 0
-};
-
 // Statically allocate multiplexed controls using the class from musin::ui
 static etl::array<AnalogControl, 16> mux_controls = {{
-  {10, config.with_channel(0)},
-  {11, config.with_channel(1)},
-  {12, config.with_channel(2)},
-  {13, config.with_channel(3)},
-  {14, config.with_channel(4)},
-  {15, config.with_channel(5)},
-  {16, config.with_channel(6)},
-  {17, config.with_channel(7)},
-  {18, config.with_channel(8)},
-  {19, config.with_channel(9)},
-  {20, config.with_channel(10)},
-  {21, config.with_channel(11)},
-  {22, config.with_channel(12)},
-  {23, config.with_channel(13)},
-  {24, config.with_channel(14)},
-  {25, config.with_channel(15)}
+  {10, PIN_ADC, analog_address_pins, 0 },
+  {11, PIN_ADC, analog_address_pins, 1 },
+  {12, PIN_ADC, analog_address_pins, 2 },
+  {13, PIN_ADC, analog_address_pins, 3 },
+  {14, PIN_ADC, analog_address_pins, 4 },
+  {15, PIN_ADC, analog_address_pins, 5 },
+  {16, PIN_ADC, analog_address_pins, 6 },
+  {17, PIN_ADC, analog_address_pins, 7 },
+  {18, PIN_ADC, analog_address_pins, 8 },
+  {19, PIN_ADC, analog_address_pins, 9 },
+  {20, PIN_ADC, analog_address_pins, 10 },
+  {21, PIN_ADC, analog_address_pins, 11 },
+  {22, PIN_ADC, analog_address_pins, 12 },
+  {23, PIN_ADC, analog_address_pins, 13 },
+  {24, PIN_ADC, analog_address_pins, 14 },
+  {25, PIN_ADC, analog_address_pins, 15 }
 }};
 
 

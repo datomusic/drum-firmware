@@ -38,8 +38,8 @@ MemorySound gong(AudioSampleGong, AudioSampleGongSize);
 MemorySound cashreg(AudioSampleCashregister, AudioSampleCashregisterSize);
 MemorySound hihat(AudioSampleHihat, AudioSampleHihatSize);
 
-const etl::array<BufferSource *, 4> sounds = {&kick.sound, &snare.sound,
-                                              &hihat.sound, &cashreg.sound};
+const etl::array<BufferSource *, 4> sounds = {&kick.sound, &snare.sound, &hihat.sound,
+                                              &cashreg.sound};
 AudioMixer mixer(sounds);
 
 Crusher crusher(mixer);
@@ -67,8 +67,7 @@ int main() {
   auto crush_index = 0;
 
   const std::array pitches{0.6f, 0.3f, 1.0f, 1.9f, 1.4f};
-  const std::array freqs{200.0f,  500.0f,  700.0f,   1200.0f,
-                         2000.0f, 5000.0f, 10000.0f, 20000.0f};
+  const std::array freqs{200.0f, 500.0f, 700.0f, 1200.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f};
   const std::array crush_rates{2489.0f, 44100.0f}; // Also make 44100 a float
 
   lowpass.filter.resonance(3.0f);
@@ -96,7 +95,7 @@ int main() {
 
         const auto pitch = pitches[pitch_index];
         // Cast to Sound* before calling play()
-        static_cast<Sound*>(sound_buffer_source)->play(pitch);
+        static_cast<Sound *>(sound_buffer_source)->play(pitch);
         sound_index = (sound_index + 1) % sounds.size();
 
         if (sound_index == 0) {

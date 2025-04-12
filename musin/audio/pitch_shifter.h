@@ -6,8 +6,7 @@
 #include <stdint.h>
 
 struct PitchShifter : SampleReader {
-  PitchShifter(SampleReader &reader)
-      : speed(1), sample_reader(reader), buffered_reader(reader) {
+  PitchShifter(SampleReader &reader) : speed(1), sample_reader(reader), buffered_reader(reader) {
   }
 
   // Reader interface

@@ -35,8 +35,7 @@ struct audio_buffer_pool *init_audio() {
       .channel_count = 1,
   };
 
-  static struct audio_buffer_format producer_format = {.format = &audio_format,
-                                                       .sample_stride = 2};
+  static struct audio_buffer_format producer_format = {.format = &audio_format, .sample_stride = 2};
 
   struct audio_buffer_pool *producer_pool =
       audio_new_producer_pool(&producer_format, 3,
@@ -65,8 +64,7 @@ int main() {
   stdio_init_all();
 
   for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
-    sine_wave_table[i] =
-        32767 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN));
+    sine_wave_table[i] = 32767 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN));
   }
 
   struct audio_buffer_pool *ap = init_audio();

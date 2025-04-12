@@ -4,16 +4,15 @@
 #include <USB-MIDI.h>
 
 static USBMIDI_NAMESPACE::usbMidiTransport usbTransport(0);
-static MIDI_NAMESPACE::MidiInterface<USBMIDI_NAMESPACE::usbMidiTransport>
-    usb_midi(usbTransport);
+static MIDI_NAMESPACE::MidiInterface<USBMIDI_NAMESPACE::usbMidiTransport> usb_midi(usbTransport);
 
 static PicoUART serial;
 static MIDI_NAMESPACE::SerialMIDI<PicoUART> serialTransport(serial);
 static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<PicoUART>>
     serial_midi(serialTransport);
 
-#define ALL_TRANSPORTS(function_call)                                          \
-  usb_midi.function_call;                                                      \
+#define ALL_TRANSPORTS(function_call)                                                              \
+  usb_midi.function_call;                                                                          \
   serial_midi.function_call;
 
 void MIDI::init(const Callbacks &callbacks) {
@@ -44,18 +43,15 @@ void MIDI::sendRealTime(const midi::MidiType message) {
   ALL_TRANSPORTS(sendRealTime(message));
 }
 
-void MIDI::sendControlChange(const byte cc, const byte value,
-                             const byte channel) {
+void MIDI::sendControlChange(const byte cc, const byte value, const byte channel) {
   ALL_TRANSPORTS(sendControlChange(cc, value, channel));
 }
 
-void MIDI::sendNoteOn(const byte note, const byte velocity,
-                      const byte channel) {
+void MIDI::sendNoteOn(const byte note, const byte velocity, const byte channel) {
   ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
 }
 
-void MIDI::sendNoteOff(const byte note, const byte velocity,
-                       const byte channel) {
+void MIDI::sendNoteOff(const byte note, const byte velocity, const byte channel) {
   ALL_TRANSPORTS(sendNoteOff(note, velocity, channel));
 }
 

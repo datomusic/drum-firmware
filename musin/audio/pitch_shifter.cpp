@@ -1,7 +1,6 @@
 #include "pitch_shifter.h"
 
-static int16_t quad_interpolate(int16_t d1, int16_t d2, int16_t d3, int16_t d4,
-                                float x) {
+static int16_t quad_interpolate(int16_t d1, int16_t d2, int16_t d3, int16_t d4, float x) {
   float x_1 = x * 1000.0;
   float x_2 = x_1 * x_1;
   float x_3 = x_2 * x_1;
@@ -39,12 +38,11 @@ void PitchShifter::shift_interpolation_samples(int16_t sample) {
 }
 
 uint32_t PitchShifter::read_resampled(AudioBlock &out) {
-  for (uint32_t out_sample_index = 0; out_sample_index < out.size();
-       ++out_sample_index) {
+  for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
 
-    const int16_t interpolated_value = quad_interpolate(
-        interpolation_samples[0], interpolation_samples[1],
-        interpolation_samples[2], interpolation_samples[3], 1.0 + remainder);
+    const int16_t interpolated_value =
+        quad_interpolate(interpolation_samples[0], interpolation_samples[1],
+                         interpolation_samples[2], interpolation_samples[3], 1.0 + remainder);
 
     this->position += this->speed;
     const uint32_t new_source_index = (uint32_t)(position);

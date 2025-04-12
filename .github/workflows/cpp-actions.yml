@@ -1,0 +1,22 @@
+name: Test and lint c++
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install clang-format
+        run: sudo apt install -y clang-format
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: bash format.sh check
+
+

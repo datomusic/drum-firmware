@@ -1,8 +1,8 @@
 #ifndef READER_H_IOD4JYAV
 #define READER_H_IOD4JYAV
 
-#include <stdint.h>
 #include "block.h"
+#include <stdint.h>
 
 struct SampleReader {
   virtual void reset() = 0;

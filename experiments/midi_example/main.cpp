@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include "bsp/board.h"
-#include "musin/usb/usb.h"
 #include "musin/midi/midi_wrapper.h"
+#include "musin/usb/usb.h"
 #include "tusb.h"
 #include <math.h>
 #include <stdio.h>
@@ -21,8 +21,7 @@ static void enter_bootloader() {
 }
 
 static void handle_sysex(byte *const data, const unsigned length) {
-  if (data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID &&
-      data[3] == SYSEX_REBOOT_BOOTLOADER) {
+  if (data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID && data[3] == SYSEX_REBOOT_BOOTLOADER) {
     enter_bootloader();
   }
 }
@@ -40,9 +39,8 @@ int main() {
   board_init();
   Musin::Usb::init();
 
-  MIDI::init(MIDI::Callbacks{.note_on = handle_note_on,
-                             .note_off = handle_note_off,
-                             .sysex = handle_sysex});
+  MIDI::init(MIDI::Callbacks{
+      .note_on = handle_note_on, .note_off = handle_note_off, .sysex = handle_sysex});
 
   static uint32_t last_ms = board_millis();
   while (1) {

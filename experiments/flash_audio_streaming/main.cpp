@@ -3,11 +3,11 @@
 #include "hardware/structs/clocks.h"
 #include "hardware/sync.h"
 #include "musin/audio/audio_memory_reader.h"
+#include "musin/audio/audio_output.h"
 #include "musin/audio/block.h"
 #include "musin/audio/file_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
-#include "musin/audio/audio_output.h"
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/usb/usb.h"
@@ -49,8 +49,8 @@ AudioMixer4 mixer((BufferSource **)sounds, 4);
 
 #define SAMPLE_COUNT 4
 FileSound *sounds[SAMPLE_COUNT] = {&hihat, &snare, &kick, &gong};
-const etl::array<BufferSource *, 4> sources = {&hihat.sound, &snare.sound,
-                                               &kick.sound, &gong.sound};
+const etl::array<BufferSource *, 4> sources = {&hihat.sound, &snare.sound, &kick.sound,
+                                               &gong.sound};
 AudioMixer<4> mixer(sources);
 
 static void store_sample(const char *file_name, const unsigned int *sample_data,
@@ -84,21 +84,18 @@ static void store_sample(const char *file_name, const unsigned int *sample_data,
 static void init_clock() {
   // Set PLL_USB 96MHz
   pll_init(pll_usb, 1, 1536 * MHZ, 4, 4);
-  clock_configure(clk_usb, 0, CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                  96 * MHZ, 48 * MHZ);
+  clock_configure(clk_usb, 0, CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 96 * MHZ, 48 * MHZ);
   // Change clk_sys to be 96MHz.
   clock_configure(clk_sys, CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
-                  CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 96 * MHZ,
-                  96 * MHZ);
+                  CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 96 * MHZ, 96 * MHZ);
   // CLK peri is clocked from clk_sys so need to change clk_peri's freq
-  clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-                  96 * MHZ, 96 * MHZ);
+  clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS, 96 * MHZ, 96 * MHZ);
 }
 
 static __not_in_flash_func void fill_audio_buffer(audio_buffer_t *out_buffer) {
   // printf("Filling buffer\n");
 
-  static AudioBlock temp_samples; // Use AudioBlock
+  static AudioBlock temp_samples;  // Use AudioBlock
   mixer.fill_buffer(temp_samples); // Pass AudioBlock
 
   // Convert to 32bit stereo
@@ -115,12 +112,12 @@ static void handle_sysex(byte *const, const unsigned) {
 }
 
 void handle_cc([[maybe_unused]] byte channel, byte controller, byte value) {
-    if (controller == 7) { // MIDI Volume Control (CC7)
-        // Direct mapping: MIDI 0-127 to -127-0 (0dB at max)
-        int8_t volume = value - 127;
-        AudioOutput::volume(volume);
-        printf("Set volume to %d (CC7 value: %d)\n", volume, value);
-    }
+  if (controller == 7) { // MIDI Volume Control (CC7)
+    // Direct mapping: MIDI 0-127 to -127-0 (0dB at max)
+    int8_t volume = value - 127;
+    AudioOutput::volume(volume);
+    printf("Set volume to %d (CC7 value: %d)\n", volume, value);
+  }
 }
 
 void handle_note_on(byte, byte note, byte velocity) {

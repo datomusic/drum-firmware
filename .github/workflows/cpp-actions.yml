@@ -51,6 +51,10 @@ jobs:
         working-directory: musin_test/Catch2
         run: cmake -B build -S . -DBUILD_TESTING=OFF
 
+      - name: Build Catch2 for real
+        working-directory: musin_test/Catch2/build
+        run: make
+
       - name: Install Catch2
         working-directory: musin_test/Catch2
         run: sudo cmake --build build/ --target install

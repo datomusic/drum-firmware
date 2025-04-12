@@ -32,7 +32,7 @@ jobs:
         name: Cache Catch2
         uses: actions/cache@v4
         env:
-          cache-name: cache-catch2
+          cache-name: cache-catch2-v2
         with:
           path: musin_test/Catch2
           key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2

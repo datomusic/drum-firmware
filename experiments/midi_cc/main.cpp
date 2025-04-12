@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <iterator>
 #include <etl/array.h>
-#include "etl/zip.h"
 
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -191,10 +190,10 @@ int main() {
   
   keypad.add_observer(keypad_map_observer);
 
-  // Initialize Analog Controls using etl::zip for paired iteration
-  for (const auto& [control, observer] : etl::zip(mux_controls, cc_observers)) {
-    control.init();
-    control.add_observer(observer);
+  // Initialize Analog Controls using index loop
+  for (size_t i = 0; i < mux_controls.size(); ++i) {
+    mux_controls[i].init();
+    mux_controls[i].add_observer(cc_observers[i]);
   }
 
   printf("Initialized %zu analog controls\n", std::size(mux_controls));

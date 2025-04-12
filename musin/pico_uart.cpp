@@ -8,7 +8,6 @@
 #define PIN_TX 1
 #define PIN_RX 1
 
-
 void PicoUART::begin(unsigned long baud_rate) {
   uart_init(UART, baud_rate);
   // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX

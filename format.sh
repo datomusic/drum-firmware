@@ -17,7 +17,6 @@ function run(){
     -not -path './musin/ports/pico/pico-extras/*' \
     -not -path './musin/usb/*' \
     -not -path './musin/ui/*' \
-    -not -path './musin/ui/*' \
     -not -path './musin/hal/*' \
     -not -path './musin/drivers/*' \
     -not -path './musin/boards/*' \
@@ -39,4 +38,4 @@ function check(){
 
 run ./experiments
 run ./drum
-# run ./musin
+run ./musin

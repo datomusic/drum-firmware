@@ -1,9 +1,9 @@
 // In your main C++ file (e.g., main.cpp)
 
-#include <pico/stdlib.h>
 #include "musin/ui/keypad_hc138.h" // Include the driver header
+#include <array>                   // Needed for std::array
+#include <pico/stdlib.h>
 #include <stdio.h>
-#include <array> // Needed for std::array
 
 // --- Define your keypad configuration ---
 constexpr std::uint8_t NUM_ROWS = 7;
@@ -23,14 +23,12 @@ Musin::UI::KeyData key_state_buffer[KEY_COUNT];
 
 // --- Create the keypad object ---
 // Pass pointers to the pin arrays and the state buffer
-Musin::UI::Keypad_HC138 keypad(
-  NUM_ROWS, NUM_COLS,
-  DECODER_ADDR_PINS,
-  COL_PINS,          // Pass the C-style array (decays to pointer)
-  key_state_buffer,  // Pass the state buffer
-  10000, // Scan interval: 10ms
-  8000,  // Debounce time: 8ms
-  400000 // Hold time: 400ms
+Musin::UI::Keypad_HC138 keypad(NUM_ROWS, NUM_COLS, DECODER_ADDR_PINS,
+                               COL_PINS,         // Pass the C-style array (decays to pointer)
+                               key_state_buffer, // Pass the state buffer
+                               10000,            // Scan interval: 10ms
+                               8000,             // Debounce time: 8ms
+                               400000            // Hold time: 400ms
 );
 
 int main() {
@@ -55,8 +53,8 @@ int main() {
           if (keypad.was_pressed(r, c)) {
             printf("Key Pressed:  (%u, %u)\n", r, c);
           }
-           if (keypad.was_released(r, c)) {
-             printf("Key Released: (%u, %u)\n", r, c);
+          if (keypad.was_released(r, c)) {
+            printf("Key Released: (%u, %u)\n", r, c);
           }
           // Check for hold *after* press, usually only want one message
           else if (keypad.is_held(r, c)) {

@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 
-function check(){
-  find "$@" -regex '.*\.\(h\|c\|cpp\|hpp\|cc\|cxx\)' \
+if [[ "$1" == "check" ]]; then
+  args='--dry-run'
+else
+  args='-i'
+fi
+
+function run(){
+  root="$1"
+
+  find "$root" -regex '.*\.\(h\|c\|cpp\|hpp\|cc\|cxx\)' \
     -not -path '*build*' \
     -not -path '*.ccls-cache*' \
     -not -path './musin/ports/pico/libraries/*' \
@@ -17,11 +25,18 @@ function check(){
     -not -path './experiments/support/samples/*' \
     -not -path './experiments/pizza_example/*' \
     -not -path './experiments/midi_sample_player/*' \
-    -not -path './experiments/keypad_example/*' \
     -not -path './experiments/drum_pad_test/*' \
-    -exec clang-format --dry-run -Werror {} \;
+    -exec clang-format -Werror "$args" {} \;
 }
 
-check ./experiments
-check ./drum
-# check ./musin
+function format(){
+  run "$1" -i
+}
+
+function check(){
+  run "$1" --dry-run
+}
+
+run ./experiments
+run ./drum
+# run ./musin

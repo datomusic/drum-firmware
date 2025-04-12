@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 if [[ "$1" == "check" ]]; then
   args='--dry-run'
 else
@@ -26,7 +28,7 @@ function run(){
     -not -path './experiments/pizza_example/*' \
     -not -path './experiments/midi_sample_player/*' \
     -not -path './experiments/drum_pad_test/*' \
-    -exec clang-format -Werror "$args" {} \;
+    -exec clang-format -Werror "$args" {} +
 }
 
 function format(){
@@ -41,3 +43,10 @@ run ./experiments
 run ./drum
 run ./musin
 run ./musin_test
+
+if [ $? -eq 0 ]; then
+  echo "All files are correctly formatted."
+  exit 0
+else
+  exit 1
+fi

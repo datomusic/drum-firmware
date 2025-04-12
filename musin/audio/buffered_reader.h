@@ -4,8 +4,7 @@
 #include <stdint.h>
 
 struct BufferedReader {
-  BufferedReader(SampleReader &reader) : reader(reader) 
-  {};
+  BufferedReader(SampleReader &reader) : reader(reader) {};
 
   void reset() {
     reader.reset();

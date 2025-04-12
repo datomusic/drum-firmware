@@ -63,23 +63,22 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
  * Statically configured, no dynamic memory allocation.
  * This remains specific to the experiment.
  */
-struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
+struct MIDICCObserver {
   const uint8_t cc_number;
   const uint8_t midi_channel;
   
   using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  const MIDISendFn _send_midi;
   
   // Constructor
-  constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
-      : cc_number(cc), midi_channel(channel), _send_midi(sender) {}
+  constexpr MIDICCObserver(uint8_t cc, uint8_t channel)
+      : cc_number(cc), midi_channel(channel) {}
   
-  void notification(Musin::UI::AnalogControlEvent event) override {
+  constexpr void operator () (const float value, MIDISendFn sender) const {
       // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
-      uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+      const uint8_t cc_value = static_cast<uint8_t>(value * 127.0f);
       
       // Send MIDI CC message through function pointer
-      _send_midi(midi_channel, cc_number, cc_value);
+      sender(midi_channel, cc_number, cc_value);
   }
 };
 
@@ -134,22 +133,22 @@ static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_c
 
 // Define MIDI observers statically
 static etl::array<MIDICCObserver, 16> cc_observers = {{
-  {16, 0, send_midi_cc},
-  {17, 0, send_midi_cc},
-  {18, 0, send_midi_cc},
-  {19, 0, send_midi_cc},
-  {20, 0, send_midi_cc},
-  {21, 0, send_midi_cc},
-  {22, 0, send_midi_cc},
-  {23, 0, send_midi_cc},
-  {24, 0, send_midi_cc},
-  {25, 0, send_midi_cc},
-  {26, 0, send_midi_cc},
-  {27, 0, send_midi_cc},
-  {28, 0, send_midi_cc},
-  {29, 0, send_midi_cc},
-  {30, 0, send_midi_cc},
-  {31, 0, send_midi_cc}
+  {16, 0},
+  {17, 0},
+  {18, 0},
+  {19, 0},
+  {20, 0},
+  {21, 0},
+  {22, 0},
+  {23, 0},
+  {24, 0},
+  {25, 0},
+  {26, 0},
+  {27, 0},
+  {28, 0},
+  {29, 0},
+  {30, 0},
+  {31, 0}
 }};
 
 // Statically allocate multiplexed controls using the class from musin::ui
@@ -199,7 +198,7 @@ int main() {
       for (size_t i = 0; i < mux_controls.size(); ++i) {
         const auto result = mux_controls[i].update();
         if (result.has_value()) {
-          cc_observers[control_index].notification(result.value());
+          cc_observers[control_index](result.value().value, send_midi_cc);
         }
       }
 

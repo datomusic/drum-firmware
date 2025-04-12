@@ -77,9 +77,9 @@ public:
     static_assert(NumCols > 0, "Keypad_HC138: NumCols must be greater than 0.");
 
   // --- Constants ---
-  static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_US = 10000; ///< 10ms default scan rate
-  static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_US = 5000;  ///< 5ms default debounce time
-  static constexpr std::uint32_t DEFAULT_HOLD_TIME_US = 500000;   ///< 500ms default hold time
+  static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_MS = 10; ///< 10ms default scan rate
+  static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_MS = 5;  ///< 5ms default debounce time
+  static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS = 500;   ///< 500ms default hold time
 
   /**
    * @brief Construct a new Keypad_HC138 driver instance.
@@ -87,16 +87,16 @@ public:
    * @param decoder_address_pins Array containing the 3 GPIO pin numbers for HC138 A0, A1, A2.
    * @param col_pins Array containing the GPIO pin numbers for the columns. Must contain `NumCols` elements.
    * @param key_data_buffer An etl::span wrapping the buffer allocated by the caller to store key states. Must contain `NumRows * NumCols` elements.
-   * @param scan_interval_us Time between full keypad scans in microseconds.
-   * @param debounce_time_us Time duration for debouncing transitions in microseconds.
-   * @param hold_time_us Minimum time a key must be pressed to be considered 'held'.
+   * @param scan_interval_ms Time between full keypad scans in milliseconds.
+   * @param debounce_time_ms Time duration for debouncing transitions in milliseconds.
+   * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
    */
   Keypad_HC138(const std::array<uint, 3>& decoder_address_pins,
                const std::array<uint, NumCols>& col_pins, // Use std::array reference
                // No longer need key_data_buffer parameter
-               std::uint32_t scan_interval_us = DEFAULT_SCAN_INTERVAL_US,
-               std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
-               std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US);
+               std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
+               std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,
+               std::uint32_t hold_time_ms = DEFAULT_HOLD_TIME_MS);
 
   // Prevent copying and assignment
   Keypad_HC138(const Keypad_HC138&) = delete;

@@ -20,13 +20,13 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
                            const std::array<uint, 3>& decoder_address_pins,
                            const std::array<uint, NumCols>& col_pins,
                            // No key_data_buffer parameter
-                           std::uint32_t scan_interval_us,
-                           std::uint32_t debounce_time_us,
-                           std::uint32_t hold_time_us):
-    // Store timing parameters
-    _scan_interval_us(scan_interval_us),
-    _debounce_time_us(debounce_time_us),
-    _hold_time_us(hold_time_us),
+                           std::uint32_t scan_interval_ms,
+                           std::uint32_t debounce_time_ms,
+                           std::uint32_t hold_time_ms):
+    // Store timing parameters (convert ms to us for internal storage)
+    _scan_interval_us(scan_interval_ms * 1000),
+    _debounce_time_us(debounce_time_ms * 1000),
+    _hold_time_us(hold_time_ms * 1000),
     // _internal_key_data is default-initialized (member array)
     // Initialize time
     _last_scan_time(nil_time)

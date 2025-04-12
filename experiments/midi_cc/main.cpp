@@ -50,9 +50,9 @@ constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
     keypad_decoder_pins,
     keypad_columns_pins,
-    10'000U, // 10ms scan time
-    5'000U,  //  5ms debounce time
-    1'000'000U // 1 second hold time
+    10, // 10ms scan time
+    5,  //  5ms debounce time
+    1000 // 1 second hold time
 );
 
 

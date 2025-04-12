@@ -22,6 +22,9 @@ jobs:
       - name: Checkout Catch2
         run: git submodule update --init musin_test/Catch2
 
+      - name: Checkout etl
+        run: git submodule update --init lib/etl
+
       - name: Test Musin
         working-directory: musin_test
         run: bash ./run_tests.sh

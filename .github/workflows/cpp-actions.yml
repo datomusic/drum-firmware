@@ -43,8 +43,8 @@ jobs:
             ${{ runner.os }}-
             
       # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
-      - name: Checkout Catch2
-        run: git submodule update --init musin_test/Catch2
+      # - name: Checkout Catch2
+      #   run: git submodule update --init musin_test/Catch2
 
       # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
       - name: Build Catch2

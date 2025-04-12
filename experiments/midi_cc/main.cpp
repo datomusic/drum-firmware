@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <iterator>
+#include <optional>
 #include <etl/array.h>
 
 #include "pico/stdio.h"
@@ -13,6 +14,7 @@
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
+using Musin::UI::AnalogControlEvent;
 
 constexpr uint32_t PIN_ADDR_0 = 29;
 constexpr uint32_t PIN_ADDR_1 = 6;
@@ -149,7 +151,7 @@ static etl::array<MIDICCObserver, 16> cc_observers = {{
 }};
 
 
-const auto config = AnalogControl::Config<4>{
+static const auto config = AnalogControl::Config<4>{
   .mux_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3},
   .adc_pin = PIN_ADC,
   .mux_channel = 0
@@ -192,15 +194,18 @@ int main() {
   // Initialize Analog Controls using index loop
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].init();
-    mux_controls[i].add_observer(cc_observers[i]);
   }
 
   printf("Initialized %zu analog controls\n", std::size(mux_controls));
 
   while (true) {
       // Update all analog mux controls - observers will be notified automatically
-      for (auto& control : mux_controls) {
-          control.update();
+      size_t control_index = 0;
+      for (size_t i = 0; i < mux_controls.size(); ++i) {
+        const auto result = mux_controls[i].update();
+        if (result.has_value()) {
+          cc_observers[control_index].notification(result.value());
+        }
       }
 
       // Scan the keypad - observers will be notified automatically

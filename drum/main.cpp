@@ -2,8 +2,8 @@
 #include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/usb/usb.h"
-#include <stdio.h>
 #include <pico/stdlib.h>
+#include <stdio.h>
 
 #define SHOULD_REFORMAT false
 
@@ -27,8 +27,7 @@ static bool init() {
   }
   printf("Filesystem initialized\n");
 
-
-  MIDI::init(MIDI::Callbacks {
+  MIDI::init(MIDI::Callbacks{
       .note_on = nullptr,
       .note_off = nullptr,
       .clock = nullptr,
@@ -39,7 +38,6 @@ static bool init() {
       .pitch_bend = nullptr,
       .sysex = nullptr,
   });
-
 
   return true;
 }

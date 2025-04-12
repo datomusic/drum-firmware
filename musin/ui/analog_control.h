@@ -24,6 +24,24 @@ struct AnalogControlEvent {
  */
 class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, 4> {
 public:
+    template <int AddressPinCount>struct Config {
+      static_assert(AddressPinCount == 0 ||AddressPinCount == 3 || AddressPinCount == 4);
+
+      const std::array<std::uint32_t, AddressPinCount>& mux_address_pins;
+      const uint32_t adc_pin;
+      const uint8_t mux_channel; 
+      const float threshold = 0.005f;
+
+      const Config with_channel(const uint8_t channel) const {
+        return Config{
+          .mux_address_pins = mux_address_pins,
+          .adc_pin = adc_pin,
+          .mux_channel = channel,
+          .threshold = threshold
+        };
+      }
+    };
+
     /**
      * @brief Constructor for direct ADC pin connection
      * 
@@ -46,6 +64,10 @@ public:
     AnalogControl(uint16_t id, uint32_t adc_pin, 
                  const std::array<std::uint32_t, 4>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f);
+
+    template <int AddressPinCount>AnalogControl(uint16_t id, const Config<AddressPinCount> &config){
+      AnalogControl(id, config.adc_pin, config.mux_address_pins, config.mux_channel, config.threshold);
+    }
     
     /**
      * @brief Initialize the control's hardware

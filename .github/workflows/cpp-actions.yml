@@ -46,12 +46,13 @@ jobs:
       # - name: Checkout Catch2
       #   run: git submodule update --init musin_test/Catch2
 
-      # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
-      - name: Build Catch2
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Build Catch2
         working-directory: musin_test/Catch2
         run: cmake -B build -S . -DBUILD_TESTING=OFF
 
-      - name: Build Catch2 for real
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Build Catch2 for real
         working-directory: musin_test/Catch2/build
         run: make
 
@@ -60,7 +61,7 @@ jobs:
         run: sudo cmake --build build/ --target install
 
       - id: cache-etl
-        name: Cache Catch2
+        name: Cache ETL
         uses: actions/cache@v4
         env:
           cache-name: cache-etl

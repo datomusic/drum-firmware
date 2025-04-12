@@ -30,7 +30,7 @@ class AnalogControl;
  * @tparam MaxObservers Maximum number of observers for this control
  */
 template<uint8_t MaxObservers = 1>
-class AnalogControl : public etl::observable<AnalogControlEvent, MaxObservers> {
+class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, MaxObservers> {
 public:
     /**
      * @brief Constructor for direct ADC pin connection
@@ -217,7 +217,7 @@ bool AnalogControl<MaxObservers>::update() {
     
     // Check if the filtered value changed beyond threshold compared to the last notified value
     if (std::abs(_current_value - _last_notified_value) > _threshold) {
-        notify_observers(); // Notify with the current filtered value
+        this->notify_observers(AnalogControlEvent{_id, _current_value, _current_raw});
         _last_notified_value = _current_value; // Update the last notified value
         return true;
     }
@@ -225,10 +225,6 @@ bool AnalogControl<MaxObservers>::update() {
 }
 
 
-template<uint8_t MaxObservers>
-void AnalogControl<MaxObservers>::notify_observers() {
-    this->notify_observers(AnalogControlEvent{_id, _current_value, _current_raw});
-}
 
 // Explicit template instantiation can be added here if needed for specific MaxObservers values
 // e.g., template class AnalogControl<1>; 

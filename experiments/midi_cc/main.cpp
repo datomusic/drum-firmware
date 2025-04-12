@@ -5,17 +5,11 @@
 #include <iterator>
 #include <etl/array.h>
 
-#include "pico/stdlib.h"
+#include "pico/stdio.h"
 #include "pico/time.h"
 
 #include "musin/ui/analog_control.h"
 #include "musin/ui/keypad_hc138.h"
-#include "etl/span.h"
-
-extern "C" {
-  #include "hardware/adc.h"
-  #include "hardware/gpio.h"
-}
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;

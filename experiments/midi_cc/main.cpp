@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <iterator>
 #include <etl/array.h>
-#include <etl/zip.h>
+#include "etl/zip.h"
 
 #include "pico/stdlib.h"
 #include "pico/time.h"

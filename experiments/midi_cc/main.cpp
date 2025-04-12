@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <iterator>
+#include <etl/array.h>
+#include <etl/zip.h>
 
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -136,7 +138,7 @@ static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_c
 // --- End Keypad MIDI Map Observer ---
 
 // Define MIDI observers statically
-static MIDICCObserver cc_observers[] = {
+static etl::array<MIDICCObserver, 16> cc_observers = {{
   {16, 0, send_midi_cc},
   {17, 0, send_midi_cc},
   {18, 0, send_midi_cc},
@@ -153,10 +155,10 @@ static MIDICCObserver cc_observers[] = {
   {29, 0, send_midi_cc},
   {30, 0, send_midi_cc},
   {31, 0, send_midi_cc}
-};
+}};
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static AnalogControl mux_controls[] = { // Unique ID, ADC pin, address pins, address
+static etl::array<AnalogControl, 16> mux_controls = {{
   {10, PIN_ADC, analog_address_pins, 0 },
   {11, PIN_ADC, analog_address_pins, 1 },
   {12, PIN_ADC, analog_address_pins, 2 },
@@ -173,7 +175,7 @@ static AnalogControl mux_controls[] = { // Unique ID, ADC pin, address pins, add
   {23, PIN_ADC, analog_address_pins, 13 },
   {24, PIN_ADC, analog_address_pins, 14 },
   {25, PIN_ADC, analog_address_pins, 15 }
-};
+}};
 
 
 int main() {
@@ -189,14 +191,10 @@ int main() {
   
   keypad.add_observer(keypad_map_observer);
 
-  // Ensure control and observer arrays have the same size before iterating
-  static_assert(std::size(mux_controls) == std::size(cc_observers), 
-                "Mismatch between number of controls and observers");
-
-  // Initialize Analog Controls using std::size to determine the loop bounds
-  for (size_t i = 0; i < std::size(mux_controls); ++i) {
-    mux_controls[i].init();
-    mux_controls[i].add_observer(cc_observers[i]);
+  // Initialize Analog Controls using etl::zip for paired iteration
+  for (const auto& [control, observer] : etl::zip(mux_controls, cc_observers)) {
+    control.init();
+    control.add_observer(observer);
   }
 
   printf("Initialized %zu analog controls\n", std::size(mux_controls));

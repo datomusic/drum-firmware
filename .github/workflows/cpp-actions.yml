@@ -34,7 +34,9 @@ jobs:
         env:
           cache-name: cache-catch2
         with:
-          path: musin_test/Catch2_build
+          path: |
+            musin_test/Catch2
+            musin_test/Catch2_build
 
           key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
           restore-keys: |
@@ -42,9 +44,9 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
             
-      # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
-      #   name: Checkout Catch2
-      #   run: git submodule update --init musin_test/Catch2
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Checkout Catch2
+        run: git submodule update --init musin_test/Catch2
 
       # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
       #   name: Build Catch2

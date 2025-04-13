@@ -11,28 +11,28 @@
 // to avoid indexing out of bounds.
 
 struct AudioBlock {
-  int16_t &operator[](const size_t i) {
+  constexpr int16_t &operator[](const size_t i) {
     // TODO: Add some kind of range checking, at least in debug?
     return data[i];
   }
 
-  size_t size() const {
+  constexpr size_t size() const {
     return data.SIZE;
   }
 
-  int16_t *begin() {
+  constexpr int16_t *begin() {
     return data.begin();
   }
 
-  int16_t *end() {
+  constexpr int16_t *end() {
     return begin() + size();
   }
 
-  const int16_t *cbegin() const {
+  constexpr const int16_t *cbegin() const {
     return data.cbegin();
   }
 
-  const int16_t *cend() const {
+  constexpr const int16_t *cend() const {
     return cbegin() + size();
   }
 

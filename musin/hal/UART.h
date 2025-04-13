@@ -25,8 +25,20 @@ constexpr int get_uart_index(std::uint32_t pin) {
             return -1; // Not a valid UART pin
     }
   #elif PICO_RP2350
-    // TODO: Add pin validation for RP2350
-    return -1; // Placeholder
+    switch (pin) {
+        // UART0 Pins (TX: 0, 2, 12, 14, 16, 18, 28, 30, 32, 34, 46 | RX: 1, 3, 13, 15, 17, 19, 29, 31, 33, 35, 47)
+        case 0: case 1: case 2: case 3: case 12: case 13: case 14: case 15: case 16: case 17:
+        case 18: case 19: case 28: case 29: case 30: case 31: case 32: case 33: case 34: case 35:
+        case 46: case 47:
+            return 0;
+        // UART1 Pins (TX: 4, 6, 8, 10, 20, 22, 24, 26, 36, 38, 40, 42 | RX: 5, 7, 9, 11, 21, 23, 25, 27, 37, 39, 41, 43)
+        case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 11: case 20: case 21:
+        case 22: case 23: case 24: case 25: case 26: case 27: case 36: case 37: case 38: case 39:
+        case 40: case 41: case 42: case 43:
+            return 1;
+        default:
+            return -1; // Not a valid UART pin for RP2350
+    }
   #else
     #error "Unsupported target platform for UART HAL"
     return -1;

@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <type_traits>
+#include "etl/array.h"
 #include "hardware/uart.h"
 #include "hardware/gpio.h"
 
@@ -10,83 +12,67 @@ namespace Musin::HAL {
 
 namespace detail {
 
-// --- Platform-specific Pin Validation Helpers ---
+// --- Platform-specific Pin Definitions ---
 
 #if PICO_RP2040
-constexpr bool is_valid_uart0_tx(std::uint32_t pin) {
-    switch (pin) { case 0: case 12: case 16: case 28: return true; default: return false; }
-}
-constexpr bool is_valid_uart0_rx(std::uint32_t pin) {
-    switch (pin) { case 1: case 13: case 17: case 29: return true; default: return false; }
-}
-constexpr bool is_valid_uart1_tx(std::uint32_t pin) {
-    switch (pin) { case 4: case 8: case 20: case 24: return true; default: return false; }
-}
-constexpr bool is_valid_uart1_rx(std::uint32_t pin) {
-    switch (pin) { case 5: case 9: case 21: case 25: return true; default: return false; }
-}
+// UART0 valid pins
+constexpr etl::array<std::uint32_t, 4> uart0_tx_pins = {0, 12, 16, 28};
+constexpr etl::array<std::uint32_t, 4> uart0_rx_pins = {1, 13, 17, 29};
+// UART1 valid pins
+constexpr etl::array<std::uint32_t, 4> uart1_tx_pins = {4, 8, 20, 24};
+constexpr etl::array<std::uint32_t, 4> uart1_rx_pins = {5, 9, 21, 25};
+
 #elif PICO_RP2350
-constexpr bool is_valid_uart0_tx(std::uint32_t pin) {
-    switch (pin) {
-        case 0: case 2: case 12: case 14: case 16: case 18: case 28: case 30:
-        case 32: case 34: case 46: return true;
-        default: return false;
-    }
-}
-constexpr bool is_valid_uart0_rx(std::uint32_t pin) {
-    switch (pin) {
-        case 1: case 3: case 13: case 15: case 17: case 19: case 29: case 31:
-        case 33: case 35: case 47: return true;
-        default: return false;
-    }
-}
-constexpr bool is_valid_uart1_tx(std::uint32_t pin) {
-    switch (pin) {
-        case 4: case 6: case 8: case 10: case 20: case 22: case 24: case 26:
-        case 36: case 38: case 40: case 42: return true;
-        default: return false;
-    }
-}
-constexpr bool is_valid_uart1_rx(std::uint32_t pin) {
-    switch (pin) {
-        case 5: case 7: case 9: case 11: case 21: case 23: case 25: case 27:
-        case 37: case 39: case 41: case 43: return true;
-        default: return false;
-    }
-}
+// UART0 valid pins (TX)
+constexpr etl::array<std::uint32_t, 11> uart0_tx_pins = 
+    {0, 2, 12, 14, 16, 18, 28, 30, 32, 34, 46};
+// UART0 valid pins (RX)
+constexpr etl::array<std::uint32_t, 11> uart0_rx_pins = 
+    {1, 3, 13, 15, 17, 19, 29, 31, 33, 35, 47};
+// UART1 valid pins (TX)
+constexpr etl::array<std::uint32_t, 12> uart1_tx_pins = 
+    {4, 6, 8, 10, 20, 22, 24, 26, 36, 38, 40, 42};
+// UART1 valid pins (RX)
+constexpr etl::array<std::uint32_t, 12> uart1_rx_pins = 
+    {5, 7, 9, 11, 21, 23, 25, 27, 37, 39, 41, 43};
 #else
     #error "Unsupported target platform for UART HAL pin validation"
-    // Define dummy functions to allow compilation, but they will always fail validation
-    constexpr bool is_valid_uart0_tx(std::uint32_t) { return false; }
-    constexpr bool is_valid_uart0_rx(std::uint32_t) { return false; }
-    constexpr bool is_valid_uart1_tx(std::uint32_t) { return false; }
-    constexpr bool is_valid_uart1_rx(std::uint32_t) { return false; }
 #endif
 
-// --- Combined Validation Function ---
-
-// Constexpr function to determine the UART index for a given TX/RX pin pair.
-// Returns 0 if the pair is valid for UART0, 1 if valid for UART1,
-// and -1 if the pair is invalid for either UART.
-constexpr int get_uart_index(std::uint32_t tx_pin, std::uint32_t rx_pin) {
-    if (is_valid_uart0_tx(tx_pin) && is_valid_uart0_rx(rx_pin)) {
-        return 0;
+// Generic pin checker
+template <std::uint32_t Pin, const auto& ValidPins>
+constexpr bool check_pin() {
+    for (size_t i = 0; i < ValidPins.size(); ++i) {
+        if (ValidPins[i] == Pin) return true;
     }
-    if (is_valid_uart1_tx(tx_pin) && is_valid_uart1_rx(rx_pin)) {
-        return 1;
-    }
-    return -1; // Invalid combination for any UART
+    return false;
 }
 
-// Helper to get the uart_inst_t* based on the validated index
-constexpr uart_inst_t* get_uart_instance_from_index(int index) {
-    #if PICO_RP2040 || PICO_RP2350 // Assuming uart0/uart1 exist on RP2350 too
-        return (index == 0) ? uart0 : uart1;
-    #else
-        return nullptr; // Should be caught by #error earlier
-    #endif
-}
+// UART instance determination
+template <std::uint32_t Tx, std::uint32_t Rx, typename = void>
+struct uart_instance {
+    static_assert(!(Tx||Rx), "Invalid TX/RX pin combination");
+};
 
+// UART0 specialization
+template <std::uint32_t Tx, std::uint32_t Rx>
+struct uart_instance<Tx, Rx, 
+    std::enable_if_t<
+        check_pin<Tx, uart0_tx_pins>() && 
+        check_pin<Rx, uart0_rx_pins>()
+    >> {
+    static constexpr uart_inst_t* value = uart0;
+};
+
+// UART1 specialization
+template <std::uint32_t Tx, std::uint32_t Rx>
+struct uart_instance<Tx, Rx,
+    std::enable_if_t<
+        check_pin<Tx, uart1_tx_pins>() && 
+        check_pin<Rx, uart1_rx_pins>()
+    >> {
+    static constexpr uart_inst_t* value = uart1;
+};
 
 } // namespace detail
 
@@ -105,8 +91,10 @@ template <std::uint32_t TxPin, std::uint32_t RxPin>
 class UART {
 public:
   // Compile-time validation: Ensure pins form a valid pair for either UART0 or UART1.
-  static_assert(detail::get_uart_index(TxPin, RxPin) != -1,
-                "Invalid TX/RX pins: Must be a valid TX/RX pair for the same UART instance (UART0 or UART1).");
+  static constexpr auto* uart_instance = detail::uart_instance<TxPin, RxPin>::value;
+  
+  static_assert(uart_instance != nullptr, 
+      "Invalid TX/RX pins: Must be a valid TX/RX pair for the same UART instance (UART0 or UART1).");
 
   /**
    * @brief Default constructor. The UART is not initialized.
@@ -122,10 +110,6 @@ public:
    * @return true (initialization always succeeds if compilation passed).
    */
   bool init(std::uint32_t baud_rate) {
-    // Get the UART index (guaranteed valid by static_assert)
-    constexpr int uart_index = detail::get_uart_index(TxPin, RxPin);
-    uart_inst_t* uart_instance = detail::get_uart_instance_from_index(uart_index);
-
     // Initialize UART
     uart_init(uart_instance, baud_rate);
 
@@ -152,8 +136,7 @@ public:
       return 0;
     }
     // uart_getc is blocking, waits for character
-    constexpr int uart_index = detail::get_uart_index(TxPin, RxPin);
-    return uart_getc(detail::get_uart_instance_from_index(uart_index));
+    return uart_getc(uart_instance);
   }
 
   /**
@@ -170,8 +153,7 @@ public:
       return 0;
     }
     // uart_putc is blocking, waits for space in FIFO
-    constexpr int uart_index = detail::get_uart_index(TxPin, RxPin);
-    uart_putc(detail::get_uart_instance_from_index(uart_index), byte);
+    uart_putc(uart_instance, byte);
     return 1; // Indicate one byte was written
   }
 
@@ -183,8 +165,7 @@ public:
     if (!_initialized) {
       return false;
     }
-    constexpr int uart_index = detail::get_uart_index(TxPin, RxPin);
-    return uart_is_readable(detail::get_uart_instance_from_index(uart_index));
+    return uart_is_readable(uart_instance);
   }
 
 private:

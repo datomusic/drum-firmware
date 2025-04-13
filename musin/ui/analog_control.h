@@ -32,37 +32,41 @@ public:
     /**
      * @brief Constructor for direct ADC pin connection
      * 
-     * @param id Unique identifier for this control
      * @param adc_pin The GPIO pin number for ADC input
      * @param threshold Change threshold to trigger updates (normalized value)
      */
-    AnalogControl(uint16_t id, uint32_t adc_pin, float threshold = 0.005f)
-        : _id(id), 
-          _threshold(threshold),
+    AnalogControl(uint32_t adc_pin, float threshold = 0.005f)
+        : _threshold(threshold),
           _input_type(InputType::Direct),
-          _analog_in(adc_pin) {}
+          _analog_in(adc_pin),
+          _source_id(static_cast<uint16_t>(adc_pin)) // Source ID is just the pin for direct
+          {}
     
     /**
      * @brief Constructor for multiplexed ADC connection (8-channel)
      */
-    AnalogControl(uint16_t id, uint32_t adc_pin, 
+    AnalogControl(uint32_t adc_pin, 
                  const std::array<std::uint32_t, 3>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f)
-        : _id(id), 
-          _threshold(threshold),
-          _input_type(InputType::Mux8) {
+        : _threshold(threshold),
+          _input_type(InputType::Mux8),
+          // Source ID combines channel (upper byte) and pin (lower byte)
+          _source_id((static_cast<uint16_t>(mux_channel) << 8) | static_cast<uint16_t>(adc_pin))
+           {
         new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
     }
     
     /**
      * @brief Constructor for multiplexed ADC connection (16-channel)
      */
-    AnalogControl(uint16_t id, uint32_t adc_pin, 
+    AnalogControl(uint32_t adc_pin, 
                  const std::array<std::uint32_t, 4>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f)
-        : _id(id), 
-          _threshold(threshold),
-          _input_type(InputType::Mux16) {
+        : _threshold(threshold),
+          _input_type(InputType::Mux16),
+          // Source ID combines channel (upper byte) and pin (lower byte)
+          _source_id((static_cast<uint16_t>(mux_channel) << 8) | static_cast<uint16_t>(adc_pin))
+           {
         new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
     }
     

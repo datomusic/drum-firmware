@@ -2,6 +2,14 @@
 
 #include "musin/audio/pitch_shifter.h"
 
+#define CONST_BODY(BODY)                                                                           \
+  constexpr auto body = []() {                                                                     \
+    BODY;                                                                                          \
+    return 0;                                                                                      \
+  };                                                                                               \
+  constexpr auto _ = body();                                                                       \
+  body();
+
 template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
   constexpr DummyBufferReader() {
     reset();
@@ -96,51 +104,47 @@ TEST_CASE("PitchShifter reads samples") {
   }
 }
 
-constexpr static unsigned run_test() {
-  const int CHUNK_SIZE = 4;
-  auto reader = DummyBufferReader<4, CHUNK_SIZE>();
-  PitchShifter shifter = PitchShifter(reader);
-  shifter.reset();
-
-  shifter.set_speed(0.5);
-
-  AudioBlock block;
-  auto samples_read = shifter.read_samples(block);
-  assert(reader.read_counter == 4);
-  assert(samples_read == AUDIO_BLOCK_SAMPLES);
-
-  // Interpolated values
-  assert(block[0] == 0);
-  assert(block[1] == 0);
-  assert(block[2] == 0);
-  assert(block[3] == 0);
-  assert(block[4] == 0);
-  assert(block[5] == 0);
-  assert(block[6] == 1);
-  assert(block[7] == 1);
-  assert(block[8] == 1);
-  assert(block[9] == 2);
-  assert(block[10] == 2);
-  assert(block[11] == 3);
-  assert(block[12] == 3);
-  assert(block[13] == 2);
-  assert(block[14] == 0);
-  assert(block[15] == 0);
-  assert(block[16] == 0);
-  assert(block[17] == 0);
-  assert(block[18] == 0);
-  assert(block[19] == 0);
-  assert(block[19] == 0);
-  assert(block[19] == 0);
-
-  return 0;
-}
-
 
 TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
           "sample count is equal to chunk size of the underlying reader") {
-  constexpr auto _ = run_test();
-  run_test();
+
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader = DummyBufferReader<4, CHUNK_SIZE>();
+    PitchShifter shifter = PitchShifter(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    assert(reader.read_counter == 4);
+    assert(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // Interpolated values
+    assert(block[0] == 0);
+    assert(block[1] == 0);
+    assert(block[2] == 0);
+    assert(block[3] == 0);
+    assert(block[4] == 0);
+    assert(block[5] == 0);
+    assert(block[6] == 1);
+    assert(block[7] == 1);
+    assert(block[8] == 1);
+    assert(block[9] == 2);
+    assert(block[10] == 2);
+    assert(block[11] == 3);
+    assert(block[12] == 3);
+    assert(block[13] == 2);
+    assert(block[14] == 0);
+    assert(block[15] == 0);
+    assert(block[16] == 0);
+    assert(block[17] == 0);
+    assert(block[18] == 0);
+    assert(block[19] == 0);
+    assert(block[19] == 0);
+    assert(block[19] == 0);
+  }));
 }
 
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if

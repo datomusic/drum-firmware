@@ -86,6 +86,10 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
       // Send MIDI CC message through function pointer
       _send_midi(midi_channel, cc_number, cc_value);
   }
+
+  void operator () (const AnalogControlEvent& event){
+    notification(event);
+  }
 };
 
 struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
@@ -160,10 +164,10 @@ static etl::array<MIDICCObserver, 16> cc_observers = {{
 
 struct ObservedAnalogControl {
   AnalogControl control;
-  etl::observer<AnalogControlEvent> &observer;
+  AnalogControl::Listener listener;
 
   void update() {
-    control.update(observer);
+    control.update(listener);
   }
 };
 

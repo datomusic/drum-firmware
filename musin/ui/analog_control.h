@@ -4,6 +4,7 @@
 #include "musin/hal/analog_in.h"
 #include <cstdint>
 #include <array>
+#include <functional>
 #include <algorithm> // For std::clamp
 
 namespace Musin::UI {
@@ -27,6 +28,8 @@ class AnalogControl;
  */
 class AnalogControl {
 public:
+    typedef std::function<void(const AnalogControlEvent&)> Listener;
+
     /**
      * @brief Constructor for direct ADC pin connection
      * 
@@ -61,7 +64,7 @@ public:
      * 
      * @return true if value changed and observers were notified
      */
-    template <typename Observer> bool update(Observer &observer);
+    bool update(Listener &listener);
     
     /**
      * @brief Get the current normalized value (0.0f to 1.0f)
@@ -199,13 +202,14 @@ void AnalogControl::read_input() {
     _current_value = _filtered_value;
 }
 
-template <typename Observer>bool AnalogControl::update(Observer &observer) {
+bool AnalogControl::update(Listener &listener) {
     // Read and filter input - this updates _current_value
     read_input();
     
     // Check if the filtered value changed beyond threshold compared to the last notified value
     if (std::abs(_current_value - _last_notified_value) > _threshold) {
-        observer.notification(AnalogControlEvent{_id, _current_value, _current_raw});
+        const auto event = AnalogControlEvent{_id, _current_value, _current_raw};
+        listener(event);
         _last_notified_value = _current_value; // Update the last notified value
         return true;
     }

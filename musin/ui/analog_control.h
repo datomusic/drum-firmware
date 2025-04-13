@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <array>
 #include <algorithm> // For std::clamp
-#include "etl/observer.h" // Include ETL observer pattern
 
 namespace Musin::UI {
 
@@ -26,7 +25,7 @@ class AnalogControl;
  * @brief Represents a physical analog control (pot, fader, etc)
  * Using compile-time configuration and static allocation
  */
-class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, 4> {
+class AnalogControl {
 public:
     /**
      * @brief Constructor for direct ADC pin connection
@@ -62,7 +61,7 @@ public:
      * 
      * @return true if value changed and observers were notified
      */
-    bool update();
+    template <typename Observer> bool update(Observer &observer);
     
     /**
      * @brief Get the current normalized value (0.0f to 1.0f)
@@ -200,13 +199,13 @@ void AnalogControl::read_input() {
     _current_value = _filtered_value;
 }
 
-bool AnalogControl::update() {
+template <typename Observer>bool AnalogControl::update(Observer &observer) {
     // Read and filter input - this updates _current_value
     read_input();
     
     // Check if the filtered value changed beyond threshold compared to the last notified value
     if (std::abs(_current_value - _last_notified_value) > _threshold) {
-        this->notify_observers(AnalogControlEvent{_id, _current_value, _current_raw});
+        observer.notification(AnalogControlEvent{_id, _current_value, _current_raw});
         _last_notified_value = _current_value; // Update the last notified value
         return true;
     }

@@ -18,6 +18,7 @@ extern "C" {
 }
 
 using Musin::UI::AnalogControl;
+using Musin::UI::AnalogControlEvent;
 using Musin::UI::Keypad_HC138;
 
 constexpr uint32_t PIN_ADDR_0 = 29;
@@ -156,24 +157,34 @@ static etl::array<MIDICCObserver, 16> cc_observers = {{
   {31, 0, send_midi_cc}
 }};
 
+
+struct ObservedAnalogControl {
+  AnalogControl control;
+  etl::observer<AnalogControlEvent> &observer;
+
+  void update() {
+    control.update(observer);
+  }
+};
+
 // Statically allocate multiplexed controls using the class from musin::ui
-static etl::array<AnalogControl, 16> mux_controls = {{
-  {10, PIN_ADC, analog_address_pins, 0 },
-  {11, PIN_ADC, analog_address_pins, 1 },
-  {12, PIN_ADC, analog_address_pins, 2 },
-  {13, PIN_ADC, analog_address_pins, 3 },
-  {14, PIN_ADC, analog_address_pins, 4 },
-  {15, PIN_ADC, analog_address_pins, 5 },
-  {16, PIN_ADC, analog_address_pins, 6 },
-  {17, PIN_ADC, analog_address_pins, 7 },
-  {18, PIN_ADC, analog_address_pins, 8 },
-  {19, PIN_ADC, analog_address_pins, 9 },
-  {20, PIN_ADC, analog_address_pins, 10 },
-  {21, PIN_ADC, analog_address_pins, 11 },
-  {22, PIN_ADC, analog_address_pins, 12 },
-  {23, PIN_ADC, analog_address_pins, 13 },
-  {24, PIN_ADC, analog_address_pins, 14 },
-  {25, PIN_ADC, analog_address_pins, 15 }
+static etl::array<ObservedAnalogControl, 16> mux_controls = {{
+  {{10, PIN_ADC, analog_address_pins, 0 }, cc_observers[0]},
+  {{11, PIN_ADC, analog_address_pins, 0 }, cc_observers[1]},
+  {{12, PIN_ADC, analog_address_pins, 0 }, cc_observers[2]},
+  {{13, PIN_ADC, analog_address_pins, 0 }, cc_observers[3]},
+  {{14, PIN_ADC, analog_address_pins, 0 }, cc_observers[4]},
+  {{15, PIN_ADC, analog_address_pins, 0 }, cc_observers[5]},
+  {{16, PIN_ADC, analog_address_pins, 0 }, cc_observers[6]},
+  {{17, PIN_ADC, analog_address_pins, 0 }, cc_observers[7]},
+  {{18, PIN_ADC, analog_address_pins, 0 }, cc_observers[8]},
+  {{19, PIN_ADC, analog_address_pins, 0 }, cc_observers[9]},
+  {{20, PIN_ADC, analog_address_pins, 0 }, cc_observers[10]},
+  {{21, PIN_ADC, analog_address_pins, 0 }, cc_observers[11]},
+  {{22, PIN_ADC, analog_address_pins, 0 }, cc_observers[12]},
+  {{23, PIN_ADC, analog_address_pins, 0 }, cc_observers[13]},
+  {{24, PIN_ADC, analog_address_pins, 0 }, cc_observers[14]},
+  {{25, PIN_ADC, analog_address_pins, 0 }, cc_observers[15]}
 }};
 
 
@@ -192,8 +203,7 @@ int main() {
 
   // Initialize Analog Controls using index loop
   for (size_t i = 0; i < mux_controls.size(); ++i) {
-    mux_controls[i].init();
-    mux_controls[i].add_observer(cc_observers[i]);
+    mux_controls[i].control.init();
   }
 
   printf("Initialized %zu analog controls\n", std::size(mux_controls));

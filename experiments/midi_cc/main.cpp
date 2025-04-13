@@ -137,40 +137,42 @@ static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_c
 // --- End Keypad MIDI Map Observer ---
 
 // Define MIDI observers statically
-static etl::array<MIDICCObserver, 16> cc_observers = {{{16, 0, send_midi_cc},
-                                                       {17, 0, send_midi_cc},
-                                                       {18, 0, send_midi_cc},
-                                                       {19, 0, send_midi_cc},
-                                                       {20, 0, send_midi_cc},
-                                                       {21, 0, send_midi_cc},
-                                                       {22, 0, send_midi_cc},
-                                                       {23, 0, send_midi_cc},
-                                                       {24, 0, send_midi_cc},
-                                                       {25, 0, send_midi_cc},
-                                                       {26, 0, send_midi_cc},
-                                                       {27, 0, send_midi_cc},
-                                                       {28, 0, send_midi_cc},
-                                                       {29, 0, send_midi_cc},
-                                                       {30, 0, send_midi_cc},
-                                                       {31, 0, send_midi_cc}}};
+static etl::array<MIDICCObserver, 16> cc_observers = {{
+  {16, 0, send_midi_cc},
+  {17, 0, send_midi_cc},
+  {18, 0, send_midi_cc},
+  {19, 0, send_midi_cc},
+  {20, 0, send_midi_cc},
+  {21, 0, send_midi_cc},
+  {22, 0, send_midi_cc},
+  {23, 0, send_midi_cc},
+  {24, 0, send_midi_cc},
+  {25, 0, send_midi_cc},
+  {26, 0, send_midi_cc},
+  {27, 0, send_midi_cc},
+  {28, 0, send_midi_cc},
+  {29, 0, send_midi_cc},
+  {30, 0, send_midi_cc},
+  {31, 0, send_midi_cc}}};
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static etl::array<AnalogControl, 16> mux_controls = {{{10, PIN_ADC, analog_address_pins, 0},
-                                                      {11, PIN_ADC, analog_address_pins, 1},
-                                                      {12, PIN_ADC, analog_address_pins, 2},
-                                                      {13, PIN_ADC, analog_address_pins, 3},
-                                                      {14, PIN_ADC, analog_address_pins, 4},
-                                                      {15, PIN_ADC, analog_address_pins, 5},
-                                                      {16, PIN_ADC, analog_address_pins, 6},
-                                                      {17, PIN_ADC, analog_address_pins, 7},
-                                                      {18, PIN_ADC, analog_address_pins, 8},
-                                                      {19, PIN_ADC, analog_address_pins, 9},
-                                                      {20, PIN_ADC, analog_address_pins, 10},
-                                                      {21, PIN_ADC, analog_address_pins, 11},
-                                                      {22, PIN_ADC, analog_address_pins, 12},
-                                                      {23, PIN_ADC, analog_address_pins, 13},
-                                                      {24, PIN_ADC, analog_address_pins, 14},
-                                                      {25, PIN_ADC, analog_address_pins, 15}}};
+static etl::array<AnalogControl, 16> mux_controls = {{
+  {10, PIN_ADC, analog_address_pins, 0},
+  {11, PIN_ADC, analog_address_pins, 1},
+  {12, PIN_ADC, analog_address_pins, 2},
+  {13, PIN_ADC, analog_address_pins, 3},
+  {14, PIN_ADC, analog_address_pins, 4},
+  {15, PIN_ADC, analog_address_pins, 5},
+  {16, PIN_ADC, analog_address_pins, 6},
+  {17, PIN_ADC, analog_address_pins, 7},
+  {18, PIN_ADC, analog_address_pins, 8},
+  {19, PIN_ADC, analog_address_pins, 9},
+  {20, PIN_ADC, analog_address_pins, 10},
+  {21, PIN_ADC, analog_address_pins, 11},
+  {22, PIN_ADC, analog_address_pins, 12},
+  {23, PIN_ADC, analog_address_pins, 13},
+  {24, PIN_ADC, analog_address_pins, 14},
+  {25, PIN_ADC, analog_address_pins, 15}}};
 
 int main() {
   stdio_init_all();

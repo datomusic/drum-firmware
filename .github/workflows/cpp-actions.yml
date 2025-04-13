@@ -34,7 +34,9 @@ jobs:
         env:
           cache-name: cache-catch2
         with:
-          path: musin_test/Catch2/build
+          path: |
+            musin_test/Catch2
+            musin_test/Catch2/build
 
           key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
           restore-keys: |

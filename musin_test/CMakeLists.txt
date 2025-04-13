@@ -4,8 +4,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 
-add_subdirectory(Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2/build)
-
+add_subdirectory(Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
 
 add_executable(tests 

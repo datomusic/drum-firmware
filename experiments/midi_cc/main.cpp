@@ -171,9 +171,28 @@ struct ObservedAnalogControl {
   }
 };
 
+template<typename Event, int ListenerCount>
+struct MultiObserver {
+  typedef std::function<void(const Event&)> Listener;
+
+  etl::array<Listener, ListenerCount> listeners;
+
+  void operator ()(const Event &event){
+    for (auto& listener : listeners) {
+      listener(event);
+    }
+  }
+};
+
+
+static void analog_printer(const AnalogControlEvent &event){
+  printf("AnalogEvent from %i: %f\n", event.control_id, event.value);
+}
+
+
 // Statically allocate multiplexed controls using the class from musin::ui
 static etl::array<ObservedAnalogControl, 16> mux_controls = {{
-  {{10, PIN_ADC, analog_address_pins, 0 }, cc_observers[0]},
+  {{10, PIN_ADC, analog_address_pins, 0 }, MultiObserver<AnalogControlEvent, 2>({cc_observers[0], analog_printer})},
   {{11, PIN_ADC, analog_address_pins, 0 }, cc_observers[1]},
   {{12, PIN_ADC, analog_address_pins, 0 }, cc_observers[2]},
   {{13, PIN_ADC, analog_address_pins, 0 }, cc_observers[3]},

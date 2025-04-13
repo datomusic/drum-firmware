@@ -36,10 +36,10 @@ public:
      * @param threshold Change threshold to trigger updates (normalized value)
      */
     AnalogControl(uint32_t adc_pin, float threshold = 0.005f)
-        : _threshold(threshold),
+        : _source_id(static_cast<uint16_t>(adc_pin)), // Source ID is just the pin for direct
+          _threshold(threshold),
           _input_type(InputType::Direct),
-          _analog_in(adc_pin),
-          _source_id(static_cast<uint16_t>(adc_pin)) // Source ID is just the pin for direct
+          _analog_in(adc_pin) // Initialized via constructor
           {}
     
     /**
@@ -48,11 +48,12 @@ public:
     AnalogControl(uint32_t adc_pin, 
                  const std::array<std::uint32_t, 3>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f)
-        : _threshold(threshold),
-          _input_type(InputType::Mux8),
-          // Source ID combines channel (upper byte) and pin (lower byte)
-          _source_id((static_cast<uint16_t>(mux_channel) << 8) | static_cast<uint16_t>(adc_pin))
+        : // Initialize in declaration order: _source_id, _threshold, _input_type
+          _source_id((static_cast<uint16_t>(mux_channel) << 8) | static_cast<uint16_t>(adc_pin)),
+          _threshold(threshold),
+          _input_type(InputType::Mux8)
            {
+        // Initialize union member via placement new
         new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
     }
     
@@ -62,11 +63,12 @@ public:
     AnalogControl(uint32_t adc_pin, 
                  const std::array<std::uint32_t, 4>& mux_address_pins,
                  uint8_t mux_channel, float threshold = 0.005f)
-        : _threshold(threshold),
-          _input_type(InputType::Mux16),
-          // Source ID combines channel (upper byte) and pin (lower byte)
-          _source_id((static_cast<uint16_t>(mux_channel) << 8) | static_cast<uint16_t>(adc_pin))
+        : // Initialize in declaration order: _source_id, _threshold, _input_type
+          _source_id((static_cast<uint16_t>(mux_channel) << 8) | static_cast<uint16_t>(adc_pin)),
+          _threshold(threshold),
+          _input_type(InputType::Mux16)
            {
+        // Initialize union member via placement new
         new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
     }
     

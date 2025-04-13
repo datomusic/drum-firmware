@@ -47,9 +47,9 @@ constexpr uart_inst_t* get_validated_uart_instance(std::uint32_t tx_pin, std::ui
 template <std::uint32_t TxPin, std::uint32_t RxPin>
 class UART {
 public:
-  // Compile-time validation of pin combination
-  static_assert(detail::are_pins_valid_uart(TxPin, RxPin),
-                "Invalid TX/RX pin combination for UART.");
+  // Compile-time validation: Ensure pins are valid and belong to the same UART instance.
+  static_assert(detail::get_uart_instance(TxPin, RxPin) != nullptr,
+                "Invalid TX/RX pins: Must be valid UART pins and belong to the same UART instance.");
 
   /**
    * @brief Default constructor. The UART is not initialized.
@@ -65,7 +65,8 @@ public:
    * @return true (initialization always succeeds if compilation passed).
    */
   bool init(std::uint32_t baud_rate) {
-    uart_inst_t* uart_instance = detail::get_validated_uart_instance(TxPin, RxPin);
+    // Get the validated UART instance (guaranteed non-nullptr due to static_assert)
+    uart_inst_t* uart_instance = detail::get_uart_instance(TxPin, RxPin);
 
     // Initialize UART
     uart_init(uart_instance, baud_rate);
@@ -93,7 +94,7 @@ public:
       return 0;
     }
     // uart_getc is blocking, waits for character
-    return uart_getc(detail::get_validated_uart_instance(TxPin, RxPin));
+    return uart_getc(detail::get_uart_instance(TxPin, RxPin));
   }
 
   /**
@@ -110,7 +111,7 @@ public:
       return 0;
     }
     // uart_putc is blocking, waits for space in FIFO
-    uart_putc(detail::get_validated_uart_instance(TxPin, RxPin), byte);
+    uart_putc(detail::get_uart_instance(TxPin, RxPin), byte);
     return 1; // Indicate one byte was written
   }
 
@@ -122,7 +123,7 @@ public:
     if (!_initialized) {
       return false;
     }
-    return uart_is_readable(detail::get_validated_uart_instance(TxPin, RxPin));
+    return uart_is_readable(detail::get_uart_instance(TxPin, RxPin));
   }
 
 private:

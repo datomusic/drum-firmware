@@ -28,13 +28,14 @@ constexpr uint32_t PIN_RING_4 = 11;
 constexpr uint32_t PIN_RING_5 = 10;
 
 // Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<std::uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
-                                                          PIN_ADDR_3};
+const std::array<std::uint32_t, 4> analog_address_pins = {
+    PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
 // Static array for keypad column pins
-const std::array<uint, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
-                                                 PIN_RING_5};
+const std::array<uint, 5> keypad_columns_pins = {
+    PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4, PIN_RING_5};
 // Static array for keypad decoder address pins (uses first 3)
-const std::array<uint, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+const std::array<uint, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1,
+                                                 PIN_ADDR_2};
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8; // Using 3 address pins allows up to 8 rows
@@ -42,39 +43,41 @@ constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
 // Static instance of the keypad driver
-static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad_columns_pins,
+static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins,
+                                                     keypad_columns_pins,
                                                      10,  // 10ms scan time
                                                      5,   //  5ms debounce time
                                                      1000 // 1 second hold time
 );
 
 // The actual MIDI sending function (currently prints)
-void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
+void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number,
+                  uint8_t value) {
   printf("MIDI CC %u: %u\n", cc_number, value);
 }
 
 // --- Analog Control Callback ---
 // Callback function for AnalogControl events
-void handle_analog_control_event(const Musin::UI::AnalogControlEvent& event) {
-    // Extract the mux channel from the upper byte of source_id
-    // Assumes source_id was created with (channel << 8) | pin
-    uint8_t mux_channel = (event.source_id >> 8) & 0xFF;
+void handle_analog_control_event(const Musin::UI::AnalogControlEvent &event) {
+  // Extract the mux channel from the upper byte of source_id
+  // Assumes source_id was created with (channel << 8) | pin
+  uint8_t mux_channel = (event.source_id >> 8) & 0xFF;
 
-    // Map mux channel (0-15) directly to MIDI CC (16-31)
-    // Add checks if needed for different ADC pins or non-mux controls
-    if (mux_channel <= 15) { // Ensure it's within the expected range for this setup
-        uint8_t cc_number = mux_channel + 16;
+  // Map mux channel (0-15) directly to MIDI CC (16-31)
+  // Add checks if needed for different ADC pins or non-mux controls
+  if (mux_channel <=
+      15) { // Ensure it's within the expected range for this setup
+    uint8_t cc_number = mux_channel + 16;
 
-        // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
-        uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+    // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
+    uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
 
-        // Assuming MIDI channel 0 for this example
-        send_midi_cc(0, cc_number, cc_value);
-    }
-    // else { handle other source_ids if necessary }
+    // Assuming MIDI channel 0 for this example
+    send_midi_cc(0, cc_number, cc_value);
+  }
+  // else { handle other source_ids if necessary }
 }
 // --- End Analog Control Callback ---
-
 
 // --- Keypad MIDI Map Observer Implementation ---
 struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
@@ -85,10 +88,9 @@ struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
   const MIDISendFn _send_midi;
 
   // Constructor
-  constexpr KeypadMIDICCMapObserver(const std::array<uint8_t, 40> &map, uint8_t channel,
-                                    MIDISendFn sender)
-      : _cc_map(map), _midi_channel(channel), _send_midi(sender) {
-  }
+  constexpr KeypadMIDICCMapObserver(const std::array<uint8_t, 40> &map,
+                                    uint8_t channel, MIDISendFn sender)
+      : _cc_map(map), _midi_channel(channel), _send_midi(sender) {}
 
   void notification(Musin::UI::KeypadEvent event) override {
     uint8_t key_index = event.row * 5 + event.col; // Assuming 5 columns
@@ -124,31 +126,31 @@ static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
   return map;
 }();
 
-static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
+static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0,
+                                                   send_midi_cc);
 // --- End Keypad MIDI Map Observer ---
-
 
 // Statically allocate multiplexed controls using the class from musin::ui
 // Pass the callback function as a template argument
 // The type is Musin::UI::AnalogControl<handle_analog_control_event>
 // Note: The ID parameter is removed from the initializers
-static etl::array<Musin::UI::AnalogControl<handle_analog_control_event>, 16> mux_controls = {{
-  {PIN_ADC, analog_address_pins, 0},  // Mux Channel 0
-  {PIN_ADC, analog_address_pins, 1},  // Mux Channel 1
-  {PIN_ADC, analog_address_pins, 2},  // Mux Channel 2
-  {PIN_ADC, analog_address_pins, 3},  // Mux Channel 3
-  {PIN_ADC, analog_address_pins, 4},  // Mux Channel 4
-  {PIN_ADC, analog_address_pins, 5},  // Mux Channel 5
-  {PIN_ADC, analog_address_pins, 6},  // Mux Channel 6
-  {PIN_ADC, analog_address_pins, 7},  // Mux Channel 7
-  {PIN_ADC, analog_address_pins, 8},  // Mux Channel 8
-  {PIN_ADC, analog_address_pins, 9},  // Mux Channel 9
-  {PIN_ADC, analog_address_pins, 10}, // Mux Channel 10
-  {PIN_ADC, analog_address_pins, 11}, // Mux Channel 11
-  {PIN_ADC, analog_address_pins, 12}, // Mux Channel 12
-  {PIN_ADC, analog_address_pins, 13}, // Mux Channel 13
-  {PIN_ADC, analog_address_pins, 14}, // Mux Channel 14
-  {PIN_ADC, analog_address_pins, 15}}}; // Mux Channel 15
+static etl::array<Musin::UI::AnalogControl<handle_analog_control_event>, 16>
+    mux_controls = {{{PIN_ADC, analog_address_pins, 0},    // Mux Channel 0
+                     {PIN_ADC, analog_address_pins, 1},    // Mux Channel 1
+                     {PIN_ADC, analog_address_pins, 2},    // Mux Channel 2
+                     {PIN_ADC, analog_address_pins, 3},    // Mux Channel 3
+                     {PIN_ADC, analog_address_pins, 4},    // Mux Channel 4
+                     {PIN_ADC, analog_address_pins, 5},    // Mux Channel 5
+                     {PIN_ADC, analog_address_pins, 6},    // Mux Channel 6
+                     {PIN_ADC, analog_address_pins, 7},    // Mux Channel 7
+                     {PIN_ADC, analog_address_pins, 8},    // Mux Channel 8
+                     {PIN_ADC, analog_address_pins, 9},    // Mux Channel 9
+                     {PIN_ADC, analog_address_pins, 10},   // Mux Channel 10
+                     {PIN_ADC, analog_address_pins, 11},   // Mux Channel 11
+                     {PIN_ADC, analog_address_pins, 12},   // Mux Channel 12
+                     {PIN_ADC, analog_address_pins, 13},   // Mux Channel 13
+                     {PIN_ADC, analog_address_pins, 14},   // Mux Channel 14
+                     {PIN_ADC, analog_address_pins, 15}}}; // Mux Channel 15
 
 int main() {
   stdio_init_all();
@@ -164,8 +166,8 @@ int main() {
   keypad.add_observer(keypad_map_observer);
 
   // Initialize Analog Controls using range-based for loop
-  for (auto& control : mux_controls) {
-      control.init();
+  for (auto &control : mux_controls) {
+    control.init();
   }
 
   printf("Initialized %zu analog controls\n", mux_controls.size());

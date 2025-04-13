@@ -1,18 +1,17 @@
 #include <catch2/catch_test_macros.hpp>
 
-// #include "AudioSampleKick.h"
 #include "musin/audio/pitch_shifter.h"
 
 template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
-  DummyBufferReader() {
+  constexpr DummyBufferReader() {
     reset();
   }
 
-  bool has_data() override {
+  constexpr bool has_data() override {
     return active;
   }
 
-  uint32_t read_samples(AudioBlock &block) override {
+  constexpr uint32_t read_samples(AudioBlock &block) override {
     uint32_t consumed = 0;
     uint32_t samples_written = 0;
     int16_t *out_iterator = block.begin();
@@ -50,7 +49,7 @@ template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleRead
     return samples_written;
   }
 
-  void reset() override {
+  constexpr void reset() override {
     read_counter = 0;
     active = true;
     remaining_length = MAX_SAMPLES;
@@ -97,42 +96,51 @@ TEST_CASE("PitchShifter reads samples") {
   }
 }
 
-TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
-          "sample count is equal to chunk size of the underlying reader") {
+constexpr static unsigned run_test() {
   const int CHUNK_SIZE = 4;
   auto reader = DummyBufferReader<4, CHUNK_SIZE>();
-  auto shifter = PitchShifter(reader);
+  PitchShifter shifter = PitchShifter(reader);
   shifter.reset();
 
   shifter.set_speed(0.5);
 
   AudioBlock block;
   auto samples_read = shifter.read_samples(block);
-  REQUIRE(reader.read_counter == 4);
-  REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+  assert(reader.read_counter == 4);
+  assert(samples_read == AUDIO_BLOCK_SAMPLES);
 
   // Interpolated values
-  REQUIRE(block[0] == 0);
-  REQUIRE(block[1] == 0);
-  REQUIRE(block[2] == 0);
-  REQUIRE(block[3] == 0);
-  REQUIRE(block[4] == 0);
-  REQUIRE(block[5] == 0);
-  REQUIRE(block[6] == 1);
-  REQUIRE(block[7] == 1);
-  REQUIRE(block[8] == 1);
-  REQUIRE(block[9] == 2);
-  REQUIRE(block[10] == 2);
-  REQUIRE(block[11] == 3);
-  REQUIRE(block[12] == 3);
-  REQUIRE(block[13] == 2);
-  REQUIRE(block[14] == 0);
-  REQUIRE(block[15] == 0);
-  REQUIRE(block[16] == 0);
-  REQUIRE(block[17] == 0);
-  REQUIRE(block[18] == 0);
-  REQUIRE(block[19] == 0);
-  REQUIRE(block[19] == 0);
+  assert(block[0] == 0);
+  assert(block[1] == 0);
+  assert(block[2] == 0);
+  assert(block[3] == 0);
+  assert(block[4] == 0);
+  assert(block[5] == 0);
+  assert(block[6] == 1);
+  assert(block[7] == 1);
+  assert(block[8] == 1);
+  assert(block[9] == 2);
+  assert(block[10] == 2);
+  assert(block[11] == 3);
+  assert(block[12] == 3);
+  assert(block[13] == 2);
+  assert(block[14] == 0);
+  assert(block[15] == 0);
+  assert(block[16] == 0);
+  assert(block[17] == 0);
+  assert(block[18] == 0);
+  assert(block[19] == 0);
+  assert(block[19] == 0);
+  assert(block[19] == 0);
+
+  return 0;
+}
+
+
+TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
+          "sample count is equal to chunk size of the underlying reader") {
+  constexpr auto _ = run_test();
+  run_test();
 }
 
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if

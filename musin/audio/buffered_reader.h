@@ -4,21 +4,21 @@
 #include <stdint.h>
 
 struct BufferedReader {
-  BufferedReader(SampleReader &reader) : reader(reader) {};
+  constexpr BufferedReader(SampleReader &reader) : reader(reader) {};
 
-  void reset() {
+  constexpr void reset() {
     reader.reset();
     bytes_read = 0;
     read_position = 0;
   }
 
   // Reader interface
-  bool has_data() {
+  constexpr bool has_data() {
     return (read_position < bytes_read) || reader.has_data();
   }
 
   // Reader interface
-  bool read_next(int16_t &out) {
+  constexpr bool read_next(int16_t &out) {
     if (read_position >= bytes_read) {
       bytes_read = reader.read_samples(buffer);
       read_position = 0;

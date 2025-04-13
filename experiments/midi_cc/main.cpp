@@ -109,13 +109,13 @@ struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
       if (cc_number == 0) return; // Check if a valid CC was assigned
 
       switch(event.type) {
-          case Musin::UI::KeypadEvent::Type::Pressed:
+          case Musin::UI::KeypadEvent::Type::Press:
               _send_midi(_midi_channel, cc_number, 100); // Send CC ON
               break;
-          case Musin::UI::KeypadEvent::Type::Released:
+          case Musin::UI::KeypadEvent::Type::Release:
               _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
               break;
-          case Musin::UI::KeypadEvent::Type::Held:
+          case Musin::UI::KeypadEvent::Type::Hold:
               _send_midi(_midi_channel, cc_number, 127); // Send CC HOLD
               break;
       }

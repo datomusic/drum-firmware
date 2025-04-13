@@ -172,7 +172,7 @@ struct ObservedAnalogControl {
 };
 
 template<typename Event, int ListenerCount>
-struct MultiObserver {
+struct MultiListener {
   typedef std::function<void(const Event&)> Listener;
 
   etl::array<Listener, ListenerCount> listeners;
@@ -185,6 +185,20 @@ struct MultiObserver {
 };
 
 
+static AnalogControl make_analog_control(const uint16_t id){
+  return AnalogControl(id, PIN_ADC, analog_address_pins, 0);
+}
+
+static ObservedAnalogControl analog_listen(const uint16_t id, AnalogControl::Listener listener){
+  return {.control = make_analog_control(id), .listener = listener};
+}
+
+template<int ListenerCount>
+static ObservedAnalogControl analog_listen(const uint16_t id, etl::array<AnalogControl::Listener, ListenerCount> listeners){
+  return analog_listen(id, MultiListener<AnalogControlEvent, ListenerCount>(listeners));
+}
+
+
 static void analog_printer(const AnalogControlEvent &event){
   printf("AnalogEvent from %i: %f\n", event.control_id, event.value);
 }
@@ -192,22 +206,22 @@ static void analog_printer(const AnalogControlEvent &event){
 
 // Statically allocate multiplexed controls using the class from musin::ui
 static etl::array<ObservedAnalogControl, 16> mux_controls = {{
-  {{10, PIN_ADC, analog_address_pins, 0 }, MultiObserver<AnalogControlEvent, 2>({cc_observers[0], analog_printer})},
-  {{11, PIN_ADC, analog_address_pins, 0 }, cc_observers[1]},
-  {{12, PIN_ADC, analog_address_pins, 0 }, cc_observers[2]},
-  {{13, PIN_ADC, analog_address_pins, 0 }, cc_observers[3]},
-  {{14, PIN_ADC, analog_address_pins, 0 }, cc_observers[4]},
-  {{15, PIN_ADC, analog_address_pins, 0 }, cc_observers[5]},
-  {{16, PIN_ADC, analog_address_pins, 0 }, cc_observers[6]},
-  {{17, PIN_ADC, analog_address_pins, 0 }, cc_observers[7]},
-  {{18, PIN_ADC, analog_address_pins, 0 }, cc_observers[8]},
-  {{19, PIN_ADC, analog_address_pins, 0 }, cc_observers[9]},
-  {{20, PIN_ADC, analog_address_pins, 0 }, cc_observers[10]},
-  {{21, PIN_ADC, analog_address_pins, 0 }, cc_observers[11]},
-  {{22, PIN_ADC, analog_address_pins, 0 }, cc_observers[12]},
-  {{23, PIN_ADC, analog_address_pins, 0 }, cc_observers[13]},
-  {{24, PIN_ADC, analog_address_pins, 0 }, cc_observers[14]},
-  {{25, PIN_ADC, analog_address_pins, 0 }, cc_observers[15]}
+  analog_listen<2>(10, {cc_observers[0], analog_printer}),
+  analog_listen(11, cc_observers[1]),
+  analog_listen(12, cc_observers[2]),
+  analog_listen(13, cc_observers[3]),
+  analog_listen(14, cc_observers[4]),
+  analog_listen(15, cc_observers[5]),
+  analog_listen(16, cc_observers[6]),
+  analog_listen(17, cc_observers[7]),
+  analog_listen(18, cc_observers[8]),
+  analog_listen(19, cc_observers[9]),
+  analog_listen(20, cc_observers[10]),
+  analog_listen(21, cc_observers[11]),
+  analog_listen(22, cc_observers[12]),
+  analog_listen(23, cc_observers[13]),
+  analog_listen(24, cc_observers[14]),
+  analog_listen(25, cc_observers[15]),
 }};
 
 

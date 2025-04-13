@@ -175,7 +175,7 @@ int main() {
   printf("Initialized %zu analog controls\n", mux_controls.size());
 
   while (true) {
-    // Update all analog mux controls - observers will be notified automatically
+    // Update all analog mux controls - callback will be invoked automatically
     for (auto &control : mux_controls) {
       control.update();
     }

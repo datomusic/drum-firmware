@@ -12,12 +12,10 @@ struct BufferedReader {
     read_position = 0;
   }
 
-  // Reader interface
-  constexpr bool has_data() {
+  constexpr bool has_data() const {
     return (read_position < bytes_read) || reader.has_data();
   }
 
-  // Reader interface
   constexpr bool read_next(int16_t &out) {
     if (read_position >= bytes_read) {
       bytes_read = reader.read_samples(buffer);

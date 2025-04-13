@@ -7,7 +7,8 @@
 
 struct PitchShifter : SampleReader {
 
-  constexpr PitchShifter(SampleReader &reader) : speed(1), sample_reader(reader), buffered_reader(reader) {
+  constexpr PitchShifter(SampleReader &reader)
+      : speed(1), sample_reader(reader), buffered_reader(reader) {
   }
 
   constexpr static int16_t quad_interpolate(const int16_t d1, const int16_t d2, const int16_t d3,

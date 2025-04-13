@@ -8,14 +8,8 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
-#include "etl/span.h"
 #include "musin/ui/analog_control.h"
 #include "musin/ui/keypad_hc138.h"
-
-extern "C" {
-#include "hardware/adc.h"
-#include "hardware/gpio.h"
-}
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;

@@ -143,7 +143,7 @@ bool Keypad_HC138<NumRows, NumCols>::was_released(std::uint8_t row, std::uint8_t
 }
 
 
-// --- is_held() Implementation ---
+// --- is_Held() Implementation ---
 template<std::uint8_t NumRows, std::uint8_t NumCols>
 bool Keypad_HC138<NumRows, NumCols>::is_held(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols) return false; // Use template parameters
@@ -190,12 +190,12 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
           KeyState next_state = KeyState::PRESSED;
           key.transition_time = now; // Record press time for hold check
           key.just_pressed = true;   // Set event flag
-          notify_event(r, c, KeypadEvent::Type::Pressed); // Notify observers
+          notify_event(r, c, KeypadEvent::Type::Press); // Notify observers
 
           // Check immediately if hold time is zero or very small
            if (_hold_time_us == 0 || absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
                next_state = KeyState::HOLDING;
-               notify_event(r, c, KeypadEvent::Type::Held); // Notify observers about hold
+               notify_event(r, c, KeypadEvent::Type::Hold); // Notify observers about hold
            }
           key.state = next_state;
         }
@@ -212,7 +212,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
         // Still pressed, check if hold time has passed
         if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
           key.state = KeyState::HOLDING;
-          notify_event(r, c, KeypadEvent::Type::Held); // Notify observers about hold
+          notify_event(r, c, KeypadEvent::Type::Hold); // Notify observers about hold
           // Note: transition_time remains the original press time
         }
         // else: Hold time not yet elapsed, remain in PRESSED
@@ -225,11 +225,11 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
 
     case KeyState::HOLDING:
       if (!raw_key_pressed) {
-        // Potential release detected (from HELD state), start debounce timer
+        // Potential release detected (from Hold state), start debounce timer
         key.state = KeyState::DEBOUNCING_RELEASE;
         key.transition_time = now; // Record time release *started*
       }
-      // else: Still held, remain in HOLDING state
+      // else: Still Hold, remain in HOLDING state
       break;
 
     case KeyState::DEBOUNCING_RELEASE:
@@ -240,7 +240,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
           key.state = KeyState::IDLE;
           key.transition_time = nil_time;
           key.just_released = true; // Set event flag
-          notify_event(r, c, KeypadEvent::Type::Released); // Notify observers
+          notify_event(r, c, KeypadEvent::Type::Release); // Notify observers
         }
         // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
       } else {

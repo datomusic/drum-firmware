@@ -22,9 +22,9 @@ namespace Musin::UI {
  */
 struct KeypadEvent {
     enum class Type : uint8_t { 
-        Pressed, 
-        Released, 
-        Held 
+        Press, 
+        Release, 
+        Hold 
     };
     
     uint8_t row;

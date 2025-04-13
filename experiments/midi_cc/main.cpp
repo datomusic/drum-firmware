@@ -68,7 +68,7 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
  * Statically configured, no dynamic memory allocation.
  * This remains specific to the experiment.
  */
-struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
+struct MIDICCObserver {
   const uint8_t cc_number;
   const uint8_t midi_channel;
   
@@ -79,16 +79,12 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
   constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
       : cc_number(cc), midi_channel(channel), _send_midi(sender) {}
   
-  void notification(Musin::UI::AnalogControlEvent event) override {
+  void operator () (const AnalogControlEvent& event){
       // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
       uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
       
       // Send MIDI CC message through function pointer
       _send_midi(midi_channel, cc_number, cc_value);
-  }
-
-  void operator () (const AnalogControlEvent& event){
-    notification(event);
   }
 };
 

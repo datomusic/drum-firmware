@@ -9,28 +9,49 @@
 namespace Musin::HAL {
 
 namespace detail {
-// Constexpr function to check if pins are valid for any UART instance
-constexpr bool are_pins_valid_uart(std::uint32_t tx_pin, std::uint32_t rx_pin) {
+
+// Constexpr function to determine the UART index for a given pin.
+// Returns 0 for UART0, 1 for UART1, -1 if the pin is not a valid UART pin.
+constexpr int get_uart_index(std::uint32_t pin) {
   #if PICO_RP2040
-    return (((tx_pin == 0) && (rx_pin == 1)) || ((tx_pin == 12) && (rx_pin == 13)) ||
-            ((tx_pin == 16) && (rx_pin == 17)) || ((tx_pin == 28) && (rx_pin == 29)) || // UART0
-            ((tx_pin == 4) && (rx_pin == 5)) || ((tx_pin == 8) && (rx_pin == 9)) ||
-            ((tx_pin == 20) && (rx_pin == 21)) || ((tx_pin == 24) && (rx_pin == 25))); // UART1
+    switch (pin) {
+        // UART0 Pins
+        case 0: case 1: case 12: case 13: case 16: case 17: case 28: case 29:
+            return 0;
+        // UART1 Pins
+        case 4: case 5: case 8: case 9: case 20: case 21: case 24: case 25:
+            return 1;
+        default:
+            return -1; // Not a valid UART pin
+    }
   #elif PICO_RP2350
-    
+    // TODO: Add pin validation for RP2350
+    return -1; // Placeholder
+  #else
+    #error "Unsupported target platform for UART HAL"
+    return -1;
   #endif
 }
 
-// Constexpr function to get the UART instance pointer for validated pins
-constexpr uart_inst_t* get_validated_uart_instance(std::uint32_t tx_pin, std::uint32_t rx_pin) {
-     // Assumes are_pins_valid_uart has already passed via static_assert
-     if (((tx_pin == 0) && (rx_pin == 1)) || ((tx_pin == 12) && (rx_pin == 13)) ||
-        ((tx_pin == 16) && (rx_pin == 17)) || ((tx_pin == 28) && (rx_pin == 29))) {
-        return uart0;
-    } else { // Must be UART1 if validation passed
-        return uart1;
+
+// Constexpr function to get the UART instance if TX and RX pins are valid
+// and belong to the same UART peripheral. Returns nullptr otherwise.
+constexpr uart_inst_t* get_uart_instance(std::uint32_t tx_pin, std::uint32_t rx_pin) {
+    const int tx_uart_index = get_uart_index(tx_pin);
+    const int rx_uart_index = get_uart_index(rx_pin);
+
+    // Check if both pins are valid and belong to the same UART instance
+    if (tx_uart_index != -1 && rx_uart_index != -1 && tx_uart_index == rx_uart_index) {
+        #if PICO_RP2040 || PICO_RP2350 // Assuming uart0/uart1 exist on RP2350 too
+        return (tx_uart_index == 0) ? uart0 : uart1;
+        #else
+        return nullptr; // Should be caught by #error in get_uart_index
+        #endif
+    } else {
+        return nullptr; // Pins are invalid or belong to different UARTs
     }
 }
+
 } // namespace detail
 
 

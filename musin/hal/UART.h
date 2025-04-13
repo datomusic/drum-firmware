@@ -2,23 +2,23 @@
 #define MUSIN_HAL_UART_H
 
 #include <cstdint>
-#include <cstddef> // For size_t
+#include <cstddef>
 #include "hardware/uart.h"
 #include "hardware/gpio.h"
-
-// Forward declaration needed because uart.h includes it after defining uart_inst_t
-// struct uart_inst;
-// typedef struct uart_inst uart_inst_t; // Already defined in hardware/uart.h
 
 namespace Musin::HAL {
 
 namespace detail {
 // Constexpr function to check if pins are valid for any UART instance
 constexpr bool are_pins_valid_uart(std::uint32_t tx_pin, std::uint32_t rx_pin) {
+  #if PICO_RP2040
     return (((tx_pin == 0) && (rx_pin == 1)) || ((tx_pin == 12) && (rx_pin == 13)) ||
             ((tx_pin == 16) && (rx_pin == 17)) || ((tx_pin == 28) && (rx_pin == 29)) || // UART0
             ((tx_pin == 4) && (rx_pin == 5)) || ((tx_pin == 8) && (rx_pin == 9)) ||
             ((tx_pin == 20) && (rx_pin == 21)) || ((tx_pin == 24) && (rx_pin == 25))); // UART1
+  #elif PICO_RP2350
+    
+  #endif
 }
 
 // Constexpr function to get the UART instance pointer for validated pins
@@ -90,7 +90,6 @@ public:
    */
   std::uint8_t read() {
     if (!_initialized) {
-      // Or perhaps panic("UART not initialized");
       return 0;
     }
     // uart_getc is blocking, waits for character
@@ -127,7 +126,6 @@ public:
   }
 
 private:
-  // uart_inst_t* _uart_instance; // Instance is determined at compile time now
   bool _initialized;
 };
 

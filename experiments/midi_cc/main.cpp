@@ -59,33 +59,29 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
   printf("MIDI CC %u: %u\n", cc_number, value);
 }
 
+// --- Analog Control Callback ---
+// Map control IDs (10-25) to MIDI CC numbers (16-31)
+constexpr uint8_t control_id_to_cc(uint16_t control_id) {
+    if (control_id >= 10 && control_id <= 25) {
+        return control_id + 6; // Map 10->16, 11->17, ..., 25->31
+    }
+    return 0; // Invalid CC number for unmapped IDs
+}
+
+// Callback function for AnalogControl events
+void handle_analog_control_event(const Musin::UI::AnalogControlEvent& event) {
+    uint8_t cc_number = control_id_to_cc(event.control_id);
+    if (cc_number != 0) { // Only send if a valid CC is mapped
+        // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
+        uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+        // Assuming MIDI channel 0 for this example
+        send_midi_cc(0, cc_number, cc_value);
+    }
+}
+// --- End Analog Control Callback ---
+
+
 // --- Keypad MIDI Map Observer Implementation ---
-/**
- * @brief MIDI CC observer implementation
- * Statically configured, no dynamic memory allocation.
- * This remains specific to the experiment.
- */
-struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
-  const uint8_t cc_number;
-  const uint8_t midi_channel;
-
-  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  const MIDISendFn _send_midi;
-
-  // Constructor
-  constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
-      : cc_number(cc), midi_channel(channel), _send_midi(sender) {
-  }
-
-  void notification(Musin::UI::AnalogControlEvent event) override {
-    // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
-    uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
-
-    // Send MIDI CC message through function pointer
-    _send_midi(midi_channel, cc_number, cc_value);
-  }
-};
-
 struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
   const std::array<uint8_t, 40> &_cc_map; // Assuming 40 keys (8 rows x 5 cols)
   const uint8_t _midi_channel;
@@ -136,30 +132,14 @@ static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
 static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
 // --- End Keypad MIDI Map Observer ---
 
-// Define MIDI observers statically
-static etl::array<MIDICCObserver, 16> cc_observers = {{
-  {16, 0, send_midi_cc},
-  {17, 0, send_midi_cc},
-  {18, 0, send_midi_cc},
-  {19, 0, send_midi_cc},
-  {20, 0, send_midi_cc},
-  {21, 0, send_midi_cc},
-  {22, 0, send_midi_cc},
-  {23, 0, send_midi_cc},
-  {24, 0, send_midi_cc},
-  {25, 0, send_midi_cc},
-  {26, 0, send_midi_cc},
-  {27, 0, send_midi_cc},
-  {28, 0, send_midi_cc},
-  {29, 0, send_midi_cc},
-  {30, 0, send_midi_cc},
-  {31, 0, send_midi_cc}}};
 
 // Statically allocate multiplexed controls using the class from musin::ui
-static etl::array<AnalogControl, 16> mux_controls = {{
-  {10, PIN_ADC, analog_address_pins, 0},
-  {11, PIN_ADC, analog_address_pins, 1},
-  {12, PIN_ADC, analog_address_pins, 2},
+// Pass the callback function as a template argument
+// The type is Musin::UI::AnalogControl<handle_analog_control_event>
+static etl::array<Musin::UI::AnalogControl<handle_analog_control_event>, 16> mux_controls = {{
+  {10, PIN_ADC, analog_address_pins, 0},  // ID 10, Mux Channel 0
+  {11, PIN_ADC, analog_address_pins, 1},  // ID 11, Mux Channel 1
+  {12, PIN_ADC, analog_address_pins, 2},  // ID 12, Mux Channel 2
   {13, PIN_ADC, analog_address_pins, 3},
   {14, PIN_ADC, analog_address_pins, 4},
   {15, PIN_ADC, analog_address_pins, 5},
@@ -187,13 +167,12 @@ int main() {
 
   keypad.add_observer(keypad_map_observer);
 
-  // Initialize Analog Controls using index loop
-  for (size_t i = 0; i < mux_controls.size(); ++i) {
-    mux_controls[i].init();
-    mux_controls[i].add_observer(cc_observers[i]);
+  // Initialize Analog Controls using range-based for loop
+  for (auto& control : mux_controls) {
+      control.init();
   }
 
-  printf("Initialized %zu analog controls\n", std::size(mux_controls));
+  printf("Initialized %zu analog controls\n", mux_controls.size());
 
   while (true) {
     // Update all analog mux controls - observers will be notified automatically

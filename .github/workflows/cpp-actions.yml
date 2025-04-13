@@ -1,4 +1,4 @@
-name: Test and lint c++
+name: C++
 
 on:
   push:
@@ -7,16 +7,80 @@ on:
     branches: [ "main" ]
 
 jobs:
-  lint:
+  Lint:
     runs-on: ubuntu-latest
     steps:
       - name: Install clang-format
         run: sudo apt install -y clang-format
+
+      - name: clang-format version
+        run: clang-format --version
 
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Check formatting
         run: bash format.sh check
+
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: cache-catch2
+        name: Cache Catch2
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-catch2
+        with:
+          path: |
+            musin_test/Catch2
+            musin_test/Catch2_build
+
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+            
+      - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
+        name: Checkout Catch2
+        run: git submodule update --init musin_test/Catch2
+
+      # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }}
+      #   name: Build Catch2
+      #   working-directory: musin_test/Catch2
+      #   run: cmake -B build -S . -DBUILD_TESTING=OFF
+
+      # - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }}
+      #   name: Build Catch2 for real
+      #   working-directory: musin_test/Catch2/build
+      #   run: make
+
+      # - name: Install Catch2
+      #   working-directory: musin_test/Catch2
+      #   run: sudo cmake --build build/ --target install
+
+      - id: cache-etl
+        name: Cache ETL
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-etl
+        with:
+          path: lib/etl
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
+        name: Checkout etl
+        run: git submodule update --init lib/etl
+
+      - name: Test Musin
+        working-directory: musin_test
+        run: bash ./run_tests.sh
 
 

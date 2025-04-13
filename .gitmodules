@@ -10,3 +10,6 @@
 [submodule "lib/etl"]
 	path = lib/etl
 	url = https://github.com/ETLCPP/etl.git
+[submodule "musin_test/Catch2"]
+	path = musin_test/Catch2
+	url = https://github.com/catchorg/Catch2.git

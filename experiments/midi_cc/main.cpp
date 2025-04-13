@@ -60,23 +60,24 @@ void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t v
 }
 
 // --- Analog Control Callback ---
-// Map control IDs (10-25) to MIDI CC numbers (16-31)
-constexpr uint8_t control_id_to_cc(uint16_t control_id) {
-    if (control_id >= 10 && control_id <= 25) {
-        return control_id + 6; // Map 10->16, 11->17, ..., 25->31
-    }
-    return 0; // Invalid CC number for unmapped IDs
-}
-
 // Callback function for AnalogControl events
 void handle_analog_control_event(const Musin::UI::AnalogControlEvent& event) {
-    uint8_t cc_number = control_id_to_cc(event.control_id);
-    if (cc_number != 0) { // Only send if a valid CC is mapped
+    // Extract the mux channel from the upper byte of source_id
+    // Assumes source_id was created with (channel << 8) | pin
+    uint8_t mux_channel = (event.source_id >> 8) & 0xFF;
+
+    // Map mux channel (0-15) directly to MIDI CC (16-31)
+    // Add checks if needed for different ADC pins or non-mux controls
+    if (mux_channel <= 15) { // Ensure it's within the expected range for this setup
+        uint8_t cc_number = mux_channel + 16;
+
         // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
         uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+
         // Assuming MIDI channel 0 for this example
         send_midi_cc(0, cc_number, cc_value);
     }
+    // else { handle other source_ids if necessary }
 }
 // --- End Analog Control Callback ---
 
@@ -136,23 +137,24 @@ static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_c
 // Statically allocate multiplexed controls using the class from musin::ui
 // Pass the callback function as a template argument
 // The type is Musin::UI::AnalogControl<handle_analog_control_event>
+// Note: The ID parameter is removed from the initializers
 static etl::array<Musin::UI::AnalogControl<handle_analog_control_event>, 16> mux_controls = {{
-  {10, PIN_ADC, analog_address_pins, 0},  // ID 10, Mux Channel 0
-  {11, PIN_ADC, analog_address_pins, 1},  // ID 11, Mux Channel 1
-  {12, PIN_ADC, analog_address_pins, 2},  // ID 12, Mux Channel 2
-  {13, PIN_ADC, analog_address_pins, 3},
-  {14, PIN_ADC, analog_address_pins, 4},
-  {15, PIN_ADC, analog_address_pins, 5},
-  {16, PIN_ADC, analog_address_pins, 6},
-  {17, PIN_ADC, analog_address_pins, 7},
-  {18, PIN_ADC, analog_address_pins, 8},
-  {19, PIN_ADC, analog_address_pins, 9},
-  {20, PIN_ADC, analog_address_pins, 10},
-  {21, PIN_ADC, analog_address_pins, 11},
-  {22, PIN_ADC, analog_address_pins, 12},
-  {23, PIN_ADC, analog_address_pins, 13},
-  {24, PIN_ADC, analog_address_pins, 14},
-  {25, PIN_ADC, analog_address_pins, 15}}};
+  {PIN_ADC, analog_address_pins, 0},  // Mux Channel 0
+  {PIN_ADC, analog_address_pins, 1},  // Mux Channel 1
+  {PIN_ADC, analog_address_pins, 2},  // Mux Channel 2
+  {PIN_ADC, analog_address_pins, 3},  // Mux Channel 3
+  {PIN_ADC, analog_address_pins, 4},  // Mux Channel 4
+  {PIN_ADC, analog_address_pins, 5},  // Mux Channel 5
+  {PIN_ADC, analog_address_pins, 6},  // Mux Channel 6
+  {PIN_ADC, analog_address_pins, 7},  // Mux Channel 7
+  {PIN_ADC, analog_address_pins, 8},  // Mux Channel 8
+  {PIN_ADC, analog_address_pins, 9},  // Mux Channel 9
+  {PIN_ADC, analog_address_pins, 10}, // Mux Channel 10
+  {PIN_ADC, analog_address_pins, 11}, // Mux Channel 11
+  {PIN_ADC, analog_address_pins, 12}, // Mux Channel 12
+  {PIN_ADC, analog_address_pins, 13}, // Mux Channel 13
+  {PIN_ADC, analog_address_pins, 14}, // Mux Channel 14
+  {PIN_ADC, analog_address_pins, 15}}}; // Mux Channel 15
 
 int main() {
   stdio_init_all();

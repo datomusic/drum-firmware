@@ -13,7 +13,7 @@ namespace Musin::UI {
  * @brief Event data structure for analog control notifications
  */
 struct AnalogControlEvent {
-    uint16_t control_id;
+    uint16_t source_id; // Unique ID based on ADC pin and mux channel
     float value;
     uint16_t raw_value;
 };
@@ -88,12 +88,9 @@ public:
      * @brief Get the current raw ADC value
      */
     uint16_t get_raw_value() const { return _current_raw; }
-    
-    /**
-     * @brief Get the control's unique ID
-     */
-    uint16_t get_id() const { return _id; }
-    
+
+    // Removed get_id() as _id is removed
+
     /**
      * @brief Set the filtering coefficient
      * 
@@ -109,9 +106,9 @@ public:
     void set_threshold(float threshold) { _threshold = threshold; }
     
 private:
-    // Control identification
-    uint16_t _id;
-    
+    // Source identification (combines ADC pin and mux channel if applicable)
+    uint16_t _source_id;
+
     // Value tracking
     float _current_value = 0.0f;
     float _filtered_value = 0.0f;
@@ -191,7 +188,7 @@ bool AnalogControl<Callback>::update() {
     
     // Check if the filtered value changed beyond threshold compared to the last value
     if (std::abs(_current_value - _last_value) > _threshold) {
-        Callback(AnalogControlEvent{_id, _current_value, _current_raw});
+        Callback(AnalogControlEvent{_source_id, _current_value, _current_raw});
         _last_value = _current_value; // Update the last value
         return true;
     }

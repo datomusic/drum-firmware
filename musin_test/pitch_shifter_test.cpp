@@ -7,7 +7,7 @@
     BODY;                                                                                          \
     return 0;                                                                                      \
   };                                                                                               \
-  constexpr auto _ = body();                                                                       \
+  constexpr const auto _ = body();                                                                 \
   body();
 
 template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
@@ -69,41 +69,42 @@ template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleRead
 };
 
 TEST_CASE("PitchShifter reads samples") {
-  auto reader = DummyBufferReader<100, 4>();
-  auto shifter = PitchShifter(reader);
-  shifter.reset();
+  CONST_BODY(({
+    auto reader = DummyBufferReader<100, 4>();
+    auto shifter = PitchShifter(reader);
+    shifter.reset();
 
-  shifter.set_speed(1);
+    shifter.set_speed(1);
 
-  auto total_samples_read = 0;
-  auto loop_counter = 0;
-  int16_t buffer[100];
+    size_t total_samples_read = 0;
+    size_t loop_counter = 0;
+    int16_t buffer[100];
 
-  int16_t *write_position = buffer;
+    int16_t *write_position = buffer;
 
-  REQUIRE(AUDIO_BLOCK_SAMPLES == 20);
+    assert(AUDIO_BLOCK_SAMPLES == 20);
 
-  while (shifter.has_data()) {
-    AudioBlock block;
-    auto samples_read = shifter.read_samples(block);
-    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
-    total_samples_read += samples_read;
-    loop_counter += 1;
-    for (int i = 0; i < samples_read; ++i) {
-      *write_position = block[i];
-      write_position++;
+    while (shifter.has_data()) {
+      AudioBlock block;
+      auto samples_read = shifter.read_samples(block);
+      assert(samples_read == AUDIO_BLOCK_SAMPLES);
+      total_samples_read += samples_read;
+      loop_counter += 1;
+      for (size_t i = 0; i < samples_read; ++i) {
+        *write_position = block[i];
+        write_position++;
+      }
     }
-  }
 
-  REQUIRE(reader.read_counter == 100);
-  REQUIRE(total_samples_read == 100);
-  REQUIRE(loop_counter == 5);
+    for (size_t i = 0; i < 100; ++i) {
+      assert(buffer[i] == i + 1);
+    }
 
-  for (size_t i = 0; i < 100; ++i) {
-    REQUIRE(buffer[i] == i + 1);
-  }
+    assert(reader.read_counter == 100);
+    assert(total_samples_read == 100);
+    assert(loop_counter == 5);
+  }));
 }
-
 
 TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
           "sample count is equal to chunk size of the underlying reader") {

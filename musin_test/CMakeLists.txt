@@ -7,15 +7,12 @@ set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 add_subdirectory(Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
 
-add_executable(tests 
+add_executable(${PROJECT_NAME}
     pitch_shifter_test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../musin/audio/pitch_shifter.cpp
-    # ../AudioSampleKick.cpp
-    # ../audio_memory_reader.cpp
-    # ./../../../libraries/Teensy_Audio/data_ulaw.c
   )
 
-target_include_directories(tests PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
 )
@@ -24,11 +21,11 @@ add_definitions(
     -DAUDIO_BLOCK_SAMPLES=20
 )
 
-target_link_libraries(tests PRIVATE 
+target_link_libraries(${PROJECT_NAME} PRIVATE
   Catch2::Catch2WithMain
   etl::etl
 )
 
 include(CTest)
 include(Catch)
-catch_discover_tests(tests)
+catch_discover_tests(${PROJECT_NAME})

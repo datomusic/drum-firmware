@@ -1,106 +1,254 @@
-#include <stdio.h>
+/* TODO:
+ - map button actions to correct leds
+ - map slider position to drumpad brightness
+ - sample select buttons select drumpad color
+ - speed determines playbutton blue channel
+ - tempo determines playbutton red channel
+
+ */
 #include <array>
-#include <optional>
+#include <cstdint>
+#include <cstdio>
+#include <etl/array.h>
+#include <iterator>
+#include <optional> // For optional LED return pin
+#include <cstddef> 
+
 #include "pico/stdlib.h"
-#include "musin/boards/drum_pizza.h"
-#include "musin/ui/keypad_hc138.h" // For KeyState definition if needed
-#include "musin/drivers/ws2812.h"       // For WS2812 definition if needed
+#include "pico/time.h"
 
-// --- Pin Mapping (Example for Raspberry Pi Pico) ---
-// Adjust these based on your actual wiring between Pico and Drum Pizza J1
-constexpr unsigned int PIN_ADDR_0 = 29;
-constexpr unsigned int PIN_ADDR_1 = 6;
-constexpr unsigned int PIN_ADDR_2 = 7;
-constexpr unsigned int PIN_ADDR_3 = 9;
+#include "etl/span.h"
+#include "musin/ui/analog_control.h"
+#include "musin/ui/keypad_hc138.h"
+#include "musin/drivers/ws2812.h"
 
-constexpr unsigned int PIN_RING_1 = 15;
-constexpr unsigned int PIN_RING_2 = 14;
-constexpr unsigned int PIN_RING_3 = 13;
-constexpr unsigned int PIN_RING_4 = 11;
-constexpr unsigned int PIN_RING_5 = 10;
+extern "C" {
+#include "hardware/adc.h"
+#include "hardware/gpio.h"
+}
 
-constexpr unsigned int PIN_LED_DATA_OUT = 16; // J1 Pin 19
-constexpr unsigned int PIN_LED_ENABLE = 20;   // GPIO for enabling LED power
+using Musin::UI::AnalogControl;
+using Musin::UI::Keypad_HC138;
 
-const std::optional<unsigned int> led_return_pin = std::nullopt; // Use std::nullopt if not connected
-                                                                 // const std::optional<unsigned int> led_return_pin = PIN_LED_DATA_RET; // Use if connected
+constexpr uint32_t PIN_ADDR_0 = 29;
+constexpr uint32_t PIN_ADDR_1 = 6;
+constexpr uint32_t PIN_ADDR_2 = 7;
+constexpr uint32_t PIN_ADDR_3 = 9;
 
-                                                                 // --- Main Application ---
-int main() {
-  // Initialize standard libraries
-  stdio_init_all();
-  printf("Starting Drum Pizza Example...\n");
+constexpr uint32_t PIN_ADC = 28;
 
-  // --- Configure Board Pins ---
-  // Address pins (4 needed for analog mux, first 3 used by keypad)
-  const std::array<unsigned int, 4> address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2, PIN_ADDR_3};
-  const std::array<unsigned int, 5> keypad_col_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4, PIN_RING_5};
+constexpr uint32_t PIN_RING_1 = 15;
+constexpr uint32_t PIN_RING_2 = 14;
+constexpr uint32_t PIN_RING_3 = 13;
+constexpr uint32_t PIN_RING_4 = 11;
+constexpr uint32_t PIN_RING_5 = 10;
 
-  // --- Create Board Instance ---
-  // This constructor initializes the keypad and LED driver members internally
-  Musin::Boards::DrumPizza board(
-      address_pins, // Pass the 4 address pins
-      keypad_col_pins,
-      PIN_LED_DATA_OUT,
-      led_return_pin
-      // Using default timings for keypad scan/debounce/hold
-      );
+constexpr uint32_t PIN_LED_ENABLE = 20;
+constexpr uint32_t PIN_LED_DATA = 16;
 
-  // --- Initialize Board Hardware ---
-  // This calls init() on the keypad and LED drivers, configuring GPIOs and PIO
-  printf("Initializing board hardware...\n");
-  board.init();
-  printf("Board initialization complete.\n");
+static constexpr std::uint32_t LED_PLAY_BUTTON = 0;
+static constexpr std::uint32_t LED_STEP1_START = 1; // Includes LEDs 1, 2, 3, 4
+static constexpr std::uint32_t LED_DRUMPAD_1   = 5;
+static constexpr std::uint32_t LED_STEP2_START = 6; // Includes LEDs 6, 7, 8, 9
+static constexpr std::uint32_t LED_STEP3_START = 10; // Includes LEDs 10, 11, 12, 13
+static constexpr std::uint32_t LED_DRUMPAD_2   = 14;
+static constexpr std::uint32_t LED_STEP4_START = 15; // Includes LEDs 15, 16, 17, 18
+static constexpr std::uint32_t LED_STEP5_START = 19; // Includes LEDs 19, 20, 21, 22
+static constexpr std::uint32_t LED_DRUMPAD_3   = 23;
+static constexpr std::uint32_t LED_STEP6_START = 24; // Includes LEDs 24, 25, 26, 27
+static constexpr std::uint32_t LED_STEP7_START = 28; // Includes LEDs 28, 29, 30, 31
+static constexpr std::uint32_t LED_DRUMPAD_4   = 32;
+static constexpr std::uint32_t LED_STEP8_START = 33; // Includes LEDs 33, 34, 35, 36
 
-  // --- Enable LED Power ---
-  printf("Enabling LED power (GPIO %u)...\n", PIN_LED_ENABLE);
-  gpio_init(PIN_LED_ENABLE);
-  gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT);
-  gpio_put(PIN_LED_ENABLE, 1); // Set high to enable
+static constexpr std::uint32_t NUM_LEDS = 37;
+Musin::Drivers::WS2812<NUM_LEDS> leds(PIN_LED_DATA,
+Musin::Drivers::RGBOrder::GRB,
+255, std::nullopt);
 
-  // --- LED Chaser State ---
-  unsigned int current_led_index = 0;
-  unsigned int num_board_leds = board.leds().get_num_leds(); // Get actual number managed by driver
-  uint32_t loop_delay_ms = 50; // Delay between chaser steps
+// Static array for multiplexer address pins (AnalogControls use 4)
+const std::array<std::uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
+                                                          PIN_ADDR_3};
+// Static array for keypad column pins
+const std::array<uint, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
+                                                 PIN_RING_5};
+// Static array for keypad decoder address pins (uses first 3)
+const std::array<uint, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
 
-  // --- Main Loop ---
-  while (true) {
-    // --- Scan Keypad ---
-    if (board.keypad().scan()) {
-      // Scan was performed, check for presses
-      for (uint8_t r = 0; r < board.keypad().get_num_rows(); ++r) {
-        for (uint8_t c = 0; c < board.keypad().get_num_cols(); ++c) {
-          if (board.keypad().was_pressed(r, c)) {
-            printf("Key Pressed: Row %u, Col %u\n", r, c);
-          }
-          // Optional: Check for release or hold events
-          // if (board.keypad().was_released(r, c)) {
-          //     printf("Key Released: Row %u, Col %u\n", r, c);
-          // }
-          // if (board.keypad().is_held(r, c)) {
-          //     // Note: is_held is continuous, might print repeatedly
-          // }
-        }
-      }
-    }
+// --- Keypad Configuration ---
+constexpr uint8_t KEYPAD_ROWS = 8; // Using 3 address pins allows up to 8 rows
+constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
+constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
-    // --- Update LED Chaser ---
-    // Turn off the previous LED
-    unsigned int prev_led_index = (current_led_index == 0) ? (num_board_leds - 1) : (current_led_index - 1);
-    board.leds().set_pixel(prev_led_index, 0, 0, 0); // Black
+// Static instance of the keypad driver
+static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad_columns_pins,
+                                                     10,  // 10ms scan time
+                                                     5,   //  5ms debounce time
+                                                     1000 // 1 second hold time
+);
 
-    // Turn on the current LED (white)
-    board.leds().set_pixel(current_led_index, 255, 255, 255); // White
+// The actual MIDI sending function (currently prints)
+void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
+  printf("MIDI CC %u: %u\n", cc_number, value);
+  leds.set_pixel(cc_number, value, value, value);
+}
 
-    // Send data to the LED strip
-    board.leds().show();
+// --- Keypad MIDI Map Observer Implementation ---
+/**
+ * @brief MIDI CC observer implementation
+ * Statically configured, no dynamic memory allocation.
+ * This remains specific to the experiment.
+ */
+struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
+  const uint8_t cc_number;
+  const uint8_t midi_channel;
 
-    // Move to the next LED
-    current_led_index = (current_led_index + 1) % num_board_leds;
+  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+  const MIDISendFn _send_midi;
 
-    // --- Loop Delay ---
-    sleep_ms(loop_delay_ms);
+  // Constructor
+  constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
+      : cc_number(cc), midi_channel(channel), _send_midi(sender) {
   }
 
-  return 0; // Should not be reached
+  void notification(Musin::UI::AnalogControlEvent event) override {
+    // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
+    uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+
+    // Send MIDI CC message through function pointer
+    _send_midi(midi_channel, cc_number, cc_value);
+  }
+};
+
+struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
+  const std::array<uint8_t, 40> &_cc_map; // Assuming 40 keys (8 rows x 5 cols)
+  const uint8_t _midi_channel;
+
+  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+  const MIDISendFn _send_midi;
+
+  // Constructor
+  constexpr KeypadMIDICCMapObserver(const std::array<uint8_t, 40> &map, uint8_t channel,
+                                    MIDISendFn sender)
+      : _cc_map(map), _midi_channel(channel), _send_midi(sender) {
+  }
+
+  void notification(Musin::UI::KeypadEvent event) override {
+    uint8_t key_index = event.row * 5 + event.col; // Assuming 5 columns
+    if (key_index >= _cc_map.size())
+      return;
+
+    uint8_t cc_number = _cc_map[key_index];
+    if (cc_number == 0)
+      return; // Check if a valid CC was assigned
+
+    switch (event.type) {
+    case Musin::UI::KeypadEvent::Type::Press:
+      _send_midi(_midi_channel, cc_number, 100); // Send CC ON
+      break;
+    case Musin::UI::KeypadEvent::Type::Release:
+      _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
+      break;
+    case Musin::UI::KeypadEvent::Type::Hold:
+      _send_midi(_midi_channel, cc_number, 127); // Send CC HOLD
+      break;
+    }
+  }
+};
+
+// Define the mapping from key index (0-39) to MIDI CC number
+// Example: Starting at CC 32 and incrementing. Customize as needed.
+static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
+  std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
+  for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
+    // Ensure CC stays within 0-119 range
+    map[i] = (i) <= 119 ? (i) : 0; // Assign 0 if out of range
+  }
+  return map;
+}();
+
+static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
+// --- End Keypad MIDI Map Observer ---
+
+// Define MIDI observers statically
+static etl::array<MIDICCObserver, 16> cc_observers = {{{16, 0, send_midi_cc},
+                                                       {17, 0, send_midi_cc},
+                                                       {18, 0, send_midi_cc},
+                                                       {19, 0, send_midi_cc},
+                                                       {20, 0, send_midi_cc},
+                                                       {21, 0, send_midi_cc},
+                                                       {22, 0, send_midi_cc},
+                                                       {23, 0, send_midi_cc},
+                                                       {24, 0, send_midi_cc},
+                                                       {25, 0, send_midi_cc},
+                                                       {26, 0, send_midi_cc},
+                                                       {27, 0, send_midi_cc},
+                                                       {28, 0, send_midi_cc},
+                                                       {29, 0, send_midi_cc},
+                                                       {30, 0, send_midi_cc},
+                                                       {31, 0, send_midi_cc}}};
+
+// Statically allocate multiplexed controls using the class from musin::ui
+static etl::array<AnalogControl, 16> mux_controls = {{{10, PIN_ADC, analog_address_pins, 0},
+                                                      {11, PIN_ADC, analog_address_pins, 1},
+                                                      {12, PIN_ADC, analog_address_pins, 2},
+                                                      {13, PIN_ADC, analog_address_pins, 3},
+                                                      {14, PIN_ADC, analog_address_pins, 4},
+                                                      {15, PIN_ADC, analog_address_pins, 5},
+                                                      {16, PIN_ADC, analog_address_pins, 6},
+                                                      {17, PIN_ADC, analog_address_pins, 7},
+                                                      {18, PIN_ADC, analog_address_pins, 8},
+                                                      {19, PIN_ADC, analog_address_pins, 9},
+                                                      {20, PIN_ADC, analog_address_pins, 10},
+                                                      {21, PIN_ADC, analog_address_pins, 11},
+                                                      {22, PIN_ADC, analog_address_pins, 12},
+                                                      {23, PIN_ADC, analog_address_pins, 13},
+                                                      {24, PIN_ADC, analog_address_pins, 14},
+                                                      {25, PIN_ADC, analog_address_pins, 15}}};
+
+int main() {
+  stdio_init_all();
+
+
+  gpio_init(PIN_LED_ENABLE);
+  gpio_set_dir(PIN_LED_ENABLE, true);
+  gpio_put(PIN_LED_ENABLE, 1);
+
+  sleep_ms(2000);
+  
+  leds.init();
+  leds.set_pixel(0, 0x123456);
+  leds.set_pixel(1, 0x00ff00);
+  leds.show();
+
+  printf("MIDI CC and Keypad demo\n");
+
+  // Initialize Keypad
+  keypad.init();
+  printf("Keypad Initialized (%u rows, %u cols)\n", KEYPAD_ROWS, KEYPAD_COLS);
+
+  keypad.add_observer(keypad_map_observer);
+
+  // Initialize Analog Controls using index loop
+  for (size_t i = 0; i < mux_controls.size(); ++i) {
+    mux_controls[i].init();
+    mux_controls[i].add_observer(cc_observers[i]);
+  }
+
+  printf("Initialized %zu analog controls\n", std::size(mux_controls));
+
+  while (true) {
+    // Update all analog mux controls - observers will be notified automatically
+    for (auto &control : mux_controls) {
+      control.update();
+    }
+
+    // Scan the keypad - observers will be notified automatically
+    keypad.scan();
+
+    leds.show();
+    // Add a small delay to yield time
+    sleep_ms(1);
+  }
+
+  return 0;
 }

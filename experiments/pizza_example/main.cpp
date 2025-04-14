@@ -11,64 +11,34 @@
 #include <cstdio>
 #include <etl/array.h>
 #include <iterator>
-#include <optional> // For optional LED return pin
+#include <optional>
 #include <cstddef> 
 
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
 #include "etl/span.h"
-// analog_in.h is included by analog_control.h and drumpad.h
 #include "musin/ui/analog_control.h"
 #include "musin/ui/keypad_hc138.h"
 #include "musin/drivers/ws2812.h"
-#include "musin/ui/drumpad.h"       // Include the Drumpad driver
+#include "musin/ui/drumpad.h"
 
 extern "C" {
 #include "hardware/adc.h"
 #include "hardware/gpio.h"
 }
 
+#include "drum_pizza_pins.h"
+
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
 
-constexpr uint32_t PIN_ADDR_0 = 29;
-constexpr uint32_t PIN_ADDR_1 = 6;
-constexpr uint32_t PIN_ADDR_2 = 7;
-constexpr uint32_t PIN_ADDR_3 = 9;
-
-constexpr uint32_t PIN_ADC = 28;
-
-constexpr uint32_t PIN_RING_1 = 15;
-constexpr uint32_t PIN_RING_2 = 14;
-constexpr uint32_t PIN_RING_3 = 13;
-constexpr uint32_t PIN_RING_4 = 11;
-constexpr uint32_t PIN_RING_5 = 10;
-
-constexpr uint32_t PIN_LED_ENABLE = 20;
-constexpr uint32_t PIN_LED_DATA = 16;
-
-static constexpr std::uint32_t LED_PLAY_BUTTON = 0;
-static constexpr std::uint32_t LED_STEP1_START = 1; // Includes LEDs 1, 2, 3, 4
-static constexpr std::uint32_t LED_DRUMPAD_1   = 5;
-static constexpr std::uint32_t LED_STEP2_START = 6; // Includes LEDs 6, 7, 8, 9
-static constexpr std::uint32_t LED_STEP3_START = 10; // Includes LEDs 10, 11, 12, 13
-static constexpr std::uint32_t LED_DRUMPAD_2   = 14;
-static constexpr std::uint32_t LED_STEP4_START = 15; // Includes LEDs 15, 16, 17, 18
-static constexpr std::uint32_t LED_STEP5_START = 19; // Includes LEDs 19, 20, 21, 22
-static constexpr std::uint32_t LED_DRUMPAD_3   = 23;
-static constexpr std::uint32_t LED_STEP6_START = 24; // Includes LEDs 24, 25, 26, 27
-static constexpr std::uint32_t LED_STEP7_START = 28; // Includes LEDs 28, 29, 30, 31
-static constexpr std::uint32_t LED_DRUMPAD_4   = 32;
-static constexpr std::uint32_t LED_STEP8_START = 33; // Includes LEDs 33, 34, 35, 36
-
-static constexpr std::uint32_t NUM_LEDS = 37;
 Musin::Drivers::WS2812<NUM_LEDS> leds(PIN_LED_DATA,
 Musin::Drivers::RGBOrder::GRB,
-255, std::nullopt);
+255, 0xffd0d0);
 
 // Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<std::uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
+const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
                                                           PIN_ADDR_3};
 // Static array for keypad column pins
 const std::array<uint, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
@@ -115,6 +85,22 @@ static etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>*, 4> drumpads = 
 };
 // --- End Drumpad Configuration ---
 
+void drumpads_update() {
+  // Update Drumpads and check for hits
+  for (size_t i = 0; i < drumpads.size(); ++i) {
+    if (drumpads[i]->update()) {
+      auto velocity = drumpads[i]->get_velocity();
+      if (velocity) {
+        printf("Drum %zu hit! Velocity: %u (Raw: %u, TimeDiff: %llu us)\n",
+                i + 1,
+                *velocity,
+                drumpads[i]->get_raw_adc_value(),
+                drumpads[i]->get_last_velocity_time_diff());
+        // TODO: Send MIDI note or trigger sound here
+      }
+    }
+  }
+}
 
 // The actual MIDI sending function (prints and updates specific LEDs)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
@@ -156,20 +142,20 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         // Maybe use value for blue channel? For now, just brightness.
         leds.set_pixel(led_index_to_set, value, value, value); // Example: Blue channel
         break;
-      // case 16: // Drumpad 1 related?
-      //   led_index_to_set = LED_DRUMPAD_1;
-      //   leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-      //   send_midi_note(10, 36, value);
-      //   break;
-      case 18: // Drumpad 2 related?
+      case AnalogAddress::DRUM1:
+        led_index_to_set = LED_DRUMPAD_1;
+        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        send_midi_note(10, 36, value);
+        break;
+      case AnalogAddress::DRUM2: // Drumpad 2 related?
         led_index_to_set = LED_DRUMPAD_2;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
-      case 27: // Drumpad 3 related?
+      case AnalogAddress::DRUM3:
         led_index_to_set = LED_DRUMPAD_3;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
-      case 29: // Drumpad 4 related?
+      case AnalogAddress::DRUM4:
         led_index_to_set = LED_DRUMPAD_4;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
@@ -179,8 +165,6 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         break;
     // Send MIDI CC message through function pointer
     }
-
-
   }
 };
 
@@ -222,7 +206,7 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
 
 // Define the mapping from key index (0-39) to MIDI CC number
 // Example: Starting at CC 32 and incrementing. Customize as needed.
-static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
+constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
   std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
   for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
     // Ensure CC stays within 0-119 range
@@ -235,22 +219,22 @@ static KeypadObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
 // --- End Keypad MIDI Map Observer ---
 
 // Define MIDI observers statically
-static etl::array<MIDICCObserver, 16> cc_observers = {{{16, 0, send_midi_cc},
-                                                       {17, 0, send_midi_cc},
-                                                       {18, 0, send_midi_cc},
-                                                       {19, 0, send_midi_cc},
-                                                       {20, 0, send_midi_cc},
-                                                       {21, 0, send_midi_cc},
-                                                       {22, 0, send_midi_cc},
-                                                       {23, 0, send_midi_cc},
-                                                       {24, 0, send_midi_cc},
-                                                       {25, 0, send_midi_cc},
-                                                       {26, 0, send_midi_cc},
-                                                       {27, 0, send_midi_cc},
-                                                       {28, 0, send_midi_cc},
-                                                       {29, 0, send_midi_cc},
-                                                       {30, 0, send_midi_cc},
-                                                       {31, 0, send_midi_cc}}};
+static etl::array<MIDICCObserver, 16> cc_observers = {{{ 0, 0, send_midi_cc},
+                                                       { 1, 0, send_midi_cc},
+                                                       { 2, 0, send_midi_cc},
+                                                       { 3, 0, send_midi_cc},
+                                                       { 4, 0, send_midi_cc},
+                                                       { 5, 0, send_midi_cc},
+                                                       { 6, 0, send_midi_cc},
+                                                       { 7, 0, send_midi_cc},
+                                                       { 8, 0, send_midi_cc},
+                                                       { 9, 0, send_midi_cc},
+                                                       {10, 0, send_midi_cc},
+                                                       {11, 0, send_midi_cc},
+                                                       {12, 0, send_midi_cc},
+                                                       {13, 0, send_midi_cc},
+                                                       {14, 0, send_midi_cc},
+                                                       {15, 0, send_midi_cc}}};
 
 // Statically allocate multiplexed controls using the class from musin::ui
 static etl::array<AnalogControl, 16> mux_controls = {{{10, PIN_ADC, analog_address_pins, 0},
@@ -270,17 +254,107 @@ static etl::array<AnalogControl, 16> mux_controls = {{{10, PIN_ADC, analog_addre
                                                       {24, PIN_ADC, analog_address_pins, 14},
                                                       {25, PIN_ADC, analog_address_pins, 15}}};
 
+
+enum class ExternalPinState {
+  FLOATING,
+  PULL_UP,
+  PULL_DOWN,
+  UNDETERMINED
+};
+
+
+
+static ExternalPinState check_external_pin_state(std::uint32_t gpio, const char* name) { // Use std::uint32_t
+  gpio_init(gpio);
+  gpio_set_dir(gpio, GPIO_IN);
+
+  gpio_disable_pulls(gpio);
+  sleep_us(10);
+  bool initial_read = gpio_get(gpio);
+
+  gpio_pull_up(gpio);
+  sleep_us(10);
+  bool pullup_read = gpio_get(gpio);
+
+  gpio_pull_down(gpio);
+  sleep_us(10);
+  bool pulldown_read = gpio_get(gpio);
+
+  ExternalPinState determined_state;
+  const char* state_str;
+
+  if (!initial_read && pullup_read && !pulldown_read) {
+      // Reads LOW with no pull, HIGH with pull-up, LOW with pull-down -> Floating
+      determined_state = ExternalPinState::FLOATING;
+      state_str = "Floating";
+  } else if (initial_read && pullup_read && !pulldown_read) {
+       // Reads HIGH with no pull, HIGH with pull-up, LOW with pull-down -> Floating (alternative)
+      determined_state = ExternalPinState::FLOATING;
+      state_str = "Floating";
+  } else if (!initial_read && !pullup_read) {
+      // Reads LOW with no pull, LOW with pull-up -> Strong External Pull-down
+      determined_state = ExternalPinState::PULL_DOWN;
+      state_str = "External Pull-down";
+  } else if (initial_read && pulldown_read) {
+      // Reads HIGH with no pull, HIGH with pull-down -> Strong External Pull-up
+      determined_state = ExternalPinState::PULL_UP;
+      state_str = "External Pull-up";
+  } else {
+      // Other combinations are less clear or indicate potential issues
+      determined_state = ExternalPinState::UNDETERMINED;
+      state_str = "Undetermined / Inconsistent Reads";
+  }
+
+  printf("DrumPizza Init: Pin %lu (%s) external state check result: %s\n", gpio, name, state_str);
+
+  gpio_disable_pulls(gpio);
+  sleep_us(10);
+
+  return determined_state;
+}
+
+
+void DrumPizza_init() {
+  printf("DrumPizza Initializing...\n");
+
+  printf("DrumPizza: Checking external pin states...\n");
+  check_external_pin_state(PIN_ADDR_0, "ADDR_0");
+  check_external_pin_state(PIN_ADDR_1, "ADDR_1");
+  check_external_pin_state(PIN_ADDR_2, "ADDR_2");
+  check_external_pin_state(PIN_ADDR_3, "ADDR_3");
+
+  ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
+
+  printf("DrumPizza: Initializing LEDs...\n");
+  // Set brightness based on pin state check
+  // If the pin is pulled up, assume SK6812, so 12mA per channel. Set brighness to 100
+  // If it is pulled down, assume SK6805, so 5mA per channel. Set brightness to full
+  uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 55;
+  printf("DrumPizza: Setting initial LED brightness to %u (based on pin state: %d)\n",
+         initial_brightness, static_cast<int>(led_pin_state));
+  leds.set_brightness(initial_brightness);
+
+  if (!leds.init()) {
+      printf("Error: Failed to initialize WS2812 LED driver!\n");
+      // Depending on requirements, might panic here: panic("WS2812 Init Failed");
+  } else {
+      gpio_init(PIN_LED_ENABLE);
+      gpio_set_dir(PIN_LED_ENABLE, true);
+      gpio_put(PIN_LED_ENABLE, 1);
+
+      leds.clear();
+      leds.show();
+  }
+
+  printf("DrumPizza Initialization Complete.\n");
+}
+
 int main() {
   stdio_init_all();
 
+  sleep_ms(1000);
+  DrumPizza_init();
 
-  gpio_init(PIN_LED_ENABLE);
-  gpio_set_dir(PIN_LED_ENABLE, true);
-  gpio_put(PIN_LED_ENABLE, 1);
-
-  sleep_ms(2000);
-  
-  leds.init();
   leds.set_pixel(0, 0x00ff00);
   leds.show();
 
@@ -317,30 +391,12 @@ int main() {
     // Scan the keypad - observers will be notified automatically
     keypad.scan();
 
-    // Update Drumpads and check for hits
-    for (size_t i = 0; i < drumpads.size(); ++i) {
-        if (drumpads[i]->update()) { // update() returns true if an update was performed
-            if (drumpads[i]->was_pressed()) {
-                auto velocity = drumpads[i]->get_velocity();
-                if (velocity) {
-                    printf("Drum %zu hit! Velocity: %u (Raw: %u, TimeDiff: %llu us)\n", // Add TimeDiff
-                           i + 1, // Print 1-based index
-                           *velocity,
-                           drumpads[i]->get_raw_adc_value(),
-                           drumpads[i]->get_last_velocity_time_diff()); // DEBUG: Print time diff
-                    // TODO: Send MIDI note or trigger sound here
-                }
-            }
-            // Optional: Check for release or hold events
-            // if (drumpads[i]->was_released()) { printf("Drum %zu released\n", i + 1); }
-            // if (drumpads[i]->is_held()) { printf("Drum %zu held\n", i + 1); }
-        }
-    }
-
-
     leds.show();
+
+    drumpads_update();
+    
     // Add a small delay to yield time
-    sleep_ms(1); // Consider if 1ms is frequent enough for drumpad scanning
+    sleep_us(80); // need at least 80us for the leds to latch
   }
 
   return 0;

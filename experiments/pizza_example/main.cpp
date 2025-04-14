@@ -89,41 +89,10 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad
 // The actual MIDI sending function (prints and updates specific LEDs)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
   printf("MIDI CC %u: %u\n", cc_number, value);
+}
 
-  // Map specific CCs to specific LEDs
-  uint32_t led_index_to_set = NUM_LEDS; // Initialize to an invalid index
-
-  switch (cc_number) {
-    case 21: // Speed
-      led_index_to_set = LED_PLAY_BUTTON;
-      // Maybe use value for blue channel? For now, just brightness.
-      leds.set_pixel(led_index_to_set, 0, 0, value); // Example: Blue channel
-      break;
-    case 16: // Drumpad 1 related?
-      led_index_to_set = LED_DRUMPAD_1;
-      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-      break;
-    case 18: // Drumpad 2 related?
-      led_index_to_set = LED_DRUMPAD_2;
-      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-      break;
-    case 27: // Drumpad 3 related?
-      led_index_to_set = LED_DRUMPAD_3;
-      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-      break;
-    case 29: // Drumpad 4 related?
-      led_index_to_set = LED_DRUMPAD_4;
-      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-      break;
-    // Add other CC mappings here if needed
-    default:
-      // Do nothing for unmapped CCs to avoid unintended LED changes
-      break;
-  }
-
-  // Note: leds.show() is called in the main loop, so changes will be displayed there.
-  // The previous line: leds.set_pixel(cc_number, value, value, value); has been removed
-  // as it directly mapped CC number to LED index, which is not desired.
+void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
+  printf("MIDI Note %u: %u\n", note_number, velocity);
 }
 
 // --- Keypad MIDI Map Observer Implementation ---
@@ -137,33 +106,68 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
   const uint8_t midi_channel;
 
   using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  const MIDISendFn _send_midi;
+  const MIDISendFn _send_midi_cc;
 
   // Constructor
   constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
-      : cc_number(cc), midi_channel(channel), _send_midi(sender) {
+      : cc_number(cc), midi_channel(channel), _send_midi_cc(sender) {
   }
 
   void notification(Musin::UI::AnalogControlEvent event) override {
     // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
-    uint8_t cc_value = static_cast<uint8_t>(event.value * 127.0f);
+    uint8_t value = static_cast<uint8_t>(event.value * 127.0f);
 
+    // Map specific CCs to specific LEDs
+    uint32_t led_index_to_set = NUM_LEDS; // Initialize to an invalid index
+
+    switch (cc_number) {
+      case 21: // Speed
+        led_index_to_set = LED_PLAY_BUTTON;
+        // Maybe use value for blue channel? For now, just brightness.
+        leds.set_pixel(led_index_to_set, value, value, value); // Example: Blue channel
+        break;
+      // case 16: // Drumpad 1 related?
+      //   led_index_to_set = LED_DRUMPAD_1;
+      //   leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+      //   send_midi_note(10, 36, value);
+      //   break;
+      case 18: // Drumpad 2 related?
+        led_index_to_set = LED_DRUMPAD_2;
+        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        send_midi_note(11, 36, value);
+        break;
+      case 27: // Drumpad 3 related?
+        led_index_to_set = LED_DRUMPAD_3;
+        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        send_midi_note(12, 36, value);
+        break;
+      case 29: // Drumpad 4 related?
+        led_index_to_set = LED_DRUMPAD_4;
+        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        send_midi_note(13, 36, value);
+        break;
+      // Add other CC mappings here if needed
+      default:
+        // Do nothing for unmapped CCs to avoid unintended LED changes
+        break;
     // Send MIDI CC message through function pointer
-    _send_midi(midi_channel, cc_number, cc_value);
+    }
+
+    _send_midi_cc(midi_channel, cc_number, value);
   }
 };
 
-struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
+struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
   const std::array<uint8_t, 40> &_cc_map; // Assuming 40 keys (8 rows x 5 cols)
   const uint8_t _midi_channel;
 
   using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  const MIDISendFn _send_midi;
+  const MIDISendFn _send_midi_cc;
 
   // Constructor
-  constexpr KeypadMIDICCMapObserver(const std::array<uint8_t, 40> &map, uint8_t channel,
+  constexpr KeypadObserver(const std::array<uint8_t, 40> &map, uint8_t channel,
                                     MIDISendFn sender)
-      : _cc_map(map), _midi_channel(channel), _send_midi(sender) {
+      : _cc_map(map), _midi_channel(channel), _send_midi_cc(sender) {
   }
 
   void notification(Musin::UI::KeypadEvent event) override {
@@ -177,13 +181,13 @@ struct KeypadMIDICCMapObserver : public etl::observer<Musin::UI::KeypadEvent> {
 
     switch (event.type) {
     case Musin::UI::KeypadEvent::Type::Press:
-      _send_midi(_midi_channel, cc_number, 100); // Send CC ON
+      _send_midi_cc(_midi_channel, cc_number, 100); // Send CC ON
       break;
     case Musin::UI::KeypadEvent::Type::Release:
-      _send_midi(_midi_channel, cc_number, 0); // Send CC OFF
+      _send_midi_cc(_midi_channel, cc_number, 0); // Send CC OFF
       break;
     case Musin::UI::KeypadEvent::Type::Hold:
-      _send_midi(_midi_channel, cc_number, 127); // Send CC HOLD
+      _send_midi_cc(_midi_channel, cc_number, 127); // Send CC HOLD
       break;
     }
   }
@@ -200,7 +204,7 @@ static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
   return map;
 }();
 
-static KeypadMIDICCMapObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
+static KeypadObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
 // --- End Keypad MIDI Map Observer ---
 
 // Define MIDI observers statically
@@ -250,8 +254,7 @@ int main() {
   sleep_ms(2000);
   
   leds.init();
-  leds.set_pixel(0, 0x123456);
-  leds.set_pixel(1, 0x00ff00);
+  leds.set_pixel(0, 0x00ff00);
   leds.show();
 
   printf("MIDI CC and Keypad demo\n");

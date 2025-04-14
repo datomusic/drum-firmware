@@ -18,9 +18,11 @@
 #include "pico/time.h"
 
 #include "etl/span.h"
+// analog_in.h is included by analog_control.h and drumpad.h
 #include "musin/ui/analog_control.h"
 #include "musin/ui/keypad_hc138.h"
 #include "musin/drivers/ws2812.h"
+#include "musin/ui/drumpad.h"       // Include the Drumpad driver
 
 extern "C" {
 #include "hardware/adc.h"
@@ -85,6 +87,34 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad
                                                      5,   //  5ms debounce time
                                                      1000 // 1 second hold time
 );
+
+// --- Drumpad Configuration ---
+// Define the multiplexer addresses for the drumpads
+constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
+constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
+constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
+constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
+
+// Create AnalogInMux16 instances (readers) for each drumpad
+// Using the alias from musin/hal/analog_in.h
+static Musin::HAL::AnalogInMux16 reader_pad1(PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1);
+static Musin::HAL::AnalogInMux16 reader_pad2(PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2);
+static Musin::HAL::AnalogInMux16 reader_pad3(PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3);
+static Musin::HAL::AnalogInMux16 reader_pad4(PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4);
+
+// Create Drumpad instances using the specific readers
+// Using default thresholds for now. Pass the reader by reference.
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad1(reader_pad1);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad2(reader_pad2);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad3(reader_pad3);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad4(reader_pad4);
+
+// Store drumpads in an array for easier iteration (using pointers)
+static etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>*, 4> drumpads = {
+    &drumpad1, &drumpad2, &drumpad3, &drumpad4
+};
+// --- End Drumpad Configuration ---
+
 
 // The actual MIDI sending function (prints and updates specific LEDs)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
@@ -265,6 +295,14 @@ int main() {
 
   keypad.add_observer(keypad_map_observer);
 
+  // Initialize Drumpad Readers
+  reader_pad1.init();
+  reader_pad2.init();
+  reader_pad3.init();
+  reader_pad4.init();
+  printf("Drumpad Readers Initialized\n");
+  // Drumpad objects themselves don't need init() as they use initialized readers
+
   // Initialize Analog Controls using index loop
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].init();
@@ -282,9 +320,29 @@ int main() {
     // Scan the keypad - observers will be notified automatically
     keypad.scan();
 
+    // Update Drumpads and check for hits
+    for (size_t i = 0; i < drumpads.size(); ++i) {
+        if (drumpads[i]->update()) { // update() returns true if an update was performed
+            if (drumpads[i]->was_pressed()) {
+                auto velocity = drumpads[i]->get_velocity();
+                if (velocity) {
+                    printf("Drum %zu hit! Velocity: %u (Raw: %u)\n",
+                           i + 1, // Print 1-based index
+                           *velocity,
+                           drumpads[i]->get_raw_adc_value());
+                    // TODO: Send MIDI note or trigger sound here
+                }
+            }
+            // Optional: Check for release or hold events
+            // if (drumpads[i]->was_released()) { printf("Drum %zu released\n", i + 1); }
+            // if (drumpads[i]->is_held()) { printf("Drum %zu held\n", i + 1); }
+        }
+    }
+
+
     leds.show();
     // Add a small delay to yield time
-    sleep_ms(1);
+    sleep_ms(1); // Consider if 1ms is frequent enough for drumpad scanning
   }
 
   return 0;

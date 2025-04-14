@@ -7,16 +7,17 @@ set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 
 add_executable(${PROJECT_NAME}
     pitch_shifter_test.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../musin/audio/pitch_shifter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/audio/pitch_shifter.cpp
   )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
+  ${CMAKE_CURRENT_LIST_DIR}/../..
 )
 
 add_definitions(

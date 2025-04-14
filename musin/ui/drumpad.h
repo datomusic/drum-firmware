@@ -241,12 +241,18 @@ bool Drumpad<AnalogReader>::update() {
         _just_released = false;
         _last_velocity = std::nullopt;
 
-        // Read the ADC value using the provided reader
-        // Assumes the reader handles mux addressing if necessary
-        std::uint16_t current_adc_value = _reader.read_raw(); // Use read_raw() for 12-bit value
-        _last_adc_value = current_adc_value;
+        // Read the raw ADC value using the provided reader
+        std::uint16_t raw_adc_value = _reader.read_raw();
 
-        update_state_machine(current_adc_value, now);
+        // --- Invert the reading for falling edge hardware ---
+        // Assuming 12-bit ADC (0-4095)
+        constexpr std::uint16_t ADC_MAX_VALUE = 4095;
+        std::uint16_t current_adc_value = ADC_MAX_VALUE - raw_adc_value;
+        // ----------------------------------------------------
+
+        _last_adc_value = current_adc_value; // Store the *inverted* value for state machine
+
+        update_state_machine(current_adc_value, now); // Use the inverted value
 
         _last_update_time = now;
         return true; // Update was performed

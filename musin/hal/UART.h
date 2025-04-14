@@ -119,6 +119,19 @@ public:
   }
 
   /**
+   * @brief Initializes the UART peripheral (compatibility alias for init).
+   *
+   * This method is provided for compatibility with libraries that expect
+   * a `begin` method (e.g., Arduino MIDI Library). It simply calls init().
+   *
+   * @param baud_rate The desired baud rate in Hz.
+   * @return true if initialization succeeds.
+   */
+  bool begin(std::uint32_t baud_rate) {
+    return init(baud_rate);
+  }
+
+  /**
    * @brief Reads a single byte from the UART receive buffer.
    *
    *

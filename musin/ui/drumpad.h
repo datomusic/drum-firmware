@@ -139,6 +139,9 @@ public:
     /** @brief Get the current state of the pad's state machine. */
     DrumpadState get_current_state() const { return _current_state; }
 
+    /** @brief [DEBUG] Get the last calculated time difference for velocity. */
+    uint64_t get_last_velocity_time_diff() const { return _last_velocity_time_diff; }
+
 
 private:
     // Removed set_address_pins() and read_adc()
@@ -182,6 +185,7 @@ private:
     bool _just_pressed = false;
     bool _just_released = false;
     std::optional<uint8_t> _last_velocity = std::nullopt;
+    uint64_t _last_velocity_time_diff = 0; // DEBUG: Store last time diff
 
     // Removed _initialized flag, relies on external reader initialization
 
@@ -278,6 +282,7 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
                  _state_transition_time = now;
 
                  uint64_t diff = absolute_time_diff_us(_velocity_low_time, _velocity_high_time);
+                 _last_velocity_time_diff = diff; // DEBUG: Store time diff
                  _last_velocity = calculate_velocity(diff);
                  _just_pressed = true;
             } else if (current_adc_value < _release_threshold) {

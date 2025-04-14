@@ -323,10 +323,11 @@ int main() {
             if (drumpads[i]->was_pressed()) {
                 auto velocity = drumpads[i]->get_velocity();
                 if (velocity) {
-                    printf("Drum %zu hit! Velocity: %u (Raw: %u)\n",
+                    printf("Drum %zu hit! Velocity: %u (Raw: %u, TimeDiff: %llu us)\n", // Add TimeDiff
                            i + 1, // Print 1-based index
                            *velocity,
-                           drumpads[i]->get_raw_adc_value());
+                           drumpads[i]->get_raw_adc_value(),
+                           drumpads[i]->get_last_velocity_time_diff()); // DEBUG: Print time diff
                     // TODO: Send MIDI note or trigger sound here
                 }
             }

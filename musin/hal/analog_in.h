@@ -41,17 +41,15 @@ public:
   void init();
 
   /**
-   * @brief Read the analog value from the configured pin.
+   * @brief Read the normalized analog value from the configured pin.
    *
-   * Selects the appropriate ADC channel, performs a conversion, and returns the result.
-   * The RP2040 ADC is 12-bit, so this value is scaled to fit a 16-bit unsigned integer
-   * by left-shifting by 4 bits (`result << 4`). This provides a consistent 16-bit range
-   * while preserving the relative resolution.
+   * Selects the appropriate ADC channel, performs a conversion, reads the raw 12-bit value,
+   * and returns it normalized to a float between 0.0f and 1.0f.
    *
-   * @return The 16-bit representation of the analog reading (0-65520 in steps of 16).
-   *         Returns 0 if the class has not been initialized.
+   * @return The normalized analog reading as a float (0.0f to 1.0f).
+   *         Returns 0.0f if the class has not been initialized.
    */
-  std::uint16_t read() const;
+  float read() const;
 
   /**
    * @brief Read the raw 12-bit ADC value.
@@ -132,11 +130,12 @@ public:
     void init();
 
     /**
-     * @brief Read the analog value from the configured mux channel (scaled to 16-bit).
-     * Sets the mux address, waits briefly, then reads the ADC.
-     * @return The 16-bit representation of the analog reading (0-65520). Returns 0 if not initialized.
+     * @brief Read the normalized analog value from the configured mux channel.
+     * Sets the mux address, waits briefly, reads the raw 12-bit ADC value,
+     * and returns it normalized to a float between 0.0f and 1.0f.
+     * @return The normalized analog reading as a float (0.0f to 1.0f). Returns 0.0f if not initialized.
      */
-    std::uint16_t read() const;
+    float read() const;
 
     /**
      * @brief Read the raw 12-bit analog value from the configured mux channel.

@@ -86,10 +86,44 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad
                                                      1000 // 1 second hold time
 );
 
-// The actual MIDI sending function (currently prints)
+// The actual MIDI sending function (prints and updates specific LEDs)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
   printf("MIDI CC %u: %u\n", cc_number, value);
-  leds.set_pixel(cc_number, value, value, value);
+
+  // Map specific CCs to specific LEDs
+  uint32_t led_index_to_set = NUM_LEDS; // Initialize to an invalid index
+
+  switch (cc_number) {
+    case 21: // Speed
+      led_index_to_set = LED_PLAY_BUTTON;
+      // Maybe use value for blue channel? For now, just brightness.
+      leds.set_pixel(led_index_to_set, 0, 0, value); // Example: Blue channel
+      break;
+    case 16: // Drumpad 1 related?
+      led_index_to_set = LED_DRUMPAD_1;
+      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+      break;
+    case 18: // Drumpad 2 related?
+      led_index_to_set = LED_DRUMPAD_2;
+      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+      break;
+    case 27: // Drumpad 3 related?
+      led_index_to_set = LED_DRUMPAD_3;
+      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+      break;
+    case 29: // Drumpad 4 related?
+      led_index_to_set = LED_DRUMPAD_4;
+      leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+      break;
+    // Add other CC mappings here if needed
+    default:
+      // Do nothing for unmapped CCs to avoid unintended LED changes
+      break;
+  }
+
+  // Note: leds.show() is called in the main loop, so changes will be displayed there.
+  // The previous line: leds.set_pixel(cc_number, value, value, value); has been removed
+  // as it directly mapped CC number to LED index, which is not desired.
 }
 
 // --- Keypad MIDI Map Observer Implementation ---

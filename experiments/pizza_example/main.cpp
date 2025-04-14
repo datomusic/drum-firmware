@@ -164,26 +164,23 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
       case 18: // Drumpad 2 related?
         led_index_to_set = LED_DRUMPAD_2;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-        send_midi_note(11, 36, value);
         break;
       case 27: // Drumpad 3 related?
         led_index_to_set = LED_DRUMPAD_3;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-        send_midi_note(12, 36, value);
         break;
       case 29: // Drumpad 4 related?
         led_index_to_set = LED_DRUMPAD_4;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-        send_midi_note(13, 36, value);
         break;
       // Add other CC mappings here if needed
       default:
-        // Do nothing for unmapped CCs to avoid unintended LED changes
+        _send_midi_cc(midi_channel, cc_number, value);
         break;
     // Send MIDI CC message through function pointer
     }
 
-    _send_midi_cc(midi_channel, cc_number, value);
+
   }
 };
 

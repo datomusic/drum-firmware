@@ -1,14 +1,14 @@
 #include "midi_wrapper.h"
-#include "../pico_uart.h"
+#include "musin/hal/UART.h"
 #include <MIDI.h>
 #include <USB-MIDI.h>
 
 static USBMIDI_NAMESPACE::usbMidiTransport usbTransport(0);
 static MIDI_NAMESPACE::MidiInterface<USBMIDI_NAMESPACE::usbMidiTransport> usb_midi(usbTransport);
 
-static PicoUART serial;
-static MIDI_NAMESPACE::SerialMIDI<PicoUART> serialTransport(serial);
-static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<PicoUART>>
+static Musin::HAL::UART serial;
+static MIDI_NAMESPACE::SerialMIDI<Musin::HAL::UART> serialTransport(serial);
+static MIDI_NAMESPACE::MidiInterface<MIDI_NAMESPACE::SerialMIDI<Musin::HAL::UART>>
     serial_midi(serialTransport);
 
 #define ALL_TRANSPORTS(function_call)                                                              \

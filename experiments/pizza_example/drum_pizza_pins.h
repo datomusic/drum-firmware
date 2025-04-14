@@ -35,13 +35,20 @@ constexpr uint32_t LED_STEP6_START = 24; // Includes LEDs 24, 25, 26, 27
 constexpr uint32_t LED_STEP7_START = 28; // Includes LEDs 28, 29, 30, 31
 constexpr uint32_t LED_STEP8_START = 33; // Includes LEDs 33, 34, 35, 36
 
-constexpr uint32_t LED_ARRAY[][] = {
-  { 1, 6,10,15,19,24,38,29 },
-  { 2, 7,11,16,20,25,29,34 },
-  { 3, 8,12,17,21,26,30,35 },
-  { 4, 9,13,18,22,27,31,36 }
-} 
+// These led numbers map to the rings
+// The missing numbers are the drum pad leds
+constexpr uint32_t LED_ARRAY[] = {
+   1, 2, 3, 4,
+   6, 7, 8, 9,
+  10,11,12,13,
+  15,16,17,18,
+  19,20,21,22,
+  24,25,26,27,
+  28,29,30,31,
+  29,34,35,36
+};
 
+// 32 leds for the sequencer field, 4 drumpads and a play button
 constexpr uint32_t NUM_LEDS = 37;
 
 // Mux addresses for analog inputs

@@ -137,25 +137,25 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
     uint32_t led_index_to_set = NUM_LEDS; // Initialize to an invalid index
 
     switch (cc_number) {
-      case 21: // Speed
+      case PLAYBUTTON: // Speed
         led_index_to_set = LED_PLAY_BUTTON;
         // Maybe use value for blue channel? For now, just brightness.
         leds.set_pixel(led_index_to_set, value, value, value); // Example: Blue channel
         break;
-      case AnalogAddress::DRUM1:
+      case DRUM1:
         led_index_to_set = LED_DRUMPAD_1;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         send_midi_note(10, 36, value);
         break;
-      case AnalogAddress::DRUM2: // Drumpad 2 related?
+      case DRUM2: // Drumpad 2 related?
         led_index_to_set = LED_DRUMPAD_2;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
-      case AnalogAddress::DRUM3:
+      case DRUM3:
         led_index_to_set = LED_DRUMPAD_3;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
-      case AnalogAddress::DRUM4:
+      case DRUM4:
         led_index_to_set = LED_DRUMPAD_4;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
@@ -182,7 +182,7 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
   }
 
   void notification(Musin::UI::KeypadEvent event) override {
-    uint8_t key_index = event.row * 5 + event.col; // Assuming 5 columns
+    uint8_t key_index = (7-event.row) * 5 + event.col; // Assuming 5 columns
     if (key_index >= _cc_map.size())
       return;
 
@@ -190,16 +190,27 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
     if (cc_number == 0)
       return; // Check if a valid CC was assigned
 
+    uint8_t value = 0;
+
     switch (event.type) {
     case Musin::UI::KeypadEvent::Type::Press:
-      _send_midi_cc(_midi_channel, cc_number, 100); // Send CC ON
+      value = 100;
       break;
     case Musin::UI::KeypadEvent::Type::Release:
-      _send_midi_cc(_midi_channel, cc_number, 0); // Send CC OFF
+      value = 0;
       break;
     case Musin::UI::KeypadEvent::Type::Hold:
-      _send_midi_cc(_midi_channel, cc_number, 127); // Send CC HOLD
+      value = 127;
       break;
+    }
+
+    printf("Key %d %d", key_index, value);
+
+    if (event.col == 5) {
+      // Sample select buttons
+
+    } else {
+      leds.set_pixel(LED_ARRAY[(7-event.row) * 4 + event.col], value, value, value);
     }
   }
 };
@@ -321,7 +332,6 @@ void DrumPizza_init() {
   check_external_pin_state(PIN_ADDR_0, "ADDR_0");
   check_external_pin_state(PIN_ADDR_1, "ADDR_1");
   check_external_pin_state(PIN_ADDR_2, "ADDR_2");
-  check_external_pin_state(PIN_ADDR_3, "ADDR_3");
 
   ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
 
@@ -329,7 +339,7 @@ void DrumPizza_init() {
   // Set brightness based on pin state check
   // If the pin is pulled up, assume SK6812, so 12mA per channel. Set brighness to 100
   // If it is pulled down, assume SK6805, so 5mA per channel. Set brightness to full
-  uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 55;
+  uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
   printf("DrumPizza: Setting initial LED brightness to %u (based on pin state: %d)\n",
          initial_brightness, static_cast<int>(led_pin_state));
   leds.set_brightness(initial_brightness);
@@ -351,8 +361,9 @@ void DrumPizza_init() {
 
 int main() {
   stdio_init_all();
-
-  sleep_ms(1000);
+  sleep_ms(2000);
+  printf(".\n");
+  sleep_ms(2000);
   DrumPizza_init();
 
   leds.set_pixel(0, 0x00ff00);

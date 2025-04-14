@@ -80,7 +80,7 @@ jobs:
         run: git submodule update --init lib/etl
 
       - name: Test Musin
-        working-directory: musin_test
+        working-directory: test/musin
         run: bash ./run_tests.sh
 
 

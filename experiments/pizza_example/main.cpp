@@ -159,6 +159,9 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         led_index_to_set = LED_DRUMPAD_4;
         leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
         break;
+      case SWING:
+        printf("Swing set to %d\n", value);
+        break;
       // Add other CC mappings here if needed
       default:
         _send_midi_cc(midi_channel, cc_number, value);
@@ -204,11 +207,11 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
       break;
     }
 
-    printf("Key %d %d", key_index, value);
+    printf("Key %d %d\n", key_index, value);
 
-    if (event.col == 5) {
+    if (event.col == 4) {
       // Sample select buttons
-
+      printf("Switch sample %d\n", (event.row));
     } else {
       leds.set_pixel(LED_ARRAY[(7-event.row) * 4 + event.col], value, value, value);
     }

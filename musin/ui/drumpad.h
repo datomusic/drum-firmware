@@ -52,7 +52,7 @@ public:
     static constexpr std::uint16_t DEFAULT_NOISE_THRESHOLD = 50;
     static constexpr std::uint16_t DEFAULT_PRESS_THRESHOLD = 100;      // Threshold to register a press start
     static constexpr std::uint16_t DEFAULT_VELOCITY_LOW_THRESHOLD = 150; // Lower threshold for velocity timing
-    static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 1000; // Upper threshold for velocity timing
+    static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 3000; // Upper threshold for velocity timing
     static constexpr std::uint16_t DEFAULT_RELEASE_THRESHOLD = 80;     // Threshold to register a release start
     static constexpr std::uint16_t DEFAULT_HOLD_THRESHOLD = 800;      // Threshold to maintain for hold state
 

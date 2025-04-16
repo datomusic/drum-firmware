@@ -45,7 +45,7 @@ constexpr uint32_t LED_ARRAY[] = {
   19,20,21,22,
   24,25,26,27,
   28,29,30,31,
-  29,34,35,36
+  33,34,35,36
 };
 
 // 32 leds for the sequencer field, 4 drumpads and a play button

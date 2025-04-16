@@ -1,11 +1,4 @@
-/* TODO:
- - map button actions to correct leds
- - map slider position to drumpad brightness
- - sample select buttons select drumpad color
- - speed determines playbutton blue channel
- - tempo determines playbutton red channel
 
- */
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -14,28 +7,44 @@
 #include <optional>
 #include <cstddef> 
 
-#include "pico/stdlib.h"
-#include "pico/time.h"
-
 #include "etl/span.h"
 #include "musin/ui/analog_control.h"
 #include "musin/ui/keypad_hc138.h"
 #include "musin/drivers/ws2812.h"
 #include "musin/ui/drumpad.h"
+#include "musin/midi/midi_wrapper.h"
+#include "musin/usb/usb.h"
 
 extern "C" {
 #include "hardware/adc.h"
 #include "hardware/gpio.h"
+#include "pico/stdlib.h"
+#include "pico/time.h"
+#include "pico/bootrom.h"
 }
 
 #include "drum_pizza_pins.h"
+
+#define SYSEX_DATO_ID 0x7D
+#define SYSEX_DUO_ID 0x64
+#define SYSEX_REBOOT_BOOTLOADER 0x0B
+
+static void enter_bootloader() {
+  reset_usb_boot(0, 0);
+}
+
+static void handle_sysex(byte *const data, const unsigned length) {
+  if (data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID && data[3] == SYSEX_REBOOT_BOOTLOADER) {
+    enter_bootloader();
+  }
+}
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
 
 Musin::Drivers::WS2812<NUM_LEDS> leds(PIN_LED_DATA,
 Musin::Drivers::RGBOrder::GRB,
-255, 0xffd0d0);
+255, 0xffe090);
 
 // Static array for multiplexer address pins (AnalogControls use 4)
 const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
@@ -104,11 +113,13 @@ void drumpads_update() {
 
 // The actual MIDI sending function (prints and updates specific LEDs)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
-  printf("MIDI CC %u: %u\n", cc_number, value);
+  // printf("MIDI CC %u: %u: %u\n", cc_number, value, channel);
+  MIDI::sendControlChange(cc_number+16, value, channel);
 }
 
 void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
-  printf("MIDI Note %u: %u\n", note_number, velocity);
+  // printf("MIDI Note %u: %u\n", note_number, velocity);
+  MIDI::sendNoteOn(note_number, velocity, channel);
 }
 
 // --- Keypad MIDI Map Observer Implementation ---
@@ -119,7 +130,7 @@ void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8
  */
 struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
   const uint8_t cc_number;
-  const uint8_t midi_channel;
+  const uint8_t midi_channel = 10; 
 
   using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
   const MIDISendFn _send_midi_cc;
@@ -144,27 +155,27 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         break;
       case DRUM1:
         led_index_to_set = LED_DRUMPAD_1;
-        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
-        send_midi_note(10, 36, value);
+        leds.set_pixel(led_index_to_set, 0, 2*value, 2*value); // Grayscale brightness
+        send_midi_cc(10,36, value);
         break;
       case DRUM2: // Drumpad 2 related?
         led_index_to_set = LED_DRUMPAD_2;
-        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        leds.set_pixel(led_index_to_set, 2*value, 0, 2*value); // Grayscale brightness
         break;
       case DRUM3:
         led_index_to_set = LED_DRUMPAD_3;
-        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        leds.set_pixel(led_index_to_set, 2*value, 2*value, 0); // Grayscale brightness
         break;
       case DRUM4:
         led_index_to_set = LED_DRUMPAD_4;
-        leds.set_pixel(led_index_to_set, value, value, value); // Grayscale brightness
+        leds.set_pixel(led_index_to_set, 0, 2*value, 0); // Grayscale brightness
         break;
       case SWING:
         printf("Swing set to %d\n", value);
         break;
       // Add other CC mappings here if needed
       default:
-        _send_midi_cc(midi_channel, cc_number, value);
+        send_midi_cc(10, cc_number, value);
         break;
     // Send MIDI CC message through function pointer
     }
@@ -190,9 +201,6 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
       return;
 
     uint8_t cc_number = _cc_map[key_index];
-    if (cc_number == 0)
-      return; // Check if a valid CC was assigned
-
     uint8_t value = 0;
 
     switch (event.type) {
@@ -364,11 +372,22 @@ void DrumPizza_init() {
 
 int main() {
   stdio_init_all();
-  sleep_ms(2000);
+  Musin::Usb::init();
+  MIDI::init(MIDI::Callbacks{
+    .note_on = nullptr,
+    .note_off = nullptr,
+    .clock = nullptr,
+    .start = nullptr,
+    .cont = nullptr,
+    .stop = nullptr,
+    .cc = nullptr,
+    .pitch_bend = nullptr,
+    .sysex = handle_sysex,
+  });
   printf(".\n");
   sleep_ms(2000);
   DrumPizza_init();
-
+  
   leds.set_pixel(0, 0x00ff00);
   leds.show();
 
@@ -408,9 +427,12 @@ int main() {
     leds.show();
 
     drumpads_update();
+
+    MIDI::read();
+    Musin::Usb::background_update();
     
     // Add a small delay to yield time
-    sleep_us(80); // need at least 80us for the leds to latch
+    sleep_ms(1); // need at least 80us for the leds to latch
   }
 
   return 0;

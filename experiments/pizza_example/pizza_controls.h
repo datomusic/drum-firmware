@@ -7,19 +7,20 @@ Holds the keypad
 
 */
 
-handle_drumpad_event(pad, event);
+// handle_drumpad_event(pad, event);
 
-handle_effectpad_event(pad, event); // velocity on effect pads, maybe unused
+// handle_effectpad_event(pad, event); // velocity on effect pads, maybe unused
 
-handle_control_event(pad, event); // sliders, effect pads, playbutton, swing switch, tempo pot, volume pot
+// handle_control_event(pad, event); // sliders, effect pads, playbutton, swing switch, tempo pot, volume pot
 
-handle_keypad_event(); // sequencer buttons, sample select buttons#ifndef PIZZA_CONTROLS_H
+// handle_keypad_event(); // sequencer buttons, sample select buttons
+#ifndef PIZZA_CONTROLS_H
 #define PIZZA_CONTROLS_H
 
 #include "musin/ui/keypad_hc138.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/analog_control.h"
-#include "drum_pizza_hardware.h" // For pin definitions, constants
+#include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "etl/observer.h"
 #include <cstdint>
@@ -82,7 +83,7 @@ private:
     PizzaDisplay& display; // Reference to the display object
 
     // Keypad
-    Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
+    Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
     static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
         std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
         for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
@@ -99,7 +100,7 @@ private:
     etl::array<uint8_t, 4> drumpad_note_numbers; // Mutable note numbers
 
     // Analog Controls (Pots/Sliders)
-    etl::array<AnalogControl, 16> mux_controls;
+    etl::array<Musin::UI::AnalogControl, 16> mux_controls;
     etl::array<InternalMIDICCObserver, 16> control_observers;
 
 };

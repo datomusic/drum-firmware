@@ -112,20 +112,17 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
   const uint8_t cc_number;
   const uint8_t midi_channel = 10; 
 
-  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  const MIDISendFn _send_midi_cc;
+  // using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+  // const MIDISendFn _send_midi_cc;
 
   // Constructor
-  constexpr MIDICCObserver(uint8_t cc, uint8_t channel, MIDISendFn sender)
-      : cc_number(cc), midi_channel(channel), _send_midi_cc(sender) {
+  constexpr MIDICCObserver(uint8_t cc, uint8_t channel)
+      : cc_number(cc), midi_channel(channel) {
   }
 
   void notification(Musin::UI::AnalogControlEvent event) override {
     // Convert normalized value (0.0-1.0) to MIDI CC value (0-127)
     uint8_t value = static_cast<uint8_t>(event.value * 127.0f);
-
-    // Map specific CCs to specific LEDs
-    uint32_t led_index_to_set = NUM_LEDS; // Initialize to an invalid index
 
     switch (cc_number) {
       case PLAYBUTTON:
@@ -150,13 +147,13 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         send_midi_cc(1, 16, 127-value);
         break;
       case PITCH2:
-        send_midi_cc(1, 17, 127-value);
+        send_midi_cc(2, 17, 127-value);
         break;
       case PITCH3:
-        send_midi_cc(1, 18, 127-value);
+        send_midi_cc(3, 18, 127-value);
         break;
       case PITCH4:
-        send_midi_cc(1, 19, 127-value);
+        send_midi_cc(4, 19, 127-value);
         break;
       default:
         send_midi_cc(1, cc_number, value);
@@ -170,13 +167,12 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
   const std::array<uint8_t, 40> &_cc_map; // Assuming 40 keys (8 rows x 5 cols)
   const uint8_t _midi_channel;
 
-  using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
-  const MIDISendFn _send_midi_cc;
+  // using MIDISendFn = void (*)(uint8_t channel, uint8_t cc, uint8_t value);
+  // const MIDISendFn _send_midi_cc;
 
   // Constructor
-  constexpr KeypadObserver(const std::array<uint8_t, 40> &map, uint8_t channel,
-                                    MIDISendFn sender)
-      : _cc_map(map), _midi_channel(channel), _send_midi_cc(sender) {
+  constexpr KeypadObserver(const std::array<uint8_t, 40> &map, uint8_t channel)
+      : _cc_map(map), _midi_channel(channel) {
   }
 
   void notification(Musin::UI::KeypadEvent event) override {
@@ -221,26 +217,26 @@ constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
   return map;
 }();
 
-static KeypadObserver keypad_map_observer(keypad_cc_map, 0, send_midi_cc);
+static KeypadObserver keypad_map_observer(keypad_cc_map, 0);
 // --- End Keypad MIDI Map Observer ---
 
 // Define MIDI observers statically
-static etl::array<MIDICCObserver, 16> cc_observers = {{{ 0, 0, send_midi_cc},
-                                                       { 1, 0, send_midi_cc},
-                                                       { 2, 0, send_midi_cc},
-                                                       { 3, 0, send_midi_cc},
-                                                       { 4, 0, send_midi_cc},
-                                                       { 5, 0, send_midi_cc},
-                                                       { 6, 0, send_midi_cc},
-                                                       { 7, 0, send_midi_cc},
-                                                       { 8, 0, send_midi_cc},
-                                                       { 9, 0, send_midi_cc},
-                                                       {10, 0, send_midi_cc},
-                                                       {11, 0, send_midi_cc},
-                                                       {12, 0, send_midi_cc},
-                                                       {13, 0, send_midi_cc},
-                                                       {14, 0, send_midi_cc},
-                                                       {15, 0, send_midi_cc}}};
+static etl::array<MIDICCObserver, 16> cc_observers = {{{ 0, 0},
+                                                       { 1, 0},
+                                                       { 2, 0},
+                                                       { 3, 0},
+                                                       { 4, 0},
+                                                       { 5, 0},
+                                                       { 6, 0},
+                                                       { 7, 0},
+                                                       { 8, 0},
+                                                       { 9, 0},
+                                                       {10, 0},
+                                                       {11, 0},
+                                                       {12, 0},
+                                                       {13, 0},
+                                                       {14, 0},
+                                                       {15, 0}}};
 
 // Statically allocate multiplexed controls using the class from musin::ui
 static etl::array<AnalogControl, 16> mux_controls = {{{10, PIN_ADC, analog_address_pins, 0},

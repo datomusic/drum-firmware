@@ -11,7 +11,6 @@
 #include "musin/ui/keypad_hc138.h"
 #include "musin/drivers/ws2812.h"
 #include "musin/ui/drumpad.h"
-#include "musin/midi/midi_wrapper.h"
 #include "musin/usb/usb.h"
 
 extern "C" {
@@ -19,24 +18,10 @@ extern "C" {
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include "pico/bootrom.h"
 }
 
+#include "midi.h"
 #include "drum_pizza_hardware.h"
-
-#define SYSEX_DATO_ID 0x7D
-#define SYSEX_DUO_ID 0x64
-#define SYSEX_REBOOT_BOOTLOADER 0x0B
-
-static void enter_bootloader() {
-  reset_usb_boot(0, 0);
-}
-
-static void handle_sysex(byte *const data, const unsigned length) {
-  if (data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID && data[3] == SYSEX_REBOOT_BOOTLOADER) {
-    enter_bootloader();
-  }
-}
 
 using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
@@ -51,7 +36,6 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad
                                                      5,   //  5ms debounce time
                                                      1000 // 1 second hold time
 );
-
 
 // Create AnalogInMux16 instances (readers) for each drumpad
 // Using the alias from musin/hal/analog_in.h
@@ -73,21 +57,45 @@ static etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>*, 4> drumpads = 
 };
 
 // Default MIDI note numbers for each drumpad (Kick, Snare, CH, OH)
-static etl::array<uint8_t, 4> drumpad_note_numbers = {36, 38, 42, 46};
+static etl::array<uint8_t, 4> drumpad_note_numbers = {0, 7, 15, 23};
 
 // --- End Drumpad Configuration ---
 
 
-// The actual MIDI sending function (prints and updates specific LEDs)
-void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
-  // printf("MIDI CC %u: %u: %u\n", cc_number, value, channel);
-  MIDI::sendControlChange(cc_number, value, channel);
-}
-
-void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
-  // printf("MIDI Note %u: %u\n", note_number, velocity);
-  MIDI::sendNoteOn(note_number, velocity, channel);
-}
+static etl::array<uint32_t, 32> note_colors = {
+  0xFF0000,
+  0xFF0020,
+  0xFF0040,
+  0xFF0060,
+  0xFF1010,
+  0xFF1020,
+  0xFF2040,
+  0xFF2060,
+  0x0000FF,
+  0x0028FF,
+  0x0050FF,
+  0x0078FF,
+  0x1010FF,
+  0x1028FF,
+  0x2050FF,
+  0x3078FF,
+  0x00FF00,
+  0x00FF1E,
+  0x00FF3C,
+  0x00FF5A,
+  0x10FF10,
+  0x10FF1E,
+  0x10FF3C,
+  0x20FF5A,
+  0xFFFF00,
+  0xFFE100,
+  0xFFC300,
+  0xFFA500,
+  0xFFFF20,
+  0xFFE120,
+  0xFFC320,
+  0xFFA520
+};
 
 void drumpads_update() {
   // Update Drumpads and check for hits
@@ -105,6 +113,17 @@ void drumpads_update() {
       }
     }
   }
+}
+
+void drumpad_select_note(uint8_t pad, int8_t offset) {
+  int8_t new_note_number = drumpad_note_numbers[pad] + offset;
+  if (new_note_number < 0) {
+    new_note_number = 31;
+  }
+  if (new_note_number > 31) {
+    new_note_number = 0;
+  }
+  drumpad_note_numbers[pad] = new_note_number;
 }
 
 // --- Keypad MIDI Map Observer Implementation ---
@@ -134,18 +153,12 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         leds.set_pixel(LED_PLAY_BUTTON, 2*value, 2*value, 2*value);
         break;
       case DRUM1:
-        leds.set_pixel(LED_DRUMPAD_1, 0, 2*value, 2*value);
-        // printf("Drumpad 1: %d\n", drumpads[0]->get_raw_adc_value());
         break;
       case DRUM2:
-        leds.set_pixel(LED_DRUMPAD_2, 2*value, 0, 2*value);
-        // printf("Drumpad 1: %d\n", drumpads[1]->get_raw_adc_value());
         break;
       case DRUM3:
-        leds.set_pixel(LED_DRUMPAD_3, 2*value, 2*value, 0);
         break;
       case DRUM4:
-        leds.set_pixel(LED_DRUMPAD_4, 0, 2*value, 0);
         break;
       case SWING:
         printf("Swing set to %d\n", value);
@@ -193,6 +206,35 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
     switch (event.type) {
     case Musin::UI::KeypadEvent::Type::Press:
       value = 100;
+      if (event.col == 4) {
+        // Sample select buttons
+        switch (event.row) {
+        case 0:
+          drumpad_select_note(3, -1);
+          break;
+        case 1:
+          drumpad_select_note(3, 1);
+          break;
+        case 2:
+          drumpad_select_note(2, -1);
+          break;
+        case 3:
+          drumpad_select_note(2, 1);
+          break;
+        case 4:
+          drumpad_select_note(1, -1);
+          break;
+        case 5:
+          drumpad_select_note(1, 1);
+          break;
+        case 6:
+          drumpad_select_note(0, -1);
+          break;
+        case 7:
+          drumpad_select_note(0, 1);
+          break;
+        }
+      } 
       break;
     case Musin::UI::KeypadEvent::Type::Release:
       value = 0;
@@ -204,10 +246,7 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
 
     printf("Key %d %d\n", key_index, value);
 
-    if (event.col == 4) {
-      // Sample select buttons
-      printf("Switch sample %d\n", (event.row));
-    } else {
+    if(event.col < 4) {
       leds.set_pixel(LED_ARRAY[(7-event.row) * 4 + event.col], 2*value, 2*value, 2*value);
     }
   }
@@ -374,7 +413,7 @@ int main() {
   printf(".\n");
   sleep_ms(1000);
   DrumPizza_init();
-  
+
   leds.set_pixel(0, 0x00ff00);
   leds.show();
 
@@ -410,14 +449,19 @@ int main() {
 
     // Scan the keypad - observers will be notified automatically
     keypad.scan();
+    
+    leds.set_pixel(LED_DRUMPAD_1, note_colors[drumpad_note_numbers[0]]); // TODO: fade color by current drumpad pressure
+    leds.set_pixel(LED_DRUMPAD_2, note_colors[drumpad_note_numbers[1]]); // TODO: fade color by current drumpad pressure
+    leds.set_pixel(LED_DRUMPAD_3, note_colors[drumpad_note_numbers[2]]); // TODO: fade color by current drumpad pressure
+    leds.set_pixel(LED_DRUMPAD_4, note_colors[drumpad_note_numbers[3]]); // TODO: fade color by current drumpad pressure
 
     leds.show();
 
     drumpads_update();
 
-    MIDI::read();
+
     Musin::Usb::background_update();
-    
+    midi_read();
     // Add a small delay to yield time
     sleep_us(100); // need at least 80us for the leds to latch
   }

@@ -14,17 +14,28 @@ static void handle_sysex(byte *const data, const unsigned length) {
   }
 }
 
-// The actual MIDI sending function (prints and updates specific LEDs)
-static void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
-  // printf("MIDI CC %u: %u: %u\n", cc_number, value, channel);
+static void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value) {
   MIDI::sendControlChange(cc_number, value, channel);
 }
 
-static void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
-  // printf("MIDI Note %u: %u\n", note_number, velocity);
+static void send_midi_note(uint8_t channel, uint8_t note_number, uint8_t velocity) {
   MIDI::sendNoteOn(note_number, velocity, channel);
 }
 
 static void midi_read() {
   MIDI::read();
+}
+
+static void midi_init() {
+  MIDI::init(MIDI::Callbacks{
+    .note_on = nullptr,
+    .note_off = nullptr,
+    .clock = nullptr,
+    .start = nullptr,
+    .cont = nullptr,
+    .stop = nullptr,
+    .cc = nullptr,
+    .pitch_bend = nullptr,
+    .sysex = handle_sysex,
+  });
 }

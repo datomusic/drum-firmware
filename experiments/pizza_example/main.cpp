@@ -399,17 +399,8 @@ void DrumPizza_init() {
 int main() {
   stdio_init_all();
   Musin::Usb::init();
-  MIDI::init(MIDI::Callbacks{
-    .note_on = nullptr,
-    .note_off = nullptr,
-    .clock = nullptr,
-    .start = nullptr,
-    .cont = nullptr,
-    .stop = nullptr,
-    .cc = nullptr,
-    .pitch_bend = nullptr,
-    .sysex = handle_sysex,
-  });
+  midi_init();
+  
   printf(".\n");
   sleep_ms(1000);
   DrumPizza_init();
@@ -459,10 +450,9 @@ int main() {
 
     drumpads_update();
 
-
     Musin::Usb::background_update();
     midi_read();
-    // Add a small delay to yield time
+
     sleep_us(100); // need at least 80us for the leds to latch
   }
 

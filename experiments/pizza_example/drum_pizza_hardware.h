@@ -1,3 +1,6 @@
+#include <cstdint>
+#include <array>
+
 // Address pins for the multiplexer and decoder
 constexpr uint32_t PIN_ADDR_0 = 29;
 constexpr uint32_t PIN_ADDR_1 = 6;
@@ -71,3 +74,22 @@ enum {
   PITCH4     = 15
 };
 
+// Static array for multiplexer address pins (AnalogControls use 4)
+const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
+                                                          PIN_ADDR_3};
+// Static array for keypad column pins
+const std::array<uint32_t, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
+                                                  PIN_RING_5};
+// Static array for keypad decoder address pins (uses first 3)
+const std::array<uint32_t, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+
+// --- Keypad Configuration ---
+constexpr uint8_t KEYPAD_ROWS = 8;
+constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
+constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
+
+// --- Drumpad Configuration ---
+constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
+constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
+constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
+constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;

@@ -22,7 +22,7 @@ extern "C" {
 #include "pico/bootrom.h"
 }
 
-#include "drum_pizza_pins.h"
+#include "drum_pizza_hardware.h"
 
 #define SYSEX_DATO_ID 0x7D
 #define SYSEX_DUO_ID 0x64
@@ -42,22 +42,8 @@ using Musin::UI::AnalogControl;
 using Musin::UI::Keypad_HC138;
 
 Musin::Drivers::WS2812<NUM_LEDS> leds(PIN_LED_DATA,
-Musin::Drivers::RGBOrder::GRB,
-255, 0xffe080);
-
-// Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
-                                                          PIN_ADDR_3};
-// Static array for keypad column pins
-const std::array<uint, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
-                                                 PIN_RING_5};
-// Static array for keypad decoder address pins (uses first 3)
-const std::array<uint, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
-
-// --- Keypad Configuration ---
-constexpr uint8_t KEYPAD_ROWS = 8; // Using 3 address pins allows up to 8 rows
-constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
-constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
+  Musin::Drivers::RGBOrder::GRB,
+  255, 0xffe080);
 
 // Static instance of the keypad driver
 static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad_columns_pins,
@@ -66,12 +52,6 @@ static Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(keypad_decoder_pins, keypad
                                                      1000 // 1 second hold time
 );
 
-// --- Drumpad Configuration ---
-// Define the multiplexer addresses for the drumpads
-constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
-constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
-constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
-constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
 
 // Create AnalogInMux16 instances (readers) for each drumpad
 // Using the alias from musin/hal/analog_in.h
@@ -93,6 +73,18 @@ static etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>*, 4> drumpads = 
 };
 // --- End Drumpad Configuration ---
 
+
+// The actual MIDI sending function (prints and updates specific LEDs)
+void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
+  // printf("MIDI CC %u: %u: %u\n", cc_number, value, channel);
+  MIDI::sendControlChange(cc_number, value, channel);
+}
+
+void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
+  // printf("MIDI Note %u: %u\n", note_number, velocity);
+  MIDI::sendNoteOn(note_number, velocity, channel);
+}
+
 void drumpads_update() {
   // Update Drumpads and check for hits
   for (size_t i = 0; i < drumpads.size(); ++i) {
@@ -104,21 +96,10 @@ void drumpads_update() {
                 *velocity,
                 drumpads[i]->get_raw_adc_value(),
                 drumpads[i]->get_last_velocity_time_diff());
-        MIDI::sendNoteOn(36, *velocity, i); // Dereference the optional velocity
+        send_midi_note(i, 25, *velocity);
       }
     }
   }
-}
-
-// The actual MIDI sending function (prints and updates specific LEDs)
-void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
-  // printf("MIDI CC %u: %u: %u\n", cc_number, value, channel);
-  MIDI::sendControlChange(cc_number, value, channel);
-}
-
-void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
-  // printf("MIDI Note %u: %u\n", note_number, velocity);
-  MIDI::sendNoteOn(note_number, velocity, channel);
 }
 
 // --- Keypad MIDI Map Observer Implementation ---

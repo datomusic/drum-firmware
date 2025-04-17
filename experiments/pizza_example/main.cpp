@@ -1,4 +1,3 @@
-
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -44,7 +43,7 @@ using Musin::UI::Keypad_HC138;
 
 Musin::Drivers::WS2812<NUM_LEDS> leds(PIN_LED_DATA,
 Musin::Drivers::RGBOrder::GRB,
-255, 0xffe090);
+255, 0xffe080);
 
 // Static array for multiplexer address pins (AnalogControls use 4)
 const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
@@ -105,7 +104,7 @@ void drumpads_update() {
                 *velocity,
                 drumpads[i]->get_raw_adc_value(),
                 drumpads[i]->get_last_velocity_time_diff());
-        // TODO: Send MIDI note or trigger sound here
+        MIDI::sendNoteOn(36, velocity, i);
       }
     }
   }
@@ -114,7 +113,7 @@ void drumpads_update() {
 // The actual MIDI sending function (prints and updates specific LEDs)
 void send_midi_cc([[maybe_unused]] uint8_t channel, uint8_t cc_number, uint8_t value) {
   // printf("MIDI CC %u: %u: %u\n", cc_number, value, channel);
-  MIDI::sendControlChange(cc_number+16, value, channel);
+  MIDI::sendControlChange(cc_number, value, channel);
 }
 
 void send_midi_note([[maybe_unused]] uint8_t channel, uint8_t note_number, uint8_t velocity) {
@@ -148,34 +147,38 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
     uint32_t led_index_to_set = NUM_LEDS; // Initialize to an invalid index
 
     switch (cc_number) {
-      case PLAYBUTTON: // Speed
-        led_index_to_set = LED_PLAY_BUTTON;
-        // Maybe use value for blue channel? For now, just brightness.
-        leds.set_pixel(led_index_to_set, value, value, value); // Example: Blue channel
+      case PLAYBUTTON:
+        leds.set_pixel(LED_PLAY_BUTTON, 2*value, 2*value, 2*value);
         break;
       case DRUM1:
-        led_index_to_set = LED_DRUMPAD_1;
-        leds.set_pixel(led_index_to_set, 0, 2*value, 2*value); // Grayscale brightness
-        send_midi_cc(10,36, value);
+        leds.set_pixel(LED_DRUMPAD_1, 0, 2*value, 2*value);
         break;
-      case DRUM2: // Drumpad 2 related?
-        led_index_to_set = LED_DRUMPAD_2;
-        leds.set_pixel(led_index_to_set, 2*value, 0, 2*value); // Grayscale brightness
+      case DRUM2:
+        leds.set_pixel(LED_DRUMPAD_2, 2*value, 0, 2*value);
         break;
       case DRUM3:
-        led_index_to_set = LED_DRUMPAD_3;
-        leds.set_pixel(led_index_to_set, 2*value, 2*value, 0); // Grayscale brightness
+        leds.set_pixel(LED_DRUMPAD_3, 2*value, 2*value, 0);
         break;
       case DRUM4:
-        led_index_to_set = LED_DRUMPAD_4;
-        leds.set_pixel(led_index_to_set, 0, 2*value, 0); // Grayscale brightness
+        leds.set_pixel(LED_DRUMPAD_4, 0, 2*value, 0);
         break;
       case SWING:
         printf("Swing set to %d\n", value);
         break;
-      // Add other CC mappings here if needed
+      case PITCH1:
+        send_midi_cc(1, 16, 127-value);
+        break;
+      case PITCH2:
+        send_midi_cc(1, 17, 127-value);
+        break;
+      case PITCH3:
+        send_midi_cc(1, 18, 127-value);
+        break;
+      case PITCH4:
+        send_midi_cc(1, 19, 127-value);
+        break;
       default:
-        send_midi_cc(10, cc_number, value);
+        send_midi_cc(1, cc_number, value);
         break;
     // Send MIDI CC message through function pointer
     }
@@ -221,7 +224,7 @@ struct KeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
       // Sample select buttons
       printf("Switch sample %d\n", (event.row));
     } else {
-      leds.set_pixel(LED_ARRAY[(7-event.row) * 4 + event.col], value, value, value);
+      leds.set_pixel(LED_ARRAY[(7-event.row) * 4 + event.col], 2*value, 2*value, 2*value);
     }
   }
 };
@@ -385,7 +388,7 @@ int main() {
     .sysex = handle_sysex,
   });
   printf(".\n");
-  sleep_ms(2000);
+  sleep_ms(1000);
   DrumPizza_init();
   
   leds.set_pixel(0, 0x00ff00);

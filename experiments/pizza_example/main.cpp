@@ -20,7 +20,6 @@ int main() {
   printf(".\nPizza Example Starting...\n");
   sleep_ms(1000);
 
-  // Initialize display (init() is now void, error handling is internal or uses panic)
   pizza_display.init();
 
   pizza_controls.init();

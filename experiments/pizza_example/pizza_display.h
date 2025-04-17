@@ -55,13 +55,6 @@ public:
     void set_play_button_led(uint32_t color);
 
     /**
-     * @brief Set the color of a drumpad LED based on the selected note. Does not call show().
-     * @param pad_index Index of the drumpad (0-3).
-     * @param note_index Index of the note color (0-31).
-     */
-    void set_drumpad_led(uint8_t pad_index, uint8_t note_index);
-
-    /**
      * @brief Set the color of a keypad LED based on intensity. Does not call show().
      * @param row Row index (0-7).
      * @param col Column index (0-4). Note: Col 4 (sample select) might not have a direct LED.

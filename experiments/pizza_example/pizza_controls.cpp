@@ -134,7 +134,7 @@ float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
         return max_brightness; // Max brightness at minimum pressure (or below)
     }
     if (raw_value >= max_adc) {
-        return 0.0f; // Off at maximum pressure (or above)
+        return min_brightness; // Minimum brightness at maximum pressure (or above) - Changed from 0.0f
     }
 
     // Inverted linear scaling: factor decreases as raw_value increases
@@ -206,9 +206,9 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
     uint32_t led_index = display.get_drumpad_led_index(pad_index);
     if (led_index < NUM_LEDS) {
         uint32_t base_color = display.get_note_color(drumpad_note_numbers[pad_index]);
-        // When selecting a note, show the base color at minimum brightness (or maybe full?)
-        // Let's use calculate_brightness with a low raw value to show it's selected but not active.
-        uint32_t final_color = calculate_brightness_color(base_color, 100); // Use min_adc value for base brightness
+        // When selecting a note, show the base color at maximum brightness (inverted logic)
+        // Use calculate_brightness with a low raw value (min_adc) which now maps to max brightness.
+        uint32_t final_color = calculate_brightness_color(base_color, 100);
         display.set_led(led_index, final_color);
     }
 }

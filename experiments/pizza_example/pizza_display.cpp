@@ -145,8 +145,6 @@ uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
     }
 }
 
-// Removed set_drumpad_led - logic moved to PizzaControls::update_drumpads
-
 void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     if (col >= 4) return; // Column 4 (sample select) has no direct LED in LED_ARRAY
 

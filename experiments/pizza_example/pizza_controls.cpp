@@ -21,24 +21,24 @@ PizzaControls::PizzaControls(PizzaDisplay& display_ref) :
         Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 3000U, 100U, 800U, 1000U, 5000U, 200000U}
     },
     drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
-    mux_controls{ // Use designated initializers if possible, otherwise list
+    mux_controls{ // Initialize by explicitly calling constructors
         // Assuming order matches the enum in drum_pizza_hardware.h
-        {DRUM1,      PIN_ADC, analog_address_pins, DRUM1},
-        {FILTER,     PIN_ADC, analog_address_pins, FILTER},
-        {DRUM2,      PIN_ADC, analog_address_pins, DRUM2},
-        {PITCH1,     PIN_ADC, analog_address_pins, PITCH1},
-        {PITCH2,     PIN_ADC, analog_address_pins, PITCH2},
-        {PLAYBUTTON, PIN_ADC, analog_address_pins, PLAYBUTTON},
-        {RANDOM,     PIN_ADC, analog_address_pins, RANDOM},
-        {VOLUME,     PIN_ADC, analog_address_pins, VOLUME},
-        {PITCH3,     PIN_ADC, analog_address_pins, PITCH3},
-        {SWING,      PIN_ADC, analog_address_pins, SWING},
-        {CRUSH,      PIN_ADC, analog_address_pins, CRUSH},
-        {DRUM3,      PIN_ADC, analog_address_pins, DRUM3},
-        {REPEAT,     PIN_ADC, analog_address_pins, REPEAT},
-        {DRUM4,      PIN_ADC, analog_address_pins, DRUM4},
-        {SPEED,      PIN_ADC, analog_address_pins, SPEED},
-        {PITCH4,     PIN_ADC, analog_address_pins, PITCH4}
+        Musin::UI::AnalogControl{DRUM1,      PIN_ADC, analog_address_pins, DRUM1},
+        Musin::UI::AnalogControl{FILTER,     PIN_ADC, analog_address_pins, FILTER},
+        Musin::UI::AnalogControl{DRUM2,      PIN_ADC, analog_address_pins, DRUM2},
+        Musin::UI::AnalogControl{PITCH1,     PIN_ADC, analog_address_pins, PITCH1},
+        Musin::UI::AnalogControl{PITCH2,     PIN_ADC, analog_address_pins, PITCH2},
+        Musin::UI::AnalogControl{PLAYBUTTON, PIN_ADC, analog_address_pins, PLAYBUTTON},
+        Musin::UI::AnalogControl{RANDOM,     PIN_ADC, analog_address_pins, RANDOM},
+        Musin::UI::AnalogControl{VOLUME,     PIN_ADC, analog_address_pins, VOLUME},
+        Musin::UI::AnalogControl{PITCH3,     PIN_ADC, analog_address_pins, PITCH3},
+        Musin::UI::AnalogControl{SWING,      PIN_ADC, analog_address_pins, SWING},
+        Musin::UI::AnalogControl{CRUSH,      PIN_ADC, analog_address_pins, CRUSH},
+        Musin::UI::AnalogControl{DRUM3,      PIN_ADC, analog_address_pins, DRUM3},
+        Musin::UI::AnalogControl{REPEAT,     PIN_ADC, analog_address_pins, REPEAT},
+        Musin::UI::AnalogControl{DRUM4,      PIN_ADC, analog_address_pins, DRUM4},
+        Musin::UI::AnalogControl{SPEED,      PIN_ADC, analog_address_pins, SPEED},
+        Musin::UI::AnalogControl{PITCH4,     PIN_ADC, analog_address_pins, PITCH4}
     },
     control_observers{ // Initialize observers, passing parent pointer
         {this, DRUM1, 0}, {this, FILTER, 0}, {this, DRUM2, 0}, {this, PITCH1, 1},

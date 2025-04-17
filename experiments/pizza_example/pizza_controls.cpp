@@ -8,11 +8,11 @@ PizzaControls::PizzaControls(PizzaDisplay& display_ref) :
     display(display_ref),
     keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
     keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
-    drumpad_readers{ // Initialize readers directly
-        {PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
-        {PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
-        {PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
-        {PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}
+    drumpad_readers{ // Initialize readers directly by calling constructors
+        Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
+        Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
+        Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
+        Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}
     },
     drumpads{ // Initialize drumpads using the readers
         {drumpad_readers[0], 50U, 250U, 350U, 1000U, 250U},

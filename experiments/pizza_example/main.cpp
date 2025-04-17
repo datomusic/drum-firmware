@@ -20,10 +20,8 @@ int main() {
   printf(".\nPizza Example Starting...\n");
   sleep_ms(1000);
 
-  if (!pizza_display.init()) {
-      printf("FATAL: PizzaDisplay initialization failed!\n");
-      while(true) { tight_loop_contents(); }
-  }
+  // Initialize display (init() is now void, error handling is internal or uses panic)
+  pizza_display.init();
 
   pizza_controls.init();
 

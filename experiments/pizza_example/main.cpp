@@ -94,11 +94,14 @@ void drumpads_update() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     if (drumpads[i]->update()) {
       auto velocity = drumpads[i]->get_velocity();
+      uint8_t note_number = drumpad_note_numbers[i]; // Get note for this pad
+      uint8_t channel = i + 1; // MIDI channels 1-4
+
       if (drumpads[i]->was_released()) {
-        send_midi_note(i+1, 25, 0);
+        send_midi_note(channel, note_number, 0); // Send Note Off
       } else if (velocity) {
-        // printf("Drum %zu hit! Velocity: %u (Raw: %u, TimeDiff: %llu us)\n", i + 1, *velocity, drumpads[i]->get_raw_adc_value(), drumpads[i]->get_last_velocity_time_diff());
-        send_midi_note(i+1, 25, *velocity);
+        // printf("Drum %u hit! Note: %u Velocity: %u (Raw: %u, TimeDiff: %llu us)\n", channel, note_number, *velocity, drumpads[i]->get_raw_adc_value(), drumpads[i]->get_last_velocity_time_diff());
+        send_midi_note(channel, note_number, *velocity); // Send Note On
       }
     }
   }

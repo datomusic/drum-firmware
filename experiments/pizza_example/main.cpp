@@ -71,6 +71,10 @@ static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad4(reader_pad4, 50U, 
 static etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>*, 4> drumpads = {
     &drumpad1, &drumpad2, &drumpad3, &drumpad4
 };
+
+// Default MIDI note numbers for each drumpad (Kick, Snare, CH, OH)
+static etl::array<uint8_t, 4> drumpad_note_numbers = {36, 38, 42, 46};
+
 // --- End Drumpad Configuration ---
 
 

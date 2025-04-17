@@ -14,11 +14,11 @@ PizzaControls::PizzaControls(PizzaDisplay& display_ref) :
         Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
         Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}
     },
-    drumpads{ // Initialize drumpads using the readers
-        {drumpad_readers[0], 50U, 250U, 350U, 1000U, 250U},
-        {drumpad_readers[1], 50U, 250U, 350U, 1000U, 250U},
-        {drumpad_readers[2], 50U, 250U, 350U, 1000U, 250U},
-        {drumpad_readers[3], 50U, 250U, 350U, 1000U, 250U}
+    drumpads{ // Initialize drumpads using the readers by calling constructors explicitly
+        Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[0], 50U, 250U, 150U, 3000U, 100U, 800U, 1000U, 5000U, 200000U},
+        Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[1], 50U, 250U, 150U, 3000U, 100U, 800U, 1000U, 5000U, 200000U},
+        Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[2], 50U, 250U, 150U, 3000U, 100U, 800U, 1000U, 5000U, 200000U},
+        Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 3000U, 100U, 800U, 1000U, 5000U, 200000U}
     },
     drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
     mux_controls{ // Use designated initializers if possible, otherwise list

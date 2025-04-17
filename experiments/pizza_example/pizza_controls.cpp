@@ -2,6 +2,8 @@
 #include "pizza_display.h" // Need definition for display methods
 #include "midi.h"          // For send_midi_cc, send_midi_note
 #include <cstdio>          // For printf
+#include <algorithm>       // For std::clamp
+#include <cmath>           // For std::max used in scaling
 
 // --- Constructor ---
 PizzaControls::PizzaControls(PizzaDisplay& display_ref) :
@@ -103,11 +105,67 @@ void PizzaControls::update() {
     // The actual display.show() is called in main.cpp's loop
 }
 
+
+// --- Color Utilities ---
+// Assuming GRB order consistent with PizzaDisplay's WS2812 initialization
+void PizzaControls::unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) {
+    g = (packed_color >> 16) & 0xFF;
+    r = (packed_color >> 8) & 0xFF;
+    b = packed_color & 0xFF;
+}
+
+uint32_t PizzaControls::pack_color(uint8_t r, uint8_t g, uint8_t b) {
+    return (static_cast<uint32_t>(g) << 16) |
+           (static_cast<uint32_t>(r) << 8) |
+           b;
+}
+
 // --- Private Methods ---
+
+float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
+    // Map ADC range (e.g., 100-1000) to brightness (e.g., 0.1-1.0)
+    // Adjust these based on sensor readings and desired visual response
+    constexpr uint16_t min_adc = 100;
+    constexpr uint16_t max_adc = 1000;
+    constexpr float min_brightness = 0.1f;
+    constexpr float max_brightness = 1.0f;
+
+    if (raw_value <= min_adc) {
+        return 0.0f; // Off below minimum threshold
+    }
+    if (raw_value >= max_adc) {
+        return max_brightness;
+    }
+
+    float factor = static_cast<float>(raw_value - min_adc) / (max_adc - min_adc);
+    return min_brightness + factor * (max_brightness - min_brightness);
+}
+
+
+uint32_t PizzaControls::calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const {
+    if (base_color == 0) return 0;
+
+    uint8_t r, g, b;
+    unpack_color(base_color, r, g, b);
+
+    float brightness_factor = scale_raw_to_brightness(raw_value);
+
+    r = static_cast<uint8_t>(std::clamp(static_cast<float>(r) * brightness_factor, 0.0f, 255.0f));
+    g = static_cast<uint8_t>(std::clamp(static_cast<float>(g) * brightness_factor, 0.0f, 255.0f));
+    b = static_cast<uint8_t>(std::clamp(static_cast<float>(b) * brightness_factor, 0.0f, 255.0f));
+
+    return pack_color(r, g, b);
+}
+
 
 void PizzaControls::update_drumpads() {
     for (size_t i = 0; i < drumpads.size(); ++i) {
-        if (drumpads[i].update()) {
+        bool state_changed = drumpads[i].update();
+        uint16_t raw_value = drumpads[i].get_raw_adc_value();
+        uint8_t note_index = drumpad_note_numbers[i];
+        uint32_t led_index = display.get_drumpad_led_index(i);
+
+        if (state_changed) {
             auto velocity = drumpads[i].get_velocity();
             uint8_t note_number = drumpad_note_numbers[i];
             uint8_t channel = i + 1; // MIDI channels 1-4
@@ -119,8 +177,13 @@ void PizzaControls::update_drumpads() {
                 send_midi_note(channel, note_number, *velocity); // Send Note On
             }
         }
-        // Update drumpad LED regardless of hit state to show selected note color
-        display.set_drumpad_led(i, drumpad_note_numbers[i]);
+
+        // Update drumpad LED color based on selected note AND current pressure
+        if (led_index < NUM_LEDS) {
+             uint32_t base_color = display.get_note_color(note_index);
+             uint32_t final_color = calculate_brightness_color(base_color, raw_value);
+             display.set_led(led_index, final_color);
+        }
     }
 }
 
@@ -139,7 +202,14 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
     drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_number);
 
     // Update the display for the affected pad immediately
-    display.set_drumpad_led(pad_index, drumpad_note_numbers[pad_index]);
+    uint32_t led_index = display.get_drumpad_led_index(pad_index);
+    if (led_index < NUM_LEDS) {
+        uint32_t base_color = display.get_note_color(drumpad_note_numbers[pad_index]);
+        // When selecting a note, show the base color at minimum brightness (or maybe full?)
+        // Let's use calculate_brightness with a low raw value to show it's selected but not active.
+        uint32_t final_color = calculate_brightness_color(base_color, 100); // Use min_adc value for base brightness
+        display.set_led(led_index, final_color);
+    }
 }
 
 

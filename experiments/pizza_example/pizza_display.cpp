@@ -128,6 +128,13 @@ void PizzaDisplay::set_play_button_led(uint32_t color) {
     leds.set_pixel(LED_PLAY_BUTTON, color);
 }
 
+uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
+    if (note_index < note_colors.size()) {
+        return note_colors[note_index];
+    }
+    return 0; // Return black for invalid index
+}
+
 uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
     switch (pad_index) {
         case 0: return LED_DRUMPAD_1;
@@ -138,13 +145,7 @@ uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
     }
 }
 
-void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint8_t note_index) {
-    uint32_t led_index = get_drumpad_led_index(pad_index);
-    if (led_index < NUM_LEDS && note_index < note_colors.size()) {
-        leds.set_pixel(led_index, note_colors[note_index]);
-        // TODO: Add fading based on pressure if needed later
-    }
-}
+// Removed set_drumpad_led - logic moved to PizzaControls::update_drumpads
 
 void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     if (col >= 4) return; // Column 4 (sample select) has no direct LED in LED_ARRAY

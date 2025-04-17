@@ -69,12 +69,25 @@ public:
      */
     void set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity);
 
+    /**
+     * @brief Get the base color associated with a note index.
+     * @param note_index Index of the note color (0-31).
+     * @return The 24-bit base color (0xRRGGBB) or 0 if index is invalid.
+     */
+    uint32_t get_note_color(uint8_t note_index) const;
+
+    /**
+     * @brief Get the physical LED index for a given drumpad.
+     * @param pad_index Index of the drumpad (0-3).
+     * @return The physical LED index or NUM_LEDS if invalid.
+     */
+    uint32_t get_drumpad_led_index(uint8_t pad_index) const;
+
+
 private:
     Musin::Drivers::WS2812<NUM_LEDS> leds;
     etl::array<uint32_t, 32> note_colors;
 
-    // Helper to map pad index to LED index
-    uint32_t get_drumpad_led_index(uint8_t pad_index) const;
 };
 
 #endif // PIZZA_DISPLAY_H

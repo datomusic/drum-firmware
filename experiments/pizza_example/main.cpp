@@ -62,10 +62,10 @@ static Musin::HAL::AnalogInMux16 reader_pad4(PIN_ADC, analog_address_pins, DRUMP
 
 // Create Drumpad instances using the specific readers
 // Using default thresholds for now. Pass the reader by reference.
-static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad1(reader_pad1);
-static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad2(reader_pad2);
-static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad3(reader_pad3);
-static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad4(reader_pad4);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad1(reader_pad1, 50U, 250U, 350U, 1000U, 250U);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad2(reader_pad2, 50U, 250U, 350U, 1000U, 250U);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad3(reader_pad3, 50U, 250U, 350U, 1000U, 250U);
+static Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> drumpad4(reader_pad4, 50U, 250U, 350U, 1000U, 250U);
 
 // Store drumpads in an array for easier iteration (using pointers)
 static etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>*, 4> drumpads = {
@@ -90,13 +90,11 @@ void drumpads_update() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     if (drumpads[i]->update()) {
       auto velocity = drumpads[i]->get_velocity();
-      if (velocity) {
-        printf("Drum %zu hit! Velocity: %u (Raw: %u, TimeDiff: %llu us)\n",
-                i + 1,
-                *velocity,
-                drumpads[i]->get_raw_adc_value(),
-                drumpads[i]->get_last_velocity_time_diff());
-        send_midi_note(i, 25, *velocity);
+      if (drumpads[i]->was_released()) {
+        send_midi_note(i+1, 25, 0);
+      } else if (velocity) {
+        // printf("Drum %zu hit! Velocity: %u (Raw: %u, TimeDiff: %llu us)\n", i + 1, *velocity, drumpads[i]->get_raw_adc_value(), drumpads[i]->get_last_velocity_time_diff());
+        send_midi_note(i+1, 25, *velocity);
       }
     }
   }
@@ -130,9 +128,11 @@ struct MIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
         break;
       case DRUM1:
         leds.set_pixel(LED_DRUMPAD_1, 0, 2*value, 2*value);
+        // printf("Drumpad 1: %d\n", drumpads[0]->get_raw_adc_value());
         break;
       case DRUM2:
         leds.set_pixel(LED_DRUMPAD_2, 2*value, 0, 2*value);
+        // printf("Drumpad 1: %d\n", drumpads[1]->get_raw_adc_value());
         break;
       case DRUM3:
         leds.set_pixel(LED_DRUMPAD_3, 2*value, 2*value, 0);
@@ -412,7 +412,7 @@ int main() {
     Musin::Usb::background_update();
     
     // Add a small delay to yield time
-    sleep_ms(1); // need at least 80us for the leds to latch
+    sleep_us(100); // need at least 80us for the leds to latch
   }
 
   return 0;

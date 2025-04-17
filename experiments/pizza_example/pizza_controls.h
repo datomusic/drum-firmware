@@ -85,10 +85,6 @@ private:
         void notification(Musin::UI::KeypadEvent event) override;
     };
 
-    // --- Private Methods ---
-    void update_drumpads();
-    void select_note_for_pad(uint8_t pad_index, int8_t offset);
-
     // --- Members ---
     PizzaDisplay& display; // Reference to the display object
 

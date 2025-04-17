@@ -40,12 +40,23 @@ PizzaControls::PizzaControls(PizzaDisplay& display_ref) :
         Musin::UI::AnalogControl{SPEED,      PIN_ADC, analog_address_pins, SPEED},
         Musin::UI::AnalogControl{PITCH4,     PIN_ADC, analog_address_pins, PITCH4}
     },
-    control_observers{ // Initialize observers, passing parent pointer
-        {this, DRUM1, 0}, {this, FILTER, 0}, {this, DRUM2, 0}, {this, PITCH1, 1},
-        {this, PITCH2, 2}, {this, PLAYBUTTON, 0}, {this, RANDOM, 0}, {this, VOLUME, 0},
-        {this, PITCH3, 3}, {this, SWING, 0}, {this, CRUSH, 0}, {this, DRUM3, 0},
-        {this, REPEAT, 0}, {this, DRUM4, 0}, {this, SPEED, 0}, {this, PITCH4, 4}
-        // Note: MIDI channels adjusted for PITCH controls as per original main.cpp logic
+    control_observers{ // Initialize observers by explicitly calling constructors
+        InternalMIDICCObserver{this, DRUM1, 0},
+        InternalMIDICCObserver{this, FILTER, 0},
+        InternalMIDICCObserver{this, DRUM2, 0},
+        InternalMIDICCObserver{this, PITCH1, 1},
+        InternalMIDICCObserver{this, PITCH2, 2},
+        InternalMIDICCObserver{this, PLAYBUTTON, 0},
+        InternalMIDICCObserver{this, RANDOM, 0},
+        InternalMIDICCObserver{this, VOLUME, 0},
+        InternalMIDICCObserver{this, PITCH3, 3},
+        InternalMIDICCObserver{this, SWING, 0},
+        InternalMIDICCObserver{this, CRUSH, 0},
+        InternalMIDICCObserver{this, DRUM3, 0},
+        InternalMIDICCObserver{this, REPEAT, 0},
+        InternalMIDICCObserver{this, DRUM4, 0},
+        InternalMIDICCObserver{this, SPEED, 0},
+        InternalMIDICCObserver{this, PITCH4, 4}
     }
 {}
 

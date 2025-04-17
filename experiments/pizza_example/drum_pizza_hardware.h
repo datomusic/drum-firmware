@@ -1,3 +1,6 @@
+#ifndef DRUM_PIZZA_HARDWARE_H
+#define DRUM_PIZZA_HARDWARE_H
+
 #include <cstdint>
 #include <array>
 
@@ -93,3 +96,5 @@ constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
 constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
 constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
 constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
+
+#endif // DRUM_PIZZA_HARDWARE_H

@@ -126,7 +126,7 @@ float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
     // Map ADC range (e.g., 100-1000) to brightness (e.g., 0.1-1.0)
     // Adjust these based on sensor readings and desired visual response
     constexpr uint16_t min_adc = 100;
-    constexpr uint16_t max_adc = 1000;
+    constexpr uint16_t max_adc = 4095;
     constexpr float min_brightness = 0.1f;
     constexpr float max_brightness = 1.0f;
 

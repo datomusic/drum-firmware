@@ -131,14 +131,15 @@ float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
     constexpr float max_brightness = 1.0f;
 
     if (raw_value <= min_adc) {
-        return 0.0f; // Off below minimum threshold
+        return max_brightness; // Max brightness at minimum pressure (or below)
     }
     if (raw_value >= max_adc) {
-        return max_brightness;
+        return 0.0f; // Off at maximum pressure (or above)
     }
 
-    float factor = static_cast<float>(raw_value - min_adc) / (max_adc - min_adc);
-    return min_brightness + factor * (max_brightness - min_brightness);
+    // Inverted linear scaling: factor decreases as raw_value increases
+    float factor = static_cast<float>(max_adc - raw_value) / (max_adc - min_adc);
+    return min_brightness + factor * (max_brightness - min_brightness); // Apply the inverted factor
 }
 
 

@@ -104,7 +104,7 @@ void drumpads_update() {
                 *velocity,
                 drumpads[i]->get_raw_adc_value(),
                 drumpads[i]->get_last_velocity_time_diff());
-        MIDI::sendNoteOn(36, velocity, i);
+        MIDI::sendNoteOn(36, *velocity, i); // Dereference the optional velocity
       }
     }
   }

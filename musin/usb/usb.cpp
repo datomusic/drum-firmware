@@ -39,9 +39,9 @@ void midi_send(const uint8_t packet[4]) {
 void init() {
   tusb_init();
 
-  while (!tud_cdc_connected()) {
-    tud_task();
-  }
+  // while (!tud_cdc_connected()) {
+  //   tud_task();
+  // }
 }
 
 } // namespace Usb

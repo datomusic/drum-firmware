@@ -52,8 +52,8 @@ public:
     static constexpr std::uint16_t DEFAULT_NOISE_THRESHOLD = 50;
     static constexpr std::uint16_t DEFAULT_PRESS_THRESHOLD = 100;      // Threshold to register a press start
     static constexpr std::uint16_t DEFAULT_VELOCITY_LOW_THRESHOLD = 150; // Lower threshold for velocity timing
-    static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 1000; // Upper threshold for velocity timing
-    static constexpr std::uint16_t DEFAULT_RELEASE_THRESHOLD = 80;     // Threshold to register a release start
+    static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 3000; // Upper threshold for velocity timing
+    static constexpr std::uint16_t DEFAULT_RELEASE_THRESHOLD = 100;     // Threshold to register a release start
     static constexpr std::uint16_t DEFAULT_HOLD_THRESHOLD = 800;      // Threshold to maintain for hold state
 
     // Default Timings
@@ -139,6 +139,9 @@ public:
     /** @brief Get the current state of the pad's state machine. */
     DrumpadState get_current_state() const { return _current_state; }
 
+    /** @brief [DEBUG] Get the last calculated time difference for velocity. */
+    uint64_t get_last_velocity_time_diff() const { return _last_velocity_time_diff; }
+
 
 private:
     // Removed set_address_pins() and read_adc()
@@ -182,6 +185,7 @@ private:
     bool _just_pressed = false;
     bool _just_released = false;
     std::optional<uint8_t> _last_velocity = std::nullopt;
+    uint64_t _last_velocity_time_diff = 0; // DEBUG: Store last time diff
 
     // Removed _initialized flag, relies on external reader initialization
 
@@ -237,12 +241,18 @@ bool Drumpad<AnalogReader>::update() {
         _just_released = false;
         _last_velocity = std::nullopt;
 
-        // Read the ADC value using the provided reader
-        // Assumes the reader handles mux addressing if necessary
-        std::uint16_t current_adc_value = _reader.read_raw(); // Use read_raw() for 12-bit value
-        _last_adc_value = current_adc_value;
+        // Read the raw ADC value using the provided reader
+        std::uint16_t raw_adc_value = _reader.read_raw();
 
-        update_state_machine(current_adc_value, now);
+        // --- Invert the reading for falling edge hardware ---
+        // Assuming 12-bit ADC (0-4095)
+        constexpr std::uint16_t ADC_MAX_VALUE = 4095;
+        std::uint16_t current_adc_value = ADC_MAX_VALUE - raw_adc_value;
+        // ----------------------------------------------------
+
+        _last_adc_value = current_adc_value; // Store the *inverted* value for state machine
+
+        update_state_machine(current_adc_value, now); // Use the inverted value
 
         _last_update_time = now;
         return true; // Update was performed
@@ -278,6 +288,7 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
                  _state_transition_time = now;
 
                  uint64_t diff = absolute_time_diff_us(_velocity_low_time, _velocity_high_time);
+                 _last_velocity_time_diff = diff; // DEBUG: Store time diff
                  _last_velocity = calculate_velocity(diff);
                  _just_pressed = true;
             } else if (current_adc_value < _release_threshold) {

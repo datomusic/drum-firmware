@@ -91,8 +91,8 @@ public:
    * @param debounce_time_ms Time duration for debouncing transitions in milliseconds.
    * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
    */
-  Keypad_HC138(const std::array<uint, 3>& decoder_address_pins,
-               const std::array<uint, NumCols>& col_pins, // Use std::array reference
+  Keypad_HC138(const std::array<uint32_t, 3>& decoder_address_pins,
+               const std::array<uint32_t, NumCols>& col_pins, // Use std::array reference
                // No longer need key_data_buffer parameter
                std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
                std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,

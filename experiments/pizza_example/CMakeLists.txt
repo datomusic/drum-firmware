@@ -1,27 +1,32 @@
-# CMakeLists.txt for the Drum Pizza example
-
 cmake_minimum_required(VERSION 3.13...3.27)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(PICO_BOARD dato_submarine)
+
 set(EXECUTABLE_NAME pizza_example)
 
-# Include the common Musin CMake initialization script
-# This handles SDK inclusion, project setup, standard options, etc.
 include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
 
 project(${EXECUTABLE_NAME})
 
-# Define the executable target with its main source file
 add_executable(${EXECUTABLE_NAME}
   main.cpp
-  # Add board source file directly
-  ${CMAKE_CURRENT_LIST_DIR}/../../musin/boards/drum_pizza.cpp
+  pizza_controls.cpp
+  pizza_display.cpp
+)
+
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
+  USBD_MANUFACTURER="Dato"
+  USBD_PRODUCT="DRUM"
 )
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})
-musin_init_hal(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})
+musin_init_hal(${EXECUTABLE_NAME})
+musin_init_usb_midi(${EXECUTABLE_NAME})
 
-# Board sources are added directly above
-# musin_init_boards(${EXECUTABLE_NAME})
+pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+pico_add_extra_outputs(${EXECUTABLE_NAME})

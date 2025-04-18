@@ -17,8 +17,8 @@ extern "C" {
 // --- Constructor Implementation ---
 template<std::uint8_t NumRows, std::uint8_t NumCols>
 Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
-                           const std::array<uint, 3>& decoder_address_pins,
-                           const std::array<uint, NumCols>& col_pins,
+                           const std::array<uint32_t, 3>& decoder_address_pins,
+                           const std::array<uint32_t, NumCols>& col_pins,
                            // No key_data_buffer parameter
                            std::uint32_t scan_interval_ms,
                            std::uint32_t debounce_time_ms,

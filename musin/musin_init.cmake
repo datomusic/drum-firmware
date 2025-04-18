@@ -120,6 +120,7 @@ macro(musin_init_ui TARGET)
   set(MUSIN_UI ${MUSIN_ROOT}/ui)
 
   target_sources(${TARGET} PRIVATE
+    ${MUSIN_UI}/analog_control.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE
@@ -140,19 +141,13 @@ macro(musin_init_hal TARGET)
     hardware_dma
     hardware_adc
   )
-endmacro()                                                                                                                                                                      
-                                                                                                                                                                                
-                                                                                                                                                       
-macro(musin_init_drivers TARGET)                                                                                                                                                
-                                        
-    target_sources(${TARGET} PRIVATE                                                                                                                                              
-      ${MUSIN_DRIVERS}/ws2812.cpp                                                                                                                                                 
-    )                                                                                                                                                                             
-                                                                                                                                                                                                                                                                                                                   
-    pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)                                                                                                               
-                                                                                                                                                                                  
-    target_link_libraries(${TARGET} PRIVATE                                                                                                                                       
-      hardware_pio # For ws2812                                                                                                                                                   
-      hardware_dma # For ws2812 (potentially, or for PIO interaction)                                                                                                             
-    )                                                                                                                                                                             
-  endmacro()             
+endmacro()
+
+macro(musin_init_drivers TARGET)
+    pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)
+
+    target_link_libraries(${TARGET} PRIVATE
+      hardware_pio
+      hardware_dma
+    )
+endmacro()

@@ -4,26 +4,26 @@
 
 namespace Musin::UI {
 
-AnalogControl::AnalogControl(uint16_t id, uint32_t adc_pin, float threshold)
-    : _id(id), 
+AnalogControl::AnalogControl(uint32_t adc_pin, float threshold)
+    : _id(adc_pin), // Use adc_pin directly as ID for direct inputs
       _threshold(threshold),
       _input_type(InputType::Direct),
       _analog_in(adc_pin) {
 }
 
-AnalogControl::AnalogControl(uint16_t id, uint32_t adc_pin, 
+AnalogControl::AnalogControl(uint32_t adc_pin, 
                             const std::array<std::uint32_t, 3>& mux_address_pins,
                             uint8_t mux_channel, float threshold)
-    : _id(id), 
+    : _id((static_cast<uint16_t>(mux_channel) << 8) | adc_pin), // Combine channel and pin for ID
       _threshold(threshold),
       _input_type(InputType::Mux8) {
     new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
 }
 
-AnalogControl::AnalogControl(uint16_t id, uint32_t adc_pin, 
+AnalogControl::AnalogControl(uint32_t adc_pin, 
                             const std::array<std::uint32_t, 4>& mux_address_pins,
                             uint8_t mux_channel, float threshold)
-    : _id(id), 
+    : _id((static_cast<uint16_t>(mux_channel) << 8) | adc_pin), // Combine channel and pin for ID
       _threshold(threshold),
       _input_type(InputType::Mux16) {
     new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);

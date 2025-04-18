@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstddef>         // For size_t
 
 // Address pins for the multiplexer and decoder
 constexpr uint32_t PIN_ADDR_0 = 29;

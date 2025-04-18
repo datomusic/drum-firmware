@@ -5,7 +5,7 @@
 #include "etl/array.h"
 #include "musin/drivers/ws2812.h"
 #include <cstdint>
-
+#include <cstddef>         // For size_t
 // Forward declaration for check_external_pin_state if needed, or include main.h if it's there
 // Assuming check_external_pin_state remains accessible or is moved/duplicated.
 // For now, let's assume it's available globally or we'll handle it in init.

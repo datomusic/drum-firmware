@@ -4,25 +4,31 @@
 #include <algorithm>       // For std::clamp
 #include <cmath>           // For std::max used in scaling
 #include <cstdio>          // For printf
+#include <cstddef>         // For size_t
+
+
+using Musin::HAL::AnalogInMux16;
+using Musin::UI::AnalogControl;
+using Musin::UI::Drumpad;
 
 // --- Constructor ---
 PizzaControls::PizzaControls(PizzaDisplay &display_ref)
     : display(display_ref), keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
       drumpad_readers{// Initialize readers directly by calling constructors
-                      Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
-                      Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
-                      Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
-                      Musin::HAL::AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
+                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
+                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
+                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
+                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
       drumpads{
           // Initialize drumpads using the readers by calling constructors explicitly
-          Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[0], 50U, 250U, 150U, 3000U,
+          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 50U, 250U, 150U, 2000U,
                                                         100U, 800U, 1000U, 5000U, 200000U},
-          Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[1], 50U, 250U, 150U, 3000U,
+          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 50U, 250U, 150U, 2000U,
                                                         100U, 800U, 1000U, 5000U, 200000U},
-          Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[2], 50U, 250U, 150U, 3000U,
+          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 50U, 250U, 150U, 2000U,
                                                         100U, 800U, 1000U, 5000U, 200000U},
-          Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 3000U,
+          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 2000U,
                                                         100U, 800U, 1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
       mux_controls{                       // Initialize by explicitly calling constructors
@@ -229,15 +235,15 @@ void PizzaControls::InternalMIDICCObserver::notification(Musin::UI::AnalogContro
     break;
   case PITCH2:
     // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 16, 127 - value);
+    send_midi_cc(midi_channel, 17, 127 - value);
     break;
   case PITCH3:
     // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 16, 127 - value);
+    send_midi_cc(midi_channel, 18, 127 - value);
     break;
   case PITCH4:
     // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 16, 127 - value);
+    send_midi_cc(midi_channel, 19, 127 - value);
     break;
   default:
     // Send other CCs on channel 1 (or adjust as needed)

@@ -66,12 +66,13 @@ private:
   // These need access to PizzaControls members (like display, drumpad_note_numbers)
 
   struct InternalMIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
-    PizzaControls *parent; // Pointer to the owning PizzaControls instance
+    PizzaControls *parent;
+    const uint16_t control_id; // Added control_id
     const uint8_t cc_number;
     const uint8_t midi_channel;
 
-    constexpr InternalMIDICCObserver(PizzaControls *p, uint8_t cc, uint8_t channel)
-        : parent(p), cc_number(cc), midi_channel(channel) {
+    constexpr InternalMIDICCObserver(PizzaControls *p, uint16_t id, uint8_t cc, uint8_t channel)
+        : parent(p), control_id(id), cc_number(cc), midi_channel(channel) {
     }
 
     void notification(Musin::UI::AnalogControlEvent event) override;

@@ -50,15 +50,23 @@ PizzaControls::PizzaControls(PizzaDisplay &display_ref)
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4}},
       control_observers{
-          // Initialize observers by explicitly calling constructors
-          InternalMIDICCObserver{this, DRUM1, 0},  InternalMIDICCObserver{this, FILTER, 0},
-          InternalMIDICCObserver{this, DRUM2, 0},  InternalMIDICCObserver{this, PITCH1, 1},
-          InternalMIDICCObserver{this, PITCH2, 2}, InternalMIDICCObserver{this, PLAYBUTTON, 0},
-          InternalMIDICCObserver{this, RANDOM, 0}, InternalMIDICCObserver{this, VOLUME, 0},
-          InternalMIDICCObserver{this, PITCH3, 3}, InternalMIDICCObserver{this, SWING, 0},
-          InternalMIDICCObserver{this, CRUSH, 0},  InternalMIDICCObserver{this, DRUM3, 0},
-          InternalMIDICCObserver{this, REPEAT, 0}, InternalMIDICCObserver{this, DRUM4, 0},
-          InternalMIDICCObserver{this, SPEED, 0},  InternalMIDICCObserver{this, PITCH4, 4}} {
+          // Initialize observers by explicitly calling constructors (id, cc, channel)
+          InternalMIDICCObserver{this, DRUM1, DRUM1, 0},
+          InternalMIDICCObserver{this, FILTER, FILTER, 0},
+          InternalMIDICCObserver{this, DRUM2, DRUM2, 0},
+          InternalMIDICCObserver{this, PITCH1, PITCH1, 1},
+          InternalMIDICCObserver{this, PITCH2, PITCH2, 2},
+          InternalMIDICCObserver{this, PLAYBUTTON, PLAYBUTTON, 0},
+          InternalMIDICCObserver{this, RANDOM, RANDOM, 0},
+          InternalMIDICCObserver{this, VOLUME, VOLUME, 0},
+          InternalMIDICCObserver{this, PITCH3, PITCH3, 3},
+          InternalMIDICCObserver{this, SWING, SWING, 0},
+          InternalMIDICCObserver{this, CRUSH, CRUSH, 0},
+          InternalMIDICCObserver{this, DRUM3, DRUM3, 0},
+          InternalMIDICCObserver{this, REPEAT, REPEAT, 0},
+          InternalMIDICCObserver{this, DRUM4, DRUM4, 0},
+          InternalMIDICCObserver{this, SPEED, SPEED, 0},
+          InternalMIDICCObserver{this, PITCH4, PITCH4, 4}} {
 }
 
 // --- Initialization ---

@@ -1,24 +1,26 @@
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 
 #include "musin/usb/usb.h"
+
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
 #include "midi.h"
-#include "pizza_display.h"
 #include "pizza_controls.h"
+#include "pizza_display.h"
 
 static PizzaDisplay pizza_display;
 static PizzaControls pizza_controls(pizza_display);
 
 int main() {
   stdio_init_all();
+
   Musin::Usb::init();
+
   midi_init();
 
   printf(".\nPizza Example Starting...\n");
-  sleep_ms(1000);
 
   pizza_display.init();
 

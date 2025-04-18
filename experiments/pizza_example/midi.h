@@ -1,5 +1,5 @@
 extern "C" {
-  #include "pico/bootrom.h"
+#include "pico/bootrom.h"
 }
 
 #include "musin/midi/midi_wrapper.h"
@@ -28,14 +28,14 @@ static void midi_read() {
 
 static void midi_init() {
   MIDI::init(MIDI::Callbacks{
-    .note_on = nullptr,
-    .note_off = nullptr,
-    .clock = nullptr,
-    .start = nullptr,
-    .cont = nullptr,
-    .stop = nullptr,
-    .cc = nullptr,
-    .pitch_bend = nullptr,
-    .sysex = handle_sysex,
+      .note_on = nullptr,
+      .note_off = nullptr,
+      .clock = nullptr,
+      .start = nullptr,
+      .cont = nullptr,
+      .stop = nullptr,
+      .cc = nullptr,
+      .pitch_bend = nullptr,
+      .sysex = handle_sysex,
   });
 }

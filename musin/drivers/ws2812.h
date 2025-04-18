@@ -11,6 +11,7 @@ extern "C" {
 #include "hardware/pio.h"
 #include "hardware/clocks.h" // Needed for ws2812_program_init
 #include "pico/assert.h"   // For assert()
+#include "pico/time.h"     // For time functions
 #include <stdio.h>         // For optional printf debugging
 }
 #include <climits> // For UINT_MAX
@@ -186,9 +187,13 @@ private:
     std::optional<uint32_t> _color_correction;
 
     // --- State ---
-    std::array<uint32_t, NUM_LEDS> _pixel_buffer; // Fixed-size buffer
-    unsigned int _pio_program_offset = 0; // Assigned during init()
+    std::array<uint32_t, NUM_LEDS> _pixel_buffer;
+    unsigned int _pio_program_offset = 0;
     bool _initialized = false;
+    absolute_time_t _last_show_completion_time = nil_time;
+
+    // --- Constants ---
+    static constexpr uint32_t LATCH_DELAY_US = 80;
 
     // --- PIO Program Info ---
     // PIO program loading and SM claiming are now handled dynamically in init()
@@ -278,16 +283,28 @@ void WS2812<NUM_LEDS>::set_pixel(unsigned int index, uint32_t color) {
 template <size_t NUM_LEDS>
 void WS2812<NUM_LEDS>::show() {
     if (!_initialized) {
-        assert(_initialized); // Optional: Assert in debug builds
+        assert(_initialized);
         return;
     }
     assert(_pio != nullptr && _sm_index != UINT_MAX);
+
+    // Wait for the required latch delay since the last show() completed
+    if (!is_nil_time(_last_show_completion_time)) {
+        absolute_time_t now = get_absolute_time();
+        uint64_t elapsed_us = absolute_time_diff_us(_last_show_completion_time, now);
+        if (elapsed_us < LATCH_DELAY_US) {
+            uint32_t wait_us = LATCH_DELAY_US - (uint32_t)elapsed_us;
+            sleep_us(wait_us);
+        }
+    }
 
     for (uint32_t packed_color : _pixel_buffer) {
         // PIO expects 24 bits, left-aligned in the 32-bit FIFO word
         pio_sm_put_blocking(_pio, _sm_index, packed_color << 8);
     }
-    // Note: Potential need for delay here (see original comments)
+
+    // Record the time when the CPU finished pushing data to the PIO
+    _last_show_completion_time = get_absolute_time();
 }
 
 template <size_t NUM_LEDS>

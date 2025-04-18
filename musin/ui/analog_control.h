@@ -33,22 +33,23 @@ public:
      * 
      * @param adc_pin The GPIO pin number for ADC input
      * @param threshold Change threshold to trigger updates (normalized value)
+     * @param invert If true, map raw 0.0->1.0 to 1.0->0.0
      */
-    explicit AnalogControl(uint32_t adc_pin, float threshold = 0.005f);
+    explicit AnalogControl(uint32_t adc_pin, float threshold = 0.005f, bool invert = false);
     
     /**
      * @brief Constructor for multiplexed ADC connection (8-channel)
      */
     AnalogControl(uint32_t adc_pin, 
                  const std::array<std::uint32_t, 3>& mux_address_pins,
-                 uint8_t mux_channel, float threshold = 0.005f);
+                 uint8_t mux_channel, float threshold = 0.005f, bool invert = false);
     
     /**
      * @brief Constructor for multiplexed ADC connection (16-channel)
      */
     AnalogControl(uint32_t adc_pin, 
                  const std::array<std::uint32_t, 4>& mux_address_pins,
-                 uint8_t mux_channel, float threshold = 0.005f);
+                 uint8_t mux_channel, float threshold = 0.005f, bool invert = false);
     
     /**
      * @brief Initialize the control's hardware

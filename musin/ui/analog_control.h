@@ -95,6 +95,7 @@ public:
 private:
     // Control identification
     uint16_t _id;
+    bool _invert_mapping; // Flag to invert the 0.0-1.0 mapping
     
     // Value tracking
     float _current_value = 0.0f;

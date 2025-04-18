@@ -24,10 +24,10 @@ Holds the keypad
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
+#include <array>
+#include <cstddef> // For size_t
 #include <cstdint>
 #include <optional> // For drumpad velocity
-#include <cstddef>         // For size_t
-#include <array>
 
 // Forward declaration
 class PizzaDisplay;

@@ -3,9 +3,8 @@
 #include "pizza_display.h" // Need definition for display methods
 #include <algorithm>       // For std::clamp
 #include <cmath>           // For std::max used in scaling
-#include <cstdio>          // For printf
 #include <cstddef>         // For size_t
-
+#include <cstdio>          // For printf
 
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
@@ -20,53 +19,51 @@ PizzaControls::PizzaControls(PizzaDisplay &display_ref)
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
-      drumpads{
-          // Initialize drumpads using the readers by calling constructors explicitly
-          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 50U, 250U, 150U, 2000U,
-                                                        100U, 800U, 1000U, 5000U, 200000U},
-          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 50U, 250U, 150U, 2000U,
-                                                        100U, 800U, 1000U, 5000U, 200000U},
-          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 50U, 250U, 150U, 2000U,
-                                                        100U, 800U, 1000U, 5000U, 200000U},
-          Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 2000U,
-                                                        100U, 800U, 1000U, 5000U, 200000U}},
+      drumpads{// Initialize drumpads using the readers by calling constructors explicitly
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 50U, 250U, 150U, 2000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 50U, 250U, 150U, 2000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 50U, 250U, 150U, 2000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 2000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
       mux_controls{                       // Initialize by explicitly calling constructors
                    // Assuming order matches the enum in drum_pizza_hardware.h
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM1},
-                   AnalogControl{PIN_ADC, analog_address_pins, FILTER},
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM2},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH1},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH2},
-                   AnalogControl{PIN_ADC, analog_address_pins, PLAYBUTTON},
-                   AnalogControl{PIN_ADC, analog_address_pins, RANDOM},
+                   AnalogControl{PIN_ADC, analog_address_pins, DRUM1, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, FILTER, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, DRUM2, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, PITCH1, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, PITCH2, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, PLAYBUTTON, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, RANDOM, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, VOLUME},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH3},
+                   AnalogControl{PIN_ADC, analog_address_pins, PITCH3, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, SWING},
-                   AnalogControl{PIN_ADC, analog_address_pins, CRUSH},
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM3},
-                   AnalogControl{PIN_ADC, analog_address_pins, REPEAT},
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM4},
-                   AnalogControl{PIN_ADC, analog_address_pins, SPEED},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH4}},
-      control_observers{
-          // Initialize observers by explicitly calling constructors (id, cc, channel)
-          InternalMIDICCObserver{this, DRUM1, DRUM1, 0},
-          InternalMIDICCObserver{this, FILTER, FILTER, 0},
-          InternalMIDICCObserver{this, DRUM2, DRUM2, 0},
-          InternalMIDICCObserver{this, PITCH1, PITCH1, 1},
-          InternalMIDICCObserver{this, PITCH2, PITCH2, 2},
-          InternalMIDICCObserver{this, PLAYBUTTON, PLAYBUTTON, 0},
-          InternalMIDICCObserver{this, RANDOM, RANDOM, 0},
-          InternalMIDICCObserver{this, VOLUME, VOLUME, 0},
-          InternalMIDICCObserver{this, PITCH3, PITCH3, 3},
-          InternalMIDICCObserver{this, SWING, SWING, 0},
-          InternalMIDICCObserver{this, CRUSH, CRUSH, 0},
-          InternalMIDICCObserver{this, DRUM3, DRUM3, 0},
-          InternalMIDICCObserver{this, REPEAT, REPEAT, 0},
-          InternalMIDICCObserver{this, DRUM4, DRUM4, 0},
-          InternalMIDICCObserver{this, SPEED, SPEED, 0},
-          InternalMIDICCObserver{this, PITCH4, PITCH4, 4}} {
+                   AnalogControl{PIN_ADC, analog_address_pins, CRUSH, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, DRUM3, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, REPEAT, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, DRUM4, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
+      control_observers{// Initialize observers by explicitly calling constructors (id, cc, channel)
+                        InternalMIDICCObserver{this, DRUM1, DRUM1, 0},
+                        InternalMIDICCObserver{this, FILTER, 75, 0},
+                        InternalMIDICCObserver{this, DRUM2, DRUM2, 0},
+                        InternalMIDICCObserver{this, PITCH1, 16, 1},
+                        InternalMIDICCObserver{this, PITCH2, 17, 2},
+                        InternalMIDICCObserver{this, PLAYBUTTON, PLAYBUTTON, 0},
+                        InternalMIDICCObserver{this, RANDOM, RANDOM, 0},
+                        InternalMIDICCObserver{this, VOLUME, VOLUME, 0},
+                        InternalMIDICCObserver{this, PITCH3, 18, 3},
+                        InternalMIDICCObserver{this, SWING, SWING, 0},
+                        InternalMIDICCObserver{this, CRUSH, 77, 0},
+                        InternalMIDICCObserver{this, DRUM3, DRUM3, 0},
+                        InternalMIDICCObserver{this, REPEAT, REPEAT, 0},
+                        InternalMIDICCObserver{this, DRUM4, DRUM4, 0},
+                        InternalMIDICCObserver{this, SPEED, SPEED, 0},
+                        InternalMIDICCObserver{this, PITCH4, 19, 4}} {
 }
 
 // --- Initialization ---
@@ -226,32 +223,11 @@ void PizzaControls::InternalMIDICCObserver::notification(Musin::UI::AnalogContro
   // Access parent members via parent pointer
   uint8_t value = static_cast<uint8_t>(event.value * 127.0f);
 
-  switch (cc_number) {
+  switch (control_id) {
   case PLAYBUTTON:
     // Update Play button LED via parent's display reference
     parent->display.set_play_button_led((static_cast<uint32_t>(value * 2) << 16) |
                                         (static_cast<uint32_t>(value * 2) << 8) | (value * 2));
-    break;
-  // Drumpad cases removed as they didn't do anything specific here
-  case SWING:
-    // printf("Swing set to %d\n", value); // Keep printf if needed for debug
-    send_midi_cc(1, cc_number, value); // Assuming channel 1 for general controls
-    break;
-  case PITCH1:
-    // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 16, 127 - value);
-    break;
-  case PITCH2:
-    // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 17, 127 - value);
-    break;
-  case PITCH3:
-    // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 18, 127 - value);
-    break;
-  case PITCH4:
-    // Use the specific MIDI channel assigned in the observer's constructor
-    send_midi_cc(midi_channel, 19, 127 - value);
     break;
   default:
     // Send other CCs on channel 1 (or adjust as needed)

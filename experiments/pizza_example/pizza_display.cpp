@@ -1,8 +1,8 @@
 #include "pizza_display.h"
 #include "drum_pizza_hardware.h" // For LED array mapping
 
-#include <cstddef>         // For size_t
 #include <array>
+#include <cstddef> // For size_t
 
 // Include necessary Pico SDK headers for GPIO and time
 extern "C" {

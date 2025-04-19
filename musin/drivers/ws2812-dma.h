@@ -23,6 +23,18 @@ extern "C" {
 
 namespace Musin::Drivers {
 
+// --- Namespace-level constants and state for shared IRQ/Alarm resources ---
+static constexpr uint32_t G_LATCH_DELAY_US = 80;
+static int g_dma_channel = -1;
+static semaphore_t g_reset_delay_complete_sem;
+static volatile alarm_id_t g_reset_delay_alarm_id = 0;
+static bool g_handlers_initialized = false;
+
+// --- Forward declarations for namespace-level handlers ---
+static void dma_complete_handler();
+static int64_t reset_delay_complete(alarm_id_t id, void *user_data);
+
+
 // RGBOrder enum remains the same
 enum class RGBOrder {
   RGB,
@@ -113,24 +125,17 @@ private:
   RGBOrder _order;
   uint8_t _brightness;
   std::optional<uint32_t> _color_correction;
-  static int _dma_channel; 
+  int _dma_channel = -1; // Instance's DMA channel
   dma_channel_config _dma_config; // DMA configuration structure
-  
-  static void dma_complete_handler(void);
-  static int64_t reset_delay_complete(alarm_id_t id, void *user_data);
 
   // --- State ---
-  // Pixel buffer needs alignment for DMA efficiency, though std::array might be okay
   // Consider alignas(4) if issues arise, but start without it.
   std::array<uint32_t, NUM_LEDS> _pixel_buffer;
   unsigned int _pio_program_offset = 0;
   bool _initialized = false;
-  absolute_time_t _last_dma_completion_time = nil_time; // Track DMA completion
-  static semaphore_t reset_delay_complete_sem; /* semaphore used to make a delay at the end of the transfer. Posted when it is safe to output a new set of values */
-  static alarm_id_t reset_delay_alarm_id; /*  alarm id handle for handling delay */
 
   // --- Constants ---
-  static constexpr uint32_t LATCH_DELAY_US = 80; // Keep latch delay constant
+  // static constexpr uint32_t LATCH_DELAY_US = 80; // Moved to namespace constant G_LATCH_DELAY_US
 
   // --- PIO Program Info ---
   // Handled dynamically in init()
@@ -145,15 +150,10 @@ WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order, uint8_t 
                                  std::optional<uint32_t> color_correction)
     : _pio(nullptr), _sm_index(UINT_MAX), _data_pin(data_pin), _order(order),
       _brightness(initial_brightness), _color_correction(color_correction), _pixel_buffer{} {
-  // Claim DMA channel in constructor or init? Claiming here ensures it's
-  // reserved early, but init() feels more conventional for hardware setup.
-  // Let's claim in init() for consistency.
 }
 
 template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
   if (_dma_channel != -1) {
-    // Consider stopping the channel first if necessary?
-    // dma_channel_abort(_dma_channel); // Maybe needed if transfer could be active
     dma_channel_unclaim(_dma_channel);
     _dma_channel = -1;
   }
@@ -163,6 +163,7 @@ template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
 
 template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
   if (_initialized) {
+    // printf("WS2812_DMA Warning: Instance already initialized.\n");
     return true;
   }
 
@@ -187,35 +188,46 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
   // Configure PIO SM to auto-pull and shift right, 24 bits
   ws2812_program_init(_pio, _sm_index, _pio_program_offset, _data_pin, 800000, false /* IS_RGBW */);
 
-  // --- Claim and Configure DMA Channel ---
-  _dma_channel = dma_claim_unused_channel(false); // do not panic if unsuccesful
+  // --- Claim DMA Channel for this instance ---
+  _dma_channel = dma_claim_unused_channel(true); // Panic if none available
   if (_dma_channel == -1) {
-    // printf("WS2812_DMA Error: Failed to claim DMA channel\n");
-    // Consider releasing the PIO SM here if claimed?
-    // pio_sm_unclaim(_pio, _sm_index); // Requires careful state management
-    return false;
+     // printf("WS2812_DMA Error: Failed to claim DMA channel.\n");
+     return false;
+  }
+  // printf("WS2812_DMA Info: Instance claimed DMA channel %d\n", _dma_channel);
+
+  // --- Configure Instance DMA Channel ---
+  _dma_config = dma_channel_get_default_config(_dma_channel);
+  channel_config_set_transfer_data_size(&_dma_config, DMA_SIZE_32);
+  channel_config_set_read_increment(&_dma_config, true);
+  channel_config_set_write_increment(&_dma_config, false);
+  channel_config_set_dreq(&_dma_config, pio_get_dreq(_pio, _sm_index, true));
+
+  // --- Setup Shared IRQ/Alarm Resources (Only Once) ---
+  if (!g_handlers_initialized) {
+      // printf("WS2812_DMA Info: Initializing shared DMA/IRQ resources.\n");
+      g_dma_channel = _dma_channel;
+      sem_init(&g_reset_delay_complete_sem, 1, 1);
+
+      dma_channel_set_irq0_enabled(g_dma_channel, true);
+      irq_set_exclusive_handler(DMA_IRQ_0, dma_complete_handler);
+      irq_set_enabled(DMA_IRQ_0, true);
+      g_handlers_initialized = true;
+      // printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
+  } else {
+      if (g_dma_channel != _dma_channel) {
+          // printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_0 with different channels (%d vs %d).\n",
+          //        g_dma_channel, _dma_channel);
+          dma_channel_unclaim(_dma_channel);
+          _dma_channel = -1;
+          return false;
+      }
+      // printf("WS2812_DMA Info: Shared DMA/IRQ resources already initialized.\n");
   }
 
-  _dma_config = dma_channel_get_default_config(_dma_channel);
-  channel_config_set_transfer_data_size(&_dma_config,
-                                        DMA_SIZE_32);    // Transfer 32-bit words (packed color)
-  channel_config_set_read_increment(&_dma_config, true); // Increment read address (source buffer)
-  channel_config_set_dreq(&_dma_config,
-                          pio_get_dreq(_pio, _sm_index, true)); // Triggered by PIO TX FIFO empty
-
-  dma_channel_configure(_dma_channel, &_dma_config,
-                        &_pio->txf[_sm_index], /* write address: write to PIO FIFO */
-                        NULL,                  /* don't provide a read address yet */
-                        NUM_LEDS,              /* number of transfers */
-                        false);                /* don't start yet */
-
   _initialized = true;
-  // printf("WS2812_DMA Info: Initialized %u LEDs on PIO%u SM%u Pin%u DMA%d\n", NUM_LEDS,
-  // pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
-
-  irq_set_exclusive_handler(DMA_IRQ_0, dma_complete_handler); /* after DMA all data, raise an interrupt */
-  dma_channel_set_irq0_enabled(_dma_channel, true); /* map DMA channel to interrupt */
-  irq_set_enabled(DMA_IRQ_0, true); /* enable interrupt */
+  // printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u using DMA%d\n", NUM_LEDS,
+  //        pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
   return true;
 }
 
@@ -242,24 +254,6 @@ void WS2812_DMA<NUM_LEDS>::set_pixel(unsigned int index, uint32_t color) {
   uint8_t b = color & 0xFF;
   set_pixel(index, r, g, b); // Reuse RGB version
 }
- 
-template <size_t NUM_LEDS> int64_t WS2812_DMA<NUM_LEDS>::reset_delay_complete(alarm_id_t id, void *user_data) {
-  reset_delay_alarm_id = 0; /* reset alarm id */
-  sem_release(&reset_delay_complete_sem); /* release semaphore */
-  return 0; /* no repeat */
-}
-
-template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::dma_complete_handler() {
-    uint32_t DMA_CHANNEL_MASK = (1 << _dma_channel);
-    if (dma_hw->ints0 & DMA_CHANNEL_MASK) { /* are we called for our DMA channel? */
-      dma_hw->ints0 = DMA_CHANNEL_MASK; /* clear IRQ */
-      if (reset_delay_alarm_id!=0) { /* safety check: is there somehow an alarm already running? */
-        cancel_alarm(reset_delay_alarm_id); /* cancel it */
-      }
-      /* setup alarm to wait for the required latch-in time for the LES at the end of the transfer */
-      reset_delay_alarm_id = add_alarm_in_us(LATCH_DELAY_US, reset_delay_complete, NULL, true);
-    }
-  }
 
 template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
   if (!_initialized) {
@@ -267,40 +261,65 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
     return;
   }
   assert(_pio != nullptr && _sm_index != UINT_MAX && _dma_channel != -1);
+  assert(g_handlers_initialized);
 
-  // 1. Wait for previous DMA transfer to complete (if any was running)
-  if (dma_channel_is_busy(_dma_channel)) {
-    dma_channel_wait_for_finish_blocking(_dma_channel);
-    // Record completion time *after* blocking wait finishes
-    _last_dma_completion_time = get_absolute_time();
-  }
+  sem_acquire_blocking(&g_reset_delay_complete_sem);
 
-  // 2. Wait for latch delay if necessary
-  // if (!is_nil_time(_last_dma_completion_time)) {
-  //     absolute_time_t now = get_absolute_time();
-  //     uint64_t elapsed_us = absolute_time_diff_us(_last_dma_completion_time, now);
-  //     if (elapsed_us < LATCH_DELAY_US) {
-  //         uint32_t wait_us = LATCH_DELAY_US - (uint32_t)elapsed_us;
-  //         sleep_us(wait_us); // Block only for the remaining time needed
-  //     }
-  // }
-  // Note: If the time since the last completion is already > LATCH_DELAY_US,
-  // we proceed immediately.
-  sem_acquire_blocking(&reset_delay_complete_sem); /* get semaphore */
-  dma_channel_set_read_addr(_dma_channel, (void*)_pixel_buffer.data(), true); /* trigger DMA transfer */
-  // 3. Start the new DMA transfer
-  // Important: The buffer already contains left-shifted data from set_pixel
-//   dma_channel_configure(_dma_channel, &_dma_config,
-//                         &_pio->txf[_sm_index], // Write address (PIO TX FIFO)
-//                         _pixel_buffer.data(),  // Read address (start of pixel buffer)
-//                         NUM_LEDS,              // Transfer count
-//                         true                   // Start immediately
-//   );
+  dma_channel_abort(_dma_channel);
 
-  // Function returns now, DMA runs in the background.
-  // _last_dma_completion_time is updated only when dma_channel_wait_for_finish_blocking completes
-  // in the *next* call to show() or if checked elsewhere.
+   dma_channel_set_config(
+      _dma_channel,
+      &_dma_config,
+      false
+  );
+  dma_channel_set_write_addr(
+      _dma_channel,
+      &_pio->txf[_sm_index],
+      false
+  );
+  dma_channel_set_trans_count(
+      _dma_channel,
+      NUM_LEDS,
+      false
+  );
+  dma_channel_set_read_addr(
+      _dma_channel,
+      _pixel_buffer.data(),
+      true
+  );
 }
+
+
+// --- Namespace-level Static Handler Implementations ---
+
+static int64_t reset_delay_complete(alarm_id_t id, void *user_data) {
+  if (id == g_reset_delay_alarm_id) {
+      g_reset_delay_alarm_id = 0;
+      sem_release(&g_reset_delay_complete_sem);
+  }
+  return 0;
+}
+
+static void dma_complete_handler() {
+    if (g_dma_channel != -1 && (dma_hw->ints0 & (1u << g_dma_channel))) {
+        dma_hw->ints0 = (1u << g_dma_channel);
+
+        alarm_id_t current_alarm = g_reset_delay_alarm_id;
+        if (current_alarm > 0) {
+            cancel_alarm(current_alarm);
+        }
+
+        g_reset_delay_alarm_id = add_alarm_in_us(G_LATCH_DELAY_US,
+                                                 reset_delay_complete,
+                                                 NULL, true);
+        if (g_reset_delay_alarm_id <= 0) {
+             // printf("WS2812_DMA Error: Failed to schedule latch alarm.\n");
+             sem_release(&g_reset_delay_complete_sem);
+             // printf("WS2812_DMA Warning: Semaphore released immediately due to alarm failure.\n");
+        }
+    }
+}
+
 
 template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::clear() {
   if (!_initialized) {

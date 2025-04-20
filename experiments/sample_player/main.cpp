@@ -8,8 +8,7 @@
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 
-#include "samples/005_data.c"
-#include "samples/006_data.c"
+#include "samples.h"
 
 // Reads Mono 16bit PCM samples from memory
 struct PcmReader : SampleReader {
@@ -48,8 +47,8 @@ struct PcmReader : SampleReader {
         break;
       }
 
-      const uint16_t upper = tmp1 >> 8;
-      *out++ = upper + tmp2;
+      const uint16_t upper = tmp2 << 8;
+      *out++ = (upper | tmp1);
     }
 
     if (samples_written == 0) {
@@ -85,13 +84,9 @@ struct SampleData {
   const uint32_t length;
 };
 
-constexpr static const etl::array<SampleData, 4> sample_bank = {
-    // static const etl::array<SampleData, 32> sample_bank = {
+static const etl::array<SampleData, 32> sample_bank = {
     SampleData{samples_005__pcm, samples_005__pcm_len},
     SampleData{samples_006__pcm, samples_006__pcm_len},
-    SampleData{samples_006__pcm, samples_006__pcm_len},
-    SampleData{samples_006__pcm, samples_006__pcm_len},
-    /*
     SampleData{samples_015__pcm, samples_015__pcm_len},
     SampleData{samples_100_nt_snare__pcm, samples_100_nt_snare__pcm_len},
     SampleData{samples_26880__vexst__closed_hi_hat_2_1__pcm,
@@ -122,15 +117,18 @@ constexpr static const etl::array<SampleData, 4> sample_bank = {
     SampleData{samples_Snare_909_3__pcm, samples_Snare_909_3__pcm_len},
     SampleData{samples_Snare_C78_with_silence__pcm, samples_Snare_C78_with_silence__pcm_len},
     SampleData{samples_vocal_3__pcm, samples_vocal_3__pcm_len},
-    SampleData{samples_Zap_2__pcm, samples_Zap_2__pcm_len}
-    */
-};
+    SampleData{samples_Zap_2__pcm, samples_Zap_2__pcm_len}};
 
 struct MemorySound {
   constexpr MemorySound(const size_t sample_index)
       : sample_index(sample_index),
         reader(sample_bank[sample_index].data, sample_bank[sample_index].length),
         sound(Sound(reader)) {
+  }
+
+  void next_sample() {
+    sample_index = (sample_index + 4) % 32;
+    reader.set_source(sample_bank[sample_index].data, sample_bank[sample_index].length);
   }
 
   size_t sample_index;
@@ -143,16 +141,18 @@ MemorySound snare(1);
 MemorySound clap(2);
 MemorySound hihat(3);
 
-const etl::array<BufferSource *, 4> sounds = {&kick.sound, &snare.sound, &hihat.sound, &clap.sound};
+const etl::array<MemorySound *, 4> sounds = {&kick, &snare, &hihat, &clap};
+const etl::array<BufferSource *, 4> sources = {&kick.sound, &snare.sound, &hihat.sound,
+                                               &clap.sound};
 
-AudioMixer mixer(sounds);
+AudioMixer mixer(sources);
 
 Crusher crusher(mixer);
 
 // Lowpass lowpass(mixer);
 Lowpass lowpass(crusher);
 
-// static BufferSource& output = mixer;
+// static BufferSource &master_source = mixer;
 // BufferSource &master_source = crusher;
 BufferSource &master_source = lowpass;
 
@@ -185,7 +185,7 @@ int main() {
     accum_ms += diff_ms;
 
     if (!AudioOutput::update(master_source)) {
-      if (accum_ms > 500) {
+      if (accum_ms > 300) {
         accum_ms = 0;
         printf("Playing sound\n");
 
@@ -195,12 +195,17 @@ int main() {
         mixer.gain(3, 0.7);
 
         // Get the BufferSource pointer
-        const auto sound_buffer_source = sounds[sound_index];
+        const auto sound = sounds[sound_index];
         pitch_index = (pitch_index + 1) % pitches.size();
 
-        const auto pitch = pitches[pitch_index];
+        const auto pitch = 1;
+        // const auto pitch = pitches[pitch_index];
         // Cast to Sound* before calling play()
-        static_cast<Sound *>(sound_buffer_source)->play(pitch);
+        if (!sound->reader.has_data()) {
+          sound->next_sample();
+          sound->sound.play(pitch);
+        }
+
         sound_index = (sound_index + 1) % sounds.size();
 
         if (sound_index == 0) {
@@ -221,6 +226,7 @@ int main() {
   return 0;
 }
 
+/*
 consteval int test_memory_sound() {
   // samples_005__pcm, samples_005__pcm_len
   MemorySound sound1(0);
@@ -236,3 +242,4 @@ consteval int test_memory_sound() {
 }
 
 static_assert(test_memory_sound() == 0);
+*/

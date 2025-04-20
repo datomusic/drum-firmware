@@ -27,11 +27,9 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 )
 
 
-if(SWAP_AUDIO_CLOCK)
-  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
-    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
-  )
-endif(SWAP_AUDIO_CLOCK)
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
+)
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})

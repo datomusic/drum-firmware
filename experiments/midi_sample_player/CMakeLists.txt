@@ -12,41 +12,42 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
 project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
-  # == Add all 32 generated .c files ==
-  # == Replace SampleNameX_data.c with actual filenames ==
-  ${CMAKE_CURRENT_LIST_DIR}/samples/005_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/006_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/015_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/100_nt_snare_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/26880__vexst__closed-hi-hat-2-1_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/26887__vexst__kick-3-1_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/26901__vexst__snare-2-1_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/44-Analog_Cowbell_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/cabasa_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/chihiro_snare_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/cowbell_hi_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/ClosedHH_909X_2_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/DR110_clap_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/DR55HAT_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/DR55RIM_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/duo_hat_01_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/duo_kick_01_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/DUO_snare_01_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/FR_BB_Sarik_HHat_010-1_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/FR_BB_Sarik_Snare_004-1_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/Finger_Snap_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/JR_SDD_HAT_A1_mono_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/JR_SDD_KICK_1-1_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/JR_SDD_SNARE_10_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/KEMP8_SET1_54-004_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/Kick-C78_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/Kick_909_23_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/skclhat_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/Snare_909_3_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/Snare-C78-with-silence_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/vocal_3_data.c
-  ${CMAKE_CURRENT_LIST_DIR}/samples/Zap_2_data.c
-  # Then main source
+  # ${EXAMPLES_SUPPORT_PATH}/samples/005_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/006_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/015_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/100_nt_snare_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/26880__vexst__closed-hi-hat-2-1_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/26887__vexst__kick-3-1_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/26901__vexst__snare-2-1_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/44-Analog_Cowbell_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/cabasa_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/chihiro_snare_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/cowbell_hi_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/ClosedHH_909X_2_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/DR110_clap_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/DR55HAT_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/DR55RIM_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/duo_hat_01_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/duo_kick_01_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/DUO_snare_01_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/FR_BB_Sarik_HHat_010-1_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/FR_BB_Sarik_Snare_004-1_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/Finger_Snap_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/JR_SDD_HAT_A1_mono_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/JR_SDD_KICK_1-1_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/JR_SDD_SNARE_10_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/KEMP8_SET1_54-004_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/Kick-C78_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/Kick_909_23_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/skclhat_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/Snare_909_3_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/Snare-C78-with-silence_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/vocal_3_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/Zap_2_data.c
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleClapdr110_16bit_44kw.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleSnare100_16bit_44kw.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleKickc78_16bit_44kw.cpp
+  ${EXAMPLES_SUPPORT_PATH}/samples/AudioSampleHatdr55_16bit_44kw.cpp
   main.cpp
 )
 

@@ -12,8 +12,8 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
 project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
-  ${EXAMPLES_SUPPORT_PATH}/samples/005_data.c
-  ${EXAMPLES_SUPPORT_PATH}/samples/006_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/005_data.c
+  # ${EXAMPLES_SUPPORT_PATH}/samples/006_data.c
   ${EXAMPLES_SUPPORT_PATH}/samples/015_data.c
   ${EXAMPLES_SUPPORT_PATH}/samples/100_nt_snare_data.c
   ${EXAMPLES_SUPPORT_PATH}/samples/26880__vexst__closed-hi-hat-2-1_data.c
@@ -68,4 +68,4 @@ endif(SWAP_AUDIO_CLOCK)
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
-musin_init_usb_midi(${EXECUTABLE_NAME})
+# musin_init_usb_midi(${EXECUTABLE_NAME})

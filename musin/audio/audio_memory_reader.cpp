@@ -43,7 +43,7 @@ void AudioMemoryReader::reset() {
   encoding = format >> 24;
 }
 
-uint32_t AudioMemoryReader::read_samples(AudioBlock &out_samples) {
+constexpr uint32_t AudioMemoryReader::read_samples(AudioBlock &out_samples) {
   uint32_t tmp32, consumed = 0, samples_written = 0;
   int16_t s0, s1, s2, s3, s4;
   int i;

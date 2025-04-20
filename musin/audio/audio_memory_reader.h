@@ -32,22 +32,27 @@
 #include <stdint.h>
 
 struct AudioMemoryReader : SampleReader {
-  AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
+  constexpr AudioMemoryReader(const unsigned int *sample_data, const uint32_t data_length)
       : encoding(0), sample_data(sample_data), data_length(data_length) {};
+
+  constexpr void set_source(const unsigned int *sample_data, const uint32_t data_length) {
+    this->sample_data = sample_data;
+    this->data_length = data_length;
+  }
 
   // Reader interface
   void reset();
 
   // Reader interface
-  bool has_data() {
+  constexpr bool has_data() {
     return this->encoding > 0;
   }
 
   // Reader interface
-  uint32_t read_samples(AudioBlock &out);
+  constexpr uint32_t read_samples(AudioBlock &out);
 
 private:
-  bool read_next(uint32_t &out) {
+  constexpr bool read_next(uint32_t &out) {
     const unsigned int *end = this->beginning + this->data_length - 1;
     if (next == end) {
       encoding = 0;
@@ -59,9 +64,9 @@ private:
     }
   }
 
-  volatile uint8_t encoding;
-  const unsigned int *const sample_data;
-  const uint32_t data_length;
+  uint8_t encoding;
+  const unsigned int *sample_data;
+  uint32_t data_length;
   const unsigned int *next;
   const unsigned int *beginning;
   uint32_t remaining_length;

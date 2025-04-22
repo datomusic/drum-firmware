@@ -6,78 +6,10 @@
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
+#include "musin/audio/pcm_reader.h"
 #include "musin/audio/sound.h"
 
 #include "samples.h"
-
-// Reads Mono 16bit PCM samples from memory
-struct PcmReader : SampleReader {
-  constexpr PcmReader(const unsigned char *bytes, const uint32_t byte_count) {
-    set_source(bytes, byte_count);
-  }
-
-  constexpr void set_source(const unsigned char *bytes, const uint32_t byte_count) {
-    this->bytes = bytes;
-    this->end = this->bytes + byte_count;
-  }
-
-  // Reader interface
-  constexpr void reset() {
-    iterator = bytes;
-  }
-
-  // Reader interface
-  constexpr bool has_data() {
-    return iterator != nullptr;
-  }
-
-  // Reader interface
-  constexpr uint32_t read_samples(AudioBlock &out_samples) {
-    auto out = out_samples.begin();
-    unsigned char tmp1;
-    unsigned char tmp2;
-
-    unsigned samples_written = 0;
-    for (samples_written = 0; samples_written < AUDIO_BLOCK_SAMPLES; samples_written++) {
-      if (!read_next(tmp1)) {
-        break;
-      }
-
-      if (!read_next(tmp2)) {
-        break;
-      }
-
-      const uint16_t upper = tmp2 << 8;
-      *out++ = (upper | tmp1);
-    }
-
-    if (samples_written == 0) {
-      iterator = nullptr;
-    }
-
-    return samples_written;
-  }
-
-private:
-  constexpr bool read_next(unsigned char &out) {
-    if (iterator == nullptr) {
-      return false;
-    }
-
-    if (iterator == end) {
-      iterator = nullptr;
-      return false;
-    } else {
-      out = *iterator;
-      ++iterator;
-      return true;
-    }
-  };
-
-  const unsigned char *bytes;
-  const unsigned char *end;
-  const unsigned char *iterator;
-};
 
 struct SampleData {
   const unsigned char *data;
@@ -119,8 +51,8 @@ static const etl::array<SampleData, 32> sample_bank = {
     SampleData{samples_vocal_3__pcm, samples_vocal_3__pcm_len},
     SampleData{samples_Zap_2__pcm, samples_Zap_2__pcm_len}};
 
-struct MemorySound {
-  constexpr MemorySound(const size_t sample_index)
+struct MemorySoundSource : BufferSource {
+  constexpr MemorySoundSource(const size_t sample_index)
       : sample_index(sample_index),
         reader(sample_bank[sample_index].data, sample_bank[sample_index].length),
         sound(Sound(reader)) {
@@ -131,19 +63,24 @@ struct MemorySound {
     reader.set_source(sample_bank[sample_index].data, sample_bank[sample_index].length);
   }
 
+  void fill_buffer(AudioBlock &out_samples) {
+    sound.fill_buffer(out_samples);
+  }
+
   size_t sample_index;
   PcmReader reader;
   Sound sound;
 };
 
-MemorySound kick(0);
-MemorySound snare(1);
-MemorySound clap(2);
-MemorySound hihat(3);
+etl::array<MemorySoundSource, 4> sounds = {MemorySoundSource(0), MemorySoundSource(1),
+                                           MemorySoundSource(2), MemorySoundSource(3)};
 
-const etl::array<MemorySound *, 4> sounds = {&kick, &snare, &hihat, &clap};
-const etl::array<BufferSource *, 4> sources = {&kick.sound, &snare.sound, &hihat.sound,
-                                               &clap.sound};
+const etl::array<BufferSource *, 4> sources = {
+    &sounds[0],
+    &sounds[1],
+    &sounds[2],
+    &sounds[3],
+};
 
 AudioMixer mixer(sources);
 
@@ -195,15 +132,15 @@ int main() {
         mixer.gain(3, 0.7);
 
         // Get the BufferSource pointer
-        const auto sound = sounds[sound_index];
+        MemorySoundSource source = sounds[sound_index];
         pitch_index = (pitch_index + 1) % pitches.size();
 
         const auto pitch = 1;
         // const auto pitch = pitches[pitch_index];
         // Cast to Sound* before calling play()
-        if (!sound->reader.has_data()) {
-          sound->next_sample();
-          sound->sound.play(pitch);
+        if (!source.reader.has_data()) {
+          source.next_sample();
+          source.sound.play(pitch);
         }
 
         sound_index = (sound_index + 1) % sounds.size();

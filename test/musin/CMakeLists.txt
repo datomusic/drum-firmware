@@ -1,17 +1,23 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.13.0)
-project(musin-test)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 
 set(CMAKE_CXX_STANDARD 20)
 
+include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_init.cmake)
+
+project(musin-test)
+
 add_subdirectory(Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 
 add_executable(${PROJECT_NAME}
-    pitch_shifter_test.cpp
-  )
+    audio/pitch_shifter_test.cpp
+)
+
+target_sources(${PROJECT_NAME} PRIVATE
+    ${musin_audio_generic_sources}
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${CMAKE_CURRENT_LIST_DIR}

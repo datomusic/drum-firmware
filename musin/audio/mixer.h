@@ -71,15 +71,13 @@ template <size_t N> struct AudioMixer : BufferSource {
    *                    The mixer copies these pointers but does not take ownership.
    *                    Initial gain for all channels is set to 1.0 (256 in Q8.8 format).
    */
-  template <typename... SourcePtrs>
+  template<typename... SourcePtrs>
   AudioMixer(SourcePtrs... source_ptrs) : sources{source_ptrs...} {
-    static_assert(sizeof...(SourcePtrs) == N,
-                  "Number of sources provided must match template parameter N");
-    // Ensure all provided types are convertible to BufferSource* (compiler implicitly checks this
-    // during array initialization)
-    for (size_t i = 0; i < N; i++) {
-      multipliers[i] = 256; // Default gain = 1.0 (Q8.8)
-    }
+      static_assert(sizeof...(SourcePtrs) == N, "Number of sources provided must match template parameter N");
+      // Ensure all provided types are convertible to BufferSource* (compiler implicitly checks this during array initialization)
+      for (size_t i = 0; i < N; i++) {
+          multipliers[i] = 256; // Default gain = 1.0 (Q8.8)
+      }
   }
 
   /**
@@ -96,7 +94,8 @@ template <size_t N> struct AudioMixer : BufferSource {
     AudioBlock temp_buffer;
 
     // Zero out the output buffer first
-    for (size_t sample_index = 0; sample_index < out_samples.size(); ++sample_index) {
+    for (size_t sample_index = 0; sample_index < out_samples.size();
+         ++sample_index) {
       out_samples[sample_index] = 0;
     }
 
@@ -104,7 +103,8 @@ template <size_t N> struct AudioMixer : BufferSource {
     for (size_t channel = 0; channel < N; ++channel) {
       if (sources[channel] != nullptr) { // Check if source is valid
         sources[channel]->fill_buffer(temp_buffer);
-        for (size_t sample_index = 0; sample_index < out_samples.size(); ++sample_index) {
+        for (size_t sample_index = 0; sample_index < out_samples.size();
+             ++sample_index) {
           const int16_t multiplier = multipliers[channel]; // Q8.8 format
 
           // Multiply sample by gain (multiplier is Q8.8, sample is Q1.15)
@@ -113,7 +113,8 @@ template <size_t N> struct AudioMixer : BufferSource {
           // Saturate the final result back to Q1.15 (int16_t)
           const int32_t value =
               out_samples[sample_index] +
-              ((static_cast<int32_t>(temp_buffer[sample_index]) * multiplier) >> 8);
+              ((static_cast<int32_t>(temp_buffer[sample_index]) * multiplier) >>
+               8);
           // Use the saturation function from dspinst.h
           out_samples[sample_index] = signed_saturate_rshift(value, 16, 0);
         }

@@ -43,7 +43,6 @@ add_executable(${EXECUTABLE_NAME}
   ${EXAMPLES_SUPPORT_PATH}/samples/Snare-C78-with-silence_data.c
   ${EXAMPLES_SUPPORT_PATH}/samples/vocal_3_data.c
   ${EXAMPLES_SUPPORT_PATH}/samples/Zap_2_data.c
-  main.cpp
 )
 
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
@@ -53,7 +52,6 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=32
 )
-
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1

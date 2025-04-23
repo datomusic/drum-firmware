@@ -30,7 +30,7 @@ jobs:
             musin/ports/pico/pico-extras
             musin/ports/pico/libraries
 
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-

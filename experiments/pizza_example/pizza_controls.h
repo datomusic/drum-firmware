@@ -32,8 +32,6 @@ Holds the keypad
 // Forward declaration
 class PizzaDisplay;
 
-// Temporary DrumpadEvent definition (should move to drumpad.h)
-
 
 class PizzaControls {
 public:

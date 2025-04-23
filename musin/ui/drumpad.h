@@ -5,6 +5,7 @@
 #include <optional>
 #include <type_traits> // For static_assert
 
+#include "etl/observer.h" // Include ETL observer pattern
 #include "musin/hal/analog_in.h"
 
 extern "C" {
@@ -48,7 +49,7 @@ enum class DrumpadState : std::uint8_t {
  *                      Must provide a `read_raw()` method returning std::uint16_t.
  */
 template <typename AnalogReader>
-class Drumpad {
+class Drumpad : public etl::observable<etl::observer<DrumpadEvent>, 4> { // Inherit from observable
 public:
     // Type check for the AnalogReader
     // Concept would be better in C++20, but static_assert works for C++17
@@ -89,8 +90,10 @@ public:
      * @param scan_interval_us Time between ADC reads in microseconds.
      * @param debounce_time_us Time duration for debouncing release transitions in microseconds.
      * @param hold_time_us Minimum time the pad must be above hold_threshold after peaking to be considered 'held'.
+     * @param pad_index A unique index for this drumpad, used in events.
      */
     explicit Drumpad(AnalogReader& reader, // Accept reference to the analog reader
+                     uint8_t pad_index,    // Add pad index
                      std::uint16_t noise_threshold = DEFAULT_NOISE_THRESHOLD,
                      std::uint16_t press_threshold = DEFAULT_PRESS_THRESHOLD,
                      std::uint16_t velocity_low_threshold = DEFAULT_VELOCITY_LOW_THRESHOLD,
@@ -157,6 +160,15 @@ private:
     // Removed set_address_pins() and read_adc()
 
     /**
+     * @brief Notifies observers with a DrumpadEvent.
+     * @param type The type of event (Press, Release, Hold).
+     * @param velocity Optional velocity for Press events.
+     * @param raw_value The current raw ADC value.
+     */
+    void notify_event(DrumpadEvent::Type type, std::optional<uint8_t> velocity, uint16_t raw_value);
+
+
+    /**
      * @brief Updates the internal state machine based on the new ADC reading and timings.
      * @param current_adc_value The latest ADC reading.
      * @param now The current time.
@@ -172,6 +184,7 @@ private:
 
     // --- Configuration (initialized in constructor) ---
     AnalogReader& _reader;
+    const uint8_t _pad_index; // Store the pad index
     // Removed ADC/address pin members
     const std::uint16_t _noise_threshold;
     const std::uint16_t _press_threshold;
@@ -209,6 +222,7 @@ private:
 // --- Constructor Implementation ---
 template <typename AnalogReader>
 Drumpad<AnalogReader>::Drumpad(AnalogReader& reader,
+                               uint8_t pad_index, // Add pad_index to constructor
                                std::uint16_t noise_threshold,
                                std::uint16_t press_threshold,
                                std::uint16_t velocity_low_threshold,
@@ -219,6 +233,7 @@ Drumpad<AnalogReader>::Drumpad(AnalogReader& reader,
                                std::uint32_t debounce_time_us,
                                std::uint32_t hold_time_us) :
     _reader(reader), // Store reference to the reader
+    _pad_index(pad_index), // Initialize pad index
     _noise_threshold(noise_threshold),
     _press_threshold(press_threshold),
     _velocity_low_threshold(velocity_low_threshold),
@@ -301,6 +316,7 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
                  _last_velocity_time_diff = diff; // DEBUG: Store time diff
                  _last_velocity = calculate_velocity(diff);
                  _just_pressed = true;
+                 notify_event(DrumpadEvent::Type::Press, _last_velocity, current_adc_value); // Notify press
             } else if (current_adc_value < _release_threshold) {
                  // Signal dropped below release threshold before hitting velocity high
                  _current_state = DrumpadState::DEBOUNCING_RELEASE;

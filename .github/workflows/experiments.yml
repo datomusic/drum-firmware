@@ -79,7 +79,7 @@ jobs:
           release: '13.3.Rel1'
 
       - id: cache-picotool
-        name: Install picotool
+        name: Cache picotool
         uses: actions/cache@v4
         env:
           cache-name: cache-picotool
@@ -101,5 +101,5 @@ jobs:
           make
           sudo make install
 
-      # - name: Build examples
-      #   run: bash ./build_experiments.sh
+      - name: Build examples
+        run: bash ./build_experiments.sh

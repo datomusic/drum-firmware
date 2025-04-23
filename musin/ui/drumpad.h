@@ -329,8 +329,10 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
             if (current_adc_value < _velocity_high_threshold) {
                 _current_state = DrumpadState::FALLING;
             }
-            if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
+            if (_current_state != DrumpadState::FALLING &&
+                current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
                 _current_state = DrumpadState::HOLDING;
+                notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);
             }
             break;
 
@@ -363,6 +365,7 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
                 _state_transition_time = now;
            } else if (time_in_state >= _debounce_time_us) {
                // Debounce time elapsed, confirm release
+               notify_event(DrumpadEvent::Type::Release, std::nullopt, current_adc_value);
                _current_state = DrumpadState::IDLE;
                _state_transition_time = now;
                _just_released = true;

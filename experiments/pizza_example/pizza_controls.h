@@ -33,17 +33,6 @@ Holds the keypad
 class PizzaDisplay;
 
 // Temporary DrumpadEvent definition (should move to drumpad.h)
-struct DrumpadEvent {
-    enum class Type : uint8_t {
-        Press,
-        Release,
-        Hold // Optional: Add if needed
-    };
-    uint8_t pad_index;
-    Type type;
-    std::optional<uint8_t> velocity; // Present for Press events
-    uint16_t raw_value;              // Current raw ADC value
-};
 
 
 class PizzaControls {
@@ -106,14 +95,14 @@ private:
     void notification(Musin::UI::KeypadEvent event) override;
   };
 
-  struct DrumpadEventHandler : public etl::observer<DrumpadEvent> {
+  struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
       PizzaControls* parent;
       const uint8_t pad_index; // Index of the drumpad this observer listens to
 
       constexpr DrumpadEventHandler(PizzaControls* p, uint8_t index)
           : parent(p), pad_index(index) {}
 
-      void notification(DrumpadEvent event) override;
+      void notification(Musin::UI::DrumpadEvent event) override;
   };
 
 

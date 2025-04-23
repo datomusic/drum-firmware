@@ -7,13 +7,23 @@
 
 #include "musin/hal/analog_in.h"
 
-// Wrap C SDK headers
 extern "C" {
 #include "pico/time.h"
-// No longer need direct gpio/adc includes here
 }
 
 namespace Musin::UI {
+
+struct DrumpadEvent {
+    enum class Type : uint8_t {
+        Press,
+        Release,
+        Hold // Optional: Add if needed
+    };
+    uint8_t pad_index;
+    Type type;
+    std::optional<uint8_t> velocity; // Present for Press events
+    uint16_t raw_value;              // Current raw ADC value
+};
 
 /**
  * @brief Represents the possible states of a single drumpad sensor.

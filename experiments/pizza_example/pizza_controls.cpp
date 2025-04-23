@@ -219,7 +219,7 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
 // --- Observer Implementations ---
 
 // Stub implementation for DrumpadEventHandler
-void PizzaControls::DrumpadEventHandler::notification(DrumpadEvent event) {
+void PizzaControls::DrumpadEventHandler::notification(Musin::UI::DrumpadEvent event) {
     // TODO: Implement drumpad event handling logic here
     // - Send MIDI notes based on event.type (Press/Release) and event.velocity
     // - Potentially update LEDs based on events (e.g., flash on press)

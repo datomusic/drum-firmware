@@ -63,7 +63,12 @@ PizzaControls::PizzaControls(PizzaDisplay &display_ref)
                         AnalogControlEventHandler{this, REPEAT, REPEAT, 0},
                         AnalogControlEventHandler{this, DRUM4, DRUM4, 0},
                         AnalogControlEventHandler{this, SPEED, SPEED, 0},
-                        AnalogControlEventHandler{this, PITCH4, 19, 4}} {
+                        AnalogControlEventHandler{this, PITCH4, 19, 4}},
+      drumpad_observers{ // Initialize drumpad observers
+                        DrumpadEventHandler{this, 0},
+                        DrumpadEventHandler{this, 1},
+                        DrumpadEventHandler{this, 2},
+                        DrumpadEventHandler{this, 3}} {
 }
 
 // --- Initialization ---
@@ -162,27 +167,13 @@ uint32_t PizzaControls::calculate_brightness_color(uint32_t base_color, uint16_t
 
 void PizzaControls::update_drumpads() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
-    bool state_changed = drumpads[i].update();
+    drumpads[i].update(); // Update call remains, event handling moves to observer
+
+    // Keep LED update based on current pressure for now
+    // This might also move to the observer later depending on desired behavior
     uint16_t raw_value = drumpads[i].get_raw_adc_value();
     uint8_t note_index = drumpad_note_numbers[i];
     uint32_t led_index = display.get_drumpad_led_index(i);
-
-    if (state_changed) {
-      auto velocity = drumpads[i].get_velocity();
-      uint8_t note_number = drumpad_note_numbers[i];
-      uint8_t channel = i + 1; // MIDI channels 1-4
-
-      if (drumpads[i].was_released()) {
-        send_midi_note(channel, note_number, 0); // Send Note Off
-      } else if (velocity) {
-        // printf("Drum %u hit! Note: %u Velocity: %u (Raw: %u, TimeDiff: %llu us)\n", channel,
-        // note_number, *velocity, drumpads[i].get_raw_adc_value(),
-        // drumpads[i].get_last_velocity_time_diff());
-        send_midi_note(channel, note_number, *velocity); // Send Note On
-      }
-    }
-
-    // Update drumpad LED color based on selected note AND current pressure
     if (led_index < NUM_LEDS) {
       uint32_t base_color = display.get_note_color(note_index);
       uint32_t final_color = calculate_brightness_color(base_color, raw_value);
@@ -218,6 +209,17 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
 }
 
 // --- Observer Implementations ---
+
+// Stub implementation for DrumpadEventHandler
+void PizzaControls::DrumpadEventHandler::notification(DrumpadEvent event) {
+    // TODO: Implement drumpad event handling logic here
+    // - Send MIDI notes based on event.type (Press/Release) and event.velocity
+    // - Potentially update LEDs based on events (e.g., flash on press)
+    // printf("Drumpad Event: Pad %u, Type %d, Vel %u, Raw %u\n",
+    //        event.pad_index, static_cast<int>(event.type),
+    //        event.velocity.value_or(0), event.raw_value);
+}
+
 
 void PizzaControls::AnalogControlEventHandler::notification(Musin::UI::AnalogControlEvent event) {
   // Access parent members via parent pointer

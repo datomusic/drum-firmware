@@ -33,13 +33,15 @@ Holds the keypad
 // Include the sequencer definition
 #include "sequencer.h"
 
-// Forward declaration
+// Forward declaration for PizzaDisplay within its namespace
+namespace PizzaExample {
 class PizzaDisplay;
+}
 
 class PizzaControls {
 public:
-  // Constructor now takes both display and sequencer references
-  explicit PizzaControls(PizzaDisplay &display_ref, PizzaSequencer::Sequencer<4, 8> &sequencer_ref);
+  // Constructor now takes both display and sequencer references, using the namespace
+  explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref, PizzaSequencer::Sequencer<4, 8> &sequencer_ref);
 
   // Prevent copying and assignment
   PizzaControls(const PizzaControls &) = delete;
@@ -107,7 +109,7 @@ private:
   };
 
  // --- Members ---
- PizzaDisplay &display;                      // Reference to the display object
+ PizzaExample::PizzaDisplay &display;        // Reference to the display object (with namespace)
  PizzaSequencer::Sequencer<4, 8> &sequencer; // Reference to the sequencer object
 
  // Keypad

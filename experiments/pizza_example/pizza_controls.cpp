@@ -12,9 +12,10 @@ using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
 // --- Constructor ---
-PizzaControls::PizzaControls(PizzaDisplay &display_ref,
+// Use PizzaExample::PizzaDisplay for the parameter type
+PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              PizzaSequencer::Sequencer<4, 8> &sequencer_ref) // Accept sequencer ref
-    : display(display_ref), sequencer(sequencer_ref), // Store sequencer reference
+    : display(display_ref), sequencer(sequencer_ref), // Store references (display is now PizzaExample::PizzaDisplay&)
       keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
       drumpad_readers{// Initialize readers directly by calling constructors

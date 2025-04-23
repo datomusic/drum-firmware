@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstddef> // For size_t
+#include <algorithm> // For std::min
 
 // Include necessary Pico SDK headers for GPIO and time
 extern "C" {
@@ -11,9 +12,11 @@ extern "C" {
 #include <stdio.h> // For printf in init
 }
 
-// --- Temporary definition of ExternalPinState and check_external_pin_state ---
-// This should ideally be moved to a shared HAL utility or similar.
-// Duplicating it here temporarily to allow compilation.
+namespace PizzaExample {
+
+// --- Internal Helper Functions/Types (Anonymous Namespace) ---
+namespace {
+
 enum class ExternalPinState {
   FLOATING,
   PULL_UP,
@@ -21,7 +24,7 @@ enum class ExternalPinState {
   UNDETERMINED
 };
 
-static ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) {
+ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) {
   gpio_init(gpio);
   gpio_set_dir(gpio, GPIO_IN);
 
@@ -65,7 +68,10 @@ static ExternalPinState check_external_pin_state(std::uint32_t gpio, const char 
 
   return determined_state;
 }
-// --- End Temporary definitions ---
+
+} // anonymous namespace
+// --- End Internal Helper Functions/Types ---
+
 
 PizzaDisplay::PizzaDisplay()
     : leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, 255,
@@ -165,9 +171,10 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     uint32_t led_index = LED_ARRAY[array_index];
     // Scale intensity (0-127) to color (e.g., white 0xRRGGBB)
     // Simple scaling: intensity * 2 maps 0-127 to 0-254
-    uint8_t brightness_val = intensity * 2;
-    uint32_t color = (static_cast<uint32_t>(brightness_val) << 16) |
-                     (static_cast<uint32_t>(brightness_val) << 8) | brightness_val;
+    // Scale intensity (0-127) to brightness (0-254), clamp at 255
+    uint8_t brightness_val = static_cast<uint8_t>(std::min(static_cast<uint16_t>(intensity) * 2, static_cast<uint16_t>(255)));
+    // Create white color with the calculated brightness using the driver's pack method
+    uint32_t color = leds.pack_color(brightness_val, brightness_val, brightness_val);
     leds.set_pixel(led_index, color);
   }
 }
@@ -233,3 +240,5 @@ void PizzaDisplay::display_sequencer_state(
 // This is necessary because the definition is in the .cpp file.
 template void
 PizzaDisplay::display_sequencer_state<4, 8>(const PizzaSequencer::Sequencer<4, 8> &sequencer);
+
+} // namespace PizzaExample

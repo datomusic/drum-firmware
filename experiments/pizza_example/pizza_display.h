@@ -14,6 +14,8 @@
 // Assuming check_external_pin_state remains accessible or is moved/duplicated.
 // For now, let's assume it's available globally or we'll handle it in init.
 
+namespace PizzaExample {
+
 class PizzaDisplay {
 public:
   PizzaDisplay();
@@ -93,5 +95,7 @@ private:
   Musin::Drivers::WS2812<NUM_LEDS> leds;
   etl::array<uint32_t, 32> note_colors;
 };
+
+} // namespace PizzaExample
 
 #endif // PIZZA_DISPLAY_H

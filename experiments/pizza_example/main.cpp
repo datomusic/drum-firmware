@@ -8,11 +8,13 @@
 
 #include "midi.h"
 #include "pizza_controls.h"
-#include "pizza_display.h"
+#include "pizza_display.h" // Now defines PizzaExample::PizzaDisplay
 #include "sequencer.h" // Include the sequencer header
 
-static PizzaDisplay pizza_display;
+// Use the new namespace
+static PizzaExample::PizzaDisplay pizza_display;
 static PizzaSequencer::Sequencer<4, 8> pizza_sequencer;
+// PizzaControls constructor needs PizzaExample::PizzaDisplay
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
 
 int main() {

@@ -28,8 +28,8 @@ jobs:
           path: |
             musin/ports/pico/pico-sdk
             musin/ports/pico/pico-extras
-            musin/ports/pico/libraries
-            lib
+            musin/ports/pico/libraries/pico-vfs
+            lib/etl
 
           key: ${{ runner.os }}-build-${{ env.cache-name }}
           restore-keys: |
@@ -38,7 +38,11 @@ jobs:
             ${{ runner.os }}-
       
       - name: Init submodules
-        run: git submodule update --init --recursive
+        run: |
+          git submodule update --init --recursive musin/ports/pico/pico-sdk
+          git submodule update --init --recursive musin/ports/pico/pico-extras
+          git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
+          git submodule update --init --recursive lib/etl
 
       - name: Install picotool
         run: |
@@ -48,7 +52,7 @@ jobs:
           cd build
           cmake -DPICO_SDK_PATH=../../musin/ports/pico/pico-sdk ..
           make
-          make install
+          sudo make install
 
       # - name: Build examples
       #   run: bash ./build_experiments.sh

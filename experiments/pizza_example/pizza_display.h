@@ -96,10 +96,10 @@ public:
    * Allows access to driver methods like adjust_color_brightness.
    * @return const Musin::Drivers::WS2812<NUM_LEDS>&
    */
-  const Musin::Drivers::WS2812<NUM_LEDS>& leds() const { return leds; }
-    
+  const Musin::Drivers::WS2812<NUM_LEDS>& leds() const { return _leds; } // Return the renamed member
+        
 private:
-  Musin::Drivers::WS2812<NUM_LEDS> leds;
+  Musin::Drivers::WS2812<NUM_LEDS> _leds; // Renamed member variable
   etl::array<uint32_t, 32> note_colors;
 };
 

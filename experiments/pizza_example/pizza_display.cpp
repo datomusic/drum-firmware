@@ -71,11 +71,11 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
 
 } // anonymous namespace
 // --- End Internal Helper Functions/Types ---
-
-
+    
+    
 PizzaDisplay::PizzaDisplay()
-    : leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, 255,
-           0xffe080), // Initial brightness 255, will be adjusted in init
+    : _leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, 255, // Initialize _leds
+            0xffe080), // Initial brightness 255, will be adjusted in init
       note_colors({0xFF0000, 0xFF0020, 0xFF0040, 0xFF0060, 0xFF1010, 0xFF1020, 0xFF2040,
                    0xFF2060, 0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF,
                    0x2050FF, 0x3078FF, 0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10,

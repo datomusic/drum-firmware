@@ -17,18 +17,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - id: cache-sdk
+      - id: cache-pico-sdk
         name: Cache pico SDK
         uses: actions/cache@v4
         env:
-          cache-name: cache-sdk
+          cache-name: cache-pico-sdk
         with:
           path: musin/ports/pico/pico-sdk
           key: ${{ runner.os }}-build-${{ env.cache-name }}-
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
 
-      - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }} 
+      - if: ${{ steps.cache-pico-sdk.outputs.cache-hit != 'true' }} 
         name: Checkout pico SDk
         run: git submodule update --init --recursive musin/ports/pico/pico-sdk
 

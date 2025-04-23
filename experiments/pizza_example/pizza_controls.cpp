@@ -319,6 +319,20 @@ void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent even
       }
     }
     // Note: LED update is handled by display_sequencer_state in the main loop
+  } else if (event.type == Musin::UI::KeypadEvent::Type::Hold) {
+    // --- Handle Hold for Sequencer Steps (Set Max Velocity) ---
+    uint8_t track_idx = event.col;
+    uint8_t step_idx = 7 - event.row; // Map row 0-7 to step 7-0
+
+    // Access the step in the sequencer via the parent pointer
+    PizzaSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
+
+    // Set velocity to maximum only if the step is enabled
+    if (step.enabled) {
+      step.velocity = 127;
+      // Optionally, add a visual indicator via display if needed,
+      // though display_sequencer_state might handle it if it shows velocity.
+    }
   }
-  // Ignore Release and Hold events for sequencer columns for now
+  // Ignore Release events for sequencer columns for now
 }

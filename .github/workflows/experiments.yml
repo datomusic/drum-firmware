@@ -29,6 +29,7 @@ jobs:
             musin/ports/pico/pico-sdk
             musin/ports/pico/pico-extras
             musin/ports/pico/libraries
+            lib/etl
 
           key: ${{ runner.os }}-build-${{ env.cache-name }}
           restore-keys: |

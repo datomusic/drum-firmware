@@ -191,20 +191,41 @@ void PizzaDisplay::display_sequencer_state(
       uint8_t row = 7 - step_idx;
       uint8_t col = track_idx;
 
-      const auto &step = track.get_step(step_idx);
+     const auto &step = track.get_step(step_idx);
 
-      uint32_t color = 0; // Default to black (off)
-      if (step.enabled && step.note.has_value()) {
-        // Use note color if step is enabled and has a note
-        color = get_note_color(step.note.value() % 32); // Use modulo for safety
-      }
+     uint32_t final_color = 0; // Default to black (off)
 
-      // Map row/col to the linear LED_ARRAY index
-      uint8_t led_array_index = (7 - row) * 4 + col; // Recalculate index based on row/col
-      if (led_array_index < LED_ARRAY.size()) {      // Bounds check
-        leds.set_pixel(LED_ARRAY[led_array_index], color);
-      }
-    }
+     if (step.enabled && step.note.has_value()) {
+       uint32_t base_color = get_note_color(step.note.value() % 32); // Use modulo for safety
+
+       // Determine brightness based on velocity
+       uint8_t brightness = 255; // Default to full brightness
+       if (step.velocity.has_value()) {
+         // Scale velocity (1-127) to brightness (0-254 approx), clamp at 255
+         uint16_t calculated_brightness = static_cast<uint16_t>(step.velocity.value()) * 2;
+         brightness = static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255)));
+       }
+
+       // Apply brightness to the base color
+       if (base_color != 0) { // Avoid processing black color
+         uint8_t r, g, b;
+         leds.unpack_color(base_color, r, g, b); // Use driver's unpack
+         // Scale components by brightness
+         r = static_cast<uint8_t>((static_cast<uint16_t>(r) * brightness) / 255);
+         g = static_cast<uint8_t>((static_cast<uint16_t>(g) * brightness) / 255);
+         b = static_cast<uint8_t>((static_cast<uint16_t>(b) * brightness) / 255);
+         final_color = leds.pack_color(r, g, b); // Use driver's pack
+       } else {
+         final_color = 0; // Ensure black remains black
+       }
+     }
+
+     // Map row/col to the linear LED_ARRAY index
+     uint8_t led_array_index = (7 - row) * 4 + col; // Recalculate index based on row/col
+     if (led_array_index < LED_ARRAY.size()) {      // Bounds check
+       leds.set_pixel(LED_ARRAY[led_array_index], final_color);
+     }
+   }
   }
 }
 

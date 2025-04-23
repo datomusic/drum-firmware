@@ -20,7 +20,7 @@ build experiments/sample_player
 build experiments/flash_rw
 # build experiments/flash_audio_streaming
 # build experiments/midi_cc
-# build experiments/midi_sample_player
+build experiments/midi_sample_player
 # build experiments/pizza_example
 # build experiments/sine_test
 # build experiments/flash_audio_streaming

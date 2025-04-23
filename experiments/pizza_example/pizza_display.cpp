@@ -175,8 +175,8 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * 2; // Calculate first
     uint8_t brightness_val = static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255))); // Now both args are uint16_t
     // Apply brightness to white (0xFFFFFF) using the new WS2812 method
-    uint32_t color = leds.adjust_color_brightness(0xFFFFFF, brightness_val);
-    leds.set_pixel(led_index, color);
+    uint32_t color = _leds.adjust_color_brightness(0xFFFFFF, brightness_val); // Use _leds
+    _leds.set_pixel(led_index, color); // Use _leds
   }
 }
 
@@ -213,15 +213,15 @@ void PizzaDisplay::display_sequencer_state(
          uint16_t calculated_brightness = static_cast<uint16_t>(step.velocity.value()) * 2;
          brightness = static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255)));
        }
-
-       // Apply brightness using the new WS2812 method
-       final_color = leds.adjust_color_brightness(base_color, brightness);
-     }
     
+       // Apply brightness using the new WS2812 method
+       final_color = _leds.adjust_color_brightness(base_color, brightness); // Use _leds
+     }
+        
      // Map row/col to the linear LED_ARRAY index
      uint8_t led_array_index = (7 - row) * 4 + col; // Recalculate index based on row/col
      if (led_array_index < LED_ARRAY.size()) {      // Bounds check
-       leds.set_pixel(LED_ARRAY[led_array_index], final_color);
+       _leds.set_pixel(LED_ARRAY[led_array_index], final_color); // Use _leds
      }
    }
   }

@@ -1,20 +1,3 @@
-/*
-
-Holds the four sliders
-Holds the four drumpads
-Holds the analog controls
-Holds the keypad
-
-*/
-
-// handle_drumpad_event(pad, event);
-
-// handle_effectpad_event(pad, event); // velocity on effect pads, maybe unused
-
-// handle_control_event(pad, event); // sliders, effect pads, playbutton, swing switch, tempo pot,
-// volume pot
-
-// handle_keypad_event(); // sequencer buttons, sample select buttons
 #ifndef PIZZA_CONTROLS_H
 #define PIZZA_CONTROLS_H
 
@@ -26,14 +9,12 @@ Holds the keypad
 #include "musin/ui/keypad_hc138.h"
 #include "musin/hal/analog_in.h"
 #include <array>
-#include <cstddef> // For size_t
+#include <cstddef>
 #include <cstdint>
-#include <optional> // For drumpad velocity
+#include <optional>
 
-// Include the sequencer definition
 #include "sequencer.h"
 
-// Forward declaration for PizzaDisplay within its namespace
 namespace PizzaExample {
 class PizzaDisplay;
 }
@@ -71,7 +52,7 @@ private:
 
   struct AnalogControlEventHandler : public etl::observer<Musin::UI::AnalogControlEvent> {
     PizzaControls *parent;
-    const uint16_t control_id; // Added control_id
+    const uint16_t control_id;
     const uint8_t cc_number;
     const uint8_t midi_channel;
 
@@ -83,8 +64,8 @@ private:
   };
 
   struct KeypadEventHandler : public etl::observer<Musin::UI::KeypadEvent> {
-    PizzaControls *parent; // Pointer to the owning PizzaControls instance
-    const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map; // Reference to the map in parent
+    PizzaControls *parent;
+    const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map;
     const uint8_t midi_channel;
 
     constexpr KeypadEventHandler(PizzaControls *p,
@@ -97,7 +78,7 @@ private:
 
   struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
     PizzaControls *parent;
-    const uint8_t pad_index; // Index of the drumpad this observer listens to
+    const uint8_t pad_index; 
 
     constexpr DrumpadEventHandler(PizzaControls *p, uint8_t index) : parent(p), pad_index(index) {
     }
@@ -106,8 +87,8 @@ private:
   };
 
  // --- Members ---
- PizzaExample::PizzaDisplay &display;        // Reference to the display object (with namespace)
- PizzaSequencer::Sequencer<4, 8> &sequencer; // Reference to the sequencer object
+ PizzaExample::PizzaDisplay &display;
+ PizzaSequencer::Sequencer<4, 8> &sequencer;
 
  // Keypad
  Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
@@ -121,17 +102,14 @@ private:
   KeypadEventHandler keypad_observer;
 
   // Drumpads
-  // Store readers and pads directly in arrays
   etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
   etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
-  etl::array<uint8_t, 4> drumpad_note_numbers; // Mutable note numbers
+  etl::array<uint8_t, 4> drumpad_note_numbers;
+  etl::array<DrumpadEventHandler, 4> drumpad_observers;
 
   // Analog Controls (Pots/Sliders)
   etl::array<Musin::UI::AnalogControl, 16> mux_controls;
   etl::array<AnalogControlEventHandler, 16> control_observers;
-
-  // Drumpad Observers
-  etl::array<DrumpadEventHandler, 4> drumpad_observers;
 };
 
 #endif // PIZZA_CONTROLS_H

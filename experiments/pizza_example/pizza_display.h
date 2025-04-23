@@ -89,7 +89,7 @@ public:
    * @param sequencer A const reference to the sequencer object.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void display_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
+  void draw_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
     
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.

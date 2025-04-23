@@ -15,12 +15,8 @@ struct Step {
     std::optional<uint8_t> velocity = std::nullopt; // MIDI velocity (1-127)
     bool enabled = false;
 
-    // Default constructor
-    Step() = default;
-
-    // Constructor for initialization
-    constexpr Step(std::optional<uint8_t> n, std::optional<uint8_t> v, bool en)
-        : note(n), velocity(v), enabled(en) {}
+    constexpr Step() = default;
+    constexpr Step(std::optional<uint8_t> n, std::optional<uint8_t> v, bool en) : note(n), velocity(v), enabled(en) {}
 };
 
 /**
@@ -32,16 +28,15 @@ class Track {
 public:
     static_assert(NumSteps > 0, "Track must have at least one step.");
 
-    constexpr Track() = default; // Default constructor
+    constexpr Track() = default;
 
     /**
      * @brief Get a reference to a specific step.
      * @param index The index of the step (0 to NumSteps - 1).
      * @return A reference to the Step object.
-     * @note No bounds checking is performed for performance. Ensure index is valid.
+     * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
      */
-    constexpr Step& get_step(size_t index) {
-        // Add bounds checking if necessary, e.g., with an assert
+    [[nodiscard]] constexpr Step& get_step(size_t index) {
         // hard_assert(index < NumSteps);
         return steps[index];
     }
@@ -50,18 +45,17 @@ public:
      * @brief Get a const reference to a specific step.
      * @param index The index of the step (0 to NumSteps - 1).
      * @return A const reference to the Step object.
-     * @note No bounds checking is performed for performance. Ensure index is valid.
+     * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
      */
-    constexpr const Step& get_step(size_t index) const {
+    [[nodiscard]] constexpr const Step& get_step(size_t index) const {
         // hard_assert(index < NumSteps);
         return steps[index];
     }
 
     /**
      * @brief Get the total number of steps in this track.
-     * @return The number of steps.
      */
-    constexpr size_t size() const {
+    [[nodiscard]] constexpr size_t size() const {
         return NumSteps;
     }
 
@@ -80,15 +74,15 @@ class Sequencer {
 public:
     static_assert(NumTracks > 0, "Sequencer must have at least one track.");
 
-    constexpr Sequencer() = default; // Default constructor
+    constexpr Sequencer() = default;
 
     /**
      * @brief Get a reference to a specific track.
      * @param index The index of the track (0 to NumTracks - 1).
      * @return A reference to the Track object.
-     * @note No bounds checking is performed for performance. Ensure index is valid.
+     * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
      */
-    constexpr Track<NumSteps>& get_track(size_t index) {
+    [[nodiscard]] constexpr Track<NumSteps>& get_track(size_t index) {
         // hard_assert(index < NumTracks);
         return tracks[index];
     }
@@ -97,26 +91,24 @@ public:
      * @brief Get a const reference to a specific track.
      * @param index The index of the track (0 to NumTracks - 1).
      * @return A const reference to the Track object.
-     * @note No bounds checking is performed for performance. Ensure index is valid.
+     * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
      */
-    constexpr const Track<NumSteps>& get_track(size_t index) const {
+    [[nodiscard]] constexpr const Track<NumSteps>& get_track(size_t index) const {
         // hard_assert(index < NumTracks);
         return tracks[index];
     }
 
     /**
      * @brief Get the total number of tracks in the sequencer.
-     * @return The number of tracks.
      */
-    constexpr size_t get_num_tracks() const {
+    [[nodiscard]] constexpr size_t get_num_tracks() const {
         return NumTracks;
     }
 
     /**
      * @brief Get the number of steps per track.
-     * @return The number of steps.
      */
-    constexpr size_t get_num_steps() const {
+    [[nodiscard]] constexpr size_t get_num_steps() const {
         return NumSteps;
     }
 

@@ -1,6 +1,7 @@
 #include "pizza_controls.h"
 #include "midi.h"          // For send_midi_cc, send_midi_note
 #include "pizza_display.h" // Need definition for display methods
+#include "sequencer.h"     // Need definition for Sequencer
 #include <algorithm>       // For std::clamp
 #include <cmath>           // For std::max used in scaling
 #include <cstddef>         // For size_t
@@ -11,8 +12,10 @@ using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
 // --- Constructor ---
-PizzaControls::PizzaControls(PizzaDisplay &display_ref)
-    : display(display_ref), keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
+PizzaControls::PizzaControls(PizzaDisplay &display_ref,
+                             PizzaSequencer::Sequencer<4, 8> &sequencer_ref) // Accept sequencer ref
+    : display(display_ref), sequencer(sequencer_ref), // Store sequencer reference
+      keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
       drumpad_readers{// Initialize readers directly by calling constructors
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
@@ -20,14 +23,14 @@ PizzaControls::PizzaControls(PizzaDisplay &display_ref)
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
       drumpads{// Initialize drumpads using the readers by calling constructors explicitly
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 50U, 250U, 150U, 2000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U},
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 50U, 250U, 150U, 2000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U},
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 50U, 250U, 150U, 2000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U},
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 50U, 250U, 150U, 2000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U}},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U}, // Pad index 0
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U}, // Pad index 1
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U}, // Pad index 2
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U, 100U,
+                                                 800U, 1000U, 5000U, 200000U}}, // Pad index 3
       drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
       mux_controls{                       // Initialize by explicitly calling constructors
                    // Assuming order matches the enum in drum_pizza_hardware.h
@@ -88,8 +91,7 @@ void PizzaControls::init() {
 
   // Attach Drumpad Observers
   for (size_t i = 0; i < drumpads.size(); ++i) {
-    // Assuming Drumpad becomes observable (requires change in drumpad.h)
-    // drumpads[i].add_observer(drumpad_observers[i]);
+    drumpads[i].add_observer(drumpad_observers[i]); // Now uncommented
   }
   printf("PizzaControls: Drumpad Observers Attached\n");
 
@@ -244,17 +246,10 @@ void PizzaControls::AnalogControlEventHandler::notification(Musin::UI::AnalogCon
 
 void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent event) {
   // Access parent members via parent pointer
-  uint8_t key_index = (7 - event.row) * KEYPAD_COLS + event.col; // Use KEYPAD_COLS
-  if (key_index >= cc_map.size())
-    return;
 
-  // uint8_t cc_number = cc_map[key_index]; // CC number not used directly for MIDI here
-  uint8_t value = 0; // Used for LED intensity and sample select logic
-
-  switch (event.type) {
-  case Musin::UI::KeypadEvent::Type::Press:
-    value = 100;
-    if (event.col == 4) { // Sample select buttons (rightmost column)
+  // --- Handle Sample Select (Column 4) ---
+  if (event.col >= 4) {
+    if (event.type == Musin::UI::KeypadEvent::Type::Press) {
       // Map row to pad index (row 7 -> pad 0, row 0 -> pad 3)
       uint8_t pad_index = 0;
       int8_t offset = 0;
@@ -294,21 +289,36 @@ void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent even
       }
       parent->select_note_for_pad(pad_index, offset);
     }
-    break;
-  case Musin::UI::KeypadEvent::Type::Release:
-    value = 0;
-    break;
-  case Musin::UI::KeypadEvent::Type::Hold:
-    // Hold doesn't seem to have specific behavior in original code other than LED
-    value = 127;
-    break;
+    // No further action needed for sample select column after Press
+    return; // Exit early for column 4
   }
 
-  // printf("Key %d %d\n", key_index, value); // Keep printf if needed
+  // --- Sequencer Step Toggling Logic (Columns 0-3) ---
+  if (event.type == Musin::UI::KeypadEvent::Type::Press) {
+    uint8_t track_idx = event.col;
+    uint8_t step_idx = 7 - event.row; // Map row 0-7 to step 7-0
 
-  // Update keypad LED via parent's display reference
-  // Only update LEDs for sequencer columns (0-3)
-  if (event.col < 4) {
-    parent->display.set_keypad_led(event.row, event.col, value);
+    // Access the step in the sequencer via the parent pointer
+    PizzaSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
+
+    // Toggle enabled state
+    step.enabled = !step.enabled;
+
+    // If step is now enabled and has no note, assign the current pad note and default velocity
+    if (step.enabled) {
+      if (!step.note.has_value()) {
+        // Ensure track_idx is valid for drumpad_note_numbers
+        if (track_idx < parent->drumpad_note_numbers.size()) {
+          step.note = parent->drumpad_note_numbers[track_idx];
+        } else {
+          step.note = 36; // Fallback note if something is wrong
+        }
+      }
+      if (!step.velocity.has_value()) {
+        step.velocity = 100; // Default velocity
+      }
+    }
+    // Note: LED update is handled by display_sequencer_state in the main loop
   }
+  // Ignore Release and Hold events for sequencer columns for now
 }

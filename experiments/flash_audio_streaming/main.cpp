@@ -15,7 +15,6 @@
 #include "samples/AudioSampleHihat.h"
 #include "samples/AudioSampleKick.h"
 #include "samples/AudioSampleSnare.h"
-#include "tusb.h"
 #include <pico/stdlib.h>
 #include <stdio.h>
 
@@ -37,7 +36,6 @@ struct FileSound {
 // Path must start with backslash in order to be valid
 // under the root mount point.
 
-static const uint master_volume = 10;
 FileSound snare;
 FileSound hihat;
 FileSound kick;
@@ -90,22 +88,6 @@ static void init_clock() {
                   CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 96 * MHZ, 96 * MHZ);
   // CLK peri is clocked from clk_sys so need to change clk_peri's freq
   clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS, 96 * MHZ, 96 * MHZ);
-}
-
-static __not_in_flash_func void fill_audio_buffer(audio_buffer_t *out_buffer) {
-  // printf("Filling buffer\n");
-
-  static AudioBlock temp_samples;  // Use AudioBlock
-  mixer.fill_buffer(temp_samples); // Pass AudioBlock
-
-  // Convert to 32bit stereo
-  int16_t *stereo_out_samples = (int16_t *)out_buffer->buffer->bytes;
-  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    // Access samples using operator[]
-    stereo_out_samples[i] = (master_volume * temp_samples[i]) >> 8u;
-  }
-
-  out_buffer->sample_count = AUDIO_BLOCK_SAMPLES; // Assuming fill_buffer filled the whole block
 }
 
 static void handle_sysex(byte *const, const unsigned) {
@@ -196,7 +178,7 @@ int main(void) {
   printf("Entering loop!\n");
 
   while (true) {
-    AudioOutput::update(fill_audio_buffer);
+    AudioOutput::update(mixer);
     Musin::Usb::background_update();
     MIDI::read(MIDI_CHANNEL);
     for (int i = 0; i < SAMPLE_COUNT; ++i) {

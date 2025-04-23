@@ -67,6 +67,5 @@ if(SWAP_AUDIO_CLOCK)
 endif(SWAP_AUDIO_CLOCK)
 
 musin_init(${EXECUTABLE_NAME})
-musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})

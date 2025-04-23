@@ -31,7 +31,7 @@ jobs:
             musin/ports/pico/libraries/pico-vfs
             lib/etl
 
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-pico-build
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
@@ -44,7 +44,27 @@ jobs:
           git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
           git submodule update --init --recursive lib/etl
 
-      - name: Install picotool
+
+      - id: cache-picotool
+        name: Install picotool
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-picotool
+        with:
+          path: |
+            /usr/local/bin/picotool
+            /usr/local/lib/cmake/picotool
+            /usr/local/share/picotool
+
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-picotool
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+
+      - if: ${{ steps.cache-picotool.outputs.cache-hit != 'true' }} 
+        name: Install picotool
         run: |
           git clone https://github.com/raspberrypi/picotool.git
           cd picotool

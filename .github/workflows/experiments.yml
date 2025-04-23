@@ -22,32 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # - id: cache-pico-build
-      #   name: Cache Pico build deps
-      #   uses: actions/cache@v4
-      #   env:
-      #     cache-name: cache-pico-build
-      #   with:
-      #     path: |
-      #       musin/ports/pico/pico-sdk
-      #       musin/ports/pico/pico-extras
-      #       musin/ports/pico/libraries/pico-vfs
-      #       lib/etl
-
-      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-pico-build
-      #     restore-keys: |
-      #       ${{ runner.os }}-build-${{ env.cache-name }}-
-      #       ${{ runner.os }}-build-
-      #       ${{ runner.os }}-
-      
-      # - if: ${{ steps.cache-pico-build.outputs.cache-hit != 'true' }} 
-      #   name: Init submodules
-      #   run: |
-      #     git submodule update --init --recursive musin/ports/pico/pico-sdk
-      #     git submodule update --init --recursive musin/ports/pico/pico-extras
-      #     git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
-
-
       - id: cache-sdk
         name: Cache pico SDK
         uses: actions/cache@v4
@@ -55,20 +29,37 @@ jobs:
           cache-name: cache-sdk
         with:
           path: musin/ports/pico/pico-sdk
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-sdk
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-sdk
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
 
       - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }} 
         name: Checkout pico SDk
         run: git submodule update --init --recursive musin/ports/pico/pico-sdk
 
+      - id: cache-extras
+        name: Cache pico extras
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-extras
+        with:
+          path: musin/ports/pico/pico-extras
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
 
-      - name: Init submodules
-        run: |
-          git submodule update --init --recursive musin/ports/pico/pico-extras
-          git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
+      - if: ${{ steps.cache-extras.outputs.cache-hit != 'true' }} 
+        name: Checkout pico extras
+        run: git submodule update --init --recursive musin/ports/pico/pico-extras
 
+      - id: cache-pico-vfs
+        name: Cache pico pico-vfs
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-pico-vfs
+        with:
+          path: musin/ports/pico/pico-pico-vfs
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+
+      - if: ${{ steps.cache-pico-vfs.outputs.cache-hit != 'true' }} 
+        name: Checkout pico pico-vfs
+        run: git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
 
       - id: cache-picotool
         name: Install picotool
@@ -80,13 +71,7 @@ jobs:
             /usr/local/bin/picotool
             /usr/local/lib/cmake/picotool
             /usr/local/share/picotool
-
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-picotool
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
 
       - if: ${{ steps.cache-picotool.outputs.cache-hit != 'true' }} 
         name: Install picotool
@@ -99,8 +84,6 @@ jobs:
           make
           sudo make install
 
-
-
       - id: cache-etl
         name: Cache ETL
         uses: actions/cache@v4
@@ -108,9 +91,7 @@ jobs:
           cache-name: cache-etl
         with:
           path: lib/etl
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-etl
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-etl
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
 
       - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
         name: Checkout etl

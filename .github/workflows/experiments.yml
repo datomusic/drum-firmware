@@ -16,6 +16,16 @@ jobs:
         with:
           release: '13.3.Rel1'
 
+      - name: Install picotool
+        run: |
+          git clone https://github.com/raspberrypi/picotool.git
+          cd picotool
+          mkdir build
+          cd build
+          cmake ..
+          make
+          make install
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -29,7 +39,7 @@ jobs:
             musin/ports/pico/pico-sdk
             musin/ports/pico/pico-extras
             musin/ports/pico/libraries
-            lib/etl
+            lib
 
           key: ${{ runner.os }}-build-${{ env.cache-name }}
           restore-keys: |
@@ -40,5 +50,5 @@ jobs:
       - name: Init submodules
         run: git submodule update --init --recursive
 
-      - name: Build examples
-        run: bash ./build_experiments.sh
+      # - name: Build examples
+      #   run: bash ./build_experiments.sh

@@ -6,7 +6,7 @@ set -e
 function build_board(){
   board="$1"
   target_path="$2"
-  echo ""
+  echo " "
   echo "Building: $target_path [$board]"
   echo "-----"
 

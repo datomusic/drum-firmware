@@ -30,6 +30,9 @@ Holds the keypad
 #include <cstdint>
 #include <optional> // For drumpad velocity
 
+// Include the sequencer definition
+#include "sequencer.h"
+
 // Forward declaration
 class PizzaDisplay;
 

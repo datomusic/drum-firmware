@@ -172,7 +172,8 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     // Scale intensity (0-127) to color (e.g., white 0xRRGGBB)
     // Simple scaling: intensity * 2 maps 0-127 to 0-254
     // Scale intensity (0-127) to brightness (0-254), clamp at 255
-    uint8_t brightness_val = static_cast<uint8_t>(std::min(static_cast<uint16_t>(intensity) * 2, static_cast<uint16_t>(255)));
+    uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * 2; // Calculate first
+    uint8_t brightness_val = static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255))); // Now both args are uint16_t
     // Create white color with the calculated brightness using the driver's pack method
     uint32_t color = leds.pack_color(brightness_val, brightness_val, brightness_val);
     leds.set_pixel(led_index, color);

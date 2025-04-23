@@ -51,7 +51,7 @@ jobs:
         env:
           cache-name: cache-pico-vfs
         with:
-          path: musin/ports/pico/pico-pico-vfs
+          path: musin/ports/pico/libraries/pico-vfs
           key: ${{ runner.os }}-build-${{ env.cache-name }}
 
       - if: ${{ steps.cache-pico-vfs.outputs.cache-hit != 'true' }} 

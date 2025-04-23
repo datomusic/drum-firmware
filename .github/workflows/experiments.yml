@@ -19,26 +19,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - id: cache-pico-build
-        name: Cache Pico build deps
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-pico-build
-        with:
-          path: |
-            musin/ports/pico/pico-sdk
-            musin/ports/pico/pico-extras
-            musin/ports/pico/libraries/pico-vfs
-            lib/etl
+      # - id: cache-pico-build
+      #   name: Cache Pico build deps
+      #   uses: actions/cache@v4
+      #   env:
+      #     cache-name: cache-pico-build
+      #   with:
+      #     path: |
+      #       musin/ports/pico/pico-sdk
+      #       musin/ports/pico/pico-extras
+      #       musin/ports/pico/libraries/pico-vfs
+      #       lib/etl
 
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-pico-build
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-pico-build
+      #     restore-keys: |
+      #       ${{ runner.os }}-build-${{ env.cache-name }}-
+      #       ${{ runner.os }}-build-
+      #       ${{ runner.os }}-
       
-      - if: ${{ steps.cache-pico-build.outputs.cache-hit != 'true' }} 
-        name: Init submodules
+      # - if: ${{ steps.cache-pico-build.outputs.cache-hit != 'true' }} 
+      #   name: Init submodules
+      #   run: |
+      #     git submodule update --init --recursive musin/ports/pico/pico-sdk
+      #     git submodule update --init --recursive musin/ports/pico/pico-extras
+      #     git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
+      #     git submodule update --init --recursive lib/etl
+
+      - name: Init submodules
         run: |
           git submodule update --init --recursive musin/ports/pico/pico-sdk
           git submodule update --init --recursive musin/ports/pico/pico-extras

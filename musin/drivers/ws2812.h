@@ -139,21 +139,6 @@ public:
      */
     constexpr size_t get_num_leds() const;
 
-private:
-    /**
-     * @brief Apply brightness and color correction to RGB components.
-     * Internal helper used by set_pixel methods.
-     *
-     * @param r Input Red component.
-     * @param g Input Green component.
-     * @param b Input Blue component.
-     * @param out_r Output Red component after adjustments.
-     * @param out_g Output Green component after adjustments.
-     * @param out_b Output Blue component after adjustments.
-     */
-    void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
-                                         uint8_t& out_r, uint8_t& out_g, uint8_t& out_b) const;
-
     /**
      * @brief Pack RGB components into a 24-bit integer based on the configured order.
      * Internal helper used by set_pixel methods.
@@ -175,6 +160,22 @@ private:
      * @param b Output Blue component.
      */
     void unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const;
+
+
+private:
+    /**
+     * @brief Apply brightness and color correction to RGB components.
+     * Internal helper used by set_pixel methods.
+     *
+     * @param r Input Red component.
+     * @param g Input Green component.
+     * @param b Input Blue component.
+     * @param out_r Output Red component after adjustments.
+     * @param out_g Output Green component after adjustments.
+     * @param out_b Output Blue component after adjustments.
+     */
+    void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
+                                         uint8_t& out_r, uint8_t& out_g, uint8_t& out_b) const;
 
 
     // --- Configuration ---

@@ -13,6 +13,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - id: cache-pico-build
+        name: Cache Pico build deps
+        uses: actions/cache@v4
+        env:
+          cache-name: pico-build
+        with:
+          path: |
+            musin/ports/pico/pico-sdk
+            musin/ports/pico/pico-extras
+            musin/ports/pico/libraries
+
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - id: cache-etl
+        name: Cache ETL
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-etl
+        with:
+          path: lib/etl
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
+        name: Checkout etl
+        run: git submodule update --init lib/etl
       
       - name: Init submodules
         run: git submodule update --init --recursive

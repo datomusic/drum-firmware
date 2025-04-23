@@ -11,7 +11,6 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 
 add_executable(${PROJECT_NAME}
     pitch_shifter_test.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../musin/audio/pitch_shifter.cpp
   )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

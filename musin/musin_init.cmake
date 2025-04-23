@@ -77,10 +77,8 @@ macro(musin_init_audio TARGET)
 
   target_sources(${TARGET} PRIVATE
     ${MUSIN_AUDIO}/audio_output.cpp
-    ${MUSIN_AUDIO}/pitch_shifter.cpp
     ${MUSIN_AUDIO}/audio_memory_reader.cpp
     ${MUSIN_AUDIO}/data_ulaw.c
-    ${MUSIN_AUDIO}/mixer.cpp
     ${MUSIN_AUDIO}/crusher.cpp
     ${MUSIN_AUDIO}/waveshaper.cpp
     ${MUSIN_AUDIO}/filter.cpp

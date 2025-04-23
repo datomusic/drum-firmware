@@ -2,7 +2,7 @@ name: Experiments
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "valter/examples-in-gh-actions"]
 
 
 jobs:

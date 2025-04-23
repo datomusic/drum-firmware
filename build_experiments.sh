@@ -30,5 +30,5 @@ build experiments/flash_rw
 build experiments/midi_sample_player
 build experiments/flash_audio_streaming
 # build experiments/midi_cc
-# build experiments/pizza_example
+build experiments/pizza_example
 # build experiments/keypad_example

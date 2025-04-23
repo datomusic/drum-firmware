@@ -407,6 +407,19 @@ uint8_t Drumpad<AnalogReader>::calculate_velocity(uint64_t time_diff_us) const {
 }
 
 
+// --- Event Notification ---
+template <typename AnalogReader>
+void Drumpad<AnalogReader>::notify_event(DrumpadEvent::Type type, std::optional<uint8_t> velocity, uint16_t raw_value) {
+    DrumpadEvent event {
+        .pad_index = _pad_index,
+        .type = type,
+        .velocity = velocity,
+        .raw_value = raw_value
+    };
+    this->notify_observers(event);
+}
+
+
 } // namespace Musin::UI
 
 #endif // MUSIN_UI_DRUMPAD_H

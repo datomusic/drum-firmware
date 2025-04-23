@@ -38,11 +38,7 @@ jobs:
             test/musin/Catch2
             test/musin/Catch2_build
 
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-catch2
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
             
       - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }} 
         name: Checkout Catch2
@@ -69,11 +65,7 @@ jobs:
           cache-name: cache-etl
         with:
           path: lib/etl
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
 
       - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
         name: Checkout etl

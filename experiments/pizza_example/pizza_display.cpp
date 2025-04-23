@@ -174,8 +174,8 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     // Scale intensity (0-127) to brightness (0-254), clamp at 255
     uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * 2; // Calculate first
     uint8_t brightness_val = static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255))); // Now both args are uint16_t
-    // Create white color with the calculated brightness using the driver's pack method
-    uint32_t color = leds.pack_color(brightness_val, brightness_val, brightness_val);
+    // Apply brightness to white (0xFFFFFF) using the new WS2812 method
+    uint32_t color = leds.adjust_color_brightness(0xFFFFFF, brightness_val);
     leds.set_pixel(led_index, color);
   }
 }
@@ -214,20 +214,10 @@ void PizzaDisplay::display_sequencer_state(
          brightness = static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255)));
        }
 
-       // Apply brightness to the base color
-       if (base_color != 0) { // Avoid processing black color
-         uint8_t r, g, b;
-         leds.unpack_color(base_color, r, g, b); // Use driver's unpack
-         // Scale components by brightness
-         r = static_cast<uint8_t>((static_cast<uint16_t>(r) * brightness) / 255);
-         g = static_cast<uint8_t>((static_cast<uint16_t>(g) * brightness) / 255);
-         b = static_cast<uint8_t>((static_cast<uint16_t>(b) * brightness) / 255);
-         final_color = leds.pack_color(r, g, b); // Use driver's pack
-       } else {
-         final_color = 0; // Ensure black remains black
-       }
+       // Apply brightness using the new WS2812 method
+       final_color = leds.adjust_color_brightness(base_color, brightness);
      }
-
+    
      // Map row/col to the linear LED_ARRAY index
      uint8_t led_array_index = (7 - row) * 4 + col; // Recalculate index based on row/col
      if (led_array_index < LED_ARRAY.size()) {      // Bounds check

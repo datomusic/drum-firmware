@@ -65,10 +65,7 @@ private:
   void select_note_for_pad(uint8_t pad_index, int8_t offset);
   uint32_t calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const;
   float scale_raw_to_brightness(uint16_t raw_value) const;
-  // Color packing/unpacking utilities
-  static void unpack_color(uint32_t packed_color, uint8_t &r, uint8_t &g, uint8_t &b);
-  static uint32_t pack_color(uint8_t r, uint8_t g, uint8_t b);
-
+    
   // --- Nested Observer Classes ---
   // These need access to PizzaControls members (like display, drumpad_note_numbers)
 

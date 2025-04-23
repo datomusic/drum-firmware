@@ -122,21 +122,9 @@ void PizzaControls::update() {
   // Display updates are requested within observers and update_drumpads
   // The actual display.show() is called in main.cpp's loop
 }
-
-// --- Color Utilities ---
-// Assuming GRB order consistent with PizzaDisplay's WS2812 initialization
-void PizzaControls::unpack_color(uint32_t packed_color, uint8_t &r, uint8_t &g, uint8_t &b) {
-  g = (packed_color >> 16) & 0xFF;
-  r = (packed_color >> 8) & 0xFF;
-  b = packed_color & 0xFF;
-}
-
-uint32_t PizzaControls::pack_color(uint8_t r, uint8_t g, uint8_t b) {
-  return (static_cast<uint32_t>(g) << 16) | (static_cast<uint32_t>(r) << 8) | b;
-}
-
+    
 // --- Private Methods ---
-
+    
 float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
   // Map ADC range (e.g., 100-1000) to brightness (e.g., 0.1-1.0)
   // Adjust these based on sensor readings and desired visual response
@@ -160,19 +148,16 @@ float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
 uint32_t PizzaControls::calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const {
   if (base_color == 0)
     return 0;
-
-  uint8_t r, g, b;
-  unpack_color(base_color, r, g, b);
-
+    
   float brightness_factor = scale_raw_to_brightness(raw_value);
-
-  r = static_cast<uint8_t>(std::clamp(static_cast<float>(r) * brightness_factor, 0.0f, 255.0f));
-  g = static_cast<uint8_t>(std::clamp(static_cast<float>(g) * brightness_factor, 0.0f, 255.0f));
-  b = static_cast<uint8_t>(std::clamp(static_cast<float>(b) * brightness_factor, 0.0f, 255.0f));
-
-  return pack_color(r, g, b);
+  // Convert float factor (0.0-1.0) to uint8_t brightness (0-255)
+  uint8_t brightness_val = static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
+    
+  // Use the display's leds object and the new method
+  // Note: display.leds() requires the accessor added in pizza_display.h
+  return display.leds().adjust_color_brightness(base_color, brightness_val);
 }
-
+    
 void PizzaControls::update_drumpads() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update(); // Update call remains, event handling moves to observer

@@ -64,11 +64,9 @@ PizzaControls::PizzaControls(PizzaDisplay &display_ref)
                         AnalogControlEventHandler{this, DRUM4, DRUM4, 0},
                         AnalogControlEventHandler{this, SPEED, SPEED, 0},
                         AnalogControlEventHandler{this, PITCH4, 19, 4}},
-      drumpad_observers{ // Initialize drumpad observers
-                        DrumpadEventHandler{this, 0},
-                        DrumpadEventHandler{this, 1},
-                        DrumpadEventHandler{this, 2},
-                        DrumpadEventHandler{this, 3}} {
+      drumpad_observers{// Initialize drumpad observers
+                        DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
+                        DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
 
 // --- Initialization ---
@@ -90,11 +88,10 @@ void PizzaControls::init() {
 
   // Attach Drumpad Observers
   for (size_t i = 0; i < drumpads.size(); ++i) {
-      // Assuming Drumpad becomes observable (requires change in drumpad.h)
-      // drumpads[i].add_observer(drumpad_observers[i]);
+    // Assuming Drumpad becomes observable (requires change in drumpad.h)
+    // drumpads[i].add_observer(drumpad_observers[i]);
   }
   printf("PizzaControls: Drumpad Observers Attached\n");
-
 
   // Initialize Analog Controls and attach observers
   for (size_t i = 0; i < mux_controls.size(); ++i) {
@@ -220,14 +217,13 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
 
 // Stub implementation for DrumpadEventHandler
 void PizzaControls::DrumpadEventHandler::notification(Musin::UI::DrumpadEvent event) {
-    // TODO: Implement drumpad event handling logic here
-    // - Send MIDI notes based on event.type (Press/Release) and event.velocity
-    // - Potentially update LEDs based on events (e.g., flash on press)
-    // printf("Drumpad Event: Pad %u, Type %d, Vel %u, Raw %u\n",
-    //        event.pad_index, static_cast<int>(event.type),
-    //        event.velocity.value_or(0), event.raw_value);
+  // TODO: Implement drumpad event handling logic here
+  // - Send MIDI notes based on event.type (Press/Release) and event.velocity
+  // - Potentially update LEDs based on events (e.g., flash on press)
+  // printf("Drumpad Event: Pad %u, Type %d, Vel %u, Raw %u\n",
+  //        event.pad_index, static_cast<int>(event.type),
+  //        event.velocity.value_or(0), event.raw_value);
 }
-
 
 void PizzaControls::AnalogControlEventHandler::notification(Musin::UI::AnalogControlEvent event) {
   // Access parent members via parent pointer

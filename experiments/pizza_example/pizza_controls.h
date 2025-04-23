@@ -32,7 +32,6 @@ Holds the keypad
 // Forward declaration
 class PizzaDisplay;
 
-
 class PizzaControls {
 public:
   explicit PizzaControls(PizzaDisplay &display_ref);
@@ -85,8 +84,7 @@ private:
     const uint8_t midi_channel;
 
     constexpr KeypadEventHandler(PizzaControls *p,
-                                     const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &map,
-                                     uint8_t channel)
+                                 const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &map, uint8_t channel)
         : parent(p), cc_map(map), midi_channel(channel) {
     }
 
@@ -94,15 +92,14 @@ private:
   };
 
   struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
-      PizzaControls* parent;
-      const uint8_t pad_index; // Index of the drumpad this observer listens to
+    PizzaControls *parent;
+    const uint8_t pad_index; // Index of the drumpad this observer listens to
 
-      constexpr DrumpadEventHandler(PizzaControls* p, uint8_t index)
-          : parent(p), pad_index(index) {}
+    constexpr DrumpadEventHandler(PizzaControls *p, uint8_t index) : parent(p), pad_index(index) {
+    }
 
-      void notification(Musin::UI::DrumpadEvent event) override;
+    void notification(Musin::UI::DrumpadEvent event) override;
   };
-
 
   // --- Members ---
   PizzaDisplay &display; // Reference to the display object

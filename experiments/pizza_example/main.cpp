@@ -12,8 +12,8 @@
 #include "sequencer.h" // Include the sequencer header
 
 static PizzaDisplay pizza_display;
-static PizzaControls pizza_controls(pizza_display);
-static PizzaSequencer::Sequencer<4, 8> pizza_sequencer; // Instantiate the sequencer
+static PizzaSequencer::Sequencer<4, 8> pizza_sequencer;
+static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
 
 int main() {
   stdio_init_all();

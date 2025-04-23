@@ -2,7 +2,6 @@
 
 set -e
 
-
 function build_board(){
   board="$1"
   target_path="$2"
@@ -17,10 +16,10 @@ function build_board(){
   popd
 }
 
-
 function build(){
   build_board dato_submarine "$1"
 }
+
 
 build_board pico2 experiments/midi_example/
 build_board pico2  experiments/sine_test
@@ -29,6 +28,9 @@ build experiments/sample_player
 build experiments/flash_rw
 build experiments/midi_sample_player
 build experiments/flash_audio_streaming
-# build experiments/midi_cc
 build experiments/pizza_example
+
+### Currently Broken:
+
+# build experiments/midi_cc
 # build experiments/keypad_example

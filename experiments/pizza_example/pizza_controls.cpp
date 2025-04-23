@@ -88,6 +88,14 @@ void PizzaControls::init() {
   // Drumpad objects themselves don't need init() as they use initialized readers
   printf("PizzaControls: Drumpad Readers Initialized\n");
 
+  // Attach Drumpad Observers
+  for (size_t i = 0; i < drumpads.size(); ++i) {
+      // Assuming Drumpad becomes observable (requires change in drumpad.h)
+      // drumpads[i].add_observer(drumpad_observers[i]);
+  }
+  printf("PizzaControls: Drumpad Observers Attached\n");
+
+
   // Initialize Analog Controls and attach observers
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].init();

@@ -11,6 +11,9 @@ jobs:
   Build:
     runs-on: ubuntu-latest
     steps:
+      - name: Allow caching of root-owned directories
+        run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
+
       - name: Install gcc-arm
         uses: carlosperate/arm-none-eabi-gcc-action@v1
         with:
@@ -44,9 +47,25 @@ jobs:
       #     git submodule update --init --recursive musin/ports/pico/pico-extras
       #     git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
 
+
+      - id: cache-sdk
+        name: Cache pico SDK
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-sdk
+        with:
+          path: musin/ports/pico/pico-sdk
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-sdk
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-sdk
+
+      - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }} 
+        name: Checkout pico SDk
+        run: git submodule update --init --recursive musin/ports/pico/pico-sdk
+
+
       - name: Init submodules
         run: |
-          git submodule update --init --recursive musin/ports/pico/pico-sdk
           git submodule update --init --recursive musin/ports/pico/pico-extras
           git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
 

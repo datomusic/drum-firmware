@@ -34,7 +34,8 @@ class PizzaDisplay;
 
 class PizzaControls {
 public:
-  explicit PizzaControls(PizzaDisplay &display_ref);
+  // Constructor now takes both display and sequencer references
+  explicit PizzaControls(PizzaDisplay &display_ref, PizzaSequencer::Sequencer<4, 8> &sequencer_ref);
 
   // Prevent copying and assignment
   PizzaControls(const PizzaControls &) = delete;

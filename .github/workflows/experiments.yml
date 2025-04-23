@@ -17,17 +17,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # - id: cache-sdk
-      #   name: Cache pico SDK
-      #   uses: actions/cache@v4
-      #   env:
-      #     cache-name: cache-sdk
-      #   with:
-      #     path: musin/ports/pico/pico-sdk
-      #     key: ${{ runner.os }}-build-${{ env.cache-name }}
+      - id: cache-sdk
+        name: Cache pico SDK
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-sdk
+        with:
+          path: musin/ports/pico/pico-sdk
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
 
-      # - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }} 
-      - name: Checkout pico SDk
+      - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }} 
+        name: Checkout pico SDk
         run: git submodule update --init --recursive musin/ports/pico/pico-sdk
 
       - id: cache-extras
@@ -37,7 +39,9 @@ jobs:
           cache-name: cache-extras
         with:
           path: musin/ports/pico/pico-extras
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
 
       - if: ${{ steps.cache-extras.outputs.cache-hit != 'true' }} 
         name: Checkout pico extras
@@ -50,7 +54,9 @@ jobs:
           cache-name: cache-pico-vfs
         with:
           path: musin/ports/pico/pico-pico-vfs
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
 
       - if: ${{ steps.cache-pico-vfs.outputs.cache-hit != 'true' }} 
         name: Checkout pico pico-vfs
@@ -86,7 +92,9 @@ jobs:
             /usr/local/bin/picotool
             /usr/local/lib/cmake/picotool
             /usr/local/share/picotool
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
 
       - if: ${{ steps.cache-picotool.outputs.cache-hit != 'true' }} 
         name: Install picotool

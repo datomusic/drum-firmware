@@ -65,25 +65,25 @@ private:
   // --- Nested Observer Classes ---
   // These need access to PizzaControls members (like display, drumpad_note_numbers)
 
-  struct InternalMIDICCObserver : public etl::observer<Musin::UI::AnalogControlEvent> {
+  struct AnalogControlEventHandler : public etl::observer<Musin::UI::AnalogControlEvent> {
     PizzaControls *parent;
     const uint16_t control_id; // Added control_id
     const uint8_t cc_number;
     const uint8_t midi_channel;
 
-    constexpr InternalMIDICCObserver(PizzaControls *p, uint16_t id, uint8_t cc, uint8_t channel)
+    constexpr AnalogControlEventHandler(PizzaControls *p, uint16_t id, uint8_t cc, uint8_t channel)
         : parent(p), control_id(id), cc_number(cc), midi_channel(channel) {
     }
 
     void notification(Musin::UI::AnalogControlEvent event) override;
   };
 
-  struct InternalKeypadObserver : public etl::observer<Musin::UI::KeypadEvent> {
+  struct KeypadEventHandler : public etl::observer<Musin::UI::KeypadEvent> {
     PizzaControls *parent; // Pointer to the owning PizzaControls instance
     const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map; // Reference to the map in parent
     const uint8_t midi_channel;
 
-    constexpr InternalKeypadObserver(PizzaControls *p,
+    constexpr KeypadEventHandler(PizzaControls *p,
                                      const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &map,
                                      uint8_t channel)
         : parent(p), cc_map(map), midi_channel(channel) {
@@ -104,7 +104,7 @@ private:
     }
     return map;
   }();
-  InternalKeypadObserver keypad_observer;
+  KeypadEventHandler keypad_observer;
 
   // Drumpads
   // Store readers and pads directly in arrays
@@ -114,7 +114,7 @@ private:
 
   // Analog Controls (Pots/Sliders)
   etl::array<Musin::UI::AnalogControl, 16> mux_controls;
-  etl::array<InternalMIDICCObserver, 16> control_observers;
+  etl::array<AnalogControlEventHandler, 16> control_observers;
 };
 
 #endif // PIZZA_CONTROLS_H

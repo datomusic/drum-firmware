@@ -48,22 +48,22 @@ PizzaControls::PizzaControls(PizzaDisplay &display_ref)
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
       control_observers{// Initialize observers by explicitly calling constructors (id, cc, channel)
-                        InternalMIDICCObserver{this, DRUM1, DRUM1, 0},
-                        InternalMIDICCObserver{this, FILTER, 75, 0},
-                        InternalMIDICCObserver{this, DRUM2, DRUM2, 0},
-                        InternalMIDICCObserver{this, PITCH1, 16, 1},
-                        InternalMIDICCObserver{this, PITCH2, 17, 2},
-                        InternalMIDICCObserver{this, PLAYBUTTON, PLAYBUTTON, 0},
-                        InternalMIDICCObserver{this, RANDOM, RANDOM, 0},
-                        InternalMIDICCObserver{this, VOLUME, VOLUME, 0},
-                        InternalMIDICCObserver{this, PITCH3, 18, 3},
-                        InternalMIDICCObserver{this, SWING, SWING, 0},
-                        InternalMIDICCObserver{this, CRUSH, 77, 0},
-                        InternalMIDICCObserver{this, DRUM3, DRUM3, 0},
-                        InternalMIDICCObserver{this, REPEAT, REPEAT, 0},
-                        InternalMIDICCObserver{this, DRUM4, DRUM4, 0},
-                        InternalMIDICCObserver{this, SPEED, SPEED, 0},
-                        InternalMIDICCObserver{this, PITCH4, 19, 4}} {
+                        AnalogControlEventHandler{this, DRUM1, DRUM1, 0},
+                        AnalogControlEventHandler{this, FILTER, 75, 0},
+                        AnalogControlEventHandler{this, DRUM2, DRUM2, 0},
+                        AnalogControlEventHandler{this, PITCH1, 16, 1},
+                        AnalogControlEventHandler{this, PITCH2, 17, 2},
+                        AnalogControlEventHandler{this, PLAYBUTTON, PLAYBUTTON, 0},
+                        AnalogControlEventHandler{this, RANDOM, RANDOM, 0},
+                        AnalogControlEventHandler{this, VOLUME, VOLUME, 0},
+                        AnalogControlEventHandler{this, PITCH3, 18, 3},
+                        AnalogControlEventHandler{this, SWING, SWING, 0},
+                        AnalogControlEventHandler{this, CRUSH, 77, 0},
+                        AnalogControlEventHandler{this, DRUM3, DRUM3, 0},
+                        AnalogControlEventHandler{this, REPEAT, REPEAT, 0},
+                        AnalogControlEventHandler{this, DRUM4, DRUM4, 0},
+                        AnalogControlEventHandler{this, SPEED, SPEED, 0},
+                        AnalogControlEventHandler{this, PITCH4, 19, 4}} {
 }
 
 // --- Initialization ---
@@ -219,7 +219,7 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
 
 // --- Observer Implementations ---
 
-void PizzaControls::InternalMIDICCObserver::notification(Musin::UI::AnalogControlEvent event) {
+void PizzaControls::AnalogControlEventHandler::notification(Musin::UI::AnalogControlEvent event) {
   // Access parent members via parent pointer
   uint8_t value = static_cast<uint8_t>(event.value * 127.0f);
 
@@ -236,7 +236,7 @@ void PizzaControls::InternalMIDICCObserver::notification(Musin::UI::AnalogContro
   }
 }
 
-void PizzaControls::InternalKeypadObserver::notification(Musin::UI::KeypadEvent event) {
+void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent event) {
   // Access parent members via parent pointer
   uint8_t key_index = (7 - event.row) * KEYPAD_COLS + event.col; // Use KEYPAD_COLS
   if (key_index >= cc_map.size())

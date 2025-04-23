@@ -37,7 +37,8 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       
-      - name: Init submodules
+      - if: ${{ steps.cache-pico-build.outputs.cache-hit != 'true' }} 
+        name: Init submodules
         run: |
           git submodule update --init --recursive musin/ports/pico/pico-sdk
           git submodule update --init --recursive musin/ports/pico/pico-extras

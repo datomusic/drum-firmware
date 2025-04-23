@@ -39,18 +39,25 @@ constexpr uint32_t LED_STEP3_START = 10; // Includes LEDs 10, 11, 12, 13
 constexpr uint32_t LED_STEP4_START = 15; // Includes LEDs 15, 16, 17, 18
 constexpr uint32_t LED_STEP5_START = 19; // Includes LEDs 19, 20, 21, 22
 constexpr uint32_t LED_STEP6_START = 24; // Includes LEDs 24, 25, 26, 27
-constexpr uint32_t LED_STEP7_START = 28; // Includes LEDs 28, 29, 30, 31
-constexpr uint32_t LED_STEP8_START = 33; // Includes LEDs 33, 34, 35, 36
+constexpr uint32_t LED_STEP7_START = 28;
+constexpr uint32_t LED_STEP8_START = 33;
 
-// These led numbers map to the rings
-// The missing numbers are the drum pad leds
-constexpr uint32_t LED_ARRAY[] = {1,  2,  3,  4,  6,  7,  8,  9,  10, 11, 12, 13, 15, 16, 17, 18,
-                                  19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36};
+// LED indices for the 8x4 sequencer grid
+constexpr std::array<uint32_t, 32> LED_ARRAY = {
+    1,  2,  3,  4,  // Step 1 (Row 7)
+    6,  7,  8,  9,  // Step 2 (Row 6)
+    10, 11, 12, 13, // Step 3 (Row 5)
+    15, 16, 17, 18, // Step 4 (Row 4)
+    19, 20, 21, 22, // Step 5 (Row 3)
+    24, 25, 26, 27, // Step 6 (Row 2)
+    28, 29, 30, 31, // Step 7 (Row 1)
+    33, 34, 35, 36  // Step 8 (Row 0)
+};
 
-// 32 leds for the sequencer field, 4 drumpads and a play button
-constexpr uint32_t NUM_LEDS = 37;
+// Total number of LEDs: 32 sequencer steps + 4 drumpads + 1 play button
+constexpr uint32_t NUM_LEDS = LED_ARRAY.size() + 4 + 1;
 
-// Mux addresses for analog inputs
+// Mux addresses for analog inputs (Control IDs)
 enum {
   DRUM1 = 0,
   FILTER = 1,

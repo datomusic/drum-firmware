@@ -160,8 +160,17 @@ public:
      * @param b Output Blue component.
      */
     void unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const;
-
-
+    
+    /**
+     * @brief Apply a specific brightness level to a given base color.
+     * Does not use the global brightness setting of the driver.
+     *
+     * @param base_color The original 24-bit color (e.g., 0xRRGGBB).
+     * @param brightness The brightness level to apply (0-255).
+     * @return uint32_t The adjusted 24-bit color, packed according to the driver's order.
+     */
+    uint32_t adjust_color_brightness(uint32_t base_color, uint8_t brightness) const;
+    
 private:
     /**
      * @brief Apply brightness and color correction to RGB components.
@@ -405,8 +414,29 @@ void WS2812<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& 
             r = g = b = 0; break;
     }
 }
-
-
+    
+template <size_t NUM_LEDS>
+uint32_t WS2812<NUM_LEDS>::adjust_color_brightness(uint32_t base_color, uint8_t brightness) const {
+    if (base_color == 0) {
+        return 0; // Black remains black
+    }
+    
+    uint8_t r, g, b;
+    // Unpack using the driver's configured order, but the result (r,g,b) is standard RGB
+    unpack_color(base_color, r, g, b);
+    
+    // Apply brightness scaling (integer math for efficiency)
+    // Scale factor: brightness + 1 if brightness < 255, else 256 (effectively brightness/255.0)
+    uint16_t brightness_scale = brightness + (brightness == 255 ? 0 : 1);
+    r = static_cast<uint8_t>(((uint16_t)r * brightness_scale) >> 8);
+    g = static_cast<uint8_t>(((uint16_t)g * brightness_scale) >> 8);
+    b = static_cast<uint8_t>(((uint16_t)b * brightness_scale) >> 8);
+    
+    // Repack according to the driver's configured order
+    return pack_color(r, g, b);
+}
+    
+    
 } // namespace Musin::Drivers
-
+    
 #endif // MUSIN_DRIVERS_WS2812_H

@@ -90,7 +90,14 @@ public:
    */
   template <size_t NumTracks, size_t NumSteps>
   void display_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
-
+    
+  /**
+   * @brief Get a const reference to the underlying WS2812 driver instance.
+   * Allows access to driver methods like adjust_color_brightness.
+   * @return const Musin::Drivers::WS2812<NUM_LEDS>&
+   */
+  const Musin::Drivers::WS2812<NUM_LEDS>& leds() const { return leds; }
+    
 private:
   Musin::Drivers::WS2812<NUM_LEDS> leds;
   etl::array<uint32_t, 32> note_colors;

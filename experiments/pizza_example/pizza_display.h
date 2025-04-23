@@ -6,6 +6,10 @@
 #include "musin/drivers/ws2812.h"
 #include <cstddef> // For size_t
 #include <cstdint>
+
+// Include the actual sequencer header
+#include "sequencer.h"
+
 // Forward declaration for check_external_pin_state if needed, or include main.h if it's there
 // Assuming check_external_pin_state remains accessible or is moved/duplicated.
 // For now, let's assume it's available globally or we'll handle it in init.
@@ -75,6 +79,15 @@ public:
    * @return The physical LED index or NUM_LEDS if invalid.
    */
   uint32_t get_drumpad_led_index(uint8_t pad_index) const;
+
+  /**
+   * @brief Update the keypad LEDs to reflect the current state of the sequencer.
+   * @tparam NumTracks Number of tracks in the sequencer.
+   * @tparam NumSteps Number of steps per track in the sequencer.
+   * @param sequencer A const reference to the sequencer object.
+   */
+  template <size_t NumTracks, size_t NumSteps>
+  void display_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps>& sequencer);
 
 private:
   Musin::Drivers::WS2812<NUM_LEDS> leds;

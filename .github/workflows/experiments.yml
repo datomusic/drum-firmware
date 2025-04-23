@@ -43,14 +43,12 @@ jobs:
       #     git submodule update --init --recursive musin/ports/pico/pico-sdk
       #     git submodule update --init --recursive musin/ports/pico/pico-extras
       #     git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
-      #     git submodule update --init --recursive lib/etl
 
       - name: Init submodules
         run: |
           git submodule update --init --recursive musin/ports/pico/pico-sdk
           git submodule update --init --recursive musin/ports/pico/pico-extras
           git submodule update --init --recursive musin/ports/pico/libraries/pico-vfs
-          git submodule update --init --recursive lib/etl
 
 
       - id: cache-picotool
@@ -82,5 +80,22 @@ jobs:
           make
           sudo make install
 
-      # - name: Build examples
-      #   run: bash ./build_experiments.sh
+
+
+      - id: cache-etl
+        name: Cache ETL
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-etl
+        with:
+          path: lib/etl
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-etl
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-etl
+
+      - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
+        name: Checkout etl
+        run: git submodule update --init lib/etl
+
+      - name: Build examples
+        run: bash ./build_experiments.sh

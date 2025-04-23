@@ -59,6 +59,16 @@ public:
         return NumSteps;
     }
 
+    /**
+     * @brief Set the note number for all steps in this track.
+     * @param note_value The MIDI note number (0-127) to set for all steps.
+     */
+    void set_all_notes(uint8_t note_value) {
+        for (size_t i = 0; i < NumSteps; ++i) {
+            steps[i].note = note_value;
+        }
+    }
+
 private:
     etl::array<Step, NumSteps> steps;
 };

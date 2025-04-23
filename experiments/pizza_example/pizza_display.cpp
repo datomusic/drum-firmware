@@ -91,9 +91,9 @@ bool PizzaDisplay::init() {
   uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
   printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
          initial_brightness, static_cast<int>(led_pin_state));
-  leds.set_brightness(initial_brightness);
-
-  if (!leds.init()) {
+  _leds.set_brightness(initial_brightness); // Use _leds
+    
+  if (!_leds.init()) { // Use _leds
     printf("Error: Failed to initialize WS2812 LED driver!\n");
     return false;
   }
@@ -108,31 +108,31 @@ bool PizzaDisplay::init() {
   printf("PizzaDisplay: Initialization Complete.\n");
   return true;
 }
-
+    
 void PizzaDisplay::show() {
-  leds.show();
+  _leds.show(); // Use _leds
 }
-
+    
 void PizzaDisplay::set_brightness(uint8_t brightness) {
-  leds.set_brightness(brightness);
+  _leds.set_brightness(brightness); // Use _leds
   // Note: Brightness only affects subsequent set_pixel calls in the current WS2812 impl.
   // If immediate effect is desired, the buffer would need to be recalculated.
 }
-
+    
 void PizzaDisplay::clear() {
-  leds.clear();
+  _leds.clear(); // Use _leds
 }
-
+    
 void PizzaDisplay::set_led(uint32_t index, uint32_t color) {
   if (index < NUM_LEDS) {
-    leds.set_pixel(index, color);
+    _leds.set_pixel(index, color); // Use _leds
   }
 }
-
+    
 void PizzaDisplay::set_play_button_led(uint32_t color) {
-  leds.set_pixel(LED_PLAY_BUTTON, color);
+  _leds.set_pixel(LED_PLAY_BUTTON, color); // Use _leds
 }
-
+    
 uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   if (note_index < note_colors.size()) {
     return note_colors[note_index];

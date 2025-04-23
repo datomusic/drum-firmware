@@ -304,16 +304,16 @@ void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent even
     // Toggle enabled state
     step.enabled = !step.enabled;
 
-    // If step is now enabled and has no note, assign the current pad note and default velocity
+    // If step is now enabled, always assign the current pad note and default velocity if needed
     if (step.enabled) {
-      if (!step.note.has_value()) {
-        // Ensure track_idx is valid for drumpad_note_numbers
-        if (track_idx < parent->drumpad_note_numbers.size()) {
-          step.note = parent->drumpad_note_numbers[track_idx];
-        } else {
-          step.note = 36; // Fallback note if something is wrong
-        }
+      // Ensure track_idx is valid for drumpad_note_numbers before assigning
+      if (track_idx < parent->drumpad_note_numbers.size()) {
+        step.note = parent->drumpad_note_numbers[track_idx]; // Always set the note
+      } else {
+        step.note = 36; // Fallback note if track index is somehow invalid
       }
+
+      // Assign default velocity only if none exists
       if (!step.velocity.has_value()) {
         step.velocity = 100; // Default velocity
       }

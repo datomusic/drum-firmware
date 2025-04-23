@@ -28,6 +28,16 @@ int main() {
 
   pizza_controls.init();
 
+  // Initialize sequencer pattern (example: basic kick/snare)
+  printf("Initializing sequencer pattern...\n");
+  // Track 0 (Kick) - Steps 0 and 4
+  pizza_sequencer.get_track(0).get_step(0) = {36, 100, true}; // Note 36, Vel 100, Enabled
+  pizza_sequencer.get_track(0).get_step(4) = {36, 100, true};
+  // Track 1 (Snare) - Steps 2 and 6
+  pizza_sequencer.get_track(1).get_step(2) = {38, 100, true}; // Note 38, Vel 100, Enabled
+  pizza_sequencer.get_track(1).get_step(6) = {38, 100, true};
+  // Tracks 2 and 3 remain empty/disabled by default
+
   printf("Initialization complete. Entering main loop.\n");
 
   // --- Main Loop ---

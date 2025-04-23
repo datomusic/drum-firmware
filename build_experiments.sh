@@ -23,7 +23,7 @@ function build(){
 }
 
 build_board pico2 experiments/midi_example/
-# build_board pico2  experiments/sine_test
+build_board pico2  experiments/sine_test
 
 build experiments/sample_player
 build experiments/flash_rw

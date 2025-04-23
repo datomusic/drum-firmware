@@ -46,9 +46,11 @@ int main() {
     //    and request display changes via pizza_display methods.
     pizza_controls.update();
 
-    // 2. Update Display: Send the buffered LED data to the hardware.
-    pizza_display.show();
+   // Update sequencer display
+   pizza_display.display_sequencer_state(pizza_sequencer);
 
+   // 2. Update Display: Send the buffered LED data to the hardware.
+   pizza_display.show();
     // 3. Handle Background Tasks
     Musin::Usb::background_update();
     midi_read();

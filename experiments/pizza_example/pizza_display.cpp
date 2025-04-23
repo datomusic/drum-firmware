@@ -171,3 +171,44 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
     leds.set_pixel(led_index, color);
   }
 }
+
+// --- Sequencer Display ---
+// Needs to be defined before explicit instantiation below
+template <size_t NumTracks, size_t NumSteps>
+void PizzaDisplay::display_sequencer_state(
+    const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer) {
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    // Assuming track index maps directly to keypad column
+    if (track_idx >= 4)
+      continue; // Only display first 4 tracks on keypad cols 0-3
+
+    const auto &track = sequencer.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      // Assuming step index maps directly to keypad row (inverted)
+      // Step 0 -> Row 7, Step 7 -> Row 0
+      if (step_idx >= 8)
+        continue; // Only display first 8 steps on keypad rows 0-7
+      uint8_t row = 7 - step_idx;
+      uint8_t col = track_idx;
+
+      const auto &step = track.get_step(step_idx);
+
+      uint32_t color = 0; // Default to black (off)
+      if (step.enabled && step.note.has_value()) {
+        // Use note color if step is enabled and has a note
+        color = get_note_color(step.note.value() % 32); // Use modulo for safety
+      }
+
+      // Map row/col to the linear LED_ARRAY index
+      uint8_t led_array_index = (7 - row) * 4 + col; // Recalculate index based on row/col
+      if (led_array_index < LED_ARRAY.size()) {      // Bounds check
+        leds.set_pixel(LED_ARRAY[led_array_index], color);
+      }
+    }
+  }
+}
+
+// Explicit template instantiation for the sequencer used in main.cpp
+// This is necessary because the definition is in the .cpp file.
+template void
+PizzaDisplay::display_sequencer_state<4, 8>(const PizzaSequencer::Sequencer<4, 8> &sequencer);

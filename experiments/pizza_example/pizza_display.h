@@ -87,7 +87,7 @@ public:
    * @param sequencer A const reference to the sequencer object.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void display_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps>& sequencer);
+  void display_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
 
 private:
   Musin::Drivers::WS2812<NUM_LEDS> leds;

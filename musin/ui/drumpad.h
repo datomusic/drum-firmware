@@ -18,7 +18,7 @@ struct DrumpadEvent {
   enum class Type : uint8_t {
     Press,
     Release,
-    Hold // Optional: Add if needed
+    Hold
   };
   uint8_t pad_index;
   Type type;

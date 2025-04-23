@@ -101,11 +101,12 @@ private:
     void notification(Musin::UI::DrumpadEvent event) override;
   };
 
-  // --- Members ---
-  PizzaDisplay &display; // Reference to the display object
+ // --- Members ---
+ PizzaDisplay &display;                      // Reference to the display object
+ PizzaSequencer::Sequencer<4, 8> &sequencer; // Reference to the sequencer object
 
-  // Keypad
-  Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
+ // Keypad
+ Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
   static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
     std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
     for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {

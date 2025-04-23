@@ -11,6 +11,9 @@ jobs:
   Build:
     runs-on: ubuntu-latest
     steps:
+      - name: Install gcc-arm
+        run: sudo apt install -y arm-none-eabi-gcc
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -30,23 +33,6 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
-
-      - id: cache-etl
-        name: Cache ETL
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-etl
-        with:
-          path: lib/etl
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
-      - if: ${{ steps.cache-etl.outputs.cache-hit != 'true' }} 
-        name: Checkout etl
-        run: git submodule update --init lib/etl
       
       - name: Init submodules
         run: git submodule update --init --recursive

@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <optional>
 
-#include "sequencer.h"
+#include "step_sequencer.h"
 
 namespace PizzaExample {
 class PizzaDisplay;
@@ -22,7 +22,7 @@ class PizzaDisplay;
 class PizzaControls {
 public:
   // Constructor now takes both display and sequencer references, using the namespace
-  explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref, PizzaSequencer::Sequencer<4, 8> &sequencer_ref);
+  explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref, StepSequencer::Sequencer<4, 8> &sequencer_ref);
 
   // Prevent copying and assignment
   PizzaControls(const PizzaControls &) = delete;
@@ -88,7 +88,7 @@ private:
 
  // --- Members ---
  PizzaExample::PizzaDisplay &display;
- PizzaSequencer::Sequencer<4, 8> &sequencer;
+ StepSequencer::Sequencer<4, 8> &sequencer;
 
  // Keypad
  Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;

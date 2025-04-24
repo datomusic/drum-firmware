@@ -1,11 +1,11 @@
-#ifndef PIZZA_SEQUENCER_H
-#define PIZZA_SEQUENCER_H
+#ifndef STEP_SEQUENCER_H
+#define STEP_SEQUENCER_H
 
 #include "etl/array.h"
 #include <cstdint>
 #include <optional>
 
-namespace PizzaSequencer {
+namespace StepSequencer {
 
 /**
  * @brief Represents a single step in a sequencer track.
@@ -127,6 +127,6 @@ private:
     // Add tempo, current step, etc. later
 };
 
-} // namespace PizzaSequencer
+} // namespace StepSequencer
 
-#endif // PIZZA_SEQUENCER_H
+#endif // STEP_SEQUENCER_H

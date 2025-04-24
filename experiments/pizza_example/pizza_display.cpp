@@ -183,7 +183,7 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
 // Needs to be defined before explicit instantiation below
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
-    const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer) {
+    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer) {
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     // Assuming track index maps directly to keypad column
     if (track_idx >= 4)
@@ -229,6 +229,6 @@ void PizzaDisplay::draw_sequencer_state(
 // Explicit template instantiation for the sequencer used in main.cpp
 // This is necessary because the definition is in the .cpp file.
 template void
-PizzaDisplay::draw_sequencer_state<4, 8>(const PizzaSequencer::Sequencer<4, 8> &sequencer);
+PizzaDisplay::draw_sequencer_state<4, 8>(const StepSequencer::Sequencer<4, 8> &sequencer);
 
 } // namespace PizzaExample

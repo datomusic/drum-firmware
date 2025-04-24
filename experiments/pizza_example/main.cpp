@@ -9,10 +9,10 @@
 #include "midi.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
-#include "sequencer.h"
+#include "step_sequencer.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
-static PizzaSequencer::Sequencer<4, 8> pizza_sequencer;
+static StepSequencer::Sequencer<4, 8> pizza_sequencer;
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
 
 int main() {

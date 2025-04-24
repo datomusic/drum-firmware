@@ -1,7 +1,7 @@
 #include "pizza_controls.h"
 #include "midi.h"          // For send_midi_cc, send_midi_note
 #include "pizza_display.h" // Need definition for display methods
-#include "sequencer.h"     // Need definition for Sequencer
+#include "step_sequencer.h"     // Need definition for Sequencer
 #include <algorithm>       // For std::clamp
 #include <cmath>           // For std::max used in scaling
 #include <cstddef>         // For size_t
@@ -14,7 +14,7 @@ using Musin::UI::Drumpad;
 // --- Constructor ---
 // Use PizzaExample::PizzaDisplay for the parameter type
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                             PizzaSequencer::Sequencer<4, 8> &sequencer_ref) // Accept sequencer ref
+                             StepSequencer::Sequencer<4, 8> &sequencer_ref) // Accept sequencer ref
     : display(display_ref), sequencer(sequencer_ref), // Store references (display is now PizzaExample::PizzaDisplay&)
       keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
@@ -285,7 +285,7 @@ void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent even
     uint8_t step_idx = 7 - event.row; // Map row 0-7 to step 7-0
 
     // Access the step in the sequencer via the parent pointer
-    PizzaSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
+    StepSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
 
     // Toggle enabled state
     step.enabled = !step.enabled;
@@ -311,7 +311,7 @@ void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent even
     uint8_t step_idx = 7 - event.row; // Map row 0-7 to step 7-0
 
     // Access the step in the sequencer via the parent pointer
-    PizzaSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
+    StepSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
 
     // Set velocity to maximum only if the step is enabled
     if (step.enabled) {

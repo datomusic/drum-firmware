@@ -8,7 +8,7 @@
 #include <cstdint>
 
 // Include the actual sequencer header
-#include "sequencer.h"
+#include "step_sequencer.h"
 
 // Forward declaration for check_external_pin_state if needed, or include main.h if it's there
 // Assuming check_external_pin_state remains accessible or is moved/duplicated.
@@ -89,7 +89,7 @@ public:
    * @param sequencer A const reference to the sequencer object.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(const PizzaSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
+  void draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
     
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.

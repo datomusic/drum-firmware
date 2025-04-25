@@ -32,9 +32,9 @@ macro(musin_init TARGET)
     pico_stdlib
     etl::etl
   )
-
+  # this must be called after pico_sdk_init.cmake is included
   pico_sdk_init()
-  pico_enable_stdio_uart(${TARGET} 1)
+  # pico_enable_stdio_uart(${TARGET} 1)
   pico_enable_stdio_usb(${TARGET} 1)
   pico_add_extra_outputs(${TARGET})
 

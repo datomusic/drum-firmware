@@ -16,7 +16,7 @@ static StepSequencer::Sequencer<4, 8> pizza_sequencer;
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
 
 int main() {
-  stdio_init_all();
+  stdio_usb_init();
 
   Musin::Usb::init();
 

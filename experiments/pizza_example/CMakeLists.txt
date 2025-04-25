@@ -27,6 +27,5 @@ musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 
-pico_enable_stdio_uart(${EXECUTABLE_NAME} 1)
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_add_extra_outputs(${EXECUTABLE_NAME})

@@ -1,10 +1,9 @@
 #ifndef SB25_DRUM_TEMPO_HANDLER_H
 #define SB25_DRUM_TEMPO_HANDLER_H
 
-#include "clock_event.h" // Definition for ClockEvent
+#include "clock_event.h"
 #include "etl/observer.h"
-#include "etl/observable.h"
-#include "tempo_event.h" // Definition for TempoEvent
+#include "tempo_event.h"
 #include <cstdint>
 
 // Forward declarations for Clock implementations
@@ -66,7 +65,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received clock event.
    */
-  void notification(const Clock::ClockEvent &event); // Removed override
+  void notification(const Clock::ClockEvent &event);
 
 private:
   ClockSource current_source_;

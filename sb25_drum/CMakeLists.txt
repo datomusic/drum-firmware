@@ -16,6 +16,8 @@ add_executable(${EXECUTABLE_NAME}
   pizza_display.cpp
   tempo_handler.cpp
   internal_clock.cpp
+  tempo_multiplier.cpp
+  sequencer_controller.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

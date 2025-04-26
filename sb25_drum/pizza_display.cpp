@@ -183,7 +183,10 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
 // Needs to be defined before explicit instantiation below
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
-    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer) {
+    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer, uint32_t current_step) {
+  // Ensure current_step is within the valid range [0, NumSteps-1]
+  uint32_t current_step_in_pattern = (NumSteps > 0) ? (current_step % NumSteps) : 0;
+
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     // Assuming track index maps directly to keypad column
     if (track_idx >= 4)
@@ -214,13 +217,27 @@ void PizzaDisplay::draw_sequencer_state(
        }
     
        // Apply brightness using the new WS2812 method
-       final_color = _leds.adjust_color_brightness(base_color, brightness); // Use _leds
+       final_color = _leds.adjust_color_brightness(base_color, brightness);
      }
-        
+
+     // --- Highlight Current Step ---
+     // If this is the current step, blend the calculated color with white
+     if (step_idx == current_step_in_pattern) {
+         // Simple additive blend: Add white component (adjust intensity as needed)
+         uint8_t r = (final_color >> 16) & 0xFF;
+         uint8_t g = (final_color >> 8) & 0xFF;
+         uint8_t b = final_color & 0xFF;
+         uint8_t highlight_intensity = 100; // How much white to add
+         r = static_cast<uint8_t>(std::min(255, r + highlight_intensity));
+         g = static_cast<uint8_t>(std::min(255, g + highlight_intensity));
+         b = static_cast<uint8_t>(std::min(255, b + highlight_intensity));
+         final_color = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+     }
+
      // Map row/col to the linear LED_ARRAY index
-     uint8_t led_array_index = (7 - row) * 4 + col; // Recalculate index based on row/col
+     uint8_t led_array_index = static_cast<uint8_t>(step_idx * 4 + col); // Use step_idx directly
      if (led_array_index < LED_ARRAY.size()) {      // Bounds check
-       _leds.set_pixel(LED_ARRAY[led_array_index], final_color); // Use _leds
+       _leds.set_pixel(LED_ARRAY[led_array_index], final_color);
      }
    }
   }
@@ -228,7 +245,7 @@ void PizzaDisplay::draw_sequencer_state(
 
 // Explicit template instantiation for the sequencer used in main.cpp
 // This is necessary because the definition is in the .cpp file.
-template void
-PizzaDisplay::draw_sequencer_state<4, 8>(const StepSequencer::Sequencer<4, 8> &sequencer);
+template void PizzaDisplay::draw_sequencer_state<4, 8>(
+    const StepSequencer::Sequencer<4, 8> &sequencer, uint32_t current_step);
 
 } // namespace PizzaExample

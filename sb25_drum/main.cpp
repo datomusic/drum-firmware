@@ -11,7 +11,9 @@
 #include "pizza_display.h"
 #include "step_sequencer.h"
 #include "tempo_handler.h"
-#include "internal_clock.h" // Include the new clock header
+#include "internal_clock.h"
+#include "tempo_multiplier.h"     // Include TempoMultiplier
+#include "sequencer_controller.h" // Include SequencerController
 
 static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
@@ -22,8 +24,11 @@ static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
 static Clock::InternalClock internal_clock(120.0f);
 // Instantiate the tempo handler (defaults to Internal source)
 static Tempo::TempoHandler tempo_handler;
+// Instantiate the tempo multiplier (default: 1/4 -> 24 PPQN output from 96 PPQN input)
+static Tempo::TempoMultiplier tempo_multiplier(1, 4);
+// Instantiate the sequencer controller, linking it to the sequencer data
+static StepSequencer::SequencerController sequencer_controller(pizza_sequencer);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
-// TODO: Instantiate TempoMultiplier and register it with TempoHandler
 
 int main() {
   stdio_usb_init();
@@ -45,9 +50,15 @@ int main() {
       // Handle error appropriately, maybe halt or enter safe mode
       while(true) { tight_loop_contents(); }
   }
-  // Register TempoHandler to listen to InternalClock's ticks
+  // Register TempoHandler to listen to InternalClock
   internal_clock.add_observer(tempo_handler);
   printf("TempoHandler registered with InternalClock.\n");
+  // Register TempoMultiplier to listen to TempoHandler
+  tempo_handler.add_observer(tempo_multiplier);
+  printf("TempoMultiplier registered with TempoHandler.\n");
+  // Register SequencerController to listen to TempoMultiplier
+  tempo_multiplier.add_observer(sequencer_controller);
+  printf("SequencerController registered with TempoMultiplier.\n");
 
   // Start the internal clock if it's the default source
   if (tempo_handler.get_clock_source() == Tempo::ClockSource::INTERNAL) {
@@ -69,8 +80,8 @@ int main() {
     //    and request display changes via pizza_display methods.
     pizza_controls.update();
 
-    // Update sequencer display
-    pizza_display.draw_sequencer_state(pizza_sequencer);
+    // Update sequencer display (show current step)
+    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller.get_current_step());
 
     // 2. Update Display: Send the buffered LED data to the hardware.
     pizza_display.show();

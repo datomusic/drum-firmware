@@ -87,9 +87,11 @@ public:
    * @tparam NumTracks Number of tracks in the sequencer.
    * @tparam NumSteps Number of steps per track in the sequencer.
    * @param sequencer A const reference to the sequencer object.
+   * @param current_step The index of the currently playing step to highlight (0 to NumSteps-1).
    */
   template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer);
+  void draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+                            uint32_t current_step);
     
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.

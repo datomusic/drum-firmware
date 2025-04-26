@@ -1,30 +1,16 @@
 #include "internal_clock.h"
-#include "pico/stdlib.h" // Required for PICO_ASSERT
+#include "pico/stdlib.h" // Required for PICO_ASSERT, etc.
 #include <cstdio>        // For printf
 
 namespace Clock {
 
-InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm) {
-  // Initial calculation, timer setup happens in init()
+InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is_running(false) {
+  // Initialize timer_info struct to known state (optional but good practice)
+  _timer_info = {};
   calculate_interval();
 }
 
-bool InternalClock::init() {
-  if (_initialized) {
-    return true;
-  }
-  // Use the default alarm pool
-  _alarm_pool = alarm_pool_get_default();
-  if (!_alarm_pool) {
-    printf("InternalClock Error: Failed to get default alarm pool.\n");
-    return false;
-  }
-  printf("InternalClock: Initialized with default alarm pool. Initial BPM: %.2f, Interval: %lld "
-         "us\n",
-         _current_bpm, _tick_interval_us);
-  _initialized = true;
-  return true;
-}
+// init() method removed
 
 void InternalClock::set_bpm(float bpm) {
   if (bpm <= 0.0f) {
@@ -39,10 +25,9 @@ void InternalClock::set_bpm(float bpm) {
            _tick_interval_us);
 
     // If running, restart the timer with the new interval
-    if (_is_running && _alarm_id > 0) {
-      cancel_alarm(_alarm_id);
-      _alarm_id = 0; // Mark as inactive before rescheduling
-      start();       // Restart with the new interval
+    if (_is_running) {
+      stop();  // Cancel the existing timer
+      start(); // Start a new one with the updated interval
     }
   }
 }
@@ -52,45 +37,47 @@ float InternalClock::get_bpm() const {
 }
 
 void InternalClock::start() {
-  if (!_initialized) {
-    printf("InternalClock Error: Cannot start, not initialized.\n");
-    return;
-  }
   if (_is_running) {
-    // printf("InternalClock: Already running.\n");
-    return;
+     printf("InternalClock: Already running.\n");
+     return;
   }
   if (_tick_interval_us <= 0) {
     printf("InternalClock Error: Cannot start, invalid interval (%lld us).\n", _tick_interval_us);
     return;
   }
 
-  // Schedule the first alarm. The callback will reschedule subsequent alarms.
-  // Use add_alarm_in_us for the first one to avoid immediate callback if interval is short.
-  // Subsequent calls are handled by returning the interval from the callback.
-  _alarm_id = alarm_pool_add_alarm_in_us(_alarm_pool, _tick_interval_us, timer_callback, this, true);
-
-  if (_alarm_id > 0) {
+  // Add the repeating timer
+  // Pass 'this' as user_data so the static callback can access the instance
+  // The delay is negative to indicate the time *between starts* of callbacks
+  if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this, &_timer_info)) {
     _is_running = true;
-    printf("InternalClock: Started. Alarm ID: %d\n", _alarm_id);
+    printf("InternalClock: Started. Interval: %lld us\n", _tick_interval_us);
   } else {
-    printf("InternalClock Error: Failed to add alarm.\n");
-    _is_running = false; // Ensure state is correct
+    printf("InternalClock Error: Failed to add repeating timer.\n");
+    _is_running = false;
   }
 }
 
 void InternalClock::stop() {
   if (!_is_running) {
-    // printf("InternalClock: Already stopped.\n");
-    return;
+     printf("InternalClock: Already stopped.\n");
+     return;
   }
 
-  if (_alarm_id > 0) {
-    cancel_alarm(_alarm_id);
-    _alarm_id = 0; // Mark as inactive
+  // Cancel the repeating timer
+  bool cancelled = cancel_repeating_timer(&_timer_info);
+  _is_running = false; // Assume stopped even if cancel fails (shouldn't happen often)
+
+  if (cancelled) {
+    printf("InternalClock: Stopped.\n");
+  } else {
+    // This might happen if the timer fired and the callback returned false
+    // between the check for _is_running and the cancel_repeating_timer call,
+    // or if the timer wasn't validly added in the first place.
+    printf("InternalClock Warning: cancel_repeating_timer failed (timer might have already stopped).\n");
   }
-  _is_running = false;
-  printf("InternalClock: Stopped.\n");
+  // Reset timer_info to indicate no active timer
+  _timer_info = {};
 }
 
 bool InternalClock::is_running() const {
@@ -114,19 +101,16 @@ void InternalClock::calculate_interval() {
 }
 
 // --- Static Timer Callback ---
-int64_t InternalClock::timer_callback(alarm_id_t id, void *user_data) {
-  // Retrieve the instance pointer
-  InternalClock *instance = static_cast<InternalClock *>(user_data);
-  PICO_ASSERT(instance != nullptr); // Should always have a valid instance
+// Signature matches repeating_timer_callback_t
+bool InternalClock::timer_callback(struct repeating_timer *rt) {
+  // Retrieve the instance pointer from user_data
+  InternalClock *instance = static_cast<InternalClock *>(rt->user_data);
+  PICO_ASSERT(instance != nullptr);
 
-  // Call the instance method to handle the tick and get the next interval
-  return instance->handle_tick();
-}
-
-// --- Instance Tick Handler ---
-int64_t InternalClock::handle_tick() {
-  if (!_is_running) {
-    return 0; // Do not reschedule if stopped
+  // Check if the instance thinks it should still be running
+  if (!instance->_is_running) {
+    printf("InternalClock Callback: Instance stopped, cancelling timer.\n");
+    return false; // Stop the timer
   }
 
   // Create and notify observers with a ClockEvent
@@ -137,8 +121,10 @@ int64_t InternalClock::handle_tick() {
 
   etl::observable<etl::observer<ClockEvent>, MAX_CLOCK_OBSERVERS>::notify_observers(tick_event);
 
-  // Return the interval for the next callback, keeps the timer repeating
-  return _tick_interval_us;
+  // Return true to continue the repeating timer
+  return true;
 }
+
+// handle_tick() method removed
 
 } // namespace Clock

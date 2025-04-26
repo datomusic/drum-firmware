@@ -1,4 +1,5 @@
 #include "internal_clock.h"
+#include "pico/assert.h" // For PICO_ASSERT
 #include "pico/stdlib.h" // Required for PICO_ASSERT, etc.
 #include <cstdio>        // For printf
 
@@ -119,7 +120,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
   // tick_event.timestamp_us = time_us_64();
   // tick_event.source = ClockSource::INTERNAL; // Requires adding source to ClockEvent
 
-  etl::observable<etl::observer<ClockEvent>, MAX_CLOCK_OBSERVERS>::notify_observers(tick_event);
+  instance->notify_observers(tick_event);
 
   // Return true to continue the repeating timer
   return true;

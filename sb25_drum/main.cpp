@@ -3,8 +3,8 @@
 
 #include "musin/usb/usb.h"
 
-#include "pico/stdlib.h"
-#include "pico/time.h"
+#include "pico/stdlib.h" // for stdio_usb_init
+#include "pico/time.h"   // for sleep_us
 
 #include "midi.h"
 #include "pizza_controls.h"

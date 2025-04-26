@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <cstdio>
 
 #include "musin/usb/usb.h"
 

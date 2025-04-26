@@ -122,7 +122,7 @@ void TempoMultiplier::update_ticks_per_output() {
     _input_ticks_per_output_tick = Clock::InternalClock::PPQN; // Avoid division by zero, default to base
   }
   // Ensure minimum of 1 tick
-  _input_ticks_per_output_tick = std::max(1u, _input_ticks_per_output_tick);
+  _input_ticks_per_output_tick = std::max(static_cast<uint32_t>(1u), _input_ticks_per_output_tick);
 }
 
 } // namespace Tempo

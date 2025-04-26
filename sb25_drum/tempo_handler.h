@@ -7,12 +7,12 @@
 #include "tempo_event.h" // Definition for TempoEvent
 #include <cstdint>
 
-// Forward declarations if Clock implementations are defined elsewhere
-// namespace Clock {
-// class InternalClock;
+// Forward declarations for Clock implementations
+namespace Clock {
+class InternalClock;
 // class MIDIClock;
 // class ExternalSyncClock;
-// }
+}
 
 namespace Tempo {
 

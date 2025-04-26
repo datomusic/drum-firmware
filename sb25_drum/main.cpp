@@ -10,10 +10,20 @@
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "step_sequencer.h"
+#include "tempo_handler.h"
+#include "internal_clock.h" // Include the new clock header
 
 static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
+
+// --- Clock and Tempo Setup ---
+// Instantiate the internal clock (e.g., starting at 120 BPM)
+static Clock::InternalClock internal_clock(120.0f);
+// Instantiate the tempo handler (defaults to Internal source)
+static Tempo::TempoHandler tempo_handler;
+// TODO: Instantiate MIDIClock, ExternalSyncClock when available
+// TODO: Instantiate TempoMultiplier and register it with TempoHandler
 
 int main() {
   stdio_usb_init();
@@ -27,6 +37,24 @@ int main() {
   pizza_display.init();
 
   pizza_controls.init();
+
+  // --- Initialize Clocking System ---
+  printf("Initializing Clocking System...\n");
+  if (!internal_clock.init()) {
+      printf("FATAL: Failed to initialize Internal Clock!\n");
+      // Handle error appropriately, maybe halt or enter safe mode
+      while(true) { tight_loop_contents(); }
+  }
+  // Register TempoHandler to listen to InternalClock's ticks
+  internal_clock.add_observer(tempo_handler);
+  printf("TempoHandler registered with InternalClock.\n");
+
+  // Start the internal clock if it's the default source
+  if (tempo_handler.get_clock_source() == Tempo::ClockSource::INTERNAL) {
+      internal_clock.start();
+  }
+  // TODO: Add logic to register TempoHandler with other clocks
+  // TODO: Add logic to start/stop clocks based on TempoHandler source selection
 
   printf("Initializing sequencer pattern...\n");
   pizza_sequencer.get_track(0).get_step(0) = {36, 100, true};

@@ -15,6 +15,7 @@ add_executable(${EXECUTABLE_NAME}
   pizza_controls.cpp
   pizza_display.cpp
   tempo_handler.cpp
+  internal_clock.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

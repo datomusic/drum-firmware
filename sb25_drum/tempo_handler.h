@@ -65,7 +65,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received clock event.
    */
-  void notification(const Clock::ClockEvent &event);
+  void notification(const Clock::ClockEvent &event) override; // Added override
 
 private:
   ClockSource current_source_;

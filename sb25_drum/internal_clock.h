@@ -2,7 +2,7 @@
 #define SB25_DRUM_INTERNAL_CLOCK_H
 
 #include "clock_event.h"
-#include "etl/observable.h"
+#include "etl/observer.h"
 #include "hardware/timer.h" // For alarm_pool_t, alarm_id_t, absolute_time_t
 #include <cstdint>
 

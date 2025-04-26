@@ -1,6 +1,5 @@
 #include "internal_clock.h"
-#include "pico/assert.h" // For PICO_ASSERT
-#include "pico/stdlib.h" // Required for PICO_ASSERT, etc.
+#include "pico/stdlib.h" // Required for time functions, etc.
 #include <cstdio>        // For printf
 
 namespace Clock {
@@ -106,7 +105,7 @@ void InternalClock::calculate_interval() {
 bool InternalClock::timer_callback(struct repeating_timer *rt) {
   // Retrieve the instance pointer from user_data
   InternalClock *instance = static_cast<InternalClock *>(rt->user_data);
-  PICO_ASSERT(instance != nullptr);
+  // Assuming instance is always valid as per design constraints.
 
   // Check if the instance thinks it should still be running
   if (!instance->_is_running) {

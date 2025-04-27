@@ -3,7 +3,12 @@
 
 #include "sample_reader.h"
 
-// Reads Mono 16bit PCM samples from memory
+// Reads 16bit PCM samples from memory.
+//
+// TODO: This is essentially just a memory stream, which converts from a byte array to
+// a stream of int16_t in batches of AUDIO_BLOCK_SAMPLES, written in a probably bad and inefficient way...
+// The read_next implementation is terrible, and it would be better to read the whole block of AUDIO_BLOCK_SAMPLES*2
+// in one go, but I don't know how to do that currently, without using reinterpret_cast, which is not safe (and not allowed in constexpr for that reason).
 struct PcmDecoder : SampleReader {
   constexpr PcmDecoder(const std::byte *bytes, const uint32_t byte_count) {
     set_source(bytes, byte_count);

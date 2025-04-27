@@ -1,7 +1,6 @@
 #ifndef SB25_DRUM_TEMPO_MULTIPLIER_H
 #define SB25_DRUM_TEMPO_MULTIPLIER_H
 
-#include "etl/observable.h"
 #include "etl/observer.h"
 #include "internal_clock.h" // For PPQN constant
 #include "sequencer_tick_event.h"
@@ -40,7 +39,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received tempo event (representing one high-resolution tick).
    */
-  void notification(const Tempo::TempoEvent &event) override;
+  void notification(const Tempo::TempoEvent &event);
 
   /**
    * @brief Set the tempo multiplier.

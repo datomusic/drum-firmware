@@ -10,10 +10,10 @@ project(musin-test)
 include(${CMAKE_CURRENT_LIST_DIR}/../../musin/generic_sources.cmake)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
-add_subdirectory(Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
 
 add_executable(${PROJECT_NAME}
-    audio/pitch_shifter_test.cpp
+  audio/pitch_shifter_test.cpp
 )
 
 target_sources(${PROJECT_NAME} PRIVATE

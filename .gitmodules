@@ -11,5 +11,5 @@
 	path = lib/etl
 	url = https://github.com/ETLCPP/etl.git
 [submodule "test/musin/Catch2/Catch2"]
-	path = test/musin/Catch2
+	path = lib/test/Catch2
 	url = https://github.com/catchorg/Catch2.git

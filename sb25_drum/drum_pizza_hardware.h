@@ -25,7 +25,6 @@ constexpr uint32_t PIN_RING_5 = 10;
 constexpr uint32_t PIN_LED_ENABLE = 20;
 constexpr uint32_t PIN_LED_DATA = 16;
 
-// Led indexes
 constexpr uint32_t LED_PLAY_BUTTON = 0;
 
 constexpr uint32_t LED_DRUMPAD_1 = 5;

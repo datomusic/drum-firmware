@@ -39,7 +39,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received tempo event (representing one high-resolution tick).
    */
-  void notification(const Tempo::TempoEvent &event);
+  void notification(const Tempo::TempoEvent &event) override;
 
   /**
    * @brief Set the tempo multiplier.

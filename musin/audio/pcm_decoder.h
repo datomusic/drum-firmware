@@ -10,19 +10,24 @@ struct PcmDecoder : SampleReader {
   }
 
   constexpr void set_source(const std::byte *bytes, const uint32_t byte_count) {
-    this->read_pos = 0;
     this->bytes = bytes;
-    this->byte_count = byte_count;
+    this->iterator = bytes;
+
+    if (byte_count > 0) {
+      this->end = bytes + (byte_count - 1);
+    } else {
+      this->end = this->iterator;
+    }
   }
 
   // Reader interface
   constexpr void reset() {
-    read_pos = 0;
+    iterator = bytes;
   }
 
   // Reader interface
   constexpr bool has_data() {
-    return read_pos < byte_count;
+    return iterator != nullptr;
   }
 
   // Reader interface
@@ -41,7 +46,7 @@ struct PcmDecoder : SampleReader {
     }
 
     if (samples_written == 0) {
-      read_pos = byte_count;
+      iterator = nullptr;
     }
 
     return samples_written;
@@ -49,19 +54,18 @@ struct PcmDecoder : SampleReader {
 
 private:
   constexpr bool read_next(int16_t &out) {
-    if (read_pos > byte_count - 2) {
+    if (iterator >= end) {
       return false;
     }
 
-    const std::byte cur_byte[2] = {bytes[read_pos], bytes[read_pos + 1]};
-    out = std::bit_cast<int16_t>(cur_byte);
-    read_pos += 2;
+    const std::byte cur_bytes[2] = {(*iterator++), (*iterator++)};
+    out = std::bit_cast<int16_t>(cur_bytes);
     return true;
   };
 
   const std::byte *bytes;
-  uint32_t byte_count;
-  uint32_t read_pos;
+  const std::byte *iterator;
+  const std::byte *end;
 };
 
 #endif /* end of include guard: PCM_READER_H_GB952ZMC */

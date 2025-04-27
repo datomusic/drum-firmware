@@ -42,7 +42,7 @@ jobs:
 
       - if: ${{ steps.cache-catch2.outputs.cache-hit != 'true' }}
         name: Checkout Catch2
-        run: git submodule update --init test/musin/Catch2
+        run: git submodule update --init lib/test/Catch2
 
       - id: cache-etl
         name: Cache ETL

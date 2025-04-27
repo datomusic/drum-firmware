@@ -28,19 +28,16 @@ ClockSource TempoHandler::get_clock_source() const {
 
 void TempoHandler::notification(Clock::ClockEvent event) {
   // TODO: Add logic to determine if this event *actually* came from the
-  //       'current_source_'. This depends heavily on the Clock architecture.
-  //       For now, assume any received event is from the active source if
-  //       TempoHandler only subscribes to the active clock.
-  bool event_is_from_active_source = true; // Placeholder assumption
+ //       'current_source_'. This depends heavily on the Clock architecture.
+ //       For now, assume any received event is from the active source if
+ //       TempoHandler only subscribes to the active clock.
+ bool event_is_from_active_source = true;
 
-  if (event_is_from_active_source) {
-    // Process the tick if necessary (e.g., update internal BPM calculation)
+ if (event_is_from_active_source) {
+   Tempo::TempoEvent tempo_tick_event;
 
-    Tempo::TempoEvent tempo_tick_event;
-    // Populate tempo_tick_event fields (e.g., timestamp, bpm) if needed
-
-    etl::observable<etl::observer<TempoEvent>, MAX_TEMPO_OBSERVERS>::notify_observers(
-        tempo_tick_event);
+   etl::observable<etl::observer<TempoEvent>, MAX_TEMPO_OBSERVERS>::notify_observers(
+       tempo_tick_event);
   }
 }
 

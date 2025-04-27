@@ -38,48 +38,36 @@ int main() {
 
   pizza_display.init();
 
-  pizza_controls.init();
+ pizza_controls.init();
 
-  // --- Initialize Clocking System ---
-  // Initialization logic for InternalClock is now handled in its constructor and start() method.
+ // --- Initialize Clocking System ---
+ internal_clock.add_observer(tempo_handler);
+ tempo_handler.add_observer(tempo_multiplier);
+ tempo_multiplier.add_observer(sequencer_controller);
 
-  // Register TempoHandler to listen to InternalClock
-  internal_clock.add_observer(tempo_handler);
-  // Register TempoMultiplier to listen to TempoHandler
-  tempo_handler.add_observer(tempo_multiplier);
-  // Register SequencerController to listen to TempoMultiplier
-  tempo_multiplier.add_observer(sequencer_controller);
+ if (tempo_handler.get_clock_source() == Tempo::ClockSource::INTERNAL) {
+   internal_clock.start();
+ }
+ // TODO: Add logic to register TempoHandler with other clocks
+ // TODO: Add logic to start/stop clocks based on TempoHandler source selection
 
-  // Start the internal clock if it's the default source
-  if (tempo_handler.get_clock_source() == Tempo::ClockSource::INTERNAL) {
-    internal_clock.start();
-  }
-  // TODO: Add logic to register TempoHandler with other clocks
-  // TODO: Add logic to start/stop clocks based on TempoHandler source selection
+ pizza_sequencer.get_track(0).get_step(0) = {36, 100, true};
+ pizza_sequencer.get_track(0).get_step(4) = {36, 100, true};
+ pizza_sequencer.get_track(1).get_step(2) = {38, 100, true};
+ pizza_sequencer.get_track(1).get_step(6) = {38, 100, true};
 
-  // Initialize a simple pattern
-  pizza_sequencer.get_track(0).get_step(0) = {36, 100, true}; // Kick on 1
-  pizza_sequencer.get_track(0).get_step(4) = {36, 100, true}; // Kick on 3
-  pizza_sequencer.get_track(1).get_step(2) = {38, 100, true}; // Snare on 2
-  pizza_sequencer.get_track(1).get_step(6) = {38, 100, true}; // Snare on 4
+ while (true) {
+   pizza_controls.update();
 
-  while (true) {
-    // 1. Update Controls: Read inputs, process events, update internal state,
-    //    and request display changes via pizza_display methods.
-    pizza_controls.update();
+   pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller.get_current_step());
 
-    // Update sequencer display (show current step)
-    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller.get_current_step());
+   pizza_display.show();
+   Musin::Usb::background_update();
+   midi_read();
 
-    // 2. Update Display: Send the buffered LED data to the hardware.
-    pizza_display.show();
-    // 3. Handle Background Tasks
-    Musin::Usb::background_update();
-    midi_read();
-
-    // 4. Brief Delay: Important for WS2812 LED latching after show()
-    sleep_us(80);
-  }
+   // Brief Delay: Important for WS2812 LED latching after show()
+   sleep_us(80);
+ }
 
   return 0;
 }

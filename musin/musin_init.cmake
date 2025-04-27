@@ -1,23 +1,19 @@
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-set(MUSIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
-set(MUSIN_AUDIO ${MUSIN_ROOT}/audio)
-set(MUSIN_UI ${MUSIN_ROOT}/ui)
-# set(MUSIN_LIBRARIES ${MUSIN_ROOT}/ports/pico/libraries)
-set(MUSIN_USB ${MUSIN_ROOT}/usb)
-set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)
+include(${CMAKE_CURRENT_LIST_DIR}/generic_sources.cmake)
 
-# set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
-# set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
+
+set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
+set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
 
 # Add custom board directory before SDK init
-# list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
+list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()
-# include(${SDK_PATH}/pico_sdk_init.cmake)
-# include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
+include(${SDK_PATH}/pico_sdk_init.cmake)
+include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
 
@@ -72,16 +68,6 @@ macro(musin_init_usb_midi TARGET)
   )
 
 endmacro()
-
-
-# Platform independent sources for audio subsystem
-set(musin_audio_generic_sources
-    ${MUSIN_AUDIO}/audio_memory_reader.cpp
-    ${MUSIN_AUDIO}/data_ulaw.c
-    ${MUSIN_AUDIO}/crusher.cpp
-    ${MUSIN_AUDIO}/waveshaper.cpp
-    ${MUSIN_AUDIO}/filter.cpp
-)
 
 macro(musin_init_audio TARGET)
   target_sources(${TARGET} PRIVATE

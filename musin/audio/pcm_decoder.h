@@ -10,66 +10,59 @@ struct PcmDecoder : SampleReader {
   }
 
   constexpr void set_source(const unsigned char *bytes, const uint32_t byte_count) {
+    this->read_pos = 0;
     this->bytes = bytes;
-    this->end = this->bytes + byte_count;
+    this->byte_count = byte_count;
   }
 
   // Reader interface
   constexpr void reset() {
-    iterator = bytes;
+    read_pos = 0;
   }
 
   // Reader interface
   constexpr bool has_data() {
-    return iterator != nullptr;
+    return read_pos < byte_count;
   }
 
   // Reader interface
   constexpr uint32_t read_samples(AudioBlock &out_samples) {
     auto out = out_samples.begin();
-    unsigned char tmp1;
-    unsigned char tmp2;
+    int16_t sample = 0;
 
     unsigned samples_written = 0;
     for (samples_written = 0; samples_written < AUDIO_BLOCK_SAMPLES; samples_written++) {
-      if (!read_next(tmp1)) {
+      if (!read_next(sample)) {
         break;
       }
 
-      if (!read_next(tmp2)) {
-        break;
-      }
-
-      const uint16_t upper = tmp2 << 8;
-      *out++ = (upper | tmp1);
+      *out = sample;
+      out++;
     }
 
     if (samples_written == 0) {
-      iterator = nullptr;
+      read_pos = byte_count;
     }
 
     return samples_written;
   }
 
 private:
-  constexpr bool read_next(unsigned char &out) {
-    if (iterator == nullptr) {
+  constexpr bool read_next(int16_t &out) {
+    if (read_pos > byte_count - 2) {
       return false;
     }
 
-    if (iterator == end) {
-      iterator = nullptr;
-      return false;
-    } else {
-      out = *iterator;
-      ++iterator;
-      return true;
-    }
+    const unsigned char cur_byte[2] = {bytes[read_pos], bytes[read_pos+1]};
+    out = std::bit_cast<int16_t>(cur_byte);
+    read_pos += 2;
+    return true;
   };
 
   const unsigned char *bytes;
-  const unsigned char *end;
-  const unsigned char *iterator;
+  uint32_t byte_count;
+  uint32_t read_pos;
+  // const int16_t *iterator;
 };
 
 #endif /* end of include guard: PCM_READER_H_GB952ZMC */

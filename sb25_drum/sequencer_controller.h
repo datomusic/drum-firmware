@@ -33,7 +33,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received sequencer tick event.
    */
-  void notification(const Tempo::SequencerTickEvent &event) override;
+  void notification(const Tempo::SequencerTickEvent &event);
 
   /**
    * @brief Get the current step index within the pattern length.

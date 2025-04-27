@@ -22,19 +22,19 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
       drumpad_readers{// Initialize readers directly by calling constructors
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
-                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
-                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
-      drumpads{// Initialize drumpads using the readers by calling constructors explicitly
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U,
-                                                 100U, 800U, 1000U, 5000U, 200000U}, // Pad index 0
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U,
-                                                 100U, 800U, 1000U, 5000U, 200000U}, // Pad index 1
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U,
-                                                 100U, 800U, 1000U, 5000U, 200000U}, // Pad index 2
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U,
-                                                 100U, 800U, 1000U, 5000U, 200000U}}, // Pad index 3
-      drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
-      mux_controls{                       // Initialize by explicitly calling constructors
+                     AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
+                     AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
+     drumpads{
+              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U,
+                                                100U, 800U, 1000U, 5000U, 200000U}, // Pad index 0
+              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U,
+                                                100U, 800U, 1000U, 5000U, 200000U}, // Pad index 1
+              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U,
+                                                100U, 800U, 1000U, 5000U, 200000U}, // Pad index 2
+              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U,
+                                                100U, 800U, 1000U, 5000U, 200000U}}, // Pad index 3
+     drumpad_note_numbers{0, 7, 15, 23},
+     mux_controls{
                    // Assuming order matches the enum in drum_pizza_hardware.h
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM1, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, 0.005f, true},
@@ -50,12 +50,12 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM3, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, REPEAT, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM4, 0.005f, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
-      control_observers{// Initialize observers by explicitly calling constructors (id, cc, channel)
-                        AnalogControlEventHandler{this, DRUM1, DRUM1, 0},
-                        AnalogControlEventHandler{this, FILTER, 75, 0},
-                        AnalogControlEventHandler{this, DRUM2, DRUM2, 0},
+                  AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, true},
+                  AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
+     control_observers{
+                       AnalogControlEventHandler{this, DRUM1, DRUM1, 0}, // Map DRUM1 ID to DRUM1 CC
+                       AnalogControlEventHandler{this, FILTER, 75, 0},
+                       AnalogControlEventHandler{this, DRUM2, DRUM2, 0},
                         AnalogControlEventHandler{this, PITCH1, 16, 1},
                         AnalogControlEventHandler{this, PITCH2, 17, 2},
                         AnalogControlEventHandler{this, PLAYBUTTON, PLAYBUTTON, 0},

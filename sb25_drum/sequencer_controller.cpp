@@ -9,7 +9,7 @@ SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequenc
   printf("SequencerController: Initialized.\n");
 }
 
-void SequencerController::notification(const Tempo::SequencerTickEvent &event) {
+void SequencerController::notification(Tempo::SequencerTickEvent event) {
   // This is called for every sequencer tick (e.g., every 16th note by default)
 
   // --- Calculate Step Index ---

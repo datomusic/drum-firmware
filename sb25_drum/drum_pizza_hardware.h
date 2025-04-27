@@ -33,25 +33,25 @@ constexpr uint32_t LED_DRUMPAD_2 = 14;
 constexpr uint32_t LED_DRUMPAD_3 = 23;
 constexpr uint32_t LED_DRUMPAD_4 = 32;
 
-constexpr uint32_t LED_STEP1_START = 1;  // Includes LEDs  1, 2, 3, 4
-constexpr uint32_t LED_STEP2_START = 6;  // Includes LEDs  6, 7, 8, 9
-constexpr uint32_t LED_STEP3_START = 10; // Includes LEDs 10, 11, 12, 13
-constexpr uint32_t LED_STEP4_START = 15; // Includes LEDs 15, 16, 17, 18
-constexpr uint32_t LED_STEP5_START = 19; // Includes LEDs 19, 20, 21, 22
-constexpr uint32_t LED_STEP6_START = 24; // Includes LEDs 24, 25, 26, 27
+constexpr uint32_t LED_STEP1_START = 1;
+constexpr uint32_t LED_STEP2_START = 6;
+constexpr uint32_t LED_STEP3_START = 10;
+constexpr uint32_t LED_STEP4_START = 15;
+constexpr uint32_t LED_STEP5_START = 19;
+constexpr uint32_t LED_STEP6_START = 24;
 constexpr uint32_t LED_STEP7_START = 28;
 constexpr uint32_t LED_STEP8_START = 33;
 
 // LED indices for the 8x4 sequencer grid
 constexpr std::array<uint32_t, 32> LED_ARRAY = {
-    1,  2,  3,  4,  // Step 1 (Row 7)
-    6,  7,  8,  9,  // Step 2 (Row 6)
-    10, 11, 12, 13, // Step 3 (Row 5)
-    15, 16, 17, 18, // Step 4 (Row 4)
-    19, 20, 21, 22, // Step 5 (Row 3)
-    24, 25, 26, 27, // Step 6 (Row 2)
-    28, 29, 30, 31, // Step 7 (Row 1)
-    33, 34, 35, 36  // Step 8 (Row 0)
+    1,  2,  3,  4,  // Step 1
+    6,  7,  8,  9,  // Step 2
+    10, 11, 12, 13, // Step 3
+    15, 16, 17, 18, // Step 4
+    19, 20, 21, 22, // Step 5
+    24, 25, 26, 27, // Step 6
+    28, 29, 30, 31, // Step 7
+    33, 34, 35, 36  // Step 8
 };
 
 // Total number of LEDs: 32 sequencer steps + 4 drumpads + 1 play button

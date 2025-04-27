@@ -35,10 +35,9 @@ public:
    * @brief Get a reference to a specific step.
    * @param index The index of the step (0 to NumSteps - 1).
    * @return A reference to the Step object.
-   * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
+   * @note Assumes index is valid.
    */
   [[nodiscard]] constexpr Step &get_step(size_t index) {
-    // hard_assert(index < NumSteps);
     return steps[index];
   }
 
@@ -46,10 +45,9 @@ public:
    * @brief Get a const reference to a specific step.
    * @param index The index of the step (0 to NumSteps - 1).
    * @return A const reference to the Step object.
-   * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
+   * @note Assumes index is valid.
    */
   [[nodiscard]] constexpr const Step &get_step(size_t index) const {
-    // hard_assert(index < NumSteps);
     return steps[index];
   }
 
@@ -89,10 +87,9 @@ public:
    * @brief Get a reference to a specific track.
    * @param index The index of the track (0 to NumTracks - 1).
    * @return A reference to the Track object.
-   * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
+   * @note Assumes index is valid.
    */
   [[nodiscard]] constexpr Track<NumSteps> &get_track(size_t index) {
-    // hard_assert(index < NumTracks);
     return tracks[index];
   }
 
@@ -100,10 +97,9 @@ public:
    * @brief Get a const reference to a specific track.
    * @param index The index of the track (0 to NumTracks - 1).
    * @return A const reference to the Track object.
-   * @note Assumes index is valid. Add bounds checking (e.g., assert) if needed.
+   * @note Assumes index is valid.
    */
   [[nodiscard]] constexpr const Track<NumSteps> &get_track(size_t index) const {
-    // hard_assert(index < NumTracks);
     return tracks[index];
   }
 
@@ -123,7 +119,6 @@ public:
 
 private:
   etl::array<Track<NumSteps>, NumTracks> tracks;
-  // Add tempo, current step, etc. later
 };
 
 } // namespace StepSequencer

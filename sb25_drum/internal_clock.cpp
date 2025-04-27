@@ -1,16 +1,13 @@
 #include "internal_clock.h"
-#include "pico/stdlib.h" // Required for time functions, etc.
-#include <cstdio>        // For printf
+#include "pico/stdlib.h"
+#include <cstdio>
 
 namespace Clock {
 
 InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is_running(false) {
-  // Initialize timer_info struct to known state (optional but good practice)
   _timer_info = {};
   calculate_interval();
 }
-
-// init() method removed
 
 void InternalClock::set_bpm(float bpm) {
   if (bpm <= 0.0f) {

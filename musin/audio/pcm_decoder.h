@@ -4,8 +4,8 @@
 #include "sample_reader.h"
 
 // Reads Mono 16bit PCM samples from memory
-struct PcmReader : SampleReader {
-  constexpr PcmReader(const unsigned char *bytes, const uint32_t byte_count) {
+struct PcmDecoder : SampleReader {
+  constexpr PcmDecoder(const unsigned char *bytes, const uint32_t byte_count) {
     set_source(bytes, byte_count);
   }
 

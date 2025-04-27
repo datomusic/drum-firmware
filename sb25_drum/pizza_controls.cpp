@@ -1,11 +1,11 @@
 #include "pizza_controls.h"
-#include "midi.h"          // For send_midi_cc, send_midi_note
-#include "pizza_display.h" // Need definition for display methods
-#include "step_sequencer.h"     // Need definition for Sequencer
-#include <algorithm>       // For std::clamp
-#include <cmath>           // For std::max used in scaling
-#include <cstddef>         // For size_t
-#include <cstdio>          // For printf
+#include "midi.h"           // For send_midi_cc, send_midi_note
+#include "pizza_display.h"  // Need definition for display methods
+#include "step_sequencer.h" // Need definition for Sequencer
+#include <algorithm>        // For std::clamp
+#include <cmath>            // For std::max used in scaling
+#include <cstddef>          // For size_t
+#include <cstdio>           // For printf
 
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
@@ -15,7 +15,8 @@ using Musin::UI::Drumpad;
 // Use PizzaExample::PizzaDisplay for the parameter type
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref) // Accept sequencer ref
-    : display(display_ref), sequencer(sequencer_ref), // Store references (display is now PizzaExample::PizzaDisplay&)
+    : display(display_ref),
+      sequencer(sequencer_ref), // Store references (display is now PizzaExample::PizzaDisplay&)
       keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
       drumpad_readers{// Initialize readers directly by calling constructors
@@ -24,14 +25,14 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
       drumpads{// Initialize drumpads using the readers by calling constructors explicitly
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U}, // Pad index 0
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U}, // Pad index 1
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U}, // Pad index 2
-               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U, 100U,
-                                                 800U, 1000U, 5000U, 200000U}}, // Pad index 3
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U}, // Pad index 0
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U}, // Pad index 1
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U}, // Pad index 2
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U}}, // Pad index 3
       drumpad_note_numbers{0, 7, 15, 23}, // Initial notes
       mux_controls{                       // Initialize by explicitly calling constructors
                    // Assuming order matches the enum in drum_pizza_hardware.h
@@ -122,9 +123,9 @@ void PizzaControls::update() {
   // Display updates are requested within observers and update_drumpads
   // The actual display.show() is called in main.cpp's loop
 }
-    
+
 // --- Private Methods ---
-    
+
 float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
   // Map ADC range (e.g., 100-1000) to brightness (e.g., 0.1-1.0)
   // Adjust these based on sensor readings and desired visual response
@@ -148,16 +149,17 @@ float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
 uint32_t PizzaControls::calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const {
   if (base_color == 0)
     return 0;
-    
+
   float brightness_factor = scale_raw_to_brightness(raw_value);
   // Convert float factor (0.0-1.0) to uint8_t brightness (0-255)
-  uint8_t brightness_val = static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
-    
+  uint8_t brightness_val =
+      static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
+
   // Use the display's leds object and the new method
   // Note: display.leds() requires the accessor added in pizza_display.h
   return display.leds().adjust_color_brightness(base_color, brightness_val);
 }
-    
+
 void PizzaControls::update_drumpads() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update(); // Update call remains, event handling moves to observer

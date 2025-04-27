@@ -38,7 +38,7 @@ public:
   /**
    * @brief Get the current step index within the pattern length.
    */
-   [[nodiscard]] uint32_t get_current_step() const;
+  [[nodiscard]] uint32_t get_current_step() const;
 
   /**
    * @brief Reset the current step index (e.g., on transport stop/start).

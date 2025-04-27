@@ -5,14 +5,14 @@
 #include "pico/stdlib.h" // for stdio_usb_init
 #include "pico/time.h"   // for sleep_us
 
+#include "internal_clock.h"
 #include "midi.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
+#include "sequencer_controller.h" // Include SequencerController
 #include "step_sequencer.h"
 #include "tempo_handler.h"
-#include "internal_clock.h"
-#include "tempo_multiplier.h"     // Include TempoMultiplier
-#include "sequencer_controller.h" // Include SequencerController
+#include "tempo_multiplier.h" // Include TempoMultiplier
 
 static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
@@ -36,7 +36,6 @@ int main() {
 
   midi_init();
 
-
   pizza_display.init();
 
   pizza_controls.init();
@@ -53,7 +52,7 @@ int main() {
 
   // Start the internal clock if it's the default source
   if (tempo_handler.get_clock_source() == Tempo::ClockSource::INTERNAL) {
-      internal_clock.start();
+    internal_clock.start();
   }
   // TODO: Add logic to register TempoHandler with other clocks
   // TODO: Add logic to start/stop clocks based on TempoHandler source selection
@@ -63,7 +62,6 @@ int main() {
   pizza_sequencer.get_track(0).get_step(4) = {36, 100, true}; // Kick on 3
   pizza_sequencer.get_track(1).get_step(2) = {38, 100, true}; // Snare on 2
   pizza_sequencer.get_track(1).get_step(6) = {38, 100, true}; // Snare on 4
-
 
   while (true) {
     // 1. Update Controls: Read inputs, process events, update internal state,

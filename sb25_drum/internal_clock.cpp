@@ -38,8 +38,8 @@ float InternalClock::get_bpm() const {
 
 void InternalClock::start() {
   if (_is_running) {
-     printf("InternalClock: Already running.\n");
-     return;
+    printf("InternalClock: Already running.\n");
+    return;
   }
   if (_tick_interval_us <= 0) {
     printf("InternalClock Error: Cannot start, invalid interval (%lld us).\n", _tick_interval_us);
@@ -60,8 +60,8 @@ void InternalClock::start() {
 
 void InternalClock::stop() {
   if (!_is_running) {
-     printf("InternalClock: Already stopped.\n");
-     return;
+    printf("InternalClock: Already stopped.\n");
+    return;
   }
 
   // Cancel the repeating timer
@@ -74,7 +74,8 @@ void InternalClock::stop() {
     // This might happen if the timer fired and the callback returned false
     // between the check for _is_running and the cancel_repeating_timer call,
     // or if the timer wasn't validly added in the first place.
-    printf("InternalClock Warning: cancel_repeating_timer failed (timer might have already stopped).\n");
+    printf("InternalClock Warning: cancel_repeating_timer failed (timer might have already "
+           "stopped).\n");
   }
   // Reset timer_info to indicate no active timer
   _timer_info = {};
@@ -92,8 +93,8 @@ void InternalClock::calculate_interval() {
   // Ticks per second = (BPM / 60) * PPQN
   float ticks_per_second = (_current_bpm / 60.0f) * static_cast<float>(PPQN);
   if (ticks_per_second <= 0.0f) {
-      _tick_interval_us = 0;
-      return;
+    _tick_interval_us = 0;
+    return;
   }
   // Interval in seconds = 1.0 / ticks_per_second
   // Interval in microseconds = (1.0 / ticks_per_second) * 1,000,000

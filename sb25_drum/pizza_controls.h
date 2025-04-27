@@ -4,10 +4,10 @@
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "etl/observer.h"
+#include "musin/hal/analog_in.h"
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
-#include "musin/hal/analog_in.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -22,7 +22,8 @@ class PizzaDisplay;
 class PizzaControls {
 public:
   // Constructor now takes both display and sequencer references, using the namespace
-  explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref, StepSequencer::Sequencer<4, 8> &sequencer_ref);
+  explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
+                         StepSequencer::Sequencer<4, 8> &sequencer_ref);
 
   // Prevent copying and assignment
   PizzaControls(const PizzaControls &) = delete;
@@ -46,7 +47,7 @@ private:
   void select_note_for_pad(uint8_t pad_index, int8_t offset);
   uint32_t calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const;
   float scale_raw_to_brightness(uint16_t raw_value) const;
-    
+
   // --- Nested Observer Classes ---
   // These need access to PizzaControls members (like display, drumpad_note_numbers)
 
@@ -78,7 +79,7 @@ private:
 
   struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
     PizzaControls *parent;
-    const uint8_t pad_index; 
+    const uint8_t pad_index;
 
     constexpr DrumpadEventHandler(PizzaControls *p, uint8_t index) : parent(p), pad_index(index) {
     }
@@ -86,12 +87,12 @@ private:
     void notification(Musin::UI::DrumpadEvent event) override;
   };
 
- // --- Members ---
- PizzaExample::PizzaDisplay &display;
- StepSequencer::Sequencer<4, 8> &sequencer;
+  // --- Members ---
+  PizzaExample::PizzaDisplay &display;
+  StepSequencer::Sequencer<4, 8> &sequencer;
 
- // Keypad
- Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
+  // Keypad
+  Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
   static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
     std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
     for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {

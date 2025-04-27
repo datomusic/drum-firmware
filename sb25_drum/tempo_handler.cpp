@@ -5,7 +5,6 @@
 // #include "midi_clock.h"
 // #include "external_sync_clock.h"
 
-
 namespace Tempo {
 
 TempoHandler::TempoHandler(ClockSource initial_source) : current_source_(initial_source) {

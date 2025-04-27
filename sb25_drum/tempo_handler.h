@@ -11,7 +11,7 @@ namespace Clock {
 class InternalClock;
 // class MIDIClock;
 // class ExternalSyncClock;
-}
+} // namespace Clock
 
 namespace Tempo {
 

@@ -19,9 +19,9 @@ constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
  * and emits SequencerTickEvents at a rate determined by the multiplier
  * and divider. It can also apply swing by delaying odd or even output ticks.
  */
-class TempoMultiplier : public etl::observer<Tempo::TempoEvent>,
-                        public etl::observable<etl::observer<SequencerTickEvent>,
-                                               MAX_SEQUENCER_OBSERVERS> {
+class TempoMultiplier
+    : public etl::observer<Tempo::TempoEvent>,
+      public etl::observable<etl::observer<SequencerTickEvent>, MAX_SEQUENCER_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
@@ -43,25 +43,29 @@ public:
 
   /**
    * @brief Set the tempo multiplier.
-   * @param multiplier The factor to multiply the base tempo by (e.g., 2 for double time). Must be > 0.
+   * @param multiplier The factor to multiply the base tempo by (e.g., 2 for double time). Must be >
+   * 0.
    */
   void set_multiplier(int multiplier);
 
   /**
    * @brief Set the tempo divider.
-   * @param divider The factor to divide the base tempo by (e.g., 4 for 16th notes from PPQN). Must be > 0.
+   * @param divider The factor to divide the base tempo by (e.g., 4 for 16th notes from PPQN). Must
+   * be > 0.
    */
   void set_divider(int divider);
 
   /**
    * @brief Set the swing amount for even-numbered output ticks.
-   * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped to [0.0, 1.0).
+   * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped
+   * to [0.0, 1.0).
    */
   void set_even_swing(float amount);
 
   /**
    * @brief Set the swing amount for odd-numbered output ticks.
-   * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped to [0.0, 1.0).
+   * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped
+   * to [0.0, 1.0).
    */
   void set_odd_swing(float amount);
 

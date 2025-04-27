@@ -17,7 +17,8 @@ constexpr size_t MAX_CLOCK_OBSERVERS = 2;
 class InternalClock : public etl::observable<etl::observer<ClockEvent>, MAX_CLOCK_OBSERVERS> {
 public:
   /**
-   * @brief Pulses Per Quarter Note (PPQN). Standard MIDI clock is 24, common sequencer resolution is 96.
+   * @brief Pulses Per Quarter Note (PPQN). Standard MIDI clock is 24, common sequencer resolution
+   * is 96.
    */
   static constexpr uint32_t PPQN = 96;
 

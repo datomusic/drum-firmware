@@ -92,14 +92,16 @@ public:
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
                             uint32_t current_step);
-    
+
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
    * Allows access to driver methods like adjust_color_brightness.
    * @return const Musin::Drivers::WS2812<NUM_LEDS>&
    */
-  const Musin::Drivers::WS2812<NUM_LEDS>& leds() const { return _leds; } // Return the renamed member
-        
+  const Musin::Drivers::WS2812<NUM_LEDS> &leds() const {
+    return _leds;
+  } // Return the renamed member
+
 private:
   Musin::Drivers::WS2812<NUM_LEDS> _leds; // Renamed member variable
   etl::array<uint32_t, 32> note_colors;

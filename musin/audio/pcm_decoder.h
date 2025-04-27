@@ -5,11 +5,11 @@
 
 // Reads Mono 16bit PCM samples from memory
 struct PcmDecoder : SampleReader {
-  constexpr PcmDecoder(const unsigned char *bytes, const uint32_t byte_count) {
+  constexpr PcmDecoder(const std::byte *bytes, const uint32_t byte_count) {
     set_source(bytes, byte_count);
   }
 
-  constexpr void set_source(const unsigned char *bytes, const uint32_t byte_count) {
+  constexpr void set_source(const std::byte *bytes, const uint32_t byte_count) {
     this->read_pos = 0;
     this->bytes = bytes;
     this->byte_count = byte_count;
@@ -53,16 +53,15 @@ private:
       return false;
     }
 
-    const unsigned char cur_byte[2] = {bytes[read_pos], bytes[read_pos+1]};
+    const std::byte cur_byte[2] = {bytes[read_pos], bytes[read_pos + 1]};
     out = std::bit_cast<int16_t>(cur_byte);
     read_pos += 2;
     return true;
   };
 
-  const unsigned char *bytes;
+  const std::byte *bytes;
   uint32_t byte_count;
   uint32_t read_pos;
-  // const int16_t *iterator;
 };
 
 #endif /* end of include guard: PCM_READER_H_GB952ZMC */

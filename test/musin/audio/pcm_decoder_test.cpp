@@ -2,6 +2,8 @@
 
 #include "musin/audio/pcm_decoder.h"
 
+using std::byte;
+
 // While working on tests, disable constexpr testing to get proper assertions.
 #define STATIC_TESTS 1
 
@@ -21,7 +23,7 @@
 
 TEST_CASE("PcmDecoder decodes single samples") {
   CONST_BODY(({
-    const unsigned char high_bits[2] = {0, 1};
+    const byte high_bits[2] = {byte(0), byte(1)};
     PcmDecoder decoder(high_bits, 2);
     decoder.reset();
 
@@ -32,7 +34,7 @@ TEST_CASE("PcmDecoder decodes single samples") {
     REQUIRE(count == 1);
     REQUIRE(block_data[0] == 256);
 
-    const unsigned char low_bits[2] = {1, 0};
+    const byte low_bits[2] = {byte(1), byte(0)};
     decoder.set_source(low_bits, 2);
     count = decoder.read_samples(block);
     REQUIRE(count == 1);

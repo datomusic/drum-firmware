@@ -27,7 +27,7 @@ ClockSource TempoHandler::get_clock_source() const {
   return current_source_;
 }
 
-void TempoHandler::notification(const Clock::ClockEvent &event) {
+void TempoHandler::notification(Clock::ClockEvent event) {
   // TODO: Add logic to determine if this event *actually* came from the
   //       'current_source_'. This depends heavily on the Clock architecture.
   //       For now, assume any received event is from the active source if

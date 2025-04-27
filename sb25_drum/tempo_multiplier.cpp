@@ -14,7 +14,7 @@ TempoMultiplier::TempoMultiplier(int initial_multiplier, int initial_divider)
          _multiplier, _divider, _input_ticks_per_output_tick);
 }
 
-void TempoMultiplier::notification(const Tempo::TempoEvent &event) {
+void TempoMultiplier::notification(Tempo::TempoEvent event) {
   _input_tick_counter++;
 
   // Calculate the ideal trigger point for the *current* output tick (relative to start of pattern)

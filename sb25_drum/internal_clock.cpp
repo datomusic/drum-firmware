@@ -21,10 +21,9 @@ void InternalClock::set_bpm(float bpm) {
     printf("InternalClock: BPM set to %.2f, Interval updated to %lld us\n", _current_bpm,
            _tick_interval_us);
 
-    // If running, restart the timer with the new interval
     if (_is_running) {
-      stop();  // Cancel the existing timer
-      start(); // Start a new one with the updated interval
+      stop();
+      start();
     }
   }
 }
@@ -74,7 +73,6 @@ void InternalClock::stop() {
     printf("InternalClock Warning: cancel_repeating_timer failed (timer might have already "
            "stopped).\n");
   }
-  // Reset timer_info to indicate no active timer
   _timer_info = {};
 }
 
@@ -87,14 +85,11 @@ void InternalClock::calculate_interval() {
     _tick_interval_us = 0;
     return;
   }
-  // Ticks per second = (BPM / 60) * PPQN
   float ticks_per_second = (_current_bpm / 60.0f) * static_cast<float>(PPQN);
   if (ticks_per_second <= 0.0f) {
     _tick_interval_us = 0;
     return;
   }
-  // Interval in seconds = 1.0 / ticks_per_second
-  // Interval in microseconds = (1.0 / ticks_per_second) * 1,000,000
   _tick_interval_us = static_cast<int64_t>(1000000.0f / ticks_per_second);
 }
 

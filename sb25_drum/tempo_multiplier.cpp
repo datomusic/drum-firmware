@@ -72,15 +72,16 @@ void TempoMultiplier::update_ticks_per_output() {
   // Base resolution is Clock::InternalClock::PPQN (e.g., 96)
   // Output resolution = Base * Multiplier / Divider
   // Ticks per output = Base / (Output Resolution / Base) = Base / (Multiplier / Divider)
-  // Ticks per output = Base * Divider / Multiplier
+  // Ticks per output = (Base / 2) * Divider / Multiplier  (Base is 8th notes)
   if (_multiplier > 0) {
     // Use floating point for intermediate calculation for better accuracy
+    // Base rate is 8th notes (PPQN / 2.0)
     _input_ticks_per_output_tick = static_cast<uint32_t>(
-        std::round(static_cast<double>(Clock::InternalClock::PPQN) * static_cast<double>(_divider) /
+        std::round((static_cast<double>(Clock::InternalClock::PPQN) / 2.0) * static_cast<double>(_divider) /
                    static_cast<double>(_multiplier)));
   } else {
-    _input_ticks_per_output_tick =
-        Clock::InternalClock::PPQN; // Avoid division by zero, default to base
+    // Avoid division by zero, default to 8th note base
+    _input_ticks_per_output_tick = Clock::InternalClock::PPQN / 2;
   }
   // Ensure minimum of 1 tick
   _input_ticks_per_output_tick = std::max(static_cast<uint32_t>(1u), _input_ticks_per_output_tick);

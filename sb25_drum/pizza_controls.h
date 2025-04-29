@@ -34,22 +34,6 @@ public:
   void init();
   void update();
 
-private:
-  // --- Forward declare nested component classes ---
-  class KeypadComponent;
-  class DrumpadComponent;
-  class AnalogControlComponent;
-
-  // --- Shared Resources ---
-  PizzaExample::PizzaDisplay &display;
-  StepSequencer::Sequencer<4, 8> &sequencer;
-  Clock::InternalClock &_internal_clock;
-
-  // --- Components ---
-  KeypadComponent keypad_component;
-  DrumpadComponent drumpad_component;
-  AnalogControlComponent analog_component;
-
   // --- Nested Component Definitions ---
 
   // --- Keypad Component ---
@@ -141,6 +125,22 @@ private:
     etl::array<Musin::UI::AnalogControl, 16> mux_controls;
     etl::array<AnalogControlEventHandler, 16> control_observers;
   };
+
+private:
+  // --- Forward declare nested component classes --- NO LONGER NEEDED
+  // class KeypadComponent;
+  // class DrumpadComponent;
+  class AnalogControlComponent;
+
+  // --- Shared Resources ---
+  PizzaExample::PizzaDisplay &display;
+  StepSequencer::Sequencer<4, 8> &sequencer;
+  Clock::InternalClock &_internal_clock;
+
+  // --- Components ---
+  KeypadComponent keypad_component;
+  DrumpadComponent drumpad_component;
+  AnalogControlComponent analog_component;
 };
 
 #endif // PIZZA_CONTROLS_H

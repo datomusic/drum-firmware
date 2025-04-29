@@ -3,8 +3,10 @@
 #include <stdio.h>
 
 #include "musin/audio/audio_output.h"
+/*
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
+*/
 #include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
@@ -34,10 +36,12 @@ const etl::array<BufferSource *, 4> sources = {&sounds[0].sound, &sounds[1].soun
                                                &sounds[3].sound};
 
 AudioMixer mixer(sources);
+/*
 Crusher crusher(mixer);
 Lowpass lowpass(crusher);
+*/
 
-BufferSource &output_source = lowpass;
+BufferSource &output_source = mixer;
 
 int main() {
   stdio_init_all();
@@ -58,7 +62,7 @@ int main() {
   const std::array freqs{200.0f, 500.0f, 700.0f, 1200.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f};
   const std::array crush_rates{2489.0f, 44100.0f}; // Also make 44100 a float
 
-  lowpass.filter.resonance(3.0f);
+  // lowpass.filter.resonance(3.0f);
 
   printf("Entering main loop\n");
   while (true) {
@@ -99,8 +103,8 @@ int main() {
           const auto crush = crush_rates[crush_index];
 
           printf("freq: %f, crush: %f\n", freq, crush);
-          lowpass.filter.frequency(freq);
-          crusher.sampleRate(crush);
+          // lowpass.filter.frequency(freq);
+          // crusher.sampleRate(crush);
         }
       }
     }

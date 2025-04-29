@@ -242,50 +242,39 @@ void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent even
       }
       parent->select_note_for_pad(pad_index, offset);
     }
-    // No further action needed for sample select column after Press
-    return; // Exit early for column 4
+    return;
   }
 
-  // --- Sequencer Step Toggling Logic (Columns 0-3) ---
+  // Sequencer Step Toggling (Columns 0-3)
   if (event.type == Musin::UI::KeypadEvent::Type::Press) {
     uint8_t track_idx = event.col;
-    uint8_t step_idx = 7 - event.row; // Map row 0-7 to step 7-0
+    uint8_t step_idx = 7 - event.row;
 
-    // Access the step in the sequencer via the parent pointer
     StepSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
 
-    // Toggle enabled state
     step.enabled = !step.enabled;
 
-    // If step is now enabled, always assign the current pad note and default velocity if needed
     if (step.enabled) {
-      // Ensure track_idx is valid for drumpad_note_numbers before assigning
       if (track_idx < parent->drumpad_note_numbers.size()) {
-        step.note = parent->drumpad_note_numbers[track_idx]; // Always set the note
+        step.note = parent->drumpad_note_numbers[track_idx];
       } else {
-        step.note = 36; // Fallback note if track index is somehow invalid
+        step.note = 36; // Fallback note
       }
 
-      // Assign default velocity only if none exists
       if (!step.velocity.has_value()) {
         step.velocity = 100; // Default velocity
       }
     }
-    // Note: LED update is handled by display_sequencer_state in the main loop
+    // LED update is handled elsewhere
   } else if (event.type == Musin::UI::KeypadEvent::Type::Hold) {
-    // --- Handle Hold for Sequencer Steps (Set Max Velocity) ---
+    // Hold Sequencer Step -> Set Max Velocity
     uint8_t track_idx = event.col;
-    uint8_t step_idx = 7 - event.row; // Map row 0-7 to step 7-0
+    uint8_t step_idx = 7 - event.row;
 
-    // Access the step in the sequencer via the parent pointer
     StepSequencer::Step &step = parent->sequencer.get_track(track_idx).get_step(step_idx);
 
-    // Set velocity to maximum only if the step is enabled
     if (step.enabled) {
       step.velocity = 127;
-      // Optionally, add a visual indicator via display if needed,
-      // though display_sequencer_state might handle it if it shows velocity.
     }
   }
-  // Ignore Release events for sequencer columns for now
 }

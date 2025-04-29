@@ -11,32 +11,26 @@ using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
-// --- Constructor ---
-// Use PizzaExample::PizzaDisplay for the parameter type
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                             StepSequencer::Sequencer<4, 8> &sequencer_ref) // Accept sequencer ref
+                             StepSequencer::Sequencer<4, 8> &sequencer_ref)
     : display(display_ref),
-      sequencer(sequencer_ref), // Store references (display is now PizzaExample::PizzaDisplay&)
+      sequencer(sequencer_ref),
       keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
-      keypad_observer(this, keypad_cc_map, 0), // Pass parent pointer and map reference
-      drumpad_readers{// Initialize readers directly by calling constructors
-                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
+      keypad_observer(this, keypad_cc_map, 0),
+      drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
-                     AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
-                     AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
-     drumpads{
-              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U,
-                                                100U, 800U, 1000U, 5000U, 200000U}, // Pad index 0
-              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U,
-                                                100U, 800U, 1000U, 5000U, 200000U}, // Pad index 1
-              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U,
-                                                100U, 800U, 1000U, 5000U, 200000U}, // Pad index 2
-              Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U,
-                                                100U, 800U, 1000U, 5000U, 200000U}}, // Pad index 3
-     drumpad_note_numbers{0, 7, 15, 23},
-     mux_controls{
-                   // Assuming order matches the enum in drum_pizza_hardware.h
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM1, 0.005f, true},
+                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
+                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
+      drumpads{Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U},
+               Musin::UI::Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U,
+                                                 100U, 800U, 1000U, 5000U, 200000U}},
+      drumpad_note_numbers{0, 7, 15, 23},
+      mux_controls{AnalogControl{PIN_ADC, analog_address_pins, DRUM1, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM2, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH1, 0.005f, true},
@@ -52,11 +46,10 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM4, 0.005f, true},
                   AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, true},
                   AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
-     control_observers{
-                       AnalogControlEventHandler{this, DRUM1, DRUM1, 0}, // Map DRUM1 ID to DRUM1 CC
+     control_observers{AnalogControlEventHandler{this, DRUM1, DRUM1, 0},
                        AnalogControlEventHandler{this, FILTER, 75, 0},
                        AnalogControlEventHandler{this, DRUM2, DRUM2, 0},
-                        AnalogControlEventHandler{this, PITCH1, 16, 1},
+                       AnalogControlEventHandler{this, PITCH1, 16, 1},
                         AnalogControlEventHandler{this, PITCH2, 17, 2},
                         AnalogControlEventHandler{this, PLAYBUTTON, PLAYBUTTON, 0},
                         AnalogControlEventHandler{this, RANDOM, RANDOM, 0},
@@ -69,35 +62,28 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                         AnalogControlEventHandler{this, DRUM4, DRUM4, 0},
                         AnalogControlEventHandler{this, SPEED, SPEED, 0},
                         AnalogControlEventHandler{this, PITCH4, 19, 4}},
-      drumpad_observers{// Initialize drumpad observers
-                        DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
+      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
                         DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
 
-// --- Initialization ---
 void PizzaControls::init() {
   printf("PizzaControls: Initializing...\n");
 
-  // Initialize Keypad
-  this->keypad.init();
-  this->keypad.add_observer(keypad_observer);
-  printf("PizzaControls: Keypad Initialized (%u rows, %u cols)\n", this->keypad.get_num_rows(),
-         this->keypad.get_num_cols());
+  keypad.init();
+  keypad.add_observer(keypad_observer);
+  printf("PizzaControls: Keypad Initialized (%u rows, %u cols)\n", keypad.get_num_rows(),
+         keypad.get_num_cols());
 
-  // Initialize Drumpad Readers
   for (auto &reader : drumpad_readers) {
     reader.init();
   }
-  // Drumpad objects themselves don't need init() as they use initialized readers
   printf("PizzaControls: Drumpad Readers Initialized\n");
 
-  // Attach Drumpad Observers
   for (size_t i = 0; i < drumpads.size(); ++i) {
-    drumpads[i].add_observer(drumpad_observers[i]); // Now uncommented
+    drumpads[i].add_observer(drumpad_observers[i]);
   }
   printf("PizzaControls: Drumpad Observers Attached\n");
 
-  // Initialize Analog Controls and attach observers
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].init();
     mux_controls[i].add_observer(control_observers[i]);
@@ -107,24 +93,14 @@ void PizzaControls::init() {
   printf("PizzaControls: Initialization Complete.\n");
 }
 
-// --- Update ---
 void PizzaControls::update() {
-  // Update all analog mux controls - observers will be notified automatically
   for (auto &control : mux_controls) {
     control.update();
   }
 
-  // Scan the keypad - observers will be notified automatically
-  this->keypad.scan();
-
-  // Update drumpads and handle MIDI/Display updates
+  keypad.scan();
   update_drumpads();
-
-  // Display updates are requested within observers and update_drumpads
-  // The actual display.show() is called in main.cpp's loop
 }
-
-// --- Private Methods ---
 
 float PizzaControls::scale_raw_to_brightness(uint16_t raw_value) const {
   // Map ADC range (e.g., 100-1000) to brightness (e.g., 0.1-1.0)
@@ -162,10 +138,9 @@ uint32_t PizzaControls::calculate_brightness_color(uint32_t base_color, uint16_t
 
 void PizzaControls::update_drumpads() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
-    drumpads[i].update(); // Update call remains, event handling moves to observer
+    drumpads[i].update();
 
-    // Keep LED update based on current pressure for now
-    // This might also move to the observer later depending on desired behavior
+    // Update LED based on current pressure
     uint16_t raw_value = drumpads[i].get_raw_adc_value();
     uint8_t note_index = drumpad_note_numbers[i];
     uint32_t led_index = display.get_drumpad_led_index(i);
@@ -184,28 +159,22 @@ void PizzaControls::select_note_for_pad(uint8_t pad_index, int8_t offset) {
   int32_t current_note = drumpad_note_numbers[pad_index];
   int32_t new_note_number = current_note + offset;
 
-  // Wrap around 0-31 range
   if (new_note_number < 0) {
-    new_note_number = 31;
+    new_note_number = 31; // Wrap around
   } else if (new_note_number > 31) {
     new_note_number = 0;
   }
   drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_number);
 
-  // Update the display for the affected pad immediately
   uint32_t led_index = display.get_drumpad_led_index(pad_index);
   if (led_index < NUM_LEDS) {
     uint32_t base_color = display.get_note_color(drumpad_note_numbers[pad_index]);
-    // When selecting a note, show the base color at maximum brightness (inverted logic)
-    // Use calculate_brightness with a low raw value (min_adc) which now maps to max brightness.
+    // Show selected note color at max brightness (use min ADC value for scaling)
     uint32_t final_color = calculate_brightness_color(base_color, 100);
     display.set_led(led_index, final_color);
   }
 }
 
-// --- Observer Implementations ---
-
-// Stub implementation for DrumpadEventHandler
 void PizzaControls::DrumpadEventHandler::notification(Musin::UI::DrumpadEvent event) {
   // TODO: Implement drumpad event handling logic here
   // - Send MIDI notes based on event.type (Press/Release) and event.velocity
@@ -216,29 +185,25 @@ void PizzaControls::DrumpadEventHandler::notification(Musin::UI::DrumpadEvent ev
 }
 
 void PizzaControls::AnalogControlEventHandler::notification(Musin::UI::AnalogControlEvent event) {
-  // Access parent members via parent pointer
   uint8_t value = static_cast<uint8_t>(event.value * 127.0f);
 
   switch (control_id) {
   case PLAYBUTTON:
-    // Update Play button LED via parent's display reference
     parent->display.set_play_button_led((static_cast<uint32_t>(value * 2) << 16) |
                                         (static_cast<uint32_t>(value * 2) << 8) | (value * 2));
     break;
   default:
-    // Send other CCs on channel 1 (or adjust as needed)
-    send_midi_cc(1, cc_number, value);
+    send_midi_cc(midi_channel, cc_number, value); // Use configured channel
     break;
   }
 }
 
 void PizzaControls::KeypadEventHandler::notification(Musin::UI::KeypadEvent event) {
-  // Access parent members via parent pointer
 
-  // --- Handle Sample Select (Column 4) ---
+  // Sample Select (Column 4)
   if (event.col >= 4) {
     if (event.type == Musin::UI::KeypadEvent::Type::Press) {
-      // Map row to pad index (row 7 -> pad 0, row 0 -> pad 3)
+      // Map row to pad index and offset
       uint8_t pad_index = 0;
       int8_t offset = 0;
       switch (event.row) {

@@ -8,6 +8,7 @@ struct SampleReader {
   virtual void reset() = 0;
   virtual bool has_data() = 0;
 
+  // Should always fill the output block with number of samples: AUDIO_BLOCK_SAMPLES
   virtual uint32_t read_samples(AudioBlock &out) = 0;
 };
 

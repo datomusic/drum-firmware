@@ -1,10 +1,8 @@
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
-set(MUSIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
-set(MUSIN_LIBRARIES ${MUSIN_ROOT}/ports/pico/libraries)
-set(MUSIN_USB ${MUSIN_ROOT}/usb)
-set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)
+include(${CMAKE_CURRENT_LIST_DIR}/generic_sources.cmake)
+
 
 set(SDK_PATH ${MUSIN_ROOT}/ports/pico/pico-sdk/)
 set(SDK_EXTRAS_PATH ${MUSIN_ROOT}/ports/pico/pico-extras/)
@@ -46,7 +44,6 @@ macro(musin_init TARGET)
 endmacro()
 
 macro(musin_init_usb_midi TARGET)
-
   target_include_directories(${TARGET} PRIVATE
     ${MUSIN_USB}
     ${MUSIN_USB}/midi_usb_bridge
@@ -73,15 +70,9 @@ macro(musin_init_usb_midi TARGET)
 endmacro()
 
 macro(musin_init_audio TARGET)
-  set(MUSIN_AUDIO ${MUSIN_ROOT}/audio)
-
   target_sources(${TARGET} PRIVATE
+    ${musin_audio_generic_sources}
     ${MUSIN_AUDIO}/audio_output.cpp
-    ${MUSIN_AUDIO}/audio_memory_reader.cpp
-    ${MUSIN_AUDIO}/data_ulaw.c
-    ${MUSIN_AUDIO}/crusher.cpp
-    ${MUSIN_AUDIO}/waveshaper.cpp
-    ${MUSIN_AUDIO}/filter.cpp
     ${MUSIN_DRIVERS}/aic3204.c # Codec-specific driver, but the only audio codec we are using currently.
   )
 
@@ -100,7 +91,6 @@ macro(musin_init_audio TARGET)
 endmacro()
 
 macro(musin_init_filesystem TARGET)
-
   add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
 
   target_sources(${TARGET} PRIVATE
@@ -115,8 +105,6 @@ macro(musin_init_filesystem TARGET)
 endmacro()
 
 macro(musin_init_ui TARGET)
-  set(MUSIN_UI ${MUSIN_ROOT}/ui)
-
   target_sources(${TARGET} PRIVATE
     ${MUSIN_UI}/analog_control.cpp
   )

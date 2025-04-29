@@ -6,16 +6,16 @@
 #include <pico/stdlib.h>
 
 struct Sound : BufferSource {
-  Sound(SampleReader &reader) : pitch_shifter(reader) {
+  constexpr Sound(SampleReader &reader) : pitch_shifter(reader) {
   }
 
-  void play(const double speed) {
+  constexpr void play(const double speed) {
     // printf("Playing drum\n");
     pitch_shifter.set_speed(speed);
     pitch_shifter.reset();
   }
 
-  void __not_in_flash_func(fill_buffer)(AudioBlock &out_samples) {
+  constexpr void __not_in_flash_func(fill_buffer)(AudioBlock &out_samples) {
     // printf("Max samples: %i\n", out_buffer->max_sample_count);
     if (pitch_shifter.has_data()) {
       pitch_shifter.read_samples(out_samples);

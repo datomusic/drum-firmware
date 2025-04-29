@@ -81,13 +81,12 @@ int main() {
         mixer.gain(2, 0.3);
         mixer.gain(3, 0.7);
 
-        // Get the BufferSource pointer
         MemorySound &sound = sounds[sound_index];
         pitch_index = (pitch_index + 1) % pitches.size();
 
         const auto pitch = 1;
         // const auto pitch = pitches[pitch_index];
-        // Cast to Sound* before calling play()
+
         if (!sound.reader.has_data()) {
           sound.next_sample();
           sound.sound.play(pitch);

@@ -24,7 +24,7 @@ template <typename DataType, typename OutputIterator, int ChunkSize> struct Memo
     return read_pos < count;
   }
 
-  constexpr uint32_t stream_items(OutputIterator output) {
+  constexpr uint32_t read_chunk(OutputIterator output) {
     const DataType *const iterator = items + read_pos;
     const uint32_t rest = count - read_pos;
     uint32_t read_count = ChunkSize;
@@ -67,7 +67,7 @@ struct MemorySampleReader : SampleReader {
 
   // Reader interface
   constexpr uint32_t read_samples(AudioBlock &out) {
-    return reader.stream_items(out.begin());
+    return reader.read_chunk(out.begin());
   }
 
 private:

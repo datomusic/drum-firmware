@@ -53,12 +53,12 @@ void TempoMultiplier::set_divider(int divider) {
 
 void TempoMultiplier::set_even_swing(float amount) {
   _even_swing_amount = std::clamp(amount, 0.0f, 0.999f); // Clamp below 1.0
-  // printf("TempoMultiplier: Even swing set to %.3f\n", _even_swing_amount);
+  printf("TempoMultiplier: Even swing set to %.3f\n", _even_swing_amount);
 }
 
 void TempoMultiplier::set_odd_swing(float amount) {
   _odd_swing_amount = std::clamp(amount, 0.0f, 0.999f); // Clamp below 1.0
-  // printf("TempoMultiplier: Odd swing set to %.3f\n", _odd_swing_amount);
+  printf("TempoMultiplier: Odd swing set to %.3f\n", _odd_swing_amount);
 }
 
 void TempoMultiplier::reset() {

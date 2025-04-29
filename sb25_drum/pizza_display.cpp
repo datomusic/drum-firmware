@@ -81,26 +81,26 @@ PizzaDisplay::PizzaDisplay()
 }
 
 bool PizzaDisplay::init() {
- printf("PizzaDisplay: Initializing LEDs...\n");
+  printf("PizzaDisplay: Initializing LEDs...\n");
 
- // Check LED data pin state to determine initial brightness
- ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
- uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
- printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
-        initial_brightness, static_cast<int>(led_pin_state));
- _leds.set_brightness(initial_brightness);
+  // Check LED data pin state to determine initial brightness
+  ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
+  uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
+  printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
+         initial_brightness, static_cast<int>(led_pin_state));
+  _leds.set_brightness(initial_brightness);
 
- if (!_leds.init()) {
-   printf("Error: Failed to initialize WS2812 LED driver!\n");
-   return false;
- }
+  if (!_leds.init()) {
+    printf("Error: Failed to initialize WS2812 LED driver!\n");
+    return false;
+  }
 
- gpio_init(PIN_LED_ENABLE);
- gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT);
- gpio_put(PIN_LED_ENABLE, 1);
- clear();
- show();
- printf("PizzaDisplay: Initialization Complete.\n");
+  gpio_init(PIN_LED_ENABLE);
+  gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT);
+  gpio_put(PIN_LED_ENABLE, 1);
+  clear();
+  show();
+  printf("PizzaDisplay: Initialization Complete.\n");
   return true;
 }
 

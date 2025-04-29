@@ -16,10 +16,15 @@
 
 static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
-static PizzaControls pizza_controls(pizza_display, pizza_sequencer);
 
 // --- Clock and Tempo Setup ---
 // Instantiate the internal clock (e.g., starting at 120 BPM)
+static Clock::InternalClock internal_clock(120.0f);
+
+// Instantiate PizzaControls, passing the clock reference
+static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock);
+
+// Instantiate the tempo handler (defaults to Internal source)
 static Clock::InternalClock internal_clock(120.0f);
 // Instantiate the tempo handler (defaults to Internal source)
 static Tempo::TempoHandler tempo_handler;

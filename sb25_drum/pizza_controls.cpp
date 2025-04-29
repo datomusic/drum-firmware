@@ -325,8 +325,9 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (control_id) {
   case PLAYBUTTON: {
-    // Scale 0-127 to 0-255 for brightness
-    uint8_t brightness = static_cast<uint8_t>(std::min(static_cast<uint16_t>(value) * 2, 255u));
+    // Scale 0-127 to 0-255 for brightness, ensuring consistent types for std::min
+    unsigned int scaled_value = static_cast<unsigned int>(static_cast<uint16_t>(value) * 2);
+    uint8_t brightness = static_cast<uint8_t>(std::min(scaled_value, 255u));
     controls->display.set_play_button_led((static_cast<uint32_t>(brightness) << 16) |
                                           (static_cast<uint32_t>(brightness) << 8) | brightness);
     break;

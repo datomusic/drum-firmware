@@ -13,9 +13,9 @@ using Musin::UI::Drumpad;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                             Clock::InternalClock &clock_ref) // Added clock reference
+                             Clock::InternalClock &clock_ref)
     : display(display_ref), sequencer(sequencer_ref),
-      _internal_clock(clock_ref), // Initialize clock reference
+      _internal_clock(clock_ref),
       keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0),
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
@@ -45,7 +45,7 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM3, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, REPEAT, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM4, 0.005f, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, true},
+                   AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
       control_observers{AnalogControlEventHandler{this, DRUM1, DRUM1, 0},
                         AnalogControlEventHandler{this, FILTER, 75, 0},
@@ -68,30 +68,21 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
 }
 
 void PizzaControls::init() {
-  printf("PizzaControls: Initializing...\n");
-
   keypad.init();
   keypad.add_observer(keypad_observer);
-  printf("PizzaControls: Keypad Initialized (%u rows, %u cols)\n", keypad.get_num_rows(),
-         keypad.get_num_cols());
 
   for (auto &reader : drumpad_readers) {
     reader.init();
   }
-  printf("PizzaControls: Drumpad Readers Initialized\n");
 
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].add_observer(drumpad_observers[i]);
   }
-  printf("PizzaControls: Drumpad Observers Attached\n");
 
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].init();
     mux_controls[i].add_observer(control_observers[i]);
   }
-  printf("PizzaControls: Initialized %zu analog controls\n", mux_controls.size());
-
-  printf("PizzaControls: Initialization Complete.\n");
 }
 
 void PizzaControls::update() {

@@ -25,7 +25,7 @@ static Clock::InternalClock internal_clock(120.0f);
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock);
 
 // Instantiate the tempo handler (defaults to Internal source)
-static Clock::InternalClock internal_clock(120.0f);
+// static Clock::InternalClock internal_clock(120.0f); // Removed duplicate definition
 // Instantiate the tempo handler (defaults to Internal source)
 static Tempo::TempoHandler tempo_handler;
 // Instantiate the tempo multiplier (default: 1/4 -> 24 PPQN output from 96 PPQN input)

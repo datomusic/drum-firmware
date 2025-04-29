@@ -77,8 +77,8 @@ void TempoMultiplier::update_ticks_per_output() {
     // Use floating point for intermediate calculation for better accuracy
     // Base rate is 8th notes (PPQN / 2.0)
     _input_ticks_per_output_tick = static_cast<uint32_t>(
-        std::round((static_cast<double>(Clock::InternalClock::PPQN) / 2.0) * static_cast<double>(_divider) /
-                   static_cast<double>(_multiplier)));
+        std::round((static_cast<double>(Clock::InternalClock::PPQN) / 2.0) *
+                   static_cast<double>(_divider) / static_cast<double>(_multiplier)));
   } else {
     // Avoid division by zero, default to 8th note base
     _input_ticks_per_output_tick = Clock::InternalClock::PPQN / 2;

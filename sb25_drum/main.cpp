@@ -29,7 +29,7 @@ static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clo
 // Instantiate the tempo handler (defaults to Internal source)
 static Tempo::TempoHandler tempo_handler;
 // Instantiate the tempo multiplier (default: 1/4 -> 24 PPQN output from 96 PPQN input)
-static Tempo::TempoMultiplier tempo_multiplier(1, 4);
+static Tempo::TempoMultiplier tempo_multiplier(1, 1);
 // Instantiate the sequencer controller, linking it to the sequencer data
 static StepSequencer::SequencerController sequencer_controller(pizza_sequencer);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available

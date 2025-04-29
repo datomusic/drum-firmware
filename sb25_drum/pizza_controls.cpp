@@ -12,9 +12,11 @@ using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                             StepSequencer::Sequencer<4, 8> &sequencer_ref)
+                             StepSequencer::Sequencer<4, 8> &sequencer_ref,
+                             Clock::InternalClock &clock_ref) // Added clock reference
     : display(display_ref),
       sequencer(sequencer_ref),
+      _internal_clock(clock_ref), // Initialize clock reference
       keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0),
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
@@ -188,10 +190,21 @@ void PizzaControls::AnalogControlEventHandler::notification(Musin::UI::AnalogCon
   uint8_t value = static_cast<uint8_t>(event.value * 127.0f);
 
   switch (control_id) {
-  case PLAYBUTTON:
-    parent->display.set_play_button_led((static_cast<uint32_t>(value * 2) << 16) |
-                                        (static_cast<uint32_t>(value * 2) << 8) | (value * 2));
+  case PLAYBUTTON: {
+    uint32_t brightness = static_cast<uint32_t>(value * 2);
+    parent->display.set_play_button_led((brightness << 16) | (brightness << 8) | brightness);
     break;
+  }
+  case SPEED: {
+    // Scale 0.0f - 1.0f to 30.0f - 300.0f BPM
+    constexpr float min_bpm = 30.0f;
+    constexpr float max_bpm = 300.0f;
+    float bpm = min_bpm + event.value * (max_bpm - min_bpm);
+    parent->_internal_clock.set_bpm(bpm);
+    // Optionally send MIDI CC as well if needed
+    // send_midi_cc(midi_channel, cc_number, value);
+    break;
+  }
   default:
     send_midi_cc(midi_channel, cc_number, value); // Use configured channel
     break;

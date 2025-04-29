@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "internal_clock.h" // Added for InternalClock reference
 #include "step_sequencer.h"
 
 namespace PizzaExample {
@@ -22,7 +23,8 @@ class PizzaDisplay;
 class PizzaControls {
 public:
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                         StepSequencer::Sequencer<4, 8> &sequencer_ref);
+                         StepSequencer::Sequencer<4, 8> &sequencer_ref,
+                         Clock::InternalClock &clock_ref); // Added clock reference
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -82,6 +84,7 @@ private:
 
   PizzaExample::PizzaDisplay &display;
   StepSequencer::Sequencer<4, 8> &sequencer;
+  Clock::InternalClock &_internal_clock; // Added clock reference
 
   Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
   static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {

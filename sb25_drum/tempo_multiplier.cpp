@@ -17,57 +17,13 @@ TempoMultiplier::TempoMultiplier(int initial_multiplier, int initial_divider)
 void TempoMultiplier::notification(Tempo::TempoEvent event) {
   _input_tick_counter++;
 
-  // Calculate the ideal trigger point for the *current* output tick (relative to start of pattern)
-  // Note: _output_tick_counter represents the *last completed* output tick.
-  // We are checking if we have reached the point to emit the *next* one.
-  uint32_t ideal_trigger_point_for_next_tick =
-      (_output_tick_counter + 1) * _input_ticks_per_output_tick;
-
-  // Determine if the *next* output tick is odd or even (1-based index)
-  bool is_next_output_odd = ((_output_tick_counter + 1) % 2) != 0;
-
-  // Calculate swing delay in input ticks
-  float swing_amount = is_next_output_odd ? _odd_swing_amount : _even_swing_amount;
-  // Delay is swing_amount * interval between output ticks. Clamped swing amount ensures delay <
-  // interval.
-  uint32_t swing_delay_ticks =
-      static_cast<uint32_t>(swing_amount * static_cast<float>(_input_ticks_per_output_tick));
-
-  // Calculate the actual trigger point including swing delay
-  uint32_t actual_trigger_point_for_next_tick =
-      ideal_trigger_point_for_next_tick + swing_delay_ticks;
-
-  // Check if the current input tick count has reached or passed the trigger point
-  // We use >= to handle cases where the timer callback might be slightly delayed.
-  if (_input_tick_counter >= actual_trigger_point_for_next_tick) {
-    // Emit the sequencer tick
+  if (_input_tick_counter >= _input_ticks_per_output_tick) {
     SequencerTickEvent tick_event;
-    // TODO: Populate event with step index or timestamp if needed
-    // tick_event.step_index = _output_tick_counter;
     etl::observable<etl::observer<SequencerTickEvent>, MAX_SEQUENCER_OBSERVERS>::notify_observers(
         tick_event);
 
-    // Increment output counter *after* sending notification
+    _input_tick_counter -= _input_ticks_per_output_tick;
     _output_tick_counter++;
-
-    // --- Resetting Input Counter ---
-    // To prevent drift, especially with swing, we should reset the input counter
-    // relative to the *ideal* trigger point of the tick we just emitted.
-    // The ideal point was: _output_tick_counter * _input_ticks_per_output_tick (using the *new*
-    // value)
-    uint32_t ideal_trigger_point_emitted_tick = _output_tick_counter * _input_ticks_per_output_tick;
-    _input_tick_counter -= ideal_trigger_point_emitted_tick;
-
-    // If swing caused the actual trigger point to be later than the ideal point
-    // of the *next* tick (unlikely but possible with extreme settings/timing issues),
-    // ensure the counter doesn't go negative or wrap unexpectedly.
-    // This simple subtraction assumes _input_tick_counter was >= ideal_trigger_point_emitted_tick.
-    // A more robust approach might involve absolute timestamps if available.
-
-    // printf("Tick Out: %lu (Input Reset To: %lu, Ideal Emit Point: %lu, Actual Emit Point: %lu,
-    // Swing Delay: %lu)\n",
-    //        _output_tick_counter, _input_tick_counter, ideal_trigger_point_emitted_tick,
-    //        actual_trigger_point_for_next_tick, swing_delay_ticks);
   }
 }
 

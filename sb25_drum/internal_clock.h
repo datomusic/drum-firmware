@@ -29,12 +29,12 @@ public:
   explicit InternalClock(float initial_bpm = 120.0f);
 
   // Prevent copying and assignment
- InternalClock(const InternalClock &) = delete;
- InternalClock &operator=(const InternalClock &) = delete;
+  InternalClock(const InternalClock &) = delete;
+  InternalClock &operator=(const InternalClock &) = delete;
 
- /**
-  * @brief Set the tempo.
-  * @param bpm Beats Per Minute.
+  /**
+   * @brief Set the tempo.
+   * @param bpm Beats Per Minute.
    */
   void set_bpm(float bpm);
 

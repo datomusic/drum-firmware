@@ -127,11 +127,6 @@ public:
   };
 
 private:
-  // --- Forward declare nested component classes --- NO LONGER NEEDED
-  // class KeypadComponent;
-  // class DrumpadComponent;
-  class AnalogControlComponent;
-
   // --- Shared Resources ---
   PizzaExample::PizzaDisplay &display;
   StepSequencer::Sequencer<4, 8> &sequencer;

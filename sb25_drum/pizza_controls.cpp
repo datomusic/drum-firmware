@@ -37,8 +37,7 @@ void PizzaControls::update() {
 // --- KeypadComponent Implementation ---
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr),
-      keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
+    : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0) // Pass 'this' (KeypadComponent*)
 {
 }

@@ -9,28 +9,20 @@
 #include "midi.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
-#include "sequencer_controller.h" // Include SequencerController
+#include "sequencer_controller.h"
 #include "step_sequencer.h"
 #include "tempo_handler.h"
-#include "tempo_multiplier.h" // Include TempoMultiplier
+#include "tempo_multiplier.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
-
-// --- Clock and Tempo Setup ---
-// Instantiate the internal clock (e.g., starting at 120 BPM)
 static Clock::InternalClock internal_clock(120.0f);
 
-// Instantiate PizzaControls, passing the clock reference
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock);
 
-// Instantiate the tempo handler (defaults to Internal source)
-// static Clock::InternalClock internal_clock(120.0f); // Removed duplicate definition
-// Instantiate the tempo handler (defaults to Internal source)
-static Tempo::TempoHandler tempo_handler;
-// Instantiate the tempo multiplier (default: 1/4 -> 24 PPQN output from 96 PPQN input)
+static Tempo::TempoHandler tempo_handler(Tempo::ClockSource::INTERNAL);
 static Tempo::TempoMultiplier tempo_multiplier(1, 1);
-// Instantiate the sequencer controller, linking it to the sequencer data
+
 static StepSequencer::SequencerController sequencer_controller(pizza_sequencer);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 

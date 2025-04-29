@@ -11,7 +11,6 @@ set(MUSIN_USB ${MUSIN_ROOT}/usb)
 set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)
 
 set(musin_audio_generic_sources
-  ${MUSIN_AUDIO}/audio_memory_reader.cpp
   ${MUSIN_AUDIO}/data_ulaw.c
   ${MUSIN_AUDIO}/crusher.cpp
   ${MUSIN_AUDIO}/waveshaper.cpp

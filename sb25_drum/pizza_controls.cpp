@@ -35,8 +35,7 @@ void PizzaControls::update() {
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
-      keypad_observer(this, keypad_cc_map, 0)
-{
+      keypad_observer(this, keypad_cc_map, 0) {
 }
 
 void PizzaControls::KeypadComponent::init() {
@@ -251,7 +250,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     send_midi_note(1, note, 0); // Note off
   }
-
 }
 
 // --- AnalogControlComponent Implementation ---
@@ -360,9 +358,12 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 }
 
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), playbutton_reader{AnalogInMux16{PIN_ADC, analog_address_pins, PLAYBUTTON}},
-      playbutton{Drumpad<AnalogInMux16>{playbutton_reader, 0, 50U, 250U, 150U, 1500U, 100U, 800U,
-      1000U, 5000U, 200000U},},
+    : parent_controls(parent_ptr),
+      playbutton_reader{AnalogInMux16{PIN_ADC, analog_address_pins, PLAYBUTTON}},
+      playbutton{
+          Drumpad<AnalogInMux16>{playbutton_reader, 0, 50U, 250U, 150U, 1500U, 100U, 800U, 1000U,
+                                 5000U, 200000U},
+      },
       playbutton_observer(this) {
 }
 
@@ -376,12 +377,12 @@ void PizzaControls::PlaybuttonComponent::update() {
 }
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
-  Musin::UI::DrumpadEvent event) {
+    Musin::UI::DrumpadEvent event) {
 
-    if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
-      printf("Playbutton pressed\n");
-    } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
-      printf("Playbutton released\n");
-    }
-    // TODO: Toggle sequencer playing state
+  if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
+    printf("Playbutton pressed\n");
+  } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
+    printf("Playbutton released\n");
+  }
+  // TODO: Toggle sequencer playing state
 }

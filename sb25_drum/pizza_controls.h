@@ -89,7 +89,6 @@ public:
       void notification(Musin::UI::DrumpadEvent event) override;
     };
 
-
     void update_drumpads(); // Moved from PizzaControls
     uint32_t calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const;
     float scale_raw_to_brightness(uint16_t raw_value) const;
@@ -100,11 +99,10 @@ public:
     etl::array<uint8_t, 4> drumpad_note_numbers;
     etl::array<DrumpadEventHandler, 4> drumpad_observers;
   };
-  
 
   // --- Playbutton Component ---
   class PlaybuttonComponent {
-    public:
+  public:
     explicit PlaybuttonComponent(PizzaControls *parent_ptr);
     void init();
     void update();
@@ -113,14 +111,12 @@ public:
     struct PlaybuttonEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
       PlaybuttonComponent *parent;
 
-      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p)
-          : parent(p) {
+      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p) : parent(p) {
       }
       void notification(Musin::UI::DrumpadEvent event) override;
     };
 
-
-    void update_playbutton(); // Moved from PizzaControls
+    void update_playbutton();       // Moved from PizzaControls
     PizzaControls *parent_controls; // Pointer back to the main class
     Musin::HAL::AnalogInMux16 playbutton_reader;
     Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> playbutton;

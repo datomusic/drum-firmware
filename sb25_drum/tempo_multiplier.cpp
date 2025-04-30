@@ -14,7 +14,7 @@ TempoMultiplier::TempoMultiplier(int initial_multiplier, int initial_divider)
          _multiplier, _divider, _input_ticks_per_output_tick);
 }
 
-void TempoMultiplier::notification(Tempo::TempoEvent event) {
+void TempoMultiplier::notification([[maybe_unused]] Tempo::TempoEvent event) {
   _input_tick_counter++;
 
   if (_input_tick_counter >= _input_ticks_per_output_tick) {

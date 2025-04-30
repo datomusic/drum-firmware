@@ -12,6 +12,19 @@ extern "C" {
 
 namespace Musin::UI {
 
+/**
+ * @brief Event data structure for button notifications
+ */
+struct ButtonEvent {
+    enum class Type : uint8_t { 
+        Press, 
+        Release, 
+        Hold 
+    };
+    uint16_t button_id;
+    Type type;
+};
+
 class Button : public etl::observable<etl::observer<ButtonEvent>, 4> {
 public:
     static constexpr uint32_t DEFAULT_DEBOUNCE_MS = 5;

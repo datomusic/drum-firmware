@@ -166,8 +166,8 @@ private:
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
                                         uint32_t current_step) {
-  // Ensure current_step is within the valid range [0, NumSteps-1]
-  uint32_t current_step_in_pattern = (NumSteps > 0) ? (current_step % NumSteps) : 0;
+  // Calculate the NEXT step that will be played
+  uint32_t next_step_in_pattern = (NumSteps > 0) ? ((current_step + 1) % NumSteps) : 0;
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     // Only display tracks that map to keypad columns
@@ -183,8 +183,8 @@ void PizzaDisplay::draw_sequencer_state(const StepSequencer::Sequencer<NumTracks
       const auto &step = track.get_step(step_idx);
       uint32_t final_color = calculate_step_color(step);
 
-      // Highlight the current step
-      if (step_idx == current_step_in_pattern) {
+      // Highlight the NEXT step instead of current
+      if (step_idx == next_step_in_pattern) {
         final_color = apply_highlight(final_color);
       }
 

@@ -59,7 +59,6 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
 
 void SequencerController::reset() {
   printf("SequencerController: Resetting. Sending Note Off for active notes.\n");
-  // Send Note Off for any notes that were left playing
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);

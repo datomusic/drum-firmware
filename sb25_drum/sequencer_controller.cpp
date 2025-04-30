@@ -13,43 +13,32 @@ SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequenc
 
 void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
   size_t num_steps = sequencer.get_num_steps();
-  // Calculate base step and apply random offsets per track
   const size_t base_step = current_step_counter % num_steps;
 
-  // printf("Sequencer Tick: Step %zu (Counter: %lu)\n", step_index_in_pattern,
-  // current_step_counter);
+  // printf("Sequencer Tick: Step %zu (Counter: %lu)\n", base_step, current_step_counter);
 
-  // --- Trigger Notes for the Current Step ---
   size_t num_tracks = sequencer.get_num_tracks();
 
   for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-    uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1); // MIDI channel 1-based
+    uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
 
-    // --- Send Note Off for the previous note on this track (if any) ---
     if (last_played_note_per_track[track_idx].has_value()) {
-      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(),
-                     0);                                    // Velocity 0 = Note Off
-      last_played_note_per_track[track_idx] = std::nullopt; // Clear the stored note
+      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+      last_played_note_per_track[track_idx] = std::nullopt;
     }
 
-    // --- Process the current step ---
-    const Step &step = sequencer.get_track(track_idx).get_step(step_index_in_pattern);
+    const int effective_step = static_cast<int>(base_step) + track_offsets_[track_idx];
+    const size_t wrapped_step = (effective_step % static_cast<int>(num_steps) + num_steps) % num_steps;
+    const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
 
     if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
-        step.velocity.value() > 0) { // Ensure velocity is > 0 for Note On
-      // Send MIDI Note On
+        step.velocity.value() > 0) {
       send_midi_note(midi_channel, step.note.value(), step.velocity.value());
-      // Store the note that was just turned on
       last_played_note_per_track[track_idx] = step.note.value();
     }
-    // If step is disabled, has no note/velocity, or velocity is 0,
-    // the previous note (if any) was already turned off above,
-    // and last_played_note_per_track[track_idx] remains nullopt.
   }
 
-  // --- Advance Step Counter ---
   current_step_counter++;
-  // Counter runs indefinitely unless reset
 }
 
 [[nodiscard]] uint32_t SequencerController::get_current_step() const noexcept {

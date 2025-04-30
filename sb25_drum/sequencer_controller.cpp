@@ -11,11 +11,9 @@ SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequenc
          sequencer.get_num_tracks(), sequencer.get_num_steps());
 }
 
-void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
-  // This is called for every sequencer tick (e.g., every 16th note by default)
-
-  // Calculate the step index within the pattern (wrap around)
-  size_t step_index_in_pattern = current_step_counter % num_steps;
+void SequencerController::notification([[maybe_unused]] const Tempo::SequencerTickEvent& event) {
+  // Calculate base step and apply random offsets per track
+  const size_t base_step = current_step_counter % num_steps;
 
   // printf("Sequencer Tick: Step %zu (Counter: %lu)\n", step_index_in_pattern,
   // current_step_counter);

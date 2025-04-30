@@ -21,7 +21,8 @@ namespace PizzaExample {
 class PizzaDisplay; // Forward declaration
 }
 namespace StepSequencer {
-class SequencerController; // Forward declaration
+template <size_t NumTracks, size_t NumSteps> class SequencerController;
+using DefaultSequencerController = SequencerController<4, 8>;
 }
 
 class PizzaControls {
@@ -30,7 +31,7 @@ public:
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                          StepSequencer::Sequencer<4, 8> &sequencer_ref,
                          Clock::InternalClock &clock_ref,
-                         StepSequencer::SequencerController &sequencer_controller_ref);
+                         StepSequencer::DefaultSequencerController &sequencer_controller_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -155,7 +156,7 @@ private:
   PizzaExample::PizzaDisplay &display;
   StepSequencer::Sequencer<4, 8> &sequencer;
   Clock::InternalClock &_internal_clock;
-  StepSequencer::SequencerController &_sequencer_controller_ref;
+  StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
 
   // --- Components ---
   KeypadComponent keypad_component;

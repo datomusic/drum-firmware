@@ -147,8 +147,8 @@ private:
     struct PlaybuttonEventHandler : public etl::observer<Musin::UI::ButtonEvent> {
       PizzaControls *parent_controls;
 
-      explicit PlaybuttonEventHandler(PizzaControls *controls)
-          : parent_controls(controls) {
+      explicit PlaybuttonEventHandler(PlaybuttonComponent *component)
+          : parent_controls(component->parent_controls) {
       }
       void notification(Musin::UI::ButtonEvent event) override;
     };

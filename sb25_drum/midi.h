@@ -1,41 +1,35 @@
-extern "C" {
-#include "pico/bootrom.h"
-}
+#ifndef SB25_DRUM_MIDI_H
+#define SB25_DRUM_MIDI_H
 
-#include "musin/midi/midi_wrapper.h"
+#include <cstdint> // For uint8_t
 
-#define SYSEX_DATO_ID 0x7D
-#define SYSEX_DUO_ID 0x64
-#define SYSEX_REBOOT_BOOTLOADER 0x0B
+// Function declarations (prototypes) for functions defined in midi.cpp
 
-static void handle_sysex(byte *const data, const unsigned length) {
-  if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID && data[3] == SYSEX_REBOOT_BOOTLOADER) {
-      reset_usb_boot(0, 0);
-  }
-}
+/**
+ * @brief Initialize the MIDI system and callbacks.
+ */
+void midi_init();
 
-static void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value) {
-  MIDI::sendControlChange(cc_number, value, channel);
-}
+/**
+ * @brief Process incoming MIDI messages. Should be called periodically.
+ */
+void midi_read();
 
-static void send_midi_note(uint8_t channel, uint8_t note_number, uint8_t velocity) {
-  MIDI::sendNoteOn(note_number, velocity, channel);
-}
+/**
+ * @brief Send a MIDI Control Change message.
+ * @param channel MIDI channel (1-16).
+ * @param cc_number Controller number (0-119).
+ * @param value Controller value (0-127).
+ */
+void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value);
 
-static void midi_read() {
-  MIDI::read();
-}
+/**
+ * @brief Send a MIDI Note On or Note Off message.
+ * Note Off is typically sent as Note On with velocity 0.
+ * @param channel MIDI channel (1-16).
+ * @param note_number Note number (0-127).
+ * @param velocity Note velocity (0-127). Velocity 0 usually means Note Off.
+ */
+void send_midi_note(uint8_t channel, uint8_t note_number, uint8_t velocity);
 
-static void midi_init() {
-  MIDI::init(MIDI::Callbacks{
-      .note_on = nullptr,
-      .note_off = nullptr,
-      .clock = nullptr,
-      .start = nullptr,
-      .cont = nullptr,
-      .stop = nullptr,
-      .cc = nullptr,
-      .pitch_bend = nullptr,
-      .sysex = handle_sysex,
-  });
-}
+#endif // SB25_DRUM_MIDI_H

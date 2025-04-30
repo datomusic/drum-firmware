@@ -378,11 +378,21 @@ void PizzaControls::PlaybuttonComponent::update() {
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     Musin::UI::DrumpadEvent event) {
+  PizzaControls *controls = parent->parent_controls;
 
   if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
     printf("Playbutton pressed\n");
+    
+    // Get reference to the sequencer controller from main.cpp
+    extern StepSequencer::SequencerController sequencer_controller;
+    
+    // Toggle sequencer state
+    if (sequencer_controller.is_running()) {
+      sequencer_controller.stop();
+    } else {
+      sequencer_controller.start();
+    }
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     printf("Playbutton released\n");
   }
-  // TODO: Toggle sequencer playing state
 }

@@ -11,7 +11,8 @@ SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequenc
          sequencer.get_num_tracks(), sequencer.get_num_steps());
 }
 
-void SequencerController::notification([[maybe_unused]] const Tempo::SequencerTickEvent& event) {
+void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
+  size_t num_steps = sequencer.get_num_steps();
   // Calculate base step and apply random offsets per track
   const size_t base_step = current_step_counter % num_steps;
 

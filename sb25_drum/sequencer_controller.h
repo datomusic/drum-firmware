@@ -24,8 +24,10 @@ public:
   /**
    * @brief Constructor.
    * @param sequencer_ref A reference to the main Sequencer instance.
+   * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    */
-  explicit SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref);
+  explicit SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref,
+                              etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
 
   // Prevent copying and assignment
   SequencerController(const SequencerController &) = delete;
@@ -48,6 +50,24 @@ public:
    */
   void reset();
 
+  /**
+   * @brief Start the sequencer by connecting to the tempo source.
+   * @return true if successfully started, false if already running
+   */
+  bool start();
+
+  /**
+   * @brief Stop the sequencer by disconnecting from the tempo source.
+   * @return true if successfully stopped, false if already stopped
+   */
+  bool stop();
+
+  /**
+   * @brief Check if the sequencer is currently running.
+   * @return true if running, false otherwise
+   */
+  [[nodiscard]] bool is_running() const;
+
 private:
   StepSequencer::Sequencer<4, 8> &sequencer; // Reference to the actual sequencer
   uint32_t current_step_counter;             // Continuously running step counter
@@ -56,6 +76,8 @@ private:
   etl::array<int8_t, 4> track_offsets_{};         // Per-track step offsets
   uint8_t current_random_strength_ = 0;           // Current randomization strength (0-127)
   static constexpr uint8_t MAX_RANDOM_OFFSET = 3; // Max ±3 steps from base
+  etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
+  bool running = false;
 };
 
 } // namespace StepSequencer

@@ -4,9 +4,10 @@
 
 namespace StepSequencer {
 
-SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref)
-    : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{} {
-  // Initialize last_played_note_per_track elements to std::nullopt by default
+SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref,
+                                        etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
+    : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
+      tempo_source(tempo_source_ref), running(false) {
   printf("SequencerController: Initialized with %zu tracks and %zu steps\n",
          sequencer.get_num_tracks(), sequencer.get_num_steps());
 }
@@ -57,6 +58,44 @@ void SequencerController::reset() {
     }
   }
   current_step_counter = 0;
+}
+
+bool SequencerController::start() {
+  if (running) {
+    printf("SequencerController: Already running\n");
+    return false;
+  }
+  
+  tempo_source.add_observer(*this);
+  running = true;
+  
+  printf("SequencerController: Started\n");
+  return true;
+}
+
+bool SequencerController::stop() {
+  if (!running) {
+    printf("SequencerController: Already stopped\n");
+    return false;
+  }
+  
+  tempo_source.remove_observer(*this);
+  running = false;
+  
+  for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
+    if (last_played_note_per_track[track_idx].has_value()) {
+      uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
+      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+      last_played_note_per_track[track_idx] = std::nullopt;
+    }
+  }
+  
+  printf("SequencerController: Stopped\n");
+  return true;
+}
+
+[[nodiscard]] bool SequencerController::is_running() const {
+  return running;
 }
 
 } // namespace StepSequencer

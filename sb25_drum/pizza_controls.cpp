@@ -136,13 +136,13 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
-      drumpads{Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 3000U, 100U, 800U,
+      drumpads{Drumpad<AnalogInMux16>{drumpad_readers[0], 0, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U},
-               Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 3000U, 100U, 800U,
+               Drumpad<AnalogInMux16>{drumpad_readers[1], 1, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U},
-               Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 3000U, 100U, 800U,
+               Drumpad<AnalogInMux16>{drumpad_readers[2], 2, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U},
-               Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 3000U, 100U, 800U,
+               Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 7, 15, 23}, // Default notes
       drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
@@ -254,10 +254,10 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   if (event.type == Musin::UI::DrumpadEvent::Type::Press && event.velocity.has_value()) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
-    send_midi_note(0, note, velocity); // Assuming channel 0 for now
+    send_midi_note(1, note, velocity); // Assuming channel 0 for now
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
-    send_midi_note(0, note, 0); // Note off
+    send_midi_note(1, note, 0); // Note off
   }
 
   // printf("Drumpad Event: Pad %u, Type %d, Vel %u, Raw %u\n",
@@ -286,18 +286,18 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *par
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
       control_observers{AnalogControlEventHandler{this, DRUM1, DRUM1, 0},
-                        AnalogControlEventHandler{this, FILTER, 75, 0},
+                        AnalogControlEventHandler{this, FILTER, 75, 1},
                         AnalogControlEventHandler{this, DRUM2, DRUM2, 0},
                         AnalogControlEventHandler{this, PITCH1, 16, 1},
                         AnalogControlEventHandler{this, PITCH2, 17, 2},
                         AnalogControlEventHandler{this, PLAYBUTTON, PLAYBUTTON, 0},
                         AnalogControlEventHandler{this, RANDOM, RANDOM, 0},
-                        AnalogControlEventHandler{this, VOLUME, VOLUME, 0},
+                        AnalogControlEventHandler{this, VOLUME, 7, 1},
                         AnalogControlEventHandler{this, PITCH3, 18, 3},
-                        AnalogControlEventHandler{this, SWING, SWING, 0},
-                        AnalogControlEventHandler{this, CRUSH, 77, 0},
+                        AnalogControlEventHandler{this, SWING, SWING, 1},
+                        AnalogControlEventHandler{this, CRUSH, 77, 1},
                         AnalogControlEventHandler{this, DRUM3, DRUM3, 0},
-                        AnalogControlEventHandler{this, REPEAT, REPEAT, 0},
+                        AnalogControlEventHandler{this, REPEAT, REPEAT, 1},
                         AnalogControlEventHandler{this, DRUM4, DRUM4, 0},
                         AnalogControlEventHandler{this, SPEED, SPEED, 0},
                         AnalogControlEventHandler{this, PITCH4, 19, 4}} {

@@ -311,6 +311,7 @@ void PizzaControls::AnalogControlComponent::update() {
 
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
     Musin::UI::AnalogControlEvent event) {
+  printf("Event: id %d value %f\n", event.control_id, event.value);
   PizzaControls *controls = parent->parent_controls;
   uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
 

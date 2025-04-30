@@ -325,9 +325,21 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(1, 7, midi_value); // Master volume CC
     break;
   case SWING: {
-    uint8_t swing_percent = 50 + static_cast<uint8_t>(event.value * 25.0f);
+    constexpr float center_value = 0.5f;
+    float distance_from_center = fabsf(event.value - center_value); // Range 0.0 to 0.5
+
+    // Map distance [0.0, 0.5] to swing percentage [50, 75]
+    // swing = 50 + distance * ( (75-50) / 0.5 ) = 50 + distance * 50
+    uint8_t swing_percent = 50 + static_cast<uint8_t>(distance_from_center * 50.0f);
+
+    // Determine which steps to delay based on which side of center the knob is
+    bool delay_odd = (event.value > center_value);
+    sequencer_controller.set_swing_target(delay_odd);
+
+    // Set the calculated swing amount
     sequencer_controller.set_swing_percent(swing_percent);
-    // send_midi_cc(1, 80, midi_value); // Optionally send MIDI CC
+
+    // send_midi_cc(1, 80, midi_value); // Optionally send MIDI CC for external gear
     break;
   }
   case CRUSH:

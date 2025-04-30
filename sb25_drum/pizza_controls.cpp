@@ -15,7 +15,7 @@ using Musin::UI::Drumpad;
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref,
                              Clock::InternalClock &clock_ref,
-                             StepSequencer::SequencerController &sequencer_controller_ref)
+                             StepSequencer::DefaultSequencerController &sequencer_controller_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _sequencer_controller_ref(sequencer_controller_ref), keypad_component(this),
       drumpad_component(this), analog_component(this), playbutton_component(this) {

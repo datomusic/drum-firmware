@@ -360,6 +360,11 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   }
 }
 
+PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
+    : parent_controls(parent_ptr), playbutton(PIN_PLAYBUTTON, false, 50, 500),
+      playbutton_handler(this) {
+}
+
 void PizzaControls::PlaybuttonComponent::init() {
   playbutton.init();
   playbutton.add_observer(playbutton_handler);

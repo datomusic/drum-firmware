@@ -115,6 +115,8 @@ private:
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;
   uint64_t high_res_tick_counter_ = 0;
+  uint32_t swing_duration1_ = 0;
+  uint32_t swing_duration2_ = 0;
   uint64_t next_trigger_tick_target_ = 0;
 
   // --- Repeat Effect Members ---

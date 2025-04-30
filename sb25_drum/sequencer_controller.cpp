@@ -126,7 +126,7 @@ void SequencerController<NumTracks, NumSteps>::update_swing_durations() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
-  if (!running)
+  if (state_ != State::Running)
     return;
 
   high_res_tick_counter_++;
@@ -211,12 +211,12 @@ template <size_t NumTracks, size_t NumSteps>
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_running() const {
-  return running;
+  return state_ == State::Running;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) {
-  if (running && !repeat_active_) {
+  if (state_ == State::Running && !repeat_active_) {
     repeat_active_ = true;
     repeat_length_ = std::max(static_cast<uint32_t>(1u), length);
     const size_t num_steps = sequencer.get_num_steps();

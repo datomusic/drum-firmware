@@ -250,6 +250,30 @@ inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t trac
   return std::nullopt;
 }
 
+inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, uint8_t col) const {
+  if (col >= SEQUENCER_TRACKS_DISPLAYED) {
+    return std::nullopt;
+  }
+  if (row >= SEQUENCER_STEPS_DISPLAYED) {
+      return std::nullopt;
+  }
+  uint8_t step_index = (SEQUENCER_STEPS_DISPLAYED - 1) - row;
+  size_t array_index = step_index * SEQUENCER_TRACKS_DISPLAYED + col;
+
+  if (array_index < std::size(LED_ARRAY)) {
+    return LED_ARRAY[array_index];
+  }
+  return std::nullopt;
+}
+
+inline uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {
+  uint16_t calculated_brightness =
+      static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
+  uint8_t brightness_val = static_cast<uint8_t>(
+      std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+  return _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
+}
+
 } // namespace PizzaExample
 
 #endif // PIZZA_DISPLAY_H

@@ -31,5 +31,7 @@ void send_midi_cc(uint8_t channel, uint8_t cc_number, uint8_t value);
  * @param velocity Note velocity (0-127). Velocity 0 usually means Note Off.
  */
 void send_midi_note(uint8_t channel, uint8_t note_number, uint8_t velocity);
+void send_midi_start();
+void send_midi_stop();
 
 #endif // SB25_DRUM_MIDI_H

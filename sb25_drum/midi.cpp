@@ -35,6 +35,14 @@ void send_midi_note(uint8_t channel, uint8_t note_number, uint8_t velocity) {
   MIDI::sendNoteOn(note_number, velocity, channel);
 }
 
+void send_midi_start() {
+  MIDI::sendRealTime(MIDI::Start);
+}
+
+void send_midi_stop() {
+  MIDI::sendRealTime(MIDI::Stop);
+}
+
 void midi_read() {
   // Process incoming MIDI messages
   MIDI::read();

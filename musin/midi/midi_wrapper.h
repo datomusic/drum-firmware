@@ -7,8 +7,8 @@ typedef void(VoidCallback)();
 typedef void(SyxCallback)(byte *data, unsigned length);
 typedef void(NoteCallback)(byte channel, byte note, byte velocity);
 typedef void(ControlChangeCallback)(byte channel, byte controller,
-                                    byte value);         // Added CC callback type
-typedef void(PitchBendCallback)(byte channel, int bend); // Added Pitch Bend callback type
+                                    byte value);
+typedef void(PitchBendCallback)(byte channel, int bend);
 
 struct Callbacks {
   NoteCallback *note_on;
@@ -17,8 +17,8 @@ struct Callbacks {
   VoidCallback *start;
   VoidCallback *cont;
   VoidCallback *stop;
-  ControlChangeCallback *cc;     // Changed type to ControlChangeCallback
-  PitchBendCallback *pitch_bend; // Added pitch bend callback member
+  ControlChangeCallback *cc;
+  PitchBendCallback *pitch_bend;
   SyxCallback *sysex;
 };
 
@@ -31,7 +31,7 @@ void sendRealTime(midi::MidiType message);
 void sendControlChange(byte cc, byte value, byte channel);
 void sendNoteOn(byte inNoteNumber, byte inVelocity, byte inChannel);
 void sendNoteOff(byte inNoteNumber, byte inVelocity, byte inChannel);
-void sendPitchBend(int bend, byte channel); // Added sendPitchBend declaration
+void sendPitchBend(int bend, byte channel);
 void sendSysEx(unsigned length, const byte *bytes);
 
 }; // namespace MIDI

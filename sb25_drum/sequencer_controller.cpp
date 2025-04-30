@@ -5,19 +5,31 @@
 
 namespace StepSequencer {
 
-SequencerController::SequencerController(
+SequencerController<4,8>::SequencerController(
     StepSequencer::Sequencer<4, 8> &sequencer_ref,
     etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
-      tempo_source(tempo_source_ref), running(false), swing_percent_(50),
+      tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0) {
   calculate_timing_params();
   printf("SequencerController: Initialized. Ticks/Step: %lu\n", high_res_ticks_per_step_);
 }
 
+SequencerController<4,8>::~SequencerController() {
+  if(state_ != State::Stopped) {
+    tempo_source.remove_observer(*this);
+  }
+}
+
+void SequencerController<4,8>::set_state(State new_state) {
+  if(state_ != new_state) {
+    state_ = new_state;
+  }
+}
+
 // --- Public Methods ---
 
-void SequencerController::calculate_timing_params() {
+void SequencerController<4,8>::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
     uint8_t steps_per_quarter = SEQUENCER_RESOLUTION / 4;
     if (steps_per_quarter > 0) {
@@ -31,11 +43,11 @@ void SequencerController::calculate_timing_params() {
   high_res_ticks_per_step_ = std::max(static_cast<uint32_t>(1u), high_res_ticks_per_step_);
 }
 
-void SequencerController::set_swing_percent(uint8_t percent) {
+void SequencerController<4,8>::set_swing_percent(uint8_t percent) {
   swing_percent_ = std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(75));
 }
 
-void SequencerController::set_swing_target(bool delay_odd) {
+void SequencerController<4,8>::set_swing_target(bool delay_odd) {
   swing_delays_odd_steps_ = delay_odd;
 }
 
@@ -83,34 +95,24 @@ void SequencerController::reset() {
   next_trigger_tick_target_ = std::max(1ul, static_cast<unsigned long>(first_step_duration));
 }
 
-bool SequencerController::start() {
-  if (running) {
+bool SequencerController<4,8>::start() {
+  if (state_ != State::Stopped) {
     printf("SequencerController: Already running\n");
     return false;
   }
   reset();
   tempo_source.add_observer(*this);
-  running = true;
+  set_state(State::Running);
   printf("SequencerController: Started. Waiting for tick %llu\n", next_trigger_tick_target_);
   return true;
 }
 
-bool SequencerController::stop() {
-  if (!running) {
-    printf("SequencerController: Already stopped\n");
-    return false;
-  }
-  tempo_source.remove_observer(*this);
-  running = false;
-  for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
-    if (last_played_note_per_track[track_idx].has_value()) {
-      uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
-      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
-      last_played_note_per_track[track_idx] = std::nullopt;
-    }
-  }
-  printf("SequencerController: Stopped\n");
-  return true;
+void SequencerController<4,8>::update_swing_durations() {
+  const uint32_t total_ticks = 2 * high_res_ticks_per_step_;
+  swing_duration1_ = (total_ticks * swing_percent_) / 100;
+  swing_duration2_ = total_ticks - swing_duration1_;
+  swing_duration1_ = std::max(1u, swing_duration1_);
+  swing_duration2_ = std::max(1u, swing_duration2_);
 }
 
 void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {

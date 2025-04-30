@@ -21,6 +21,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * and the musical pattern storage (Sequencer). It operates on a high-resolution
  * internal clock tick derived from the tempo source.
  */
+template <size_t NumTracks, size_t NumSteps>
 class SequencerController : public etl::observer<Tempo::SequencerTickEvent> {
 public:
   // --- Constants ---
@@ -32,7 +33,7 @@ public:
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    */
-  explicit SequencerController(
+  SequencerController(
       StepSequencer::Sequencer<4, 8> &sequencer_ref,
       etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
 
@@ -92,6 +93,13 @@ public:
   void set_swing_target(bool delay_odd);
 
 private:
+  enum class State : uint8_t {
+    Stopped,
+    Running,
+    Repeating
+  };
+  void set_state(State new_state);
+  void update_swing_durations();
   void calculate_timing_params();
 
   StepSequencer::Sequencer<4, 8> &sequencer;
@@ -99,7 +107,7 @@ private:
   etl::array<std::optional<uint8_t>, 4> last_played_note_per_track;
   etl::array<int8_t, 4> track_offsets_{};
   etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
-  bool running = false;
+  State state_ = State::Stopped;
 
   // --- Swing Timing Members ---
   uint8_t swing_percent_ = 50;

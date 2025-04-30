@@ -378,10 +378,12 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     
     if (is_playing) {
       send_midi_start();
-      parent_controls->sequencer.start();
+      // parent_controls->sequencer.start();
+      printf("Starting sequencer...\n");
     } else {
       send_midi_stop();
-      parent_controls->sequencer.stop();
+      // parent_controls->sequencer.stop();
+      printf("Stopping sequencer. \n");
     }
   }
 }

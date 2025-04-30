@@ -27,7 +27,7 @@ void SequencerController::calculate_timing_params() {
     } else {
          high_res_ticks_per_step_ = 24; // Default fallback
     }
-    high_res_ticks_per_step_ = std::max(1u, high_res_ticks_per_step_);
+    high_res_ticks_per_step_ = std::max(static_cast<uint32_t>(1u), high_res_ticks_per_step_);
 }
 
 void SequencerController::set_swing_percent(uint8_t percent) {

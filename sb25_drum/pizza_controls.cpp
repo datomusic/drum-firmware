@@ -311,7 +311,6 @@ void PizzaControls::AnalogControlComponent::update() {
 
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
     Musin::UI::AnalogControlEvent event) {
-  printf("Event: id %d value %f\n", event.control_id, event.value);
   PizzaControls *controls = parent->parent_controls;
   uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
 
@@ -361,13 +360,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   case PITCH4:
     send_midi_cc(4, 19, midi_value);
     break;
-  case PLAYBUTTON:  // mux_channel=5
-    send_midi_cc(1, 5, midi_value);  // CC 5 (Portamento Time)
-    break;
-  case REPEAT:  // mux_channel=12
-    send_midi_cc(1, 12, midi_value);  // CC 12 (Effect Control 1)
-    break;
-  case SPEED: {
+  case PLAYBUTTON: {
     unsigned int scaled_value = static_cast<unsigned int>(static_cast<uint16_t>(midi_value) * 2);
     uint8_t brightness = static_cast<uint8_t>(std::min(scaled_value, 255u));
     controls->display.set_play_button_led((static_cast<uint32_t>(brightness) << 16) |

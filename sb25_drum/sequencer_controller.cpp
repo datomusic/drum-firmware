@@ -51,7 +51,7 @@ void SequencerController::reset() {
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
-      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0); // Velocity 0
+      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }

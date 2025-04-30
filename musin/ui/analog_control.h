@@ -18,6 +18,19 @@ struct AnalogControlEvent {
     uint16_t raw_value;
 };
 
+/**
+ * @brief Event data structure for button notifications
+ */
+struct ButtonEvent {
+    enum class Type : uint8_t { 
+        Press, 
+        Release, 
+        Hold 
+    };
+    uint16_t button_id;
+    Type type;
+};
+
 // Forward declaration
 class AnalogControl;
 

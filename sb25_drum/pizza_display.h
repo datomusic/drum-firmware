@@ -4,9 +4,10 @@
 #include "drum_pizza_hardware.h" // For NUM_LEDS, LED_* constants, PIN_LED_DATA etc.
 #include "etl/array.h"
 #include "musin/drivers/ws2812.h"
-#include <algorithm> // For std::min used in draw_sequencer_state
+#include <algorithm> // For std::min
 #include <cstddef>   // For size_t
 #include <cstdint>
+#include <optional>  // For std::optional
 
 // Include the actual sequencer header
 #include "step_sequencer.h"

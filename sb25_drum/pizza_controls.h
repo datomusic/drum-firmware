@@ -20,13 +20,17 @@
 namespace PizzaExample {
 class PizzaDisplay; // Forward declaration
 }
+namespace StepSequencer {
+class SequencerController; // Forward declaration
+}
 
 class PizzaControls {
 public:
-  // Constructor now only takes essential shared resources
+  // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                          StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                         Clock::InternalClock &clock_ref);
+                         Clock::InternalClock &clock_ref,
+                         StepSequencer::SequencerController &sequencer_controller_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -151,6 +155,7 @@ private:
   PizzaExample::PizzaDisplay &display;
   StepSequencer::Sequencer<4, 8> &sequencer;
   Clock::InternalClock &_internal_clock;
+  StepSequencer::SequencerController &_sequencer_controller_ref;
 
   // --- Components ---
   KeypadComponent keypad_component;

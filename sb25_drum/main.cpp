@@ -18,13 +18,13 @@ static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
 static Clock::InternalClock internal_clock(120.0f);
 
-static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock);
-
 static Tempo::TempoHandler tempo_handler(Tempo::ClockSource::INTERNAL);
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
 static Tempo::TempoMultiplier tempo_multiplier(24, 1);
 
 StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
+                                    sequencer_controller);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 

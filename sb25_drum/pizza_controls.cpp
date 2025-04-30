@@ -8,8 +8,6 @@
 #include <cstddef>                // For size_t
 #include <cstdio>                 // For printf
 
-// Forward declaration of the global sequencer controller
-extern StepSequencer::SequencerController sequencer_controller;
 
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
@@ -17,10 +15,11 @@ using Musin::UI::Drumpad;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                             Clock::InternalClock &clock_ref)
+                             Clock::InternalClock &clock_ref,
+                             StepSequencer::SequencerController &sequencer_controller_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
-      keypad_component(this), drumpad_component(this), analog_component(this),
-      playbutton_component(this) {
+      _sequencer_controller_ref(sequencer_controller_ref), keypad_component(this),
+      drumpad_component(this), analog_component(this), playbutton_component(this) {
 }
 
 void PizzaControls::init() {
@@ -334,10 +333,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     // Determine which steps to delay based on which side of center the knob is
     bool delay_odd = (event.value > center_value);
-    sequencer_controller.set_swing_target(delay_odd);
+    controls->_sequencer_controller_ref.set_swing_target(delay_odd);
 
     // Set the calculated swing amount
-    sequencer_controller.set_swing_percent(swing_percent);
+    controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
     break;
   }
   case CRUSH:
@@ -352,19 +351,19 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     constexpr uint32_t REPEAT_LENGTH_1 = 4;
     constexpr uint32_t REPEAT_LENGTH_2 = 2;
 
-    bool was_active = sequencer_controller.is_repeat_active();
+    bool was_active = controls->_sequencer_controller_ref.is_repeat_active();
     bool should_be_active = (event.value >= REPEAT_THRESHOLD_1);
 
     if (should_be_active && !was_active) {
         uint32_t length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
-        sequencer_controller.activate_repeat(length);
+        controls->_sequencer_controller_ref.activate_repeat(length);
         printf("Activated repeat\n");
     } else if (!should_be_active && was_active) {
-        sequencer_controller.deactivate_repeat();
+        controls->_sequencer_controller_ref.deactivate_repeat();
         printf("Deactivate repeat\n");
     } else if (should_be_active && was_active) {
         uint32_t new_length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
-        sequencer_controller.set_repeat_length(new_length);
+        controls->_sequencer_controller_ref.set_repeat_length(new_length);
         printf("Changed repeat param\n");
     }
     send_midi_cc(1, 78, midi_value);
@@ -420,10 +419,10 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     printf("Playbutton pressed\n");
 
     // Toggle sequencer state
-    if (sequencer_controller.is_running()) {
-      sequencer_controller.stop();
+    if (parent->parent_controls->_sequencer_controller_ref.is_running()) {
+      parent->parent_controls->_sequencer_controller_ref.stop();
     } else {
-      sequencer_controller.start();
+      parent->parent_controls->_sequencer_controller_ref.start();
     }
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     printf("Playbutton released\n");

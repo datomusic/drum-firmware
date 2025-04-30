@@ -11,6 +11,7 @@ namespace Musin::UI {
 Button::Button(uint32_t gpio_pin, bool active_high,
              uint32_t debounce_time_ms,
              uint32_t hold_time_ms) :
+    _id(gpio_pin), // Initialize ID first
     gpio(gpio_pin),
     active_level(active_high),
     debounce_time_us(debounce_time_ms * 1000),

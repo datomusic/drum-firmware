@@ -85,6 +85,7 @@ private:
     absolute_time_t state_entered_time = nil_time;
     bool press_pending = false;
     bool release_pending = false;
+    uint16_t _id;  // Unique identifier for the button
 };
 
 } // namespace Musin::UI

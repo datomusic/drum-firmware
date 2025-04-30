@@ -109,14 +109,11 @@ public:
 
   private:
     struct AnalogControlEventHandler : public etl::observer<Musin::UI::AnalogControlEvent> {
-      AnalogControlComponent *parent; // Changed to AnalogControlComponent pointer
+      AnalogControlComponent *parent;
       const uint16_t control_id;
-      const uint8_t cc_number;
-      const uint8_t midi_channel;
 
-      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id, uint8_t cc,
-                                          uint8_t channel)
-          : parent(p), control_id(id), cc_number(cc), midi_channel(channel) {
+      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
+          : parent(p), control_id(id) {
       }
       void notification(Musin::UI::AnalogControlEvent event) override;
     };

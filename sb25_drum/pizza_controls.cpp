@@ -318,35 +318,65 @@ void PizzaControls::AnalogControlComponent::update() {
 
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
     Musin::UI::AnalogControlEvent event) {
-  // Access shared resources via parent->parent_controls
   PizzaControls *controls = parent->parent_controls;
-  uint8_t value = static_cast<uint8_t>(std::round(event.value * 127.0f));
+  uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
 
-  switch (control_id) {
+  switch (event.control_id) {
+  case DRUM1:
+    send_midi_cc(1, DRUM1, midi_value);
+    break;
+  case FILTER:
+    send_midi_cc(1, 75, midi_value);
+    break;
+  case DRUM2:
+    send_midi_cc(1, DRUM2, midi_value);
+    break;
+  case RANDOM:
+    send_midi_cc(1, RANDOM, midi_value);
+    break;
+  case VOLUME:
+    send_midi_cc(1, 7, midi_value);
+    break;
+  case SWING:
+    send_midi_cc(1, SWING, midi_value);
+    break;
+  case CRUSH:
+    send_midi_cc(1, 77, midi_value);
+    break;
+  case DRUM3:
+    send_midi_cc(1, DRUM3, midi_value);
+    break;
+  case REPEAT:
+    send_midi_cc(1, REPEAT, midi_value);
+    break;
+  case DRUM4:
+    send_midi_cc(1, DRUM4, midi_value);
+    break;
+  case PITCH1:
+    send_midi_cc(1, 16, midi_value);
+    break;
+  case PITCH2:
+    send_midi_cc(2, 17, midi_value);
+    break;
+  case PITCH3:
+    send_midi_cc(3, 18, midi_value);
+    break;
+  case PITCH4:
+    send_midi_cc(4, 19, midi_value);
+    break;
   case PLAYBUTTON: {
-    // Scale 0-127 to 0-255 for brightness, ensuring consistent types for std::min
-    unsigned int scaled_value = static_cast<unsigned int>(static_cast<uint16_t>(value) * 2);
+    unsigned int scaled_value = static_cast<unsigned int>(static_cast<uint16_t>(midi_value) * 2);
     uint8_t brightness = static_cast<uint8_t>(std::min(scaled_value, 255u));
     controls->display.set_play_button_led((static_cast<uint32_t>(brightness) << 16) |
                                           (static_cast<uint32_t>(brightness) << 8) | brightness);
     break;
   }
   case SPEED: {
-    // Scale 0.0f - 1.0f to 30.0f - 300.0f BPM
     constexpr float min_bpm = 30.0f;
     constexpr float max_bpm = 300.0f;
     float bpm = min_bpm + event.value * (max_bpm - min_bpm);
     controls->_internal_clock.set_bpm(bpm);
-    // Optionally send MIDI CC as well if needed for external sync/display
-    // send_midi_cc(midi_channel, cc_number, value);
     break;
   }
-  // Add cases for SWING, REPEAT, etc. if they need special handling
-  // case SWING: { ... }
-  // case REPEAT: { ... }
-  default:
-    // Default action: send MIDI CC
-    send_midi_cc(midi_channel, cc_number, value);
-    break;
   }
 }

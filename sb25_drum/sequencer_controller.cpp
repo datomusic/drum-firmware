@@ -13,11 +13,6 @@ SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequenc
 void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
   // This is called for every sequencer tick (e.g., every 16th note by default)
 
-  // --- Calculate Step Index ---
-  size_t num_steps = sequencer.get_num_steps(); // Should be 8 for Sequencer<4, 8>
-  if (num_steps == 0)
-    return; // Avoid division by zero if sequencer is invalid
-
   // Calculate the step index within the pattern (wrap around)
   size_t step_index_in_pattern = current_step_counter % num_steps;
 

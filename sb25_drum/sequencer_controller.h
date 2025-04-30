@@ -2,7 +2,6 @@
 #define SB25_DRUM_SEQUENCER_CONTROLLER_H
 
 #include "etl/array.h"
-#include "etl/array.h"
 #include "etl/observer.h"
 #include "sequencer_tick_event.h"
 #include "step_sequencer.h" // Include the actual sequencer definition
@@ -33,8 +32,9 @@ public:
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    */
-  explicit SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                              etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
+  explicit SequencerController(
+      StepSequencer::Sequencer<4, 8> &sequencer_ref,
+      etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
 
   // Prevent copying and assignment
   SequencerController(const SequencerController &) = delete;

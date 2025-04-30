@@ -36,6 +36,7 @@ public:
   SequencerController(
       StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
       etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
+  ~SequencerController();
 
   // Prevent copying and assignment
   SequencerController(const SequencerController &) = delete;

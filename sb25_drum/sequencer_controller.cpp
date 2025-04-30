@@ -116,6 +116,27 @@ bool SequencerController<NumTracks, NumSteps>::start() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::stop() {
+  if (state_ == State::Stopped) {
+    printf("SequencerController: Already stopped\n");
+    return false;
+  }
+  tempo_source.remove_observer(*this);
+  set_state(State::Stopped);
+  
+  // Send note-offs for all active notes
+  for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
+    if (last_played_note_per_track[track_idx].has_value()) {
+      uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
+      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+      last_played_note_per_track[track_idx] = std::nullopt;
+    }
+  }
+  printf("SequencerController: Stopped\n");
+  return true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::update_swing_durations() {
   const uint32_t total_ticks = 2 * high_res_ticks_per_step_;
   swing_duration1_ = (total_ticks * swing_percent_) / 100;

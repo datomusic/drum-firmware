@@ -138,12 +138,27 @@ private:
    * @param track_idx The track index (0-based).
    * @param step_idx The step index (0-based).
    * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
-   */
-  std::optional<uint32_t> get_sequencer_led_index(size_t track_idx, size_t step_idx) const;
+  */
+ std::optional<uint32_t> get_sequencer_led_index(size_t track_idx, size_t step_idx) const;
 
-  // --- Private Members ---
-  Musin::Drivers::WS2812<NUM_LEDS> _leds;
-  etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
+ /**
+  * @brief Get the physical LED index corresponding to a keypad row and column.
+  * @param row The keypad row index (0-7).
+  * @param col The keypad column index (0-3 for sequencer LEDs).
+  * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
+  */
+ std::optional<uint32_t> get_keypad_led_index(uint8_t row, uint8_t col) const;
+
+ /**
+  * @brief Calculate a white color scaled by an intensity value.
+  * @param intensity The intensity (0-127).
+  * @return uint32_t The calculated color (0xRRGGBB).
+  */
+ uint32_t calculate_intensity_color(uint8_t intensity) const;
+
+ // --- Private Members ---
+ Musin::Drivers::WS2812<NUM_LEDS> _leds;
+ etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
 };
 
 // --- Template Function Definitions (must be in header) ---

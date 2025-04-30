@@ -361,10 +361,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(4, 19, midi_value);
     break;
   case PLAYBUTTON: {
-    unsigned int scaled_value = static_cast<unsigned int>(static_cast<uint16_t>(midi_value) * 2);
-    uint8_t brightness = static_cast<uint8_t>(std::min(scaled_value, 255u));
-    controls->display.set_play_button_led((static_cast<uint32_t>(brightness) << 16) |
-                                          (static_cast<uint32_t>(brightness) << 8) | brightness);
+    send_midi_cc(1, 44, midi_value);
     break;
   }
   case SPEED: {

@@ -152,7 +152,7 @@ void Button::handle_state_transition(bool raw_state, absolute_time_t now) {
 }
 
 void Button::notify_observers(ButtonEvent::Type type) {
-    this->notify_observers(ButtonEvent{_id, type});
+    etl::observable<etl::observer<ButtonEvent>, 4>::notify_observers(ButtonEvent{_id, type});
 }
 
 } // namespace Musin::UI

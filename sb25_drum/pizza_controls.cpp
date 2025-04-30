@@ -10,7 +10,6 @@
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
-using Musin::UI::Button;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref,
@@ -361,13 +360,15 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 }
 
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), playbutton(PIN_ADC, analog_address_pins, false, 50, 500),
-      playbutton_handler(this) {
+    : parent_controls(parent_ptr), playbutton_reader{AnalogInMux16{PIN_ADC, analog_address_pins, PLAYBUTTON}},
+      playbutton{Drumpad<AnalogInMux16>{playbutton_reader, 0, 50U, 250U, 150U, 1500U, 100U, 800U,
+      1000U, 5000U, 200000U},},
+      playbutton_observer(this) {
 }
 
 void PizzaControls::PlaybuttonComponent::init() {
-  playbutton.init();
-  playbutton.add_observer(playbutton_handler);
+  playbutton_reader.init();
+  playbutton.add_observer(playbutton_observer);
 }
 
 void PizzaControls::PlaybuttonComponent::update() {
@@ -375,20 +376,12 @@ void PizzaControls::PlaybuttonComponent::update() {
 }
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
-  Musin::UI::ButtonEvent event) {
-  if (event.type == Musin::UI::ButtonEvent::Type::Press) {
-    // Toggle playback
-    static bool is_playing = false;
-    is_playing = !is_playing;
-    
-    if (is_playing) {
-      send_midi_start();
-      // parent_controls->sequencer.start();
-      printf("Starting sequencer...\n");
-    } else {
-      send_midi_stop();
-      // parent_controls->sequencer.stop();
-      printf("Stopping sequencer. \n");
+  Musin::UI::DrumpadEvent event) {
+
+    if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
+      printf("Playbutton pressed\n");
+    } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
+      printf("Playbutton released\n");
     }
-  }
+    // TODO: Toggle sequencer playing state
 }

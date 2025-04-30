@@ -9,7 +9,6 @@
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
-#include "musin/ui/button.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -101,6 +100,32 @@ public:
     etl::array<uint8_t, 4> drumpad_note_numbers;
     etl::array<DrumpadEventHandler, 4> drumpad_observers;
   };
+  
+
+  // --- Playbutton Component ---
+  class PlaybuttonComponent {
+    public:
+    explicit PlaybuttonComponent(PizzaControls *parent_ptr);
+    void init();
+    void update();
+
+  private:
+    struct PlaybuttonEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
+      PlaybuttonComponent *parent;
+
+      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p)
+          : parent(p) {
+      }
+      void notification(Musin::UI::DrumpadEvent event) override;
+    };
+
+
+    void update_playbutton(); // Moved from PizzaControls
+    PizzaControls *parent_controls; // Pointer back to the main class
+    Musin::HAL::AnalogInMux16 playbutton_reader;
+    Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> playbutton;
+    PlaybuttonEventHandler playbutton_observer;
+  };
 
   // --- Analog Control Component ---
   class AnalogControlComponent {
@@ -135,28 +160,6 @@ private:
   KeypadComponent keypad_component;
   DrumpadComponent drumpad_component;
   AnalogControlComponent analog_component;
-
-  // --- Playbutton Component ---
-  class PlaybuttonComponent {
-  public:
-    explicit PlaybuttonComponent(PizzaControls *parent_ptr);
-    void init();
-    void update();
-
-  private:
-    struct PlaybuttonEventHandler : public etl::observer<Musin::UI::ButtonEvent> {
-      PizzaControls *parent_controls;
-
-      explicit PlaybuttonEventHandler(PlaybuttonComponent *component)
-          : parent_controls(component->parent_controls) {
-      }
-      void notification(Musin::UI::ButtonEvent event) override;
-    };
-
-    PizzaControls *parent_controls;
-    Musin::UI::Button playbutton;
-    PlaybuttonEventHandler playbutton_handler;
-  };
 
   PlaybuttonComponent playbutton_component;
 };

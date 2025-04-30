@@ -34,7 +34,7 @@ public:
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    */
   SequencerController(
-      StepSequencer::Sequencer<4, 8> &sequencer_ref,
+      StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
       etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
 
   // Prevent copying and assignment
@@ -102,7 +102,7 @@ private:
   void update_swing_durations();
   void calculate_timing_params();
 
-  StepSequencer::Sequencer<4, 8> &sequencer;
+  StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, 4> last_played_note_per_track;
   etl::array<int8_t, 4> track_offsets_{};

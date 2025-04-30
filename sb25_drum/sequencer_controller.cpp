@@ -5,8 +5,9 @@
 
 namespace StepSequencer {
 
-SequencerController<4,8>::SequencerController(
-    StepSequencer::Sequencer<4, 8> &sequencer_ref,
+template <size_t NumTracks, size_t NumSteps>
+SequencerController<NumTracks, NumSteps>::SequencerController(
+    StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
@@ -15,13 +16,15 @@ SequencerController<4,8>::SequencerController(
   printf("SequencerController: Initialized. Ticks/Step: %lu\n", high_res_ticks_per_step_);
 }
 
-SequencerController<4,8>::~SequencerController() {
+template <size_t NumTracks, size_t NumSteps>
+SequencerController<NumTracks, NumSteps>::~SequencerController() {
   if(state_ != State::Stopped) {
     tempo_source.remove_observer(*this);
   }
 }
 
-void SequencerController<4,8>::set_state(State new_state) {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
   if(state_ != new_state) {
     state_ = new_state;
   }
@@ -29,7 +32,8 @@ void SequencerController<4,8>::set_state(State new_state) {
 
 // --- Public Methods ---
 
-void SequencerController<4,8>::calculate_timing_params() {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
     uint8_t steps_per_quarter = SEQUENCER_RESOLUTION / 4;
     if (steps_per_quarter > 0) {
@@ -43,15 +47,18 @@ void SequencerController<4,8>::calculate_timing_params() {
   high_res_ticks_per_step_ = std::max(static_cast<uint32_t>(1u), high_res_ticks_per_step_);
 }
 
-void SequencerController<4,8>::set_swing_percent(uint8_t percent) {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_swing_percent(uint8_t percent) {
   swing_percent_ = std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(75));
 }
 
-void SequencerController<4,8>::set_swing_target(bool delay_odd) {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) {
   swing_delays_odd_steps_ = delay_odd;
 }
 
-void SequencerController::reset() {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::reset() {
   printf("SequencerController: Resetting.\n");
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
@@ -95,7 +102,8 @@ void SequencerController::reset() {
   next_trigger_tick_target_ = std::max(1ul, static_cast<unsigned long>(first_step_duration));
 }
 
-bool SequencerController<4,8>::start() {
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::start() {
   if (state_ != State::Stopped) {
     printf("SequencerController: Already running\n");
     return false;
@@ -107,7 +115,8 @@ bool SequencerController<4,8>::start() {
   return true;
 }
 
-void SequencerController<4,8>::update_swing_durations() {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::update_swing_durations() {
   const uint32_t total_ticks = 2 * high_res_ticks_per_step_;
   swing_duration1_ = (total_ticks * swing_percent_) / 100;
   swing_duration2_ = total_ticks - swing_duration1_;
@@ -115,7 +124,8 @@ void SequencerController<4,8>::update_swing_durations() {
   swing_duration2_ = std::max(1u, swing_duration2_);
 }
 
-void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
   if (!running)
     return;
 
@@ -191,18 +201,21 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
   }
 }
 
-[[nodiscard]] uint32_t SequencerController::get_current_step() const noexcept {
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] uint32_t SequencerController<NumTracks, NumSteps>::get_current_step() const noexcept {
   const size_t num_steps = sequencer.get_num_steps();
   if (num_steps == 0)
     return 0;
   return current_step_counter % num_steps;
 }
 
-[[nodiscard]] bool SequencerController::is_running() const {
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_running() const {
   return running;
 }
 
-void SequencerController::activate_repeat(uint32_t length) {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) {
   if (running && !repeat_active_) {
     repeat_active_ = true;
     repeat_length_ = std::max(static_cast<uint32_t>(1u), length);
@@ -214,7 +227,8 @@ void SequencerController::activate_repeat(uint32_t length) {
   }
 }
 
-void SequencerController::deactivate_repeat() {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::deactivate_repeat() {
   if (repeat_active_) {
     repeat_active_ = false;
     repeat_length_ = 0;
@@ -222,7 +236,8 @@ void SequencerController::deactivate_repeat() {
   }
 }
 
-void SequencerController::set_repeat_length(uint32_t length) {
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_repeat_length(uint32_t length) {
   if (repeat_active_) {
     uint32_t new_length = std::max(static_cast<uint32_t>(1u), length);
     if (new_length != repeat_length_) {
@@ -232,8 +247,12 @@ void SequencerController::set_repeat_length(uint32_t length) {
   }
 }
 
-[[nodiscard]] bool SequencerController::is_repeat_active() const {
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
   return repeat_active_;
 }
+
+// Explicit template instantiation for 4 tracks, 8 steps
+template class SequencerController<4, 8>;
 
 } // namespace StepSequencer

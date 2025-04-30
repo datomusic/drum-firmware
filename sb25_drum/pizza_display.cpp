@@ -16,6 +16,13 @@ namespace PizzaExample {
 // --- Internal Helper Functions/Types (Anonymous Namespace) ---
 namespace {
 
+// --- Constants ---
+constexpr auto PULL_CHECK_DELAY_US = 10;
+constexpr uint8_t MAX_BRIGHTNESS = 255;
+constexpr uint8_t REDUCED_BRIGHTNESS = 100;
+constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
+
+// --- Enums ---
 enum class ExternalPinState {
   FLOATING,
   PULL_UP,
@@ -28,15 +35,15 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
   gpio_set_dir(gpio, GPIO_IN);
 
   gpio_disable_pulls(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
   bool initial_read = gpio_get(gpio);
 
   gpio_pull_up(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
   bool pullup_read = gpio_get(gpio);
 
   gpio_pull_down(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
   bool pulldown_read = gpio_get(gpio);
 
   ExternalPinState determined_state;
@@ -63,7 +70,7 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
          state_str);
 
   gpio_disable_pulls(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
 
   return determined_state;
 }
@@ -72,7 +79,8 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
 // --- End Internal Helper Functions/Types ---
 
 PizzaDisplay::PizzaDisplay()
-    : _leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, 255, 0xffe080),
+    : _leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, MAX_BRIGHTNESS,
+            DEFAULT_COLOR_CORRECTION),
       note_colors({0xFF0000, 0xFF0020, 0xFF0040, 0xFF0060, 0xFF1010, 0xFF1020, 0xFF2040,
                    0xFF2060, 0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF,
                    0x2050FF, 0x3078FF, 0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10,
@@ -85,7 +93,8 @@ bool PizzaDisplay::init() {
 
   // Check LED data pin state to determine initial brightness
   ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
-  uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
+  uint8_t initial_brightness =
+      (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
   printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
          initial_brightness, static_cast<int>(led_pin_state));
   _leds.set_brightness(initial_brightness);
@@ -151,28 +160,28 @@ uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
 }
 
 void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
-  if (col >= 4)
-    return; // Column 4 (sample select) has no direct LED in LED_ARRAY
+  if (col >= SEQUENCER_TRACKS_DISPLAYED)
+    return; // Only handle columns with corresponding LEDs
 
   // Map row/col to the linear LED_ARRAY index
   // Keypad rows are 0-7 (bottom to top), cols 0-3 for sequencer LEDs
   // LED_ARRAY maps visually left-to-right, top-to-bottom (steps 1-8)
-  // Keypad row 7 -> Step 1 (Indices 0-3 in LED_ARRAY)
-  // Keypad row 0 -> Step 8 (Indices 28-31 in LED_ARRAY)
-  uint8_t step_index = 7 - row; // Map row 7 to step 0, row 0 to step 7
-  size_t array_index = step_index * 4 + col;
+  // Keypad row 7 -> Step 0 (Indices 0-3 in LED_ARRAY)
+  // Keypad row 0 -> Step 7 (Indices 28-31 in LED_ARRAY)
+  // Ensure row is within expected range if necessary, though mapping handles it implicitly
+  uint8_t step_index = (SEQUENCER_STEPS_DISPLAYED - 1) - row;
+  size_t array_index = step_index * SEQUENCER_TRACKS_DISPLAYED + col;
 
   if (array_index < std::size(LED_ARRAY)) {
     uint32_t led_index = LED_ARRAY[array_index];
-    // Scale intensity (0-127) to color (e.g., white 0xRRGGBB)
-    // Simple scaling: intensity * 2 maps 0-127 to 0-254
-    // Scale intensity (0-127) to brightness (0-254), clamp at 255
-    uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * 2; // Calculate first
+    // Scale intensity (0-127) to brightness (0-254 approx), clamp at MAX_BRIGHTNESS
+    uint16_t calculated_brightness =
+        static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
     uint8_t brightness_val = static_cast<uint8_t>(
-        std::min(calculated_brightness, static_cast<uint16_t>(255))); // Now both args are uint16_t
-    // Apply brightness to white (0xFFFFFF) using the new WS2812 method
-    uint32_t color = _leds.adjust_color_brightness(0xFFFFFF, brightness_val); // Use _leds
-    _leds.set_pixel(led_index, color);                                        // Use _leds
+        std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+    // Apply brightness to white using the WS2812 method
+    uint32_t color = _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
+    _leds.set_pixel(led_index, color);
   }
 }
 

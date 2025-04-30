@@ -19,6 +19,18 @@ namespace PizzaExample {
 
 class PizzaDisplay {
 public:
+  // --- Constants ---
+  // Note: NUM_LEDS is expected to be defined in drum_pizza_hardware.h
+  static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
+  static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
+  static constexpr size_t NUM_NOTE_COLORS = 32;
+  static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
+  static constexpr uint8_t HIGHLIGHT_BLEND_AMOUNT = 100;
+  static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;
+  static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
+  static constexpr uint8_t MAX_BRIGHTNESS = 255;
+
+  // --- Public Methods ---
   PizzaDisplay();
 
   // Prevent copying and assignment
@@ -97,33 +109,33 @@ public:
     uint32_t current_step_in_pattern = (NumSteps > 0) ? (current_step % NumSteps) : 0;
 
     for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-      // Assuming track index maps directly to keypad column
-      if (track_idx >= 4)
-        continue; // Only display first 4 tracks on keypad cols 0-3
+      // Only display tracks that map to keypad columns
+      if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
+        continue;
 
       const auto &track = sequencer.get_track(track_idx);
       for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-        // Assuming step index maps directly to keypad row (inverted)
-        // Step 0 -> Row 7, Step 7 -> Row 0
-        if (step_idx >= 8)
-          continue; // Only display first 8 steps on keypad rows 0-7
-        // uint8_t row = 7 - step_idx; // Row not directly needed for LED mapping
-        uint8_t col = static_cast<uint8_t>(track_idx); // Ensure col is uint8_t
+        // Only display steps that map to keypad rows
+        if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
+          continue;
 
+        uint8_t col = static_cast<uint8_t>(track_idx); // Ensure col is uint8_t
         const auto &step = track.get_step(step_idx);
 
         uint32_t final_color = 0; // Default to black (off)
 
         if (step.enabled && step.note.has_value()) {
-          uint32_t base_color = get_note_color(step.note.value() % 32); // Use modulo for safety
+          // Use modulo with the defined number of colors
+          uint32_t base_color = get_note_color(step.note.value() % NUM_NOTE_COLORS);
 
           // Determine brightness based on velocity
-          uint8_t brightness = 255; // Default to full brightness
+          uint8_t brightness = MAX_BRIGHTNESS; // Default to full brightness
           if (step.velocity.has_value()) {
-            // Scale velocity (1-127) to brightness (0-254 approx), clamp at 255
-            uint16_t calculated_brightness = static_cast<uint16_t>(step.velocity.value()) * 2;
-            brightness =
-                static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(255)));
+            // Scale velocity (1-127) to brightness, clamp at MAX_BRIGHTNESS
+            uint16_t calculated_brightness =
+                static_cast<uint16_t>(step.velocity.value()) * VELOCITY_TO_BRIGHTNESS_SCALE;
+            brightness = static_cast<uint8_t>(
+                std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
           }
 
           // Apply brightness using the WS2812 method
@@ -137,18 +149,21 @@ public:
           uint8_t r = (final_color >> 16) & 0xFF;
           uint8_t g = (final_color >> 8) & 0xFF;
           uint8_t b = final_color & 0xFF;
-          uint8_t highlight_intensity = 100; // How much white to add
           // Use std::min with explicit int type to avoid potential promotion issues before cast
-          r = static_cast<uint8_t>(std::min<int>(255, static_cast<int>(r) + highlight_intensity));
-          g = static_cast<uint8_t>(std::min<int>(255, static_cast<int>(g) + highlight_intensity));
-          b = static_cast<uint8_t>(std::min<int>(255, static_cast<int>(b) + highlight_intensity));
+          r = static_cast<uint8_t>(
+              std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
+          g = static_cast<uint8_t>(
+              std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
+          b = static_cast<uint8_t>(
+              std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
           final_color = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
         }
 
         // Map step_idx/col to the linear LED_ARRAY index
         // Ensure calculation uses appropriate types and check bounds
-        size_t led_array_index = step_idx * 4 + col; // Use size_t for index calculation
-        if (led_array_index < LED_ARRAY.size()) {    // Bounds check against LED_ARRAY size
+        size_t led_array_index =
+            step_idx * SEQUENCER_TRACKS_DISPLAYED + col; // Use size_t for index calculation
+        if (led_array_index < LED_ARRAY.size()) { // Bounds check against LED_ARRAY size
           _leds.set_pixel(LED_ARRAY[led_array_index], final_color);
         }
       }
@@ -165,8 +180,8 @@ public:
   } // Return the renamed member
 
 private:
-  Musin::Drivers::WS2812<NUM_LEDS> _leds; // Renamed member variable
-  etl::array<uint32_t, 32> note_colors;
+  Musin::Drivers::WS2812<NUM_LEDS> _leds;
+  etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
 };
 
 } // namespace PizzaExample

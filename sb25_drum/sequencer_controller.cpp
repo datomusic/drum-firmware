@@ -120,8 +120,8 @@ void SequencerController<NumTracks, NumSteps>::update_swing_durations() {
   const uint32_t total_ticks = 2 * high_res_ticks_per_step_;
   swing_duration1_ = (total_ticks * swing_percent_) / 100;
   swing_duration2_ = total_ticks - swing_duration1_;
-  swing_duration1_ = std::max(1u, swing_duration1_);
-  swing_duration2_ = std::max(1u, swing_duration2_);
+  swing_duration1_ = std::max(static_cast<uint32_t>(1u), swing_duration1_);
+  swing_duration2_ = std::max(static_cast<uint32_t>(1u), swing_duration2_);
 }
 
 template <size_t NumTracks, size_t NumSteps>

@@ -48,7 +48,8 @@ public:
 private:
   StepSequencer::Sequencer<4, 8> &sequencer; // Reference to the actual sequencer
   uint32_t current_step_counter;             // Continuously running step counter
-  // Add other state as needed (e.g., playing/stopped)
+  etl::array<std::optional<uint8_t>, 4>
+      last_played_note_per_track; // Store the last note number played on each track
 };
 
 } // namespace StepSequencer

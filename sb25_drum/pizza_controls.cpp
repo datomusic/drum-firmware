@@ -358,13 +358,16 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     if (should_be_active && !was_active) {
         uint32_t length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
         sequencer_controller.activate_repeat(length);
+        printf("Activated repeat\n");
     } else if (!should_be_active && was_active) {
         sequencer_controller.deactivate_repeat();
+        printf("Deactivate repeat\n");
     } else if (should_be_active && was_active) {
         uint32_t new_length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
         sequencer_controller.set_repeat_length(new_length);
+        printf("Changed repeat param\n");
     }
-    // send_midi_cc(1, 78, midi_value); // Optional
+    send_midi_cc(1, 78, midi_value);
     break;
   }
   case DRUM4:

@@ -119,6 +119,7 @@ macro(musin_init_ui TARGET)
 
   target_sources(${TARGET} PRIVATE
     ${MUSIN_UI}/analog_control.cpp
+    ${MUSIN_UI}/button.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE

@@ -268,7 +268,7 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *par
                    AnalogControl{PIN_ADC, analog_address_pins, RANDOM, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, VOLUME},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH3, 0.005f, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, SWING},
+                   AnalogControl{PIN_ADC, analog_address_pins, SWING, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, CRUSH, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM3, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, REPEAT, 0.005f, true},

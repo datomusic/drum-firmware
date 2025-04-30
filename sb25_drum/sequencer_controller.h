@@ -119,7 +119,6 @@ public: // Add public methods for controlling repeat
   void deactivate_repeat();
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
-
 };
 
 } // namespace StepSequencer

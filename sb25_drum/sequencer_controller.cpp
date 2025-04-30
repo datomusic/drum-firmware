@@ -1,7 +1,7 @@
 #include "sequencer_controller.h"
 #include "midi.h"    // For send_midi_note
 #include <algorithm> // For std::clamp, std::max
-#include <cstdio> // For printf
+#include <cstdio>    // For printf
 
 namespace StepSequencer {
 
@@ -124,11 +124,11 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
     const size_t num_steps = sequencer.get_num_steps();
     size_t step_index_to_play;
     if (repeat_active_ && repeat_length_ > 0 && num_steps > 0) {
-        uint64_t steps_since_activation = current_step_counter - repeat_activation_step_counter_;
-        uint64_t loop_position = steps_since_activation % repeat_length_;
-        step_index_to_play = (repeat_activation_step_index_ + loop_position) % num_steps;
+      uint64_t steps_since_activation = current_step_counter - repeat_activation_step_counter_;
+      uint64_t loop_position = steps_since_activation % repeat_length_;
+      step_index_to_play = (repeat_activation_step_index_ + loop_position) % num_steps;
     } else {
-        step_index_to_play = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
+      step_index_to_play = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     }
 
     size_t num_tracks = sequencer.get_num_tracks();
@@ -201,38 +201,37 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
 }
 
 void SequencerController::activate_repeat(uint32_t length) {
-    if (running && !repeat_active_) {
-        repeat_active_ = true;
-        repeat_length_ = std::max(1u, length);
-        const size_t num_steps = sequencer.get_num_steps();
-        repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
-        repeat_activation_step_counter_ = current_step_counter;
-        // printf("Repeat Activated: Length %lu, Start Step %lu (Abs Counter %llu)\n",
-        //        repeat_length_, repeat_activation_step_index_, repeat_activation_step_counter_);
-    }
+  if (running && !repeat_active_) {
+    repeat_active_ = true;
+    repeat_length_ = std::max(static_cast<uint32_t>(1u), length);
+    const size_t num_steps = sequencer.get_num_steps();
+    repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
+    repeat_activation_step_counter_ = current_step_counter;
+    printf("Repeat Activated: Length %lu, Start Step %lu (Abs Counter %llu)\n", repeat_length_,
+           repeat_activation_step_index_, repeat_activation_step_counter_);
+  }
 }
 
 void SequencerController::deactivate_repeat() {
-    if (repeat_active_) {
-        repeat_active_ = false;
-        repeat_length_ = 0;
-        // printf("Repeat Deactivated\n");
-    }
+  if (repeat_active_) {
+    repeat_active_ = false;
+    repeat_length_ = 0;
+    printf("Repeat Deactivated\n");
+  }
 }
 
 void SequencerController::set_repeat_length(uint32_t length) {
-    if (repeat_active_) {
-        uint32_t new_length = std::max(1u, length);
-        if (new_length != repeat_length_) {
-             repeat_length_ = new_length;
-             // printf("Repeat Length Changed: New Length %lu\n", repeat_length_);
-        }
+  if (repeat_active_) {
+    uint32_t new_length = std::max(static_cast<uint32_t>(1u), length);
+    if (new_length != repeat_length_) {
+      repeat_length_ = new_length;
+      printf("Repeat Length Changed: New Length %lu\n", repeat_length_);
     }
+  }
 }
 
 [[nodiscard]] bool SequencerController::is_repeat_active() const {
-    return repeat_active_;
+  return repeat_active_;
 }
-
 
 } // namespace StepSequencer

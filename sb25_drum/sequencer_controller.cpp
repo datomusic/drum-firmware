@@ -54,14 +54,14 @@ void SequencerController::reset() {
     uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
     uint32_t duration2 = total_ticks_for_two_steps - duration1;
 
-    duration1 = std::max(1u, duration1);
+    duration1 = std::max(static_cast<uint32_t>(1u), duration1);
     if (duration1 >= total_ticks_for_two_steps) {
          duration2 = 0;
          duration1 = total_ticks_for_two_steps;
     } else {
          duration2 = total_ticks_for_two_steps - duration1;
     }
-    duration2 = std::max(1u, duration2);
+    duration2 = std::max(static_cast<uint32_t>(1u), duration2);
 
     if (duration1 + duration2 > total_ticks_for_two_steps && total_ticks_for_two_steps > 0) {
         if (duration1 > 1) duration1--; else if (duration2 > 1) duration2--;
@@ -147,14 +147,14 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
         uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
         uint32_t duration2 = total_ticks_for_two_steps - duration1;
 
-        duration1 = std::max(1u, duration1);
+        duration1 = std::max(static_cast<uint32_t>(1u), duration1);
         if (duration1 >= total_ticks_for_two_steps) {
              duration2 = 0;
              duration1 = total_ticks_for_two_steps;
         } else {
              duration2 = total_ticks_for_two_steps - duration1;
         }
-        duration2 = std::max(1u, duration2);
+        duration2 = std::max(static_cast<uint32_t>(1u), duration2);
 
         if (duration1 + duration2 > total_ticks_for_two_steps && total_ticks_for_two_steps > 0) {
              if (duration1 > 1) duration1--; else if (duration2 > 1) duration2--;
@@ -169,7 +169,7 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
             interval_to_next_trigger = current_step_was_odd ? duration2 : duration1;
         }
 
-        next_trigger_tick_target_ += std::max(1u, interval_to_next_trigger);
+        next_trigger_tick_target_ += std::max(static_cast<uint32_t>(1u), interval_to_next_trigger);
 
         current_step_counter++;
 

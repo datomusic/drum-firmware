@@ -285,22 +285,15 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *par
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM4, 0.005f, true},
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, 0.005f, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, 0.005f, true}},
-      control_observers{AnalogControlEventHandler{this, DRUM1},
-                        AnalogControlEventHandler{this, FILTER},
-                        AnalogControlEventHandler{this, DRUM2},
-                        AnalogControlEventHandler{this, PITCH1},
-                        AnalogControlEventHandler{this, PITCH2},
-                        AnalogControlEventHandler{this, PLAYBUTTON},
-                        AnalogControlEventHandler{this, RANDOM},
-                        AnalogControlEventHandler{this, VOLUME},
-                        AnalogControlEventHandler{this, PITCH3},
-                        AnalogControlEventHandler{this, SWING},
-                        AnalogControlEventHandler{this, CRUSH},
-                        AnalogControlEventHandler{this, DRUM3},
-                        AnalogControlEventHandler{this, REPEAT},
-                        AnalogControlEventHandler{this, DRUM4},
-                        AnalogControlEventHandler{this, SPEED},
-                        AnalogControlEventHandler{this, PITCH4}} {
+      control_observers{
+          AnalogControlEventHandler{this, DRUM1},  AnalogControlEventHandler{this, FILTER},
+          AnalogControlEventHandler{this, DRUM2},  AnalogControlEventHandler{this, PITCH1},
+          AnalogControlEventHandler{this, PITCH2}, AnalogControlEventHandler{this, PLAYBUTTON},
+          AnalogControlEventHandler{this, RANDOM}, AnalogControlEventHandler{this, VOLUME},
+          AnalogControlEventHandler{this, PITCH3}, AnalogControlEventHandler{this, SWING},
+          AnalogControlEventHandler{this, CRUSH},  AnalogControlEventHandler{this, DRUM3},
+          AnalogControlEventHandler{this, REPEAT}, AnalogControlEventHandler{this, DRUM4},
+          AnalogControlEventHandler{this, SPEED},  AnalogControlEventHandler{this, PITCH4}} {
 }
 
 void PizzaControls::AnalogControlComponent::init() {

@@ -32,7 +32,8 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
 
     // --- Send Note Off for the previous note on this track (if any) ---
     if (last_played_note_per_track[track_idx].has_value()) {
-      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0); // Velocity 0 = Note Off
+      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(),
+                     0);                                    // Velocity 0 = Note Off
       last_played_note_per_track[track_idx] = std::nullopt; // Clear the stored note
     }
 

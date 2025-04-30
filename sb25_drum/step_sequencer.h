@@ -79,7 +79,8 @@ private:
  */
 template <size_t NumTracks, size_t NumSteps> class Sequencer {
 public:
-  static_assert(NumTracks > 0, "Sequencer must have at least one track.");
+  static_assert(NumTracks > 0 && NumSteps > 0, 
+    "Sequencer must have at least one track and one step");
 
   constexpr Sequencer() = default;
 

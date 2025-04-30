@@ -11,14 +11,11 @@ using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
-// --- PizzaControls Main Class Implementation ---
-
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref,
                              Clock::InternalClock &clock_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       keypad_component(this), drumpad_component(this), analog_component(this) {
-  // Constructor body is now empty, initialization handled by components
 }
 
 void PizzaControls::init() {
@@ -28,17 +25,14 @@ void PizzaControls::init() {
 }
 
 void PizzaControls::update() {
-  // Order might matter depending on dependencies, but likely independent
   keypad_component.update();
   drumpad_component.update();
   analog_component.update();
 }
 
-// --- KeypadComponent Implementation ---
-
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
-      keypad_observer(this, keypad_cc_map, 0) // Pass 'this' (KeypadComponent*)
+      keypad_observer(this, keypad_cc_map, 0)
 {
 }
 
@@ -53,7 +47,6 @@ void PizzaControls::KeypadComponent::update() {
 
 void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
     Musin::UI::KeypadEvent event) {
-  // Access shared resources via parent_controls
   PizzaControls *controls = parent->parent_controls;
 
   // Sample Select (Column 4)
@@ -95,7 +88,6 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
         offset = 1;
         break;
       }
-      // Call the method on the DrumpadComponent via the main controls pointer
       controls->drumpad_component.select_note_for_pad(pad_index, offset);
     }
     return;
@@ -217,7 +209,6 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   int32_t current_note = drumpad_note_numbers[pad_index];
   int32_t new_note_number = current_note + offset;
 
-  // Wrap around within the 32 available note colors (0-31)
   if (new_note_number < 0) {
     new_note_number = 31;
   } else if (new_note_number > 31) {
@@ -228,7 +219,6 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   // Update the corresponding track's note in the sequencer
   parent_controls->sequencer.get_track(pad_index).set_all_notes(drumpad_note_numbers[pad_index]);
 
-  // Update LED immediately to show the selected color
   uint32_t led_index = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index < NUM_LEDS) {
     uint32_t base_color = parent_controls->display.get_note_color(drumpad_note_numbers[pad_index]);
@@ -250,7 +240,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   // Access shared resources via parent->parent_controls
   // PizzaControls* controls = parent->parent_controls;
 
-  // Example: Send MIDI note on press
   if (event.type == Musin::UI::DrumpadEvent::Type::Press && event.velocity.has_value()) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
@@ -260,9 +249,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     send_midi_note(1, note, 0); // Note off
   }
 
-  // printf("Drumpad Event: Pad %u, Type %d, Vel %u, Raw %u\n",
-  //        event.pad_index, static_cast<int>(event.type),
-  //        event.velocity.value_or(0), event.raw_value);
 }
 
 // --- AnalogControlComponent Implementation ---

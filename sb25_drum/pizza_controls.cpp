@@ -346,9 +346,27 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   case DRUM3:
     send_midi_cc(1, 22, midi_value);
     break;
-  case REPEAT:
-    send_midi_cc(1, 78, midi_value);
+  case REPEAT: {
+    constexpr float REPEAT_THRESHOLD_1 = 0.1f;
+    constexpr float REPEAT_THRESHOLD_2 = 0.7f;
+    constexpr uint32_t REPEAT_LENGTH_1 = 4;
+    constexpr uint32_t REPEAT_LENGTH_2 = 2;
+
+    bool was_active = sequencer_controller.is_repeat_active();
+    bool should_be_active = (event.value >= REPEAT_THRESHOLD_1);
+
+    if (should_be_active && !was_active) {
+        uint32_t length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
+        sequencer_controller.activate_repeat(length);
+    } else if (!should_be_active && was_active) {
+        sequencer_controller.deactivate_repeat();
+    } else if (should_be_active && was_active) {
+        uint32_t new_length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
+        sequencer_controller.set_repeat_length(new_length);
+    }
+    // send_midi_cc(1, 78, midi_value); // Optional
     break;
+  }
   case DRUM4:
     send_midi_cc(1, 23, midi_value);
     break;

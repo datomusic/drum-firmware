@@ -107,6 +107,19 @@ private:
   uint32_t high_res_ticks_per_step_ = 0;
   uint64_t high_res_tick_counter_ = 0;
   uint64_t next_trigger_tick_target_ = 0;
+
+  // --- Repeat Effect Members ---
+  bool repeat_active_ = false;
+  uint32_t repeat_length_ = 0;
+  uint32_t repeat_activation_step_index_ = 0;
+  uint64_t repeat_activation_step_counter_ = 0;
+
+public: // Add public methods for controlling repeat
+  void activate_repeat(uint32_t length);
+  void deactivate_repeat();
+  void set_repeat_length(uint32_t length);
+  [[nodiscard]] bool is_repeat_active() const;
+
 };
 
 } // namespace StepSequencer

@@ -1,7 +1,7 @@
 #include "sequencer_controller.h"
 #include "midi.h"    // For send_midi_note
 #include <algorithm> // For std::clamp, std::max
-#include <cstdio>    // For printf
+#include <cstdio> // For printf
 
 namespace StepSequencer {
 
@@ -14,6 +14,8 @@ SequencerController::SequencerController(
   calculate_timing_params();
   printf("SequencerController: Initialized. Ticks/Step: %lu\n", high_res_ticks_per_step_);
 }
+
+// --- Public Methods ---
 
 void SequencerController::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
@@ -120,7 +122,14 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
   if (high_res_tick_counter_ >= next_trigger_tick_target_) {
 
     const size_t num_steps = sequencer.get_num_steps();
-    const size_t current_logical_step = current_step_counter % num_steps;
+    size_t step_index_to_play;
+    if (repeat_active_ && repeat_length_ > 0 && num_steps > 0) {
+        uint64_t steps_since_activation = current_step_counter - repeat_activation_step_counter_;
+        uint64_t loop_position = steps_since_activation % repeat_length_;
+        step_index_to_play = (repeat_activation_step_index_ + loop_position) % num_steps;
+    } else {
+        step_index_to_play = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
+    }
 
     size_t num_tracks = sequencer.get_num_tracks();
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
@@ -131,7 +140,7 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
         last_played_note_per_track[track_idx] = std::nullopt;
       }
 
-      const int effective_step = static_cast<int>(current_logical_step) + track_offsets_[track_idx];
+      const int effective_step = static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
       const size_t wrapped_step =
           (num_steps > 0) ? ((effective_step % static_cast<int>(num_steps) + num_steps) % num_steps)
                           : 0;
@@ -190,5 +199,40 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
 [[nodiscard]] bool SequencerController::is_running() const {
   return running;
 }
+
+void SequencerController::activate_repeat(uint32_t length) {
+    if (running && !repeat_active_) {
+        repeat_active_ = true;
+        repeat_length_ = std::max(1u, length);
+        const size_t num_steps = sequencer.get_num_steps();
+        repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
+        repeat_activation_step_counter_ = current_step_counter;
+        // printf("Repeat Activated: Length %lu, Start Step %lu (Abs Counter %llu)\n",
+        //        repeat_length_, repeat_activation_step_index_, repeat_activation_step_counter_);
+    }
+}
+
+void SequencerController::deactivate_repeat() {
+    if (repeat_active_) {
+        repeat_active_ = false;
+        repeat_length_ = 0;
+        // printf("Repeat Deactivated\n");
+    }
+}
+
+void SequencerController::set_repeat_length(uint32_t length) {
+    if (repeat_active_) {
+        uint32_t new_length = std::max(1u, length);
+        if (new_length != repeat_length_) {
+             repeat_length_ = new_length;
+             // printf("Repeat Length Changed: New Length %lu\n", repeat_length_);
+        }
+    }
+}
+
+[[nodiscard]] bool SequencerController::is_repeat_active() const {
+    return repeat_active_;
+}
+
 
 } // namespace StepSequencer

@@ -7,7 +7,8 @@ namespace StepSequencer {
 SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{} {
   // Initialize last_played_note_per_track elements to std::nullopt by default
-  printf("SequencerController: Initialized.\n");
+  printf("SequencerController: Initialized with %zu tracks and %zu steps\n", 
+         sequencer.get_num_tracks(), sequencer.get_num_steps());
 }
 
 void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
@@ -53,10 +54,8 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
 }
 
 uint32_t SequencerController::get_current_step() const {
-  size_t num_steps = sequencer.get_num_steps();
-  if (num_steps == 0)
-    return 0;
-  return current_step_counter % num_steps; // Return step within pattern bounds
+  static constexpr size_t num_steps = sequencer.get_num_steps();
+  return current_step_counter % num_steps;
 }
 
 void SequencerController::reset() {

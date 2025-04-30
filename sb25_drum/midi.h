@@ -9,8 +9,8 @@ extern "C" {
 #define SYSEX_REBOOT_BOOTLOADER 0x0B
 
 static void handle_sysex(byte *const data, const unsigned length) {
-  if (data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID && data[3] == SYSEX_REBOOT_BOOTLOADER) {
-    reset_usb_boot(0, 0);
+  if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DUO_ID && data[3] == SYSEX_REBOOT_BOOTLOADER) {
+      reset_usb_boot(0, 0);
   }
 }
 

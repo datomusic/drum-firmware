@@ -1,9 +1,12 @@
 #ifndef SB25_DRUM_SEQUENCER_CONTROLLER_H
 #define SB25_DRUM_SEQUENCER_CONTROLLER_H
 
+#include "etl/array.h"
 #include "etl/observer.h"
 #include "sequencer_tick_event.h"
 #include "step_sequencer.h" // Include the actual sequencer definition
+#include <cstdint>          // Include for uint8_t
+#include <optional>         // Include for std::optional
 
 namespace StepSequencer {
 

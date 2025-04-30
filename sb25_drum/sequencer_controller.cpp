@@ -51,7 +51,7 @@ void SequencerController::notification([[maybe_unused]] const Tempo::SequencerTi
   // Counter runs indefinitely unless reset
 }
 
-uint32_t SequencerController::get_current_step() const {
+[[nodiscard]] uint32_t SequencerController::get_current_step() const noexcept {
   static constexpr size_t num_steps = sequencer.get_num_steps();
   return current_step_counter % num_steps;
 }

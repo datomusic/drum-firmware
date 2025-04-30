@@ -361,7 +361,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 }
 
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), playbutton(PIN_PLAYBUTTON, false, 50, 500),
+    : parent_controls(parent_ptr), playbutton(PIN_ADC, analog_address_pins, false, 50, 500),
       playbutton_handler(this) {
 }
 

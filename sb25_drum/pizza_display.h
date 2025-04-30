@@ -104,71 +104,7 @@ public:
    */
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-                            uint32_t current_step) {
-    // Ensure current_step is within the valid range [0, NumSteps-1]
-    uint32_t current_step_in_pattern = (NumSteps > 0) ? (current_step % NumSteps) : 0;
-
-    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-      // Only display tracks that map to keypad columns
-      if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
-        continue;
-
-      const auto &track = sequencer.get_track(track_idx);
-      for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-        // Only display steps that map to keypad rows
-        if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
-          continue;
-
-        uint8_t col = static_cast<uint8_t>(track_idx); // Ensure col is uint8_t
-        const auto &step = track.get_step(step_idx);
-
-        uint32_t final_color = 0; // Default to black (off)
-
-        if (step.enabled && step.note.has_value()) {
-          // Use modulo with the defined number of colors
-          uint32_t base_color = get_note_color(step.note.value() % NUM_NOTE_COLORS);
-
-          // Determine brightness based on velocity
-          uint8_t brightness = MAX_BRIGHTNESS; // Default to full brightness
-          if (step.velocity.has_value()) {
-            // Scale velocity (1-127) to brightness, clamp at MAX_BRIGHTNESS
-            uint16_t calculated_brightness =
-                static_cast<uint16_t>(step.velocity.value()) * VELOCITY_TO_BRIGHTNESS_SCALE;
-            brightness = static_cast<uint8_t>(
-                std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
-          }
-
-          // Apply brightness using the WS2812 method
-          final_color = _leds.adjust_color_brightness(base_color, brightness);
-        }
-
-        // --- Highlight Current Step ---
-        // If this is the current step, blend the calculated color with white
-        if (step_idx == current_step_in_pattern) {
-          // Simple additive blend: Add white component (adjust intensity as needed)
-          uint8_t r = (final_color >> 16) & 0xFF;
-          uint8_t g = (final_color >> 8) & 0xFF;
-          uint8_t b = final_color & 0xFF;
-          // Use std::min with explicit int type to avoid potential promotion issues before cast
-          r = static_cast<uint8_t>(
-              std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
-          g = static_cast<uint8_t>(
-              std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
-          b = static_cast<uint8_t>(
-              std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
-          final_color = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
-        }
-
-        // Map step_idx/col to the linear LED_ARRAY index
-        // Ensure calculation uses appropriate types and check bounds
-        size_t led_array_index =
-            step_idx * SEQUENCER_TRACKS_DISPLAYED + col; // Use size_t for index calculation
-        if (led_array_index < LED_ARRAY.size()) { // Bounds check against LED_ARRAY size
-          _leds.set_pixel(LED_ARRAY[led_array_index], final_color);
-        }
-      }
-    }
-  }
+                            uint32_t current_step); // Declaration only
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -180,9 +116,123 @@ public:
   } // Return the renamed member
 
 private:
+  // --- Private Helper Methods ---
+
+  /**
+   * @brief Calculate the LED color for a sequencer step based on note and velocity.
+   * @param step The sequencer step data.
+   * @return uint32_t The calculated color (0xRRGGBB), or 0 if step is disabled/invalid.
+   */
+  uint32_t calculate_step_color(const StepSequencer::Step &step) const;
+
+  /**
+   * @brief Apply a highlight effect (blend with white) to a color.
+   * @param color The base color.
+   * @return uint32_t The highlighted color.
+   */
+  uint32_t apply_highlight(uint32_t color) const;
+
+  /**
+   * @brief Get the physical LED index corresponding to a sequencer track and step.
+   * @param track_idx The track index (0-based).
+   * @param step_idx The step index (0-based).
+   * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
+   */
+  std::optional<uint32_t> get_sequencer_led_index(size_t track_idx, size_t step_idx) const;
+
+  // --- Private Members ---
   Musin::Drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
 };
+
+// --- Template Function Definitions (must be in header) ---
+
+template <size_t NumTracks, size_t NumSteps>
+void PizzaDisplay::draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+                                        uint32_t current_step) {
+  // Ensure current_step is within the valid range [0, NumSteps-1]
+  uint32_t current_step_in_pattern = (NumSteps > 0) ? (current_step % NumSteps) : 0;
+
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    // Only display tracks that map to keypad columns
+    if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
+      continue;
+
+    const auto &track = sequencer.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      // Only display steps that map to keypad rows
+      if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
+        continue;
+
+      const auto &step = track.get_step(step_idx);
+      uint32_t final_color = calculate_step_color(step);
+
+      // Highlight the current step
+      if (step_idx == current_step_in_pattern) {
+        final_color = apply_highlight(final_color);
+      }
+
+      // Get the physical LED index for this step
+      std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
+
+      // Set the pixel if the index is valid
+      if (led_index_opt.has_value()) {
+        _leds.set_pixel(led_index_opt.value(), final_color);
+      }
+    }
+  }
+}
+
+// --- Inline Helper Method Definitions ---
+
+inline uint32_t PizzaDisplay::calculate_step_color(const StepSequencer::Step &step) const {
+  uint32_t color = 0; // Default to black (off)
+
+  if (step.enabled && step.note.has_value()) {
+    // Use modulo with the defined number of colors
+    uint32_t base_color = get_note_color(step.note.value() % NUM_NOTE_COLORS);
+
+    // Determine brightness based on velocity
+    uint8_t brightness = MAX_BRIGHTNESS; // Default to full brightness
+    if (step.velocity.has_value()) {
+      // Scale velocity (1-127) to brightness, clamp at MAX_BRIGHTNESS
+      uint16_t calculated_brightness =
+          static_cast<uint16_t>(step.velocity.value()) * VELOCITY_TO_BRIGHTNESS_SCALE;
+      brightness = static_cast<uint8_t>(
+          std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+    }
+
+    // Apply brightness using the WS2812 method
+    color = _leds.adjust_color_brightness(base_color, brightness);
+  }
+  return color;
+}
+
+inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
+  // Simple additive blend: Add white component
+  uint8_t r = (color >> 16) & 0xFF;
+  uint8_t g = (color >> 8) & 0xFF;
+  uint8_t b = color & 0xFF;
+  // Use std::min with explicit int type to avoid potential promotion issues before cast
+  r = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
+  g = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
+  b = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
+  return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+}
+
+inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,
+                                                                     size_t step_idx) const {
+  // Map step_idx/track_idx to the linear LED_ARRAY index
+  size_t led_array_index =
+      step_idx * SEQUENCER_TRACKS_DISPLAYED + static_cast<size_t>(track_idx);
+  if (led_array_index < LED_ARRAY.size()) { // Bounds check against LED_ARRAY size
+    return LED_ARRAY[led_array_index];
+  }
+  return std::nullopt;
+}
 
 } // namespace PizzaExample
 

@@ -53,6 +53,9 @@ private:
   uint32_t current_step_counter;             // Continuously running step counter
   etl::array<std::optional<uint8_t>, 4>
       last_played_note_per_track; // Store the last note number played on each track
+  etl::array<int8_t, 4> track_offsets_{};    // Per-track step offsets
+  uint8_t current_random_strength_ = 0;              // Current randomization strength (0-127)
+  static constexpr uint8_t MAX_RANDOM_OFFSET = 3; // Max ±3 steps from base
 };
 
 } // namespace StepSequencer

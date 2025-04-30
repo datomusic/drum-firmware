@@ -76,7 +76,6 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
 }
 
 } // anonymous namespace
-// --- End Internal Helper Functions/Types ---
 
 PizzaDisplay::PizzaDisplay()
     : _leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, MAX_BRIGHTNESS,
@@ -91,7 +90,7 @@ PizzaDisplay::PizzaDisplay()
 bool PizzaDisplay::init() {
   printf("PizzaDisplay: Initializing LEDs...\n");
 
-  // Check LED data pin state to determine initial brightness
+  // Check LED data pin state to determine initial brightness. Pullup = SK6812, pulldown = SK6805
   ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
   uint8_t initial_brightness =
       (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
@@ -160,31 +159,12 @@ uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
 }
 
 void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
-  if (col >= SEQUENCER_TRACKS_DISPLAYED)
-    return; // Only handle columns with corresponding LEDs
+  std::optional<uint32_t> led_index_opt = get_keypad_led_index(row, col);
 
-  // Map row/col to the linear LED_ARRAY index
-  // Keypad rows are 0-7 (bottom to top), cols 0-3 for sequencer LEDs
-  // LED_ARRAY maps visually left-to-right, top-to-bottom (steps 1-8)
-  // Keypad row 7 -> Step 0 (Indices 0-3 in LED_ARRAY)
-  // Keypad row 0 -> Step 7 (Indices 28-31 in LED_ARRAY)
-  // Ensure row is within expected range if necessary, though mapping handles it implicitly
-  uint8_t step_index = (SEQUENCER_STEPS_DISPLAYED - 1) - row;
-  size_t array_index = step_index * SEQUENCER_TRACKS_DISPLAYED + col;
-
-  if (array_index < std::size(LED_ARRAY)) {
-    uint32_t led_index = LED_ARRAY[array_index];
-    // Scale intensity (0-127) to brightness (0-254 approx), clamp at MAX_BRIGHTNESS
-    uint16_t calculated_brightness =
-        static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
-    uint8_t brightness_val = static_cast<uint8_t>(
-        std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
-    // Apply brightness to white using the WS2812 method
-    uint32_t color = _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
-    _leds.set_pixel(led_index, color);
+  if (led_index_opt.has_value()) {
+    uint32_t color = calculate_intensity_color(intensity);
+    _leds.set_pixel(led_index_opt.value(), color);
   }
 }
-
-// Explicit template instantiation is removed as the definition is now in the header.
 
 } // namespace PizzaExample

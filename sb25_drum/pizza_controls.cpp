@@ -315,12 +315,15 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   PizzaControls *controls = parent->parent_controls;
   uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
 
-  switch (event.control_id) {
+  // Extract mux channel from packed control_id (upper 8 bits)
+  const uint8_t mux_channel = event.control_id >> 8;
+  
+  switch (mux_channel) {
   case DRUM1:
-    send_midi_cc(1, DRUM1, midi_value);
+    send_midi_cc(1, 20, midi_value);
     break;
   case FILTER:
-    send_midi_cc(1, 75, midi_value);
+    send_midi_cc(1, 1, midi_value);  // CC 1 (Modulation Wheel)
     break;
   case DRUM2:
     send_midi_cc(1, DRUM2, midi_value);
@@ -358,7 +361,13 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   case PITCH4:
     send_midi_cc(4, 19, midi_value);
     break;
-  case PLAYBUTTON: {
+  case PLAYBUTTON:  // mux_channel=5
+    send_midi_cc(1, 5, midi_value);  // CC 5 (Portamento Time)
+    break;
+  case REPEAT:  // mux_channel=12
+    send_midi_cc(1, 12, midi_value);  // CC 12 (Effect Control 1)
+    break;
+  case SPEED: {
     unsigned int scaled_value = static_cast<unsigned int>(static_cast<uint16_t>(midi_value) * 2);
     uint8_t brightness = static_cast<uint8_t>(std::min(scaled_value, 255u));
     controls->display.set_play_button_led((static_cast<uint32_t>(brightness) << 16) |

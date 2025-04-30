@@ -2,10 +2,12 @@
 #define SB25_DRUM_SEQUENCER_CONTROLLER_H
 
 #include "etl/array.h"
+#include "etl/array.h"
 #include "etl/observer.h"
 #include "sequencer_tick_event.h"
 #include "step_sequencer.h" // Include the actual sequencer definition
-#include <cstdint>          // Include for uint8_t
+#include <algorithm>        // For std::clamp, std::max, std::min
+#include <cstdint>          // Include for uint8_t, uint32_t, uint64_t
 #include <optional>         // Include for std::optional
 
 namespace StepSequencer {
@@ -17,10 +19,15 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * @brief Receives sequencer ticks and advances the main sequencer.
  *
  * Acts as the bridge between the tempo generation system (TempoMultiplier)
- * and the musical pattern storage (Sequencer).
+ * and the musical pattern storage (Sequencer). It operates on a high-resolution
+ * internal clock tick derived from the tempo source.
  */
 class SequencerController : public etl::observer<Tempo::SequencerTickEvent> {
 public:
+  // --- Constants ---
+  static constexpr uint32_t CLOCK_PPQN = 96;
+  static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
+
   /**
    * @brief Constructor.
    * @param sequencer_ref A reference to the main Sequencer instance.
@@ -35,15 +42,16 @@ public:
 
   /**
    * @brief Notification handler called when a SequencerTickEvent is received.
-   * Implements the etl::observer interface.
+   * Implements the etl::observer interface. This is expected to be called
+   * at the high resolution defined by CLOCK_PPQN.
    * @param event The received sequencer tick event.
    */
-  void notification(Tempo::SequencerTickEvent event);
+  void notification(Tempo::SequencerTickEvent event) override;
 
   /**
-   * @brief Get the current step index within the pattern length.
+   * @brief Get the current logical step index (0 to NumSteps-1) that was last triggered.
    */
-  [[nodiscard]] uint32_t get_current_step() const;
+  [[nodiscard]] uint32_t get_current_step() const noexcept;
 
   /**
    * @brief Reset the current step index (e.g., on transport stop/start).
@@ -68,16 +76,37 @@ public:
    */
   [[nodiscard]] bool is_running() const;
 
+  /**
+   * @brief Set the swing amount.
+   * @param percent Percentage (50-75) of the two-step duration allocated to the
+   *                first step of the pair determined by swing_delays_odd_steps_.
+   *                50 means no swing. Clamped internally.
+   */
+  void set_swing_percent(uint8_t percent);
+
+  /**
+   * @brief Set whether swing delay applies to odd steps.
+   * @param delay_odd If true, odd steps (1, 3, ...) are delayed/longer.
+   *                  If false (default), even steps (0, 2, ...) are delayed/longer.
+   */
+  void set_swing_target(bool delay_odd);
+
 private:
-  StepSequencer::Sequencer<4, 8> &sequencer; // Reference to the actual sequencer
-  uint32_t current_step_counter;             // Continuously running step counter
-  etl::array<std::optional<uint8_t>, 4>
-      last_played_note_per_track;                 // Store the last note number played on each track
-  etl::array<int8_t, 4> track_offsets_{};         // Per-track step offsets
-  uint8_t current_random_strength_ = 0;           // Current randomization strength (0-127)
-  static constexpr uint8_t MAX_RANDOM_OFFSET = 3; // Max ±3 steps from base
+  void calculate_timing_params();
+
+  StepSequencer::Sequencer<4, 8> &sequencer;
+  uint32_t current_step_counter;
+  etl::array<std::optional<uint8_t>, 4> last_played_note_per_track;
+  etl::array<int8_t, 4> track_offsets_{};
   etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
   bool running = false;
+
+  // --- Swing Timing Members ---
+  uint8_t swing_percent_ = 50;
+  bool swing_delays_odd_steps_ = false;
+  uint32_t high_res_ticks_per_step_ = 0;
+  uint64_t high_res_tick_counter_ = 0;
+  uint64_t next_trigger_tick_target_ = 0;
 };
 
 } // namespace StepSequencer

@@ -322,11 +322,14 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(1, 79, midi_value);
     break;
   case VOLUME:
-    send_midi_cc(1, 7, midi_value);
+    send_midi_cc(1, 7, midi_value); // Master volume CC
     break;
-  case SWING:
-    send_midi_cc(1, 80, midi_value);
+  case SWING: {
+    uint8_t swing_percent = 50 + static_cast<uint8_t>(event.value * 25.0f);
+    sequencer_controller.set_swing_percent(swing_percent);
+    // send_midi_cc(1, 80, midi_value); // Optionally send MIDI CC
     break;
+  }
   case CRUSH:
     send_midi_cc(1, 77, midi_value);
     break;

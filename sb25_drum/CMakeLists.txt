@@ -12,6 +12,7 @@ project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
+  midi.cpp
   pizza_controls.cpp
   pizza_display.cpp
   tempo_handler.cpp

@@ -1,11 +1,15 @@
 #include "pizza_controls.h"
-#include "midi.h"           // For send_midi_cc, send_midi_note
-#include "pizza_display.h"  // Need definition for display methods
-#include "step_sequencer.h" // Need definition for Sequencer
-#include <algorithm>        // For std::clamp, std::min
-#include <cmath>            // For std::max, std::round used in scaling
-#include <cstddef>          // For size_t
-#include <cstdio>           // For printf
+#include "midi.h"                 // For send_midi_cc, send_midi_note
+#include "pizza_display.h"        // Need definition for display methods
+#include "sequencer_controller.h" // For SequencerController
+#include "step_sequencer.h"       // Need definition for Sequencer
+#include <algorithm>              // For std::clamp, std::min
+#include <cmath>                  // For std::max, std::round used in scaling
+#include <cstddef>                // For size_t
+#include <cstdio>                 // For printf
+
+// Forward declaration of the global sequencer controller
+extern StepSequencer::SequencerController sequencer_controller;
 
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
@@ -380,10 +384,7 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     Musin::UI::DrumpadEvent event) {
   if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
     printf("Playbutton pressed\n");
-    
-    // Access the sequencer controller from main.cpp
-    extern StepSequencer::SequencerController sequencer_controller;
-    
+
     // Toggle sequencer state
     if (sequencer_controller.is_running()) {
       sequencer_controller.stop();

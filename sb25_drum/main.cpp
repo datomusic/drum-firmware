@@ -23,7 +23,7 @@ static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clo
 static Tempo::TempoHandler tempo_handler(Tempo::ClockSource::INTERNAL);
 static Tempo::TempoMultiplier tempo_multiplier(1, 1);
 
-static StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 
 int main() {

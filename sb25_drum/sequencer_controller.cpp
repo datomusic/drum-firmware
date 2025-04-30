@@ -42,7 +42,7 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
 }
 
 [[nodiscard]] uint32_t SequencerController::get_current_step() const noexcept {
-  static constexpr size_t num_steps = sequencer.get_num_steps();
+  const size_t num_steps = sequencer.get_num_steps();
   return current_step_counter % num_steps;
 }
 

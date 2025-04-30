@@ -8,7 +8,6 @@
 #include <cstddef>                // For size_t
 #include <cstdio>                 // For printf
 
-
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
@@ -355,16 +354,16 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     bool should_be_active = (event.value >= REPEAT_THRESHOLD_1);
 
     if (should_be_active && !was_active) {
-        uint32_t length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
-        controls->_sequencer_controller_ref.activate_repeat(length);
-        printf("Activated repeat\n");
+      uint32_t length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
+      controls->_sequencer_controller_ref.activate_repeat(length);
+      printf("Activated repeat\n");
     } else if (!should_be_active && was_active) {
-        controls->_sequencer_controller_ref.deactivate_repeat();
-        printf("Deactivate repeat\n");
+      controls->_sequencer_controller_ref.deactivate_repeat();
+      printf("Deactivate repeat\n");
     } else if (should_be_active && was_active) {
-        uint32_t new_length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
-        controls->_sequencer_controller_ref.set_repeat_length(new_length);
-        printf("Changed repeat param\n");
+      uint32_t new_length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
+      controls->_sequencer_controller_ref.set_repeat_length(new_length);
+      printf("Changed repeat param\n");
     }
     send_midi_cc(1, 78, midi_value);
     break;

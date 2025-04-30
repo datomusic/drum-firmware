@@ -89,6 +89,22 @@ public:
       void notification(Musin::UI::DrumpadEvent event) override;
     };
 
+    class PlaybuttonComponent {
+    public:
+      explicit PlaybuttonComponent(PizzaControls *parent_ptr);
+      void init();
+      void update();
+  
+    private:
+      struct PlaybuttonEventHandler : public etl::observer<Musin::UI::ButtonEvent> {
+        PlaybuttonComponent *parent; // Changed to DrumpadComponent pointer
+  
+        constexpr PlaybuttonEventHandler(PlaybuttonComponent *p, uint8_t index)
+            : parent(p) {
+        }
+        void notification(Musin::UI::ButtonEvent event) override;
+      };
+
     void update_drumpads(); // Moved from PizzaControls
     uint32_t calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const;
     float scale_raw_to_brightness(uint16_t raw_value) const;
@@ -133,6 +149,7 @@ private:
   KeypadComponent keypad_component;
   DrumpadComponent drumpad_component;
   AnalogControlComponent analog_component;
+  PlaybuttonComponent playbutton_component;
 };
 
 #endif // PIZZA_CONTROLS_H

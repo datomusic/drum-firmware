@@ -22,12 +22,14 @@ void PizzaControls::init() {
   keypad_component.init();
   drumpad_component.init();
   analog_component.init();
+  playbutton_component.init();
 }
 
 void PizzaControls::update() {
   keypad_component.update();
   drumpad_component.update();
   analog_component.update();
+  playbutton_component.update();
 }
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
@@ -346,10 +348,6 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   case PITCH4:
     send_midi_cc(4, 19, midi_value);
     break;
-  case PLAYBUTTON: {
-    send_midi_cc(1, 44, midi_value);
-    break;
-  }
   case SPEED: {
     constexpr float min_bpm = 30.0f;
     constexpr float max_bpm = 480.0f;

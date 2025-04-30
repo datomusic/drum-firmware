@@ -31,9 +31,12 @@ public:
     static constexpr uint32_t DEFAULT_HOLD_MS = 500;
 
     // Direct GPIO constructor
-    Button(uint32_t gpio_pin, bool pull_up = true,
+    Button(uint32_t gpio_pin, bool active_high = false,
           uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_MS,
           uint32_t hold_time_ms = DEFAULT_HOLD_MS);
+    
+    /** @brief Get the button's unique ID based on its configuration */
+    uint16_t get_id() const { return _id; }
 
     // 8-channel mux constructor
     Button(uint32_t gpio_pin, const std::array<uint32_t,3>& mux_address_pins, uint8_t mux_channel,
@@ -57,7 +60,6 @@ private:
     enum class State {
         Idle,
         Pressed,
-        DebouncingPress,
         Held,
         DebouncingRelease
     };
@@ -65,9 +67,10 @@ private:
     void read_state();
     void set_mux_address() const;
     void handle_state_transition(bool raw_state, absolute_time_t now);
+    void notify_observers(ButtonEvent::Type type);
 
     Musin::HAL::GpioPin gpio;
-    const bool pull_up;
+    const bool active_level; // True for active-high, false for active-low
     const uint32_t debounce_time_us;
     const uint32_t hold_time_us;
     

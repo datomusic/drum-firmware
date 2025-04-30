@@ -361,6 +361,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
 void PizzaControls::PlaybuttonComponent::update() {
   playbutton.update();
+  playbutton.update();
 }
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(

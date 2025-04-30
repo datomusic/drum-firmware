@@ -10,6 +10,7 @@
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
+using Musin::UI:Button;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              StepSequencer::Sequencer<4, 8> &sequencer_ref,
@@ -355,5 +356,25 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     controls->_internal_clock.set_bpm(bpm);
     break;
   }
+  }
+}
+
+void PizzaControls::PlaybuttonComponent::update() {
+  playbutton.update();
+}
+
+void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
+  Musin::UI::ButtonEvent event) {
+if (event.type == Musin::UI::ButtonEvent::Type::Press) {
+  // Toggle playback
+  static bool is_playing = false;
+  is_playing = !is_playing;
+  
+  if (is_playing) {
+    send_midi_start();
+    parent_controls->sequencer.start();
+  } else {
+    send_midi_stop();
+    parent_controls->sequencer.stop();
   }
 }

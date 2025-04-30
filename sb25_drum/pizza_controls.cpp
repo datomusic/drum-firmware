@@ -316,37 +316,37 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   // Extract mux channel from packed control_id (upper 8 bits)
   const uint8_t mux_channel = event.control_id >> 8;
-  
+
   switch (mux_channel) {
   case DRUM1:
     send_midi_cc(1, 20, midi_value);
     break;
   case FILTER:
-    send_midi_cc(1, 1, midi_value);  // CC 1 (Modulation Wheel)
+    send_midi_cc(1, 75, midi_value);
     break;
   case DRUM2:
-    send_midi_cc(1, DRUM2, midi_value);
+    send_midi_cc(1, 21, midi_value);
     break;
   case RANDOM:
-    send_midi_cc(1, RANDOM, midi_value);
+    send_midi_cc(1, 79, midi_value);
     break;
   case VOLUME:
     send_midi_cc(1, 7, midi_value);
     break;
   case SWING:
-    send_midi_cc(1, SWING, midi_value);
+    send_midi_cc(1, 80, midi_value);
     break;
   case CRUSH:
     send_midi_cc(1, 77, midi_value);
     break;
   case DRUM3:
-    send_midi_cc(1, DRUM3, midi_value);
+    send_midi_cc(1, 22, midi_value);
     break;
   case REPEAT:
-    send_midi_cc(1, REPEAT, midi_value);
+    send_midi_cc(1, 78, midi_value);
     break;
   case DRUM4:
-    send_midi_cc(1, DRUM4, midi_value);
+    send_midi_cc(1, 23, midi_value);
     break;
   case PITCH1:
     send_midi_cc(1, 16, midi_value);
@@ -369,7 +369,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   }
   case SPEED: {
     constexpr float min_bpm = 30.0f;
-    constexpr float max_bpm = 300.0f;
+    constexpr float max_bpm = 480.0f;
     float bpm = min_bpm + event.value * (max_bpm - min_bpm);
     controls->_internal_clock.set_bpm(bpm);
     break;

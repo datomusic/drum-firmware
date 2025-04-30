@@ -7,7 +7,7 @@ namespace StepSequencer {
 SequencerController::SequencerController(StepSequencer::Sequencer<4, 8> &sequencer_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{} {
   // Initialize last_played_note_per_track elements to std::nullopt by default
-  printf("SequencerController: Initialized with %zu tracks and %zu steps\n", 
+  printf("SequencerController: Initialized with %zu tracks and %zu steps\n",
          sequencer.get_num_tracks(), sequencer.get_num_steps());
 }
 
@@ -28,7 +28,8 @@ void SequencerController::notification([[maybe_unused]] Tempo::SequencerTickEven
     }
 
     const int effective_step = static_cast<int>(base_step) + track_offsets_[track_idx];
-    const size_t wrapped_step = (effective_step % static_cast<int>(num_steps) + num_steps) % num_steps;
+    const size_t wrapped_step =
+        (effective_step % static_cast<int>(num_steps) + num_steps) % num_steps;
     const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
 
     if (step.enabled && step.note.has_value() && step.velocity.has_value() &&

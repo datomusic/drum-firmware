@@ -7,7 +7,7 @@
 #include <algorithm> // For std::min
 #include <cstddef>   // For size_t
 #include <cstdint>
-#include <optional>  // For std::optional
+#include <optional> // For std::optional
 
 // Include the actual sequencer header
 #include "step_sequencer.h"
@@ -138,34 +138,34 @@ private:
    * @param track_idx The track index (0-based).
    * @param step_idx The step index (0-based).
    * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
-  */
- std::optional<uint32_t> get_sequencer_led_index(size_t track_idx, size_t step_idx) const;
+   */
+  std::optional<uint32_t> get_sequencer_led_index(size_t track_idx, size_t step_idx) const;
 
- /**
-  * @brief Get the physical LED index corresponding to a keypad row and column.
-  * @param row The keypad row index (0-7).
-  * @param col The keypad column index (0-3 for sequencer LEDs).
-  * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
-  */
- std::optional<uint32_t> get_keypad_led_index(uint8_t row, uint8_t col) const;
+  /**
+   * @brief Get the physical LED index corresponding to a keypad row and column.
+   * @param row The keypad row index (0-7).
+   * @param col The keypad column index (0-3 for sequencer LEDs).
+   * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
+   */
+  std::optional<uint32_t> get_keypad_led_index(uint8_t row, uint8_t col) const;
 
- /**
-  * @brief Calculate a white color scaled by an intensity value.
-  * @param intensity The intensity (0-127).
-  * @return uint32_t The calculated color (0xRRGGBB).
-  */
- uint32_t calculate_intensity_color(uint8_t intensity) const;
+  /**
+   * @brief Calculate a white color scaled by an intensity value.
+   * @param intensity The intensity (0-127).
+   * @return uint32_t The calculated color (0xRRGGBB).
+   */
+  uint32_t calculate_intensity_color(uint8_t intensity) const;
 
- // --- Private Members ---
- Musin::Drivers::WS2812<NUM_LEDS> _leds;
- etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
+  // --- Private Members ---
+  Musin::Drivers::WS2812<NUM_LEDS> _leds;
+  etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
 };
 
 // --- Template Function Definitions (must be in header) ---
 
 template <size_t NumTracks, size_t NumSteps>
-void PizzaDisplay::draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-                                        uint32_t current_step) {
+void PizzaDisplay::draw_sequencer_state(
+    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer, uint32_t current_step) {
   // Calculate the NEXT step that will be played
   uint32_t next_step_in_pattern = (NumSteps > 0) ? ((current_step + 1) % NumSteps) : 0;
 
@@ -242,8 +242,7 @@ inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
 inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,
                                                                      size_t step_idx) const {
   // Map step_idx/track_idx to the linear LED_ARRAY index
-  size_t led_array_index =
-      step_idx * SEQUENCER_TRACKS_DISPLAYED + static_cast<size_t>(track_idx);
+  size_t led_array_index = step_idx * SEQUENCER_TRACKS_DISPLAYED + static_cast<size_t>(track_idx);
   if (led_array_index < LED_ARRAY.size()) { // Bounds check against LED_ARRAY size
     return LED_ARRAY[led_array_index];
   }
@@ -255,7 +254,7 @@ inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, u
     return std::nullopt;
   }
   if (row >= SEQUENCER_STEPS_DISPLAYED) {
-      return std::nullopt;
+    return std::nullopt;
   }
   uint8_t step_index = (SEQUENCER_STEPS_DISPLAYED - 1) - row;
   size_t array_index = step_index * SEQUENCER_TRACKS_DISPLAYED + col;
@@ -267,10 +266,9 @@ inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, u
 }
 
 inline uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {
-  uint16_t calculated_brightness =
-      static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
-  uint8_t brightness_val = static_cast<uint8_t>(
-      std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+  uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
+  uint8_t brightness_val =
+      static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
   return _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
 }
 

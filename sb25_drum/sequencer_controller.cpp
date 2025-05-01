@@ -11,13 +11,20 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
-      _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
-      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
-      next_trigger_tick_target_(0), random_active_(false), random_track_offsets_{} {
+      _just_played_step_per_track{}, // Initialize below
+      tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
+      swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
+      random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
   // Seed the random number generator once
   srand(time_us_32());
-  printf("SequencerController: Initialized. Ticks/Step: %lu\n", high_res_ticks_per_step_);
+
+  // Initialize last played step to the final step index for initial highlight
+  if constexpr (NumSteps > 0) {
+    _just_played_step_per_track.fill(NumSteps - 1);
+  } else {
+    _just_played_step_per_track.fill(std::nullopt);
+  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -155,8 +162,17 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
-  _just_played_step_per_track.fill(std::nullopt);
-  random_active_ = false; // Ensure random is off on reset
+
+  // Reset the 'just played' step index for each track to the *last* step
+  if constexpr (NumSteps > 0) {
+    _just_played_step_per_track.fill(NumSteps - 1);
+  } else {
+    _just_played_step_per_track.fill(std::nullopt);
+  }
+
+  // Ensure effects are reset
+  deactivate_repeat();
+  deactivate_random();
 
   uint32_t first_interval = calculate_next_trigger_interval();
   next_trigger_tick_target_ = first_interval;

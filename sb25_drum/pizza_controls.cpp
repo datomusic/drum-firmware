@@ -97,10 +97,11 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
     return;
   }
 
-  if (event.type == Musin::UI::KeypadEvent::Type::Press) {
-    uint8_t track_idx = event.col;
-    uint8_t step_idx = 7 - event.row;
+  // Map physical column to logical track (0->3, 1->2, 2->1, 3->0)
+  uint8_t track_idx = (PizzaExample::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
+  uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row;
 
+  if (event.type == Musin::UI::KeypadEvent::Type::Press) {
     StepSequencer::Step &step = controls->sequencer.get_track(track_idx).get_step(step_idx);
     step.enabled = !step.enabled;
 

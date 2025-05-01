@@ -218,7 +218,10 @@ inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
 
 inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,
                                                                      size_t step_idx) const {
-  size_t led_array_index = step_idx * SEQUENCER_TRACKS_DISPLAYED + static_cast<size_t>(track_idx);
+  // Map logical track index to physical column index (0->3, 1->2, 2->1, 3->0)
+  size_t physical_col_idx = (SEQUENCER_TRACKS_DISPLAYED - 1) - track_idx;
+  size_t led_array_index = step_idx * SEQUENCER_TRACKS_DISPLAYED + physical_col_idx;
+
   if (led_array_index < LED_ARRAY.size()) {
     return LED_ARRAY[led_array_index];
   }

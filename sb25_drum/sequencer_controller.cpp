@@ -153,7 +153,8 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
   last_played_step_index_ = 0;
-
+  random_active_ = false; // Ensure random is off on reset
+ 
   uint32_t first_interval = calculate_next_trigger_interval();
   next_trigger_tick_target_ = first_interval;
 }

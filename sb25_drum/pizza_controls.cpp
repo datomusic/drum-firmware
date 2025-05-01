@@ -162,9 +162,10 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 
     uint16_t raw_value = drumpads[i].get_raw_adc_value();
     uint8_t note_index = drumpad_note_numbers[i];
-    uint32_t led_index = controls->display.get_drumpad_led_index(i);
+    auto led_index_opt = controls->display.get_drumpad_led_index(i);
 
-    if (led_index < NUM_LEDS) {
+    if (led_index_opt.has_value()) {
+      uint32_t led_index = led_index_opt.value();
       uint32_t base_color = controls->display.get_note_color(note_index);
       uint32_t final_color = calculate_brightness_color(base_color, raw_value);
       controls->display.set_led(led_index, final_color);
@@ -217,8 +218,9 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
 
   parent_controls->sequencer.get_track(pad_index).set_all_notes(drumpad_note_numbers[pad_index]);
 
-  uint32_t led_index = parent_controls->display.get_drumpad_led_index(pad_index);
-  if (led_index < NUM_LEDS) {
+  auto led_index_opt = parent_controls->display.get_drumpad_led_index(pad_index);
+  if (led_index_opt.has_value()) {
+    uint32_t led_index = led_index_opt.value();
     uint32_t base_color = parent_controls->display.get_note_color(drumpad_note_numbers[pad_index]);
     uint32_t final_color =
         calculate_brightness_color(base_color, 100); // Show selected note color brightly

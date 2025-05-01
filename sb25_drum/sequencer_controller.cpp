@@ -37,7 +37,7 @@ void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
 // --- Helper Methods ---
 
 template <size_t NumTracks, size_t NumSteps>
-size_t SequencerController<NumTracks, NumSteps>::calculate_step_to_play() const {
+size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_to_play() const {
   const size_t num_steps = sequencer.get_num_steps();
   if (num_steps == 0)
     return 0;

@@ -56,6 +56,12 @@ public:
   [[nodiscard]] uint32_t get_current_step() const noexcept;
 
   /**
+   * @brief Get the index of the step (0 to NumSteps-1) that was last triggered/played.
+   * This considers effects like Repeat that might alter the played step.
+   */
+  [[nodiscard]] uint32_t get_last_played_step_index() const noexcept;
+
+  /**
    * @brief Reset the current step index (e.g., on transport stop/start).
    */
   void reset();
@@ -117,6 +123,7 @@ private:
   uint64_t high_res_tick_counter_ = 0;
   uint32_t swing_duration1_ = 0;
   uint32_t swing_duration2_ = 0;
+  uint32_t last_played_step_index_ = 0; // Add this member
   uint64_t next_trigger_tick_target_ = 0;
 
   // --- Repeat Effect Members ---

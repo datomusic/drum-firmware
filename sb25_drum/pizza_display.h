@@ -107,7 +107,7 @@ public:
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(
       const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller); // Declaration
+      const SequencerController<NumTracks, NumSteps> &controller); // Changed parameter type
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -168,16 +168,9 @@ private:
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) {
-  // Get the current step from the controller
-  uint32_t current_step = controller.get_current_step();
-
-  // Calculate the PREVIOUS step (the one that just played) to highlight
-  // Note: This logic highlights the step that *just* finished playing.
-  // If you want to highlight the *next* step to play, the logic needs adjustment
-  // based on how current_step is updated relative to the display call.
-  // Assuming current_step is the step *about* to play, the previous step is:
-  uint32_t highlight_step_in_pattern = (current_step == 0) ? (NumSteps - 1) : (current_step - 1);
+    const SequencerController<NumTracks, NumSteps> &controller) { // Changed parameter type
+  // Get the step index that was just played/triggered from the controller
+  uint32_t highlight_step_in_pattern = controller.get_last_played_step_index();
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     // Only display tracks that map to keypad columns
@@ -193,7 +186,7 @@ void PizzaDisplay::draw_sequencer_state(
       const auto &step = track.get_step(step_idx);
       uint32_t final_color = calculate_step_color(step);
 
-      // Highlight the NEXT step instead of current
+      // Highlight the step that was just played
       if (step_idx == highlight_step_in_pattern) {
         final_color = apply_highlight(final_color);
       }

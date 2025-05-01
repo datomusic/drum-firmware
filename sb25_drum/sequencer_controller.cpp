@@ -209,7 +209,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
     uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
     next_trigger_tick_target_ += interval_to_next_trigger;
 
-    current_step_counter++; // Increment after processing the current step and calculating next interval
+    current_step_counter++; // Increment after processing the current step and calculating next
+                            // interval
   }
 }
 

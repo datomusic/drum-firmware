@@ -98,9 +98,9 @@ public:
    * @param controller A const reference to the sequencer controller object.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(
-      const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller);
+  void
+  draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+                       const StepSequencer::SequencerController<NumTracks, NumSteps> &controller);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.

@@ -220,7 +220,8 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   uint32_t led_index = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index < NUM_LEDS) {
     uint32_t base_color = parent_controls->display.get_note_color(drumpad_note_numbers[pad_index]);
-    uint32_t final_color = calculate_brightness_color(base_color, 100); // Show selected note color brightly
+    uint32_t final_color =
+        calculate_brightness_color(base_color, 100); // Show selected note color brightly
     parent_controls->display.set_led(led_index, final_color);
   }
 }

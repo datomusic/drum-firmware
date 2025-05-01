@@ -5,7 +5,6 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "musin/hal/analog_in.h"
-#include "musin/hal/analog_in.h"
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"

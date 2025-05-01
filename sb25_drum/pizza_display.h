@@ -11,6 +11,7 @@
 
 // Include the actual sequencer header
 #include "step_sequencer.h"
+#include "sequencer_controller.h" // Include SequencerController header
 
 // Forward declaration for check_external_pin_state if needed, or include main.h if it's there
 // Assuming check_external_pin_state remains accessible or is moved/duplicated.

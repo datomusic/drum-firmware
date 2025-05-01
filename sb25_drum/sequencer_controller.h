@@ -7,6 +7,7 @@
 #include "step_sequencer.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <optional>
 
 namespace StepSequencer {
@@ -98,6 +99,18 @@ public:
    */
   void set_swing_target(bool delay_odd);
 
+  /**
+   * @brief Activate the random step effect.
+   */
+  void activate_random();
+
+  /**
+   * @brief Deactivate the random step effect.
+   */
+  void deactivate_random();
+
+  [[nodiscard]] bool is_random_active() const;
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -106,7 +119,7 @@ private:
   };
   void set_state(State new_state);
   void calculate_timing_params();
-  [[nodiscard]] size_t calculate_step_to_play() const;
+  [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
@@ -130,6 +143,9 @@ private:
   uint32_t repeat_length_ = 0;
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
+
+  bool random_active_ = false;
+  etl::array<int8_t, NumTracks> random_track_offsets_{};
 
 public:
   void activate_repeat(uint32_t length);

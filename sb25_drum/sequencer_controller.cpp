@@ -13,8 +13,10 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
       last_played_step_index_(0), tempo_source(tempo_source_ref), state_(State::Stopped),
       swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
-      next_trigger_tick_target_(0) {
+      next_trigger_tick_target_(0), random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
+  // Seed the random number generator once
+  srand(time_us_32());
   printf("SequencerController: Initialized. Ticks/Step: %lu\n", high_res_ticks_per_step_);
 }
 

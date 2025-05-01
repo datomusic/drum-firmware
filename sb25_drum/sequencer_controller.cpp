@@ -31,6 +31,85 @@ void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
   }
 }
 
+// --- Helper Methods ---
+
+template <size_t NumTracks, size_t NumSteps>
+size_t SequencerController<NumTracks, NumSteps>::calculate_step_to_play() const {
+  const size_t num_steps = sequencer.get_num_steps();
+  if (num_steps == 0)
+    return 0;
+
+  if (repeat_active_ && repeat_length_ > 0) {
+    uint64_t steps_since_activation = current_step_counter - repeat_activation_step_counter_;
+    uint64_t loop_position = steps_since_activation % repeat_length_;
+    return (repeat_activation_step_index_ + loop_position) % num_steps;
+  } else {
+    return current_step_counter % num_steps;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_idx,
+                                                                  size_t step_index_to_play) {
+  uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
+  const size_t num_steps = sequencer.get_num_steps();
+
+  if (last_played_note_per_track[track_idx].has_value()) {
+    send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+    last_played_note_per_track[track_idx] = std::nullopt;
+  }
+
+  const int effective_step = static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
+  const size_t wrapped_step =
+      (num_steps > 0) ? ((effective_step % static_cast<int>(num_steps) + num_steps) % num_steps)
+                      : 0;
+
+  const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
+  if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
+      step.velocity.value() > 0) {
+    send_midi_note(midi_channel, step.note.value(), step.velocity.value());
+    last_played_note_per_track[track_idx] = step.note.value();
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interval() const {
+  uint32_t total_ticks_for_two_steps = 2 * high_res_ticks_per_step_;
+  if (total_ticks_for_two_steps == 0)
+    return 1;
+
+  uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
+  duration1 = std::max(1u, duration1);
+
+  uint32_t duration2 = total_ticks_for_two_steps - duration1;
+  if (duration1 >= total_ticks_for_two_steps) {
+    duration2 = 1;
+    duration1 = total_ticks_for_two_steps > 0 ? total_ticks_for_two_steps - 1 : 0;
+  } else {
+    duration2 = std::max(1u, duration2);
+  }
+
+  while (duration1 + duration2 > total_ticks_for_two_steps && total_ticks_for_two_steps > 0) {
+    if (duration1 > 1)
+      duration1--;
+    else if (duration2 > 1)
+      duration2--;
+    else
+      break;
+  }
+
+  bool current_step_is_odd = (current_step_counter % 2) != 0;
+  uint32_t interval;
+
+  if (swing_delays_odd_steps_) {
+    interval = current_step_is_odd ? duration1 : duration2;
+  } else {
+    interval = current_step_is_odd ? duration2 : duration1;
+  }
+
+  return std::max(1u, interval);
+}
+
 // --- Public Methods ---
 
 template <size_t NumTracks, size_t NumSteps>
@@ -72,36 +151,8 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   high_res_tick_counter_ = 0;
   last_played_step_index_ = 0;
 
-  uint32_t total_ticks_for_two_steps = 2 * high_res_ticks_per_step_;
-  uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
-  uint32_t duration2 = total_ticks_for_two_steps - duration1;
-
-  duration1 = std::max(static_cast<uint32_t>(1u), duration1);
-  if (duration1 >= total_ticks_for_two_steps) {
-    duration2 = 0;
-    duration1 = total_ticks_for_two_steps;
-  } else {
-    duration2 = total_ticks_for_two_steps - duration1;
-  }
-  duration2 = std::max(static_cast<uint32_t>(1u), duration2);
-
-  if (duration1 + duration2 > total_ticks_for_two_steps && total_ticks_for_two_steps > 0) {
-    if (duration1 > 1)
-      duration1--;
-    else if (duration2 > 1)
-      duration2--;
-  }
-
-  uint32_t first_step_duration;
-  bool step0_is_odd = (0 % 2) != 0;
-
-  if (swing_delays_odd_steps_) {
-    first_step_duration = step0_is_odd ? duration1 : duration2;
-  } else {
-    first_step_duration = step0_is_odd ? duration2 : duration1;
-  }
-
-  next_trigger_tick_target_ = std::max(1ul, static_cast<unsigned long>(first_step_duration));
+  uint32_t first_interval = calculate_next_trigger_interval();
+  next_trigger_tick_target_ = first_interval;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -138,15 +189,6 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::update_swing_durations() {
-  const uint32_t total_ticks = 2 * high_res_ticks_per_step_;
-  swing_duration1_ = (total_ticks * swing_percent_) / 100;
-  swing_duration2_ = total_ticks - swing_duration1_;
-  swing_duration1_ = std::max(static_cast<uint32_t>(1u), swing_duration1_);
-  swing_duration2_ = std::max(static_cast<uint32_t>(1u), swing_duration2_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
     [[maybe_unused]] Tempo::SequencerTickEvent event) {
   if (state_ != State::Running)
@@ -156,73 +198,18 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   if (high_res_tick_counter_ >= next_trigger_tick_target_) {
 
-    const size_t num_steps = sequencer.get_num_steps();
-    size_t step_index_to_play;
-    if (repeat_active_ && repeat_length_ > 0 && num_steps > 0) {
-      uint64_t steps_since_activation = current_step_counter - repeat_activation_step_counter_;
-      uint64_t loop_position = steps_since_activation % repeat_length_;
-      step_index_to_play = (repeat_activation_step_index_ + loop_position) % num_steps;
-    } else {
-      step_index_to_play = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
-    }
-
+    size_t step_index_to_play = calculate_step_to_play();
     last_played_step_index_ = step_index_to_play;
 
     size_t num_tracks = sequencer.get_num_tracks();
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-      uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
-
-      if (last_played_note_per_track[track_idx].has_value()) {
-        send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
-        last_played_note_per_track[track_idx] = std::nullopt;
-      }
-
-      const int effective_step = static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
-      const size_t wrapped_step =
-          (num_steps > 0) ? ((effective_step % static_cast<int>(num_steps) + num_steps) % num_steps)
-                          : 0;
-
-      const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
-
-      if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
-          step.velocity.value() > 0) {
-        send_midi_note(midi_channel, step.note.value(), step.velocity.value());
-        last_played_note_per_track[track_idx] = step.note.value();
-      }
+      process_track_step(track_idx, step_index_to_play);
     }
 
-    uint32_t total_ticks_for_two_steps = 2 * high_res_ticks_per_step_;
-    uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
-    uint32_t duration2 = total_ticks_for_two_steps - duration1;
+    uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
+    next_trigger_tick_target_ += interval_to_next_trigger;
 
-    duration1 = std::max(static_cast<uint32_t>(1u), duration1);
-    if (duration1 >= total_ticks_for_two_steps) {
-      duration2 = 0;
-      duration1 = total_ticks_for_two_steps;
-    } else {
-      duration2 = total_ticks_for_two_steps - duration1;
-    }
-    duration2 = std::max(static_cast<uint32_t>(1u), duration2);
-
-    if (duration1 + duration2 > total_ticks_for_two_steps && total_ticks_for_two_steps > 0) {
-      if (duration1 > 1)
-        duration1--;
-      else if (duration2 > 1)
-        duration2--;
-    }
-
-    uint32_t interval_to_next_trigger;
-    bool current_step_was_odd = (current_step_counter % 2) != 0;
-
-    if (swing_delays_odd_steps_) {
-      interval_to_next_trigger = current_step_was_odd ? duration1 : duration2;
-    } else {
-      interval_to_next_trigger = current_step_was_odd ? duration2 : duration1;
-    }
-
-    next_trigger_tick_target_ += std::max(static_cast<uint32_t>(1u), interval_to_next_trigger);
-
-    current_step_counter++;
+    current_step_counter++; // Increment after processing the current step and calculating next interval
   }
 }
 

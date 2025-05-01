@@ -105,8 +105,10 @@ private:
     Repeating
   };
   void set_state(State new_state);
-  void update_swing_durations();
   void calculate_timing_params();
+  [[nodiscard]] size_t calculate_step_to_play() const;
+  void process_track_step(size_t track_idx, size_t step_index_to_play);
+  [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
@@ -121,8 +123,6 @@ private:
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;
   uint64_t high_res_tick_counter_ = 0;
-  uint32_t swing_duration1_ = 0;
-  uint32_t swing_duration2_ = 0;
   uint64_t next_trigger_tick_target_ = 0;
 
   // --- Repeat Effect Members ---

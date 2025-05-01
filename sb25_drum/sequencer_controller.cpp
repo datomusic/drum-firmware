@@ -1,7 +1,7 @@
 #include "sequencer_controller.h"
-#include "midi.h"    // For send_midi_note
-#include <algorithm> // For std::clamp, std::max
-#include <cstdio>    // For printf
+#include "midi.h"
+#include <algorithm>
+#include <cstdio>
 
 namespace StepSequencer {
 
@@ -10,9 +10,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
-      last_played_step_index_(0), // Initialize here
-      tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
-      swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0) {
+      last_played_step_index_(0), tempo_source(tempo_source_ref), state_(State::Stopped),
+      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
+      next_trigger_tick_target_(0) {
   calculate_timing_params();
   printf("SequencerController: Initialized. Ticks/Step: %lu\n", high_res_ticks_per_step_);
 }
@@ -70,7 +70,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
-  last_played_step_index_ = 0; // Reset here too
+  last_played_step_index_ = 0;
 
   uint32_t total_ticks_for_two_steps = 2 * high_res_ticks_per_step_;
   uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
@@ -93,7 +93,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
 
   uint32_t first_step_duration;
-  bool step0_is_odd = (0 % 2) != 0; // False
+  bool step0_is_odd = (0 % 2) != 0;
 
   if (swing_delays_odd_steps_) {
     first_step_duration = step0_is_odd ? duration1 : duration2;
@@ -166,7 +166,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
       step_index_to_play = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     }
 
-    last_played_step_index_ = step_index_to_play; // Update the last played index
+    last_played_step_index_ = step_index_to_play;
 
     size_t num_tracks = sequencer.get_num_tracks();
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {

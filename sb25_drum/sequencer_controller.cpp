@@ -1,8 +1,8 @@
 #include "sequencer_controller.h"
 #include "midi.h"
+#include "pico/time.h" // For time_us_32() for seeding rand
 #include <algorithm>
 #include <cstdio>
-#include "pico/time.h" // For time_us_32() for seeding rand
 
 namespace StepSequencer {
 
@@ -62,10 +62,13 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
-  const int effective_step_with_fixed_offset = static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
+  const int effective_step_with_fixed_offset =
+      static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
   const size_t wrapped_step =
-      (num_steps > 0) ? ((effective_step_with_fixed_offset % static_cast<int>(num_steps) + num_steps) % num_steps)
-                      : 0;
+      (num_steps > 0)
+          ? ((effective_step_with_fixed_offset % static_cast<int>(num_steps) + num_steps) %
+             num_steps)
+          : 0;
 
   const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
@@ -154,7 +157,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   high_res_tick_counter_ = 0;
   last_played_step_index_ = 0;
   random_active_ = false; // Ensure random is off on reset
- 
+
   uint32_t first_interval = calculate_next_trigger_interval();
   next_trigger_tick_target_ = first_interval;
 }
@@ -219,10 +222,11 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
       // If random is active, calculate a *new* random offset for this track *this step*
       if (random_active_ && num_steps > 0) {
-         // Example: offset range +/- half the steps, centered around 0
-         int max_offset = num_steps / 2;
-         random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
-         step_index_to_play_for_track = (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
+        // Example: offset range +/- half the steps, centered around 0
+        int max_offset = num_steps / 2;
+        random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
+        step_index_to_play_for_track =
+            (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
       }
       process_track_step(track_idx, step_index_to_play_for_track);
     }
@@ -290,6 +294,30 @@ void SequencerController<NumTracks, NumSteps>::set_repeat_length(uint32_t length
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
   return repeat_active_;
+}
+
+// --- Random Effect Methods ---
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::activate_random() {
+  if (state_ == State::Running && !random_active_) {
+    random_active_ = true;
+    random_track_offsets_ = {}; // Reset offsets when activating
+    printf("Random Activated\n");
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::deactivate_random() {
+  if (random_active_) {
+    random_active_ = false;
+    printf("Random Deactivated\n");
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_random_active() const {
+  return random_active_;
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

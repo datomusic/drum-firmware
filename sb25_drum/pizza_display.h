@@ -107,7 +107,7 @@ public:
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(
       const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-      const SequencerController<NumTracks, NumSteps> &controller); // Changed parameter type
+      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller); // Added namespace
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -168,7 +168,7 @@ private:
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-    const SequencerController<NumTracks, NumSteps> &controller) { // Changed parameter type
+    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) { // Added namespace
   // Get the step index that was just played/triggered from the controller
   uint32_t highlight_step_in_pattern = controller.get_last_played_step_index();
 

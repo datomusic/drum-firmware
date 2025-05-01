@@ -56,9 +56,10 @@ public:
   [[nodiscard]] uint32_t get_current_step() const noexcept;
 
   /**
-   * @brief Get the index of the step (0 to NumSteps-1) that was last triggered/played for a specific track.
-   * This considers effects like Repeat and Random that might alter the played step for that track.
-   * Returns std::nullopt if no step has been played for the track since the last reset/trigger.
+   * @brief Get the index of the step (0 to NumSteps-1) that was last triggered/played for a
+   * specific track. This considers effects like Repeat and Random that might alter the played step
+   * for that track. Returns std::nullopt if no step has been played for the track since the last
+   * reset/trigger.
    */
   [[nodiscard]] std::optional<size_t> get_last_played_step_for_track(size_t track_idx) const;
 

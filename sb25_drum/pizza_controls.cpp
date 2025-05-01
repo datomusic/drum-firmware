@@ -305,25 +305,23 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(1, 75, midi_value);
     break;
   case DRUM2:
-   send_midi_cc(1, 21, midi_value);
-   break;
- case RANDOM:
-   {
-     constexpr float RANDOM_THRESHOLD = 0.1f; // Engage above 10% knob value
-     bool was_active = controls->_sequencer_controller_ref.is_random_active();
-     bool should_be_active = (event.value >= RANDOM_THRESHOLD);
+    send_midi_cc(1, 21, midi_value);
+    break;
+  case RANDOM: {
+    constexpr float RANDOM_THRESHOLD = 0.1f; // Engage above 10% knob value
+    bool was_active = controls->_sequencer_controller_ref.is_random_active();
+    bool should_be_active = (event.value >= RANDOM_THRESHOLD);
 
-     if (should_be_active && !was_active) {
-         controls->_sequencer_controller_ref.activate_random();
-         printf("Activated random\n");
-     } else if (!should_be_active && was_active) {
-         controls->_sequencer_controller_ref.deactivate_random();
-         printf("Deactivated random\n");
-     }
-   }
-   break;
- case VOLUME:
-   send_midi_cc(1, 7, midi_value);
+    if (should_be_active && !was_active) {
+      controls->_sequencer_controller_ref.activate_random();
+      printf("Activated random\n");
+    } else if (!should_be_active && was_active) {
+      controls->_sequencer_controller_ref.deactivate_random();
+      printf("Deactivated random\n");
+    }
+  } break;
+  case VOLUME:
+    send_midi_cc(1, 7, midi_value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;

@@ -174,8 +174,7 @@ void PizzaDisplay::draw_sequencer_state(
       uint32_t final_color = calculate_step_color(step);
 
       // Check if this specific step was the last one played for this track
-      std::optional<size_t> just_played_step =
-          controller.get_last_played_step_for_track(track_idx);
+      std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {
         final_color = apply_highlight(final_color);
       }

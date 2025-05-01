@@ -37,7 +37,7 @@ void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
 // --- Helper Methods ---
 
 template <size_t NumTracks, size_t NumSteps>
-size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_to_play() const {
+size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_index() const {
   const size_t num_steps = sequencer.get_num_steps();
   if (num_steps == 0)
     return 0;
@@ -207,7 +207,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
     // 1. Determine the base step index (where the sequencer would be without effects)
     //    This now also considers the repeat effect if active.
-    size_t base_step_index = calculate_base_step_to_play();
+    size_t base_step_index = calculate_base_step_index();
 
     // 2. Store the base step index for highlighting purposes.
     //    The display will highlight this underlying position.

@@ -54,9 +54,15 @@ int main() {
   // TODO: Add logic to start/stop clocks based on TempoHandler source selection
 
   while (true) {
-    pizza_controls.update();
+    pizza_controls.update(); // Update controls first to get current state
 
-    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller);
+    // Get state needed for display drawing from controls
+    bool is_running = pizza_controls.is_running();
+    float stopped_highlight_factor = pizza_controls.get_stopped_highlight_factor();
+
+    // Draw sequencer state with the required arguments
+    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller, is_running,
+                                       stopped_highlight_factor);
 
     pizza_display.show();
     Musin::Usb::background_update();

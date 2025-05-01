@@ -19,6 +19,7 @@ add_executable(${EXECUTABLE_NAME}
   internal_clock.cpp
   tempo_multiplier.cpp
   sequencer_controller.cpp
+  debug_utils.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

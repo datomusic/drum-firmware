@@ -23,7 +23,7 @@ class PizzaDisplay; // Forward declaration
 namespace StepSequencer {
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
-}
+} // namespace StepSequencer
 
 class PizzaControls {
 public:

@@ -58,7 +58,7 @@ int main() {
   while (true) {
     pizza_controls.update();
 
-    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller.get_current_step());
+    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller);
 
     pizza_display.show();
     Musin::Usb::background_update();

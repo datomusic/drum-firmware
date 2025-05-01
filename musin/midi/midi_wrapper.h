@@ -8,8 +8,7 @@ using MidiType = ::midi::MidiType; // Alias the original library's MidiType
 typedef void(VoidCallback)();
 typedef void(SyxCallback)(byte *data, unsigned length);
 typedef void(NoteCallback)(byte channel, byte note, byte velocity);
-typedef void(ControlChangeCallback)(byte channel, byte controller,
-                                    byte value);
+typedef void(ControlChangeCallback)(byte channel, byte controller, byte value);
 typedef void(PitchBendCallback)(byte channel, int bend);
 
 struct Callbacks {

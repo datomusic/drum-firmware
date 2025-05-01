@@ -18,14 +18,14 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::~SequencerController() {
-  if(state_ != State::Stopped) {
+  if (state_ != State::Stopped) {
     tempo_source.remove_observer(*this);
   }
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
-  if(state_ != new_state) {
+  if (state_ != new_state) {
     state_ = new_state;
   }
 }
@@ -115,15 +115,14 @@ bool SequencerController<NumTracks, NumSteps>::start() {
   return true;
 }
 
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerController<NumTracks, NumSteps>::stop() {
+template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks, NumSteps>::stop() {
   if (state_ == State::Stopped) {
     printf("SequencerController: Already stopped\n");
     return false;
   }
   tempo_source.remove_observer(*this);
   set_state(State::Stopped);
-  
+
   // Send note-offs for all active notes
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
@@ -146,7 +145,8 @@ void SequencerController<NumTracks, NumSteps>::update_swing_durations() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::notification([[maybe_unused]] Tempo::SequencerTickEvent event) {
+void SequencerController<NumTracks, NumSteps>::notification(
+    [[maybe_unused]] Tempo::SequencerTickEvent event) {
   if (state_ != State::Running)
     return;
 

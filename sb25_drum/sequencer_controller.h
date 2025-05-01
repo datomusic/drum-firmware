@@ -4,10 +4,10 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "sequencer_tick_event.h"
-#include "step_sequencer.h" // Include the actual sequencer definition
-#include <algorithm>        // For std::clamp, std::max, std::min
-#include <cstdint>          // Include for uint8_t, uint32_t, uint64_t
-#include <optional>         // Include for std::optional
+#include "step_sequencer.h"
+#include <algorithm>
+#include <cstdint>
+#include <optional>
 
 namespace StepSequencer {
 
@@ -38,7 +38,6 @@ public:
       etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
   ~SequencerController();
 
-  // Prevent copying and assignment
   SequencerController(const SequencerController &) = delete;
   SequencerController &operator=(const SequencerController &) = delete;
 
@@ -112,7 +111,7 @@ private:
   StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
-  uint32_t last_played_step_index_ = 0; // Moved declaration up
+  uint32_t last_played_step_index_ = 0;
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
   State state_ = State::Stopped;
@@ -132,7 +131,7 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-public: // Add public methods for controlling repeat
+public:
   void activate_repeat(uint32_t length);
   void deactivate_repeat();
   void set_repeat_length(uint32_t length);

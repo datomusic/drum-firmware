@@ -1,28 +1,22 @@
 #ifndef PIZZA_DISPLAY_H
 #define PIZZA_DISPLAY_H
 
-#include "drum_pizza_hardware.h" // For NUM_LEDS, LED_* constants, PIN_LED_DATA etc.
+#include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "musin/drivers/ws2812.h"
-#include <algorithm> // For std::min
-#include <cstddef>   // For size_t
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <optional> // For std::optional
+#include <optional>
 
-// Include the actual sequencer header
-#include "sequencer_controller.h" // Include SequencerController header
+#include "sequencer_controller.h"
 #include "step_sequencer.h"
-
-// Forward declaration for check_external_pin_state if needed, or include main.h if it's there
-// Assuming check_external_pin_state remains accessible or is moved/duplicated.
-// For now, let's assume it's available globally or we'll handle it in init.
 
 namespace PizzaExample {
 
 class PizzaDisplay {
 public:
   // --- Constants ---
-  // Note: NUM_LEDS is expected to be defined in drum_pizza_hardware.h
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
   static constexpr size_t NUM_NOTE_COLORS = 32;
@@ -35,7 +29,6 @@ public:
   // --- Public Methods ---
   PizzaDisplay();
 
-  // Prevent copying and assignment
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;
 
@@ -107,7 +100,7 @@ public:
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(
       const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller); // Added namespace
+      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -116,7 +109,7 @@ public:
    */
   const Musin::Drivers::WS2812<NUM_LEDS> &leds() const {
     return _leds;
-  } // Return the renamed member
+  }
 
 private:
   // --- Private Helper Methods ---
@@ -160,41 +153,33 @@ private:
 
   // --- Private Members ---
   Musin::Drivers::WS2812<NUM_LEDS> _leds;
-  etl::array<uint32_t, NUM_NOTE_COLORS> note_colors; // Use constant for size
+  etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
 };
-
-// --- Template Function Definitions (must be in header) ---
 
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) { // Added namespace
-  // Get the step index that was just played/triggered from the controller
+    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) {
   uint32_t highlight_step_in_pattern = controller.get_last_played_step_index();
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    // Only display tracks that map to keypad columns
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
       continue;
 
     const auto &track = sequencer.get_track(track_idx);
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      // Only display steps that map to keypad rows
       if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
         continue;
 
       const auto &step = track.get_step(step_idx);
       uint32_t final_color = calculate_step_color(step);
 
-      // Highlight the step that was just played
       if (step_idx == highlight_step_in_pattern) {
         final_color = apply_highlight(final_color);
       }
 
-      // Get the physical LED index for this step
       std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
 
-      // Set the pixel if the index is valid
       if (led_index_opt.has_value()) {
         _leds.set_pixel(led_index_opt.value(), final_color);
       }
@@ -202,33 +187,26 @@ void PizzaDisplay::draw_sequencer_state(
   }
 }
 
-// --- Inline Helper Method Definitions ---
-
 inline uint32_t PizzaDisplay::calculate_step_color(const StepSequencer::Step &step) const {
-  uint32_t color = 0; // Default to black (off)
+  uint32_t color = 0;
 
   if (step.enabled && step.note.has_value()) {
-    // Use modulo with the defined number of colors
     uint32_t base_color = get_note_color(step.note.value() % NUM_NOTE_COLORS);
 
-    // Determine brightness based on velocity
-    uint8_t brightness = MAX_BRIGHTNESS; // Default to full brightness
+    uint8_t brightness = MAX_BRIGHTNESS;
     if (step.velocity.has_value()) {
-      // Scale velocity (1-127) to brightness, clamp at MAX_BRIGHTNESS
       uint16_t calculated_brightness =
           static_cast<uint16_t>(step.velocity.value()) * VELOCITY_TO_BRIGHTNESS_SCALE;
       brightness = static_cast<uint8_t>(
           std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
     }
 
-    // Apply brightness using the WS2812 method
     color = _leds.adjust_color_brightness(base_color, brightness);
   }
   return color;
 }
 
 inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
-  // Simple additive blend: Add white component
   uint8_t r = (color >> 16) & 0xFF;
   uint8_t g = (color >> 8) & 0xFF;
   uint8_t b = color & 0xFF;
@@ -244,9 +222,8 @@ inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
 
 inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,
                                                                      size_t step_idx) const {
-  // Map step_idx/track_idx to the linear LED_ARRAY index
   size_t led_array_index = step_idx * SEQUENCER_TRACKS_DISPLAYED + static_cast<size_t>(track_idx);
-  if (led_array_index < LED_ARRAY.size()) { // Bounds check against LED_ARRAY size
+  if (led_array_index < LED_ARRAY.size()) {
     return LED_ARRAY[led_array_index];
   }
   return std::nullopt;

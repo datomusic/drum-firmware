@@ -50,11 +50,6 @@ int main() {
   // TODO: Add logic to register TempoHandler with other clocks
   // TODO: Add logic to start/stop clocks based on TempoHandler source selection
 
-  pizza_sequencer.get_track(0).get_step(0) = {36, 100, true};
-  pizza_sequencer.get_track(0).get_step(4) = {36, 100, true};
-  pizza_sequencer.get_track(1).get_step(2) = {38, 100, true};
-  pizza_sequencer.get_track(1).get_step(6) = {38, 100, true};
-
   while (true) {
     pizza_controls.update();
 

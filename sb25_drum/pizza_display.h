@@ -123,9 +123,17 @@ private:
   /**
    * @brief Apply a highlight effect (blend with white) to a color.
    * @param color The base color.
+   * @return uint32_t The highlighted color (fixed blend).
+   */
+  uint32_t apply_highlight(uint32_t color) const; // Kept original signature
+
+  /**
+   * @brief Apply a fading highlight effect (blend with white) based on a factor.
+   * @param color The base color.
+   * @param highlight_factor The intensity of the highlight (0.0 = none, 1.0 = full white blend).
    * @return uint32_t The highlighted color.
    */
-  uint32_t apply_highlight(uint32_t color) const;
+  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const; // New function
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and step.
@@ -177,7 +185,13 @@ void PizzaDisplay::draw_sequencer_state(
       // Check if this specific step was the last one played for this track
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {
-        final_color = apply_highlight(final_color);
+        if (is_running) {
+          // Running: Apply fixed highlight
+          final_color = apply_highlight(final_color);
+        } else {
+          // Stopped: Apply fading highlight using the provided factor
+          final_color = apply_fading_highlight(final_color, stopped_highlight_factor);
+        }
       }
 
       std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
@@ -208,11 +222,12 @@ inline uint32_t PizzaDisplay::calculate_step_color(const StepSequencer::Step &st
   return color;
 }
 
+// Kept original implementation: Fixed highlight blend
 inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
   uint8_t r = (color >> 16) & 0xFF;
   uint8_t g = (color >> 8) & 0xFF;
   uint8_t b = color & 0xFF;
-  // Use std::min with explicit int type to avoid potential promotion issues before cast
+
   r = static_cast<uint8_t>(
       std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
   g = static_cast<uint8_t>(
@@ -220,6 +235,37 @@ inline uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
   b = static_cast<uint8_t>(
       std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
   return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+}
+
+// New implementation: Fading highlight blend based on factor
+inline uint32_t PizzaDisplay::apply_fading_highlight(uint32_t color, float highlight_factor) const {
+  uint8_t base_r = (color >> 16) & 0xFF;
+  uint8_t base_g = (color >> 8) & 0xFF;
+  uint8_t base_b = color & 0xFF;
+
+  // Target highlight color is white
+  constexpr uint8_t highlight_r = 0xFF;
+  constexpr uint8_t highlight_g = 0xFF;
+  constexpr uint8_t highlight_b = 0xFF;
+
+  // Scale factor for integer blending (0-255)
+  uint8_t blend_amount = static_cast<uint8_t>(std::clamp(highlight_factor * 255.0f, 0.0f, 255.0f));
+
+  // Linear interpolation using integer math (lerp)
+  uint8_t final_r = static_cast<uint8_t>(
+      (static_cast<uint32_t>(base_r) * (255 - blend_amount) +
+       static_cast<uint32_t>(highlight_r) * blend_amount) /
+      255);
+  uint8_t final_g = static_cast<uint8_t>(
+      (static_cast<uint32_t>(base_g) * (255 - blend_amount) +
+       static_cast<uint32_t>(highlight_g) * blend_amount) /
+      255);
+  uint8_t final_b = static_cast<uint8_t>(
+      (static_cast<uint32_t>(base_b) * (255 - blend_amount) +
+       static_cast<uint32_t>(highlight_b) * blend_amount) /
+      255);
+
+  return (static_cast<uint32_t>(final_r) << 16) | (static_cast<uint32_t>(final_g) << 8) | final_b;
 }
 
 inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,

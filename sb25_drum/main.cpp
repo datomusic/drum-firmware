@@ -13,6 +13,7 @@
 #include "step_sequencer.h"
 #include "tempo_handler.h"
 #include "tempo_multiplier.h"
+#include "debug_utils.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
 static StepSequencer::Sequencer<4, 8> pizza_sequencer;
@@ -61,6 +62,8 @@ int main() {
 
     // Brief Delay: Important for WS2812 LED latching after show()
     sleep_us(80);
+
+    loop_timer.record_iteration_end();
   }
 
   return 0;

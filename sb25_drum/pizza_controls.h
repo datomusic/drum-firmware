@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "clock_event.h" // Added for observer
 #include "internal_clock.h"
 #include "step_sequencer.h"
 
@@ -24,7 +25,7 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 } // namespace StepSequencer
 
-class PizzaControls {
+class PizzaControls : public etl::observer<Clock::ClockEvent> { // Added observer inheritance
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
@@ -37,6 +38,7 @@ public:
 
   void init();
   void update();
+  void notification(Clock::ClockEvent event) override; // Added observer method
 
   // --- Nested Component Definitions ---
 
@@ -161,8 +163,10 @@ private:
   KeypadComponent keypad_component;
   DrumpadComponent drumpad_component;
   AnalogControlComponent analog_component;
-
   PlaybuttonComponent playbutton_component;
+
+  // --- Internal State ---
+  uint32_t _clock_tick_counter = 0; // Counter for LED pulsing
 };
 
 #endif // PIZZA_CONTROLS_H

@@ -8,8 +8,8 @@
 
 namespace Clock {
 
-// Maximum number of observers InternalClock can notify (e.g., TempoHandler)
-constexpr size_t MAX_CLOCK_OBSERVERS = 2;
+// Maximum number of observers InternalClock can notify (e.g., TempoHandler, PizzaControls)
+constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2
 
 /**
  * @brief Generates clock ticks based on an internal timer and BPM setting.

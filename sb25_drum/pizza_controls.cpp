@@ -27,6 +27,9 @@ void PizzaControls::init() {
   drumpad_component.init();
   analog_component.init();
   playbutton_component.init();
+
+  // Register this class to receive clock events for LED pulsing
+  _internal_clock.add_observer(*this);
 }
 
 void PizzaControls::update() {
@@ -39,35 +42,40 @@ void PizzaControls::update() {
   if (_sequencer_controller_ref.is_running()) {
     // Running: Solid color (e.g., white)
     display.set_play_button_led(PizzaExample::PizzaDisplay::COLOR_WHITE);
+    // Counter is reset in notification when state changes to running
   } else {
-    // Stopped: Pulse the LED with a sawtooth wave (instant on, slow fade)
-    float bpm = _internal_clock.get_bpm();
-    uint32_t pulse_color = 0; // Default to off if BPM is invalid
-
-    if (bpm > 0.0f) {
-      absolute_time_t now = get_absolute_time();
-      uint64_t time_us = to_us_since_boot(now);
-      uint64_t period_us = static_cast<uint64_t>(60.0f * 1000000.0f / bpm);
-
-      if (period_us > 0) {
-        // Calculate the phase within the current beat cycle (0 to period_us - 1)
-        uint64_t phase_us = time_us % period_us;
-
-        // Calculate brightness factor (1.0 down to 0.0)
-        float brightness_factor = 1.0f - (static_cast<float>(phase_us) / static_cast<float>(period_us));
-
-        // Convert factor to 8-bit brightness (0-255)
-        uint8_t brightness = static_cast<uint8_t>(
-            std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
-
-        // Apply brightness to a base color (e.g., white)
-        uint32_t base_color = PizzaExample::PizzaDisplay::COLOR_WHITE;
-        pulse_color = display.leds().adjust_color_brightness(base_color, brightness);
-      }
+    // Stopped: Pulse based on clock tick counter
+    // Assuming 4/4 time, a beat is a quarter note. PPQN = Ticks per Quarter Note.
+    constexpr uint32_t ticks_per_beat = Clock::InternalClock::PPQN;
+    uint32_t phase_ticks = 0;
+    if (ticks_per_beat > 0) {
+      phase_ticks = _clock_tick_counter % ticks_per_beat;
     }
+
+    // Calculate brightness factor (1.0 down to 0.0) based on tick phase
+    float brightness_factor = 0.0f;
+    if (ticks_per_beat > 0) {
+      brightness_factor = 1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
+    }
+
+    uint8_t brightness = static_cast<uint8_t>(
+        std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
+
+    uint32_t base_color = PizzaExample::PizzaDisplay::COLOR_WHITE;
+    uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);
     display.set_play_button_led(pulse_color);
   }
   // Note: PizzaDisplay::show() must be called later in the main loop
+}
+
+void PizzaControls::notification(Clock::ClockEvent /* event */) {
+  // Only advance the counter if the sequencer is NOT running
+  if (!_sequencer_controller_ref.is_running()) {
+    _clock_tick_counter++;
+  } else {
+    // Reset counter when sequencer starts so pulse restarts cleanly
+    _clock_tick_counter = 0;
+  }
 }
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)

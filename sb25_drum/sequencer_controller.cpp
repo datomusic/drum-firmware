@@ -202,12 +202,29 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   if (high_res_tick_counter_ >= next_trigger_tick_target_) {
 
-    size_t step_index_to_play = calculate_step_to_play();
-    last_played_step_index_ = step_index_to_play;
+    // 1. Determine the base step index (where the sequencer would be without effects)
+    //    This now also considers the repeat effect if active.
+    size_t base_step_index = calculate_base_step_to_play();
+
+    // 2. Store the base step index for highlighting purposes.
+    //    The display will highlight this underlying position.
+    last_played_step_index_ = base_step_index;
 
     size_t num_tracks = sequencer.get_num_tracks();
+    size_t num_steps = sequencer.get_num_steps();
+
+    // 3. Process each track
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-      process_track_step(track_idx, step_index_to_play);
+      size_t step_index_to_play_for_track = base_step_index;
+
+      // If random is active, calculate a *new* random offset for this track *this step*
+      if (random_active_ && num_steps > 0) {
+         // Example: offset range +/- half the steps, centered around 0
+         int max_offset = num_steps / 2;
+         random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
+         step_index_to_play_for_track = (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
+      }
+      process_track_step(track_idx, step_index_to_play_for_track);
     }
 
     uint32_t interval_to_next_trigger = calculate_next_trigger_interval();

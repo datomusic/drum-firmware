@@ -79,14 +79,14 @@ uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interv
     return 1;
 
   uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
-  duration1 = std::max(1u, duration1);
+  duration1 = std::max(uint32_t{1}, duration1);
 
   uint32_t duration2 = total_ticks_for_two_steps - duration1;
   if (duration1 >= total_ticks_for_two_steps) {
     duration2 = 1;
     duration1 = total_ticks_for_two_steps > 0 ? total_ticks_for_two_steps - 1 : 0;
   } else {
-    duration2 = std::max(1u, duration2);
+    duration2 = std::max(uint32_t{1}, duration2);
   }
 
   while (duration1 + duration2 > total_ticks_for_two_steps && total_ticks_for_two_steps > 0) {
@@ -107,7 +107,7 @@ uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interv
     interval = current_step_is_odd ? duration2 : duration1;
   }
 
-  return std::max(1u, interval);
+  return std::max(uint32_t{1}, interval);
 }
 
 // --- Public Methods ---
@@ -124,7 +124,7 @@ void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
   } else {
     high_res_ticks_per_step_ = 24; // Default fallback
   }
-  high_res_ticks_per_step_ = std::max(static_cast<uint32_t>(1u), high_res_ticks_per_step_);
+  high_res_ticks_per_step_ = std::max(uint32_t{1}, high_res_ticks_per_step_);
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -236,7 +236,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) {
   if (state_ == State::Running && !repeat_active_) {
     repeat_active_ = true;
-    repeat_length_ = std::max(static_cast<uint32_t>(1u), length);
+    repeat_length_ = std::max(uint32_t{1}, length);
     const size_t num_steps = sequencer.get_num_steps();
     repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     repeat_activation_step_counter_ = current_step_counter;
@@ -257,7 +257,7 @@ void SequencerController<NumTracks, NumSteps>::deactivate_repeat() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_repeat_length(uint32_t length) {
   if (repeat_active_) {
-    uint32_t new_length = std::max(static_cast<uint32_t>(1u), length);
+    uint32_t new_length = std::max(uint32_t{1}, length);
     if (new_length != repeat_length_) {
       repeat_length_ = new_length;
       printf("Repeat Length Changed: New Length %lu\n", repeat_length_);

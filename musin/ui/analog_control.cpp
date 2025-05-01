@@ -4,7 +4,7 @@
 
 namespace Musin::UI {
 
-AnalogControl::AnalogControl(uint32_t adc_pin, float threshold, bool invert)
+AnalogControl::AnalogControl(uint32_t adc_pin, bool invert, float threshold)
     : _id(adc_pin),
       _invert_mapping(invert),
       _threshold(threshold),
@@ -12,9 +12,9 @@ AnalogControl::AnalogControl(uint32_t adc_pin, float threshold, bool invert)
       _analog_in(adc_pin) {
 }
 
-AnalogControl::AnalogControl(uint32_t adc_pin, 
+AnalogControl::AnalogControl(uint32_t adc_pin,
                             const std::array<std::uint32_t, 3>& mux_address_pins,
-                            uint8_t mux_channel, float threshold, bool invert)
+                            uint8_t mux_channel, bool invert, float threshold)
     : _id((static_cast<uint16_t>(mux_channel) << 8) | adc_pin),
       _invert_mapping(invert),
       _threshold(threshold),
@@ -22,9 +22,9 @@ AnalogControl::AnalogControl(uint32_t adc_pin,
     new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
 }
 
-AnalogControl::AnalogControl(uint32_t adc_pin, 
+AnalogControl::AnalogControl(uint32_t adc_pin,
                             const std::array<std::uint32_t, 4>& mux_address_pins,
-                            uint8_t mux_channel, float threshold, bool invert)
+                            uint8_t mux_channel, bool invert, float threshold)
     : _id((static_cast<uint16_t>(mux_channel) << 8) | adc_pin),
       _invert_mapping(invert),
       _threshold(threshold),

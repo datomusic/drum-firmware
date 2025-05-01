@@ -56,10 +56,11 @@ public:
   [[nodiscard]] uint32_t get_current_step() const noexcept;
 
   /**
-   * @brief Get the index of the step (0 to NumSteps-1) that was last triggered/played.
-   * This considers effects like Repeat that might alter the played step.
+   * @brief Get the index of the step (0 to NumSteps-1) that was last triggered/played for a specific track.
+   * This considers effects like Repeat and Random that might alter the played step for that track.
+   * Returns std::nullopt if no step has been played for the track since the last reset/trigger.
    */
-  [[nodiscard]] uint32_t get_last_played_step_index() const noexcept;
+  [[nodiscard]] std::optional<size_t> get_last_played_step_for_track(size_t track_idx) const;
 
   /**
    * @brief Reset the current step index (e.g., on transport stop/start).
@@ -126,7 +127,7 @@ private:
   StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
-  uint32_t last_played_step_index_ = 0;
+  etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
   State state_ = State::Stopped;

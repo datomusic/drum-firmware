@@ -11,7 +11,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
-      last_played_step_index_(0), tempo_source(tempo_source_ref), state_(State::Stopped),
+      _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
       swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
       next_trigger_tick_target_(0), random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
@@ -155,7 +155,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
-  last_played_step_index_ = 0;
+  _just_played_step_per_track.fill(std::nullopt);
   random_active_ = false; // Ensure random is off on reset
 
   uint32_t first_interval = calculate_next_trigger_interval();
@@ -204,14 +204,15 @@ void SequencerController<NumTracks, NumSteps>::notification(
   high_res_tick_counter_++;
 
   if (high_res_tick_counter_ >= next_trigger_tick_target_) {
+    // Clear the per-track played state for this trigger cycle
+    _just_played_step_per_track.fill(std::nullopt);
 
     // 1. Determine the base step index (where the sequencer would be without effects)
     //    This now also considers the repeat effect if active.
     size_t base_step_index = calculate_base_step_index();
 
-    // 2. Store the base step index for highlighting purposes.
-    //    The display will highlight this underlying position.
-    last_played_step_index_ = base_step_index;
+    // Note: We no longer store a single 'last_played_step_index_' here.
+    // Instead, we store the actual played step per track below.
 
     size_t num_tracks = sequencer.get_num_tracks();
     size_t num_steps = sequencer.get_num_steps();
@@ -228,6 +229,9 @@ void SequencerController<NumTracks, NumSteps>::notification(
         step_index_to_play_for_track =
             (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
       }
+      // Store the actual step played for this track (for display/highlighting)
+      _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
+      // Process the step (send MIDI etc.)
       process_track_step(track_idx, step_index_to_play_for_track);
     }
 
@@ -248,9 +252,13 @@ template <size_t NumTracks, size_t NumSteps>
 }
 
 template <size_t NumTracks, size_t NumSteps>
-[[nodiscard]] uint32_t
-SequencerController<NumTracks, NumSteps>::get_last_played_step_index() const noexcept {
-  return last_played_step_index_;
+[[nodiscard]] std::optional<size_t>
+SequencerController<NumTracks, NumSteps>::get_last_played_step_for_track(
+    size_t track_idx) const {
+  if (track_idx < NumTracks) {
+    return _just_played_step_per_track[track_idx];
+  }
+  return std::nullopt;
 }
 
 template <size_t NumTracks, size_t NumSteps>

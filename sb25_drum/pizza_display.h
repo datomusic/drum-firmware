@@ -160,7 +160,6 @@ template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
     const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) {
-  uint32_t highlight_step_in_pattern = controller.get_last_played_step_index();
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
@@ -174,7 +173,10 @@ void PizzaDisplay::draw_sequencer_state(
       const auto &step = track.get_step(step_idx);
       uint32_t final_color = calculate_step_color(step);
 
-      if (step_idx == highlight_step_in_pattern) {
+      // Check if this specific step was the last one played for this track
+      std::optional<size_t> just_played_step =
+          controller.get_last_played_step_for_track(track_idx);
+      if (just_played_step.has_value() && step_idx == just_played_step.value()) {
         final_color = apply_highlight(final_color);
       }
 

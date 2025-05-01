@@ -1,11 +1,11 @@
 #include "pizza_controls.h"
 #include "midi.h"
+#include "pico/time.h" // For get_absolute_time, to_us_since_boot
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "step_sequencer.h"
-#include "pico/time.h" // For get_absolute_time, to_us_since_boot
-#include <algorithm>   // For std::clamp
-#include <cmath>       // For fmodf
+#include <algorithm> // For std::clamp
+#include <cmath>     // For fmodf
 #include <cstddef>
 #include <cstdio>
 
@@ -55,11 +55,11 @@ void PizzaControls::update() {
     // Calculate brightness factor (1.0 down to 0.0) based on tick phase
     float brightness_factor = 0.0f;
     if (ticks_per_beat > 0) {
-      brightness_factor = 1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
+      brightness_factor =
+          1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
     }
 
-    uint8_t brightness = static_cast<uint8_t>(
-        std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
+    uint8_t brightness = static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
 
     uint32_t base_color = PizzaExample::PizzaDisplay::COLOR_WHITE;
     uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);

@@ -5,7 +5,7 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "musin/hal/analog_in.h"
-#include "musin/hal/analog_in.h" // For AnalogInMux16
+#include "musin/hal/analog_in.h"
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
@@ -50,7 +50,7 @@ public:
 
   private:
     struct KeypadEventHandler : public etl::observer<Musin::UI::KeypadEvent> {
-      KeypadComponent *parent; // Changed to KeypadComponent pointer
+      KeypadComponent *parent;
       const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map;
       const uint8_t midi_channel;
 
@@ -62,7 +62,7 @@ public:
       void notification(Musin::UI::KeypadEvent event) override;
     };
 
-    PizzaControls *parent_controls; // Pointer back to the main class
+    PizzaControls *parent_controls;
     Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
     static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
@@ -85,7 +85,7 @@ public:
 
   private:
     struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
-      DrumpadComponent *parent; // Changed to DrumpadComponent pointer
+      DrumpadComponent *parent;
       const uint8_t pad_index;
 
       constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index)
@@ -94,11 +94,11 @@ public:
       void notification(Musin::UI::DrumpadEvent event) override;
     };
 
-    void update_drumpads(); // Moved from PizzaControls
+    void update_drumpads();
     uint32_t calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const;
     float scale_raw_to_brightness(uint16_t raw_value) const;
 
-    PizzaControls *parent_controls; // Pointer back to the main class
+    PizzaControls *parent_controls;
     etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
     etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
@@ -121,8 +121,8 @@ public:
       void notification(Musin::UI::DrumpadEvent event) override;
     };
 
-    void update_playbutton();       // Moved from PizzaControls
-    PizzaControls *parent_controls; // Pointer back to the main class
+    void update_playbutton();
+    PizzaControls *parent_controls;
     Musin::HAL::AnalogInMux16 playbutton_reader;
     Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> playbutton;
     PlaybuttonEventHandler playbutton_observer;
@@ -146,7 +146,7 @@ public:
       void notification(Musin::UI::AnalogControlEvent event) override;
     };
 
-    PizzaControls *parent_controls; // Pointer back to the main class
+    PizzaControls *parent_controls;
     etl::array<Musin::UI::AnalogControl, 16> mux_controls;
     etl::array<AnalogControlEventHandler, 16> control_observers;
   };

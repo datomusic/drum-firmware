@@ -100,12 +100,13 @@ public:
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
    * @tparam NumTracks Number of tracks in the sequencer.
    * @tparam NumSteps Number of steps per track in the sequencer.
-   * @param sequencer A const reference to the sequencer object.
-   * @param current_step The index of the currently playing step to highlight (0 to NumSteps-1).
+   * @param sequencer A const reference to the sequencer data object.
+   * @param controller A const reference to the sequencer controller object.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-                            uint32_t current_step); // Declaration only
+  void draw_sequencer_state(
+      const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller); // Declaration
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -165,10 +166,17 @@ private:
 
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
-    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer, uint32_t current_step) {
-  // Calculate the NEXT step that will be played
-  uint32_t highlight_step_in_pattern =
-      (current_step > 0) ? ((current_step - 1) % NumSteps) : (NumSteps - 1);
+    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) {
+  // Get the current step from the controller
+  uint32_t current_step = controller.get_current_step();
+
+  // Calculate the PREVIOUS step (the one that just played) to highlight
+  // Note: This logic highlights the step that *just* finished playing.
+  // If you want to highlight the *next* step to play, the logic needs adjustment
+  // based on how current_step is updated relative to the display call.
+  // Assuming current_step is the step *about* to play, the previous step is:
+  uint32_t highlight_step_in_pattern = (current_step == 0) ? (NumSteps - 1) : (current_step - 1);
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     // Only display tracks that map to keypad columns

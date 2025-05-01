@@ -112,6 +112,7 @@ private:
   StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
+  uint32_t last_played_step_index_ = 0; // Moved declaration up
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
   State state_ = State::Stopped;
@@ -123,7 +124,6 @@ private:
   uint64_t high_res_tick_counter_ = 0;
   uint32_t swing_duration1_ = 0;
   uint32_t swing_duration2_ = 0;
-  uint32_t last_played_step_index_ = 0; // Add this member
   uint64_t next_trigger_tick_target_ = 0;
 
   // --- Repeat Effect Members ---

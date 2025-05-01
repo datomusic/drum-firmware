@@ -111,8 +111,8 @@ private:
 
   StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
-  etl::array<std::optional<uint8_t>, 4> last_played_note_per_track;
-  etl::array<int8_t, 4> track_offsets_{};
+  etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
+  etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
   State state_ = State::Stopped;
 

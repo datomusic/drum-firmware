@@ -166,7 +166,16 @@ private:
   PlaybuttonComponent playbutton_component;
 
   // --- Internal State ---
-  uint32_t _clock_tick_counter = 0; // Counter for LED pulsing
+  uint32_t _clock_tick_counter = 0;       // Counter for LED pulsing when stopped
+  float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
+
+public: // Add getters for state needed by display drawing
+  [[nodiscard]] bool is_running() const {
+    return _sequencer_controller_ref.is_running();
+  }
+  [[nodiscard]] float get_stopped_highlight_factor() const {
+    return _stopped_highlight_factor;
+  }
 };
 
 #endif // PIZZA_CONTROLS_H

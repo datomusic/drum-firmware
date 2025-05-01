@@ -58,8 +58,9 @@ void PizzaControls::update() {
       brightness_factor =
           1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
     }
+    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f); // Store for display
 
-    uint8_t brightness = static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
+    uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * 255.0f);
 
     uint32_t base_color = PizzaExample::PizzaDisplay::COLOR_WHITE;
     uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);

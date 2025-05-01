@@ -94,11 +94,14 @@ public:
    * @tparam NumSteps Number of steps per track in the sequencer.
    * @param sequencer A const reference to the sequencer data object.
    * @param controller A const reference to the sequencer controller object.
+   * @param is_running Whether the sequencer is currently running.
+   * @param stopped_highlight_factor The highlight factor (0.0-1.0) to use when stopped.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void
-  draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-                       const StepSequencer::SequencerController<NumTracks, NumSteps> &controller);
+  void draw_sequencer_state(
+      const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
+      bool is_running, float stopped_highlight_factor); // Updated signature
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -151,10 +154,13 @@ private:
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
 };
 
+// --- Template Implementation ---
+
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller) {
+    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
+    bool is_running, float stopped_highlight_factor) { // Updated signature
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)

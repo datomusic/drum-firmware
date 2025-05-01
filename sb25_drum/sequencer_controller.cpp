@@ -62,9 +62,9 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
-  const int effective_step = static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
+  const int effective_step_with_fixed_offset = static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
   const size_t wrapped_step =
-      (num_steps > 0) ? ((effective_step % static_cast<int>(num_steps) + num_steps) % num_steps)
+      (num_steps > 0) ? ((effective_step_with_fixed_offset % static_cast<int>(num_steps) + num_steps) % num_steps)
                       : 0;
 
   const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);

@@ -170,11 +170,9 @@ private:
   float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
 
 public: // Add getters for state needed by display drawing
-  [[nodiscard]] bool is_running() const {
-    return _sequencer_controller_ref.is_running();
-  }
+  [[nodiscard]] bool is_running() const; // Moved definition to .cpp
   [[nodiscard]] float get_stopped_highlight_factor() const {
-    return _stopped_highlight_factor;
+    return _stopped_highlight_factor; // This one is simple, can stay inline
   }
 };
 

@@ -79,6 +79,12 @@ void PizzaControls::notification(Clock::ClockEvent /* event */) {
   }
 }
 
+// --- Implementation for getter moved from header ---
+bool PizzaControls::is_running() const {
+  return _sequencer_controller_ref.is_running();
+}
+// --- End moved implementation ---
+
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, 10, 5, 1000),
       keypad_observer(this, keypad_cc_map, 0) {

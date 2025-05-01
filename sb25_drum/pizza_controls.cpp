@@ -1,12 +1,12 @@
 #include "pizza_controls.h"
-#include "midi.h"                 // For send_midi_cc, send_midi_note
-#include "pizza_display.h"        // Need definition for display methods
-#include "sequencer_controller.h" // For SequencerController
-#include "step_sequencer.h"       // Need definition for Sequencer
-#include <algorithm>              // For std::clamp, std::min
-#include <cmath>                  // For std::max, std::round used in scaling
-#include <cstddef>                // For size_t
-#include <cstdio>                 // For printf
+#include "midi.h"
+#include "pizza_display.h"
+#include "sequencer_controller.h"
+#include "step_sequencer.h"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdio>
 
 using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
@@ -97,10 +97,9 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
     return;
   }
 
-  // Sequencer Step Toggling (Columns 0-3)
   if (event.type == Musin::UI::KeypadEvent::Type::Press) {
     uint8_t track_idx = event.col;
-    uint8_t step_idx = 7 - event.row; // Map row 7 (top) to step 0
+    uint8_t step_idx = 7 - event.row;
 
     StepSequencer::Step &step = controls->sequencer.get_track(track_idx).get_step(step_idx);
     step.enabled = !step.enabled;
@@ -109,12 +108,10 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       // Get the current note assigned to the corresponding drumpad
       step.note = controls->drumpad_component.get_note_for_pad(track_idx);
       if (!step.velocity.has_value()) {
-        step.velocity = 100; // Default velocity if none set
+        step.velocity = 100;
       }
     }
-    // LED update is handled by PizzaDisplay::draw_sequencer_state called in main loop
   } else if (event.type == Musin::UI::KeypadEvent::Type::Hold) {
-    // Hold Sequencer Step -> Set Max Velocity
     uint8_t track_idx = event.col;
     uint8_t step_idx = 7 - event.row;
     StepSequencer::Step &step = controls->sequencer.get_track(track_idx).get_step(step_idx);
@@ -140,7 +137,7 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                                       1000U, 5000U, 200000U},
                Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
-      drumpad_note_numbers{0, 7, 15, 23}, // Default notes
+      drumpad_note_numbers{0, 7, 15, 23},
       drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
                         DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
@@ -155,20 +152,19 @@ void PizzaControls::DrumpadComponent::init() {
 }
 
 void PizzaControls::DrumpadComponent::update() {
-  update_drumpads(); // Call the helper method
+  update_drumpads();
 }
 
 void PizzaControls::DrumpadComponent::update_drumpads() {
-  PizzaControls *controls = parent_controls; // Access shared resources
+  PizzaControls *controls = parent_controls;
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update();
 
-    // Update LED based on current pressure
     uint16_t raw_value = drumpads[i].get_raw_adc_value();
     uint8_t note_index = drumpad_note_numbers[i];
     uint32_t led_index = controls->display.get_drumpad_led_index(i);
 
-    if (led_index < NUM_LEDS) { // Check if index is valid
+    if (led_index < NUM_LEDS) {
       uint32_t base_color = controls->display.get_note_color(note_index);
       uint32_t final_color = calculate_brightness_color(base_color, raw_value);
       controls->display.set_led(led_index, final_color);
@@ -202,7 +198,6 @@ uint32_t PizzaControls::DrumpadComponent::calculate_brightness_color(uint32_t ba
   uint8_t brightness_val =
       static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
 
-  // Access display via parent_controls
   return parent_controls->display.leds().adjust_color_brightness(base_color, brightness_val);
 }
 
@@ -220,14 +215,12 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   }
   drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_number);
 
-  // Update the corresponding track's note in the sequencer
   parent_controls->sequencer.get_track(pad_index).set_all_notes(drumpad_note_numbers[pad_index]);
 
   uint32_t led_index = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index < NUM_LEDS) {
     uint32_t base_color = parent_controls->display.get_note_color(drumpad_note_numbers[pad_index]);
-    // Show selected note color at max brightness (use min ADC value for scaling)
-    uint32_t final_color = calculate_brightness_color(base_color, 100);
+    uint32_t final_color = calculate_brightness_color(base_color, 100); // Show selected note color brightly
     parent_controls->display.set_led(led_index, final_color);
   }
 }
@@ -236,21 +229,19 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
   if (pad_index < drumpad_note_numbers.size()) {
     return drumpad_note_numbers[pad_index];
   }
-  return 36; // Default fallback note
+  return 36;
 }
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     Musin::UI::DrumpadEvent event) {
-  // Access shared resources via parent->parent_controls
-  // PizzaControls* controls = parent->parent_controls;
 
   if (event.type == Musin::UI::DrumpadEvent::Type::Press && event.velocity.has_value()) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
-    send_midi_note(1, note, velocity); // Assuming channel 0 for now
+    send_midi_note(1, note, velocity);
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
-    send_midi_note(1, note, 0); // Note off
+    send_midi_note(1, note, 0);
   }
 }
 
@@ -303,7 +294,6 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   PizzaControls *controls = parent->parent_controls;
   uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
 
-  // Extract mux channel from packed control_id (upper 8 bits)
   const uint8_t mux_channel = event.control_id >> 8;
 
   switch (mux_channel) {
@@ -320,21 +310,19 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(1, 79, midi_value);
     break;
   case VOLUME:
-    send_midi_cc(1, 7, midi_value); // Master volume CC
+    send_midi_cc(1, 7, midi_value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;
     float distance_from_center = fabsf(event.value - center_value); // Range 0.0 to 0.5
 
-    // Map distance [0.0, 0.5] to swing percentage [50, 66]
-    // swing = 50 + distance * ( (75-50) / 0.5 ) = 50 + distance * 25
-    uint8_t swing_percent = 50 + static_cast<uint8_t>(distance_from_center * 25.0f);
+    // Map distance [0.0, 0.5] to swing percentage [50, 75]
+    // swing = 50 + distance * ( (75-50) / 0.5 ) = 50 + distance * 50
+    uint8_t swing_percent = 50 + static_cast<uint8_t>(distance_from_center * 50.0f);
 
-    // Determine which steps to delay based on which side of center the knob is
     bool delay_odd = (event.value > center_value);
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
 
-    // Set the calculated swing amount
     controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
     break;
   }
@@ -417,7 +405,6 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
     printf("Playbutton pressed\n");
 
-    // Toggle sequencer state
     if (parent->parent_controls->_sequencer_controller_ref.is_running()) {
       parent->parent_controls->_sequencer_controller_ref.stop();
     } else {

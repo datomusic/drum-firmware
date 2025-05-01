@@ -13,16 +13,13 @@ extern "C" {
 
 namespace PizzaExample {
 
-// --- Internal Helper Functions/Types (Anonymous Namespace) ---
-namespace {
+namespace { // Anonymous namespace for internal helpers
 
-// --- Constants ---
 constexpr auto PULL_CHECK_DELAY_US = 10;
-constexpr uint8_t MAX_BRIGHTNESS = 255;
+// Note: MAX_BRIGHTNESS is defined in the header (pizza_display.h)
 constexpr uint8_t REDUCED_BRIGHTNESS = 100;
 constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
 
-// --- Enums ---
 enum class ExternalPinState {
   FLOATING,
   PULL_UP,
@@ -142,7 +139,7 @@ uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   return 0;
 }
 
-uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
+std::optional<uint32_t> PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
   switch (pad_index) {
   case 0:
     return LED_DRUMPAD_1;
@@ -153,7 +150,7 @@ uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
   case 3:
     return LED_DRUMPAD_4;
   default:
-    return NUM_LEDS;
+    return std::nullopt; // Invalid pad index
   }
 }
 

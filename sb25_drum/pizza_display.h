@@ -16,7 +16,6 @@ namespace PizzaExample {
 
 class PizzaDisplay {
 public:
-  // --- Constants ---
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
   static constexpr size_t NUM_NOTE_COLORS = 32;
@@ -26,7 +25,6 @@ public:
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
-  // --- Public Methods ---
   PizzaDisplay();
 
   PizzaDisplay(const PizzaDisplay &) = delete;
@@ -86,9 +84,9 @@ public:
   /**
    * @brief Get the physical LED index for a given drumpad.
    * @param pad_index Index of the drumpad (0-3).
-   * @return The physical LED index or NUM_LEDS if invalid.
+   * @return std::optional containing the physical LED index if valid, otherwise std::nullopt.
    */
-  uint32_t get_drumpad_led_index(uint8_t pad_index) const;
+  std::optional<uint32_t> get_drumpad_led_index(uint8_t pad_index) const;
 
   /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
@@ -112,8 +110,6 @@ public:
   }
 
 private:
-  // --- Private Helper Methods ---
-
   /**
    * @brief Calculate the LED color for a sequencer step based on note and velocity.
    * @param step The sequencer step data.
@@ -151,7 +147,6 @@ private:
    */
   uint32_t calculate_intensity_color(uint8_t intensity) const;
 
-  // --- Private Members ---
   Musin::Drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
 };

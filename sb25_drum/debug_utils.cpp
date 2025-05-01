@@ -19,7 +19,9 @@ void LoopTimer::record_iteration_end() {
   _accumulated_loop_time_us += loop_duration_us;
   _loop_count++;
 
-  if (absolute_time_diff_us(_last_print_time, current_time) >= _print_interval_us) {
+  // Cast the result of absolute_time_diff_us to uint64_t to match _print_interval_us type
+  if (static_cast<uint64_t>(absolute_time_diff_us(_last_print_time, current_time)) >=
+      _print_interval_us) {
     if (_loop_count > 0) {
       uint64_t average_loop_time_us = _accumulated_loop_time_us / _loop_count;
       printf("Avg loop time: %llu us (%lu loops)\n", average_loop_time_us, _loop_count);

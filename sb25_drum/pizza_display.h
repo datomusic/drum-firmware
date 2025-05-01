@@ -98,10 +98,10 @@ public:
    * @param stopped_highlight_factor The highlight factor (0.0-1.0) to use when stopped.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(
-      const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
-      bool is_running, float stopped_highlight_factor); // Updated signature
+  void
+  draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+                       const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
+                       bool is_running, float stopped_highlight_factor); // Updated signature
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -167,8 +167,8 @@ private:
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
-    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
-    bool is_running, float stopped_highlight_factor) { // Updated signature
+    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller, bool is_running,
+    float stopped_highlight_factor) { // Updated signature
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
@@ -252,18 +252,15 @@ inline uint32_t PizzaDisplay::apply_fading_highlight(uint32_t color, float highl
   uint8_t blend_amount = static_cast<uint8_t>(std::clamp(highlight_factor * 255.0f, 0.0f, 255.0f));
 
   // Linear interpolation using integer math (lerp)
-  uint8_t final_r = static_cast<uint8_t>(
-      (static_cast<uint32_t>(base_r) * (255 - blend_amount) +
-       static_cast<uint32_t>(highlight_r) * blend_amount) /
-      255);
-  uint8_t final_g = static_cast<uint8_t>(
-      (static_cast<uint32_t>(base_g) * (255 - blend_amount) +
-       static_cast<uint32_t>(highlight_g) * blend_amount) /
-      255);
-  uint8_t final_b = static_cast<uint8_t>(
-      (static_cast<uint32_t>(base_b) * (255 - blend_amount) +
-       static_cast<uint32_t>(highlight_b) * blend_amount) /
-      255);
+  uint8_t final_r = static_cast<uint8_t>((static_cast<uint32_t>(base_r) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_r) * blend_amount) /
+                                         255);
+  uint8_t final_g = static_cast<uint8_t>((static_cast<uint32_t>(base_g) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_g) * blend_amount) /
+                                         255);
+  uint8_t final_b = static_cast<uint8_t>((static_cast<uint32_t>(base_b) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_b) * blend_amount) /
+                                         255);
 
   return (static_cast<uint32_t>(final_r) << 16) | (static_cast<uint32_t>(final_g) << 8) | final_b;
 }

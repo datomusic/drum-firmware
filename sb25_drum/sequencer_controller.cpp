@@ -2,6 +2,7 @@
 #include "midi.h"
 #include <algorithm>
 #include <cstdio>
+#include "pico/time.h" // For time_us_32() for seeding rand
 
 namespace StepSequencer {
 

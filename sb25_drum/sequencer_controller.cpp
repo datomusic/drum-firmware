@@ -9,8 +9,8 @@ template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
-    : sequencer(sequencer_ref), current_step_counter(0),
-      last_played_note_per_track{}, last_played_step_index_(0), // Initialize here
+    : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
+      last_played_step_index_(0), // Initialize here
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0) {
   calculate_timing_params();

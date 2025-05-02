@@ -104,8 +104,8 @@ public:
     etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
     etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
-    etl::array<DrumpadEventHandler, 4> drumpad_observers;
     etl::array<absolute_time_t, 4> _fade_start_time; // Track fade start time per pad
+    etl::array<DrumpadEventHandler, 4> drumpad_observers; // Declared after _fade_start_time to match init order
     static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f; // Brightness factor at the start of fade (10%)
     static constexpr uint32_t FADE_DURATION_MS = 150; // Fade duration
   };
@@ -163,6 +163,7 @@ private:
   Clock::InternalClock &_internal_clock;
   StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
 
+public: // Make components public for access from SequencerController etc.
   // --- Components ---
   KeypadComponent keypad_component;
   DrumpadComponent drumpad_component;

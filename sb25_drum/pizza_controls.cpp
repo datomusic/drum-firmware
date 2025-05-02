@@ -189,8 +189,8 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
-      _fade_start_time{}, // Initialize all fade times to 0 (nil_time equivalent)
-      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1}, // Keep observers last
+      _fade_start_time{}, // Initialize before observers to match declaration order
+      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
                         DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
 

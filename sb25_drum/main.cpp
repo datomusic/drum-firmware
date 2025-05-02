@@ -24,7 +24,7 @@ static Tempo::TempoHandler tempo_handler(Tempo::ClockSource::INTERNAL);
 static Tempo::TempoMultiplier tempo_multiplier(24, 1);
 
 StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
-static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
+static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock, tempo_handler,
                                     sequencer_controller);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes

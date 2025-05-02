@@ -92,6 +92,11 @@ public:
   [[nodiscard]] bool is_running() const;
 
   /**
+   * @brief Toggles the sequencer between running and stopped states.
+   */
+  void toggle();
+
+  /**
    * @brief Set the swing amount.
    * @param percent Percentage (50-75) of the two-step duration allocated to the
    *                first step of the pair determined by swing_delays_odd_steps_.

@@ -465,14 +465,7 @@ void PizzaControls::PlaybuttonComponent::update() {
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     Musin::UI::DrumpadEvent event) {
   if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
-    printf("Playbutton pressed\n");
-
-    if (parent->parent_controls->_sequencer_controller_ref.is_running()) {
-      parent->parent_controls->_sequencer_controller_ref.stop();
-    } else {
-      parent->parent_controls->_sequencer_controller_ref.start();
-    }
-  } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
-    printf("Playbutton released\n");
+    parent->parent_controls->_sequencer_controller_ref.toggle();
   }
+  // Release event is currently unused, no action needed.
 }

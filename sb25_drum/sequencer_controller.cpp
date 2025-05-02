@@ -354,6 +354,15 @@ void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *p
   _controls_ptr = ptr;
 }
 
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::toggle() {
+  if (is_running()) {
+    stop();
+  } else {
+    start();
+  }
+}
+
 // Explicit template instantiation for 4 tracks, 8 steps
 template class SequencerController<4, 8>;
 

@@ -149,26 +149,35 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
   // Map physical column to logical track (0->3, 1->2, 2->1, 3->0)
   uint8_t track_idx = (PizzaExample::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
-  uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row;
+  uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row; // Map row to step index (0-7)
+
+  // Get a reference to the track to modify it
+  auto &track = controls->sequencer.get_track(track_idx);
 
   if (event.type == Musin::UI::KeypadEvent::Type::Press) {
-    StepSequencer::Step &step = controls->sequencer.get_track(track_idx).get_step(step_idx);
-    step.enabled = !step.enabled;
+    bool now_enabled = track.toggle_step_enabled(step_idx);
 
-    if (step.enabled) {
+    if (now_enabled) {
       // Get the current note assigned to the corresponding drumpad
-      step.note = controls->drumpad_component.get_note_for_pad(track_idx);
-      if (!step.velocity.has_value()) {
-        step.velocity = 100;
+      uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
+      track.set_step_note(step_idx, note);
+      // Set default velocity only if it wasn't already set
+      if (!track.get_step_velocity(step_idx).has_value()) {
+        track.set_step_velocity(step_idx, 100);
       }
+    } else {
+      // Optionally clear note/velocity when disabling, or leave them
+      // track.set_step_note(step_idx, std::nullopt);
+      // track.set_step_velocity(step_idx, std::nullopt);
     }
   } else if (event.type == Musin::UI::KeypadEvent::Type::Hold) {
-    uint8_t track_idx = event.col;
-    uint8_t step_idx = 7 - event.row;
-    StepSequencer::Step &step = controls->sequencer.get_track(track_idx).get_step(step_idx);
-    if (step.enabled) {
-      step.velocity = 127;
-    }
+    // Set velocity to max on hold (only affects enabled steps implicitly via set_step_velocity)
+    // Note: We might only want to do this if the step *is* enabled.
+    // However, set_step_velocity doesn't check enabled status.
+    // If the step was just enabled by the preceding Press event, this is fine.
+    // If it was already enabled, this is also fine.
+    // If it was disabled, setting velocity might be unwanted, but harmless for now.
+    track.set_step_velocity(step_idx, 127);
   }
 }
 

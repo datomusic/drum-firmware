@@ -78,15 +78,7 @@ private:
   // Clock::ExternalSyncClock& external_sync_clock_;
   // These would likely be passed in the constructor.
 
-  void TempoHandler::notification(Clock::ClockEvent event) {
-    // Only process and forward ticks if they come from the currently selected source
-    if (event.source == current_source_) {
-      Tempo::TempoEvent tempo_tick_event;
-      // TODO: Populate TempoEvent with timestamp or other data if needed later
-      etl::observable<etl::observer<TempoEvent>, MAX_TEMPO_OBSERVERS>::notify_observers(
-          tempo_tick_event);
-    }
-  }
+}; // End class TempoHandler
 
 } // namespace Tempo
 

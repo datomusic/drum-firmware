@@ -10,6 +10,11 @@
 #include <cstdlib>
 #include <optional>
 
+#include <cstddef> // For size_t
+
+// Forward declarations
+class PizzaControls;
+
 namespace StepSequencer {
 
 // Forward declare the specific Sequencer instantiation used
@@ -113,6 +118,11 @@ public:
 
   [[nodiscard]] bool is_random_active() const;
 
+  /**
+   * @brief Set the pointer to the PizzaControls instance for callbacks.
+   */
+  void set_controls_ptr(PizzaControls *ptr);
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -148,6 +158,7 @@ private:
 
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
+  PizzaControls *_controls_ptr = nullptr; // Pointer for callbacks
 
 public:
   void activate_repeat(uint32_t length);

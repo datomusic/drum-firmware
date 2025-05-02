@@ -1,6 +1,7 @@
 #include "sequencer_controller.h"
 #include "midi.h"
 #include "pico/time.h" // For time_us_32() for seeding rand
+#include "pizza_controls.h" // Include for PizzaControls pointer type
 #include <algorithm>
 #include <cstdio>
 
@@ -82,6 +83,11 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
       step.velocity.value() > 0) {
     send_midi_note(midi_channel, step.note.value(), step.velocity.value());
     last_played_note_per_track[track_idx] = step.note.value();
+
+    // Trigger fade on the corresponding drumpad if controls pointer is set
+    if (_controls_ptr) {
+      _controls_ptr->drumpad_component.trigger_fade(static_cast<uint8_t>(track_idx));
+    }
   }
 }
 
@@ -341,6 +347,11 @@ void SequencerController<NumTracks, NumSteps>::deactivate_random() {
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_random_active() const {
   return random_active_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *ptr) {
+  _controls_ptr = ptr;
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

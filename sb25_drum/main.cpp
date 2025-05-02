@@ -42,6 +42,9 @@ int main() {
 
   pizza_controls.init();
 
+  // Set the controls pointer in the sequencer controller
+  sequencer_controller.set_controls_ptr(&pizza_controls);
+
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
   tempo_handler.add_observer(tempo_multiplier);

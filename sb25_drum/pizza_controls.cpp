@@ -38,16 +38,6 @@ void PizzaControls::update() {
   analog_component.update();
   playbutton_component.update(); // Updates the *input* state of the button
 
-  // Check sequencer state to trigger drumpad fades
-  for (size_t i = 0; i < 4; ++i) {
-    // get_last_played_step_for_track returns non-nullopt if a step was triggered
-    // for this track in the *last sequencer processing cycle*.
-    std::optional<size_t> played_step = _sequencer_controller_ref.get_last_played_step_for_track(i);
-    if (played_step.has_value()) {
-      drumpad_component.trigger_fade(static_cast<uint8_t>(i));
-    }
-  }
-
   // Update the play button LED based on sequencer state
   if (_sequencer_controller_ref.is_running()) {
     // Running: Solid color (e.g., white)

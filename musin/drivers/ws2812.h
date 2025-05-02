@@ -11,6 +11,7 @@ extern "C" {
 #include "hardware/pio.h"
 #include "hardware/clocks.h" // Needed for ws2812_program_init
 #include "pico/assert.h"   // For assert()
+#include "pico/time.h"     // For time functions
 #include <stdio.h>         // For optional printf debugging
 }
 #include <climits> // For UINT_MAX
@@ -139,21 +140,6 @@ public:
      */
     constexpr size_t get_num_leds() const;
 
-private:
-    /**
-     * @brief Apply brightness and color correction to RGB components.
-     * Internal helper used by set_pixel methods.
-     *
-     * @param r Input Red component.
-     * @param g Input Green component.
-     * @param b Input Blue component.
-     * @param out_r Output Red component after adjustments.
-     * @param out_g Output Green component after adjustments.
-     * @param out_b Output Blue component after adjustments.
-     */
-    void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
-                                         uint8_t& out_r, uint8_t& out_g, uint8_t& out_b) const;
-
     /**
      * @brief Pack RGB components into a 24-bit integer based on the configured order.
      * Internal helper used by set_pixel methods.
@@ -175,6 +161,31 @@ private:
      * @param b Output Blue component.
      */
     void unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& g, uint8_t& b) const;
+    
+    /**
+     * @brief Apply a specific brightness level to a given base color.
+     * Does not use the global brightness setting of the driver.
+     *
+     * @param base_color The original 24-bit color (e.g., 0xRRGGBB).
+     * @param brightness The brightness level to apply (0-255).
+     * @return uint32_t The adjusted 24-bit color, packed according to the driver's order.
+     */
+    uint32_t adjust_color_brightness(uint32_t base_color, uint8_t brightness) const;
+    
+private:
+    /**
+     * @brief Apply brightness and color correction to RGB components.
+     * Internal helper used by set_pixel methods.
+     *
+     * @param r Input Red component.
+     * @param g Input Green component.
+     * @param b Input Blue component.
+     * @param out_r Output Red component after adjustments.
+     * @param out_g Output Green component after adjustments.
+     * @param out_b Output Blue component after adjustments.
+     */
+    void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
+                                         uint8_t& out_r, uint8_t& out_g, uint8_t& out_b) const;
 
 
     // --- Configuration ---
@@ -186,9 +197,13 @@ private:
     std::optional<uint32_t> _color_correction;
 
     // --- State ---
-    std::array<uint32_t, NUM_LEDS> _pixel_buffer; // Fixed-size buffer
-    unsigned int _pio_program_offset = 0; // Assigned during init()
+    std::array<uint32_t, NUM_LEDS> _pixel_buffer;
+    unsigned int _pio_program_offset = 0;
     bool _initialized = false;
+    absolute_time_t _last_show_completion_time = nil_time;
+
+    // --- Constants ---
+    static constexpr uint32_t LATCH_DELAY_US = 80;
 
     // --- PIO Program Info ---
     // PIO program loading and SM claiming are now handled dynamically in init()
@@ -278,16 +293,28 @@ void WS2812<NUM_LEDS>::set_pixel(unsigned int index, uint32_t color) {
 template <size_t NUM_LEDS>
 void WS2812<NUM_LEDS>::show() {
     if (!_initialized) {
-        assert(_initialized); // Optional: Assert in debug builds
+        assert(_initialized);
         return;
     }
     assert(_pio != nullptr && _sm_index != UINT_MAX);
+
+    // Wait for the required latch delay since the last show() completed
+    if (!is_nil_time(_last_show_completion_time)) {
+        absolute_time_t now = get_absolute_time();
+        uint64_t elapsed_us = absolute_time_diff_us(_last_show_completion_time, now);
+        if (elapsed_us < LATCH_DELAY_US) {
+            uint32_t wait_us = LATCH_DELAY_US - (uint32_t)elapsed_us;
+            sleep_us(wait_us);
+        }
+    }
 
     for (uint32_t packed_color : _pixel_buffer) {
         // PIO expects 24 bits, left-aligned in the 32-bit FIFO word
         pio_sm_put_blocking(_pio, _sm_index, packed_color << 8);
     }
-    // Note: Potential need for delay here (see original comments)
+
+    // Record the time when the CPU finished pushing data to the PIO
+    _last_show_completion_time = get_absolute_time();
 }
 
 template <size_t NUM_LEDS>
@@ -404,8 +431,29 @@ void WS2812<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t& r, uint8_t& 
             r = g = b = 0; break;
     }
 }
-
-
+    
+template <size_t NUM_LEDS>
+uint32_t WS2812<NUM_LEDS>::adjust_color_brightness(uint32_t base_color, uint8_t brightness) const {
+    if (base_color == 0) {
+        return 0; // Black remains black
+    }
+    
+    uint8_t r, g, b;
+    // Unpack using the driver's configured order, but the result (r,g,b) is standard RGB
+    unpack_color(base_color, r, g, b);
+    
+    // Apply brightness scaling (integer math for efficiency)
+    // Scale factor: brightness + 1 if brightness < 255, else 256 (effectively brightness/255.0)
+    uint16_t brightness_scale = brightness + (brightness == 255 ? 0 : 1);
+    r = static_cast<uint8_t>(((uint16_t)r * brightness_scale) >> 8);
+    g = static_cast<uint8_t>(((uint16_t)g * brightness_scale) >> 8);
+    b = static_cast<uint8_t>(((uint16_t)b * brightness_scale) >> 8);
+    
+    // Repack according to the driver's configured order
+    return pack_color(r, g, b);
+}
+    
+    
 } // namespace Musin::Drivers
-
+    
 #endif // MUSIN_DRIVERS_WS2812_H

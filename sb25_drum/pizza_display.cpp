@@ -1,19 +1,25 @@
 #include "pizza_display.h"
-#include "drum_pizza_hardware.h" // For LED array mapping
+#include "drum_pizza_hardware.h"
 
+#include <algorithm>
 #include <array>
-#include <cstddef> // For size_t
+#include <cstddef>
 
-// Include necessary Pico SDK headers for GPIO and time
 extern "C" {
 #include "hardware/gpio.h"
 #include "pico/time.h"
-#include <stdio.h> // For printf in init
+#include <stdio.h>
 }
 
-// --- Temporary definition of ExternalPinState and check_external_pin_state ---
-// This should ideally be moved to a shared HAL utility or similar.
-// Duplicating it here temporarily to allow compilation.
+namespace PizzaExample {
+
+namespace { // Anonymous namespace for internal helpers
+
+constexpr auto PULL_CHECK_DELAY_US = 10;
+// Note: MAX_BRIGHTNESS is defined in the header (pizza_display.h)
+constexpr uint8_t REDUCED_BRIGHTNESS = 100;
+constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
+
 enum class ExternalPinState {
   FLOATING,
   PULL_UP,
@@ -21,20 +27,20 @@ enum class ExternalPinState {
   UNDETERMINED
 };
 
-static ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) {
+ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) {
   gpio_init(gpio);
   gpio_set_dir(gpio, GPIO_IN);
 
   gpio_disable_pulls(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
   bool initial_read = gpio_get(gpio);
 
   gpio_pull_up(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
   bool pullup_read = gpio_get(gpio);
 
   gpio_pull_down(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
   bool pulldown_read = gpio_get(gpio);
 
   ExternalPinState determined_state;
@@ -61,15 +67,15 @@ static ExternalPinState check_external_pin_state(std::uint32_t gpio, const char 
          state_str);
 
   gpio_disable_pulls(gpio);
-  sleep_us(10);
+  sleep_us(PULL_CHECK_DELAY_US);
 
   return determined_state;
 }
-// --- End Temporary definitions ---
+
+} // anonymous namespace
 
 PizzaDisplay::PizzaDisplay()
-    : leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, 255,
-           0xffe080), // Initial brightness 255, will be adjusted in init
+    : _leds(PIN_LED_DATA, Musin::Drivers::RGBOrder::GRB, MAX_BRIGHTNESS, DEFAULT_COLOR_CORRECTION),
       note_colors({0xFF0000, 0xFF0020, 0xFF0040, 0xFF0060, 0xFF1010, 0xFF1020, 0xFF2040,
                    0xFF2060, 0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF,
                    0x2050FF, 0x3078FF, 0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10,
@@ -80,61 +86,60 @@ PizzaDisplay::PizzaDisplay()
 bool PizzaDisplay::init() {
   printf("PizzaDisplay: Initializing LEDs...\n");
 
-  // Check LED data pin state to determine initial brightness
+  // Check LED data pin state to determine initial brightness. Pullup = SK6812, pulldown = SK6805
   ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
-  uint8_t initial_brightness = (led_pin_state == ExternalPinState::PULL_UP) ? 100 : 255;
+  uint8_t initial_brightness =
+      (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
   printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
          initial_brightness, static_cast<int>(led_pin_state));
-  leds.set_brightness(initial_brightness);
+  _leds.set_brightness(initial_brightness);
 
-  if (!leds.init()) {
+  if (!_leds.init()) {
     printf("Error: Failed to initialize WS2812 LED driver!\n");
     return false;
   }
 
-  // Enable LED power pin
   gpio_init(PIN_LED_ENABLE);
-  gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT); // Use GPIO_OUT for direction
+  gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT);
   gpio_put(PIN_LED_ENABLE, 1);
-
   clear();
-  show(); // Show the cleared state initially
+  show();
   printf("PizzaDisplay: Initialization Complete.\n");
   return true;
 }
 
 void PizzaDisplay::show() {
-  leds.show();
+  _leds.show();
 }
 
 void PizzaDisplay::set_brightness(uint8_t brightness) {
-  leds.set_brightness(brightness);
+  _leds.set_brightness(brightness);
   // Note: Brightness only affects subsequent set_pixel calls in the current WS2812 impl.
   // If immediate effect is desired, the buffer would need to be recalculated.
 }
 
 void PizzaDisplay::clear() {
-  leds.clear();
+  _leds.clear();
 }
 
 void PizzaDisplay::set_led(uint32_t index, uint32_t color) {
   if (index < NUM_LEDS) {
-    leds.set_pixel(index, color);
+    _leds.set_pixel(index, color);
   }
 }
 
 void PizzaDisplay::set_play_button_led(uint32_t color) {
-  leds.set_pixel(LED_PLAY_BUTTON, color);
+  _leds.set_pixel(LED_PLAY_BUTTON, color);
 }
 
 uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   if (note_index < note_colors.size()) {
     return note_colors[note_index];
   }
-  return 0; // Return black for invalid index
+  return 0;
 }
 
-uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
+std::optional<uint32_t> PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
   switch (pad_index) {
   case 0:
     return LED_DRUMPAD_1;
@@ -145,29 +150,17 @@ uint32_t PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
   case 3:
     return LED_DRUMPAD_4;
   default:
-    return NUM_LEDS; // Invalid index
+    return std::nullopt; // Invalid pad index
   }
 }
 
 void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
-  if (col >= 4)
-    return; // Column 4 (sample select) has no direct LED in LED_ARRAY
+  std::optional<uint32_t> led_index_opt = get_keypad_led_index(row, col);
 
-  // Map row/col to the linear LED_ARRAY index
-  // Keypad rows are 0-7 (bottom to top), cols 0-3 for sequencer LEDs
-  // LED_ARRAY maps visually left-to-right, top-to-bottom (steps 1-8)
-  // Keypad row 7 -> Step 1 (Indices 0-3 in LED_ARRAY)
-  // Keypad row 0 -> Step 8 (Indices 28-31 in LED_ARRAY)
-  uint8_t step_index = 7 - row; // Map row 7 to step 0, row 0 to step 7
-  size_t array_index = step_index * 4 + col;
-
-  if (array_index < std::size(LED_ARRAY)) {
-    uint32_t led_index = LED_ARRAY[array_index];
-    // Scale intensity (0-127) to color (e.g., white 0xRRGGBB)
-    // Simple scaling: intensity * 2 maps 0-127 to 0-254
-    uint8_t brightness_val = intensity * 2;
-    uint32_t color = (static_cast<uint32_t>(brightness_val) << 16) |
-                     (static_cast<uint32_t>(brightness_val) << 8) | brightness_val;
-    leds.set_pixel(led_index, color);
+  if (led_index_opt.has_value()) {
+    uint32_t color = calculate_intensity_color(intensity);
+    _leds.set_pixel(led_index_opt.value(), color);
   }
 }
+
+} // namespace PizzaExample

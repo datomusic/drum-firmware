@@ -40,7 +40,8 @@ bool volume(float volume);
  * Requires the DATO_SUBMARINE build configuration (AIC3204 codec).
  *
  * @param enable true to enable routing, false to disable.
- * @return true if the routing was set successfully, false otherwise (e.g., codec error or feature unavailable).
+ * @return true if the routing was set successfully, false otherwise (e.g., codec error or feature
+ * unavailable).
  */
 bool route_line_in_to_headphone(bool enable);
 

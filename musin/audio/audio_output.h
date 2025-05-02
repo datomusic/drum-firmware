@@ -34,6 +34,17 @@ bool update(BufferSource &source);
 bool volume(float volume);
 
 /**
+ * @brief Routes the line input (IN1_L/R) directly to the headphone output (HPL/R).
+ *
+ * This uses the codec's analog bypass feature.
+ * Requires the DATO_SUBMARINE build configuration (AIC3204 codec).
+ *
+ * @param enable true to enable routing, false to disable.
+ * @return true if the routing was set successfully, false otherwise (e.g., codec error or feature unavailable).
+ */
+bool route_line_in_to_headphone(bool enable);
+
+/**
  * @brief Deinitializes the audio output system.
  */
 void deinit();

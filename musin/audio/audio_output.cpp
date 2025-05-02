@@ -116,6 +116,16 @@ bool AudioOutput::volume(float volume) {
 #endif
 }
 
+bool AudioOutput::route_line_in_to_headphone(bool enable) {
+#ifdef DATO_SUBMARINE
+  return aic3204_route_in_to_headphone(enable);
+#else
+  (void)enable;
+  printf("AudioOutput Warning: Line-in routing unavailable (requires DATO_SUBMARINE build).\n");
+  return false;
+#endif
+}
+
 bool AudioOutput::update(BufferSource &source) {
   if (running) {
     audio_buffer_t *buffer = take_audio_buffer(producer_pool, false);

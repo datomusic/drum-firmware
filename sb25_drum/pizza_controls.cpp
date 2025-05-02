@@ -270,7 +270,8 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   }
   drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_number);
 
-  parent_controls->sequencer.get_track(pad_index).set_all_notes(drumpad_note_numbers[pad_index]);
+  // Update all steps in the corresponding sequencer track with the new note
+  parent_controls->sequencer.get_track(pad_index).set_note(drumpad_note_numbers[pad_index]);
 
   auto led_index_opt = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index_opt.has_value()) {

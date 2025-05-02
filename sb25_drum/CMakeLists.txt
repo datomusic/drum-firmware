@@ -10,15 +10,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
 
 project(${EXECUTABLE_NAME})
 
-# Explicitly find the size utility, hinting at the Pico toolchain path
-set(TOOLCHAIN_PREFIX "arm-none-eabi-") # Adjust if your toolchain prefix is different
-find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size
-    HINTS ${PICO_TOOLCHAIN_PATH}/bin # Tell CMake where to look
-)
-if(NOT SIZE_UTIL_PATH)
-    message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found in standard paths or ${PICO_TOOLCHAIN_PATH}/bin. Post-build size report will be skipped.")
-endif()
-
 add_executable(${EXECUTABLE_NAME}
   main.cpp
   midi.cpp
@@ -39,6 +30,23 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_PROGRAM_VERSION_STRING="${GIT_HASH}"
 )
 
+musin_init(${EXECUTABLE_NAME})
+musin_init_drivers(${EXECUTABLE_NAME})
+musin_init_ui(${EXECUTABLE_NAME})
+musin_init_hal(${EXECUTABLE_NAME})
+musin_init_usb_midi(${EXECUTABLE_NAME})
+
+
+# Explicitly find the size utility, hinting at the Pico toolchain path
+set(TOOLCHAIN_PREFIX "arm-none-eabi-") # Adjust if your toolchain prefix is different
+find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size
+    HINTS $ENV{PICO_TOOLCHAIN_PATH} # Tell CMake where to look
+)
+if(NOT SIZE_UTIL_PATH)
+    message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found in standard paths or ${PICO_TOOLCHAIN_PATH}. Post-build size report will be skipped.")
+endif()
+
+
 # Add size reporting commands only if the utility was found
 if(SIZE_UTIL_PATH)
     add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
@@ -51,12 +59,6 @@ if(SIZE_UTIL_PATH)
         COMMENT "Concise size report:"
     )
 endif()
-
-musin_init(${EXECUTABLE_NAME})
-musin_init_drivers(${EXECUTABLE_NAME})
-musin_init_ui(${EXECUTABLE_NAME})
-musin_init_hal(${EXECUTABLE_NAME})
-musin_init_usb_midi(${EXECUTABLE_NAME})
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_add_extra_outputs(${EXECUTABLE_NAME})

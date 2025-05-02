@@ -10,11 +10,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
 
 project(${EXECUTABLE_NAME})
 
-# Explicitly find the size utility
+# Explicitly find the size utility, hinting at the Pico toolchain path
 set(TOOLCHAIN_PREFIX "arm-none-eabi-") # Adjust if your toolchain prefix is different
-find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size)
+find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size
+    HINTS ${PICO_TOOLCHAIN_PATH}/bin # Tell CMake where to look
+)
 if(NOT SIZE_UTIL_PATH)
-    message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found. Post-build size report will be skipped.")
+    message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found in standard paths or ${PICO_TOOLCHAIN_PATH}/bin. Post-build size report will be skipped.")
 endif()
 
 add_executable(${EXECUTABLE_NAME}

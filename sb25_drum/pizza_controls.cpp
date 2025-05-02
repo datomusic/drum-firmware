@@ -188,7 +188,7 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                                       1000U, 5000U, 200000U},
                Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
-      drumpad_note_numbers{0, 7, 15, 23},
+      drumpad_note_numbers{0, 8, 16, 24},
       drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
                         DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
@@ -395,10 +395,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(1, 22, midi_value);
     break;
   case REPEAT: {
-    constexpr float REPEAT_THRESHOLD_1 = 0.1f;
+    constexpr float REPEAT_THRESHOLD_1 = 0.3f;
     constexpr float REPEAT_THRESHOLD_2 = 0.7f;
-    constexpr uint32_t REPEAT_LENGTH_1 = 4;
-    constexpr uint32_t REPEAT_LENGTH_2 = 2;
+    constexpr uint32_t REPEAT_LENGTH_1 = 3;
+    constexpr uint32_t REPEAT_LENGTH_2 = 1;
 
     bool was_active = controls->_sequencer_controller_ref.is_repeat_active();
     bool should_be_active = (event.value >= REPEAT_THRESHOLD_1);

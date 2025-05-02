@@ -395,26 +395,24 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     send_midi_cc(1, 22, midi_value);
     break;
   case REPEAT: {
+    // Define thresholds and lengths locally for interpretation
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
     constexpr float REPEAT_THRESHOLD_2 = 0.7f;
-    constexpr uint32_t REPEAT_LENGTH_1 = 3;
-    constexpr uint32_t REPEAT_LENGTH_2 = 1;
+    constexpr uint32_t REPEAT_LENGTH_1 = 3; // Length for range [T1, T2)
+    constexpr uint32_t REPEAT_LENGTH_2 = 1; // Length for range [T2, 1.0]
 
-    bool was_active = controls->_sequencer_controller_ref.is_repeat_active();
-    bool should_be_active = (event.value >= REPEAT_THRESHOLD_1);
-
-    if (should_be_active && !was_active) {
-      uint32_t length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
-      controls->_sequencer_controller_ref.activate_repeat(length);
-      printf("Activated repeat\n");
-    } else if (!should_be_active && was_active) {
-      controls->_sequencer_controller_ref.deactivate_repeat();
-      printf("Deactivate repeat\n");
-    } else if (should_be_active && was_active) {
-      uint32_t new_length = (event.value >= REPEAT_THRESHOLD_2) ? REPEAT_LENGTH_2 : REPEAT_LENGTH_1;
-      controls->_sequencer_controller_ref.set_repeat_length(new_length);
-      printf("Changed repeat param\n");
+    // Determine the intended state based on the knob value
+    std::optional<uint32_t> intended_length = std::nullopt;
+    if (event.value >= REPEAT_THRESHOLD_2) {
+      intended_length = REPEAT_LENGTH_2;
+    } else if (event.value >= REPEAT_THRESHOLD_1) {
+      intended_length = REPEAT_LENGTH_1;
     }
+
+    // Pass the intended state to the sequencer controller
+    controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
+
+    // Still send the MIDI CC value based on the raw knob position
     send_midi_cc(1, 78, midi_value);
     break;
   }

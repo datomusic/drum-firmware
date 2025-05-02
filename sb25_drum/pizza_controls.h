@@ -28,12 +28,13 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 } // namespace StepSequencer
 
-class PizzaControls : public etl::observer<Clock::ClockEvent> { // Added observer inheritance
+class PizzaControls : public etl::observer<Tempo::TempoEvent> { // Observe TempoEvents
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                          StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                         Clock::InternalClock &clock_ref,
+                         Clock::InternalClock &clock_ref, // Keep for set_bpm
+                         Tempo::TempoHandler &tempo_handler_ref, // Add TempoHandler ref
                          StepSequencer::DefaultSequencerController &sequencer_controller_ref);
 
   PizzaControls(const PizzaControls &) = delete;

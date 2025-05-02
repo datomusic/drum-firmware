@@ -13,11 +13,12 @@ using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
-PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                             StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                             Clock::InternalClock &clock_ref,
-                             StepSequencer::DefaultSequencerController &sequencer_controller_ref)
+PizzaControls::PizzaControls(
+    PizzaExample::PizzaDisplay &display_ref, StepSequencer::Sequencer<4, 8> &sequencer_ref,
+    Clock::InternalClock &clock_ref, Tempo::TempoHandler &tempo_handler_ref,
+    StepSequencer::DefaultSequencerController &sequencer_controller_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
+      _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), keypad_component(this),
       drumpad_component(this), analog_component(this), playbutton_component(this) {
 }
@@ -28,8 +29,8 @@ void PizzaControls::init() {
   analog_component.init();
   playbutton_component.init();
 
-  // Register this class to receive clock events for LED pulsing
-  _internal_clock.add_observer(*this);
+  // Register this class to receive tempo events for LED pulsing
+  _tempo_handler_ref.add_observer(*this);
 }
 
 void PizzaControls::update() {
@@ -69,10 +70,13 @@ void PizzaControls::update() {
   // Note: PizzaDisplay::show() must be called later in the main loop
 }
 
-void PizzaControls::notification(Clock::ClockEvent /* event */) {
-  // Only advance the counter if the sequencer is NOT running
+void PizzaControls::notification(Tempo::TempoEvent /* event */) {
+  // This notification is now driven by the active clock source via TempoHandler.
+  // Only advance the counter if the sequencer is NOT running.
   if (!_sequencer_controller_ref.is_running()) {
     _clock_tick_counter++;
+    // The PPQN used for calculation in update() is still valid as it defines
+    // the resolution we expect the TempoEvents to represent.
   } else {
     // Reset counter when sequencer starts so pulse restarts cleanly
     _clock_tick_counter = 0;

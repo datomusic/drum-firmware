@@ -106,12 +106,8 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
     return false; // Stop the timer
   }
 
-  // Create and notify observers with a ClockEvent
-  Clock::ClockEvent tick_event;
-  // TODO: Populate event with timestamp or source if needed
-  // tick_event.timestamp_us = time_us_64();
-  // tick_event.source = ClockSource::INTERNAL; // Requires adding source to ClockEvent
-
+  // Create and notify observers with a ClockEvent, specifying the source
+  Clock::ClockEvent tick_event{Tempo::ClockSource::INTERNAL};
   instance->notify_observers(tick_event);
 
   // Return true to continue the repeating timer

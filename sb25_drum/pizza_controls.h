@@ -15,9 +15,10 @@
 
 #include "pico/time.h" // For absolute_time_t
 
-#include "clock_event.h" // Added for observer
-#include "internal_clock.h"
+#include "internal_clock.h" // Still needed for PPQN constant and set_bpm
 #include "step_sequencer.h"
+#include "tempo_event.h"   // Observe TempoEvents now
+#include "tempo_handler.h" // Need reference to TempoHandler
 
 namespace PizzaExample {
 class PizzaDisplay; // Forward declaration
@@ -40,7 +41,7 @@ public:
 
   void init();
   void update();
-  void notification(Clock::ClockEvent event) override; // Added observer method
+  void notification(Tempo::TempoEvent event) override; // Observe TempoEvents
 
   // --- Nested Component Definitions ---
 
@@ -160,7 +161,8 @@ private:
   // --- Shared Resources ---
   PizzaExample::PizzaDisplay &display;
   StepSequencer::Sequencer<4, 8> &sequencer;
-  Clock::InternalClock &_internal_clock;
+  Clock::InternalClock &_internal_clock; // Keep for set_bpm access via SPEED knob
+  Tempo::TempoHandler &_tempo_handler_ref; // Store reference to TempoHandler
   StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
 
 public: // Make components public for access from SequencerController etc.

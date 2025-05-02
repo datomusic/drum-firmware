@@ -10,6 +10,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
 
 project(${EXECUTABLE_NAME})
 
+# Explicitly find the size utility
+set(TOOLCHAIN_PREFIX "arm-none-eabi-") # Adjust if your toolchain prefix is different
+find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size)
+if(NOT SIZE_UTIL_PATH)
+    message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found. Post-build size report will be skipped.")
+endif()
+
 add_executable(${EXECUTABLE_NAME}
   main.cpp
   midi.cpp
@@ -30,15 +37,18 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_PROGRAM_VERSION_STRING="${GIT_HASH}"
 )
 
-add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
-    COMMAND ${CMAKE_SIZE_UTIL} -A $<TARGET_FILE:${EXECUTABLE_NAME}>
-    COMMENT "Detailed size report:"
-)
+# Add size reporting commands only if the utility was found
+if(SIZE_UTIL_PATH)
+    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+        COMMAND ${SIZE_UTIL_PATH} -A $<TARGET_FILE:${EXECUTABLE_NAME}>
+        COMMENT "Detailed size report:"
+    )
 
-add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
-    COMMAND ${CMAKE_SIZE_UTIL} $<TARGET_FILE:${EXECUTABLE_NAME}>
-    COMMENT "Concise size report:"
-)
+    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+        COMMAND ${SIZE_UTIL_PATH} $<TARGET_FILE:${EXECUTABLE_NAME}>
+        COMMENT "Concise size report:"
+    )
+endif()
 
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})

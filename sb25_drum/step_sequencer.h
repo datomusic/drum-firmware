@@ -53,12 +53,6 @@ public:
     return steps[index];
   }
 
-  // Non-const version to allow modification via new methods
-  [[nodiscard]] constexpr Step &get_step(size_t index) {
-    ETL_ASSERT(index < NumSteps, etl::range_error("Track::get_step: index out of bounds"));
-    return steps[index];
-  }
-
 
   /**
    * @brief Get the total number of steps in this track.

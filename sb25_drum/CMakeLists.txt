@@ -35,6 +35,11 @@ add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
     COMMENT "Detailed size report:"
 )
 
+add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_SIZE_UTIL} $<TARGET_FILE:${EXECUTABLE_NAME}>
+    COMMENT "Concise size report:"
+)
+
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})

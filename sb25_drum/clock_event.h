@@ -1,8 +1,12 @@
 #ifndef SB25_DRUM_CLOCK_EVENT_H
 #define SB25_DRUM_CLOCK_EVENT_H
 
-#include "tempo_handler.h" // Include definition for Tempo::ClockSource
 #include <cstdint>
+
+// Forward declare the ClockSource enum instead of including the full header
+namespace Tempo {
+enum class ClockSource : uint8_t;
+} // namespace Tempo
 
 namespace Clock {
 

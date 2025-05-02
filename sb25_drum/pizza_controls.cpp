@@ -13,14 +13,15 @@ using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
-PizzaControls::PizzaControls(
-    PizzaExample::PizzaDisplay &display_ref, StepSequencer::Sequencer<4, 8> &sequencer_ref,
-    Clock::InternalClock &clock_ref, Tempo::TempoHandler &tempo_handler_ref,
-    StepSequencer::DefaultSequencerController &sequencer_controller_ref)
+PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
+                             StepSequencer::Sequencer<4, 8> &sequencer_ref,
+                             Clock::InternalClock &clock_ref,
+                             Tempo::TempoHandler &tempo_handler_ref,
+                             StepSequencer::DefaultSequencerController &sequencer_controller_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
-      _tempo_handler_ref(tempo_handler_ref),
-      _sequencer_controller_ref(sequencer_controller_ref), keypad_component(this),
-      drumpad_component(this), analog_component(this), playbutton_component(this) {
+      _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
+      keypad_component(this), drumpad_component(this), analog_component(this),
+      playbutton_component(this) {
 }
 
 void PizzaControls::init() {
@@ -242,10 +243,14 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 
         if (time_since_fade_start_us < fade_duration_us) {
           // Fade is active: Calculate brightness factor (MIN_FADE_BRIGHTNESS_FACTOR up to 1.0)
-          float fade_progress = std::min(1.0f, static_cast<float>(time_since_fade_start_us) / static_cast<float>(fade_duration_us));
-          float current_brightness_factor = MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - MIN_FADE_BRIGHTNESS_FACTOR);
-          uint8_t brightness_value = static_cast<uint8_t>(std::clamp(current_brightness_factor * 255.0f, 0.0f, 255.0f));
-          final_color = controls->display.leds().adjust_color_brightness(base_color, brightness_value);
+          float fade_progress = std::min(1.0f, static_cast<float>(time_since_fade_start_us) /
+                                                   static_cast<float>(fade_duration_us));
+          float current_brightness_factor =
+              MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - MIN_FADE_BRIGHTNESS_FACTOR);
+          uint8_t brightness_value =
+              static_cast<uint8_t>(std::clamp(current_brightness_factor * 255.0f, 0.0f, 255.0f));
+          final_color =
+              controls->display.leds().adjust_color_brightness(base_color, brightness_value);
         } else {
           // Fade finished in this cycle
           _fade_start_time[i] = nil_time; // Reset fade start time
@@ -258,7 +263,6 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
     }
   }
 }
-
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
   if (pad_index >= drumpad_note_numbers.size())

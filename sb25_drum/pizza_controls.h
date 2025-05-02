@@ -33,7 +33,7 @@ public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                          StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                         Clock::InternalClock &clock_ref, // Keep for set_bpm
+                         Clock::InternalClock &clock_ref,        // Keep for set_bpm
                          Tempo::TempoHandler &tempo_handler_ref, // Add TempoHandler ref
                          StepSequencer::DefaultSequencerController &sequencer_controller_ref);
 
@@ -107,8 +107,10 @@ public:
     etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
     etl::array<absolute_time_t, 4> _fade_start_time; // Track fade start time per pad
-    etl::array<DrumpadEventHandler, 4> drumpad_observers; // Declared after _fade_start_time to match init order
-    static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f; // Brightness factor at the start of fade (10%)
+    etl::array<DrumpadEventHandler, 4>
+        drumpad_observers; // Declared after _fade_start_time to match init order
+    static constexpr float MIN_FADE_BRIGHTNESS_FACTOR =
+        0.1f; // Brightness factor at the start of fade (10%)
     static constexpr uint32_t FADE_DURATION_MS = 150; // Fade duration
   };
 
@@ -162,7 +164,7 @@ private:
   // --- Shared Resources ---
   PizzaExample::PizzaDisplay &display;
   StepSequencer::Sequencer<4, 8> &sequencer;
-  Clock::InternalClock &_internal_clock; // Keep for set_bpm access via SPEED knob
+  Clock::InternalClock &_internal_clock;   // Keep for set_bpm access via SPEED knob
   Tempo::TempoHandler &_tempo_handler_ref; // Store reference to TempoHandler
   StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
 

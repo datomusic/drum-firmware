@@ -1,6 +1,6 @@
 #include "sequencer_controller.h"
 #include "midi.h"
-#include "pico/time.h" // For time_us_32() for seeding rand
+#include "pico/time.h"      // For time_us_32() for seeding rand
 #include "pizza_controls.h" // Include for PizzaControls pointer type
 #include <algorithm>
 #include <cstdio>
@@ -355,19 +355,19 @@ void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *p
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(std::optional<uint32_t> intended_length) {
-    bool should_be_active = intended_length.has_value();
-    bool was_active = is_repeat_active();
+void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(
+    std::optional<uint32_t> intended_length) {
+  bool should_be_active = intended_length.has_value();
+  bool was_active = is_repeat_active();
 
-    if (should_be_active && !was_active) {
-        activate_repeat(intended_length.value());
-    } else if (!should_be_active && was_active) {
-        deactivate_repeat();
-    } else if (should_be_active && was_active) {
-        set_repeat_length(intended_length.value());
-    }
+  if (should_be_active && !was_active) {
+    activate_repeat(intended_length.value());
+  } else if (!should_be_active && was_active) {
+    deactivate_repeat();
+  } else if (should_be_active && was_active) {
+    set_repeat_length(intended_length.value());
+  }
 }
-
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::toggle() {

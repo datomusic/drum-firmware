@@ -1,5 +1,6 @@
 #include "internal_clock.h"
 #include "pico/stdlib.h"
+#include "tempo_handler.h" // Include for Tempo::ClockSource definition
 #include <cstdio>
 
 namespace Clock {

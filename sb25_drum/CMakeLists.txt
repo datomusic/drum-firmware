@@ -30,6 +30,11 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_PROGRAM_VERSION_STRING="${GIT_HASH}"
 )
 
+add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_SIZE_UTIL} -A $<TARGET_FILE:${EXECUTABLE_NAME}>
+    COMMENT "Detailed size report:"
+)
+
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})

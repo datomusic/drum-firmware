@@ -355,6 +355,21 @@ void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *p
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(std::optional<uint32_t> intended_length) {
+    bool should_be_active = intended_length.has_value();
+    bool was_active = is_repeat_active();
+
+    if (should_be_active && !was_active) {
+        activate_repeat(intended_length.value());
+    } else if (!should_be_active && was_active) {
+        deactivate_repeat();
+    } else if (should_be_active && was_active) {
+        set_repeat_length(intended_length.value());
+    }
+}
+
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::toggle() {
   if (is_running()) {
     stop();

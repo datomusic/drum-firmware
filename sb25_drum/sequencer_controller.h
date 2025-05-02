@@ -128,6 +128,14 @@ public:
    */
   void set_controls_ptr(PizzaControls *ptr);
 
+  /**
+   * @brief Sets the intended state of the repeat effect.
+   * Compares the intended state with the current state and performs necessary actions
+   * (activate, deactivate, set length).
+   * @param intended_length std::nullopt to turn off repeat, or a value for the desired length.
+   */
+  void set_intended_repeat_state(std::optional<uint32_t> intended_length);
+
 private:
   enum class State : uint8_t {
     Stopped,

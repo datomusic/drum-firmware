@@ -38,6 +38,16 @@ void PizzaControls::update() {
   analog_component.update();
   playbutton_component.update(); // Updates the *input* state of the button
 
+  // Check sequencer state to trigger drumpad fades
+  for (size_t i = 0; i < 4; ++i) {
+    // get_last_played_step_for_track returns non-nullopt if a step was triggered
+    // for this track in the *last sequencer processing cycle*.
+    std::optional<size_t> played_step = _sequencer_controller_ref.get_last_played_step_for_track(i);
+    if (played_step.has_value()) {
+      drumpad_component.trigger_fade(static_cast<uint8_t>(i));
+    }
+  }
+
   // Update the play button LED based on sequencer state
   if (_sequencer_controller_ref.is_running()) {
     // Running: Solid color (e.g., white)
@@ -189,7 +199,8 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
-      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
+      _fade_start_time{}, // Initialize all fade times to 0 (nil_time equivalent)
+      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1}, // Keep observers last
                         DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
 
@@ -207,51 +218,44 @@ void PizzaControls::DrumpadComponent::update() {
 }
 
 void PizzaControls::DrumpadComponent::update_drumpads() {
+  absolute_time_t now = get_absolute_time();
   PizzaControls *controls = parent_controls;
+
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update();
 
-    uint16_t raw_value = drumpads[i].get_raw_adc_value();
     uint8_t note_index = drumpad_note_numbers[i];
     auto led_index_opt = controls->display.get_drumpad_led_index(i);
 
     if (led_index_opt.has_value()) {
       uint32_t led_index = led_index_opt.value();
       uint32_t base_color = controls->display.get_note_color(note_index);
-      uint32_t final_color = calculate_brightness_color(base_color, raw_value);
+      uint32_t final_color = base_color; // Default to base color
+
+      // Check fade state
+      if (!is_nil_time(_fade_start_time[i])) {
+        uint64_t time_since_fade_start_us = absolute_time_diff_us(_fade_start_time[i], now);
+        uint64_t fade_duration_us = static_cast<uint64_t>(FADE_DURATION_MS) * 1000;
+
+        if (time_since_fade_start_us < fade_duration_us) {
+          // Fade is active: Calculate brightness factor (MIN_FADE_BRIGHTNESS_FACTOR up to 1.0)
+          float fade_progress = std::min(1.0f, static_cast<float>(time_since_fade_start_us) / static_cast<float>(fade_duration_us));
+          float current_brightness_factor = MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - MIN_FADE_BRIGHTNESS_FACTOR);
+          uint8_t brightness_value = static_cast<uint8_t>(std::clamp(current_brightness_factor * 255.0f, 0.0f, 255.0f));
+          final_color = controls->display.leds().adjust_color_brightness(base_color, brightness_value);
+        } else {
+          // Fade finished in this cycle
+          _fade_start_time[i] = nil_time; // Reset fade start time
+          // Ensure final color is the base color when fade ends
+          final_color = base_color;
+        }
+      }
+
       controls->display.set_led(led_index, final_color);
     }
   }
 }
 
-float PizzaControls::DrumpadComponent::scale_raw_to_brightness(uint16_t raw_value) const {
-  constexpr uint16_t min_adc = 100;
-  constexpr uint16_t max_adc = 4095;
-  constexpr float min_brightness = 0.1f;
-  constexpr float max_brightness = 1.0f;
-
-  if (raw_value <= min_adc) {
-    return max_brightness;
-  }
-  if (raw_value >= max_adc) {
-    return min_brightness;
-  }
-
-  float factor = static_cast<float>(max_adc - raw_value) / (max_adc - min_adc);
-  return min_brightness + factor * (max_brightness - min_brightness);
-}
-
-uint32_t PizzaControls::DrumpadComponent::calculate_brightness_color(uint32_t base_color,
-                                                                     uint16_t raw_value) const {
-  if (base_color == 0)
-    return 0;
-
-  float brightness_factor = scale_raw_to_brightness(raw_value);
-  uint8_t brightness_val =
-      static_cast<uint8_t>(std::clamp(brightness_factor * 255.0f, 0.0f, 255.0f));
-
-  return parent_controls->display.leds().adjust_color_brightness(base_color, brightness_val);
-}
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
   if (pad_index >= drumpad_note_numbers.size())
@@ -273,10 +277,10 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   if (led_index_opt.has_value()) {
     uint32_t led_index = led_index_opt.value();
     uint32_t base_color = parent_controls->display.get_note_color(drumpad_note_numbers[pad_index]);
-    uint32_t final_color =
-        calculate_brightness_color(base_color, 100); // Show selected note color brightly
-    parent_controls->display.set_led(led_index, final_color);
+    // Just set the base color, brightness is handled by fade logic now
+    parent_controls->display.set_led(led_index, base_color);
   }
+  trigger_fade(pad_index); // Briefly flash when selecting
 }
 
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
@@ -286,10 +290,16 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
   return 36;
 }
 
+void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
+  if (pad_index < _fade_start_time.size()) {
+    _fade_start_time[pad_index] = get_absolute_time();
+  }
+}
+
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     Musin::UI::DrumpadEvent event) {
-
   if (event.type == Musin::UI::DrumpadEvent::Type::Press && event.velocity.has_value()) {
+    parent->trigger_fade(event.pad_index); // Trigger fade on physical press
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
     send_midi_note(1, note, velocity);

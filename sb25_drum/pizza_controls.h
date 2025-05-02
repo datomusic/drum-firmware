@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <optional>
 
+#include "pico/time.h" // For absolute_time_t
+
 #include "clock_event.h" // Added for observer
 #include "internal_clock.h"
 #include "step_sequencer.h"
@@ -82,6 +84,7 @@ public:
     void init();
     void update();
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
+    void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
 
   private:
@@ -96,14 +99,15 @@ public:
     };
 
     void update_drumpads();
-    uint32_t calculate_brightness_color(uint32_t base_color, uint16_t raw_value) const;
-    float scale_raw_to_brightness(uint16_t raw_value) const;
 
     PizzaControls *parent_controls;
     etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
     etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
     etl::array<DrumpadEventHandler, 4> drumpad_observers;
+    etl::array<absolute_time_t, 4> _fade_start_time; // Track fade start time per pad
+    static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f; // Brightness factor at the start of fade (10%)
+    static constexpr uint32_t FADE_DURATION_MS = 150; // Fade duration
   };
 
   // --- Playbutton Component ---

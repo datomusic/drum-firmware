@@ -8,7 +8,6 @@
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
-#include "etl/observable.h" // Added for observable
 #include <array>
 #include <cstddef>
 #include <cstdint>

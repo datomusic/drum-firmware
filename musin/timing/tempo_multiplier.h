@@ -9,11 +9,6 @@
 
 namespace Musin::Timing {
 
-// Helper function to ensure a value is at least 1
-inline constexpr uint32_t max_or_one(uint32_t value) {
-    return (value < 1u) ? 1u : value;
-}
-
 // Maximum number of observers TempoMultiplier can notify (e.g., SequencerController)
 constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
 
@@ -70,6 +65,11 @@ public:
   void reset();
 
 private:
+  // Helper function to ensure a value is at least 1
+  static constexpr uint32_t max_or_one(uint32_t value) {
+      return (value < 1u) ? 1u : value;
+  }
+
   /**
    * @brief Recalculate the number of input ticks per output tick based on multiplier/divider.
    */

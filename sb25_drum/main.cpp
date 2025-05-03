@@ -5,7 +5,7 @@
 #include "pico/stdlib.h" // for stdio_usb_init
 #include "pico/time.h"   // for sleep_us
 
-#include "internal_clock.h"
+#include "musin/hal/internal_clock.h"
 #include "midi.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
@@ -16,7 +16,7 @@
 
 static PizzaExample::PizzaDisplay pizza_display;
 static Musin::Timing::Sequencer<4, 8> pizza_sequencer;
-static Clock::InternalClock internal_clock(120.0f);
+static Musin::HAL::InternalClock internal_clock(120.0f);
 
 static Musin::Timing::TempoHandler tempo_handler(Musin::Timing::ClockSource::INTERNAL);
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input

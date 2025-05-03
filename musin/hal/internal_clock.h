@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_INTERNAL_CLOCK_H
-#define SB25_DRUM_INTERNAL_CLOCK_H
+#ifndef MUSIN_HAL_INTERNAL_CLOCK_H
+#define MUSIN_HAL_INTERNAL_CLOCK_H
 
 #include "musin/timing/clock_event.h"
 #include "etl/observer.h"
@@ -7,7 +7,7 @@
 #include "pico/time.h" // Use pico_time for repeating_timer
 #include <cstdint>
 
-namespace Clock {
+namespace Musin::HAL {
 
 // Maximum number of observers InternalClock can notify (e.g., TempoHandler, PizzaControls)
 constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2
@@ -83,6 +83,6 @@ private:
   struct repeating_timer _timer_info; // Stores repeating timer state
 };
 
-} // namespace Clock
+} // namespace Musin::HAL
 
-#endif // SB25_DRUM_INTERNAL_CLOCK_H
+#endif // MUSIN_HAL_INTERNAL_CLOCK_H

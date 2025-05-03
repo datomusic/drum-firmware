@@ -19,6 +19,7 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
+#include "sound_router.h" // Added
 
 namespace PizzaExample {
 class PizzaDisplay; // Forward declaration
@@ -35,7 +36,8 @@ public:
                          Musin::Timing::Sequencer<4, 8> &sequencer_ref,
                          Musin::HAL::InternalClock &clock_ref,
                          Musin::Timing::TempoHandler &tempo_handler_ref,
-                         StepSequencer::DefaultSequencerController &sequencer_controller_ref);
+                         StepSequencer::DefaultSequencerController &sequencer_controller_ref,
+                         SB25::SoundRouter &sound_router_ref); // Added sound_router_ref
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -82,7 +84,7 @@ public:
   // --- Drumpad Component ---
   class DrumpadComponent {
   public:
-    explicit DrumpadComponent(PizzaControls *parent_ptr);
+    explicit DrumpadComponent(PizzaControls *parent_ptr, SB25::SoundRouter &sound_router); // Added sound_router
     void init();
     void update();
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
@@ -93,9 +95,10 @@ public:
     struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
       DrumpadComponent *parent;
       const uint8_t pad_index;
+      SB25::SoundRouter &_sound_router; // Added
 
-      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index)
-          : parent(p), pad_index(index) {
+      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index, SB25::SoundRouter &sr) // Added sr
+          : parent(p), pad_index(index), _sound_router(sr) { // Added _sound_router(sr)
       }
       void notification(Musin::UI::DrumpadEvent event) override;
     };
@@ -103,6 +106,7 @@ public:
     void update_drumpads();
 
     PizzaControls *parent_controls;
+    SB25::SoundRouter &_sound_router; // Added
     etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
     etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
@@ -140,7 +144,7 @@ public:
   // --- Analog Control Component ---
   class AnalogControlComponent {
   public:
-    explicit AnalogControlComponent(PizzaControls *parent_ptr);
+    explicit AnalogControlComponent(PizzaControls *parent_ptr, SB25::SoundRouter &sound_router); // Added sound_router
     void init();
     void update();
 
@@ -148,14 +152,17 @@ public:
     struct AnalogControlEventHandler : public etl::observer<Musin::UI::AnalogControlEvent> {
       AnalogControlComponent *parent;
       const uint16_t control_id;
+      SB25::SoundRouter &_sound_router; // Added
 
-      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
-          : parent(p), control_id(id) {
+      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id,
+                                          SB25::SoundRouter &sr) // Added sr
+          : parent(p), control_id(id), _sound_router(sr) {     // Added _sound_router(sr)
       }
       void notification(Musin::UI::AnalogControlEvent event) override;
     };
 
     PizzaControls *parent_controls;
+    SB25::SoundRouter &_sound_router; // Added
     etl::array<Musin::UI::AnalogControl, 16> mux_controls;
     etl::array<AnalogControlEventHandler, 16> control_observers;
   };
@@ -167,6 +174,7 @@ private:
   Musin::HAL::InternalClock &_internal_clock;
   Musin::Timing::TempoHandler &_tempo_handler_ref;
   StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
+  SB25::SoundRouter &_sound_router_ref; // Added
 
 public: // Make components public for access from SequencerController etc.
   // --- Components ---

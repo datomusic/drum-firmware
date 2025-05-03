@@ -6,15 +6,18 @@
 #include <cstdint>
 #include <cstddef> // For size_t
 
-// Forward declarations for Musin components
+// Include necessary Musin headers instead of forward declaring classes used by value
+#include "musin/audio/crusher.h"
+#include "musin/audio/filter.h" // Provides Lowpass
+#include "musin/audio/memory_reader.h"
+#include "musin/audio/mixer.h"
+#include "musin/audio/sound.h"
+
+// Forward declaration is sufficient for pointer usage
 namespace Musin {
 class BufferSource;
-template <size_t N> class AudioMixer;
-class Crusher;
-class Lowpass;
-class Sound;
-class MemorySampleReader;
 } // namespace Musin
+
 
 namespace SB25 {
 

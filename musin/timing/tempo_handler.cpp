@@ -1,6 +1,6 @@
 #include "musin/timing/tempo_handler.h"
-#include "musin/timing/tempo_event.h"
 #include "musin/timing/clock_event.h"
+#include "musin/timing/tempo_event.h"
 
 // Include headers for specific clock types if needed for identification
 // #include "internal_clock.h"
@@ -33,8 +33,8 @@ void TempoHandler::notification(Musin::Timing::ClockEvent event) {
   if (event.source == current_source_) {
     Musin::Timing::TempoEvent tempo_tick_event;
     // Populate TempoEvent with timestamp or other data if needed later
-    etl::observable<etl::observer<Musin::Timing::TempoEvent>, MAX_TEMPO_OBSERVERS>::notify_observers(
-        tempo_tick_event);
+    etl::observable<etl::observer<Musin::Timing::TempoEvent>,
+                    MAX_TEMPO_OBSERVERS>::notify_observers(tempo_tick_event);
   }
 }
 

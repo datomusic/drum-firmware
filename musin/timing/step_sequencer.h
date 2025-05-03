@@ -1,5 +1,5 @@
-#ifndef STEP_SEQUENCER_H
-#define STEP_SEQUENCER_H
+#ifndef MUSIN_TIMING_STEP_SEQUENCER_H
+#define MUSIN_TIMING_STEP_SEQUENCER_H
 
 #include "etl/array.h"
 #include <cstdint>
@@ -170,4 +170,4 @@ private:
 
 } // namespace Musin::Timing
 
-#endif // STEP_SEQUENCER_H
+#endif // MUSIN_TIMING_STEP_SEQUENCER_H

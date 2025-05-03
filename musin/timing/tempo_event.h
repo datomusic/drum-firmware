@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_TEMPO_EVENT_H
-#define SB25_DRUM_TEMPO_EVENT_H
+#ifndef MUSIN_TIMING_TEMPO_EVENT_H
+#define MUSIN_TIMING_TEMPO_EVENT_H
 
 #include <cstdint>
 
@@ -19,4 +19,4 @@ struct TempoEvent {
 
 } // namespace Musin::Timing
 
-#endif // SB25_DRUM_TEMPO_EVENT_H
+#endif // MUSIN_TIMING_TEMPO_EVENT_H

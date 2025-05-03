@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_SEQUENCER_TICK_EVENT_H
-#define SB25_DRUM_SEQUENCER_TICK_EVENT_H
+#ifndef MUSIN_TIMING_TICK_EVENT_H
+#define MUSIN_TIMING_TICK_EVENT_H
 
 #include <cstdint>
 
@@ -17,4 +17,4 @@ struct SequencerTickEvent {
 
 } // namespace Musin::Timing
 
-#endif // SB25_DRUM_SEQUENCER_TICK_EVENT_H
+#endif // MUSIN_TIMING_TICK_EVENT_H

@@ -5,23 +5,23 @@
 #include "pico/stdlib.h" // for stdio_usb_init
 #include "pico/time.h"   // for sleep_us
 
+#include "audio_engine.h"
 #include "midi_functions.h"
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/internal_clock.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/tempo_multiplier.h"
-#include "audio_engine.h" // Added
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
-#include "sound_router.h" // Added
+#include "sound_router.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
 static Musin::Timing::Sequencer<4, 8> pizza_sequencer;
 static Musin::HAL::InternalClock internal_clock(120.0f);
-static SB25::AudioEngine audio_engine;     // Added
-static SB25::SoundRouter sound_router(audio_engine); // Added
+static SB25::AudioEngine audio_engine;
+static SB25::SoundRouter sound_router(audio_engine);
 
 static Musin::Timing::TempoHandler tempo_handler(Musin::Timing::ClockSource::INTERNAL);
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
@@ -47,12 +47,11 @@ int main() {
 
   // Initialize Audio Engine (stubbed for now)
   if (!audio_engine.init()) {
-      printf("Error: Failed to initialize Audio Engine!\n");
-      // Potentially halt or enter a safe state
+    printf("Error: Failed to initialize Audio Engine!\n");
+    // Potentially halt or enter a safe state
   }
   // TODO: Set initial SoundRouter output mode if needed (defaults to BOTH)
   // sound_router.set_output_mode(SB25::OutputMode::AUDIO);
-
 
   pizza_display.init();
 

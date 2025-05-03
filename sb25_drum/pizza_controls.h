@@ -84,7 +84,8 @@ public:
   // --- Drumpad Component ---
   class DrumpadComponent {
   public:
-    explicit DrumpadComponent(PizzaControls *parent_ptr, SB25::SoundRouter &sound_router); // Added sound_router
+    explicit DrumpadComponent(PizzaControls *parent_ptr,
+                              SB25::SoundRouter &sound_router); // Added sound_router
     void init();
     void update();
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
@@ -97,7 +98,8 @@ public:
       const uint8_t pad_index;
       SB25::SoundRouter &_sound_router; // Added
 
-      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index, SB25::SoundRouter &sr) // Added sr
+      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index,
+                                    SB25::SoundRouter &sr)   // Added sr
           : parent(p), pad_index(index), _sound_router(sr) { // Added _sound_router(sr)
       }
       void notification(Musin::UI::DrumpadEvent event) override;
@@ -144,7 +146,8 @@ public:
   // --- Analog Control Component ---
   class AnalogControlComponent {
   public:
-    explicit AnalogControlComponent(PizzaControls *parent_ptr, SB25::SoundRouter &sound_router); // Added sound_router
+    explicit AnalogControlComponent(PizzaControls *parent_ptr,
+                                    SB25::SoundRouter &sound_router); // Added sound_router
     void init();
     void update();
 
@@ -156,7 +159,7 @@ public:
 
       constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id,
                                           SB25::SoundRouter &sr) // Added sr
-          : parent(p), control_id(id), _sound_router(sr) {     // Added _sound_router(sr)
+          : parent(p), control_id(id), _sound_router(sr) {       // Added _sound_router(sr)
       }
       void notification(Musin::UI::AnalogControlEvent event) override;
     };

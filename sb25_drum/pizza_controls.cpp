@@ -6,8 +6,8 @@
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h" // Added
-#include <algorithm> // For std::clamp
-#include <cmath>     // For fmodf
+#include <algorithm>      // For std::clamp
+#include <cmath>          // For fmodf
 #include <cstddef>
 #include <cstdio>
 
@@ -23,10 +23,9 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              SB25::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      _sound_router_ref(sound_router_ref), // Added
-      keypad_component(this),
-      drumpad_component(this, _sound_router_ref), // Pass sound_router
-      analog_component(this, _sound_router_ref),  // Pass sound_router
+      _sound_router_ref(sound_router_ref),                                // Added
+      keypad_component(this), drumpad_component(this, _sound_router_ref), // Pass sound_router
+      analog_component(this, _sound_router_ref),                          // Pass sound_router
       playbutton_component(this) {
 }
 
@@ -194,10 +193,10 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent Implementation ---
 
-PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr,
-                                                  SB25::SoundRouter &sound_router) // Added sound_router
-    : parent_controls(parent_ptr),
-      _sound_router(sound_router), // Store sound_router reference
+PizzaControls::DrumpadComponent::DrumpadComponent(
+    PizzaControls *parent_ptr,
+    SB25::SoundRouter &sound_router)                            // Added sound_router
+    : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
@@ -212,9 +211,9 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr,
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
       _fade_start_time{}, // Initialize before observers to match declaration order
-      drumpad_observers{DrumpadEventHandler{this, 0, _sound_router}, // Pass sound_router
-                        DrumpadEventHandler{this, 1, _sound_router}, // Pass sound_router
-                        DrumpadEventHandler{this, 2, _sound_router}, // Pass sound_router
+      drumpad_observers{DrumpadEventHandler{this, 0, _sound_router},   // Pass sound_router
+                        DrumpadEventHandler{this, 1, _sound_router},   // Pass sound_router
+                        DrumpadEventHandler{this, 2, _sound_router},   // Pass sound_router
                         DrumpadEventHandler{this, 3, _sound_router}} { // Pass sound_router
 }
 
@@ -331,10 +330,10 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
 
 // --- AnalogControlComponent Implementation ---
 
-PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr,
-                                                              SB25::SoundRouter &sound_router) // Added sound_router
-    : parent_controls(parent_ptr),
-      _sound_router(sound_router), // Store sound_router reference
+PizzaControls::AnalogControlComponent::AnalogControlComponent(
+    PizzaControls *parent_ptr,
+    SB25::SoundRouter &sound_router)                            // Added sound_router
+    : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
       mux_controls{AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM2, true},
@@ -387,7 +386,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     Musin::UI::AnalogControlEvent event) {
   PizzaControls *controls = parent->parent_controls;
   // Convert normalized float value (0.0 to 1.0) to typical 0-127 range
-  uint8_t value_0_127 = static_cast<uint8_t>(std::clamp(std::round(event.value * 127.0f), 0.0f, 127.0f));
+  uint8_t value_0_127 =
+      static_cast<uint8_t>(std::clamp(std::round(event.value * 127.0f), 0.0f, 127.0f));
 
   const uint8_t mux_channel = event.control_id >> 8;
 

@@ -11,7 +11,11 @@ namespace SB25 {
 /**
  * @brief Defines the possible output destinations for sound events.
  */
-enum class OutputMode : uint8_t { MIDI, AUDIO, BOTH };
+enum class OutputMode : uint8_t {
+  MIDI,
+  AUDIO,
+  BOTH
+};
 
 /**
  * @brief Defines logical identifiers for controllable parameters/effects.

@@ -13,7 +13,7 @@ template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref,
-    SB25::SoundRouter &sound_router_ref) // Added sound_router_ref
+    SB25::SoundRouter &sound_router_ref)                         // Added sound_router_ref
     : sequencer(sequencer_ref), _sound_router(sound_router_ref), // Store sound_router reference
       current_step_counter(0), last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),

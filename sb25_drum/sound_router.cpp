@@ -37,7 +37,7 @@ constexpr uint8_t map_parameter_to_midi_cc(ParameterID param_id,
   case ParameterID::FILTER_CUTOFF:
     return 75;
   case ParameterID::VOLUME:
-    return midi::ControlChangeNumber::ChannelVolume; // CC 7
+    return 7;
   case ParameterID::CRUSH_AMOUNT:
     return 77;
   }

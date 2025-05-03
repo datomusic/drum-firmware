@@ -2,7 +2,6 @@
 
 #include "etl/array.h"
 #include "etl/math.h"
-#include "etl/interpolation.h" // For etl::lerp
 #include "pico/time.h" // Include if needed for future timing logic
 
 #include "musin/audio/audio_output.h"
@@ -14,7 +13,7 @@
 #include "musin/audio/sound.h"
 
 // This assumes support/all_samples.h defines Musin::all_samples and Musin::num_samples
-#include "support/all_samples.h"
+#include "all_samples.h"
 
 namespace SB25 {
 

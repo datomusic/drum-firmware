@@ -65,13 +65,16 @@ size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_index() con
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_idx,
                                                                   size_t step_index_to_play) {
-  // uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1); // No longer needed here
   const size_t num_steps = sequencer.get_num_steps();
+  uint8_t track_index_u8 = static_cast<uint8_t>(track_idx);
 
-  // Send Note Off via SoundRouter if a note was previously playing on this track
+  // Emit Note Off event if a note was previously playing on this track
   if (last_played_note_per_track[track_idx].has_value()) {
-    _sound_router.trigger_sound(static_cast<uint8_t>(track_idx),
-                                last_played_note_per_track[track_idx].value(), 0);
+    SB25::Events::NoteEvent note_off_event{
+        .track_index = track_index_u8,
+        .note = last_played_note_per_track[track_idx].value(),
+        .velocity = 0};
+    notify_observers(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 

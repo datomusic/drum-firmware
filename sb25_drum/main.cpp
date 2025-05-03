@@ -5,7 +5,6 @@
 #include "pico/stdlib.h" // for stdio_usb_init
 #include "pico/time.h"   // for sleep_us
 
-#include "debug_utils.h"
 #include "internal_clock.h"
 #include "midi.h"
 #include "pizza_controls.h"

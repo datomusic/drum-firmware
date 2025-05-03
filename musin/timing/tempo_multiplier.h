@@ -4,6 +4,8 @@
 #include "etl/observer.h"
 #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/tempo_event.h"
+#include "musin/timing/timing_constants.h" // Needed for DEFAULT_PPQN in constexpr
+#include <algorithm>                       // For std::max
 #include <cstdint>
 
 namespace Musin::Timing {
@@ -24,10 +26,11 @@ class TempoMultiplier : public etl::observer<Musin::Timing::TempoEvent>,
 public:
   /**
    * @brief Constructor.
-   * @param initial_multiplier Initial tempo multiplier.
-   * @param initial_divider Initial tempo divider.
+   * @param initial_multiplier Initial tempo multiplier (must be >= 1).
+   * @param initial_divider Initial tempo divider (must be >= 1).
    */
-  explicit TempoMultiplier(int initial_multiplier = 1, int initial_divider = 4);
+  explicit constexpr TempoMultiplier(uint32_t initial_multiplier = 1,
+                                     uint32_t initial_divider = 4);
 
   // Prevent copying and assignment
   TempoMultiplier(const TempoMultiplier &) = delete;
@@ -42,32 +45,21 @@ public:
 
   /**
    * @brief Set the tempo multiplier.
-   * @param multiplier The factor to multiply the base tempo by (e.g., 2 for double time). Must be >
-   * 0.
+   * @param multiplier The factor to multiply the base tempo by (e.g., 2 for double time). Must be
+   * >= 1.
    */
-  void set_multiplier(int multiplier);
+  void set_multiplier(uint32_t multiplier);
 
   /**
    * @brief Set the tempo divider.
    * @param divider The factor to divide the base tempo by (e.g., 4 for 16th notes from PPQN). Must
-   * be > 0.
+   * be >= 1.
    */
-  void set_divider(int divider);
+  void set_divider(uint32_t divider);
 
   /**
    * @brief Set the swing amount for even-numbered output ticks.
    * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped
-   * to [0.0, 1.0).
-   */
-  void set_even_swing(float amount);
-
-  /**
-   * @brief Set the swing amount for odd-numbered output ticks.
-   * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped
-   * to [0.0, 1.0).
-   */
-  void set_odd_swing(float amount);
-
   /**
    * @brief Reset internal counters (e.g., when transport stops/starts).
    */
@@ -77,12 +69,10 @@ private:
   /**
    * @brief Recalculate the number of input ticks per output tick based on multiplier/divider.
    */
-  void update_ticks_per_output();
+  constexpr void update_ticks_per_output();
 
-  int _multiplier;
-  int _divider;
-  float _even_swing_amount; // 0.0 to < 1.0
-  float _odd_swing_amount;  // 0.0 to < 1.0
+  uint32_t _multiplier;
+  uint32_t _divider;
 
   uint32_t _input_ticks_per_output_tick; // How many 96 PPQN ticks form one output tick
   uint32_t _input_tick_counter;          // Counts incoming 96 PPQN ticks since last reset/output

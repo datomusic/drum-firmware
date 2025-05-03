@@ -1,10 +1,9 @@
 #include "musin/timing/tempo_multiplier.h"
 #include "musin/timing/sequencer_tick_event.h"
-// timing_constants.h is included via the header for constexpr
 
 namespace Musin::Timing {
 
-constexpr TempoMultiplier::TempoMultiplier(uint32_t initial_multiplier, uint32_t initial_divider)
+TempoMultiplier::TempoMultiplier(uint32_t initial_multiplier, uint32_t initial_divider)
     : _multiplier(max_or_one(initial_multiplier)), _divider(max_or_one(initial_divider)),
       _input_ticks_per_output_tick(0), _input_tick_counter(0), _output_tick_counter(0) {
   update_ticks_per_output();

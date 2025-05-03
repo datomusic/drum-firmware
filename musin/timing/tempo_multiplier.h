@@ -13,11 +13,11 @@ namespace Musin::Timing {
 constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
 
 /**
- * @brief Modifies tempo based on multiplier/divider settings and applies swing.
+ * @brief Modifies tempo based on multiplier/divider settings.
  *
  * Listens to TempoEvents (typically at a high resolution like 96 PPQN)
  * and emits SequencerTickEvents at a rate determined by the multiplier
- * and divider. It can also apply swing by delaying odd or even output ticks.
+ * and divider.
  */
 class TempoMultiplier : public etl::observer<Musin::Timing::TempoEvent>,
                         public etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>,
@@ -28,8 +28,7 @@ public:
    * @param initial_multiplier Initial tempo multiplier (must be >= 1).
    * @param initial_divider Initial tempo divider (must be >= 1).
    */
-  explicit constexpr TempoMultiplier(uint32_t initial_multiplier = 1,
-                                     uint32_t initial_divider = 4);
+  explicit TempoMultiplier(uint32_t initial_multiplier = 1, uint32_t initial_divider = 4);
 
   // Prevent copying and assignment
   TempoMultiplier(const TempoMultiplier &) = delete;
@@ -57,9 +56,6 @@ public:
   void set_divider(uint32_t divider);
 
   /**
-   * @brief Set the swing amount for even-numbered output ticks.
-   * @param amount Swing amount (0.0 = no delay, 0.5 = 50% delay towards next tick, etc.). Clamped
-  /**
    * @brief Reset internal counters (e.g., when transport stops/starts).
    */
   void reset();
@@ -67,7 +63,7 @@ public:
 private:
   // Helper function to ensure a value is at least 1
   static constexpr uint32_t max_or_one(uint32_t value) {
-      return (value < 1u) ? 1u : value;
+    return (value < 1u) ? 1u : value;
   }
 
   /**

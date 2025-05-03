@@ -3,7 +3,6 @@
 #include "musin/timing/timing_constants.h"
 #include <algorithm> // For std::clamp
 #include <cmath>     // For std::max, std::floor
-#include <cstdio>    // For printf
 
 namespace Musin::Timing {
 
@@ -12,8 +11,6 @@ TempoMultiplier::TempoMultiplier(int initial_multiplier, int initial_divider)
       _even_swing_amount(0.0f), _odd_swing_amount(0.0f), _input_ticks_per_output_tick(0),
       _input_tick_counter(0), _output_tick_counter(0) {
   update_ticks_per_output();
-  printf("TempoMultiplier: Initialized. Multiplier: %d, Divider: %d, Ticks/Output: %lu\n",
-         _multiplier, _divider, _input_ticks_per_output_tick);
 }
 
 void TempoMultiplier::notification([[maybe_unused]] Musin::Timing::TempoEvent event) {
@@ -34,9 +31,6 @@ void TempoMultiplier::set_multiplier(int multiplier) {
   if (new_multiplier != _multiplier) {
     _multiplier = new_multiplier;
     update_ticks_per_output();
-    printf("TempoMultiplier: Multiplier set to %d. Ticks/Output: %lu\n", _multiplier,
-           _input_ticks_per_output_tick);
-    // Reset counters when multiplier/divider changes to avoid strange timing jumps
     reset();
   }
 }
@@ -46,27 +40,21 @@ void TempoMultiplier::set_divider(int divider) {
   if (new_divider != _divider) {
     _divider = new_divider;
     update_ticks_per_output();
-    printf("TempoMultiplier: Divider set to %d. Ticks/Output: %lu\n", _divider,
-           _input_ticks_per_output_tick);
-    // Reset counters when multiplier/divider changes
     reset();
   }
 }
 
 void TempoMultiplier::set_even_swing(float amount) {
   _even_swing_amount = std::clamp(amount, 0.0f, 0.999f); // Clamp below 1.0
-  printf("TempoMultiplier: Even swing set to %.3f\n", _even_swing_amount);
 }
 
 void TempoMultiplier::set_odd_swing(float amount) {
   _odd_swing_amount = std::clamp(amount, 0.0f, 0.999f); // Clamp below 1.0
-  printf("TempoMultiplier: Odd swing set to %.3f\n", _odd_swing_amount);
 }
 
 void TempoMultiplier::reset() {
   _input_tick_counter = 0;
   _output_tick_counter = 0;
-  printf("TempoMultiplier: Counters reset.\n");
 }
 
 void TempoMultiplier::update_ticks_per_output() {

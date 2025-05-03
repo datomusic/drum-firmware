@@ -15,6 +15,12 @@ void midi_init();
  */
 void midi_read();
 
+// Note: send_midi_note and send_midi_cc are now primarily intended for internal
+// use by SoundRouter. They are kept here as SoundRouter still needs to call them,
+// but they are not intended for general use outside that context.
+// Consider making them static within sound_router.cpp or part of a dedicated
+// MIDI output class if further refactoring occurs.
+
 /**
  * @brief Send a MIDI Control Change message.
  * @param channel MIDI channel (1-16).

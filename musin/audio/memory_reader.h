@@ -53,7 +53,8 @@ private:
 // Specialization of MemoryReader for 16bit samples, implementing the SampleReader interface
 struct MemorySampleReader : SampleReader {
   // Provide a default constructor for etl::optional
-  constexpr MemorySampleReader() : reader(nullptr, 0) {}
+  constexpr MemorySampleReader() : reader(nullptr, 0) {
+  }
 
   constexpr MemorySampleReader(const int16_t *items, const uint32_t count) : reader(items, count) {
   }

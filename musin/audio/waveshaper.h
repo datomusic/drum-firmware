@@ -34,9 +34,9 @@
 #include "block.h" // For AudioBlock
 #include "buffer_source.h"
 #include "etl/vector.h" // For etl::vector
-#include <cstddef>     // For size_t
-#include <cstdint>     // For int16_t, uint16_t
-#include <cmath>       // For std::log2, std::pow
+#include <cmath>        // For std::log2, std::pow
+#include <cstddef>      // For size_t
+#include <cstdint>      // For int16_t, uint16_t
 
 /**
  * @brief Applies waveshaping distortion to an audio signal using a lookup table.
@@ -58,7 +58,8 @@ public:
    * @brief Constructs a Waveshaper effect.
    * @param source The BufferSource providing the input audio signal.
    */
-  Waveshaper(BufferSource &source) : source(source), lerpshift(0) {}
+  Waveshaper(BufferSource &source) : source(source), lerpshift(0) {
+  }
 
   // Note: No destructor needed as etl::vector manages its own memory (statically allocated).
 

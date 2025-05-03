@@ -22,16 +22,19 @@ namespace {
 
 float map_value_linear(uint8_t value, float min_val, float max_val) {
   const float normalized_value = static_cast<float>(value) / 127.0f;
-  return etl::lerp(min_val, max_val, normalized_value);
+  // Use std::lerp as suggested by compiler
+  return std::lerp(min_val, max_val, normalized_value);
 }
 
-// TODO: Consider using etl::log and etl::exp if available and preferred
-#include <cmath> // Using std::log and std::exp for now
+#include <cmath> // Using std::log, std::exp, std::lerp, std::pow
 
+// Function definition was broken, fixing it:
+float map_value_to_freq(uint8_t value, float min_freq = 20.0f, float max_freq = 20000.0f) {
   const float normalized_value = static_cast<float>(value) / 127.0f;
   const float log_min = std::log(min_freq);
   const float log_max = std::log(max_freq);
-  return std::exp(etl::lerp(log_min, log_max, normalized_value));
+  // Use std::lerp here as well
+  return std::exp(std::lerp(log_min, log_max, normalized_value));
 }
 
 float map_velocity_to_gain(uint8_t velocity) {

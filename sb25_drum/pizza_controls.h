@@ -15,10 +15,10 @@
 
 #include "pico/time.h" // For absolute_time_t
 
-#include "internal_clock.h" // Still needed for PPQN constant and set_bpm
-#include "step_sequencer.h"
-#include "tempo_event.h"   // Observe TempoEvents now
-#include "tempo_handler.h" // Need reference to TempoHandler
+#include "musin/hal/internal_clock.h"
+#include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_event.h"
+#include "musin/timing/tempo_handler.h"
 
 namespace PizzaExample {
 class PizzaDisplay; // Forward declaration
@@ -28,13 +28,13 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 } // namespace StepSequencer
 
-class PizzaControls : public etl::observer<Tempo::TempoEvent> { // Observe TempoEvents
+class PizzaControls : public etl::observer<Musin::Timing::TempoEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                         StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                         Clock::InternalClock &clock_ref,        // Keep for set_bpm
-                         Tempo::TempoHandler &tempo_handler_ref, // Add TempoHandler ref
+                         Musin::Timing::Sequencer<4, 8> &sequencer_ref,
+                         Musin::HAL::InternalClock &clock_ref,
+                         Musin::Timing::TempoHandler &tempo_handler_ref,
                          StepSequencer::DefaultSequencerController &sequencer_controller_ref);
 
   PizzaControls(const PizzaControls &) = delete;
@@ -42,7 +42,7 @@ public:
 
   void init();
   void update();
-  void notification(Tempo::TempoEvent event) override; // Observe TempoEvents
+  void notification(Musin::Timing::TempoEvent event) override;
 
   // --- Nested Component Definitions ---
 
@@ -163,9 +163,9 @@ public:
 private:
   // --- Shared Resources ---
   PizzaExample::PizzaDisplay &display;
-  StepSequencer::Sequencer<4, 8> &sequencer;
-  Clock::InternalClock &_internal_clock;   // Keep for set_bpm access via SPEED knob
-  Tempo::TempoHandler &_tempo_handler_ref; // Store reference to TempoHandler
+  Musin::Timing::Sequencer<4, 8> &sequencer;
+  Musin::HAL::InternalClock &_internal_clock;
+  Musin::Timing::TempoHandler &_tempo_handler_ref;
   StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
 
 public: // Make components public for access from SequencerController etc.

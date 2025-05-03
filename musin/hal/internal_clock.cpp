@@ -1,9 +1,9 @@
-#include "internal_clock.h"
+#include "musin/hal/internal_clock.h"
+#include "musin/timing/clock_event.h"
 #include "pico/stdlib.h"
-#include "tempo_handler.h" // Include for Tempo::ClockSource definition
 #include <cstdio>
 
-namespace Clock {
+namespace Musin::HAL {
 
 InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is_running(false) {
   _timer_info = {};
@@ -108,7 +108,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
   }
 
   // Create and notify observers with a ClockEvent, specifying the source
-  Clock::ClockEvent tick_event{Tempo::ClockSource::INTERNAL};
+  Musin::Timing::ClockEvent tick_event{Musin::Timing::ClockSource::INTERNAL};
   instance->notify_observers(tick_event);
 
   // Return true to continue the repeating timer
@@ -117,4 +117,4 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
 
 // handle_tick() method removed
 
-} // namespace Clock
+} // namespace Musin::HAL

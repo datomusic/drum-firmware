@@ -1,9 +1,9 @@
-#ifndef SB25_DRUM_SEQUENCER_TICK_EVENT_H
-#define SB25_DRUM_SEQUENCER_TICK_EVENT_H
+#ifndef MUSIN_TIMING_TICK_EVENT_H
+#define MUSIN_TIMING_TICK_EVENT_H
 
 #include <cstdint>
 
-namespace Tempo {
+namespace Musin::Timing {
 
 /**
  * @brief Event structure signalling a tick for the sequencer to advance.
@@ -15,6 +15,6 @@ struct SequencerTickEvent {
   // For simplicity now, just an empty struct to signal an advance tick.
 };
 
-} // namespace Tempo
+} // namespace Musin::Timing
 
-#endif // SB25_DRUM_SEQUENCER_TICK_EVENT_H
+#endif // MUSIN_TIMING_TICK_EVENT_H

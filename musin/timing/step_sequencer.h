@@ -1,11 +1,11 @@
-#ifndef STEP_SEQUENCER_H
-#define STEP_SEQUENCER_H
+#ifndef MUSIN_TIMING_STEP_SEQUENCER_H
+#define MUSIN_TIMING_STEP_SEQUENCER_H
 
 #include "etl/array.h"
 #include <cstdint>
 #include <optional>
 
-namespace StepSequencer {
+namespace Musin::Timing {
 
 /**
  * @brief Represents a single step in a sequencer track.
@@ -168,6 +168,6 @@ private:
   etl::array<Track<NumSteps>, NumTracks> tracks;
 };
 
-} // namespace StepSequencer
+} // namespace Musin::Timing
 
-#endif // STEP_SEQUENCER_H
+#endif // MUSIN_TIMING_STEP_SEQUENCER_H

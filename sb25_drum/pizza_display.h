@@ -9,8 +9,8 @@
 #include <cstdint>
 #include <optional>
 
+#include "musin/timing/step_sequencer.h"
 #include "sequencer_controller.h"
-#include "step_sequencer.h"
 
 namespace PizzaExample {
 
@@ -99,9 +99,9 @@ public:
    */
   template <size_t NumTracks, size_t NumSteps>
   void
-  draw_sequencer_state(const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+  draw_sequencer_state(const Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer,
                        const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
-                       bool is_running, float stopped_highlight_factor); // Updated signature
+                       bool is_running, float stopped_highlight_factor);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -118,7 +118,7 @@ private:
    * @param step The sequencer step data.
    * @return uint32_t The calculated color (0xRRGGBB), or 0 if step is disabled/invalid.
    */
-  uint32_t calculate_step_color(const StepSequencer::Step &step) const;
+  uint32_t calculate_step_color(const Musin::Timing::Step &step) const;
 
   /**
    * @brief Apply a highlight effect (blend with white) to a color.
@@ -166,9 +166,9 @@ private:
 
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
-    const StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer,
+    const Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer,
     const StepSequencer::SequencerController<NumTracks, NumSteps> &controller, bool is_running,
-    float stopped_highlight_factor) { // Updated signature
+    float stopped_highlight_factor) {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
@@ -203,7 +203,7 @@ void PizzaDisplay::draw_sequencer_state(
   }
 }
 
-inline uint32_t PizzaDisplay::calculate_step_color(const StepSequencer::Step &step) const {
+inline uint32_t PizzaDisplay::calculate_step_color(const Musin::Timing::Step &step) const {
   uint32_t color = 0;
 
   if (step.enabled && step.note.has_value()) {

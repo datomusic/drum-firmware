@@ -1,9 +1,10 @@
 #include "pizza_controls.h"
 #include "midi.h"
+#include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_event.h"
 #include "pico/time.h" // For get_absolute_time, to_us_since_boot
 #include "pizza_display.h"
 #include "sequencer_controller.h"
-#include "step_sequencer.h"
 #include <algorithm> // For std::clamp
 #include <cmath>     // For fmodf
 #include <cstddef>
@@ -14,9 +15,9 @@ using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                             StepSequencer::Sequencer<4, 8> &sequencer_ref,
-                             Clock::InternalClock &clock_ref,
-                             Tempo::TempoHandler &tempo_handler_ref,
+                             Musin::Timing::Sequencer<4, 8> &sequencer_ref,
+                             Musin::HAL::InternalClock &clock_ref,
+                             Musin::Timing::TempoHandler &tempo_handler_ref,
                              StepSequencer::DefaultSequencerController &sequencer_controller_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
@@ -48,7 +49,7 @@ void PizzaControls::update() {
   } else {
     // Stopped: Pulse based on clock tick counter
     // Assuming 4/4 time, a beat is a quarter note. PPQN = Ticks per Quarter Note.
-    constexpr uint32_t ticks_per_beat = Clock::InternalClock::PPQN;
+    constexpr uint32_t ticks_per_beat = Musin::HAL::InternalClock::PPQN;
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;
@@ -71,7 +72,7 @@ void PizzaControls::update() {
   // Note: PizzaDisplay::show() must be called later in the main loop
 }
 
-void PizzaControls::notification(Tempo::TempoEvent /* event */) {
+void PizzaControls::notification(Musin::Timing::TempoEvent /* event */) {
   // This notification is now driven by the active clock source via TempoHandler.
   // Only advance the counter if the sequencer is NOT running.
   if (!_sequencer_controller_ref.is_running()) {

@@ -5,8 +5,14 @@ set(PICO_BOARD dato_submarine)
 
 set(EXECUTABLE_NAME sb25_drum)
 
-include(${CMAKE_CURRENT_LIST_DIR}/add_git_defines.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../musin/version.cmake)
+
+# Generate version header file
+generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
+
+# Add the generated directory to include paths
+include_directories(${CMAKE_BINARY_DIR}/generated)
 
 project(${EXECUTABLE_NAME})
 
@@ -15,11 +21,9 @@ add_executable(${EXECUTABLE_NAME}
   midi.cpp
   pizza_controls.cpp
   pizza_display.cpp
-  tempo_handler.cpp
-  internal_clock.cpp
-  tempo_multiplier.cpp
+  ../musin/timing/tempo_handler.cpp
+  ../musin/timing/tempo_multiplier.cpp
   sequencer_controller.cpp
-  debug_utils.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -27,7 +31,7 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   USBD_MANUFACTURER="Dato"
   USBD_PRODUCT="DRUM"
   PICO_PROGRAM_DESCRIPTION="SB25 DRUM proto"
-  PICO_PROGRAM_VERSION_STRING="${GIT_HASH}"
+  PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
 )
 
 musin_init(${EXECUTABLE_NAME})

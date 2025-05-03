@@ -2,6 +2,8 @@
 #define SB25_DRUM_SOUND_ROUTER_H_
 
 #include "audio_engine.h"
+#include "events.h" // Include NoteEvent definition
+#include "etl/observer.h"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -36,10 +38,9 @@ enum class ParameterID : uint8_t {
   // Note: RANDOM, SWING, REPEAT, SPEED are handled directly by SequencerController/InternalClock
 };
 
-/**
- * @brief Routes sound trigger events and parameter changes to MIDI, internal audio, or both.
+ * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or both.
  */
-class SoundRouter {
+class SoundRouter : public etl::observer<SB25::Events::NoteEvent> {
 public:
   /**
    * @brief Constructor.
@@ -82,6 +83,12 @@ public:
    * @param value The parameter value (typically 0-127).
    */
   void set_parameter(ParameterID param_id, std::optional<uint8_t> track_index, uint8_t value);
+
+  /**
+   * @brief Handles incoming NoteEvents.
+   * @param event The NoteEvent received.
+   */
+  void notification(SB25::Events::NoteEvent event) override;
 
   // TODO: Add method to update the track_index -> sample_id mapping if needed.
 

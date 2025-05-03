@@ -157,4 +157,10 @@ void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> tra
   }
 }
 
+// --- SoundRouter Notification Implementation ---
+
+void SoundRouter::notification(SB25::Events::NoteEvent event) {
+  trigger_sound(event.track_index, event.note, event.velocity);
+}
+
 } // namespace SB25

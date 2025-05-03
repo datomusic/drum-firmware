@@ -41,9 +41,8 @@ float map_velocity_to_gain(uint8_t velocity) {
 }
 
 float map_pitch_value_to_multiplier(uint8_t value) {
-  const float semitones = (static_cast<float>(value) - 64.0f) * (12.0f / 64.0f);
-  // Using std::pow as etl::pow might not handle fractional exponents depending on config
-  return std::pow(2.0f, semitones / 12.0f);
+  // Map linearly from 0.5f (value=0) to 2.0f (value=127)
+  return map_value_linear(value, 0.5f, 2.0f);
 }
 
 float map_value_to_crush_rate(uint8_t value) {

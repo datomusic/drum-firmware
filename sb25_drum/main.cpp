@@ -13,6 +13,7 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/tempo_multiplier.h"
+#include "debug_utils.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
 static Musin::Timing::Sequencer<4, 8> pizza_sequencer;

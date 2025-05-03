@@ -24,17 +24,15 @@ constexpr etl::array<std::uint32_t, 4> uart1_rx_pins = {5, 9, 21, 25};
 
 #elif PICO_RP2350
 // UART0 valid pins (TX)
-constexpr etl::array<std::uint32_t, 11> uart0_tx_pins = {0,  2,  12, 14, 16, 18,
-                                                         28, 30, 32, 34, 46};
+constexpr etl::array<std::uint32_t, 11> uart0_tx_pins = {0, 2, 12, 14, 16, 18, 28, 30, 32, 34, 46};
 // UART0 valid pins (RX)
-constexpr etl::array<std::uint32_t, 11> uart0_rx_pins = {1,  3,  13, 15, 17, 19,
-                                                         29, 31, 33, 35, 47};
+constexpr etl::array<std::uint32_t, 11> uart0_rx_pins = {1, 3, 13, 15, 17, 19, 29, 31, 33, 35, 47};
 // UART1 valid pins (TX)
-constexpr etl::array<std::uint32_t, 12> uart1_tx_pins = {
-    4, 6, 8, 10, 20, 22, 24, 26, 36, 38, 40, 42};
+constexpr etl::array<std::uint32_t, 12> uart1_tx_pins = {4,  6,  8,  10, 20, 22,
+                                                         24, 26, 36, 38, 40, 42};
 // UART1 valid pins (RX)
-constexpr etl::array<std::uint32_t, 12> uart1_rx_pins = {
-    5, 7, 9, 11, 21, 23, 25, 27, 37, 39, 41, 43};
+constexpr etl::array<std::uint32_t, 12> uart1_rx_pins = {5,  7,  9,  11, 21, 23,
+                                                         25, 27, 37, 39, 41, 43};
 #else
 #error "Unsupported target platform for UART HAL pin validation"
 #endif
@@ -49,24 +47,21 @@ template <std::uint32_t Pin, const auto &ValidPins> constexpr bool check_pin() {
 }
 
 // UART instance determination
-template <std::uint32_t Tx, std::uint32_t Rx, typename = void>
-struct uart_instance {
+template <std::uint32_t Tx, std::uint32_t Rx, typename = void> struct uart_instance {
   static_assert(!(Tx || Rx), "Invalid TX/RX pin combination");
 };
 
 // UART0 specialization
 template <std::uint32_t Tx, std::uint32_t Rx>
-struct uart_instance<Tx, Rx,
-                     std::enable_if_t<check_pin<Tx, uart0_tx_pins>() &&
-                                      check_pin<Rx, uart0_rx_pins>()>> {
+struct uart_instance<
+    Tx, Rx, std::enable_if_t<check_pin<Tx, uart0_tx_pins>() && check_pin<Rx, uart0_rx_pins>()>> {
   static constexpr uart_inst_t *value = uart0;
 };
 
 // UART1 specialization
 template <std::uint32_t Tx, std::uint32_t Rx>
-struct uart_instance<Tx, Rx,
-                     std::enable_if_t<check_pin<Tx, uart1_tx_pins>() &&
-                                      check_pin<Rx, uart1_rx_pins>()>> {
+struct uart_instance<
+    Tx, Rx, std::enable_if_t<check_pin<Tx, uart1_tx_pins>() && check_pin<Rx, uart1_rx_pins>()>> {
   static constexpr uart_inst_t *value = uart1;
 };
 
@@ -86,8 +81,7 @@ template <std::uint32_t TxPin, std::uint32_t RxPin> class UART {
 public:
   // Compile-time validation: Ensure pins form a valid pair for either UART0 or
   // UART1.
-  static constexpr auto *uart_instance =
-      detail::uart_instance<TxPin, RxPin>::value;
+  static constexpr auto *uart_instance = detail::uart_instance<TxPin, RxPin>::value;
 
   static_assert(uart_instance != nullptr,
                 "Invalid TX/RX pins: Must be a valid TX/RX pair for the same "
@@ -96,7 +90,8 @@ public:
   /**
    * @brief Default constructor. The UART is not initialized.
    */
-  UART() : _initialized(false) {}
+  UART() : _initialized(false) {
+  }
 
   /**
    * @brief Initializes the UART peripheral associated with the template pins.

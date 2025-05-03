@@ -23,9 +23,9 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              SB25::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      _sound_router_ref(sound_router_ref),                                // Added
-      keypad_component(this), drumpad_component(this, _sound_router_ref), // Pass sound_router
-      analog_component(this, _sound_router_ref),                          // Pass sound_router
+      _sound_router_ref(sound_router_ref), // Added
+      keypad_component(this), drumpad_component(this), // Removed sound_router pass
+      analog_component(this, _sound_router_ref),       // Pass sound_router
       playbutton_component(this) {
 }
 
@@ -37,6 +37,9 @@ void PizzaControls::init() {
 
   // Register this class to receive tempo events for LED pulsing
   _tempo_handler_ref.add_observer(*this);
+
+  // Connect DrumpadComponent NoteEvents to SoundRouter
+  drumpad_component.add_observer(_sound_router_ref);
 }
 
 void PizzaControls::update() {
@@ -193,10 +196,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent Implementation ---
 
-PizzaControls::DrumpadComponent::DrumpadComponent(
-    PizzaControls *parent_ptr,
-    SB25::SoundRouter &sound_router)                            // Added sound_router
-    : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
+PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // Removed sound_router
+    : parent_controls(parent_ptr), // Removed _sound_router init
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
@@ -211,10 +212,10 @@ PizzaControls::DrumpadComponent::DrumpadComponent(
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
       _fade_start_time{}, // Initialize before observers to match declaration order
-      drumpad_observers{DrumpadEventHandler{this, 0, _sound_router},   // Pass sound_router
-                        DrumpadEventHandler{this, 1, _sound_router},   // Pass sound_router
-                        DrumpadEventHandler{this, 2, _sound_router},   // Pass sound_router
-                        DrumpadEventHandler{this, 3, _sound_router}} { // Pass sound_router
+      drumpad_observers{DrumpadEventHandler{this, 0}, // Removed sound_router
+                        DrumpadEventHandler{this, 1}, // Removed sound_router
+                        DrumpadEventHandler{this, 2}, // Removed sound_router
+                        DrumpadEventHandler{this, 3}} { // Removed sound_router
 }
 
 void PizzaControls::DrumpadComponent::init() {
@@ -319,12 +320,16 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     parent->trigger_fade(event.pad_index); // Trigger fade on physical press
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
-    // Use SoundRouter instead of direct MIDI call
-    _sound_router.trigger_sound(event.pad_index, note, velocity);
+    // Emit NoteEvent instead of calling SoundRouter directly
+    SB25::Events::NoteEvent note_event{
+        .track_index = event.pad_index, .note = note, .velocity = velocity};
+    parent->notify_observers(note_event);
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
-    // Use SoundRouter instead of direct MIDI call (velocity 0 for note off)
-    _sound_router.trigger_sound(event.pad_index, note, 0);
+    // Emit NoteEvent with velocity 0 for note off
+    SB25::Events::NoteEvent note_event{
+        .track_index = event.pad_index, .note = note, .velocity = 0};
+    parent->notify_observers(note_event);
   }
 }
 

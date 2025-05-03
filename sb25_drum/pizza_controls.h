@@ -8,12 +8,14 @@
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
+#include "etl/observable.h" // Added for observable
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
 #include "pico/time.h" // For absolute_time_t
+#include "events.h"    // Added for NoteEvent
 
 #include "musin/hal/internal_clock.h"
 #include "musin/timing/step_sequencer.h"
@@ -82,10 +84,10 @@ public:
   };
 
   // --- Drumpad Component ---
-  class DrumpadComponent {
+  // Now observes DrumpadEvents and emits NoteEvents
+  class DrumpadComponent : public etl::observable<SB25::Events::NoteEvent, 1> {
   public:
-    explicit DrumpadComponent(PizzaControls *parent_ptr,
-                              SB25::SoundRouter &sound_router); // Added sound_router
+    explicit DrumpadComponent(PizzaControls *parent_ptr); // Removed sound_router
     void init();
     void update();
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
@@ -96,11 +98,9 @@ public:
     struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
       DrumpadComponent *parent;
       const uint8_t pad_index;
-      SB25::SoundRouter &_sound_router; // Added
 
-      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index,
-                                    SB25::SoundRouter &sr)   // Added sr
-          : parent(p), pad_index(index), _sound_router(sr) { // Added _sound_router(sr)
+      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index) // Removed sr
+          : parent(p), pad_index(index) {                               // Removed _sound_router(sr)
       }
       void notification(Musin::UI::DrumpadEvent event) override;
     };
@@ -108,7 +108,7 @@ public:
     void update_drumpads();
 
     PizzaControls *parent_controls;
-    SB25::SoundRouter &_sound_router; // Added
+    // SB25::SoundRouter &_sound_router; // Removed
     etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
     etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;

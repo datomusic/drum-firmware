@@ -2,7 +2,9 @@
 #define SB25_DRUM_SEQUENCER_CONTROLLER_H
 
 #include "etl/array.h"
+#include "etl/observable.h" // Added
 #include "etl/observer.h"
+#include "events.h" // Added for NoteEvent
 #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/step_sequencer.h"
 #include <algorithm>
@@ -12,11 +14,8 @@
 
 #include <cstddef> // For size_t
 
-// Forward declarations
+// Forward declaration
 class PizzaControls;
-namespace SB25 { // Forward declare SoundRouter
-class SoundRouter;
-}
 
 namespace StepSequencer {
 
@@ -28,10 +27,12 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  *
  * Acts as the bridge between the tempo generation system (TempoMultiplier)
  * and the musical pattern storage (Sequencer). It operates on a high-resolution
- * internal clock tick derived from the tempo source.
+ * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<Musin::Timing::SequencerTickEvent> {
+class SequencerController
+    : public etl::observer<Musin::Timing::SequencerTickEvent>,
+      public etl::observable<etl::observer<SB25::Events::NoteEvent>, 1> { // Made observable
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -41,12 +42,11 @@ public:
    * @brief Constructor.
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
-   * @param sound_router_ref A reference to the SoundRouter instance.
    */
   SequencerController(
       Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref,
-      SB25::SoundRouter &sound_router_ref); // Added sound_router_ref
+      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2>
+          &tempo_source_ref); // Removed sound_router_ref
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -154,7 +154,7 @@ private:
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer;
-  SB25::SoundRouter &_sound_router; // Added
+  // SB25::SoundRouter &_sound_router; // Removed
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;

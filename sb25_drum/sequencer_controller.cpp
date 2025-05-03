@@ -1,8 +1,8 @@
 #include "sequencer_controller.h"
-// #include "midi_functions.h" // No longer needed directly for notes
+#include "events.h"         // Added for NoteEvent
 #include "pico/time.h"      // For time_us_32() for seeding rand
 #include "pizza_controls.h" // Include for PizzaControls pointer type (used for drumpad fade)
-#include "sound_router.h"   // Added
+// #include "sound_router.h"   // Removed
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -12,9 +12,9 @@ namespace StepSequencer {
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref,
-    SB25::SoundRouter &sound_router_ref)                         // Added sound_router_ref
-    : sequencer(sequencer_ref), _sound_router(sound_router_ref), // Store sound_router reference
+    etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2>
+        &tempo_source_ref) // Removed sound_router_ref
+    : sequencer(sequencer_ref), // Removed _sound_router init
       current_step_counter(0), last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
@@ -86,9 +86,11 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
   const Musin::Timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
-    // Send Note On via SoundRouter
-    _sound_router.trigger_sound(static_cast<uint8_t>(track_idx), step.note.value(),
-                                step.velocity.value());
+    // Emit Note On event
+    SB25::Events::NoteEvent note_on_event{.track_index = track_index_u8,
+                                          .note = step.note.value(),
+                                          .velocity = step.velocity.value()};
+    notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
 
     // Trigger fade on the corresponding drumpad if controls pointer is set
@@ -169,9 +171,12 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   printf("SequencerController: Resetting.\n");
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
-      // Send Note Off via SoundRouter
-      _sound_router.trigger_sound(static_cast<uint8_t>(track_idx),
-                                  last_played_note_per_track[track_idx].value(), 0);
+      // Emit Note Off event
+      SB25::Events::NoteEvent note_off_event{
+          .track_index = static_cast<uint8_t>(track_idx),
+          .note = last_played_note_per_track[track_idx].value(),
+          .velocity = 0};
+      notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -214,12 +219,15 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
   tempo_source.remove_observer(*this);
   set_state(State::Stopped);
 
-  // Send note-offs for all active notes
+  // Emit note-offs for all active notes
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
-      // Send Note Off via SoundRouter
-      _sound_router.trigger_sound(static_cast<uint8_t>(track_idx),
-                                  last_played_note_per_track[track_idx].value(), 0);
+      // Emit Note Off event
+      SB25::Events::NoteEvent note_off_event{
+          .track_index = static_cast<uint8_t>(track_idx),
+          .note = last_played_note_per_track[track_idx].value(),
+          .velocity = 0};
+      notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }

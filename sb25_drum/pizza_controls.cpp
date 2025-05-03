@@ -1,10 +1,11 @@
 #include "pizza_controls.h"
-#include "midi_functions.h"
+// #include "midi_functions.h" // No longer directly needed here for notes/cc
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h" // For get_absolute_time, to_us_since_boot
 #include "pizza_display.h"
 #include "sequencer_controller.h"
+#include "sound_router.h" // Added
 #include <algorithm> // For std::clamp
 #include <cmath>     // For fmodf
 #include <cstddef>
@@ -18,10 +19,14 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              Musin::Timing::Sequencer<4, 8> &sequencer_ref,
                              Musin::HAL::InternalClock &clock_ref,
                              Musin::Timing::TempoHandler &tempo_handler_ref,
-                             StepSequencer::DefaultSequencerController &sequencer_controller_ref)
+                             StepSequencer::DefaultSequencerController &sequencer_controller_ref,
+                             SB25::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      keypad_component(this), drumpad_component(this), analog_component(this),
+      _sound_router_ref(sound_router_ref), // Added
+      keypad_component(this),
+      drumpad_component(this, _sound_router_ref), // Pass sound_router
+      analog_component(this, _sound_router_ref),  // Pass sound_router
       playbutton_component(this) {
 }
 
@@ -189,8 +194,10 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent Implementation ---
 
-PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
+PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr,
+                                                  SB25::SoundRouter &sound_router) // Added sound_router
     : parent_controls(parent_ptr),
+      _sound_router(sound_router), // Store sound_router reference
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
@@ -205,8 +212,10 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
       _fade_start_time{}, // Initialize before observers to match declaration order
-      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
-                        DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
+      drumpad_observers{DrumpadEventHandler{this, 0, _sound_router}, // Pass sound_router
+                        DrumpadEventHandler{this, 1, _sound_router}, // Pass sound_router
+                        DrumpadEventHandler{this, 2, _sound_router}, // Pass sound_router
+                        DrumpadEventHandler{this, 3, _sound_router}} { // Pass sound_router
 }
 
 void PizzaControls::DrumpadComponent::init() {
@@ -311,17 +320,21 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     parent->trigger_fade(event.pad_index); // Trigger fade on physical press
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
-    send_midi_note(1, note, velocity);
+    // Use SoundRouter instead of direct MIDI call
+    _sound_router.trigger_sound(event.pad_index, note, velocity);
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
-    send_midi_note(1, note, 0);
+    // Use SoundRouter instead of direct MIDI call (velocity 0 for note off)
+    _sound_router.trigger_sound(event.pad_index, note, 0);
   }
 }
 
 // --- AnalogControlComponent Implementation ---
 
-PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr)
+PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr,
+                                                              SB25::SoundRouter &sound_router) // Added sound_router
     : parent_controls(parent_ptr),
+      _sound_router(sound_router), // Store sound_router reference
       mux_controls{AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM2, true},
@@ -339,14 +352,22 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *par
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, true}},
       control_observers{
-          AnalogControlEventHandler{this, DRUM1},  AnalogControlEventHandler{this, FILTER},
-          AnalogControlEventHandler{this, DRUM2},  AnalogControlEventHandler{this, PITCH1},
-          AnalogControlEventHandler{this, PITCH2}, AnalogControlEventHandler{this, PLAYBUTTON},
-          AnalogControlEventHandler{this, RANDOM}, AnalogControlEventHandler{this, VOLUME},
-          AnalogControlEventHandler{this, PITCH3}, AnalogControlEventHandler{this, SWING},
-          AnalogControlEventHandler{this, CRUSH},  AnalogControlEventHandler{this, DRUM3},
-          AnalogControlEventHandler{this, REPEAT}, AnalogControlEventHandler{this, DRUM4},
-          AnalogControlEventHandler{this, SPEED},  AnalogControlEventHandler{this, PITCH4}} {
+          AnalogControlEventHandler{this, DRUM1, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, FILTER, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, DRUM2, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, PITCH1, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, PITCH2, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, PLAYBUTTON, _sound_router}, // Pass sound_router
+          AnalogControlEventHandler{this, RANDOM, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, VOLUME, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, PITCH3, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, SWING, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, CRUSH, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, DRUM3, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, REPEAT, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, DRUM4, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, SPEED, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, PITCH4, _sound_router}} {   // Pass sound_router
 }
 
 void PizzaControls::AnalogControlComponent::init() {
@@ -365,22 +386,27 @@ void PizzaControls::AnalogControlComponent::update() {
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
     Musin::UI::AnalogControlEvent event) {
   PizzaControls *controls = parent->parent_controls;
-  uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
+  // Convert normalized float value (0.0 to 1.0) to typical 0-127 range
+  uint8_t value_0_127 = static_cast<uint8_t>(std::clamp(std::round(event.value * 127.0f), 0.0f, 127.0f));
 
   const uint8_t mux_channel = event.control_id >> 8;
 
+  // Use SoundRouter to set parameters instead of direct MIDI CCs
+  // Note: RANDOM, SWING, REPEAT, SPEED are handled differently (affect sequencer/clock directly)
+  //       and do not go through the SoundRouter's parameter setting.
+
   switch (mux_channel) {
   case DRUM1:
-    send_midi_cc(1, 20, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, 0, value_0_127);
     break;
   case FILTER:
-    send_midi_cc(1, 75, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::FILTER_CUTOFF, std::nullopt, value_0_127);
     break;
   case DRUM2:
-    send_midi_cc(1, 21, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, 1, value_0_127);
     break;
-  case RANDOM: {
-    constexpr float RANDOM_THRESHOLD = 0.1f; // Engage above 10% knob value
+  case RANDOM: { // Keep direct control over sequencer random state
+    constexpr float RANDOM_THRESHOLD = 0.1f;
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
     bool should_be_active = (event.value >= RANDOM_THRESHOLD);
 
@@ -393,9 +419,9 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
-    send_midi_cc(1, 7, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::VOLUME, std::nullopt, value_0_127);
     break;
-  case SWING: {
+  case SWING: { // Keep direct control over sequencer swing state
     constexpr float center_value = 0.5f;
     float distance_from_center = fabsf(event.value - center_value); // Range 0.0 to 0.5
 
@@ -408,13 +434,12 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    send_midi_cc(1, 77, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::CRUSH_AMOUNT, std::nullopt, value_0_127);
     break;
   case DRUM3:
-    send_midi_cc(1, 22, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, 2, value_0_127);
     break;
-  case REPEAT: {
-    // Define thresholds and lengths locally for interpretation
+  case REPEAT: { // Keep direct control over sequencer repeat state
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
     constexpr float REPEAT_THRESHOLD_2 = 0.7f;
     constexpr uint32_t REPEAT_LENGTH_1 = 3; // Length for range [T1, T2)
@@ -431,26 +456,27 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
 
-    // Still send the MIDI CC value based on the raw knob position
-    send_midi_cc(1, 78, midi_value);
+    // Note: We no longer send a generic REPEAT CC via SoundRouter here,
+    // as the effect is handled internally by the SequencerController.
+    // If a MIDI CC for repeat *is* desired, it would need a specific ParameterID.
     break;
   }
   case DRUM4:
-    send_midi_cc(1, 23, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_4, 3, value_0_127);
     break;
   case PITCH1:
-    send_midi_cc(1, 16, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 0, value_0_127);
     break;
   case PITCH2:
-    send_midi_cc(2, 17, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 1, value_0_127);
     break;
   case PITCH3:
-    send_midi_cc(3, 18, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 2, value_0_127);
     break;
   case PITCH4:
-    send_midi_cc(4, 19, midi_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 3, value_0_127);
     break;
-  case SPEED: {
+  case SPEED: { // Keep direct control over internal clock speed
     constexpr float min_bpm = 30.0f;
     constexpr float max_bpm = 480.0f;
     float bpm = min_bpm + event.value * (max_bpm - min_bpm);

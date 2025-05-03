@@ -1,9 +1,10 @@
-#ifndef SB25_DRUM_DEBUG_UTILS_H
-#define SB25_DRUM_DEBUG_UTILS_H
+#ifndef MUSIN_HAL_DEBUG_UTILS_H_
+#define MUSIN_HAL_DEBUG_UTILS_H_
 
 #include "pico/time.h"
 #include <cstdint>
 
+namespace Musin::HAL {
 namespace DebugUtils {
 
 class LoopTimer {
@@ -21,5 +22,6 @@ private:
 };
 
 } // namespace DebugUtils
+} // namespace Musin::HAL
 
-#endif // SB25_DRUM_DEBUG_UTILS_H
+#endif // MUSIN_HAL_DEBUG_UTILS_H_

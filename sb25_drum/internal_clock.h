@@ -1,8 +1,9 @@
 #ifndef SB25_DRUM_INTERNAL_CLOCK_H
 #define SB25_DRUM_INTERNAL_CLOCK_H
 
-#include "clock_event.h"
+#include "musin/timing/clock_event.h"
 #include "etl/observer.h"
+#include "musin/timing/timing_constants.h"
 #include "pico/time.h" // Use pico_time for repeating_timer
 #include <cstdint>
 
@@ -14,13 +15,13 @@ constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2
 /**
  * @brief Generates clock ticks based on an internal timer and BPM setting.
  */
-class InternalClock : public etl::observable<etl::observer<ClockEvent>, MAX_CLOCK_OBSERVERS> {
+class InternalClock : public etl::observable<etl::observer<Musin::Timing::ClockEvent>, MAX_CLOCK_OBSERVERS> {
 public:
   /**
    * @brief Pulses Per Quarter Note (PPQN). Standard MIDI clock is 24, common sequencer resolution
    * is 96.
    */
-  static constexpr uint32_t PPQN = 96;
+  static constexpr uint32_t PPQN = Musin::Timing::DEFAULT_PPQN;
 
   /**
    * @brief Constructor.

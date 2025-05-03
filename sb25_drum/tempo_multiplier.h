@@ -2,12 +2,11 @@
 #define SB25_DRUM_TEMPO_MULTIPLIER_H
 
 #include "etl/observer.h"
-#include "internal_clock.h" // For PPQN constant
-#include "sequencer_tick_event.h"
-#include "tempo_event.h"
+#include "musin/timing/sequencer_tick_event.h"
+#include "musin/timing/tempo_event.h"
 #include <cstdint>
 
-namespace Tempo {
+namespace Musin::Timing {
 
 // Maximum number of observers TempoMultiplier can notify (e.g., SequencerController)
 constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
@@ -20,8 +19,8 @@ constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
  * and divider. It can also apply swing by delaying odd or even output ticks.
  */
 class TempoMultiplier
-    : public etl::observer<Tempo::TempoEvent>,
-      public etl::observable<etl::observer<SequencerTickEvent>, MAX_SEQUENCER_OBSERVERS> {
+    : public etl::observer<Musin::Timing::TempoEvent>,
+      public etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, MAX_SEQUENCER_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
@@ -90,6 +89,6 @@ private:
   uint32_t _output_tick_counter;         // Counts outgoing SequencerTickEvents
 };
 
-} // namespace Tempo
+} // namespace Musin::Timing
 
 #endif // SB25_DRUM_TEMPO_MULTIPLIER_H

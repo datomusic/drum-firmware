@@ -3,8 +3,8 @@
 
 #include "etl/array.h"
 #include "etl/observer.h"
-#include "sequencer_tick_event.h"
-#include "step_sequencer.h"
+#include "musin/timing/sequencer_tick_event.h"
+#include "musin/timing/step_sequencer.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -17,7 +17,7 @@ class PizzaControls;
 
 namespace StepSequencer {
 
-// Forward declare the specific Sequencer instantiation used
+// Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
 /**
@@ -28,7 +28,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * internal clock tick derived from the tempo source.
  */
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<Tempo::SequencerTickEvent> {
+class SequencerController : public etl::observer<Musin::Timing::SequencerTickEvent> {
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -148,12 +148,12 @@ private:
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
-  StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer;
+  Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
-  etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source;
+  etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source;
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---

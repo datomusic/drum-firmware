@@ -21,9 +21,9 @@ add_executable(${EXECUTABLE_NAME}
   midi.cpp
   pizza_controls.cpp
   pizza_display.cpp
-  tempo_handler.cpp
+  ../musin/timing/tempo_handler.cpp
   internal_clock.cpp
-  tempo_multiplier.cpp
+  ../musin/timing/tempo_multiplier.cpp
   sequencer_controller.cpp
   debug_utils.cpp
 )

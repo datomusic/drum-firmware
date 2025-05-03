@@ -1,9 +1,9 @@
 #ifndef SB25_DRUM_TEMPO_HANDLER_H
 #define SB25_DRUM_TEMPO_HANDLER_H
 
-#include "clock_event.h"
+#include "musin/timing/clock_event.h"
 #include "etl/observer.h"
-#include "tempo_event.h"
+#include "musin/timing/tempo_event.h"
 #include <cstdint>
 
 // Forward declarations for Clock implementations
@@ -13,7 +13,7 @@ class InternalClock;
 // class ExternalSyncClock;
 } // namespace Clock
 
-namespace Tempo {
+namespace Musin::Timing {
 
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
@@ -35,8 +35,8 @@ enum class ClockSource : uint8_t {
  * and forwards valid tempo ticks to its own observers (e.g., TempoMultiplier)
  * as `TempoEvent`s.
  */
-class TempoHandler : public etl::observer<Clock::ClockEvent>,
-                     public etl::observable<etl::observer<TempoEvent>, MAX_TEMPO_OBSERVERS> {
+class TempoHandler : public etl::observer<Musin::Timing::ClockEvent>,
+                     public etl::observable<etl::observer<Musin::Timing::TempoEvent>, MAX_TEMPO_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
@@ -80,6 +80,6 @@ private:
 
 }; // End class TempoHandler
 
-} // namespace Tempo
+} // namespace Musin::Timing
 
 #endif // SB25_DRUM_TEMPO_HANDLER_H

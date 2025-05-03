@@ -1,6 +1,7 @@
 #include "internal_clock.h"
 #include "pico/stdlib.h"
 #include "tempo_handler.h" // Include for Tempo::ClockSource definition
+#include "musin/timing/clock_event.h"
 #include <cstdio>
 
 namespace Clock {
@@ -108,7 +109,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
   }
 
   // Create and notify observers with a ClockEvent, specifying the source
-  Clock::ClockEvent tick_event{Tempo::ClockSource::INTERNAL};
+  Musin::Timing::ClockEvent tick_event{Musin::Timing::ClockSource::INTERNAL};
   instance->notify_observers(tick_event);
 
   // Return true to continue the repeating timer

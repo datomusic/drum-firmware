@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace Tempo {
+namespace Musin::Timing {
 
 /**
  * @brief Event structure carrying information about a tempo-related tick.
@@ -17,6 +17,6 @@ struct TempoEvent {
   // Add members as needed.
 };
 
-} // namespace Tempo
+} // namespace Musin::Timing
 
 #endif // SB25_DRUM_TEMPO_EVENT_H

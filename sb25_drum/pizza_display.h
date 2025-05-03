@@ -10,7 +10,7 @@
 #include <optional>
 
 #include "sequencer_controller.h"
-#include "step_sequencer.h"
+#include "musin/timing/step_sequencer.h"
 
 namespace PizzaExample {
 

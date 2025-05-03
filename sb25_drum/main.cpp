@@ -11,17 +11,17 @@
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
-#include "step_sequencer.h"
-#include "tempo_handler.h"
-#include "tempo_multiplier.h"
+#include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_handler.h"
+#include "musin/timing/tempo_multiplier.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
-static StepSequencer::Sequencer<4, 8> pizza_sequencer;
+static Musin::Timing::Sequencer<4, 8> pizza_sequencer;
 static Clock::InternalClock internal_clock(120.0f);
 
-static Tempo::TempoHandler tempo_handler(Tempo::ClockSource::INTERNAL);
+static Musin::Timing::TempoHandler tempo_handler(Musin::Timing::ClockSource::INTERNAL);
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
-static Tempo::TempoMultiplier tempo_multiplier(24, 1);
+static Musin::Timing::TempoMultiplier tempo_multiplier(24, 1);
 
 StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock, tempo_handler,
@@ -50,7 +50,7 @@ int main() {
   tempo_handler.add_observer(tempo_multiplier);
   tempo_multiplier.add_observer(sequencer_controller);
 
-  if (tempo_handler.get_clock_source() == Tempo::ClockSource::INTERNAL) {
+  if (tempo_handler.get_clock_source() == Musin::Timing::ClockSource::INTERNAL) {
     internal_clock.start();
   }
   // TODO: Add logic to register TempoHandler with other clocks

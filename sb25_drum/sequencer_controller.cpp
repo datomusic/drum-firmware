@@ -3,14 +3,15 @@
 #include "pico/time.h"      // For time_us_32() for seeding rand
 #include "pizza_controls.h" // Include for PizzaControls pointer type
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace StepSequencer {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref)
+    Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+    etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
       _just_played_step_per_track{}, // Initialize below
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
@@ -78,7 +79,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
              num_steps)
           : 0;
 
-  const Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
+  const Musin::Timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     send_midi_note(midi_channel, step.note.value(), step.velocity.value());
@@ -219,7 +220,7 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] Tempo::SequencerTickEvent event) {
+    [[maybe_unused]] Musin::Timing::SequencerTickEvent event) {
   if (state_ != State::Running)
     return;
 

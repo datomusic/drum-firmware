@@ -52,18 +52,17 @@ constexpr void TempoMultiplier::update_ticks_per_output() {
   // Base resolution is DEFAULT_PPQN (e.g., 96 PPQN).
   // We assume the base tempo corresponds to 8th notes, so the base tick rate is (DEFAULT_PPQN / 2).
   // Formula: Ticks per output = (Base Rate * Divider) / Multiplier
-  // Use uint64_t for intermediate calculation to prevent overflow.
+  // Use uint32_t for intermediate calculation, assuming inputs are small enough.
   // Add (multiplier / 2) for rounding before integer division.
-  constexpr uint64_t base_rate = static_cast<uint64_t>(Musin::Timing::DEFAULT_PPQN) / 2;
-  uint64_t numerator = base_rate * static_cast<uint64_t>(_divider);
-  uint64_t denominator = static_cast<uint64_t>(_multiplier); // Already ensured >= 1
+  constexpr uint32_t base_rate = Musin::Timing::DEFAULT_PPQN / 2u;
+  uint32_t numerator = base_rate * _divider;
+  uint32_t denominator = _multiplier; // Already ensured >= 1
 
   // Apply rounding before division
-  uint64_t rounded_ticks = (numerator + (denominator / 2)) / denominator;
+  uint32_t rounded_ticks = (numerator + (denominator / 2u)) / denominator;
 
-  // Store as uint32_t and ensure minimum of 1 tick.
-  _input_ticks_per_output_tick =
-      std::max(1u, static_cast<uint32_t>(rounded_ticks)); // Clamp result to uint32_t max if needed
+  // Ensure minimum of 1 tick.
+  _input_ticks_per_output_tick = std::max(1u, rounded_ticks);
 }
 
 } // namespace Musin::Timing

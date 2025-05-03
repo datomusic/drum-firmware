@@ -13,7 +13,6 @@ namespace Musin::Timing {
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
 
-
 /**
  * @brief Manages the selection of the active clock source and forwards ticks.
  *

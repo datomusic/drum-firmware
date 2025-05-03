@@ -1,7 +1,22 @@
 #include "sound_router.h"
-#include "midi_functions.h"
+#include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
 #include <algorithm> // For std::clamp
+#include <cstdint>   // For uint8_t
+
+namespace { // Anonymous namespace for internal linkage
+
+void send_midi_cc(const uint8_t channel, const uint8_t cc_number, const uint8_t value) {
+  MIDI::sendControlChange(cc_number, value, channel);
+}
+
+void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint8_t velocity) {
+  // The underlying library handles Note On/Off based on velocity
+  // Use sendNoteOn for both Note On (velocity > 0) and Note Off (velocity == 0)
+  MIDI::sendNoteOn(note_number, velocity, channel);
+}
+
+} // namespace
 
 namespace SB25 {
 

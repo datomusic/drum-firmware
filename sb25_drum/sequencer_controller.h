@@ -40,8 +40,8 @@ public:
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    */
   SequencerController(
-      StepSequencer::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<Tempo::SequencerTickEvent>, 2> &tempo_source_ref);
+      Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -53,7 +53,7 @@ public:
    * at the high resolution defined by CLOCK_PPQN.
    * @param event The received sequencer tick event.
    */
-  void notification(Tempo::SequencerTickEvent event) override;
+  void notification(Musin::Timing::SequencerTickEvent event) override;
 
   /**
    * @brief Get the current logical step index (0 to NumSteps-1) that was last triggered.

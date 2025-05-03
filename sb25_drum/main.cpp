@@ -27,9 +27,9 @@ static Musin::Timing::TempoHandler tempo_handler(Musin::Timing::ClockSource::INT
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
 static Musin::Timing::TempoMultiplier tempo_multiplier(24, 1);
 
-// Pass sound_router to SequencerController constructor
-StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier,
-                                                        sound_router);
+// Instantiate SequencerController (no longer takes sound_router)
+StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+
 // Pass sound_router to PizzaControls constructor
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock, tempo_handler,
                                     sequencer_controller, sound_router);

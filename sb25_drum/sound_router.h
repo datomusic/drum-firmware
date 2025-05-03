@@ -38,6 +38,7 @@ enum class ParameterID : uint8_t {
   // Note: RANDOM, SWING, REPEAT, SPEED are handled directly by SequencerController/InternalClock
 };
 
+/*
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or both.
  */
 class SoundRouter : public etl::observer<SB25::Events::NoteEvent> {

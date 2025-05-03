@@ -25,6 +25,7 @@ add_executable(${EXECUTABLE_NAME}
   ../musin/timing/tempo_multiplier.cpp
   sequencer_controller.cpp
   sound_router.cpp
+  audio_engine.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -33,6 +34,7 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   USBD_PRODUCT="DRUM"
   PICO_PROGRAM_DESCRIPTION="SB25 DRUM proto"
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
+  AUDIO_BLOCK_SAMPLES=128
 )
 
 musin_init(${EXECUTABLE_NAME})
@@ -40,6 +42,7 @@ musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
+musin_init_audio(${EXECUTABLE_NAME})
 
 
 # Explicitly find the size utility, hinting at the Pico toolchain path

@@ -1,12 +1,11 @@
 #include "musin/timing/tempo_multiplier.h"
 #include "musin/timing/sequencer_tick_event.h"
-// timing_constants.h and algorithm are now included via the header for constexpr
-#include <algorithm> // For std::max used in setters
+// timing_constants.h is included via the header for constexpr
 
 namespace Musin::Timing {
 
 constexpr TempoMultiplier::TempoMultiplier(uint32_t initial_multiplier, uint32_t initial_divider)
-    : _multiplier(std::max(1u, initial_multiplier)), _divider(std::max(1u, initial_divider)),
+    : _multiplier(max_or_one(initial_multiplier)), _divider(max_or_one(initial_divider)),
       _input_ticks_per_output_tick(0), _input_tick_counter(0), _output_tick_counter(0) {
   update_ticks_per_output();
 }
@@ -25,7 +24,7 @@ void TempoMultiplier::notification([[maybe_unused]] Musin::Timing::TempoEvent ev
 }
 
 void TempoMultiplier::set_multiplier(uint32_t multiplier) {
-  uint32_t new_multiplier = std::max(1u, multiplier);
+  uint32_t new_multiplier = max_or_one(multiplier);
   if (new_multiplier != _multiplier) {
     _multiplier = new_multiplier;
     update_ticks_per_output();
@@ -34,7 +33,7 @@ void TempoMultiplier::set_multiplier(uint32_t multiplier) {
 }
 
 void TempoMultiplier::set_divider(uint32_t divider) {
-  uint32_t new_divider = std::max(1u, divider);
+  uint32_t new_divider = max_or_one(divider);
   if (new_divider != _divider) {
     _divider = new_divider;
     update_ticks_per_output();
@@ -62,7 +61,7 @@ constexpr void TempoMultiplier::update_ticks_per_output() {
   uint32_t rounded_ticks = (numerator + (denominator / 2u)) / denominator;
 
   // Ensure minimum of 1 tick.
-  _input_ticks_per_output_tick = std::max(1u, rounded_ticks);
+  _input_ticks_per_output_tick = max_or_one(rounded_ticks);
 }
 
 } // namespace Musin::Timing

@@ -5,10 +5,14 @@
 #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/timing_constants.h" // Needed for DEFAULT_PPQN in constexpr
-#include <algorithm>                       // For std::max
 #include <cstdint>
 
 namespace Musin::Timing {
+
+// Helper function to ensure a value is at least 1
+inline constexpr uint32_t max_or_one(uint32_t value) {
+    return (value < 1u) ? 1u : value;
+}
 
 // Maximum number of observers TempoMultiplier can notify (e.g., SequencerController)
 constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;

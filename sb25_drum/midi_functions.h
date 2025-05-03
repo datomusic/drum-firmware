@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_MIDI_H
-#define SB25_DRUM_MIDI_H
+#ifndef SB25_DRUM_MIDI_FUNCTIONS_H
+#define SB25_DRUM_MIDI_FUNCTIONS_H
 
 #include <cstdint> // For uint8_t
 
@@ -34,4 +34,4 @@ void send_midi_note(uint8_t channel, uint8_t note_number, uint8_t velocity);
 void send_midi_start();
 void send_midi_stop();
 
-#endif // SB25_DRUM_MIDI_H
+#endif // SB25_DRUM_MIDI_FUNCTIONS_H

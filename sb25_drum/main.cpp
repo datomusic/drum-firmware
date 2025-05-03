@@ -5,7 +5,7 @@
 #include "pico/stdlib.h" // for stdio_usb_init
 #include "pico/time.h"   // for sleep_us
 
-#include "midi.h"
+#include "midi_functions.h"
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/internal_clock.h"
 #include "musin/timing/step_sequencer.h"

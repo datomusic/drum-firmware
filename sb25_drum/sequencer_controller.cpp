@@ -1,5 +1,5 @@
 #include "sequencer_controller.h"
-#include "midi.h"
+#include "midi_functions.h"
 #include "pico/time.h"      // For time_us_32() for seeding rand
 #include "pizza_controls.h" // Include for PizzaControls pointer type
 #include <algorithm>

@@ -1,5 +1,5 @@
 #include "pizza_controls.h"
-#include "midi.h"
+#include "midi_functions.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h" // For get_absolute_time, to_us_since_boot

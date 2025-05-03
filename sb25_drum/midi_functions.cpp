@@ -1,4 +1,4 @@
-#include "midi.h"
+#include "midi_functions.h"
 
 extern "C" {
 #include "pico/bootrom.h"   // For reset_usb_boot

@@ -14,6 +14,9 @@
 
 // Forward declarations
 class PizzaControls;
+namespace SB25 { // Forward declare SoundRouter
+class SoundRouter;
+}
 
 namespace StepSequencer {
 
@@ -38,10 +41,12 @@ public:
    * @brief Constructor.
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
+   * @param sound_router_ref A reference to the SoundRouter instance.
    */
   SequencerController(
       Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref);
+      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref,
+      SB25::SoundRouter &sound_router_ref); // Added sound_router_ref
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -149,6 +154,7 @@ private:
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer;
+  SB25::SoundRouter &_sound_router; // Added
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;

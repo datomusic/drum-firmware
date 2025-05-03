@@ -1,3 +1,6 @@
+#ifndef SB25_DRUM_AUDIO_ENGINE_H_
+#define SB25_DRUM_AUDIO_ENGINE_H_
+
 #include "etl/array.h"
 #include "etl/optional.h"
 #include <cstdint>

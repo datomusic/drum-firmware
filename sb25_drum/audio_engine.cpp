@@ -2,7 +2,7 @@
 
 #include "etl/array.h"
 #include "etl/math.h"
-#include "etl/numerics.h"
+#include "etl/interpolation.h" // For etl::lerp
 #include "pico/time.h" // Include if needed for future timing logic
 
 #include "musin/audio/audio_output.h"
@@ -25,11 +25,13 @@ float map_value_linear(uint8_t value, float min_val, float max_val) {
   return etl::lerp(min_val, max_val, normalized_value);
 }
 
-float map_value_to_freq(uint8_t value, float min_freq = 20.0f, float max_freq = 20000.0f) {
+// TODO: Consider using etl::log and etl::exp if available and preferred
+#include <cmath> // Using std::log and std::exp for now
+
   const float normalized_value = static_cast<float>(value) / 127.0f;
-  const float log_min = etl::log(min_freq);
-  const float log_max = etl::log(max_freq);
-  return etl::exp(etl::lerp(log_min, log_max, normalized_value));
+  const float log_min = std::log(min_freq);
+  const float log_max = std::log(max_freq);
+  return std::exp(etl::lerp(log_min, log_max, normalized_value));
 }
 
 float map_velocity_to_gain(uint8_t velocity) {
@@ -38,7 +40,8 @@ float map_velocity_to_gain(uint8_t velocity) {
 
 float map_pitch_value_to_multiplier(uint8_t value) {
     const float semitones = (static_cast<float>(value) - 64.0f) * (12.0f / 64.0f);
-    return etl::pow(2.0f, semitones / 12.0f);
+    // Using std::pow as etl::pow might not handle fractional exponents depending on config
+    return std::pow(2.0f, semitones / 12.0f);
 }
 
 float map_value_to_crush_rate(uint8_t value) {

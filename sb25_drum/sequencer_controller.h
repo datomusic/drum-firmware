@@ -2,7 +2,6 @@
 #define SB25_DRUM_SEQUENCER_CONTROLLER_H
 
 #include "etl/array.h"
-#include "etl/observable.h" // Added
 #include "etl/observer.h"
 #include "events.h" // Added for NoteEvent
 #include "musin/timing/sequencer_tick_event.h"

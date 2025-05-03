@@ -2,7 +2,6 @@
 #include "events.h"         // Added for NoteEvent
 #include "pico/time.h"      // For time_us_32() for seeding rand
 #include "pizza_controls.h" // Include for PizzaControls pointer type (used for drumpad fade)
-// #include "sound_router.h"   // Removed
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

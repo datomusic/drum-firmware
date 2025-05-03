@@ -1,7 +1,6 @@
 #include "musin/hal/internal_clock.h"
 #include "pico/stdlib.h"
-#include "musin/timing/clock_event.h"
-#include "musin/timing/tempo_handler.h" // Added for ClockSource definition
+#include "musin/timing/clock_event.h" // ClockSource is defined here
 #include <cstdio>
 
 namespace Musin::HAL {

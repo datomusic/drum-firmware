@@ -6,26 +6,13 @@
 #include "musin/timing/tempo_event.h"
 #include <cstdint>
 
-// Forward declarations for Clock implementations
-namespace Clock {
-class InternalClock;
-// class MIDIClock;
-// class ExternalSyncClock;
-} // namespace Clock
+#include "musin/timing/clock_event.h" // Include for ClockSource
 
 namespace Musin::Timing {
 
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
 
-/**
- * @brief Defines the possible sources for the master clock signal.
- */
-enum class ClockSource : uint8_t {
-  INTERNAL,
-  MIDI,
-  EXTERNAL_SYNC
-};
 
 /**
  * @brief Manages the selection of the active clock source and forwards ticks.

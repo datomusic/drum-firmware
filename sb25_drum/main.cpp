@@ -11,21 +11,28 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/tempo_multiplier.h"
+#include "audio_engine.h" // Added
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
+#include "sound_router.h" // Added
 
 static PizzaExample::PizzaDisplay pizza_display;
 static Musin::Timing::Sequencer<4, 8> pizza_sequencer;
 static Musin::HAL::InternalClock internal_clock(120.0f);
+static SB25::AudioEngine audio_engine;     // Added
+static SB25::SoundRouter sound_router(audio_engine); // Added
 
 static Musin::Timing::TempoHandler tempo_handler(Musin::Timing::ClockSource::INTERNAL);
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
 static Musin::Timing::TempoMultiplier tempo_multiplier(24, 1);
 
-StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+// Pass sound_router to SequencerController constructor
+StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier,
+                                                        sound_router);
+// Pass sound_router to PizzaControls constructor
 static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock, tempo_handler,
-                                    sequencer_controller);
+                                    sequencer_controller, sound_router);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 
@@ -37,6 +44,15 @@ int main() {
   Musin::Usb::init();
 
   midi_init();
+
+  // Initialize Audio Engine (stubbed for now)
+  if (!audio_engine.init()) {
+      printf("Error: Failed to initialize Audio Engine!\n");
+      // Potentially halt or enter a safe state
+  }
+  // TODO: Set initial SoundRouter output mode if needed (defaults to BOTH)
+  // sound_router.set_output_mode(SB25::OutputMode::AUDIO);
+
 
   pizza_display.init();
 

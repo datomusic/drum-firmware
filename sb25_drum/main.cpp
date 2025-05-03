@@ -65,6 +65,9 @@ int main() {
   tempo_handler.add_observer(tempo_multiplier);
   tempo_multiplier.add_observer(sequencer_controller);
 
+  // Connect SequencerController NoteEvents to SoundRouter
+  sequencer_controller.add_observer(sound_router);
+
   if (tempo_handler.get_clock_source() == Musin::Timing::ClockSource::INTERNAL) {
     internal_clock.start();
   }

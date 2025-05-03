@@ -3,8 +3,8 @@
 
 #include "etl/array.h"
 #include "etl/optional.h"
-#include <cstdint>
 #include <cstddef> // For size_t
+#include <cstdint>
 
 // Include necessary Musin headers instead of forward declaring classes used by value
 #include "musin/audio/crusher.h"
@@ -17,7 +17,6 @@
 namespace Musin {
 class BufferSource;
 } // namespace Musin
-
 
 namespace SB25 {
 
@@ -38,7 +37,7 @@ private:
    */
   struct Voice {
     etl::optional<Musin::MemorySampleReader> reader;
-    Musin::Sound sound;
+    Sound sound;
     float current_pitch = 1.0f;
 
     Voice();
@@ -106,11 +105,11 @@ public:
 
 private:
   etl::array<Voice, NUM_VOICES> voices_;
-  etl::array<Musin::BufferSource *, NUM_VOICES> voice_sources_;
+  etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 
-  Musin::AudioMixer<NUM_VOICES> mixer_;
-  Musin::Crusher crusher_;
-  Musin::Lowpass lowpass_;
+  AudioMixer<NUM_VOICES> mixer_;
+  Crusher crusher_;
+  Lowpass lowpass_;
 
   bool is_initialized_ = false;
 };

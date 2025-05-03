@@ -12,7 +12,7 @@ template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2>
-        &tempo_source_ref) // Removed sound_router_ref
+        &tempo_source_ref)      // Removed sound_router_ref
     : sequencer(sequencer_ref), // Removed _sound_router init
       current_step_counter(0), last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
@@ -69,10 +69,9 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
 
   // Emit Note Off event if a note was previously playing on this track
   if (last_played_note_per_track[track_idx].has_value()) {
-    SB25::Events::NoteEvent note_off_event{
-        .track_index = track_index_u8,
-        .note = last_played_note_per_track[track_idx].value(),
-        .velocity = 0};
+    SB25::Events::NoteEvent note_off_event{.track_index = track_index_u8,
+                                           .note = last_played_note_per_track[track_idx].value(),
+                                           .velocity = 0};
     notify_observers(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
@@ -174,10 +173,9 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       // Emit Note Off event
-      SB25::Events::NoteEvent note_off_event{
-          .track_index = static_cast<uint8_t>(track_idx),
-          .note = last_played_note_per_track[track_idx].value(),
-          .velocity = 0};
+      SB25::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
+                                             .note = last_played_note_per_track[track_idx].value(),
+                                             .velocity = 0};
       notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
@@ -225,10 +223,9 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       // Emit Note Off event
-      SB25::Events::NoteEvent note_off_event{
-          .track_index = static_cast<uint8_t>(track_idx),
-          .note = last_played_note_per_track[track_idx].value(),
-          .velocity = 0};
+      SB25::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
+                                             .note = last_played_note_per_track[track_idx].value(),
+                                             .velocity = 0};
       notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }

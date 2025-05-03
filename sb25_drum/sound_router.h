@@ -2,8 +2,8 @@
 #define SB25_DRUM_SOUND_ROUTER_H_
 
 #include "audio_engine.h"
-#include "events.h" // Include NoteEvent definition
 #include "etl/observer.h"
+#include "events.h" // Include NoteEvent definition
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -39,7 +39,8 @@ enum class ParameterID : uint8_t {
 };
 
 /*
- * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or both.
+ * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
+ * both.
  */
 class SoundRouter : public etl::observer<SB25::Events::NoteEvent> {
 public:

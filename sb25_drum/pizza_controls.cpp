@@ -23,7 +23,7 @@ PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              SB25::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      _sound_router_ref(sound_router_ref), // Added
+      _sound_router_ref(sound_router_ref),             // Added
       keypad_component(this), drumpad_component(this), // Removed sound_router pass
       analog_component(this, _sound_router_ref),       // Pass sound_router
       playbutton_component(this) {
@@ -212,9 +212,9 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // 
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
       _fade_start_time{}, // Initialize before observers to match declaration order
-      drumpad_observers{DrumpadEventHandler{this, 0}, // Removed sound_router
-                        DrumpadEventHandler{this, 1}, // Removed sound_router
-                        DrumpadEventHandler{this, 2}, // Removed sound_router
+      drumpad_observers{DrumpadEventHandler{this, 0},   // Removed sound_router
+                        DrumpadEventHandler{this, 1},   // Removed sound_router
+                        DrumpadEventHandler{this, 2},   // Removed sound_router
                         DrumpadEventHandler{this, 3}} { // Removed sound_router
 }
 
@@ -327,8 +327,7 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     // Emit NoteEvent with velocity 0 for note off
-    SB25::Events::NoteEvent note_event{
-        .track_index = event.pad_index, .note = note, .velocity = 0};
+    SB25::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
     parent->notify_observers(note_event);
   }
 }

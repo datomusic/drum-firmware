@@ -13,8 +13,8 @@
 #include <cstdint>
 #include <optional>
 
-#include "pico/time.h" // For absolute_time_t
 #include "events.h"    // Added for NoteEvent
+#include "pico/time.h" // For absolute_time_t
 
 #include "musin/hal/internal_clock.h"
 #include "musin/timing/step_sequencer.h"

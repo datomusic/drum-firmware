@@ -42,10 +42,9 @@ public:
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    */
-  SequencerController(
-      Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2>
-          &tempo_source_ref); // Removed sound_router_ref
+  SequencerController(Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+                      etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2>
+                          &tempo_source_ref); // Removed sound_router_ref
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;

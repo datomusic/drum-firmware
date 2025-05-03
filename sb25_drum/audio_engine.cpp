@@ -12,7 +12,7 @@
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 
-// This assumes support/all_samples.h defines Musin::all_samples and Musin::num_samples
+// This assumes support/all_samples.h defines all_samples and num_samples
 #include "all_samples.h"
 
 namespace SB25 {
@@ -41,13 +41,13 @@ float map_velocity_to_gain(uint8_t velocity) {
 }
 
 float map_pitch_value_to_multiplier(uint8_t value) {
-    const float semitones = (static_cast<float>(value) - 64.0f) * (12.0f / 64.0f);
-    // Using std::pow as etl::pow might not handle fractional exponents depending on config
-    return std::pow(2.0f, semitones / 12.0f);
+  const float semitones = (static_cast<float>(value) - 64.0f) * (12.0f / 64.0f);
+  // Using std::pow as etl::pow might not handle fractional exponents depending on config
+  return std::pow(2.0f, semitones / 12.0f);
 }
 
 float map_value_to_crush_rate(uint8_t value) {
-    return map_value_linear(value, 2000.0f, static_cast<float>(Musin::AudioOutput::SAMPLE_FREQUENCY));
+  return map_value_linear(value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
 }
 
 } // namespace
@@ -57,13 +57,10 @@ AudioEngine::Voice::Voice() : sound(reader.emplace()) {
 
 AudioEngine::AudioEngine()
     : voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
-      mixer_(voice_sources_),
-      crusher_(mixer_),
-      lowpass_(crusher_)
-{
+      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_) {
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
-  crusher_.sampleRate(static_cast<float>(Musin::AudioOutput::SAMPLE_FREQUENCY));
+  crusher_.sampleRate(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
   crusher_.bits(16);
 
   for (size_t i = 0; i < NUM_VOICES; ++i) {
@@ -76,7 +73,7 @@ bool AudioEngine::init() {
     return true;
   }
 
-  if (!Musin::AudioOutput::init()) {
+  if (!AudioOutput::init()) {
     // TODO: Add proper logging/error indication if available
     return false;
   }
@@ -90,7 +87,7 @@ void AudioEngine::process() {
   if (!is_initialized_) {
     return;
   }
-  Musin::AudioOutput::update(lowpass_);
+  AudioOutput::update(lowpass_);
 }
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity) {
@@ -98,15 +95,11 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
     return;
   }
 
-  if (sample_index >= Musin::num_samples) {
-      // TODO: Decide how to handle invalid sample index (e.g., log, play silence)
-      return;
-  }
+  sample_index = sample_index % 32;
 
   Voice &voice = voices_[voice_index];
 
-  voice.reader->set_source(Musin::all_samples[sample_index].data,
-                           Musin::all_samples[sample_index].length);
+  voice.reader->set_source(all_samples[sample_index].data, all_samples[sample_index].length);
 
   const float gain = map_velocity_to_gain(velocity);
   mixer_.gain(voice_index, gain);

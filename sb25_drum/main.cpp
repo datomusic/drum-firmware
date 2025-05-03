@@ -92,6 +92,8 @@ int main() {
     // Brief Delay: Important for WS2812 LED latching after show()
     sleep_us(80);
 
+    audio_engine.process();
+
     loop_timer.record_iteration_end();
   }
 

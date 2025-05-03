@@ -84,7 +84,7 @@ public:
 
   // --- Drumpad Component ---
   // Now observes DrumpadEvents and emits NoteEvents
-  class DrumpadComponent : public etl::observable<SB25::Events::NoteEvent, 1> {
+  class DrumpadComponent : public etl::observable<etl::observer<SB25::Events::NoteEvent>, 1> {
   public:
     explicit DrumpadComponent(PizzaControls *parent_ptr); // Removed sound_router
     void init();

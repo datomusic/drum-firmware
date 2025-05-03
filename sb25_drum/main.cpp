@@ -5,15 +5,15 @@
 #include "pico/stdlib.h" // for stdio_usb_init
 #include "pico/time.h"   // for sleep_us
 
-#include "musin/hal/internal_clock.h"
 #include "midi.h"
-#include "pizza_controls.h"
-#include "pizza_display.h"
-#include "sequencer_controller.h"
+#include "musin/hal/debug_utils.h"
+#include "musin/hal/internal_clock.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/tempo_multiplier.h"
-#include "musin/hal/debug_utils.h"
+#include "pizza_controls.h"
+#include "pizza_display.h"
+#include "sequencer_controller.h"
 
 static PizzaExample::PizzaDisplay pizza_display;
 static Musin::Timing::Sequencer<4, 8> pizza_sequencer;

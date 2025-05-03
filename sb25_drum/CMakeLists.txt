@@ -24,7 +24,6 @@ add_executable(${EXECUTABLE_NAME}
   ../musin/timing/tempo_handler.cpp
   ../musin/timing/tempo_multiplier.cpp
   sequencer_controller.cpp
-  debug_utils.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

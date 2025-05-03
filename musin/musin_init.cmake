@@ -122,6 +122,7 @@ macro(musin_init_hal TARGET)
     ${MUSIN_HAL}/analog_in.cpp
     ${MUSIN_HAL}/gpio.cpp
     ${MUSIN_HAL}/internal_clock.cpp
+    ${MUSIN_HAL}/debug_utils.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE

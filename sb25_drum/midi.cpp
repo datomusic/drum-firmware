@@ -1,23 +1,23 @@
 #include "midi.h"
 
 extern "C" {
-#include "pico/bootrom.h" // For reset_usb_boot
+#include "pico/bootrom.h"   // For reset_usb_boot
 #include "pico/unique_id.h" // For pico_get_unique_board_id
 }
 
 #include "musin/midi/midi_wrapper.h" // For MIDI namespace and byte type
-#include "version.h" // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
+#include "version.h"                 // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 
 // --- Constants ---
 #define SYSEX_DATO_ID 0x7D // Manufacturer ID for Dato
 #define SYSEX_UNIVERSAL_NONREALTIME_ID 0x7E
 #define SYSEX_UNIVERSAL_REALTIME_ID 0x7F // Kept for completeness, though not used here
-#define SYSEX_DRUM_ID 0x65 // Device ID for DRUM
-#define SYSEX_ALL_ID 0x7F // Target all devices
+#define SYSEX_DRUM_ID 0x65               // Device ID for DRUM
+#define SYSEX_ALL_ID 0x7F                // Target all devices
 
 // Command bytes for Dato/DRUM specific SysEx
-#define SYSEX_FIRMWARE_VERSION 0x01 // Custom command to request firmware version
-#define SYSEX_SERIAL_NUMBER 0x02    // Custom command to request serial number
+#define SYSEX_FIRMWARE_VERSION 0x01  // Custom command to request firmware version
+#define SYSEX_SERIAL_NUMBER 0x02     // Custom command to request serial number
 #define SYSEX_REBOOT_BOOTLOADER 0x0B // Custom command to reboot to bootloader
 
 // --- Forward Declarations for Static Helper Functions ---
@@ -109,22 +109,22 @@ static void midi_print_identity() {
       (uint8_t)(FIRMWARE_MAJOR & 0x7F), // Software revision level Byte 1 (Major)
       (uint8_t)(FIRMWARE_MINOR & 0x7F), // Software revision level Byte 2 (Minor)
       (uint8_t)(FIRMWARE_PATCH & 0x7F), // Software revision level Byte 3 (Patch)
-      (uint8_t)(FIRMWARE_COMMITS & 0x7F), // Software revision level Byte 4 (Commits since tag, capped at 127)
+      (uint8_t)(FIRMWARE_COMMITS &
+                0x7F), // Software revision level Byte 4 (Commits since tag, capped at 127)
       0xF7};
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
 
 static void midi_print_firmware_version() {
-  uint8_t sysex[] = {
-      0xF0,
-      SYSEX_DATO_ID,
-      SYSEX_DRUM_ID,
-      SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
-      (uint8_t)(FIRMWARE_MAJOR & 0x7F),
-      (uint8_t)(FIRMWARE_MINOR & 0x7F),
-      (uint8_t)(FIRMWARE_PATCH & 0x7F),
-      0xF7};
+  uint8_t sysex[] = {0xF0,
+                     SYSEX_DATO_ID,
+                     SYSEX_DRUM_ID,
+                     SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
+                     (uint8_t)(FIRMWARE_MAJOR & 0x7F),
+                     (uint8_t)(FIRMWARE_MINOR & 0x7F),
+                     (uint8_t)(FIRMWARE_PATCH & 0x7F),
+                     0xF7};
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
@@ -145,7 +145,7 @@ static void midi_print_serial_number() {
 
   uint8_t msbs = 0;
   for (int i = 0; i < 8; ++i) {
-    sysex[4 + i] = id.id[i] & 0x7F;         // Store the lower 7 bits
+    sysex[4 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
     msbs |= ((id.id[i] >> 7) & 0x01) << i; // Store the MSB in the msbs byte
   }
   sysex[12] = msbs; // Store the collected MSBs as the 9th data byte

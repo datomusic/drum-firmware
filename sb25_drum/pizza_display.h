@@ -9,8 +9,8 @@
 #include <cstdint>
 #include <optional>
 
-#include "sequencer_controller.h"
 #include "musin/timing/step_sequencer.h"
+#include "sequencer_controller.h"
 
 namespace PizzaExample {
 
@@ -98,10 +98,10 @@ public:
    * @param stopped_highlight_factor The highlight factor (0.0-1.0) to use when stopped.
    */
   template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(
-      const Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer,
-      const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
-      bool is_running, float stopped_highlight_factor);
+  void
+  draw_sequencer_state(const Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer,
+                       const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
+                       bool is_running, float stopped_highlight_factor);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.

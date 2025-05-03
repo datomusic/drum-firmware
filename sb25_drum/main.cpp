@@ -29,7 +29,7 @@ static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clo
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 
-static DebugUtils::LoopTimer loop_timer(1000); // Print average loop time every 1000ms
+static Musin::HAL::DebugUtils::LoopTimer loop_timer(1000); // Print average loop time every 1000ms
 
 int main() {
   stdio_usb_init();

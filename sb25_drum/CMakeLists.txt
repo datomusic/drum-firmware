@@ -37,6 +37,12 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=128
 )
 
+# Add include directories for the target
+target_include_directories(${EXECUTABLE_NAME} PRIVATE
+    ../experiments/support # For all_samples.h
+    # Add other specific include paths here if needed
+)
+
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})

@@ -434,10 +434,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    _sound_router.set_parameter(SB25::ParameterID::CRUSH_AMOUNT, std::nullopt, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::CRUSH_AMOUNT, param_value);
     break;
   case DRUM3:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, 2, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, param_value, 2);
     break;
   case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;

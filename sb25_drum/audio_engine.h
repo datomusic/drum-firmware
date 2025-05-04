@@ -22,10 +22,7 @@ namespace SB25 {
 
 // Define constants for clarity
 constexpr size_t NUM_VOICES = 4;
-constexpr uint8_t EFFECT_ID_GLOBAL_FILTER_FREQ = 0;
-constexpr uint8_t EFFECT_ID_GLOBAL_CRUSH_RATE = 1;
 constexpr uint8_t EFFECT_ID_VOICE_VOLUME = 0;
-// TODO: Add more effect IDs as needed
 
 /**
  * @brief Manages audio playback, mixing, and effects for the drum machine.
@@ -82,13 +79,6 @@ public:
   void stop_voice(uint8_t voice_index);
 
   /**
-   * @brief Sets a global effect parameter.
-   * @param effect_id Identifier for the global effect (e.g., EFFECT_ID_GLOBAL_...).
-   * @param value The parameter value, normalized (0.0f to 1.0f).
-   */
-  void set_global_effect_parameter(uint8_t effect_id, float value);
-
-  /**
    * @brief Sets a per-voice/track effect parameter.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
    * @param effect_id Identifier for the per-voice effect (e.g., EFFECT_ID_VOICE_...).
@@ -108,6 +98,24 @@ public:
    * @param volume The desired volume level (0.0f to 1.0f).
    */
   void set_volume(float volume);
+
+  /**
+   * @brief Sets the global lowpass filter cutoff frequency.
+   * @param normalized_value The frequency value, normalized (0.0f to 1.0f).
+   */
+  void set_filter_frequency(float normalized_value);
+
+  /**
+   * @brief Sets the global lowpass filter resonance.
+   * @param normalized_value The resonance value, normalized (0.0f to 1.0f).
+   */
+  void set_filter_resonance(float normalized_value);
+
+  /**
+   * @brief Sets the global crusher sample rate reduction amount.
+   * @param normalized_value The crush amount, normalized (0.0f to 1.0f).
+   */
+  void set_crush_rate(float normalized_value);
 
 private:
   etl::array<Voice, NUM_VOICES> voices_;

@@ -46,6 +46,10 @@ float map_pitch_value_to_multiplier(float normalized_value) {
   return map_value_linear(normalized_value, 0.5f, 2.0f);
 }
 
+float map_value_to_resonance(float normalized_value) {
+  return map_value_linear(normalized_value, 0.7f, 5.0f);
+}
+
 float map_value_to_crush_rate(float normalized_value) {
   return map_value_linear(normalized_value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
 }
@@ -115,28 +119,6 @@ void AudioEngine::stop_voice(uint8_t voice_index) {
   // TODO: Consider if voice.sound needs a reset/stop method for efficiency
 }
 
-void AudioEngine::set_global_effect_parameter(uint8_t effect_id, float value) {
-  if (!is_initialized_) {
-    return;
-  }
-
-  switch (effect_id) {
-  case EFFECT_ID_GLOBAL_FILTER_FREQ: {
-    const float freq = map_value_to_freq(value);
-    lowpass_.filter.frequency(freq);
-    break;
-  }
-  case EFFECT_ID_GLOBAL_CRUSH_RATE: {
-    const float rate = map_value_to_crush_rate(value);
-    crusher_.sampleRate(rate);
-    break;
-  }
-  // TODO: Add cases for other global effects (e.g., filter resonance, crush bits)
-  default:
-    break;
-  }
-}
-
 void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id,
                                              float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
@@ -173,6 +155,30 @@ void AudioEngine::set_volume(float volume) {
   // Clamp volume to [0.0, 1.0] before passing to AudioOutput
   volume = std::clamp(volume, 0.0f, 1.0f);
   AudioOutput::volume(volume);
+}
+
+void AudioEngine::set_filter_frequency(float normalized_value) {
+  if (!is_initialized_) {
+    return;
+  }
+  const float freq = map_value_to_freq(normalized_value);
+  lowpass_.filter.frequency(freq);
+}
+
+void AudioEngine::set_filter_resonance(float normalized_value) {
+  if (!is_initialized_) {
+    return;
+  }
+  const float resonance = map_value_to_resonance(normalized_value);
+  lowpass_.filter.resonance(resonance);
+}
+
+void AudioEngine::set_crush_rate(float normalized_value) {
+  if (!is_initialized_) {
+    return;
+  }
+  const float rate = map_value_to_crush_rate(normalized_value);
+  crusher_.sampleRate(rate);
 }
 
 } // namespace SB25

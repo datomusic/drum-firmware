@@ -156,4 +156,11 @@ void AudioEngine::set_crush_rate(float normalized_value) {
   const float rate = map_value_linear(normalized_value, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY), 2000.0f);
   crusher_.sampleRate(rate);
 }
+ 
+void AudioEngine::set_crush_depth(uint8_t depth) {
+  if (!is_initialized_) {
+    return;
+  }
+  crusher_.bits(depth);
+}
 } // namespace SB25

@@ -434,6 +434,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
+    // Map the single knob value to both rate and depth parameters
     _sound_router.set_parameter(SB25::Parameter::CRUSH_RATE, param_value);
     _sound_router.set_parameter(SB25::Parameter::CRUSH_DEPTH, param_value);
     break;

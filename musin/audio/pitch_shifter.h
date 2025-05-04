@@ -23,6 +23,20 @@ struct PitchShifter : SampleReader {
            d4 * (x_3 - 3000 * x_2 + 2000000 * x_1) / 6000000000;
   }
 
+  constexpr static int16_t linear_interpolate(const int16_t y1, const int16_t y2,
+                                              const float fraction) {
+    // Ensure fraction is clamped between 0.0 and 1.0 if necessary, though 'remainder' should be.
+    const float s1 = static_cast<float>(y1);
+    const float s2 = static_cast<float>(y2);
+    // Perform interpolation using floating point
+    const float result = s1 + (s2 - s1) * fraction;
+    // Clamp the result to the valid range of int16_t before casting
+    // This prevents undefined behavior if the interpolated value goes out of bounds.
+    if (result > 32767.0f) return 32767;
+    if (result < -32768.0f) return -32768;
+    return static_cast<int16_t>(result);
+  }
+
   // Reader interface
   constexpr void reset() override {
     for (int i = 0; i < 4; i++) {

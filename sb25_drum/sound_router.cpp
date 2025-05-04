@@ -122,7 +122,6 @@ void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> tra
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
     switch (param_id) {
-    switch (param_id) {
     case ParameterID::DRUM_PARAM_1:
       // TODO: Map DRUM_PARAM_1 to a specific voice effect ID and call audio engine
       // Example: _audio_engine.set_voice_effect_parameter(track_index.value(), EFFECT_ID_VOICE_DRUM1, value);

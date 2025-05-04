@@ -24,12 +24,12 @@ struct PitchShifter : SampleReader {
 
     // Clamp the result to the valid range of int16_t before casting.
     // This prevents undefined behavior if the interpolated value goes out of bounds.
-    if (result > 32767.0f) {
-      return 32767;
+    if (result > INT16_MAX) {
+      return INT16_MAX;
     }
 
-    if (result < -32768.0f) {
-      return -32768;
+    if (result < INT16_MIN) {
+      return INT16_MIN;
     }
 
     return result;

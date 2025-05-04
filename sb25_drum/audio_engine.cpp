@@ -12,8 +12,7 @@
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 
-// This assumes support/all_samples.h defines all_samples and num_samples
-#include "all_samples.h"
+#include "sb25_samples.h"
 
 namespace SB25 {
 
@@ -53,7 +52,7 @@ bool AudioEngine::init() {
     // TODO: Add proper logging/error indication if available
     return false;
   }
-
+  AudioOutput::route_line_in_to_headphone(true);
   is_initialized_ = true;
   // TODO: Add logging/status indication
   return true;

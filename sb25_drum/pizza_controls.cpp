@@ -397,13 +397,13 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case DRUM1:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, 0, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, param_value, 0);
     break;
   case FILTER:
-    _sound_router.set_parameter(SB25::ParameterID::FILTER_CUTOFF, std::nullopt, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::FILTER_CUTOFF, param_value);
     break;
   case DRUM2:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, 1, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, param_value, 1);
     break;
   case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;

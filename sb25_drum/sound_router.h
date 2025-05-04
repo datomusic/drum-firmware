@@ -81,10 +81,19 @@ public:
    * @brief Sets the value for a specific controllable parameter.
    * Routes the parameter change based on the current output mode.
    * @param param_id The logical identifier of the parameter.
+   * @param value The parameter value, typically normalized between 0.0f and 1.0f.
    * @param track_index Optional track index (0-3) if the parameter is per-track (e.g., PITCH).
+   *                    Defaults to std::nullopt if not provided.
+   */
+  void set_parameter(ParameterID param_id, float value,
+                     std::optional<uint8_t> track_index = std::nullopt);
+
+  /**
+   * @brief Overload for setting global parameters without needing to specify std::nullopt.
+   * @param param_id The logical identifier of the parameter.
    * @param value The parameter value, typically normalized between 0.0f and 1.0f.
    */
-  void set_parameter(ParameterID param_id, std::optional<uint8_t> track_index, float value);
+  void set_parameter(ParameterID param_id, float value);
 
   /**
    * @brief Handles incoming NoteEvents.

@@ -94,8 +94,8 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
   }
 }
 
-void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> track_index,
-                                float value) {
+void SoundRouter::set_parameter(ParameterID param_id, float value,
+                                std::optional<uint8_t> track_index) {
 
   if ((param_id == ParameterID::PITCH || param_id == ParameterID::DRUM_PARAM_1 ||
        param_id == ParameterID::DRUM_PARAM_2 || param_id == ParameterID::DRUM_PARAM_3 ||
@@ -156,6 +156,12 @@ void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> tra
 
 void SoundRouter::notification(SB25::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
+}
+
+// --- SoundRouter Overload Implementation ---
+
+void SoundRouter::set_parameter(ParameterID param_id, float value) {
+  set_parameter(param_id, value, std::nullopt);
 }
 
 } // namespace SB25

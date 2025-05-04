@@ -63,9 +63,10 @@ private:
   constexpr uint32_t read_resampled(AudioBlock &out) {
     for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
 
+      // Use linear interpolation between the two most relevant samples (index 1 and 2)
+      // based on the fractional 'remainder'.
       const int16_t interpolated_value =
-          quad_interpolate(interpolation_samples[0], interpolation_samples[1],
-                           interpolation_samples[2], interpolation_samples[3], 1.0 + remainder);
+          linear_interpolate(interpolation_samples[1], interpolation_samples[2], remainder);
 
       this->position += this->speed;
       const uint32_t new_source_index = (uint32_t)(position);

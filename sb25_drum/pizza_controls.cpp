@@ -397,13 +397,13 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case DRUM1:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, param_value, 0);
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_1, param_value, 0);
     break;
   case FILTER:
-    _sound_router.set_parameter(SB25::ParameterID::FILTER_FREQUENCY, param_value);
+    _sound_router.set_parameter(SB25::Parameter::FILTER_FREQUENCY, param_value);
     break;
   case DRUM2:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, param_value, 1);
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_2, param_value, 1);
     break;
   case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;
@@ -419,7 +419,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
-    _sound_router.set_parameter(SB25::ParameterID::VOLUME, param_value);
+    _sound_router.set_parameter(SB25::Parameter::VOLUME, param_value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;
@@ -434,10 +434,11 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    _sound_router.set_parameter(SB25::ParameterID::CRUSH_RATE, param_value);
+    _sound_router.set_parameter(SB25::Parameter::CRUSH_RATE, param_value);
+    _sound_router.set_parameter(SB25::Parameter::CRUSH_DEPTH, param_value);
     break;
   case DRUM3:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, param_value, 2);
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_3, param_value, 2);
     break;
   case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
@@ -458,23 +459,23 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     // Note: We no longer send a generic REPEAT CC via SoundRouter here,
     // as the effect is handled internally by the SequencerController.
-    // If a MIDI CC for repeat *is* desired, it would need a specific ParameterID.
+    // If a MIDI CC for repeat *is* desired, it would need a specific Parameter.
     break;
   }
   case DRUM4:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_4, param_value, 3);
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_4, param_value, 3);
     break;
   case PITCH1:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 0);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 0);
     break;
   case PITCH2:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 1);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 1);
     break;
   case PITCH3:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 2);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 2);
     break;
   case PITCH4:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 3);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 3);
     break;
   case SPEED: {
     constexpr float min_bpm = 30.0f;

@@ -21,18 +21,18 @@ void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint
 namespace SB25 {
 
 // --- MIDI CC Mapping ---
-constexpr uint8_t map_parameter_to_midi_cc(ParameterID param_id,
+constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id,
                                            std::optional<uint8_t> track_index) {
   switch (param_id) {
-  case ParameterID::DRUM_PARAM_1:
+  case Parameter::DRUM_PRESSURE_1:
     return 20;
-  case ParameterID::DRUM_PARAM_2:
+  case Parameter::DRUM_PRESSURE_2:
     return 21;
-  case ParameterID::DRUM_PARAM_3:
+  case Parameter::DRUM_PRESSURE_3:
     return 22;
-  case ParameterID::DRUM_PARAM_4:
+  case Parameter::DRUM_PRESSURE_4:
     return 23;
-  case ParameterID::PITCH:
+  case Parameter::PITCH:
     if (track_index.has_value()) {
       switch (track_index.value()) {
       case 0:
@@ -49,13 +49,13 @@ constexpr uint8_t map_parameter_to_midi_cc(ParameterID param_id,
     }
     return 0;
  
-  case ParameterID::FILTER_FREQUENCY:
+  case Parameter::FILTER_FREQUENCY:
     return 75;
-  case ParameterID::FILTER_RESONANCE:
+  case Parameter::FILTER_RESONANCE:
     return 76;
-  case ParameterID::VOLUME:
+  case Parameter::VOLUME:
     return 7;
-  case ParameterID::CRUSH_RATE:
+  case Parameter::CRUSH_RATE:
     return 77;
   }
   return 0;
@@ -96,12 +96,12 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
   }
 }
 
-void SoundRouter::set_parameter(ParameterID param_id, float value,
+void SoundRouter::set_parameter(Parameter param_id, float value,
                                 std::optional<uint8_t> track_index) {
 
-  if ((param_id == ParameterID::PITCH || param_id == ParameterID::DRUM_PARAM_1 ||
-       param_id == ParameterID::DRUM_PARAM_2 || param_id == ParameterID::DRUM_PARAM_3 ||
-       param_id == ParameterID::DRUM_PARAM_4) &&
+  if ((param_id == Parameter::PITCH || param_id == Parameter::DRUM_PRESSURE_1 ||
+       param_id == Parameter::DRUM_PRESSURE_2 || param_id == Parameter::DRUM_PRESSURE_3 ||
+       param_id == Parameter::DRUM_PRESSURE_4) &&
       (!track_index.has_value() || track_index.value() >= 4)) {
     return;
   }
@@ -124,32 +124,32 @@ void SoundRouter::set_parameter(ParameterID param_id, float value,
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
     switch (param_id) {
-    case ParameterID::DRUM_PARAM_1:
-      // TODO: Map DRUM_PARAM_1 to a specific voice effect ID and call audio engine
+    case Parameter::DRUM_PRESSURE_1:
+      // TODO: Map DRUM_PRESSURE_1 to a specific voice effect ID and call audio engine
       // Example: _audio_engine.set_voice_effect_parameter(track_index.value(), EFFECT_ID_VOICE_DRUM1, value);
       break;
-    case ParameterID::DRUM_PARAM_2:
-      // TODO: Map DRUM_PARAM_2
+    case Parameter::DRUM_PRESSURE_2:
+      // TODO: Map DRUM_PRESSURE_2
       break;
-    case ParameterID::DRUM_PARAM_3:
-      // TODO: Map DRUM_PARAM_3
+    case Parameter::DRUM_PRESSURE_3:
+      // TODO: Map DRUM_PRESSURE_3
       break;
-    case ParameterID::DRUM_PARAM_4:
-      // TODO: Map DRUM_PARAM_4
+    case Parameter::DRUM_PRESSURE_4:
+      // TODO: Map DRUM_PRESSURE_4
       break;
-    case ParameterID::PITCH:
+    case Parameter::PITCH:
       _audio_engine.set_pitch(track_index.value(), value);
       break;
-    case ParameterID::FILTER_FREQUENCY:
+    case Parameter::FILTER_FREQUENCY:
       _audio_engine.set_filter_frequency(value);
       break;
-    case ParameterID::FILTER_RESONANCE:
+    case Parameter::FILTER_RESONANCE:
       _audio_engine.set_filter_resonance(value);
       break;
-    case ParameterID::VOLUME:
+    case Parameter::VOLUME:
       _audio_engine.set_volume(value);
       break;
-    case ParameterID::CRUSH_RATE:
+    case Parameter::CRUSH_RATE:
       _audio_engine.set_crush_rate(value);
       break;
     }

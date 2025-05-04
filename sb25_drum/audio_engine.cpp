@@ -135,11 +135,11 @@ void AudioEngine::set_filter_frequency(float normalized_value) {
     return;
   }
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float min_freq = 20.0f;
+  const float min_freq = 100.0f;
   const float max_freq = 20000.0f;
   const float log_min = std::log(min_freq);
   const float log_max = std::log(max_freq);
-  const float freq = std::exp(std::lerp(log_min, log_max, normalized_value));
+  const float freq = std::exp(std::lerp(log_max, log_min, normalized_value));
   lowpass_.filter.frequency(freq);
 }
 void AudioEngine::set_filter_resonance(float normalized_value) {

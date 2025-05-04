@@ -57,6 +57,8 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id,
     return 7;
   case Parameter::CRUSH_RATE:
     return 77;
+  case Parameter::CRUSH_DEPTH:
+    return 78;
   }
   return 0;
 }
@@ -152,6 +154,12 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
     case Parameter::CRUSH_RATE:
       _audio_engine.set_crush_rate(value);
       break;
+    case Parameter::CRUSH_DEPTH: {
+      uint8_t depth = 1 + static_cast<uint8_t>(std::round((1.0f - value) * 15.0f));
+      depth = std::clamp(depth, static_cast<uint8_t>(1), static_cast<uint8_t>(16));
+      _audio_engine.set_crush_depth(depth);
+      break;
+    }
     }
   }
 }

@@ -389,27 +389,23 @@ void PizzaControls::AnalogControlComponent::update() {
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
     Musin::UI::AnalogControlEvent event) {
   PizzaControls *controls = parent->parent_controls;
-  // Convert normalized float value (0.0 to 1.0) to typical 0-127 range
-  uint8_t value_0_127 =
-      static_cast<uint8_t>(std::clamp(std::round(event.value * 127.0f), 0.0f, 127.0f));
-
   const uint8_t mux_channel = event.control_id >> 8;
+  const float param_value = event.value; // Use the float value directly
 
-  // Use SoundRouter to set parameters instead of direct MIDI CCs
   // Note: RANDOM, SWING, REPEAT, SPEED are handled differently (affect sequencer/clock directly)
   //       and do not go through the SoundRouter's parameter setting.
 
   switch (mux_channel) {
   case DRUM1:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, 0, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, 0, param_value);
     break;
   case FILTER:
-    _sound_router.set_parameter(SB25::ParameterID::FILTER_CUTOFF, std::nullopt, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::FILTER_CUTOFF, std::nullopt, param_value);
     break;
   case DRUM2:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, 1, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, 1, param_value);
     break;
-  case RANDOM: { // Keep direct control over sequencer random state
+  case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
     bool should_be_active = (event.value >= RANDOM_THRESHOLD);
@@ -423,11 +419,11 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
-    _sound_router.set_parameter(SB25::ParameterID::VOLUME, std::nullopt, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::VOLUME, std::nullopt, param_value);
     break;
-  case SWING: { // Keep direct control over sequencer swing state
+  case SWING: {
     constexpr float center_value = 0.5f;
-    float distance_from_center = fabsf(event.value - center_value); // Range 0.0 to 0.5
+    float distance_from_center = fabsf(param_value - center_value); // Range 0.0 to 0.5
 
     uint8_t swing_percent = 50 + static_cast<uint8_t>(distance_from_center * 33.0f);
 
@@ -438,12 +434,12 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    _sound_router.set_parameter(SB25::ParameterID::CRUSH_AMOUNT, std::nullopt, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::CRUSH_AMOUNT, std::nullopt, param_value);
     break;
   case DRUM3:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, 2, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, 2, param_value);
     break;
-  case REPEAT: { // Keep direct control over sequencer repeat state
+  case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
     constexpr float REPEAT_THRESHOLD_2 = 0.7f;
     constexpr uint32_t REPEAT_LENGTH_1 = 3; // Length for range [T1, T2)
@@ -466,21 +462,21 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case DRUM4:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_4, 3, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_4, 3, param_value);
     break;
   case PITCH1:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 0, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 0, param_value);
     break;
   case PITCH2:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 1, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 1, param_value);
     break;
   case PITCH3:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 2, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 2, param_value);
     break;
   case PITCH4:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 3, value_0_127);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, 3, param_value);
     break;
-  case SPEED: { // Keep direct control over internal clock speed
+  case SPEED: {
     constexpr float min_bpm = 30.0f;
     constexpr float max_bpm = 480.0f;
     float bpm = min_bpm + event.value * (max_bpm - min_bpm);

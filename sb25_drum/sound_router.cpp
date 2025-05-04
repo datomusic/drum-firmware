@@ -95,7 +95,7 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
 }
 
 void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> track_index,
-                                uint8_t value) {
+                                float value) {
 
   if ((param_id == ParameterID::PITCH || param_id == ParameterID::DRUM_PARAM_1 ||
        param_id == ParameterID::DRUM_PARAM_2 || param_id == ParameterID::DRUM_PARAM_3 ||
@@ -104,6 +104,8 @@ void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> tra
     return;
   }
 
+  value = std::clamp(value, 0.0f, 1.0f);
+
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
     if (cc_number > 0) {
@@ -111,47 +113,41 @@ void SoundRouter::set_parameter(ParameterID param_id, std::optional<uint8_t> tra
       if (track_index.has_value()) {
         midi_channel = track_index.value() + 1;
       }
-      send_midi_cc(midi_channel, cc_number, value);
+      uint8_t midi_value = static_cast<uint8_t>(std::round(value * 127.0f));
+      midi_value = std::min(midi_value, static_cast<uint8_t>(127));
+      send_midi_cc(midi_channel, cc_number, midi_value);
+      // TODO: Future enhancement - Add logic here to send 14-bit CC if desired
     }
   }
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
     switch (param_id) {
+    switch (param_id) {
     case ParameterID::DRUM_PARAM_1:
-      // TODO: Map DRUM_PARAM_1 to a specific voice effect ID if needed
-      // Example: _audio_engine.set_voice_effect_parameter(track_index.value(), VOICE_EFFECT_DECAY,
-      // value);
-      (void)value;
+      // TODO: Map DRUM_PARAM_1 to a specific voice effect ID and call audio engine
+      // Example: _audio_engine.set_voice_effect_parameter(track_index.value(), EFFECT_ID_VOICE_DRUM1, value);
       break;
     case ParameterID::DRUM_PARAM_2:
-      // TODO: Map DRUM_PARAM_2 to a specific voice effect ID if needed
-      (void)value;
+      // TODO: Map DRUM_PARAM_2
       break;
     case ParameterID::DRUM_PARAM_3:
-      // TODO: Map DRUM_PARAM_3 to a specific voice effect ID if needed
-      (void)value;
+      // TODO: Map DRUM_PARAM_3
       break;
     case ParameterID::DRUM_PARAM_4:
-      // TODO: Map DRUM_PARAM_4 to a specific voice effect ID if needed
-      (void)value;
+      // TODO: Map DRUM_PARAM_4
       break;
     case ParameterID::PITCH:
       _audio_engine.set_pitch(track_index.value(), value);
       break;
     case ParameterID::FILTER_CUTOFF:
-      // TODO: Map FILTER_CUTOFF to a specific global effect ID if needed
-      // Example: _audio_engine.set_global_effect_parameter(GLOBAL_EFFECT_FILTER, value);
-      (void)value;
+      _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_FILTER_FREQ, value);
       break;
     case ParameterID::VOLUME:
-      // TODO: Map VOLUME to a specific global effect ID if needed
-      // Example: _audio_engine.set_global_effect_parameter(GLOBAL_EFFECT_VOLUME, value);
-      (void)value;
+      // TODO: Decide if this should be a global volume or per-track volume via voice effect
+      // Example: _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_VOLUME, value);
       break;
     case ParameterID::CRUSH_AMOUNT:
-      // TODO: Map CRUSH_AMOUNT to a specific global effect ID if needed
-      // Example: _audio_engine.set_global_effect_parameter(GLOBAL_EFFECT_CRUSH, value);
-      (void)value;
+      _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_CRUSH_RATE, value);
       break;
     }
   }

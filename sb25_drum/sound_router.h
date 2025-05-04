@@ -82,9 +82,9 @@ public:
    * Routes the parameter change based on the current output mode.
    * @param param_id The logical identifier of the parameter.
    * @param track_index Optional track index (0-3) if the parameter is per-track (e.g., PITCH).
-   * @param value The parameter value (typically 0-127).
+   * @param value The parameter value, typically normalized between 0.0f and 1.0f.
    */
-  void set_parameter(ParameterID param_id, std::optional<uint8_t> track_index, uint8_t value);
+  void set_parameter(ParameterID param_id, std::optional<uint8_t> track_index, float value);
 
   /**
    * @brief Handles incoming NoteEvents.

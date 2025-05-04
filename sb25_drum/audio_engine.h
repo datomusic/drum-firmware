@@ -84,24 +84,24 @@ public:
   /**
    * @brief Sets a global effect parameter.
    * @param effect_id Identifier for the global effect (e.g., EFFECT_ID_GLOBAL_...).
-   * @param value The parameter value (typically 0-127).
+   * @param value The parameter value, normalized (0.0f to 1.0f).
    */
-  void set_global_effect_parameter(uint8_t effect_id, uint8_t value);
+  void set_global_effect_parameter(uint8_t effect_id, float value);
 
   /**
    * @brief Sets a per-voice/track effect parameter.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
    * @param effect_id Identifier for the per-voice effect (e.g., EFFECT_ID_VOICE_...).
-   * @param value The parameter value (typically 0-127).
+   * @param value The parameter value, normalized (0.0f to 1.0f).
    */
-  void set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id, uint8_t value);
+  void set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id, float value);
 
   /**
-   * @brief Sets the pitch for a specific voice/track for the *next* time it's triggered.
+   * @brief Sets the pitch multiplier for a specific voice/track for the *next* time it's triggered.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
-   * @param value The pitch value (typically 0-127, mapped internally).
+   * @param value The pitch value, normalized (0.0f to 1.0f), mapped internally to a multiplier.
    */
-  void set_pitch(uint8_t voice_index, uint8_t value);
+  void set_pitch(uint8_t voice_index, float value);
 
 private:
   etl::array<Voice, NUM_VOICES> voices_;

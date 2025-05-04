@@ -19,34 +19,35 @@ namespace SB25 {
 
 namespace {
 
-float map_value_linear(uint8_t value, float min_val, float max_val) {
-  const float normalized_value = static_cast<float>(value) / 127.0f;
-  // Use std::lerp as suggested by compiler
+#include <cmath> // Using std::log, std::exp, std::lerp, std::pow
+
+float map_value_linear(float normalized_value, float min_val, float max_val) {
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   return std::lerp(min_val, max_val, normalized_value);
 }
 
-#include <cmath> // Using std::log, std::exp, std::lerp, std::pow
-
-// Function definition was broken, fixing it:
-float map_value_to_freq(uint8_t value, float min_freq = 20.0f, float max_freq = 20000.0f) {
-  const float normalized_value = static_cast<float>(value) / 127.0f;
+float map_value_to_freq(float normalized_value, float min_freq = 20.0f, float max_freq = 20000.0f) {
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   const float log_min = std::log(min_freq);
   const float log_max = std::log(max_freq);
-  // Use std::lerp here as well
   return std::exp(std::lerp(log_min, log_max, normalized_value));
 }
 
+float map_normalized_value_to_gain(float normalized_value) {
+  return map_value_linear(normalized_value, 0.0f, 1.0f);
+}
+
 float map_velocity_to_gain(uint8_t velocity) {
-  return map_value_linear(velocity, 0.0f, 1.0f);
+  const float normalized_value = static_cast<float>(velocity) / 127.0f;
+  return map_value_linear(normalized_value, 0.0f, 1.0f);
 }
 
-float map_pitch_value_to_multiplier(uint8_t value) {
-  // Map linearly from 0.5f (value=0) to 2.0f (value=127)
-  return map_value_linear(value, 0.5f, 2.0f);
+float map_pitch_value_to_multiplier(float normalized_value) {
+  return map_value_linear(normalized_value, 0.5f, 2.0f);
 }
 
-float map_value_to_crush_rate(uint8_t value) {
-  return map_value_linear(value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
+float map_value_to_crush_rate(float normalized_value) {
+  return map_value_linear(normalized_value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
 }
 
 } // namespace
@@ -114,7 +115,7 @@ void AudioEngine::stop_voice(uint8_t voice_index) {
   // TODO: Consider if voice.sound needs a reset/stop method for efficiency
 }
 
-void AudioEngine::set_global_effect_parameter(uint8_t effect_id, uint8_t value) {
+void AudioEngine::set_global_effect_parameter(uint8_t effect_id, float value) {
   if (!is_initialized_) {
     return;
   }
@@ -137,14 +138,14 @@ void AudioEngine::set_global_effect_parameter(uint8_t effect_id, uint8_t value) 
 }
 
 void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id,
-                                             uint8_t value) {
+                                             float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
 
   switch (effect_id) {
   case EFFECT_ID_VOICE_VOLUME: {
-    const float gain = map_velocity_to_gain(value);
+    const float gain = map_normalized_value_to_gain(value);
     mixer_.gain(voice_index, gain);
     break;
   }
@@ -154,7 +155,7 @@ void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect
   }
 }
 
-void AudioEngine::set_pitch(uint8_t voice_index, uint8_t value) {
+void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
@@ -162,6 +163,7 @@ void AudioEngine::set_pitch(uint8_t voice_index, uint8_t value) {
   const float pitch_multiplier = map_pitch_value_to_multiplier(value);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
+  // voices_[voice_index].sound.set_speed(pitch_multiplier);
 }
 
 } // namespace SB25

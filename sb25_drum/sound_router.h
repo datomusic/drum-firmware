@@ -89,13 +89,6 @@ public:
                      std::optional<uint8_t> track_index = std::nullopt);
 
   /**
-   * @brief Overload for setting global parameters without needing to specify std::nullopt.
-   * @param param_id The logical identifier of the parameter.
-   * @param value The parameter value, typically normalized between 0.0f and 1.0f.
-   */
-  void set_parameter(ParameterID param_id, float value);
-
-  /**
    * @brief Handles incoming NoteEvents.
    * @param event The NoteEvent received.
    */

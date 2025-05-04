@@ -16,14 +16,9 @@ struct Sound : BufferSource {
   }
 
   constexpr void __not_in_flash_func(fill_buffer)(AudioBlock &out_samples) {
-    // printf("Max samples: %i\n", out_buffer->max_sample_count);
-    if (pitch_shifter.has_data()) {
-      pitch_shifter.read_samples(out_samples);
-    } else {
-      // printf("Filling empty buffer\n");
-      for (size_t i = 0; i < out_samples.size(); i++) {
-        out_samples[i] = 0; // L
-      }
+    const uint32_t count = pitch_shifter.read_samples(out_samples);
+    for (size_t i = count; i < out_samples.size(); i++) {
+      out_samples[i] = 0;
     }
   }
 

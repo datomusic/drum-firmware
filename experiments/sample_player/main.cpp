@@ -71,15 +71,15 @@ int main() {
     last_ms = now;
     accum_ms += diff_ms;
 
+    mixer.gain(0, 0.9);
+    mixer.gain(1, 0.8);
+    mixer.gain(2, 0.85);
+    mixer.gain(3, 0.7);
+
     if (!AudioOutput::update(output_source)) {
       if (accum_ms > 300) {
         accum_ms = 0;
-        printf("Playing sound\n");
 
-        mixer.gain(0, 0.9);
-        mixer.gain(1, 0.8);
-        mixer.gain(2, 0.3);
-        mixer.gain(3, 0.7);
 
         MemorySound &sound = sounds[sound_index];
         pitch_index = (pitch_index + 1) % pitches.size();
@@ -88,6 +88,7 @@ int main() {
         // const auto pitch = pitches[pitch_index];
 
         if (!sound.reader.has_data()) {
+          printf("Playing sound\n");
           sound.next_sample();
           sound.sound.play(pitch);
         }

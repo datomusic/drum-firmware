@@ -166,4 +166,13 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   // voices_[voice_index].sound.set_speed(pitch_multiplier);
 }
 
+void AudioEngine::set_volume(float volume) {
+  if (!is_initialized_) {
+    return;
+  }
+  // Clamp volume to [0.0, 1.0] before passing to AudioOutput
+  volume = std::clamp(volume, 0.0f, 1.0f);
+  AudioOutput::volume(volume);
+}
+
 } // namespace SB25

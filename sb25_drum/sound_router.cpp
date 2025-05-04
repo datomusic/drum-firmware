@@ -140,13 +140,12 @@ void SoundRouter::set_parameter(ParameterID param_id, float value,
       break;
     case ParameterID::FILTER_CUTOFF:
       _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_FILTER_FREQ, value);
-      break;
-    case ParameterID::VOLUME:
-      // TODO: Decide if this should be a global volume or per-track volume via voice effect
-      // Example: _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_VOLUME, value);
-      break;
-    case ParameterID::CRUSH_AMOUNT:
-      _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_CRUSH_RATE, value);
+     break;
+   case ParameterID::VOLUME:
+     _audio_engine.set_volume(value);
+     break;
+   case ParameterID::CRUSH_AMOUNT:
+     _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_CRUSH_RATE, value);
       break;
     }
   }

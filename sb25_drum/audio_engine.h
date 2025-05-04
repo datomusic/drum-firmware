@@ -103,6 +103,12 @@ public:
    */
   void set_pitch(uint8_t voice_index, float value);
 
+  /**
+   * @brief Sets the master output volume.
+   * @param volume The desired volume level (0.0f to 1.0f).
+   */
+  void set_volume(float volume);
+
 private:
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;

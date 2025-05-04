@@ -26,13 +26,6 @@ float map_value_linear(float normalized_value, float min_val, float max_val) {
   return std::lerp(min_val, max_val, normalized_value);
 }
 
-float map_value_to_freq(float normalized_value, float min_freq = 20.0f, float max_freq = 20000.0f) {
-  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float log_min = std::log(min_freq);
-  const float log_max = std::log(max_freq);
-  return std::exp(std::lerp(log_min, log_max, normalized_value));
-}
-
 } // namespace
 
 AudioEngine::Voice::Voice() : sound(reader.emplace()) {

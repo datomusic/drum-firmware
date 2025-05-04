@@ -20,6 +20,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
 macro(musin_init TARGET)
   target_include_directories(${TARGET} PRIVATE
     ${MUSIN_ROOT}/..
+    ${MUSIN_ROOT}/ports/pico
   )
 
   target_sources(${TARGET} PRIVATE

@@ -26,6 +26,7 @@ add_executable(${EXECUTABLE_NAME}
   sequencer_controller.cpp
   sound_router.cpp
   audio_engine.cpp
+  sb25_samples.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

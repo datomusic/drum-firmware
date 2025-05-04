@@ -25,6 +25,10 @@ float map_value_linear(float normalized_value, float min_val, float max_val) {
   return std::lerp(min_val, max_val, normalized_value);
 }
 
+float map_value_pitch_fast(float normalized_value) {
+  return 0.5f + normalized_value * (0.5f + normalized_value);
+}
+
 } // namespace
 
 AudioEngine::Voice::Voice() : sound(reader.emplace()) {
@@ -113,7 +117,8 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
     return;
   }
 
-  const float pitch_multiplier = map_value_linear(value, 0.5f, 2.0f);
+  const float pitch_multiplier = map_value_pitch_fast(value);
+  printf("set pitch to %f \n", pitch_multiplier);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
   // voices_[voice_index].sound.set_speed(pitch_multiplier);

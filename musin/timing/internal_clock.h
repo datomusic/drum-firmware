@@ -84,6 +84,6 @@ private:
   struct repeating_timer _timer_info; // Stores repeating timer state
 };
 
-} // namespace Musin::HAL
+} // namespace Musin::Timing
 
 #endif // MUSIN_HAL_INTERNAL_CLOCK_H

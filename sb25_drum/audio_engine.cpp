@@ -33,27 +33,6 @@ float map_value_to_freq(float normalized_value, float min_freq = 20.0f, float ma
   return std::exp(std::lerp(log_min, log_max, normalized_value));
 }
 
-float map_normalized_value_to_gain(float normalized_value) {
-  return map_value_linear(normalized_value, 0.0f, 1.0f);
-}
-
-float map_velocity_to_gain(uint8_t velocity) {
-  const float normalized_value = static_cast<float>(velocity) / 127.0f;
-  return map_value_linear(normalized_value, 0.0f, 1.0f);
-}
-
-float map_pitch_value_to_multiplier(float normalized_value) {
-  return map_value_linear(normalized_value, 0.5f, 2.0f);
-}
-
-float map_value_to_resonance(float normalized_value) {
-  return map_value_linear(normalized_value, 0.7f, 5.0f);
-}
-
-float map_value_to_crush_rate(float normalized_value) {
-  return map_value_linear(normalized_value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
-}
-
 } // namespace
 
 AudioEngine::Voice::Voice() : sound(reader.emplace()) {
@@ -105,7 +84,8 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
 
   voice.reader->set_source(all_samples[sample_index].data, all_samples[sample_index].length);
 
-  const float gain = map_velocity_to_gain(velocity);
+  const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
+  const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);
   mixer_.gain(voice_index, gain);
 
   voice.sound.play(voice.current_pitch);
@@ -127,7 +107,7 @@ void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect
 
   switch (effect_id) {
   case EFFECT_ID_VOICE_VOLUME: {
-    const float gain = map_normalized_value_to_gain(value);
+    const float gain = map_value_linear(value, 0.0f, 1.0f);
     mixer_.gain(voice_index, gain);
     break;
   }

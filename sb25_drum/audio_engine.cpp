@@ -1,7 +1,6 @@
 #include "sb25_drum/audio_engine.h"
 
 #include "etl/array.h"
-#include "etl/math.h"
 #include "pico/time.h" // Include if needed for future timing logic
 
 #include "musin/audio/audio_output.h"
@@ -14,11 +13,12 @@
 
 #include "sb25_samples.h"
 
+#include <algorithm> // Include for std::clamp
+#include <cmath>     // Using std::log, std::exp, std::lerp, std::pow
+
 namespace SB25 {
 
 namespace {
-
-#include <cmath> // Using std::log, std::exp, std::lerp, std::pow
 
 float map_value_linear(float normalized_value, float min_val, float max_val) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
@@ -26,7 +26,16 @@ float map_value_linear(float normalized_value, float min_val, float max_val) {
 }
 
 float map_value_pitch_fast(float normalized_value) {
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   return 0.5f + normalized_value * (0.5f + normalized_value);
+}
+
+float map_value_filter_fast(float normalized_value) {
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
+  const float min_freq = 100.0f;
+  const float max_freq = 20000.0f;
+  const float range = max_freq - min_freq;
+  return min_freq + range * normalized_value * normalized_value * normalized_value;
 }
 
 } // namespace
@@ -137,18 +146,14 @@ void AudioEngine::set_filter_frequency(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
-  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float min_freq = 100.0f;
-  const float max_freq = 20000.0f;
-  const float log_min = std::log(min_freq);
-  const float log_max = std::log(max_freq);
-  const float freq = std::exp(std::lerp(log_max, log_min, normalized_value));
+  const float freq = map_value_filter_fast(normalized_value);
   lowpass_.filter.frequency(freq);
 }
 void AudioEngine::set_filter_resonance(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   const float resonance = map_value_linear(normalized_value, 0.7f, 3.0f);
   lowpass_.filter.resonance(resonance);
 }
@@ -156,6 +161,7 @@ void AudioEngine::set_crush_rate(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   const float rate = map_value_linear(normalized_value,
                                       static_cast<float>(AudioOutput::SAMPLE_FREQUENCY), 2000.0f);
   crusher_.sampleRate(rate);

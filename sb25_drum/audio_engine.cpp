@@ -35,7 +35,8 @@ float map_value_filter_fast(float normalized_value) {
   const float min_freq = 100.0f;
   const float max_freq = 20000.0f;
   const float range = max_freq - min_freq;
-  return min_freq + range * normalized_value * normalized_value * normalized_value;
+  const float inverted_normalized_value = 1.0f - normalized_value;
+  return min_freq + range * inverted_normalized_value * inverted_normalized_value * inverted_normalized_value;
 }
 
 } // namespace

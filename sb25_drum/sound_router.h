@@ -23,19 +23,20 @@ enum class OutputMode : uint8_t {
  * @brief Defines logical identifiers for controllable parameters/effects.
  * These abstract away the specific MIDI CC numbers or internal audio engine parameters.
  */
-enum class ParameterID : uint8_t {
+enum class Parameter : uint8_t {
   // Per Voice/Track Parameters (Mapped from DRUM 1-4, PITCH 1-4 knobs)
-  DRUM_PARAM_1, // Example: Decay, Tone, etc. for Track 1
-  DRUM_PARAM_2, // Example: Decay, Tone, etc. for Track 2
-  DRUM_PARAM_3, // Example: Decay, Tone, etc. for Track 3
-  DRUM_PARAM_4, // Example: Decay, Tone, etc. for Track 4
-  PITCH,        // Pitch control for a specific track
+  DRUM_PRESSURE_1, // Example: Decay, Tone, etc. for Track 1
+  DRUM_PRESSURE_2, // Example: Decay, Tone, etc. for Track 2
+  DRUM_PRESSURE_3, // Example: Decay, Tone, etc. for Track 3
+  DRUM_PRESSURE_4, // Example: Decay, Tone, etc. for Track 4
+  PITCH,           // Pitch control for a specific track
 
   // Global Parameters (Mapped from other knobs)
   FILTER_FREQUENCY,
   FILTER_RESONANCE,
   VOLUME,
   CRUSH_RATE,
+  CRUSH_DEPTH,
   // Note: RANDOM, SWING, REPEAT, SPEED are handled directly by SequencerController/InternalClock
 };
 
@@ -86,7 +87,7 @@ public:
    * @param track_index Optional track index (0-3) if the parameter is per-track (e.g., PITCH).
    *                    Defaults to std::nullopt if not provided.
    */
-  void set_parameter(ParameterID param_id, float value,
+  void set_parameter(Parameter param_id, float value,
                      std::optional<uint8_t> track_index = std::nullopt);
 
   /**

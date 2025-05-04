@@ -92,8 +92,7 @@ void AudioEngine::stop_voice(uint8_t voice_index) {
   // TODO: Consider if voice.sound needs a reset/stop method for efficiency
 }
 
-void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id,
-                                             float value) {
+void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id, float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
@@ -114,7 +113,7 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
- 
+
   const float pitch_multiplier = map_value_linear(value, 0.5f, 2.0f);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
@@ -146,17 +145,18 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
-  const float resonance = map_value_linear(normalized_value, 0.7f, 5.0f);
+  const float resonance = map_value_linear(normalized_value, 0.7f, 3.0f);
   lowpass_.filter.resonance(resonance);
 }
 void AudioEngine::set_crush_rate(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
-  const float rate = map_value_linear(normalized_value, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY), 2000.0f);
+  const float rate = map_value_linear(normalized_value,
+                                      static_cast<float>(AudioOutput::SAMPLE_FREQUENCY), 2000.0f);
   crusher_.sampleRate(rate);
 }
- 
+
 void AudioEngine::set_crush_depth(uint8_t depth) {
   if (!is_initialized_) {
     return;

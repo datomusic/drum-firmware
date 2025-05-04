@@ -390,20 +390,13 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     Musin::UI::AnalogControlEvent event) {
   PizzaControls *controls = parent->parent_controls;
   const uint8_t mux_channel = event.control_id >> 8;
-  const float param_value = event.value; // Use the float value directly
 
   // Note: RANDOM, SWING, REPEAT, SPEED are handled differently (affect sequencer/clock directly)
   //       and do not go through the SoundRouter's parameter setting.
 
   switch (mux_channel) {
-  case DRUM1:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_1, param_value, 0);
-    break;
   case FILTER:
-    _sound_router.set_parameter(SB25::Parameter::FILTER_FREQUENCY, param_value);
-    break;
-  case DRUM2:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_2, param_value, 1);
+    _sound_router.set_parameter(SB25::Parameter::FILTER_FREQUENCY, event.value);
     break;
   case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;
@@ -412,18 +405,16 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     if (should_be_active && !was_active) {
       controls->_sequencer_controller_ref.activate_random();
-      printf("Activated random\n");
     } else if (!should_be_active && was_active) {
       controls->_sequencer_controller_ref.deactivate_random();
-      printf("Deactivated random\n");
     }
   } break;
   case VOLUME:
-    _sound_router.set_parameter(SB25::Parameter::VOLUME, param_value);
+    _sound_router.set_parameter(SB25::Parameter::VOLUME, event.value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;
-    float distance_from_center = fabsf(param_value - center_value); // Range 0.0 to 0.5
+    float distance_from_center = fabsf(event.value - center_value); // Range 0.0 to 0.5
 
     uint8_t swing_percent = 50 + static_cast<uint8_t>(distance_from_center * 33.0f);
 
@@ -434,12 +425,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    // Map the single knob value to both rate and depth parameters
-    _sound_router.set_parameter(SB25::Parameter::CRUSH_RATE, param_value);
-    _sound_router.set_parameter(SB25::Parameter::CRUSH_DEPTH, param_value);
-    break;
-  case DRUM3:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_3, param_value, 2);
+    _sound_router.set_parameter(SB25::Parameter::CRUSH_RATE, event.value);
+    _sound_router.set_parameter(SB25::Parameter::CRUSH_DEPTH, event.value);
     break;
   case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
@@ -463,20 +450,29 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     // If a MIDI CC for repeat *is* desired, it would need a specific Parameter.
     break;
   }
+  case DRUM1:
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_1, event.value, 0);
+    break;
+  case DRUM2:
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_2, event.value, 1);
+    break;
+  case DRUM3:
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_3, event.value, 2);
+    break;
   case DRUM4:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_4, param_value, 3);
+    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_4, event.value, 3);
     break;
   case PITCH1:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 0);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 0);
     break;
   case PITCH2:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 1);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 1);
     break;
   case PITCH3:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 2);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 2);
     break;
   case PITCH4:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, param_value, 3);
+    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 3);
     break;
   case SPEED: {
     constexpr float min_bpm = 30.0f;

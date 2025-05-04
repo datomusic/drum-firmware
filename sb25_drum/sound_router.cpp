@@ -21,8 +21,7 @@ void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint
 namespace SB25 {
 
 // --- MIDI CC Mapping ---
-constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id,
-                                           std::optional<uint8_t> track_index) {
+constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uint8_t> track_index) {
   switch (param_id) {
   case Parameter::DRUM_PRESSURE_1:
     return 20;
@@ -48,7 +47,7 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id,
       }
     }
     return 0;
- 
+
   case Parameter::FILTER_FREQUENCY:
     return 75;
   case Parameter::FILTER_RESONANCE:
@@ -128,7 +127,8 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
     switch (param_id) {
     case Parameter::DRUM_PRESSURE_1:
       // TODO: Map DRUM_PRESSURE_1 to a specific voice effect ID and call audio engine
-      // Example: _audio_engine.set_voice_effect_parameter(track_index.value(), EFFECT_ID_VOICE_DRUM1, value);
+      // Example: _audio_engine.set_voice_effect_parameter(track_index.value(),
+      // EFFECT_ID_VOICE_DRUM1, value);
       break;
     case Parameter::DRUM_PRESSURE_2:
       // TODO: Map DRUM_PRESSURE_2

@@ -116,13 +116,14 @@ public:
    * @param normalized_value The crush amount, normalized (0.0f to 1.0f).
    */
   void set_crush_rate(float normalized_value);
- 
+
   /**
    * @brief Sets the global crusher bit depth.
-   * @param depth The desired bit depth (e.g., 1 to 16). Values outside a reasonable range might be clamped internally by the Crusher effect.
+   * @param depth The desired bit depth (e.g., 1 to 16). Values outside a reasonable range might be
+   * clamped internally by the Crusher effect.
    */
   void set_crush_depth(uint8_t depth);
- 
+
 private:
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;

@@ -419,7 +419,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
-    _sound_router.set_parameter(SB25::ParameterID::VOLUME, std::nullopt, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::VOLUME, param_value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;

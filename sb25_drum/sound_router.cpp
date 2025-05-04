@@ -158,10 +158,4 @@ void SoundRouter::notification(SB25::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
 }
 
-// --- SoundRouter Overload Implementation ---
-
-void SoundRouter::set_parameter(ParameterID param_id, float value) {
-  set_parameter(param_id, value, std::nullopt);
-}
-
 } // namespace SB25

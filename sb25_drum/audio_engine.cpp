@@ -156,7 +156,7 @@ void AudioEngine::set_crush_rate(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
-  const float rate = map_value_linear(normalized_value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
+  const float rate = map_value_linear(normalized_value, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY), 2000.0f);
   crusher_.sampleRate(rate);
 }
 } // namespace SB25

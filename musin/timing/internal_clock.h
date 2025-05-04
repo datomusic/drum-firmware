@@ -7,7 +7,7 @@
 #include "pico/time.h" // Use pico_time for repeating_timer
 #include <cstdint>
 
-namespace Musin::HAL {
+namespace Musin::Timing {
 
 // Maximum number of observers InternalClock can notify (e.g., TempoHandler, PizzaControls)
 constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2

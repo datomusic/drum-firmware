@@ -25,6 +25,7 @@ macro(musin_init TARGET)
 
   target_sources(${TARGET} PRIVATE
     ${MUSIN_ROOT}/pico_uart.cpp
+    ${MUSIN_ROOT}/timing/internal_clock.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE
@@ -122,7 +123,6 @@ macro(musin_init_hal TARGET)
   target_sources(${TARGET} PRIVATE
     ${MUSIN_HAL}/analog_in.cpp
     ${MUSIN_HAL}/gpio.cpp
-    ${MUSIN_HAL}/internal_clock.cpp
     ${MUSIN_HAL}/debug_utils.cpp
   )
 

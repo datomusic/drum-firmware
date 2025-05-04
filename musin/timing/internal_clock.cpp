@@ -1,9 +1,10 @@
-#include "musin/hal/internal_clock.h"
+#include "internal_clock.h"
+
 #include "musin/timing/clock_event.h"
 #include "pico/stdlib.h"
 #include <cstdio>
 
-namespace Musin::HAL {
+namespace Musin::Timing {
 
 InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is_running(false) {
   _timer_info = {};
@@ -117,4 +118,4 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
 
 // handle_tick() method removed
 
-} // namespace Musin::HAL
+} // namespace Musin::Timing

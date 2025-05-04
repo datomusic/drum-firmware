@@ -12,15 +12,27 @@ struct PitchShifter : SampleReader {
   }
 
   constexpr static int16_t quad_interpolate(const int16_t d1, const int16_t d2, const int16_t d3,
-                                            const int16_t d4, const float x) {
+                                            const int16_t d4, const double x) {
     const float x_1 = x * 1000.0;
     const float x_2 = x_1 * x_1;
     const float x_3 = x_2 * x_1;
 
-    return d1 * (x_3 - 6000 * x_2 + 11000000 * x_1 - 6000000000) / -6000000000 +
-           d2 * (x_3 - 5000 * x_2 + 6000000 * x_1) / 2000000000 +
-           d3 * (x_3 - 4000 * x_2 + 3000000 * x_1) / -2000000000 +
-           d4 * (x_3 - 3000 * x_2 + 2000000 * x_1) / 6000000000;
+    const float result = d1 * (x_3 - 6000 * x_2 + 11000000 * x_1 - 6000000000) / -6000000000 +
+                         d2 * (x_3 - 5000 * x_2 + 6000000 * x_1) / 2000000000 +
+                         d3 * (x_3 - 4000 * x_2 + 3000000 * x_1) / -2000000000 +
+                         d4 * (x_3 - 3000 * x_2 + 2000000 * x_1) / 6000000000;
+
+    // Clamp the result to the valid range of int16_t before casting.
+    // This prevents undefined behavior if the interpolated value goes out of bounds.
+    if (result > 32767.0f) {
+      return 32767;
+    }
+
+    if (result < -32768.0f) {
+      return -32768;
+    }
+
+    return result;
   }
 
   // Reader interface
@@ -49,7 +61,7 @@ struct PitchShifter : SampleReader {
     }
   }
 
-  constexpr void set_speed(const float speed) {
+  constexpr void set_speed(const double speed) {
     if (speed < 0.2) {
       this->speed = 0.2;
     } else if (speed > 1.8) {
@@ -63,7 +75,7 @@ private:
   constexpr uint32_t read_resampled(AudioBlock &out) {
     for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
 
-      const int16_t interpolated_value =
+      const int32_t interpolated_value =
           quad_interpolate(interpolation_samples[0], interpolation_samples[1],
                            interpolation_samples[2], interpolation_samples[3], 1.0 + remainder);
 
@@ -95,11 +107,11 @@ private:
     interpolation_samples[3] = sample;
   }
 
-  float speed;
+  double speed;
   int16_t interpolation_samples[4];
   uint32_t source_index;
-  float position;
-  float remainder;
+  double position;
+  double remainder;
   SampleReader &sample_reader;
   BufferedReader buffered_reader;
 };

@@ -400,7 +400,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_1, param_value, 0);
     break;
   case FILTER:
-    _sound_router.set_parameter(SB25::ParameterID::FILTER_CUTOFF, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::FILTER_FREQUENCY, param_value);
     break;
   case DRUM2:
     _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_2, param_value, 1);
@@ -434,7 +434,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    _sound_router.set_parameter(SB25::ParameterID::CRUSH_AMOUNT, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::CRUSH_RATE, param_value);
     break;
   case DRUM3:
     _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_3, param_value, 2);
@@ -462,19 +462,19 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case DRUM4:
-    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_4, 3, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::DRUM_PARAM_4, param_value, 3);
     break;
   case PITCH1:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 0, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 0);
     break;
   case PITCH2:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 1, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 1);
     break;
   case PITCH3:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 2, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 2);
     break;
   case PITCH4:
-    _sound_router.set_parameter(SB25::ParameterID::PITCH, 3, param_value);
+    _sound_router.set_parameter(SB25::ParameterID::PITCH, param_value, 3);
     break;
   case SPEED: {
     constexpr float min_bpm = 30.0f;

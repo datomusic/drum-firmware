@@ -32,9 +32,10 @@ enum class ParameterID : uint8_t {
   PITCH,        // Pitch control for a specific track
 
   // Global Parameters (Mapped from other knobs)
-  FILTER_CUTOFF,
+  FILTER_FREQUENCY,
+  FILTER_RESONANCE,
   VOLUME,
-  CRUSH_AMOUNT,
+  CRUSH_RATE,
   // Note: RANDOM, SWING, REPEAT, SPEED are handled directly by SequencerController/InternalClock
 };
 

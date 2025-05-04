@@ -48,12 +48,14 @@ constexpr uint8_t map_parameter_to_midi_cc(ParameterID param_id,
       }
     }
     return 0;
-
-  case ParameterID::FILTER_CUTOFF:
+ 
+  case ParameterID::FILTER_FREQUENCY:
     return 75;
+  case ParameterID::FILTER_RESONANCE:
+    return 76;
   case ParameterID::VOLUME:
     return 7;
-  case ParameterID::CRUSH_AMOUNT:
+  case ParameterID::CRUSH_RATE:
     return 77;
   }
   return 0;
@@ -138,14 +140,17 @@ void SoundRouter::set_parameter(ParameterID param_id, float value,
     case ParameterID::PITCH:
       _audio_engine.set_pitch(track_index.value(), value);
       break;
-    case ParameterID::FILTER_CUTOFF:
-      _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_FILTER_FREQ, value);
-     break;
-   case ParameterID::VOLUME:
-     _audio_engine.set_volume(value);
-     break;
-   case ParameterID::CRUSH_AMOUNT:
-     _audio_engine.set_global_effect_parameter(EFFECT_ID_GLOBAL_CRUSH_RATE, value);
+    case ParameterID::FILTER_FREQUENCY:
+      _audio_engine.set_filter_frequency(value);
+      break;
+    case ParameterID::FILTER_RESONANCE:
+      _audio_engine.set_filter_resonance(value);
+      break;
+    case ParameterID::VOLUME:
+      _audio_engine.set_volume(value);
+      break;
+    case ParameterID::CRUSH_RATE:
+      _audio_engine.set_crush_rate(value);
       break;
     }
   }

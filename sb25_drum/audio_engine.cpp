@@ -121,8 +121,8 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
-
-  const float pitch_multiplier = map_pitch_value_to_multiplier(value);
+ 
+  const float pitch_multiplier = map_value_linear(value, 0.5f, 2.0f);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
   // voices_[voice_index].sound.set_speed(pitch_multiplier);
@@ -149,16 +149,14 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
-  const float resonance = map_value_to_resonance(normalized_value);
+  const float resonance = map_value_linear(normalized_value, 0.7f, 5.0f);
   lowpass_.filter.resonance(resonance);
 }
-
 void AudioEngine::set_crush_rate(float normalized_value) {
   if (!is_initialized_) {
     return;
   }
-  const float rate = map_value_to_crush_rate(normalized_value);
+  const float rate = map_value_linear(normalized_value, 2000.0f, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
   crusher_.sampleRate(rate);
 }
-
 } // namespace SB25

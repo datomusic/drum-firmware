@@ -21,7 +21,7 @@ struct MemorySound {
   }
 
   void next_sample() {
-    sample_index = (sample_index + 4) % 32;
+    sample_index = (sample_index + 4) % all_samples.size();
     reader.set_source(all_samples[sample_index].data, all_samples[sample_index].length);
   }
 
@@ -54,16 +54,16 @@ int main() {
   uint32_t accum_ms = last_ms;
 
   auto sound_index = 0;
-  auto pitch_index = 0;
   auto freq_index = 0;
   auto crush_index = 0;
 
-  const std::array pitches{0.6f, 0.3f, 1.0f, 1.9f, 1.4f};
   const std::array freqs{200.0f, 500.0f, 700.0f, 1200.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f};
   const std::array crush_rates{2489.0f, 44100.0f}; // Also make 44100 a float
+  float pitch = 0.3;
 
   // lowpass.filter.resonance(3.0f);
 
+  AudioOutput::volume(0.7);
   printf("Entering main loop\n");
   while (true) {
     const auto now = to_ms_since_boot(get_absolute_time());
@@ -79,16 +79,9 @@ int main() {
     if (!AudioOutput::update(output_source)) {
       if (accum_ms > 300) {
         accum_ms = 0;
-
-
+   
         MemorySound &sound = sounds[sound_index];
-        pitch_index = (pitch_index + 1) % pitches.size();
-
-        const auto pitch = 1;
-        // const auto pitch = pitches[pitch_index];
-
         if (!sound.reader.has_data()) {
-          printf("Playing sound\n");
           sound.next_sample();
           sound.sound.play(pitch);
         }
@@ -96,6 +89,11 @@ int main() {
         sound_index = (sound_index + 1) % SOUND_COUNT;
 
         if (sound_index == 0) {
+          pitch += 0.1f;
+          if (pitch > 2) {
+            pitch = 0.3;
+          }
+
           freq_index = (freq_index + 1) % freqs.size();
           crush_index = (crush_index + 1) % crush_rates.size();
 

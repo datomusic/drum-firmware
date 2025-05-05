@@ -1,26 +1,41 @@
 #ifndef PITCH_SHIFTER_H_0GR8ZAHC
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
-#include "buffered_reader.h"
-#include "sample_reader.h"
 #include <stdint.h>
 
-struct PitchShifter : SampleReader {
+#include "port/section_macros.h"
 
+#include "buffered_reader.h"
+#include "sample_reader.h"
+
+struct PitchShifter : SampleReader {
   constexpr PitchShifter(SampleReader &reader)
       : speed(1), sample_reader(reader), buffered_reader(reader) {
   }
 
-  constexpr static int16_t quad_interpolate(const int16_t d1, const int16_t d2, const int16_t d3,
-                                            const int16_t d4, const float x) {
+  constexpr static int16_t
+  __time_critical_func(quad_interpolate)(const int16_t d1, const int16_t d2, const int16_t d3,
+                                         const int16_t d4, const double x) {
     const float x_1 = x * 1000.0;
     const float x_2 = x_1 * x_1;
     const float x_3 = x_2 * x_1;
 
-    return d1 * (x_3 - 6000 * x_2 + 11000000 * x_1 - 6000000000) / -6000000000 +
-           d2 * (x_3 - 5000 * x_2 + 6000000 * x_1) / 2000000000 +
-           d3 * (x_3 - 4000 * x_2 + 3000000 * x_1) / -2000000000 +
-           d4 * (x_3 - 3000 * x_2 + 2000000 * x_1) / 6000000000;
+    const float result = d1 * (x_3 - 6000 * x_2 + 11000000 * x_1 - 6000000000) / -6000000000 +
+                         d2 * (x_3 - 5000 * x_2 + 6000000 * x_1) / 2000000000 +
+                         d3 * (x_3 - 4000 * x_2 + 3000000 * x_1) / -2000000000 +
+                         d4 * (x_3 - 3000 * x_2 + 2000000 * x_1) / 6000000000;
+
+    // Clamp the result to the valid range of int16_t before casting.
+    // This prevents undefined behavior if the interpolated value goes out of bounds.
+    if (result > INT16_MAX) {
+      return INT16_MAX;
+    }
+
+    if (result < INT16_MIN) {
+      return INT16_MIN;
+    }
+
+    return result;
   }
 
   constexpr static int16_t linear_interpolate(const int16_t y1, const int16_t y2,
@@ -63,7 +78,7 @@ struct PitchShifter : SampleReader {
     }
   }
 
-  constexpr void set_speed(const float speed) {
+  constexpr void set_speed(const double speed) {
     if (speed < 0.2) {
       this->speed = 0.2;
     } else if (speed > 1.8) {
@@ -74,7 +89,9 @@ struct PitchShifter : SampleReader {
   }
 
 private:
-  constexpr uint32_t read_resampled(AudioBlock &out) {
+  constexpr uint32_t __time_critical_func(read_resampled)(AudioBlock &out) {
+    int16_t sample = 0;
+
     for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
 
       // Use linear interpolation between the two most relevant samples (index 1 and 2)
@@ -83,10 +100,9 @@ private:
           linear_interpolate(interpolation_samples[1], interpolation_samples[2], remainder);
 
       this->position += this->speed;
-      const uint32_t new_source_index = (uint32_t)(position);
+      const uint32_t new_source_index = static_cast<uint32_t>(position);
 
       while (source_index < new_source_index) {
-        int16_t sample = 0;
         if (!buffered_reader.read_next(sample)) {
           sample = 0;
         }
@@ -103,18 +119,18 @@ private:
     return out.size();
   }
 
-  constexpr void shift_interpolation_samples(int16_t sample) {
+  constexpr void shift_interpolation_samples(const int16_t sample) {
     interpolation_samples[0] = interpolation_samples[1];
     interpolation_samples[1] = interpolation_samples[2];
     interpolation_samples[2] = interpolation_samples[3];
     interpolation_samples[3] = sample;
   }
 
-  float speed;
+  double speed;
   int16_t interpolation_samples[4];
   uint32_t source_index;
-  float position;
-  float remainder;
+  double position;
+  double remainder;
   SampleReader &sample_reader;
   BufferedReader buffered_reader;
 };

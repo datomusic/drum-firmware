@@ -13,10 +13,11 @@
 #include <cstdint>
 #include <optional>
 
-#include "events.h"    // Added for NoteEvent
-#include "pico/time.h" // For absolute_time_t
+#include "events.h"
+#include "pico/time.h"
 
-#include "musin/hal/internal_clock.h"
+#include "musin/timing/internal_clock.h"
+
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
@@ -35,7 +36,7 @@ public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                          Musin::Timing::Sequencer<4, 8> &sequencer_ref,
-                         Musin::HAL::InternalClock &clock_ref,
+                         Musin::Timing::InternalClock &clock_ref,
                          Musin::Timing::TempoHandler &tempo_handler_ref,
                          StepSequencer::DefaultSequencerController &sequencer_controller_ref,
                          SB25::SoundRouter &sound_router_ref); // Added sound_router_ref
@@ -173,7 +174,7 @@ private:
   // --- Shared Resources ---
   PizzaExample::PizzaDisplay &display;
   Musin::Timing::Sequencer<4, 8> &sequencer;
-  Musin::HAL::InternalClock &_internal_clock;
+  Musin::Timing::InternalClock &_internal_clock;
   Musin::Timing::TempoHandler &_tempo_handler_ref;
   StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
   SB25::SoundRouter &_sound_router_ref; // Added

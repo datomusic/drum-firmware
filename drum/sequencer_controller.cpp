@@ -241,43 +241,35 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   high_res_tick_counter_++;
 
-  if (high_res_tick_counter_ >= next_trigger_tick_target_) {
-    // Clear the per-track played state for this trigger cycle
+  while (state_ == State::Running && high_res_tick_counter_ >= next_trigger_tick_target_) {
     _just_played_step_per_track.fill(std::nullopt);
 
-    // 1. Determine the base step index (where the sequencer would be without effects)
-    //    This now also considers the repeat effect if active.
     size_t base_step_index = calculate_base_step_index();
-
-    // Note: We no longer store a single 'last_played_step_index_' here.
-    // Instead, we store the actual played step per track below.
 
     size_t num_tracks = sequencer.get_num_tracks();
     size_t num_steps = sequencer.get_num_steps();
 
-    // 3. Process each track
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
       size_t step_index_to_play_for_track = base_step_index;
 
-      // If random is active, calculate a *new* random offset for this track *this step*
       if (random_active_ && num_steps > 0) {
-        // Example: offset range +/- half the steps, centered around 0
         int max_offset = num_steps / 2;
         random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
         step_index_to_play_for_track =
             (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
       }
-      // Store the actual step played for this track (for display/highlighting)
       _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
-      // Process the step (send MIDI etc.)
       process_track_step(track_idx, step_index_to_play_for_track);
     }
 
     uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
     next_trigger_tick_target_ += interval_to_next_trigger;
 
-    current_step_counter++; // Increment after processing the current step and calculating next
-                            // interval
+    current_step_counter++;
+
+    if (state_ != State::Running) {
+      break;
+    }
   }
 }
 

@@ -13,10 +13,10 @@
 
 #include <cstddef> // For size_t
 
-// Forward declaration
-class PizzaControls;
-
 namespace drum {
+
+// Forward declaration inside the namespace
+class PizzaControls;
 
 // Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
@@ -129,7 +129,7 @@ public:
   /**
    * @brief Set the pointer to the PizzaControls instance for callbacks.
    */
-  void set_controls_ptr(drum::PizzaControls *ptr);
+  void set_controls_ptr(PizzaControls *ptr); // Use unqualified name within the namespace
 
   /**
    * @brief Sets the intended state of the repeat effect.

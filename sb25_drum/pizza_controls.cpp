@@ -16,7 +16,7 @@ using Musin::UI::Drumpad;
 
 PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
                              Musin::Timing::Sequencer<4, 8> &sequencer_ref,
-                             Musin::HAL::InternalClock &clock_ref,
+                             Musin::Timing::InternalClock &clock_ref,
                              Musin::Timing::TempoHandler &tempo_handler_ref,
                              StepSequencer::DefaultSequencerController &sequencer_controller_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
@@ -49,7 +49,7 @@ void PizzaControls::update() {
   } else {
     // Stopped: Pulse based on clock tick counter
     // Assuming 4/4 time, a beat is a quarter note. PPQN = Ticks per Quarter Note.
-    constexpr uint32_t ticks_per_beat = Musin::HAL::InternalClock::PPQN;
+    constexpr uint32_t ticks_per_beat = Musin::Timing::InternalClock::PPQN;
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;

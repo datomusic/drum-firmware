@@ -1,10 +1,13 @@
 #include "sequencer_controller.h"
-#include "events.h"         // Added for NoteEvent
-#include "pico/time.h"      // For time_us_32() for seeding rand
-#include "pizza_controls.h" // Include for PizzaControls pointer type (used for drumpad fade)
+#include "events.h"    // Added for NoteEvent
+#include "pico/time.h" // For time_us_32() for seeding rand
+// #include "pizza_controls.h" // Ensure this line is removed or commented if present from here
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+
+// Include the full definition needed for accessing members via _controls_ptr
+#include "pizza_controls.h"
 
 namespace drum {
 
@@ -367,7 +370,7 @@ template <size_t NumTracks, size_t NumSteps>
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void drum::SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *ptr) {
+void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *ptr) {
   _controls_ptr = ptr;
 }
 

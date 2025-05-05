@@ -25,7 +25,7 @@ TEST_CASE("MemorySampleReader streams samples") {
   CONST_BODY(({
     const int16_t samples[2] = {123, 33};
     // Use the namespaced version
-    Musin::MemorySampleReader decoder(samples, 2);
+    musin::MemorySampleReader decoder(samples, 2);
 
     // Assuming AudioBlock is still global based on previous info
     AudioBlock block;

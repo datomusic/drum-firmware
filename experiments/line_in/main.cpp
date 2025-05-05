@@ -33,7 +33,7 @@ void handle_sysex([[maybe_unused]] byte *data, [[maybe_unused]] const unsigned l
 
 int main() {
   stdio_init_all();
-  Musin::Usb::init();
+  musin::usb::init();
   MIDI::init(MIDI::Callbacks{
       .note_on = nullptr,
       .note_off = nullptr,
@@ -61,7 +61,7 @@ int main() {
   printf("Entering main loop\n");
 
   while (true) {
-    Musin::Usb::background_update();
+    musin::usb::background_update();
     MIDI::read();
   }
 

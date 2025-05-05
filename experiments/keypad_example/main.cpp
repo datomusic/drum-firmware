@@ -19,11 +19,11 @@ const uint COL_PINS[NUM_COLS] = {9, 8, 7, 6, 5, 4, 3, 2}; // Example GPIOs - C-s
 // --- Allocate the state buffer ---
 // IMPORTANT: This buffer MUST exist for the lifetime of the keypad object.
 // Global or static allocation is usually safest.
-Musin::UI::KeyData key_state_buffer[KEY_COUNT];
+musin::ui::KeyData key_state_buffer[KEY_COUNT];
 
 // --- Create the keypad object ---
 // Pass pointers to the pin arrays and the state buffer
-Musin::UI::Keypad_HC138 keypad(NUM_ROWS, NUM_COLS, DECODER_ADDR_PINS,
+musin::ui::Keypad_HC138 keypad(NUM_ROWS, NUM_COLS, DECODER_ADDR_PINS,
                                COL_PINS,         // Pass the C-style array (decays to pointer)
                                key_state_buffer, // Pass the state buffer
                                10000,            // Scan interval: 10ms

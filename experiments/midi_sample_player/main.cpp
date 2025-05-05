@@ -23,7 +23,7 @@
 #include "musin/audio/file_reader.h"
 #include "musin/audio/sound.h"
 
-using Musin::Audio::FileReader;
+using musin::audio::FileReader;
 
 struct MemorySound {
   MemorySound(const unsigned int *sample_data, const uint32_t data_length)
@@ -168,7 +168,7 @@ void handle_sysex([[maybe_unused]] byte *data, [[maybe_unused]] const unsigned l
 
 int main() {
   stdio_init_all();
-  Musin::Usb::init();
+  musin::usb::init();
   MIDI::init(MIDI::Callbacks{
       .note_on = handle_note_on,
       .note_off = handle_note_off,
@@ -202,7 +202,7 @@ int main() {
   printf("Entering main loop\n");
 
   while (true) {
-    Musin::Usb::background_update();
+    musin::usb::background_update();
     MIDI::read();
     AudioOutput::update(master_source);
   }

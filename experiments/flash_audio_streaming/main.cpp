@@ -23,7 +23,7 @@
 
 #define MIDI_CHANNEL 1
 
-using Musin::Audio::FileReader;
+using musin::audio::FileReader;
 
 struct FileSound {
   FileSound() : sound(Sound(reader)) {
@@ -126,7 +126,7 @@ void handle_note_off(byte, byte, byte) {
 
 static bool init() {
   stdio_init_all();
-  Musin::Usb::init();
+  musin::usb::init();
   MIDI::init(MIDI::Callbacks{
       .note_on = handle_note_on,
       .note_off = handle_note_off,
@@ -145,7 +145,7 @@ static bool init() {
   printf("Startup\n");
   printf("\n\n");
   printf("Initializing fs\n");
-  const auto init_result = Musin::Filesystem::init(REFORMAT);
+  const auto init_result = musin::filesystem::init(REFORMAT);
   if (!init_result) {
     printf("Initialization failed: %i\n", init_result);
     return false;
@@ -179,7 +179,7 @@ int main(void) {
 
   while (true) {
     AudioOutput::update(mixer);
-    Musin::Usb::background_update();
+    musin::usb::background_update();
     MIDI::read(MIDI_CHANNEL);
     for (int i = 0; i < SAMPLE_COUNT; ++i) {
       FileSound *sound = sounds[i];

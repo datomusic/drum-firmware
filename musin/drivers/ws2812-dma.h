@@ -110,6 +110,8 @@ public:
   uint8_t get_brightness() const;
   constexpr size_t get_num_leds() const;
 
+  uint32_t adjust_color_brightness(uint32_t base_color, uint8_t brightness) const;
+
 private:
   // --- Helper methods (identical signatures and implementation to WS2812) ---
   void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b, uint8_t &out_r,
@@ -450,6 +452,24 @@ void WS2812_DMA<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t &r, uint8
     r = g = b = 0;
     break;
   }
+}
+
+template <size_t NUM_LEDS>
+uint32_t WS2812_DMA<NUM_LEDS>::adjust_color_brightness(uint32_t base_color,
+                                                       uint8_t brightness) const {
+  if (base_color == 0) {
+    return 0;
+  }
+
+  uint8_t r, g, b;
+  unpack_color(base_color, r, g, b);
+
+  uint16_t brightness_scale = brightness + (brightness == 255 ? 0 : 1);
+  r = static_cast<uint8_t>(((uint16_t)r * brightness_scale) >> 8);
+  g = static_cast<uint8_t>(((uint16_t)g * brightness_scale) >> 8);
+  b = static_cast<uint8_t>(((uint16_t)b * brightness_scale) >> 8);
+
+  return pack_color(r, g, b);
 }
 
 } // namespace musin::drivers

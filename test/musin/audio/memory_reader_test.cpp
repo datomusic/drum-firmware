@@ -1,8 +1,8 @@
-#include <catch2/catch_test_macros.hpp>
 #include <cassert> // For assert when STATIC_TESTS is enabled
+#include <catch2/catch_test_macros.hpp>
 
-#include "musin/audio/memory_reader.h"
 #include "musin/audio/block.h" // Include AudioBlock definition
+#include "musin/audio/memory_reader.h"
 
 // While working on tests, disable constexpr testing to get proper assertions.
 #define STATIC_TESTS 0 // Set to 1 to enable constexpr tests with assert

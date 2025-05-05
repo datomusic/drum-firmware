@@ -23,7 +23,6 @@ static drum::SoundRouter sound_router(audio_engine);
 static musin::timing::Sequencer<4, 8> pizza_sequencer;
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::TempoHandler tempo_handler(musin::timing::ClockSource::INTERNAL);
-// Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
 static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
 
 drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
@@ -44,7 +43,7 @@ int main() {
 
   // Initialize Audio Engine (stubbed for now)
   if (!audio_engine.init()) {
-    printf("Error: Failed to initialize Audio Engine!\n");
+    //printf("Error: Failed to initialize Audio Engine!\n");
     // Potentially halt or enter a safe state
   }
   // TODO: Set initial SoundRouter output mode if needed (defaults to BOTH)
@@ -83,11 +82,11 @@ int main() {
                                        stopped_highlight_factor);
 
     pizza_display.show();
-    musin::usb::background_update();
-    midi_read();
-
     // Brief Delay: Important for WS2812 LED latching after show()
     sleep_us(80);
+
+    musin::usb::background_update();
+    midi_read();
 
     audio_engine.process();
 

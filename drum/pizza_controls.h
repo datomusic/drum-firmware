@@ -25,20 +25,18 @@
 
 namespace drum {
 class PizzaDisplay; // Forward declaration
-}
-namespace StepSequencer {
+
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
-} // namespace StepSequencer
 
-class PizzaControls : public etl::observer<Musin::Timing::TempoEvent> {
+class PizzaControls : public etl::observer<musin::timing::TempoEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
-                         Musin::Timing::Sequencer<4, 8> &sequencer_ref,
-                         Musin::Timing::InternalClock &clock_ref,
-                         Musin::Timing::TempoHandler &tempo_handler_ref,
-                         StepSequencer::DefaultSequencerController &sequencer_controller_ref,
+                         musin::timing::Sequencer<4, 8> &sequencer_ref,
+                         musin::timing::InternalClock &clock_ref,
+                         musin::timing::TempoHandler &tempo_handler_ref,
+                         drum::DefaultSequencerController &sequencer_controller_ref,
                          drum::SoundRouter &sound_router_ref); // Added sound_router_ref
 
   PizzaControls(const PizzaControls &) = delete;
@@ -46,7 +44,7 @@ public:
 
   void init();
   void update();
-  void notification(Musin::Timing::TempoEvent event) override;
+  void notification(musin::timing::TempoEvent event) override;
 
   // --- Nested Component Definitions ---
 
@@ -58,7 +56,7 @@ public:
     void update();
 
   private:
-    struct KeypadEventHandler : public etl::observer<Musin::UI::KeypadEvent> {
+    struct KeypadEventHandler : public etl::observer<musin::ui::KeypadEvent> {
       KeypadComponent *parent;
       const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map;
       const uint8_t midi_channel;
@@ -68,11 +66,11 @@ public:
                                    uint8_t channel)
           : parent(p), cc_map(map), midi_channel(channel) {
       }
-      void notification(Musin::UI::KeypadEvent event) override;
+      void notification(musin::ui::KeypadEvent event) override;
     };
 
     PizzaControls *parent_controls;
-    Musin::UI::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
+    musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
     static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
@@ -95,22 +93,22 @@ public:
     uint8_t get_note_for_pad(uint8_t pad_index) const;
 
   private:
-    struct DrumpadEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
+    struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       DrumpadComponent *parent;
       const uint8_t pad_index;
 
       constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index) // Removed sr
           : parent(p), pad_index(index) {                               // Removed _sound_router(sr)
       }
-      void notification(Musin::UI::DrumpadEvent event) override;
+      void notification(musin::ui::DrumpadEvent event) override;
     };
 
     void update_drumpads();
 
     PizzaControls *parent_controls;
     // drum::SoundRouter &_sound_router; // Removed
-    etl::array<Musin::HAL::AnalogInMux16, 4> drumpad_readers;
-    etl::array<Musin::UI::Drumpad<Musin::HAL::AnalogInMux16>, 4> drumpads;
+    etl::array<musin::hal::AnalogInMux16, 4> drumpad_readers;
+    etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
     etl::array<absolute_time_t, 4> _fade_start_time; // Track fade start time per pad
     etl::array<DrumpadEventHandler, 4>
@@ -128,18 +126,18 @@ public:
     void update();
 
   private:
-    struct PlaybuttonEventHandler : public etl::observer<Musin::UI::DrumpadEvent> {
+    struct PlaybuttonEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       PlaybuttonComponent *parent;
 
       constexpr PlaybuttonEventHandler(PlaybuttonComponent *p) : parent(p) {
       }
-      void notification(Musin::UI::DrumpadEvent event) override;
+      void notification(musin::ui::DrumpadEvent event) override;
     };
 
     void update_playbutton();
     PizzaControls *parent_controls;
-    Musin::HAL::AnalogInMux16 playbutton_reader;
-    Musin::UI::Drumpad<Musin::HAL::AnalogInMux16> playbutton;
+    musin::hal::AnalogInMux16 playbutton_reader;
+    musin::ui::Drumpad<musin::hal::AnalogInMux16> playbutton;
     PlaybuttonEventHandler playbutton_observer;
   };
 
@@ -152,7 +150,7 @@ public:
     void update();
 
   private:
-    struct AnalogControlEventHandler : public etl::observer<Musin::UI::AnalogControlEvent> {
+    struct AnalogControlEventHandler : public etl::observer<musin::ui::AnalogControlEvent> {
       AnalogControlComponent *parent;
       const uint16_t control_id;
       drum::SoundRouter &_sound_router; // Added
@@ -161,22 +159,22 @@ public:
                                           drum::SoundRouter &sr) // Added sr
           : parent(p), control_id(id), _sound_router(sr) {       // Added _sound_router(sr)
       }
-      void notification(Musin::UI::AnalogControlEvent event) override;
+      void notification(musin::ui::AnalogControlEvent event) override;
     };
 
     PizzaControls *parent_controls;
     drum::SoundRouter &_sound_router; // Added
-    etl::array<Musin::UI::AnalogControl, 16> mux_controls;
+    etl::array<musin::ui::AnalogControl, 16> mux_controls;
     etl::array<AnalogControlEventHandler, 16> control_observers;
   };
 
 private:
   // --- Shared Resources ---
   drum::PizzaDisplay &display;
-  Musin::Timing::Sequencer<4, 8> &sequencer;
-  Musin::Timing::InternalClock &_internal_clock;
-  Musin::Timing::TempoHandler &_tempo_handler_ref;
-  StepSequencer::DefaultSequencerController &_sequencer_controller_ref;
+  musin::timing::Sequencer<4, 8> &sequencer;
+  musin::timing::InternalClock &_internal_clock;
+  musin::timing::TempoHandler &_tempo_handler_ref;
+  drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::SoundRouter &_sound_router_ref; // Added
 
 public: // Make components public for access from SequencerController etc.
@@ -197,4 +195,5 @@ public:                                  // Add getters for state needed by disp
   }
 };
 
+} // namespace drum
 #endif // PIZZA_CONTROLS_H

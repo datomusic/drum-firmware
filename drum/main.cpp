@@ -16,30 +16,29 @@
 #include "sound_router.h"
 
 static drum::PizzaDisplay pizza_display;
-static Musin::Timing::Sequencer<4, 8> pizza_sequencer;
+
 static drum::AudioEngine audio_engine;
 static drum::SoundRouter sound_router(audio_engine);
-static Musin::Timing::InternalClock internal_clock(120.0f);
 
-static Musin::Timing::TempoHandler tempo_handler(Musin::Timing::ClockSource::INTERNAL);
+static musin::timing::Sequencer<4, 8> pizza_sequencer;
+static musin::timing::InternalClock internal_clock(120.0f);
+static musin::timing::TempoHandler tempo_handler(musin::timing::ClockSource::INTERNAL);
 // Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
-static Musin::Timing::TempoMultiplier tempo_multiplier(24, 1);
+static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
 
-// Instantiate SequencerController (no longer takes sound_router)
-StepSequencer::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
 
-// Pass sound_router to PizzaControls constructor
-static PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock, tempo_handler,
+static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock, tempo_handler,
                                     sequencer_controller, sound_router);
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 
-static Musin::HAL::DebugUtils::LoopTimer loop_timer(1000); // Print average loop time every 1000ms
+static musin::hal::DebugUtils::LoopTimer loop_timer(1000); // Print average loop time every 1000ms
 
 int main() {
   stdio_usb_init();
 
-  Musin::Usb::init();
+  musin::usb::init();
 
   midi_init();
 
@@ -66,7 +65,7 @@ int main() {
   // Connect SequencerController NoteEvents to SoundRouter
   sequencer_controller.add_observer(sound_router);
 
-  if (tempo_handler.get_clock_source() == Musin::Timing::ClockSource::INTERNAL) {
+  if (tempo_handler.get_clock_source() == musin::timing::ClockSource::INTERNAL) {
     internal_clock.start();
   }
   // TODO: Add logic to register TempoHandler with other clocks
@@ -84,7 +83,7 @@ int main() {
                                        stopped_highlight_factor);
 
     pizza_display.show();
-    Musin::Usb::background_update();
+    musin::usb::background_update();
     midi_read();
 
     // Brief Delay: Important for WS2812 LED latching after show()

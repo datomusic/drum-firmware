@@ -14,9 +14,9 @@
 #include "musin/audio/sound.h"
 
 // Forward declaration is sufficient for pointer usage
-namespace Musin {
+namespace musin {
 class BufferSource;
-} // namespace Musin
+} // namespace musin
 
 namespace drum {
 
@@ -33,7 +33,7 @@ private:
    * @brief Internal structure representing a single audio voice.
    */
   struct Voice {
-    etl::optional<Musin::MemorySampleReader> reader;
+    etl::optional<musin::MemorySampleReader> reader;
     Sound sound;
     float current_pitch = 1.0f;
 

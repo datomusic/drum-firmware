@@ -99,16 +99,16 @@ public:
    */
   template <size_t NumTracks, size_t NumSteps>
   void
-  draw_sequencer_state(const Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer,
-                       const StepSequencer::SequencerController<NumTracks, NumSteps> &controller,
+  draw_sequencer_state(const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
+                       const drum::SequencerController<NumTracks, NumSteps> &controller,
                        bool is_running, float stopped_highlight_factor);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
    * Allows access to driver methods like adjust_color_brightness.
-   * @return const Musin::Drivers::WS2812<NUM_LEDS>&
+   * @return const musin::drivers::WS2812<NUM_LEDS>&
    */
-  const Musin::Drivers::WS2812<NUM_LEDS> &leds() const {
+  const musin::drivers::WS2812<NUM_LEDS> &leds() const {
     return _leds;
   }
 
@@ -118,7 +118,7 @@ private:
    * @param step The sequencer step data.
    * @return uint32_t The calculated color (0xRRGGBB), or 0 if step is disabled/invalid.
    */
-  uint32_t calculate_step_color(const Musin::Timing::Step &step) const;
+  uint32_t calculate_step_color(const musin::timing::Step &step) const;
 
   /**
    * @brief Apply a highlight effect (blend with white) to a color.
@@ -158,7 +158,7 @@ private:
    */
   uint32_t calculate_intensity_color(uint8_t intensity) const;
 
-  Musin::Drivers::WS2812<NUM_LEDS> _leds;
+  musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
 };
 
@@ -166,8 +166,8 @@ private:
 
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
-    const Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer,
-    const StepSequencer::SequencerController<NumTracks, NumSteps> &controller, bool is_running,
+    const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
+    const drum::SequencerController<NumTracks, NumSteps> &controller, bool is_running,
     float stopped_highlight_factor) {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
@@ -203,7 +203,7 @@ void PizzaDisplay::draw_sequencer_state(
   }
 }
 
-inline uint32_t PizzaDisplay::calculate_step_color(const Musin::Timing::Step &step) const {
+inline uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) const {
   uint32_t color = 0;
 
   if (step.enabled && step.note.has_value()) {

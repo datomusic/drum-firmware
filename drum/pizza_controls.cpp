@@ -11,15 +11,17 @@
 #include <cstddef>
 #include <cstdio>
 
-using Musin::HAL::AnalogInMux16;
-using Musin::UI::AnalogControl;
-using Musin::UI::Drumpad;
+namespace drum {
+
+using musin::hal::AnalogInMux16;
+using musin::ui::AnalogControl;
+using musin::ui::Drumpad;
 
 PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
-                             Musin::Timing::Sequencer<4, 8> &sequencer_ref,
-                             Musin::Timing::InternalClock &clock_ref,
-                             Musin::Timing::TempoHandler &tempo_handler_ref,
-                             StepSequencer::DefaultSequencerController &sequencer_controller_ref,
+                             musin::timing::Sequencer<4, 8> &sequencer_ref,
+                             musin::timing::InternalClock &clock_ref,
+                             musin::timing::TempoHandler &tempo_handler_ref,
+                             drum::DefaultSequencerController &sequencer_controller_ref,
                              drum::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
@@ -56,7 +58,7 @@ void PizzaControls::update() {
   } else {
     // Stopped: Pulse based on clock tick counter
     // Assuming 4/4 time, a beat is a quarter note. PPQN = Ticks per Quarter Note.
-    constexpr uint32_t ticks_per_beat = Musin::Timing::InternalClock::PPQN;
+    constexpr uint32_t ticks_per_beat = musin::timing::InternalClock::PPQN;
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;
@@ -79,7 +81,7 @@ void PizzaControls::update() {
   // Note: PizzaDisplay::show() must be called later in the main loop
 }
 
-void PizzaControls::notification(Musin::Timing::TempoEvent /* event */) {
+void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
   // This notification is now driven by the active clock source via TempoHandler.
   // Only advance the counter if the sequencer is NOT running.
   if (!_sequencer_controller_ref.is_running()) {
@@ -113,12 +115,12 @@ void PizzaControls::KeypadComponent::update() {
 }
 
 void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
-    Musin::UI::KeypadEvent event) {
+    musin::ui::KeypadEvent event) {
   PizzaControls *controls = parent->parent_controls;
 
   // Sample Select (Column 4)
   if (event.col >= 4) {
-    if (event.type == Musin::UI::KeypadEvent::Type::Press) {
+    if (event.type == musin::ui::KeypadEvent::Type::Press) {
       uint8_t pad_index = 0;
       int8_t offset = 0;
       switch (event.row) {
@@ -167,7 +169,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   // Get a reference to the track to modify it
   auto &track = controls->sequencer.get_track(track_idx);
 
-  if (event.type == Musin::UI::KeypadEvent::Type::Press) {
+  if (event.type == musin::ui::KeypadEvent::Type::Press) {
     bool now_enabled = track.toggle_step_enabled(step_idx);
 
     if (now_enabled) {
@@ -183,7 +185,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       // track.set_step_note(step_idx, std::nullopt);
       // track.set_step_velocity(step_idx, std::nullopt);
     }
-  } else if (event.type == Musin::UI::KeypadEvent::Type::Hold) {
+  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
     // Set velocity to max on hold (only affects enabled steps implicitly via set_step_velocity)
     // Note: We might only want to do this if the step *is* enabled.
     // However, set_step_velocity doesn't check enabled status.
@@ -315,8 +317,8 @@ void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
 }
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
-    Musin::UI::DrumpadEvent event) {
-  if (event.type == Musin::UI::DrumpadEvent::Type::Press && event.velocity.has_value()) {
+    musin::ui::DrumpadEvent event) {
+  if (event.type == musin::ui::DrumpadEvent::Type::Press && event.velocity.has_value()) {
     parent->trigger_fade(event.pad_index); // Trigger fade on physical press
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
@@ -324,7 +326,7 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     drum::Events::NoteEvent note_event{
         .track_index = event.pad_index, .note = note, .velocity = velocity};
     parent->notify_observers(note_event);
-  } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
+  } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     // Emit NoteEvent with velocity 0 for note off
     drum::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
@@ -387,7 +389,7 @@ void PizzaControls::AnalogControlComponent::update() {
 }
 
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
-    Musin::UI::AnalogControlEvent event) {
+    musin::ui::AnalogControlEvent event) {
   PizzaControls *controls = parent->parent_controls;
   const uint8_t mux_channel = event.control_id >> 8;
 
@@ -504,9 +506,10 @@ void PizzaControls::PlaybuttonComponent::update() {
 }
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
-    Musin::UI::DrumpadEvent event) {
-  if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
+    musin::ui::DrumpadEvent event) {
+  if (event.type == musin::ui::DrumpadEvent::Type::Press) {
     parent->parent_controls->_sequencer_controller_ref.toggle();
   }
   // Release event is currently unused, no action needed.
+}
 }

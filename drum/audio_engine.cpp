@@ -64,12 +64,10 @@ bool AudioEngine::init() {
   }
 
   if (!AudioOutput::init()) {
-    // TODO: Add proper logging/error indication if available
     return false;
   }
   AudioOutput::route_line_in_to_headphone(true);
   is_initialized_ = true;
-  // TODO: Add logging/status indication
   return true;
 }
 
@@ -129,7 +127,7 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   }
 
   const float pitch_multiplier = map_value_pitch_fast(value);
-  printf("set pitch to %f \n", pitch_multiplier);
+  //printf("set pitch to %f \n", pitch_multiplier);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
   // voices_[voice_index].sound.set_speed(pitch_multiplier);

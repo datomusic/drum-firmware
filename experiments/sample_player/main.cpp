@@ -79,7 +79,7 @@ int main() {
     if (!AudioOutput::update(output_source)) {
       if (accum_ms > 300) {
         accum_ms = 0;
-   
+
         MemorySound &sound = sounds[sound_index];
         if (!sound.reader.has_data()) {
           sound.next_sample();

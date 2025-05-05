@@ -1,7 +1,9 @@
 #ifndef MUSIN_HAL_DEBUG_UTILS_H_
 #define MUSIN_HAL_DEBUG_UTILS_H_
 
+extern "C" {
 #include "pico/time.h"
+}
 #include "etl/array.h"
 #include "etl/string.h"
 #include <cstdint>
@@ -11,9 +13,19 @@
 
 namespace musin::hal {
 namespace DebugUtils {
-
 #ifdef ENABLE_PROFILING
 
+/**
+ * @brief Measures and reports the average execution time of registered code sections.
+ *
+ * When ENABLE_PROFILING is defined, this class collects timing data for different
+ * code sections identified by an index. It periodically prints a report to the
+ * console showing the average execution time and call count for each section.
+ * If ENABLE_PROFILING is not defined, this class compiles to empty stubs,
+ * incurring no runtime overhead.
+ *
+ * @tparam MaxSections The maximum number of code sections that can be profiled.
+ */
 template <size_t MaxSections>
 class SectionProfiler {
   struct ProfiledSection {
@@ -80,6 +92,17 @@ private:
   uint64_t _print_interval_us;
 };
 
+/**
+ * @brief A RAII helper to automatically record the duration of a scope for SectionProfiler.
+ *
+ * Create an instance of this class at the beginning of a scope you want to profile.
+ * When the instance goes out of scope (e.g., at the end of a function or block),
+ * its destructor records the elapsed time using the provided SectionProfiler instance
+ * and section index.
+ * If ENABLE_PROFILING is not defined, this class compiles to an empty stub.
+ *
+ * @tparam MaxSections The maximum number of sections supported by the associated SectionProfiler.
+ */
 template <size_t MaxSections>
 class ScopedProfile {
 public:
@@ -121,9 +144,14 @@ public:
   ScopedProfile(const ScopedProfile&) = delete;
   ScopedProfile& operator=(const ScopedProfile&) = delete;
 };
-
 #endif // ENABLE_PROFILING
 
+/**
+ * @brief Calculates and prints the average duration of a loop over a specified interval.
+ *
+ * This utility helps monitor the performance of a main loop or other recurring
+ * task by periodically printing the average time taken per iteration.
+ */
 class LoopTimer {
 public:
   explicit LoopTimer(uint32_t print_interval_ms = 1000);

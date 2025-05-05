@@ -1,12 +1,10 @@
 #include "sequencer_controller.h"
-#include "events.h"    // Added for NoteEvent
-#include "pico/time.h" // For time_us_32() for seeding rand
-// #include "pizza_controls.h" // Ensure this line is removed or commented if present from here
+#include "events.h"
+#include "pico/time.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 
-// Include the full definition needed for accessing members via _controls_ptr
 #include "pizza_controls.h"
 
 namespace drum {
@@ -14,13 +12,11 @@ namespace drum {
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2>
-        &tempo_source_ref)
-    : sequencer(sequencer_ref),
-      current_step_counter(0), last_played_note_per_track{}, _just_played_step_per_track{},
-      tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
-      swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
-      random_active_(false), random_track_offsets_{} {
+    etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref)
+    : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
+      _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
+      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
+      next_trigger_tick_target_(0), random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
   // Seed the random number generator once
   srand(time_us_32());

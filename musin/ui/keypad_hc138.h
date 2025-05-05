@@ -2,10 +2,10 @@
 #ifndef DRUM_DRIVERS_KEYPAD_HC138_H
 #define DRUM_DRIVERS_KEYPAD_HC138_H
 
-#include "musin/hal/gpio.h" // Include the GPIO abstraction
+#include "etl/observer.h"   // Include ETL observer pattern
 #include "etl/span.h"       // Include ETL span
 #include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
-#include "etl/observer.h"   // Include ETL observer pattern
+#include "musin/hal/gpio.h" // Include the GPIO abstraction
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -21,21 +21,19 @@ namespace musin::ui {
  * @brief Event data structure for keypad notifications
  */
 struct KeypadEvent {
-    enum class Type : uint8_t { 
-        Press, 
-        Release, 
-        Hold 
-    };
-    
-    uint8_t row;
-    uint8_t col;
-    Type type;
+  enum class Type : uint8_t {
+    Press,
+    Release,
+    Hold
+  };
+
+  uint8_t row;
+  uint8_t col;
+  Type type;
 };
 
 // Forward declaration
-template<std::uint8_t NumRows, std::uint8_t NumCols>
-class Keypad_HC138;
-
+template <std::uint8_t NumRows, std::uint8_t NumCols> class Keypad_HC138;
 
 /**
  * @brief Represents the possible states of a single key.
@@ -52,10 +50,10 @@ enum class KeyState : std::uint8_t {
  * @brief Internal data structure to hold the state for a single key.
  */
 struct KeyData {
-  KeyState state = KeyState::IDLE;         ///< Current debounced and hold state.
+  KeyState state = KeyState::IDLE;            ///< Current debounced and hold state.
   absolute_time_t transition_time = nil_time; ///< Time of the last relevant state change start.
-  bool just_pressed = false;              ///< Flag indicating a transition to PRESSED occurred in the last scan.
-  bool just_released = false;             ///< Flag indicating a transition to IDLE occurred in the last scan.
+  bool just_pressed = false; ///< Flag indicating a transition to PRESSED occurred in the last scan.
+  bool just_released = false; ///< Flag indicating a transition to IDLE occurred in the last scan.
 };
 
 /**
@@ -69,38 +67,40 @@ struct KeyData {
  * @tparam NumCols Number of columns (>0).
  * @tparam MaxObservers Maximum number of observers that can be attached.
  */
-template<std::uint8_t NumRows, std::uint8_t NumCols>
+template <std::uint8_t NumRows, std::uint8_t NumCols>
 class Keypad_HC138 : public etl::observable<etl::observer<KeypadEvent>, 4> {
 public:
-    // --- Compile-time validation ---
-    static_assert(NumRows > 0 && NumRows <= 8, "Keypad_HC138: NumRows must be between 1 and 8.");
-    static_assert(NumCols > 0, "Keypad_HC138: NumCols must be greater than 0.");
+  // --- Compile-time validation ---
+  static_assert(NumRows > 0 && NumRows <= 8, "Keypad_HC138: NumRows must be between 1 and 8.");
+  static_assert(NumCols > 0, "Keypad_HC138: NumCols must be greater than 0.");
 
   // --- Constants ---
   static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_MS = 10; ///< 10ms default scan rate
   static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_MS = 5;  ///< 5ms default debounce time
-  static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS = 500;   ///< 500ms default hold time
+  static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS = 500;    ///< 500ms default hold time
 
   /**
    * @brief Construct a new Keypad_HC138 driver instance.
    *
    * @param decoder_address_pins Array containing the 3 GPIO pin numbers for HC138 A0, A1, A2.
-   * @param col_pins Array containing the GPIO pin numbers for the columns. Must contain `NumCols` elements.
-   * @param key_data_buffer An etl::span wrapping the buffer allocated by the caller to store key states. Must contain `NumRows * NumCols` elements.
+   * @param col_pins Array containing the GPIO pin numbers for the columns. Must contain `NumCols`
+   * elements.
+   * @param key_data_buffer An etl::span wrapping the buffer allocated by the caller to store key
+   * states. Must contain `NumRows * NumCols` elements.
    * @param scan_interval_ms Time between full keypad scans in milliseconds.
    * @param debounce_time_ms Time duration for debouncing transitions in milliseconds.
    * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
    */
-  Keypad_HC138(const std::array<uint32_t, 3>& decoder_address_pins,
-               const std::array<uint32_t, NumCols>& col_pins, // Use std::array reference
+  Keypad_HC138(const std::array<uint32_t, 3> &decoder_address_pins,
+               const std::array<uint32_t, NumCols> &col_pins, // Use std::array reference
                // No longer need key_data_buffer parameter
                std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
                std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,
                std::uint32_t hold_time_ms = DEFAULT_HOLD_TIME_MS);
 
   // Prevent copying and assignment
-  Keypad_HC138(const Keypad_HC138&) = delete;
-  Keypad_HC138& operator=(const Keypad_HC138&) = delete;
+  Keypad_HC138(const Keypad_HC138 &) = delete;
+  Keypad_HC138 &operator=(const Keypad_HC138 &) = delete;
 
   /**
    * @brief Initialize GPIO pins for the keypad.
@@ -126,8 +126,8 @@ public:
   bool is_pressed(std::uint8_t row, std::uint8_t col) const;
 
   /**
-   * @brief Checks if a specific key transitioned to the PRESSED state during the *last completed* scan cycle.
-   * This flag is cleared at the beginning of the next scan.
+   * @brief Checks if a specific key transitioned to the PRESSED state during the *last completed*
+   * scan cycle. This flag is cleared at the beginning of the next scan.
    *
    * @param row Row index (0 to NumRows-1).
    * @param col Column index (0 to NumCols-1).
@@ -136,8 +136,8 @@ public:
   bool was_pressed(std::uint8_t row, std::uint8_t col) const;
 
   /**
-   * @brief Checks if a specific key transitioned back to the IDLE state (was released) during the *last completed* scan cycle.
-   * This flag is cleared at the beginning of the next scan.
+   * @brief Checks if a specific key transitioned back to the IDLE state (was released) during the
+   * *last completed* scan cycle. This flag is cleared at the beginning of the next scan.
    *
    * @param row Row index (0 to NumRows-1).
    * @param col Column index (0 to NumCols-1).
@@ -155,12 +155,14 @@ public:
   bool is_held(std::uint8_t row, std::uint8_t col) const;
 
   /** @brief Get the configured number of rows (compile-time). */
-  constexpr std::uint8_t get_num_rows() const { return NumRows; }
+  constexpr std::uint8_t get_num_rows() const {
+    return NumRows;
+  }
 
   /** @brief Get the configured number of columns (compile-time). */
-  constexpr std::uint8_t get_num_cols() const { return NumCols; }
-
-
+  constexpr std::uint8_t get_num_cols() const {
+    return NumCols;
+  }
 
 private:
   /**
@@ -191,7 +193,7 @@ private:
 
   // --- State ---
   std::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer
-  absolute_time_t _last_scan_time = nil_time; // Initialize to nil_time
+  absolute_time_t _last_scan_time = nil_time;                // Initialize to nil_time
 
   // --- Private Notification Helper ---
   void notify_event(uint8_t r, uint8_t c, KeypadEvent::Type type) {

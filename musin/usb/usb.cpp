@@ -44,5 +44,5 @@ void init() {
   // }
 }
 
-} // namespace Usb
+} // namespace usb
 } // namespace musin

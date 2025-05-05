@@ -512,4 +512,4 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   }
   // Release event is currently unused, no action needed.
 }
-}
+} // namespace drum

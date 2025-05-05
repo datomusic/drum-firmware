@@ -1,4 +1,4 @@
-#include "sb25_drum/audio_engine.h"
+#include "audio_engine.h"
 
 #include "etl/array.h"
 #include "pico/time.h" // Include if needed for future timing logic

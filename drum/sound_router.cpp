@@ -18,7 +18,7 @@ void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint
 
 } // namespace
 
-namespace SB25 {
+namespace drum {
 
 // --- MIDI CC Mapping ---
 constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uint8_t> track_index) {
@@ -166,8 +166,8 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
 
 // --- SoundRouter Notification Implementation ---
 
-void SoundRouter::notification(SB25::Events::NoteEvent event) {
+void SoundRouter::notification(drum::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
 }
 
-} // namespace SB25
+} // namespace drum

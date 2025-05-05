@@ -47,8 +47,10 @@ struct PitchShifter : SampleReader {
     const float result = s1 + (s2 - s1) * fraction;
     // Clamp the result to the valid range of int16_t before casting
     // This prevents undefined behavior if the interpolated value goes out of bounds.
-    if (result > 32767.0f) return 32767;
-    if (result < -32768.0f) return -32768;
+    if (result > 32767.0f)
+      return 32767;
+    if (result < -32768.0f)
+      return -32768;
     return static_cast<int16_t>(result);
   }
 

@@ -69,7 +69,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
 
   // Emit Note Off event if a note was previously playing on this track
   if (last_played_note_per_track[track_idx].has_value()) {
-    SB25::Events::NoteEvent note_off_event{.track_index = track_index_u8,
+    drum::Events::NoteEvent note_off_event{.track_index = track_index_u8,
                                            .note = last_played_note_per_track[track_idx].value(),
                                            .velocity = 0};
     notify_observers(note_off_event);
@@ -88,7 +88,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     // Emit Note On event
-    SB25::Events::NoteEvent note_on_event{.track_index = track_index_u8,
+    drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
                                           .velocity = step.velocity.value()};
     notify_observers(note_on_event);
@@ -173,7 +173,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       // Emit Note Off event
-      SB25::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
+      drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
       notify_observers(note_off_event);
@@ -223,7 +223,7 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       // Emit Note Off event
-      SB25::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
+      drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
       notify_observers(note_off_event);

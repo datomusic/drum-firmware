@@ -12,7 +12,7 @@
 #include "musin/timing/step_sequencer.h"
 #include "sequencer_controller.h"
 
-namespace PizzaExample {
+namespace drum {
 
 class PizzaDisplay {
 public:
@@ -300,6 +300,6 @@ inline uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const
   return _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
 }
 
-} // namespace PizzaExample
+} // namespace drum
 
 #endif // PIZZA_DISPLAY_H

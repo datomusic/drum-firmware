@@ -16,7 +16,7 @@
 #include <algorithm> // Include for std::clamp
 #include <cmath>     // Using std::log, std::exp, std::lerp, std::pow
 
-namespace SB25 {
+namespace drum {
 
 namespace {
 
@@ -36,7 +36,8 @@ float map_value_filter_fast(float normalized_value) {
   const float max_freq = 20000.0f;
   const float range = max_freq - min_freq;
   const float inverted_normalized_value = 1.0f - normalized_value;
-  return min_freq + range * inverted_normalized_value * inverted_normalized_value * inverted_normalized_value;
+  return min_freq +
+         range * inverted_normalized_value * inverted_normalized_value * inverted_normalized_value;
 }
 
 } // namespace
@@ -174,4 +175,4 @@ void AudioEngine::set_crush_depth(uint8_t depth) {
   }
   crusher_.bits(depth);
 }
-} // namespace SB25
+} // namespace drum

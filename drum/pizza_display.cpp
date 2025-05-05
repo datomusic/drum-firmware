@@ -11,7 +11,7 @@ extern "C" {
 #include <stdio.h>
 }
 
-namespace PizzaExample {
+namespace drum {
 
 namespace { // Anonymous namespace for internal helpers
 
@@ -163,4 +163,4 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
   }
 }
 
-} // namespace PizzaExample
+} // namespace drum

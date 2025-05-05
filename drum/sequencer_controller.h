@@ -31,7 +31,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
 template <size_t NumTracks, size_t NumSteps>
 class SequencerController
     : public etl::observer<Musin::Timing::SequencerTickEvent>,
-      public etl::observable<etl::observer<SB25::Events::NoteEvent>, 1> { // Made observable
+      public etl::observable<etl::observer<drum::Events::NoteEvent>, 1> { // Made observable
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -152,7 +152,7 @@ private:
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer;
-  // SB25::SoundRouter &_sound_router; // Removed
+  // drum::SoundRouter &_sound_router; // Removed
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;

@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace SB25 {
+namespace drum {
 
 /**
  * @brief Defines the possible output destinations for sound events.
@@ -44,7 +44,7 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class SoundRouter : public etl::observer<SB25::Events::NoteEvent> {
+class SoundRouter : public etl::observer<drum::Events::NoteEvent> {
 public:
   /**
    * @brief Constructor.
@@ -94,7 +94,7 @@ public:
    * @brief Handles incoming NoteEvents.
    * @param event The NoteEvent received.
    */
-  void notification(SB25::Events::NoteEvent event) override;
+  void notification(drum::Events::NoteEvent event) override;
 
   // TODO: Add method to update the track_index -> sample_id mapping if needed.
 
@@ -105,6 +105,6 @@ private:
   // std::array<uint32_t, 4> _track_sample_map;
 };
 
-} // namespace SB25
+} // namespace drum
 
 #endif // SB25_DRUM_SOUND_ROUTER_H_

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace SB25::Events {
+namespace drum::Events {
 
 /**
  * @brief Event data structure for note on/off events.
@@ -14,6 +14,6 @@ struct NoteEvent {
   uint8_t velocity;    // MIDI velocity (0-127, 0 means note off)
 };
 
-} // namespace SB25::Events
+} // namespace drum::Events
 
 #endif // SB25_DRUM_EVENTS__H_

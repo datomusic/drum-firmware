@@ -18,7 +18,7 @@ namespace Musin {
 class BufferSource;
 } // namespace Musin
 
-namespace SB25 {
+namespace drum {
 
 // Define constants for clarity
 constexpr size_t NUM_VOICES = 4;
@@ -135,6 +135,6 @@ private:
   bool is_initialized_ = false;
 };
 
-} // namespace SB25
+} // namespace drum
 
 #endif // SB25_DRUM_AUDIO_ENGINE_H_

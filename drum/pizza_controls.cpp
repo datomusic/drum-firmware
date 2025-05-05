@@ -15,12 +15,12 @@ using Musin::HAL::AnalogInMux16;
 using Musin::UI::AnalogControl;
 using Musin::UI::Drumpad;
 
-PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
+PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
                              Musin::Timing::Sequencer<4, 8> &sequencer_ref,
                              Musin::Timing::InternalClock &clock_ref,
                              Musin::Timing::TempoHandler &tempo_handler_ref,
                              StepSequencer::DefaultSequencerController &sequencer_controller_ref,
-                             SB25::SoundRouter &sound_router_ref) // Added sound_router_ref
+                             drum::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
       _sound_router_ref(sound_router_ref),             // Added
@@ -51,7 +51,7 @@ void PizzaControls::update() {
   // Update the play button LED based on sequencer state
   if (_sequencer_controller_ref.is_running()) {
     // Running: Solid color (e.g., white)
-    display.set_play_button_led(PizzaExample::PizzaDisplay::COLOR_WHITE);
+    display.set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
     // Counter is reset in notification when state changes to running
   } else {
     // Stopped: Pulse based on clock tick counter
@@ -72,7 +72,7 @@ void PizzaControls::update() {
 
     uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * 255.0f);
 
-    uint32_t base_color = PizzaExample::PizzaDisplay::COLOR_WHITE;
+    uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
     uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);
     display.set_play_button_led(pulse_color);
   }
@@ -161,7 +161,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   }
 
   // Map physical column to logical track (0->3, 1->2, 2->1, 3->0)
-  uint8_t track_idx = (PizzaExample::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
+  uint8_t track_idx = (drum::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
   uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row; // Map row to step index (0-7)
 
   // Get a reference to the track to modify it
@@ -321,13 +321,13 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
     // Emit NoteEvent instead of calling SoundRouter directly
-    SB25::Events::NoteEvent note_event{
+    drum::Events::NoteEvent note_event{
         .track_index = event.pad_index, .note = note, .velocity = velocity};
     parent->notify_observers(note_event);
   } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     // Emit NoteEvent with velocity 0 for note off
-    SB25::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
+    drum::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
     parent->notify_observers(note_event);
   }
 }
@@ -336,7 +336,7 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
 
 PizzaControls::AnalogControlComponent::AnalogControlComponent(
     PizzaControls *parent_ptr,
-    SB25::SoundRouter &sound_router)                            // Added sound_router
+    drum::SoundRouter &sound_router)                            // Added sound_router
     : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
       mux_controls{AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
@@ -396,7 +396,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case FILTER:
-    _sound_router.set_parameter(SB25::Parameter::FILTER_FREQUENCY, event.value);
+    _sound_router.set_parameter(drum::Parameter::FILTER_FREQUENCY, event.value);
     break;
   case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;
@@ -410,7 +410,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
-    _sound_router.set_parameter(SB25::Parameter::VOLUME, event.value);
+    _sound_router.set_parameter(drum::Parameter::VOLUME, event.value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;
@@ -425,8 +425,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    _sound_router.set_parameter(SB25::Parameter::CRUSH_RATE, event.value);
-    _sound_router.set_parameter(SB25::Parameter::CRUSH_DEPTH, event.value);
+    _sound_router.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
+    _sound_router.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
     break;
   case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
@@ -451,28 +451,28 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case DRUM1:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_1, event.value, 0);
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_1, event.value, 0);
     break;
   case DRUM2:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_2, event.value, 1);
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_2, event.value, 1);
     break;
   case DRUM3:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_3, event.value, 2);
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_3, event.value, 2);
     break;
   case DRUM4:
-    _sound_router.set_parameter(SB25::Parameter::DRUM_PRESSURE_4, event.value, 3);
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_4, event.value, 3);
     break;
   case PITCH1:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 0);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 0);
     break;
   case PITCH2:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 1);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 1);
     break;
   case PITCH3:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 2);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 2);
     break;
   case PITCH4:
-    _sound_router.set_parameter(SB25::Parameter::PITCH, event.value, 3);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 3);
     break;
   case SPEED: {
     constexpr float min_bpm = 30.0f;

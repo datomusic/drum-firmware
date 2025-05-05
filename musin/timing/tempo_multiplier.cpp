@@ -1,7 +1,7 @@
 #include "musin/timing/tempo_multiplier.h"
 #include "musin/timing/sequencer_tick_event.h"
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 TempoMultiplier::TempoMultiplier(uint32_t initial_multiplier, uint32_t initial_divider)
     : _multiplier(max_or_one(initial_multiplier)), _divider(max_or_one(initial_divider)),
@@ -9,7 +9,7 @@ TempoMultiplier::TempoMultiplier(uint32_t initial_multiplier, uint32_t initial_d
   update_ticks_per_output();
 }
 
-void TempoMultiplier::notification([[maybe_unused]] Musin::Timing::TempoEvent event) {
+void TempoMultiplier::notification([[maybe_unused]] musin::timing::TempoEvent event) {
   _input_tick_counter++;
 
   if (_input_tick_counter >= _input_ticks_per_output_tick) {
@@ -52,7 +52,7 @@ constexpr void TempoMultiplier::update_ticks_per_output() {
   // Formula: Ticks per output = (Base Rate * Divider) / Multiplier
   // Use uint32_t for intermediate calculation, assuming inputs are small enough.
   // Add (multiplier / 2) for rounding before integer division.
-  constexpr uint32_t base_rate = Musin::Timing::DEFAULT_PPQN / 2u;
+  constexpr uint32_t base_rate = musin::timing::DEFAULT_PPQN / 2u;
   uint32_t numerator = base_rate * _divider;
   uint32_t denominator = _multiplier; // Already ensured >= 1
 
@@ -63,4 +63,4 @@ constexpr void TempoMultiplier::update_ticks_per_output() {
   _input_ticks_per_output_tick = max_or_one(rounded_ticks);
 }
 
-} // namespace Musin::Timing
+} // namespace musin::timing

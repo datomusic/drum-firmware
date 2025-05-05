@@ -10,7 +10,7 @@ extern "C" {
 #include <array>
 #include <vector>
 
-namespace Musin::HAL {
+namespace musin::hal {
 
 template <typename Container>
 void set_mux_address(const Container &address_pins, uint8_t address_value) {
@@ -37,7 +37,7 @@ std::uint32_t pin_to_adc_channel(std::uint32_t pin) {
 // --- AnalogIn ---
 
 AnalogIn::AnalogIn(std::uint32_t pin, bool enable_temp_sensor)
-    : _pin(pin), _adc_channel(Musin::HAL::pin_to_adc_channel(pin)),
+    : _pin(pin), _adc_channel(musin::hal::pin_to_adc_channel(pin)),
       _enable_temp_sensor(enable_temp_sensor && (_adc_channel == 3)), // Temp sensor is ADC3
       _initialized(false) {
 }
@@ -88,7 +88,7 @@ template <size_t NumAddressPins>
 AnalogInMux<NumAddressPins>::AnalogInMux(
     std::uint32_t adc_pin, const std::array<std::uint32_t, NumAddressPins> &address_pins,
     uint8_t channel_address, std::uint32_t address_settle_time_us)
-    : _adc_pin(adc_pin), _adc_channel(Musin::HAL::pin_to_adc_channel(adc_pin)),
+    : _adc_pin(adc_pin), _adc_channel(musin::hal::pin_to_adc_channel(adc_pin)),
       _address_pins(address_pins), _channel_address(channel_address),
       _address_settle_time_us(address_settle_time_us), _initialized(false) {
   hard_assert(channel_address < MAX_CHANNELS);
@@ -116,7 +116,7 @@ template <size_t NumAddressPins> std::uint16_t AnalogInMux<NumAddressPins>::read
     return 0;
   }
 
-  Musin::HAL::set_mux_address<std::array<std::uint32_t, NumAddressPins>>(_address_pins,
+  musin::hal::set_mux_address<std::array<std::uint32_t, NumAddressPins>>(_address_pins,
                                                                          _channel_address);
 
   if (_address_settle_time_us > 0) {
@@ -142,4 +142,4 @@ template <size_t NumAddressPins> float AnalogInMux<NumAddressPins>::read_voltage
 template class AnalogInMux<3>; // AnalogInMux8
 template class AnalogInMux<4>; // AnalogInMux16
 
-} // namespace Musin::HAL
+} // namespace musin::hal

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace Musin::Filesystem {
+namespace musin::filesystem {
 
 bool init(bool force_format) {
   printf("init_filesystem, force_format: %b\n", force_format);
@@ -32,4 +32,4 @@ bool init(bool force_format) {
   return err == 0;
 }
 
-} // namespace Musin::Filesystem
+} // namespace musin::filesystem

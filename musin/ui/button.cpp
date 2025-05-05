@@ -6,7 +6,7 @@ extern "C" {
 #include "pico/time.h"
 }
 
-namespace Musin::UI {
+namespace musin::ui {
 
 Button::Button(uint32_t gpio_pin, bool active_high,
              uint32_t debounce_time_ms,
@@ -54,7 +54,7 @@ Button::Button(uint32_t gpio_pin, const std::array<uint32_t,4>& mux_address_pins
 }
 
 void Button::init() {
-    gpio.set_direction(Musin::HAL::GpioDirection::IN);
+    gpio.set_direction(musin::hal::GpioDirection::IN);
     
     // Configure pull based on active level
     if (active_level) {
@@ -66,8 +66,8 @@ void Button::init() {
     // Initialize mux address pins if needed
     if (is_muxed) {
         for(int i = 0; i < mux_width; ++i) {
-            Musin::HAL::GpioPin addr_pin(mux_address_pins[i]);
-            addr_pin.set_direction(Musin::HAL::GpioDirection::OUT);
+            musin::hal::GpioPin addr_pin(mux_address_pins[i]);
+            addr_pin.set_direction(musin::hal::GpioDirection::OUT);
             addr_pin.write(false);
         }
     }
@@ -155,4 +155,4 @@ void Button::notify_observers(ButtonEvent::Type type) {
     etl::observable<etl::observer<ButtonEvent>, 4>::notify_observers(ButtonEvent{_id, type});
 }
 
-} // namespace Musin::UI
+} // namespace musin::ui

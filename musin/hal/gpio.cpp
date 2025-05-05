@@ -5,7 +5,7 @@ extern "C" {
 #include "hardware/gpio.h"
 }
 
-namespace Musin::HAL {
+namespace musin::hal {
 
 GpioPin::GpioPin(std::uint32_t pin) : _pin(pin) {
   gpio_init(_pin);
@@ -35,4 +35,4 @@ void GpioPin::disable_pulls() {
   gpio_disable_pulls(_pin);
 }
 
-} // namespace Musin::HAL
+} // namespace musin::hal

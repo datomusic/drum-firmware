@@ -58,13 +58,13 @@ template<std::uint8_t NumRows, std::uint8_t NumCols>
 void Keypad_HC138<NumRows, NumCols>::init() {
   // Initialize Decoder Address Pins (Outputs)
   for (auto& pin : _decoder_address_pins) { // Iterate over GpioPin vector
-    pin.set_direction(Musin::HAL::GpioDirection::OUT);
+    pin.set_direction(musin::hal::GpioDirection::OUT);
     pin.write(false); // Start with address 0
   }
 
   // Initialize Column Pins (Inputs with Pull-ups) - Iterate through the GpioPin vector
   for (auto& pin : _col_pins) { // Iterate over GpioPin vector
-    pin.set_direction(Musin::HAL::GpioDirection::IN);
+    pin.set_direction(musin::hal::GpioDirection::IN);
     pin.enable_pullup();
     // Optional: Enable hysteresis for potentially noisy inputs
     // pin.set_hysteresis(true); // Assuming a set_hysteresis method exists

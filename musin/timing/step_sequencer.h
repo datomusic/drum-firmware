@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 /**
  * @brief Represents a single step in a sequencer track.
@@ -168,6 +168,6 @@ private:
   etl::array<Track<NumSteps>, NumTracks> tracks;
 };
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_TIMING_STEP_SEQUENCER_H

@@ -1,7 +1,7 @@
 #include "musin/hal/debug_utils.h"
 #include <cstdio> // For printf
 
-namespace Musin::HAL {
+namespace musin::hal {
 namespace DebugUtils {
 
 LoopTimer::LoopTimer(uint32_t print_interval_ms)
@@ -35,4 +35,4 @@ void LoopTimer::record_iteration_end() {
 }
 
 } // namespace DebugUtils
-} // namespace Musin::HAL
+} // namespace musin::hal

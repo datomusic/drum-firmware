@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 /**
  * @brief Event structure signalling a tick for the sequencer to advance.
@@ -15,6 +15,6 @@ struct SequencerTickEvent {
   // For simplicity now, just an empty struct to signal an advance tick.
 };
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_TIMING_TICK_EVENT_H

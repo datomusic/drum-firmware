@@ -10,7 +10,7 @@ extern "C" {
 #include "pico/time.h"
 }
 
-namespace Musin::UI {
+namespace musin::ui {
 
 /**
  * @brief Event data structure for button notifications
@@ -69,7 +69,7 @@ private:
     void handle_state_transition(bool raw_state, absolute_time_t now);
     void notify_observers(ButtonEvent::Type type);
 
-    Musin::HAL::GpioPin gpio;
+    musin::hal::GpioPin gpio;
     const bool active_level; // True for active-high, false for active-low
     const uint32_t debounce_time_us;
     const uint32_t hold_time_us;
@@ -88,6 +88,6 @@ private:
     uint16_t _id;  // Unique identifier for the button
 };
 
-} // namespace Musin::UI
+} // namespace musin::ui
 
 #endif // MUSIN_UI_BUTTON_H

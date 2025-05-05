@@ -12,7 +12,7 @@ extern "C" {
 #include "pico/time.h"
 }
 
-namespace Musin::UI {
+namespace musin::ui {
 
 struct DrumpadEvent {
   enum class Type : uint8_t {
@@ -429,6 +429,6 @@ void Drumpad<AnalogReader>::notify_event(DrumpadEvent::Type type, std::optional<
   this->notify_observers(event);
 }
 
-} // namespace Musin::UI
+} // namespace musin::ui
 
 #endif // MUSIN_UI_DRUMPAD_H

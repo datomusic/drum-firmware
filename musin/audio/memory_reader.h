@@ -4,7 +4,7 @@
 #include "sample_reader.h"
 #include <algorithm> // For std::copy
 
-namespace Musin {
+namespace musin {
 
 // Streams items of DataType in chunks, into some iterator.
 // The user must ensure the iterator can accept max ChunkSize items.
@@ -82,6 +82,6 @@ private:
   MemoryReader<int16_t, int16_t *, AUDIO_BLOCK_SAMPLES> reader;
 };
 
-} // namespace Musin
+} // namespace musin
 
 #endif /* end of include guard: PCM_READER_H_GB952ZMC */

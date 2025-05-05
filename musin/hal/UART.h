@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace Musin::HAL {
+namespace musin::hal {
 
 namespace detail {
 
@@ -164,6 +164,6 @@ private:
   bool _initialized;
 };
 
-} // namespace Musin::HAL
+} // namespace musin::hal
 
 #endif // MUSIN_HAL_UART_H

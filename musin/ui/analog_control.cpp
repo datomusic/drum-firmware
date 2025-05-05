@@ -2,7 +2,7 @@
 #include <cmath> // Required for std::abs
 #include <new>   // Required for placement new
 
-namespace Musin::UI {
+namespace musin::ui {
 
 AnalogControl::AnalogControl(uint32_t adc_pin, bool invert, float threshold)
     : _id(adc_pin), _invert_mapping(invert), _threshold(threshold), _input_type(InputType::Direct),
@@ -13,14 +13,14 @@ AnalogControl::AnalogControl(uint32_t adc_pin, const std::array<std::uint32_t, 3
                              uint8_t mux_channel, bool invert, float threshold)
     : _id((static_cast<uint16_t>(mux_channel) << 8) | adc_pin), _invert_mapping(invert),
       _threshold(threshold), _input_type(InputType::Mux8) {
-  new (&_mux8) Musin::HAL::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
+  new (&_mux8) musin::hal::AnalogInMux8(adc_pin, mux_address_pins, mux_channel);
 }
 
 AnalogControl::AnalogControl(uint32_t adc_pin, const std::array<std::uint32_t, 4> &mux_address_pins,
                              uint8_t mux_channel, bool invert, float threshold)
     : _id((static_cast<uint16_t>(mux_channel) << 8) | adc_pin), _invert_mapping(invert),
       _threshold(threshold), _input_type(InputType::Mux16) {
-  new (&_mux16) Musin::HAL::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
+  new (&_mux16) musin::hal::AnalogInMux16(adc_pin, mux_address_pins, mux_channel);
 }
 
 void AnalogControl::init() {
@@ -73,4 +73,4 @@ bool AnalogControl::update() {
   return false;
 }
 
-} // namespace Musin::UI
+} // namespace musin::ui

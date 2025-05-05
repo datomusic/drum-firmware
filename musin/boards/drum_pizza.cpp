@@ -9,7 +9,7 @@ extern "C" {
 }
 #include "musin/drivers/ws2812.h"   // Updated include path for WS2812
 
-namespace Musin::Boards {
+namespace musin::Boards {
 
 enum class ExternalPinState {
     FLOATING,
@@ -48,7 +48,7 @@ DrumPizza::DrumPizza(const std::array<std::uint32_t, 4>& address_pins_gpio, // U
               debounce_time_us,
               hold_time_us),
       _leds(led_data_pin_gpio, // Argument 1: data pin (now std::uint32_t)
-            Musin::Drivers::RGBOrder::GRB, // Argument 2: order
+            musin::drivers::RGBOrder::GRB, // Argument 2: order
             255, // Argument 3: initial brightness
             std::nullopt), // Argument 4: color correction
       _address_pins_gpio(address_pins_gpio), // Store the std::uint32_t array
@@ -142,4 +142,4 @@ void DrumPizza::init() {
     printf("DrumPizza Initialization Complete.\n");
 }
 
-} // namespace Musin::Boards
+} // namespace musin::Boards

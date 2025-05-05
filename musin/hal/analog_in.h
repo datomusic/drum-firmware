@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace Musin::HAL {
+namespace musin::hal {
 
 /**
  * @brief Provides a simple interface for reading a single analog input pin.
@@ -169,6 +169,6 @@ using AnalogInMux8 = AnalogInMux<3>;
 /// Alias for a 16-channel multiplexer (4 address pins).
 using AnalogInMux16 = AnalogInMux<4>;
 
-} // namespace Musin::HAL
+} // namespace musin::hal
 
 #endif // MUSIN_HAL_ANALOG_IN_H

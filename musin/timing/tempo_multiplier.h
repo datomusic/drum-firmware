@@ -7,7 +7,7 @@
 #include "musin/timing/timing_constants.h" // Needed for DEFAULT_PPQN in constexpr
 #include <cstdint>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 // Maximum number of observers TempoMultiplier can notify (e.g., SequencerController)
 constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
@@ -19,8 +19,8 @@ constexpr size_t MAX_SEQUENCER_OBSERVERS = 2;
  * and emits SequencerTickEvents at a rate determined by the multiplier
  * and divider.
  */
-class TempoMultiplier : public etl::observer<Musin::Timing::TempoEvent>,
-                        public etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>,
+class TempoMultiplier : public etl::observer<musin::timing::TempoEvent>,
+                        public etl::observable<etl::observer<musin::timing::SequencerTickEvent>,
                                                MAX_SEQUENCER_OBSERVERS> {
 public:
   /**
@@ -39,7 +39,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received tempo event (representing one high-resolution tick).
    */
-  void notification(Musin::Timing::TempoEvent event);
+  void notification(musin::timing::TempoEvent event);
 
   /**
    * @brief Set the tempo multiplier.
@@ -79,6 +79,6 @@ private:
   uint32_t _output_tick_counter;         // Counts outgoing SequencerTickEvents
 };
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_TIMING_TEMPO_MULTIPLIER_H

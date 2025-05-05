@@ -15,7 +15,7 @@ extern "C" {
 #include "pico/time.h"
 }
 
-namespace Musin::UI {
+namespace musin::ui {
 
 /**
  * @brief Event data structure for keypad notifications
@@ -183,8 +183,8 @@ private:
   // --- Configuration (initialized in constructor) ---
   // NumRows and NumCols are now template parameters
   // Store GpioPin objects directly using fixed-size vectors
-  etl::vector<Musin::HAL::GpioPin, 3> _decoder_address_pins;
-  etl::vector<Musin::HAL::GpioPin, NumCols> _col_pins;
+  etl::vector<musin::hal::GpioPin, 3> _decoder_address_pins;
+  etl::vector<musin::hal::GpioPin, NumCols> _col_pins;
   const std::uint32_t _scan_interval_us;
   const std::uint32_t _debounce_time_us;
   const std::uint32_t _hold_time_us;
@@ -203,5 +203,5 @@ private:
 // Include the implementation file for the template class
 #include "keypad_hc138.tpp"
 
-} // namespace Musin::UI
+} // namespace musin::ui
 #endif // DRUM_DRIVERS_KEYPAD_HC138_H

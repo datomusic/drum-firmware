@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-namespace Musin {
-namespace Usb {
+namespace musin {
+namespace usb {
 
 void init();
 void disconnect();
@@ -13,6 +13,6 @@ bool midi_read(uint8_t packet[4]);
 void midi_send(const uint8_t packet[4]);
 
 } // namespace Usb
-}; // namespace Musin
+}; // namespace musin
 
 #endif /* end of include guard: USB_H_EGTUA9NZ */

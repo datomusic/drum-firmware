@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 /**
  * @brief Defines the possible sources for the master clock signal.
@@ -18,9 +18,9 @@ enum class ClockSource : uint8_t {
  * @brief Event structure carrying information about a clock tick.
  */
 struct ClockEvent {
-  Musin::Timing::ClockSource source;
+  musin::timing::ClockSource source;
 };
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_TIMING_CLOCK_EVENT_H

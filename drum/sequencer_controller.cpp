@@ -6,14 +6,14 @@
 #include <cmath>
 #include <cstdio>
 
-namespace StepSequencer {
+namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2>
-        &tempo_source_ref)      // Removed sound_router_ref
-    : sequencer(sequencer_ref), // Removed _sound_router init
+    musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+    etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2>
+        &tempo_source_ref)
+    : sequencer(sequencer_ref),
       current_step_counter(0), last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
@@ -84,7 +84,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
              num_steps)
           : 0;
 
-  const Musin::Timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
+  const musin::timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     // Emit Note On event
@@ -236,7 +236,7 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] Musin::Timing::SequencerTickEvent event) {
+    [[maybe_unused]] musin::timing::SequencerTickEvent event) {
   if (state_ != State::Running)
     return;
 
@@ -367,7 +367,7 @@ template <size_t NumTracks, size_t NumSteps>
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *ptr) {
+void drum::SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *ptr) {
   _controls_ptr = ptr;
 }
 
@@ -398,4 +398,4 @@ void SequencerController<NumTracks, NumSteps>::toggle() {
 // Explicit template instantiation for 4 tracks, 8 steps
 template class SequencerController<4, 8>;
 
-} // namespace StepSequencer
+} // namespace drum

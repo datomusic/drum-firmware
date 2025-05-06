@@ -40,7 +40,7 @@ public:
    * @brief Handles incoming clock tick notifications.
    * @param event The clock event (not used for data, only as a trigger).
    */
-  void on_notify(const musin::timing::ClockEvent &event) override;
+  void notification(const musin::timing::ClockEvent &event);
 
   /**
    * @brief Sets the number of internal clock ticks required to trigger a sync pulse.

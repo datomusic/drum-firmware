@@ -428,7 +428,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   }
   case CRUSH:
     _sound_router.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
-    _sound_router.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
+    //_sound_router.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
     break;
   case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;

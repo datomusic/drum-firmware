@@ -54,7 +54,7 @@ AudioEngine::AudioEngine()
   crusher_.bits(16);
 
   for (size_t i = 0; i < NUM_VOICES; ++i) {
-    mixer_.gain(i, 0.7f);
+    mixer_.gain(i, 0.25f);
   }
 }
 
@@ -64,12 +64,10 @@ bool AudioEngine::init() {
   }
 
   if (!AudioOutput::init()) {
-    // TODO: Add proper logging/error indication if available
     return false;
   }
   AudioOutput::route_line_in_to_headphone(true);
   is_initialized_ = true;
-  // TODO: Add logging/status indication
   return true;
 }
 

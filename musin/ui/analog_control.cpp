@@ -35,8 +35,9 @@ void AnalogControl::init() {
     _mux16.init();
     break;
   }
+  _last_notified_value = -1.0f;
   read_input();
-  _last_notified_value = _current_value;
+  _filtered_value = _current_value;
 }
 
 void AnalogControl::read_input() {

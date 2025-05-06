@@ -91,9 +91,9 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
 
     if (velocity > 0) {
       _audio_engine.play_on_voice(track_index, sample_id, velocity);
-    } else {
-      _audio_engine.stop_voice(track_index);
-    }
+    } // else {
+    //   _audio_engine.stop_voice(track_index);
+    // }
   }
 }
 
@@ -155,7 +155,7 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
       _audio_engine.set_crush_rate(value);
       break;
     case Parameter::CRUSH_DEPTH: {
-      uint8_t depth = 1 + static_cast<uint8_t>(std::round((1.0f - value) * 15.0f));
+      uint8_t depth = 3 + static_cast<uint8_t>(std::round((1.0f - value) * 11.0f));
       depth = std::clamp(depth, static_cast<uint8_t>(1), static_cast<uint8_t>(16));
       _audio_engine.set_crush_depth(depth);
       break;

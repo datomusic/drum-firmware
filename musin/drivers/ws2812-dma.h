@@ -110,6 +110,8 @@ public:
   uint8_t get_brightness() const;
   constexpr size_t get_num_leds() const;
 
+  uint32_t adjust_color_brightness(uint32_t base_color, uint8_t brightness) const;
+
 private:
   // --- Helper methods (identical signatures and implementation to WS2812) ---
   void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b, uint8_t &out_r,
@@ -162,7 +164,7 @@ template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
 
 template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
   if (_initialized) {
-    // printf("WS2812_DMA Warning: Instance already initialized.\n");
+    printf("WS2812_DMA Warning: Instance already initialized.\n");
     return true;
   }
 
@@ -175,7 +177,7 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
       &ws2812_program, &pio_instance, &sm_idx, &offset, _data_pin, 1, true);
 
   if (!success) {
-    // printf("WS2812_DMA Error: Failed to claim PIO/SM or load program for pin %u\n", _data_pin);
+    printf("WS2812_DMA Error: Failed to claim PIO/SM or load program for pin %u\n", _data_pin);
     return false;
   }
 
@@ -190,10 +192,10 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
   // --- Claim DMA Channel for this instance ---
   _dma_channel = dma_claim_unused_channel(true); // Panic if none available
   if (_dma_channel == -1) {
-    // printf("WS2812_DMA Error: Failed to claim DMA channel.\n");
+    printf("WS2812_DMA Error: Failed to claim DMA channel.\n");
     return false;
   }
-  // printf("WS2812_DMA Info: Instance claimed DMA channel %d\n", _dma_channel);
+  printf("WS2812_DMA Info: Instance claimed DMA channel %d\n", _dma_channel);
 
   // --- Configure Instance DMA Channel ---
   _dma_config = dma_channel_get_default_config(_dma_channel);
@@ -204,31 +206,30 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
 
   // --- Setup Shared IRQ/Alarm Resources (Only Once) ---
   if (!g_handlers_initialized) {
-    // printf("WS2812_DMA Info: Initializing shared DMA/IRQ resources.\n");
+    printf("WS2812_DMA Info: Initializing shared DMA/IRQ resources.\n");
     g_dma_channel = _dma_channel;
     sem_init(&g_reset_delay_complete_sem, 1, 1);
 
-    dma_channel_set_irq0_enabled(g_dma_channel, true);
-    irq_set_exclusive_handler(DMA_IRQ_0, dma_complete_handler);
-    irq_set_enabled(DMA_IRQ_0, true);
+    dma_channel_set_irq1_enabled(g_dma_channel, true);
+    irq_set_exclusive_handler(DMA_IRQ_1, dma_complete_handler);
+    irq_set_enabled(DMA_IRQ_1, true);
     g_handlers_initialized = true;
-    // printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
+    printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
   } else {
     if (g_dma_channel != _dma_channel) {
-      // printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_0 with different
-      // channels (%d vs %d).\n",
-      //        g_dma_channel, _dma_channel);
+      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different
+      channels (%d vs %d).\n", g_dma_channel, _dma_channel);
       dma_channel_unclaim(_dma_channel);
       _dma_channel = -1;
       return false;
     }
-    // printf("WS2812_DMA Info: Shared DMA/IRQ resources already initialized.\n");
+    printf("WS2812_DMA Info: Shared DMA/IRQ resources already initialized.\n");
   }
 
   _initialized = true;
-  // printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u using DMA%d\n",
-  // NUM_LEDS,
-  //        pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
+  printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u using DMA%d\n",
+  NUM_LEDS,
+        pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
   return true;
 }
 
@@ -285,8 +286,8 @@ static int64_t reset_delay_complete(alarm_id_t id, void *user_data) {
 }
 
 static void dma_complete_handler() {
-  if (g_dma_channel != -1 && (dma_hw->ints0 & (1u << g_dma_channel))) {
-    dma_hw->ints0 = (1u << g_dma_channel);
+  if (g_dma_channel != -1 && (dma_hw->ints1 & (1u << g_dma_channel))) {
+    dma_hw->ints1 = (1u << g_dma_channel);
 
     alarm_id_t current_alarm = g_reset_delay_alarm_id;
     if (current_alarm > 0) {
@@ -295,9 +296,9 @@ static void dma_complete_handler() {
 
     g_reset_delay_alarm_id = add_alarm_in_us(G_LATCH_DELAY_US, reset_delay_complete, NULL, true);
     if (g_reset_delay_alarm_id <= 0) {
-      // printf("WS2812_DMA Error: Failed to schedule latch alarm.\n");
+      printf("WS2812_DMA Error: Failed to schedule latch alarm.\n");
       sem_release(&g_reset_delay_complete_sem);
-      // printf("WS2812_DMA Warning: Semaphore released immediately due to alarm failure.\n");
+      printf("WS2812_DMA Warning: Semaphore released immediately due to alarm failure.\n");
     }
   }
 }
@@ -450,6 +451,24 @@ void WS2812_DMA<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t &r, uint8
     r = g = b = 0;
     break;
   }
+}
+
+template <size_t NUM_LEDS>
+uint32_t WS2812_DMA<NUM_LEDS>::adjust_color_brightness(uint32_t base_color,
+                                                       uint8_t brightness) const {
+  if (base_color == 0) {
+    return 0;
+  }
+
+  uint8_t r, g, b;
+  unpack_color(base_color, r, g, b);
+
+  uint16_t brightness_scale = brightness + (brightness == 255 ? 0 : 1);
+  r = static_cast<uint8_t>(((uint16_t)r * brightness_scale) >> 8);
+  g = static_cast<uint8_t>(((uint16_t)g * brightness_scale) >> 8);
+  b = static_cast<uint8_t>(((uint16_t)b * brightness_scale) >> 8);
+
+  return pack_color(r, g, b);
 }
 
 } // namespace musin::drivers

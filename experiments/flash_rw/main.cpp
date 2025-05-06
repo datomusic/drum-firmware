@@ -11,7 +11,7 @@ int main(void) {
 
   printf("\n\n");
   printf("Initializing fs\n");
-  const auto init_result = Musin::Filesystem::init(true);
+  const auto init_result = musin::filesystem::init(true);
   if (init_result) {
     printf("fs initialized\n");
     printf("Opening file for writing\n");

@@ -63,8 +63,8 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
     state_str = "Undetermined / Inconsistent Reads";
   }
 
-  printf("PizzaDisplay Init: Pin %lu (%s) external state check result: %s\n", gpio, name,
-         state_str);
+  // printf("PizzaDisplay Init: Pin %lu (%s) external state check result: %s\n", gpio, name,
+  // state_str);
 
   gpio_disable_pulls(gpio);
   sleep_us(PULL_CHECK_DELAY_US);
@@ -84,18 +84,18 @@ PizzaDisplay::PizzaDisplay()
 }
 
 bool PizzaDisplay::init() {
-  printf("PizzaDisplay: Initializing LEDs...\n");
+  // printf("PizzaDisplay: Initializing LEDs...\n");
 
   // Check LED data pin state to determine initial brightness. Pullup = SK6812, pulldown = SK6805
   ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
   uint8_t initial_brightness =
       (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
-  printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
-         initial_brightness, static_cast<int>(led_pin_state));
+  // printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
+  //        initial_brightness, static_cast<int>(led_pin_state));
   _leds.set_brightness(initial_brightness);
 
   if (!_leds.init()) {
-    printf("Error: Failed to initialize WS2812 LED driver!\n");
+    // printf("Error: Failed to initialize WS2812 LED driver!\n");
     return false;
   }
 
@@ -104,7 +104,7 @@ bool PizzaDisplay::init() {
   gpio_put(PIN_LED_ENABLE, 1);
   clear();
   show();
-  printf("PizzaDisplay: Initialization Complete.\n");
+  // printf("PizzaDisplay: Initialization Complete.\n");
   return true;
 }
 

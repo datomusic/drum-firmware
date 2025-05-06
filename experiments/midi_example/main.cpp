@@ -37,14 +37,14 @@ void led_blinking_task(void);
 int main() {
   // stdio_init_all();
   board_init();
-  Musin::Usb::init();
+  musin::usb::init();
 
   MIDI::init(MIDI::Callbacks{
       .note_on = handle_note_on, .note_off = handle_note_off, .sysex = handle_sysex});
 
   static uint32_t last_ms = board_millis();
   while (1) {
-    Musin::Usb::background_update();
+    musin::usb::background_update();
     MIDI::read(1);
     led_blinking_task();
     const uint32_t now_ms = board_millis();

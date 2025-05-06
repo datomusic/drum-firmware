@@ -94,7 +94,7 @@ template <std::uint8_t NumRows, std::uint8_t NumCols> bool Keypad_HC138<NumRows,
     // Adjust timing based on hardware specifics. 1-5us is often sufficient.
     // Use SDK delay for precision if needed: busy_wait_us(2);
     // Or rely on the loop overhead if fast enough.
-    busy_wait_us(2);
+    sleep_us(2);
 
     for (std::uint8_t c = 0; c < NumCols; ++c) { // Use template parameter
       // Read raw state: LOW (false) means pressed (row LOW, col pulled HIGH)

@@ -168,6 +168,7 @@ void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) 
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::reset() {
+
   //printf("SequencerController: Resetting.\n");
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {

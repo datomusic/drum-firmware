@@ -10,6 +10,7 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/tempo_multiplier.h"
 #include "pizza_controls.h"
@@ -33,6 +34,10 @@ drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier
 
 static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
                                           tempo_handler, sequencer_controller, sound_router);
+
+constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
+static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
+
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 
@@ -75,6 +80,8 @@ int main() {
 
   // Connect SequencerController NoteEvents to SoundRouter
   sequencer_controller.add_observer(sound_router);
+
+  sync_out.enable();
 
   if (tempo_handler.get_clock_source() == musin::timing::ClockSource::INTERNAL) {
     internal_clock.start();

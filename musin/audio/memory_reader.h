@@ -2,11 +2,15 @@
 #define PCM_READER_H_GB952ZMC
 
 #include "sample_reader.h"
+#include <algorithm> // For std::copy
+
+namespace musin {
 
 // Streams items of DataType in chunks, into some iterator.
 // The user must ensure the iterator can accept max ChunkSize items.
 template <typename DataType, typename OutputIterator, int ChunkSize> struct MemoryReader {
-  constexpr MemoryReader(const DataType *items, const uint32_t count) {
+  // Add default arguments to allow default construction
+  constexpr MemoryReader(const DataType *items = nullptr, const uint32_t count = 0) {
     set_source(items, count);
   }
 
@@ -46,8 +50,12 @@ private:
   uint32_t count;
 };
 
-// Specializtion of MemoryReader for 16bit samples, implementing the SampleReader interface
+// Specialization of MemoryReader for 16bit samples, implementing the SampleReader interface
 struct MemorySampleReader : SampleReader {
+  // Provide a default constructor for etl::optional
+  constexpr MemorySampleReader() : reader(nullptr, 0) {
+  }
+
   constexpr MemorySampleReader(const int16_t *items, const uint32_t count) : reader(items, count) {
   }
 
@@ -73,5 +81,7 @@ struct MemorySampleReader : SampleReader {
 private:
   MemoryReader<int16_t, int16_t *, AUDIO_BLOCK_SAMPLES> reader;
 };
+
+} // namespace musin
 
 #endif /* end of include guard: PCM_READER_H_GB952ZMC */

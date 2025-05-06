@@ -7,7 +7,7 @@
 #include <array>
 #include <cstdint>
 
-namespace Musin::UI {
+namespace musin::ui {
 
 /**
  * @brief Event data structure for analog control notifications
@@ -121,9 +121,9 @@ private:
   InputType _input_type;
 
   union {
-    Musin::HAL::AnalogIn _analog_in;
-    Musin::HAL::AnalogInMux8 _mux8;
-    Musin::HAL::AnalogInMux16 _mux16;
+    musin::hal::AnalogIn _analog_in;
+    musin::hal::AnalogInMux8 _mux8;
+    musin::hal::AnalogInMux16 _mux16;
   };
 
   // Internal methods
@@ -135,6 +135,6 @@ private:
 
 // Implementation details are moved to the .cpp file
 
-} // namespace Musin::UI
+} // namespace musin::ui
 
 #endif // MUSIN_UI_ANALOG_CONTROL_H

@@ -24,9 +24,9 @@
 
 #include "waveshaper.h"
 #include "etl/utility.h" // For etl::max
-#include <algorithm>    // For std::min
-#include <cstddef>      // For size_t
-#include <cstdint>      // For int16_t, uint16_t, int32_t
+#include <algorithm>     // For std::min
+#include <cstddef>       // For size_t
+#include <cstdint>       // For int16_t, uint16_t, int32_t
 
 // Destructor is no longer needed as etl::vector handles memory.
 
@@ -64,17 +64,18 @@ void Waveshaper::shape(const float *new_shape, size_t length) {
     // lerpshift = 16 - (number of bits needed for index)
     size_t bits_needed = 0;
     size_t temp_range = index_range; // Use index_range (length-1) here
-     while (temp_range > 0) {
-        temp_range >>= 1;
-        bits_needed++;
+    while (temp_range > 0) {
+      temp_range >>= 1;
+      bits_needed++;
     }
     // If index_range is exactly power of 2 (e.g. 1024 for length 1025), bits_needed is correct.
-    // If not (e.g. 1000 for length 1001), we still need the same number of bits as the next power of 2.
+    // If not (e.g. 1000 for length 1001), we still need the same number of bits as the next power
+    // of 2.
     lerpshift = 16 - bits_needed;
 
-     // Original logic check: (length - 1) should be power of two for optimal lerp shift
-     // bool is_power_of_two = ((length - 1) > 0) && (((length - 1) & (length - 2)) == 0);
-     // if (!is_power_of_two) { /* maybe log warning */ }
+    // Original logic check: (length - 1) should be power of two for optimal lerp shift
+    // bool is_power_of_two = ((length - 1) > 0) && (((length - 1) & (length - 2)) == 0);
+    // if (!is_power_of_two) { /* maybe log warning */ }
   }
 }
 
@@ -101,10 +102,10 @@ void Waveshaper::fill_buffer(AudioBlock &out_samples) {
     // The maximum index is waveshape_table.size() - 1.
     // We need xa and xa+1, so the maximum allowed value for xa is size() - 2.
     if (xa >= waveshape_table.size() - 1) {
-       xa = waveshape_table.size() - 2; // Clamp index
-       // When clamped (input is at max value), output the last point directly.
-       out_samples[i] = waveshape_table[xa + 1];
-       continue; // Skip interpolation for this sample
+      xa = waveshape_table.size() - 2; // Clamp index
+      // When clamped (input is at max value), output the last point directly.
+      out_samples[i] = waveshape_table[xa + 1];
+      continue; // Skip interpolation for this sample
     }
 
     int16_t ya = waveshape_table[xa];

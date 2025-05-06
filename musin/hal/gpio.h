@@ -7,7 +7,7 @@
 // For simplicity here, we assume SDK types like 'uint' are available
 // or we use standard types like std::uint32_t directly.
 
-namespace Musin::HAL {
+namespace musin::hal {
 
 enum class GpioDirection : bool {
   IN = false,
@@ -35,6 +35,6 @@ private:
   const std::uint32_t _pin;
 };
 
-} // namespace Musin::HAL
+} // namespace musin::hal
 
 #endif // MUSIN_HAL_GPIO_H

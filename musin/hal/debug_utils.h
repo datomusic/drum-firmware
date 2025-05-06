@@ -4,7 +4,7 @@
 #include "pico/time.h"
 #include <cstdint>
 
-namespace Musin::HAL {
+namespace musin::hal {
 namespace DebugUtils {
 
 class LoopTimer {
@@ -22,6 +22,6 @@ private:
 };
 
 } // namespace DebugUtils
-} // namespace Musin::HAL
+} // namespace musin::hal
 
 #endif // MUSIN_HAL_DEBUG_UTILS_H_

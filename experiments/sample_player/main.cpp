@@ -82,7 +82,6 @@ int main() {
 
         MemorySound &sound = sounds[sound_index];
         if (!sound.reader.has_data()) {
-          printf("Playing sound, pitch: %f\n", pitch);
           sound.next_sample();
           sound.sound.play(pitch);
         }

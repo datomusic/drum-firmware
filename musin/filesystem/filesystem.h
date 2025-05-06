@@ -1,7 +1,7 @@
 #ifndef FILESYSTEM_H_A1PWKQIM
 #define FILESYSTEM_H_A1PWKQIM
 
-namespace Musin::Filesystem {
+namespace musin::filesystem {
 bool init(bool force_format);
 }
 

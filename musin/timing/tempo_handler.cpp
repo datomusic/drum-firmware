@@ -7,7 +7,7 @@
 // #include "midi_clock.h"
 // #include "external_sync_clock.h"
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 TempoHandler::TempoHandler(ClockSource initial_source) : current_source_(initial_source) {
   // If managing clock instances internally or needing references:
@@ -28,14 +28,14 @@ ClockSource TempoHandler::get_clock_source() const {
   return current_source_;
 }
 
-void TempoHandler::notification(Musin::Timing::ClockEvent event) {
+void TempoHandler::notification(musin::timing::ClockEvent event) {
   // Only process and forward ticks if they come from the currently selected source
   if (event.source == current_source_) {
-    Musin::Timing::TempoEvent tempo_tick_event;
+    musin::timing::TempoEvent tempo_tick_event;
     // Populate TempoEvent with timestamp or other data if needed later
-    etl::observable<etl::observer<Musin::Timing::TempoEvent>,
+    etl::observable<etl::observer<musin::timing::TempoEvent>,
                     MAX_TEMPO_OBSERVERS>::notify_observers(tempo_tick_event);
   }
 }
 
-} // namespace Musin::Timing
+} // namespace musin::timing

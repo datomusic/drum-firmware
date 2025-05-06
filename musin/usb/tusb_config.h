@@ -41,8 +41,8 @@ extern "C" {
 #error CFG_TUSB_MCU must be defined
 #endif
 
-#if CFG_TUSB_MCU == OPT_MCU_LPC18XX || CFG_TUSB_MCU == OPT_MCU_LPC43XX ||      \
-    CFG_TUSB_MCU == OPT_MCU_MIMXRT10XX || CFG_TUSB_MCU == OPT_MCU_NUC505 ||    \
+#if CFG_TUSB_MCU == OPT_MCU_LPC18XX || CFG_TUSB_MCU == OPT_MCU_LPC43XX ||                          \
+    CFG_TUSB_MCU == OPT_MCU_MIMXRT10XX || CFG_TUSB_MCU == OPT_MCU_NUC505 ||                        \
     CFG_TUSB_MCU == OPT_MCU_CXD56
 #define CFG_TUSB_RHPORT0_MODE (OPT_MODE_DEVICE | OPT_MODE_HIGH_SPEED)
 #else
@@ -94,12 +94,12 @@ extern "C" {
 #define CFG_TUD_CDC_RX_BUFSIZE 64
 #define CFG_TUD_CDC_TX_BUFSIZE 64
 
-#define BOARD_TUD_RHPORT      0
-//#define CFG_TUSB_DEBUG 2
-//#define CFG_TUSB_DEBUG_PRINTF printf
-#define BOARD_TUD_MAX_SPEED   OPT_MODE_DEFAULT_SPEED
-#define CFG_TUSB_RHPORT0_MODE  OPT_MODE_DEVICE
-#define CFG_TUD_ENABLED       1
+#define BOARD_TUD_RHPORT 0
+// #define CFG_TUSB_DEBUG 2
+// #define CFG_TUSB_DEBUG_PRINTF printf
+#define BOARD_TUD_MAX_SPEED OPT_MODE_DEFAULT_SPEED
+#define CFG_TUSB_RHPORT0_MODE OPT_MODE_DEVICE
+#define CFG_TUD_ENABLED 1
 
 #ifdef __cplusplus
 }

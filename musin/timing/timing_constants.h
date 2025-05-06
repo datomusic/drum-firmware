@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 /**
  * @brief Default Pulses Per Quarter Note (PPQN) used for high-resolution timing.
@@ -11,6 +11,6 @@ namespace Musin::Timing {
  */
 constexpr uint32_t DEFAULT_PPQN = 96;
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_TIMING_TIMING_CONSTANTS_H

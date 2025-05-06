@@ -1,22 +1,22 @@
 #include "sequencer_controller.h"
-#include "midi_functions.h"
-#include "pico/time.h"      // For time_us_32() for seeding rand
-#include "pizza_controls.h" // Include for PizzaControls pointer type
+#include "events.h"
+#include "pico/time.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 
-namespace StepSequencer {
+#include "pizza_controls.h"
+
+namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    Musin::Timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<Musin::Timing::SequencerTickEvent>, 2> &tempo_source_ref)
+    musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+    etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
-      _just_played_step_per_track{}, // Initialize below
-      tempo_source(tempo_source_ref), state_(State::Stopped), swing_percent_(50),
-      swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
-      random_active_(false), random_track_offsets_{} {
+      _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
+      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
+      next_trigger_tick_target_(0), random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
   // Seed the random number generator once
   srand(time_us_32());
@@ -63,11 +63,15 @@ size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_index() con
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_idx,
                                                                   size_t step_index_to_play) {
-  uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
   const size_t num_steps = sequencer.get_num_steps();
+  uint8_t track_index_u8 = static_cast<uint8_t>(track_idx);
 
+  // Emit Note Off event if a note was previously playing on this track
   if (last_played_note_per_track[track_idx].has_value()) {
-    send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+    drum::Events::NoteEvent note_off_event{.track_index = track_index_u8,
+                                           .note = last_played_note_per_track[track_idx].value(),
+                                           .velocity = 0};
+    notify_observers(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
@@ -79,13 +83,18 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
              num_steps)
           : 0;
 
-  const Musin::Timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
+  const musin::timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
-    send_midi_note(midi_channel, step.note.value(), step.velocity.value());
+    // Emit Note On event
+    drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
+                                          .note = step.note.value(),
+                                          .velocity = step.velocity.value()};
+    notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
 
     // Trigger fade on the corresponding drumpad if controls pointer is set
+    // This remains as it's a visual effect, not sound generation.
     if (_controls_ptr) {
       _controls_ptr->drumpad_component.trigger_fade(static_cast<uint8_t>(track_idx));
     }
@@ -162,8 +171,11 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   printf("SequencerController: Resetting.\n");
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
-      uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
-      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+      // Emit Note Off event
+      drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
+                                             .note = last_played_note_per_track[track_idx].value(),
+                                             .velocity = 0};
+      notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -206,11 +218,14 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
   tempo_source.remove_observer(*this);
   set_state(State::Stopped);
 
-  // Send note-offs for all active notes
+  // Emit note-offs for all active notes
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
-      uint8_t midi_channel = static_cast<uint8_t>(track_idx + 1);
-      send_midi_note(midi_channel, last_played_note_per_track[track_idx].value(), 0);
+      // Emit Note Off event
+      drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
+                                             .note = last_played_note_per_track[track_idx].value(),
+                                             .velocity = 0};
+      notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -220,7 +235,7 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] Musin::Timing::SequencerTickEvent event) {
+    [[maybe_unused]] musin::timing::SequencerTickEvent event) {
   if (state_ != State::Running)
     return;
 
@@ -382,4 +397,4 @@ void SequencerController<NumTracks, NumSteps>::toggle() {
 // Explicit template instantiation for 4 tracks, 8 steps
 template class SequencerController<4, 8>;
 
-} // namespace StepSequencer
+} // namespace drum

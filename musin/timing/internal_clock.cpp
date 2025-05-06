@@ -4,7 +4,7 @@
 #include "pico/stdlib.h"
 #include <cstdio>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is_running(false) {
   _timer_info = {};
@@ -109,7 +109,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
   }
 
   // Create and notify observers with a ClockEvent, specifying the source
-  Musin::Timing::ClockEvent tick_event{Musin::Timing::ClockSource::INTERNAL};
+  musin::timing::ClockEvent tick_event{musin::timing::ClockSource::INTERNAL};
   instance->notify_observers(tick_event);
 
   // Return true to continue the repeating timer
@@ -118,4 +118,4 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
 
 // handle_tick() method removed
 
-} // namespace Musin::Timing
+} // namespace musin::timing

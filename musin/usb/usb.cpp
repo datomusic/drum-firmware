@@ -6,8 +6,8 @@
 #define USB_DEVICE_INSTANCE 0
 #endif
 
-namespace Musin {
-namespace Usb {
+namespace musin {
+namespace usb {
 
 bool background_update(void) {
   if (tusb_inited()) {
@@ -44,5 +44,5 @@ void init() {
   // }
 }
 
-} // namespace Usb
-} // namespace Musin
+} // namespace usb
+} // namespace musin

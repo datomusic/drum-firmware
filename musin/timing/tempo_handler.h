@@ -8,7 +8,7 @@
 
 #include "musin/timing/clock_event.h" // Include for ClockSource
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
@@ -22,8 +22,8 @@ constexpr size_t MAX_TEMPO_OBSERVERS = 3;
  * as `TempoEvent`s.
  */
 class TempoHandler
-    : public etl::observer<Musin::Timing::ClockEvent>,
-      public etl::observable<etl::observer<Musin::Timing::TempoEvent>, MAX_TEMPO_OBSERVERS> {
+    : public etl::observer<musin::timing::ClockEvent>,
+      public etl::observable<etl::observer<musin::timing::TempoEvent>, MAX_TEMPO_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
@@ -52,7 +52,7 @@ public:
    * Implements the etl::observer interface.
    * @param event The received clock event.
    */
-  void notification(Musin::Timing::ClockEvent event);
+  void notification(musin::timing::ClockEvent event);
 
 private:
   ClockSource current_source_;
@@ -67,6 +67,6 @@ private:
 
 }; // End class TempoHandler
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_TIMING_TEMPO_HANDLER_H

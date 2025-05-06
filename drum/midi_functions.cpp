@@ -56,16 +56,6 @@ static void handle_sysex(uint8_t *const data, const size_t length) {
 
 // --- Public Function Definitions (External Linkage) ---
 
-void send_midi_cc(const uint8_t channel, const uint8_t cc_number, const uint8_t value) {
-  MIDI::sendControlChange(cc_number, value, channel);
-}
-
-void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint8_t velocity) {
-  // The underlying library handles Note On/Off based on velocity
-  // Use sendNoteOn for both Note On (velocity > 0) and Note Off (velocity == 0)
-  MIDI::sendNoteOn(note_number, velocity, channel);
-}
-
 void send_midi_start() {
   MIDI::sendRealTime(midi::Start);
 }

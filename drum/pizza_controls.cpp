@@ -1,27 +1,33 @@
 #include "pizza_controls.h"
-#include "midi_functions.h"
+// #include "midi_functions.h" // No longer directly needed here for notes/cc
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h" // For get_absolute_time, to_us_since_boot
 #include "pizza_display.h"
 #include "sequencer_controller.h"
-#include <algorithm> // For std::clamp
-#include <cmath>     // For fmodf
+#include "sound_router.h" // Added
+#include <algorithm>      // For std::clamp
+#include <cmath>          // For fmodf
 #include <cstddef>
 #include <cstdio>
 
-using Musin::HAL::AnalogInMux16;
-using Musin::UI::AnalogControl;
-using Musin::UI::Drumpad;
+namespace drum {
 
-PizzaControls::PizzaControls(PizzaExample::PizzaDisplay &display_ref,
-                             Musin::Timing::Sequencer<4, 8> &sequencer_ref,
-                             Musin::Timing::InternalClock &clock_ref,
-                             Musin::Timing::TempoHandler &tempo_handler_ref,
-                             StepSequencer::DefaultSequencerController &sequencer_controller_ref)
+using musin::hal::AnalogInMux16;
+using musin::ui::AnalogControl;
+using musin::ui::Drumpad;
+
+PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
+                             musin::timing::Sequencer<4, 8> &sequencer_ref,
+                             musin::timing::InternalClock &clock_ref,
+                             musin::timing::TempoHandler &tempo_handler_ref,
+                             drum::DefaultSequencerController &sequencer_controller_ref,
+                             drum::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      keypad_component(this), drumpad_component(this), analog_component(this),
+      _sound_router_ref(sound_router_ref),             // Added
+      keypad_component(this), drumpad_component(this), // Removed sound_router pass
+      analog_component(this, _sound_router_ref),       // Pass sound_router
       playbutton_component(this) {
 }
 
@@ -33,6 +39,9 @@ void PizzaControls::init() {
 
   // Register this class to receive tempo events for LED pulsing
   _tempo_handler_ref.add_observer(*this);
+
+  // Connect DrumpadComponent NoteEvents to SoundRouter
+  drumpad_component.add_observer(_sound_router_ref);
 }
 
 void PizzaControls::update() {
@@ -44,12 +53,12 @@ void PizzaControls::update() {
   // Update the play button LED based on sequencer state
   if (_sequencer_controller_ref.is_running()) {
     // Running: Solid color (e.g., white)
-    display.set_play_button_led(PizzaExample::PizzaDisplay::COLOR_WHITE);
+    display.set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
     // Counter is reset in notification when state changes to running
   } else {
     // Stopped: Pulse based on clock tick counter
     // Assuming 4/4 time, a beat is a quarter note. PPQN = Ticks per Quarter Note.
-    constexpr uint32_t ticks_per_beat = Musin::Timing::InternalClock::PPQN;
+    constexpr uint32_t ticks_per_beat = musin::timing::InternalClock::PPQN;
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;
@@ -65,14 +74,14 @@ void PizzaControls::update() {
 
     uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * 255.0f);
 
-    uint32_t base_color = PizzaExample::PizzaDisplay::COLOR_WHITE;
+    uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
     uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);
     display.set_play_button_led(pulse_color);
   }
   // Note: PizzaDisplay::show() must be called later in the main loop
 }
 
-void PizzaControls::notification(Musin::Timing::TempoEvent /* event */) {
+void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
   // This notification is now driven by the active clock source via TempoHandler.
   // Only advance the counter if the sequencer is NOT running.
   if (!_sequencer_controller_ref.is_running()) {
@@ -106,12 +115,12 @@ void PizzaControls::KeypadComponent::update() {
 }
 
 void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
-    Musin::UI::KeypadEvent event) {
+    musin::ui::KeypadEvent event) {
   PizzaControls *controls = parent->parent_controls;
 
   // Sample Select (Column 4)
   if (event.col >= 4) {
-    if (event.type == Musin::UI::KeypadEvent::Type::Press) {
+    if (event.type == musin::ui::KeypadEvent::Type::Press) {
       uint8_t pad_index = 0;
       int8_t offset = 0;
       switch (event.row) {
@@ -154,13 +163,13 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   }
 
   // Map physical column to logical track (0->3, 1->2, 2->1, 3->0)
-  uint8_t track_idx = (PizzaExample::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
+  uint8_t track_idx = (drum::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
   uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row; // Map row to step index (0-7)
 
   // Get a reference to the track to modify it
   auto &track = controls->sequencer.get_track(track_idx);
 
-  if (event.type == Musin::UI::KeypadEvent::Type::Press) {
+  if (event.type == musin::ui::KeypadEvent::Type::Press) {
     bool now_enabled = track.toggle_step_enabled(step_idx);
 
     if (now_enabled) {
@@ -176,7 +185,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       // track.set_step_note(step_idx, std::nullopt);
       // track.set_step_velocity(step_idx, std::nullopt);
     }
-  } else if (event.type == Musin::UI::KeypadEvent::Type::Hold) {
+  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
     // Set velocity to max on hold (only affects enabled steps implicitly via set_step_velocity)
     // Note: We might only want to do this if the step *is* enabled.
     // However, set_step_velocity doesn't check enabled status.
@@ -189,8 +198,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent Implementation ---
 
-PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr),
+PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // Removed sound_router
+    : parent_controls(parent_ptr), // Removed _sound_router init
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
@@ -205,8 +214,10 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                                       1000U, 5000U, 200000U}},
       drumpad_note_numbers{0, 8, 16, 24},
       _fade_start_time{}, // Initialize before observers to match declaration order
-      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
-                        DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
+      drumpad_observers{DrumpadEventHandler{this, 0},   // Removed sound_router
+                        DrumpadEventHandler{this, 1},   // Removed sound_router
+                        DrumpadEventHandler{this, 2},   // Removed sound_router
+                        DrumpadEventHandler{this, 3}} { // Removed sound_router
 }
 
 void PizzaControls::DrumpadComponent::init() {
@@ -306,22 +317,29 @@ void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
 }
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
-    Musin::UI::DrumpadEvent event) {
-  if (event.type == Musin::UI::DrumpadEvent::Type::Press && event.velocity.has_value()) {
+    musin::ui::DrumpadEvent event) {
+  if (event.type == musin::ui::DrumpadEvent::Type::Press && event.velocity.has_value()) {
     parent->trigger_fade(event.pad_index); // Trigger fade on physical press
     uint8_t note = parent->get_note_for_pad(event.pad_index);
     uint8_t velocity = event.velocity.value();
-    send_midi_note(1, note, velocity);
-  } else if (event.type == Musin::UI::DrumpadEvent::Type::Release) {
+    // Emit NoteEvent instead of calling SoundRouter directly
+    drum::Events::NoteEvent note_event{
+        .track_index = event.pad_index, .note = note, .velocity = velocity};
+    parent->notify_observers(note_event);
+  } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
     uint8_t note = parent->get_note_for_pad(event.pad_index);
-    send_midi_note(1, note, 0);
+    // Emit NoteEvent with velocity 0 for note off
+    drum::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
+    parent->notify_observers(note_event);
   }
 }
 
 // --- AnalogControlComponent Implementation ---
 
-PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr),
+PizzaControls::AnalogControlComponent::AnalogControlComponent(
+    PizzaControls *parent_ptr,
+    drum::SoundRouter &sound_router)                            // Added sound_router
+    : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
       mux_controls{AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
                    AnalogControl{PIN_ADC, analog_address_pins, DRUM2, true},
@@ -339,14 +357,22 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *par
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, true}},
       control_observers{
-          AnalogControlEventHandler{this, DRUM1},  AnalogControlEventHandler{this, FILTER},
-          AnalogControlEventHandler{this, DRUM2},  AnalogControlEventHandler{this, PITCH1},
-          AnalogControlEventHandler{this, PITCH2}, AnalogControlEventHandler{this, PLAYBUTTON},
-          AnalogControlEventHandler{this, RANDOM}, AnalogControlEventHandler{this, VOLUME},
-          AnalogControlEventHandler{this, PITCH3}, AnalogControlEventHandler{this, SWING},
-          AnalogControlEventHandler{this, CRUSH},  AnalogControlEventHandler{this, DRUM3},
-          AnalogControlEventHandler{this, REPEAT}, AnalogControlEventHandler{this, DRUM4},
-          AnalogControlEventHandler{this, SPEED},  AnalogControlEventHandler{this, PITCH4}} {
+          AnalogControlEventHandler{this, DRUM1, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, FILTER, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, DRUM2, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, PITCH1, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, PITCH2, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, PLAYBUTTON, _sound_router}, // Pass sound_router
+          AnalogControlEventHandler{this, RANDOM, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, VOLUME, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, PITCH3, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, SWING, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, CRUSH, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, DRUM3, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, REPEAT, _sound_router},     // Pass sound_router
+          AnalogControlEventHandler{this, DRUM4, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, SPEED, _sound_router},      // Pass sound_router
+          AnalogControlEventHandler{this, PITCH4, _sound_router}} {   // Pass sound_router
 }
 
 void PizzaControls::AnalogControlComponent::init() {
@@ -363,37 +389,30 @@ void PizzaControls::AnalogControlComponent::update() {
 }
 
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notification(
-    Musin::UI::AnalogControlEvent event) {
+    musin::ui::AnalogControlEvent event) {
   PizzaControls *controls = parent->parent_controls;
-  uint8_t midi_value = static_cast<uint8_t>(std::round(event.value * 127.0f));
-
   const uint8_t mux_channel = event.control_id >> 8;
 
+  // Note: RANDOM, SWING, REPEAT, SPEED are handled differently (affect sequencer/clock directly)
+  //       and do not go through the SoundRouter's parameter setting.
+
   switch (mux_channel) {
-  case DRUM1:
-    send_midi_cc(1, 20, midi_value);
-    break;
   case FILTER:
-    send_midi_cc(1, 75, midi_value);
-    break;
-  case DRUM2:
-    send_midi_cc(1, 21, midi_value);
+    _sound_router.set_parameter(drum::Parameter::FILTER_FREQUENCY, event.value);
     break;
   case RANDOM: {
-    constexpr float RANDOM_THRESHOLD = 0.1f; // Engage above 10% knob value
+    constexpr float RANDOM_THRESHOLD = 0.1f;
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
     bool should_be_active = (event.value >= RANDOM_THRESHOLD);
 
     if (should_be_active && !was_active) {
       controls->_sequencer_controller_ref.activate_random();
-      printf("Activated random\n");
     } else if (!should_be_active && was_active) {
       controls->_sequencer_controller_ref.deactivate_random();
-      printf("Deactivated random\n");
     }
   } break;
   case VOLUME:
-    send_midi_cc(1, 7, midi_value);
+    _sound_router.set_parameter(drum::Parameter::VOLUME, event.value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;
@@ -408,13 +427,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    send_midi_cc(1, 77, midi_value);
-    break;
-  case DRUM3:
-    send_midi_cc(1, 22, midi_value);
+    _sound_router.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
+    _sound_router.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
     break;
   case REPEAT: {
-    // Define thresholds and lengths locally for interpretation
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
     constexpr float REPEAT_THRESHOLD_2 = 0.7f;
     constexpr uint32_t REPEAT_LENGTH_1 = 3; // Length for range [T1, T2)
@@ -431,24 +447,34 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
 
-    // Still send the MIDI CC value based on the raw knob position
-    send_midi_cc(1, 78, midi_value);
+    // Note: We no longer send a generic REPEAT CC via SoundRouter here,
+    // as the effect is handled internally by the SequencerController.
+    // If a MIDI CC for repeat *is* desired, it would need a specific Parameter.
     break;
   }
+  case DRUM1:
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_1, event.value, 0);
+    break;
+  case DRUM2:
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_2, event.value, 1);
+    break;
+  case DRUM3:
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_3, event.value, 2);
+    break;
   case DRUM4:
-    send_midi_cc(1, 23, midi_value);
+    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_4, event.value, 3);
     break;
   case PITCH1:
-    send_midi_cc(1, 16, midi_value);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 0);
     break;
   case PITCH2:
-    send_midi_cc(2, 17, midi_value);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 1);
     break;
   case PITCH3:
-    send_midi_cc(3, 18, midi_value);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 2);
     break;
   case PITCH4:
-    send_midi_cc(4, 19, midi_value);
+    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 3);
     break;
   case SPEED: {
     constexpr float min_bpm = 30.0f;
@@ -480,9 +506,10 @@ void PizzaControls::PlaybuttonComponent::update() {
 }
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
-    Musin::UI::DrumpadEvent event) {
-  if (event.type == Musin::UI::DrumpadEvent::Type::Press) {
+    musin::ui::DrumpadEvent event) {
+  if (event.type == musin::ui::DrumpadEvent::Type::Press) {
     parent->parent_controls->_sequencer_controller_ref.toggle();
   }
   // Release event is currently unused, no action needed.
 }
+} // namespace drum

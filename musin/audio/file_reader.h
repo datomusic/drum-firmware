@@ -5,7 +5,7 @@
 #include <pico/stdlib.h>
 
 // TODO: namespace should not be capitalized...
-namespace Musin::Audio {
+namespace musin::Audio {
 
 struct FileReader : SampleReader {
   FileReader() : data_available(false) {
@@ -78,6 +78,6 @@ private:
   int16_t buffer[AUDIO_BLOCK_SAMPLES];
 };
 
-} // namespace Musin::Audio
+} // namespace musin::Audio
 
 #endif /* end of include guard: FILE_READER_H_QUO8VKTG */

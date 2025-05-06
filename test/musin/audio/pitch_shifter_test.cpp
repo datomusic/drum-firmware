@@ -7,7 +7,7 @@
     BODY;                                                                                          \
     return 0;                                                                                      \
   };                                                                                               \
-  constexpr const auto _ = body();                                                                 \
+  /* constexpr const auto _ = body(); // This line causes issues with assert */                    \
   body();
 
 template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {

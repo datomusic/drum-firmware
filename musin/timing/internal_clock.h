@@ -7,7 +7,7 @@
 #include "pico/time.h" // Use pico_time for repeating_timer
 #include <cstdint>
 
-namespace Musin::Timing {
+namespace musin::timing {
 
 // Maximum number of observers InternalClock can notify (e.g., TempoHandler, PizzaControls)
 constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2
@@ -16,13 +16,13 @@ constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2
  * @brief Generates clock ticks based on an internal timer and BPM setting.
  */
 class InternalClock
-    : public etl::observable<etl::observer<Musin::Timing::ClockEvent>, MAX_CLOCK_OBSERVERS> {
+    : public etl::observable<etl::observer<musin::timing::ClockEvent>, MAX_CLOCK_OBSERVERS> {
 public:
   /**
    * @brief Pulses Per Quarter Note (PPQN). Standard MIDI clock is 24, common sequencer resolution
    * is 96.
    */
-  static constexpr uint32_t PPQN = Musin::Timing::DEFAULT_PPQN;
+  static constexpr uint32_t PPQN = musin::timing::DEFAULT_PPQN;
 
   /**
    * @brief Constructor.
@@ -84,6 +84,6 @@ private:
   struct repeating_timer _timer_info; // Stores repeating timer state
 };
 
-} // namespace Musin::Timing
+} // namespace musin::timing
 
 #endif // MUSIN_HAL_INTERNAL_CLOCK_H

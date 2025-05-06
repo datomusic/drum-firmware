@@ -169,7 +169,7 @@ void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::reset() {
 
-  //printf("SequencerController: Resetting.\n");
+  // printf("SequencerController: Resetting.\n");
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
       // Emit Note Off event
@@ -201,19 +201,19 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::start() {
   if (state_ != State::Stopped) {
-    //printf("SequencerController: Already running\n");
+    // printf("SequencerController: Already running\n");
     return false;
   }
   reset();
   tempo_source.add_observer(*this);
   set_state(State::Running);
-  //printf("SequencerController: Started. Waiting for tick %llu\n", next_trigger_tick_target_);
+  // printf("SequencerController: Started. Waiting for tick %llu\n", next_trigger_tick_target_);
   return true;
 }
 
 template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks, NumSteps>::stop() {
   if (state_ == State::Stopped) {
-    //printf("SequencerController: Already stopped\n");
+    // printf("SequencerController: Already stopped\n");
     return false;
   }
   tempo_source.remove_observer(*this);
@@ -230,7 +230,7 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
-  //printf("SequencerController: Stopped\n");
+  // printf("SequencerController: Stopped\n");
   return true;
 }
 
@@ -304,8 +304,8 @@ void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) 
     const size_t num_steps = sequencer.get_num_steps();
     repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     repeat_activation_step_counter_ = current_step_counter;
-    //printf("Repeat Activated: Length %lu, Start Step %lu (Abs Counter %llu)\n", repeat_length_,
-    //       repeat_activation_step_index_, repeat_activation_step_counter_);
+    // printf("Repeat Activated: Length %lu, Start Step %lu (Abs Counter %llu)\n", repeat_length_,
+    //        repeat_activation_step_index_, repeat_activation_step_counter_);
   }
 }
 
@@ -314,7 +314,7 @@ void SequencerController<NumTracks, NumSteps>::deactivate_repeat() {
   if (repeat_active_) {
     repeat_active_ = false;
     repeat_length_ = 0;
-    //printf("Repeat Deactivated\n");
+    // printf("Repeat Deactivated\n");
   }
 }
 
@@ -324,7 +324,7 @@ void SequencerController<NumTracks, NumSteps>::set_repeat_length(uint32_t length
     uint32_t new_length = std::max(uint32_t{1}, length);
     if (new_length != repeat_length_) {
       repeat_length_ = new_length;
-      //printf("Repeat Length Changed: New Length %lu\n", repeat_length_);
+      // printf("Repeat Length Changed: New Length %lu\n", repeat_length_);
     }
   }
 }
@@ -341,7 +341,7 @@ void SequencerController<NumTracks, NumSteps>::activate_random() {
   if (state_ == State::Running && !random_active_) {
     random_active_ = true;
     random_track_offsets_ = {}; // Reset offsets when activating
-    //printf("Random Activated\n");
+    // printf("Random Activated\n");
   }
 }
 
@@ -349,7 +349,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_random() {
   if (random_active_) {
     random_active_ = false;
-    //printf("Random Deactivated\n");
+    // printf("Random Deactivated\n");
   }
 }
 

@@ -91,7 +91,7 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
 
     if (velocity > 0) {
       _audio_engine.play_on_voice(track_index, sample_id, velocity);
-    }// else {
+    } // else {
     //   _audio_engine.stop_voice(track_index);
     // }
   }

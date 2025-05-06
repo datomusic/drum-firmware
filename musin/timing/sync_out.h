@@ -22,11 +22,11 @@ public:
    * @brief Constructor for SyncOut.
    * @param gpio_pin The GPIO pin number to use for the sync output.
    * @param clock_source A reference to the InternalClock instance to observe.
-   * @param ticks_per_pulse The number of internal clock ticks before a pulse is generated. Default is 24.
+   * @param ticks_per_pulse The number of internal clock ticks before a pulse is generated. Default is 48.
    * @param pulse_duration_ms The duration of the sync pulse in milliseconds. Default is 10ms.
    */
   SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_source,
-          std::uint32_t ticks_per_pulse = 24, std::uint32_t pulse_duration_ms = 10);
+          std::uint32_t ticks_per_pulse = 48, std::uint32_t pulse_duration_ms = 10);
 
   ~SyncOut();
 

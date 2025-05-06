@@ -7,11 +7,18 @@ namespace musin::timing {
 
 SyncOut::SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_source,
                  std::uint32_t ticks_per_pulse, std::uint32_t pulse_duration_ms)
-    : _gpio(gpio_pin), _clock_source(clock_source), _ticks_per_pulse(ticks_per_pulse),
-      _tick_counter(0), _is_enabled(false), _pulse_active(false), _pulse_alarm_id(0) {
+    : _gpio(gpio_pin),
+      _clock_source(clock_source),
+      _ticks_per_pulse(ticks_per_pulse),
+      _pulse_duration_us((pulse_duration_ms == 0)
+                             ? 1000 // Default to 1ms if 0 is passed
+                             : static_cast<std::uint64_t>(pulse_duration_ms) * 1000),
+      _tick_counter(0),
+      _is_enabled(false),
+      _pulse_active(false),
+      _pulse_alarm_id(0) {
   _gpio.set_direction(musin::hal::GpioDirection::OUT);
   _gpio.write(false); // Ensure output is initially low
-  set_pulse_duration_ms(pulse_duration_ms); // Initialize _pulse_duration_us
 }
 
 SyncOut::~SyncOut() {
@@ -58,15 +65,6 @@ void SyncOut::set_ticks_per_pulse(std::uint32_t ticks) {
     _ticks_per_pulse = ticks;
   }
   _tick_counter = 0; // Reset counter when changing the division
-}
-
-void SyncOut::set_pulse_duration_ms(std::uint32_t duration_ms) {
-  if (duration_ms == 0) {
-    // printf("SyncOut Warning: pulse_duration_ms cannot be 0. Setting to 1ms.\n");
-    _pulse_duration_us = 1000; // Minimum 1ms
-  } else {
-    _pulse_duration_us = static_cast<std::uint64_t>(duration_ms) * 1000;
-  }
 }
 
 void SyncOut::enable() {

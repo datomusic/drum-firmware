@@ -54,7 +54,7 @@ AudioEngine::AudioEngine()
   crusher_.bits(16);
 
   for (size_t i = 0; i < NUM_VOICES; ++i) {
-    mixer_.gain(i, 0.7f);
+    mixer_.gain(i, 0.25f);
   }
 }
 
@@ -127,7 +127,7 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   }
 
   const float pitch_multiplier = map_value_pitch_fast(value);
-  //printf("set pitch to %f \n", pitch_multiplier);
+  printf("set pitch to %f \n", pitch_multiplier);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
   // voices_[voice_index].sound.set_speed(pitch_multiplier);

@@ -9,7 +9,7 @@ SyncOut::SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_sou
                  std::uint32_t ticks_per_pulse, std::uint32_t pulse_duration_ms)
     : _gpio(gpio_pin),
       _clock_source(clock_source),
-      _ticks_per_pulse(ticks_per_pulse),
+      _ticks_per_pulse((ticks_per_pulse == 0) ? 1 : ticks_per_pulse), // Default to 1 if 0 is passed
       _pulse_duration_us((pulse_duration_ms == 0)
                              ? 1000 // Default to 1ms if 0 is passed
                              : static_cast<std::uint64_t>(pulse_duration_ms) * 1000),
@@ -55,16 +55,6 @@ void SyncOut::notification(musin::timing::ClockEvent /* event */) {
     // If pulse is already active, this tick is effectively skipped for re-triggering
     // to prevent re-entrant calls or complex logic for extending pulse.
   }
-}
-
-void SyncOut::set_ticks_per_pulse(std::uint32_t ticks) {
-  if (ticks == 0) { // Prevent division by zero or instant re-triggering
-    // printf("SyncOut Warning: ticks_per_pulse cannot be 0. Setting to 1.\n");
-    _ticks_per_pulse = 1;
-  } else {
-    _ticks_per_pulse = ticks;
-  }
-  _tick_counter = 0; // Reset counter when changing the division
 }
 
 void SyncOut::enable() {

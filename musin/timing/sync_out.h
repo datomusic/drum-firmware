@@ -43,12 +43,6 @@ public:
   void notification(musin::timing::ClockEvent event) override;
 
   /**
-   * @brief Sets the number of internal clock ticks required to trigger a sync pulse.
-   * @param ticks The number of ticks.
-   */
-  void set_ticks_per_pulse(std::uint32_t ticks);
-
-  /**
    * @brief Enables the sync pulse generation.
    * Attaches to the InternalClock as an observer.
    */
@@ -72,7 +66,7 @@ private:
 
   musin::hal::GpioPin _gpio;
   musin::timing::InternalClock &_clock_source;
-  std::uint32_t _ticks_per_pulse;
+  const std::uint32_t _ticks_per_pulse;
   const std::uint64_t _pulse_duration_us; // Store in microseconds for precision with alarms
   std::uint32_t _tick_counter;
   bool _is_enabled;

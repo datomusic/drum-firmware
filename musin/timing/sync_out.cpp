@@ -18,7 +18,7 @@ SyncOut::~SyncOut() {
   disable(); // Ensure cleanup on destruction
 }
 
-void SyncOut::notification(const musin::timing::ClockEvent & /* event */) {
+void SyncOut::notification(musin::timing::ClockEvent /* event */) {
   if (!_is_enabled) {
     return;
   }

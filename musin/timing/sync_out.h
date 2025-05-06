@@ -49,12 +49,6 @@ public:
   void set_ticks_per_pulse(std::uint32_t ticks);
 
   /**
-   * @brief Sets the duration of the sync pulse.
-   * @param duration_ms Pulse duration in milliseconds.
-   */
-  void set_pulse_duration_ms(std::uint32_t duration_ms);
-
-  /**
    * @brief Enables the sync pulse generation.
    * Attaches to the InternalClock as an observer.
    */
@@ -79,7 +73,7 @@ private:
   musin::hal::GpioPin _gpio;
   musin::timing::InternalClock &_clock_source;
   std::uint32_t _ticks_per_pulse;
-  std::uint64_t _pulse_duration_us; // Store in microseconds for precision with alarms
+  const std::uint64_t _pulse_duration_us; // Store in microseconds for precision with alarms
   std::uint32_t _tick_counter;
   bool _is_enabled;
   bool _pulse_active; // True if the GPIO pin is currently high

@@ -198,7 +198,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
   if (state_ != State::Stopped) {
     return;
   }
-  reset();
   tempo_source.add_observer(*this);
   set_state(State::Running);
   // printf("SequencerController: Started. Waiting for tick %llu\n", next_trigger_tick_target_);
@@ -206,7 +205,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
 
 template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks, NumSteps>::stop() {
   if (state_ == State::Stopped) {
-    // printf("SequencerController: Already stopped\n");
     return;
   }
   tempo_source.remove_observer(*this);
@@ -223,7 +221,6 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
-  // printf("SequencerController: Stopped\n");
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -234,7 +231,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   high_res_tick_counter_++;
 
-  while (state_ == State::Running && high_res_tick_counter_ >= next_trigger_tick_target_) {
+  if (high_res_tick_counter_ >= next_trigger_tick_target_) {
     _just_played_step_per_track.fill(std::nullopt);
 
     size_t base_step_index = calculate_base_step_index();
@@ -259,10 +256,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
     next_trigger_tick_target_ += interval_to_next_trigger;
 
     current_step_counter++;
-
-    if (state_ != State::Running) {
-      break;
-    }
   }
 }
 

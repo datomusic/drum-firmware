@@ -106,6 +106,8 @@ void PizzaControls::update() {
     display.set_play_button_led(pulse_color);
   }
 
+  refresh_sequencer_display();
+
   _profiler.check_and_print_report();
 }
 

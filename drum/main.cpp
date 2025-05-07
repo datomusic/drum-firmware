@@ -82,8 +82,6 @@ int main() {
   while (true) {
     pizza_controls.update();
 
-    pizza_controls.refresh_sequencer_display();
-
     pizza_display.show();
     sleep_us(280);
 

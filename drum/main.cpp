@@ -1,9 +1,7 @@
-#define ENABLE_PROFILING
-
 #include "musin/usb/usb.h"
 
-#include "pico/stdio_usb.h" // for stdio_usb_init
-#include "pico/time.h"      // for sleep_us
+#include "pico/stdio_usb.h"
+#include "pico/time.h"
 
 #include "audio_engine.h"
 #include "midi_functions.h"
@@ -89,7 +87,7 @@ int main() {
                                        stopped_highlight_factor);
 
     pizza_display.show();
-    sleep_us(80);
+    sleep_us(280);
 
     musin::usb::background_update();
     midi_read();

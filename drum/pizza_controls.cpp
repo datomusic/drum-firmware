@@ -433,6 +433,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   switch (mux_channel) {
   case FILTER:
     _sound_router.set_parameter(drum::Parameter::FILTER_FREQUENCY, event.value);
+    _sound_router.set_parameter(drum::Parameter::FILTER_RESONANCE, (1.0f-event.value));
     break;
   case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;

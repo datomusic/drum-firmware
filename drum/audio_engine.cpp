@@ -32,7 +32,7 @@ float map_value_pitch_fast(float normalized_value) {
 
 float map_value_filter_fast(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float min_freq = 100.0f;
+  const float min_freq = 400.0f;
   const float max_freq = 20000.0f;
   const float range = max_freq - min_freq;
   const float inverted_normalized_value = 1.0f - normalized_value;
@@ -127,7 +127,7 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   }
 
   const float pitch_multiplier = map_value_pitch_fast(value);
-  printf("set pitch to %f \n", pitch_multiplier);
+  // printf("set pitch to %f \n", pitch_multiplier);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
   // voices_[voice_index].sound.set_speed(pitch_multiplier);

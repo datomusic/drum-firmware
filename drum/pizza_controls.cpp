@@ -25,9 +25,10 @@ PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
                              drum::SoundRouter &sound_router_ref) // Added sound_router_ref
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
       _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      _sound_router_ref(sound_router_ref),             // Added
-      keypad_component(this), drumpad_component(this), // Removed sound_router pass
-      analog_component(this, _sound_router_ref),       // Pass sound_router
+      _sound_router_ref(sound_router_ref),
+      keypad_component(this), drumpad_component(this),
+      analog_component(this, _sound_router_ref),
+      _profiler(2000),
       playbutton_component(this) {
 }
 
@@ -42,13 +43,34 @@ void PizzaControls::init() {
 
   // Connect DrumpadComponent NoteEvents to SoundRouter
   drumpad_component.add_observer(_sound_router_ref);
+
+  _profiler.add_section("Keypad Update");
+  _profiler.add_section("Drumpad Update");
+  _profiler.add_section("Analog Update");
+  _profiler.add_section("Playbutton Update");
 }
 
 void PizzaControls::update() {
-  keypad_component.update();
-  drumpad_component.update();
-  analog_component.update();
-  playbutton_component.update(); // Updates the *input* state of the button
+  {
+    musin::hal::DebugUtils::ScopedProfile p(
+        _profiler, static_cast<size_t>(ProfileSection::KEYPAD_UPDATE));
+    keypad_component.update();
+  }
+  {
+    musin::hal::DebugUtils::ScopedProfile p(
+        _profiler, static_cast<size_t>(ProfileSection::DRUMPAD_UPDATE));
+    drumpad_component.update();
+  }
+  {
+    musin::hal::DebugUtils::ScopedProfile p(
+        _profiler, static_cast<size_t>(ProfileSection::ANALOG_UPDATE));
+    analog_component.update();
+  }
+  {
+    musin::hal::DebugUtils::ScopedProfile p(
+        _profiler, static_cast<size_t>(ProfileSection::PLAYBUTTON_UPDATE));
+    playbutton_component.update(); // Updates the *input* state of the button
+  }
 
   // Update the play button LED based on sequencer state
   if (_sequencer_controller_ref.is_running()) {
@@ -79,6 +101,8 @@ void PizzaControls::update() {
     display.set_play_button_led(pulse_color);
   }
   // Note: PizzaDisplay::show() must be called later in the main loop
+
+  _profiler.check_and_print_report();
 }
 
 void PizzaControls::notification(musin::timing::TempoEvent /* event */) {

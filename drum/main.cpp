@@ -43,16 +43,6 @@ static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
 static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
-constexpr size_t MAX_PROFILER_SECTIONS = 5;
-static musin::hal::DebugUtils::SectionProfiler<MAX_PROFILER_SECTIONS> section_profiler(2000);
-enum ProfileSection {
-  CONTROLS_UPDATE,
-  DISPLAY_DRAW,
-  DISPLAY_SHOW,
-  USB_MIDI,
-  AUDIO_PROCESS,
-};
-
 int main() {
   stdio_usb_init();
 
@@ -88,47 +78,25 @@ int main() {
   // TODO: Add logic to register TempoHandler with other clocks
   // TODO: Add logic to start/stop clocks based on TempoHandler source selection
 
-  section_profiler.add_section("Controls Update");
-  section_profiler.add_section("Display Draw");
-  section_profiler.add_section("Display Show");
-  section_profiler.add_section("USB/MIDI");
-  section_profiler.add_section("Audio Process");
-
   while (true) {
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::CONTROLS_UPDATE);
-      pizza_controls.update();
-    }
+    pizza_controls.update();
 
     // Get state needed for display drawing from controls
     bool is_running = pizza_controls.is_running();
     float stopped_highlight_factor = pizza_controls.get_stopped_highlight_factor();
 
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::DISPLAY_DRAW);
-      pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller, is_running,
-                                         stopped_highlight_factor);
-    }
+    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller, is_running,
+                                       stopped_highlight_factor);
 
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::DISPLAY_SHOW);
-      pizza_display.show();
-    }
+    pizza_display.show();
     sleep_us(80);
 
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::USB_MIDI);
-      musin::usb::background_update();
-      midi_read();
-    }
+    musin::usb::background_update();
+    midi_read();
 
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::AUDIO_PROCESS);
-      audio_engine.process();
-    }
+    audio_engine.process();
 
     loop_timer.record_iteration_end();
-    section_profiler.check_and_print_report();
   }
 
   return 0;

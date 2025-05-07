@@ -17,6 +17,7 @@
 #include "pico/time.h"
 
 #include "musin/timing/internal_clock.h"
+#include "musin/hal/debug_utils.h"
 
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
@@ -190,6 +191,14 @@ public: // Make components public for access from SequencerController etc.
   // --- Internal State ---
   uint32_t _clock_tick_counter = 0;       // Counter for LED pulsing when stopped
   float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
+  musin::hal::DebugUtils::SectionProfiler<4> _profiler;
+
+  enum class ProfileSection {
+    KEYPAD_UPDATE,
+    DRUMPAD_UPDATE,
+    ANALOG_UPDATE,
+    PLAYBUTTON_UPDATE
+  };
 
 public:                                  // Add getters for state needed by display drawing
   [[nodiscard]] bool is_running() const; // Moved definition to .cpp

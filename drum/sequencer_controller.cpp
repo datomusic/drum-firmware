@@ -199,22 +199,21 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-bool SequencerController<NumTracks, NumSteps>::start() {
+void SequencerController<NumTracks, NumSteps>::start() {
   if (state_ != State::Stopped) {
     // printf("SequencerController: Already running\n");
-    return false;
+    return;
   }
   reset();
   tempo_source.add_observer(*this);
   set_state(State::Running);
   // printf("SequencerController: Started. Waiting for tick %llu\n", next_trigger_tick_target_);
-  return true;
 }
 
-template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks, NumSteps>::stop() {
+template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks, NumSteps>::stop() {
   if (state_ == State::Stopped) {
     // printf("SequencerController: Already stopped\n");
-    return false;
+    return;
   }
   tempo_source.remove_observer(*this);
   set_state(State::Stopped);
@@ -231,7 +230,6 @@ template <size_t NumTracks, size_t NumSteps> bool SequencerController<NumTracks,
     }
   }
   // printf("SequencerController: Stopped\n");
-  return true;
 }
 
 template <size_t NumTracks, size_t NumSteps>

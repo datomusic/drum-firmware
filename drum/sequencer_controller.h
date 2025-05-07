@@ -78,15 +78,13 @@ public:
 
   /**
    * @brief Start the sequencer by connecting to the tempo source.
-   * @return true if successfully started, false if already running
    */
-  bool start();
+  void start();
 
   /**
    * @brief Stop the sequencer by disconnecting from the tempo source.
-   * @return true if successfully stopped, false if already stopped
    */
-  bool stop();
+  void stop();
 
   /**
    * @brief Check if the sequencer is currently running.

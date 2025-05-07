@@ -78,6 +78,7 @@ public:
 
   /**
    * @brief Start the sequencer by connecting to the tempo source.
+   * Does not reset the step index.
    */
   void start();
 

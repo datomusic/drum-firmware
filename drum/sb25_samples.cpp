@@ -1,5 +1,5 @@
 #include "sb25_samples.h"
-#include "sample_data.h"
+#include "experiments/support/sample_data.h"
 
 const etl::array<SampleData, 32> all_samples = {
     SampleData{samples_Kick_C78__pcm.begin(), samples_Kick_C78__pcm.size()},

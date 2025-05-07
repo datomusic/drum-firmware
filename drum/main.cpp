@@ -82,12 +82,8 @@ int main() {
   while (true) {
     pizza_controls.update();
 
-    // Get state needed for display drawing from controls
-    bool is_running = pizza_controls.is_running();
-    float stopped_highlight_factor = pizza_controls.get_stopped_highlight_factor();
-
-    pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller, is_running,
-                                       stopped_highlight_factor);
+    // PizzaControls now handles updating the sequencer display
+    pizza_controls.refresh_sequencer_display();
 
     pizza_display.show();
     sleep_us(280);

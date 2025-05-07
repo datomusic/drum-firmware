@@ -55,6 +55,8 @@ public:
   void notification(musin::timing::SequencerTickEvent event); // Added for SequencerTickEvent
   void notification(drum::Events::NoteEvent event);
 
+  void refresh_sequencer_display();
+
   // --- Nested Component Definitions ---
 
   // --- Keypad Component ---

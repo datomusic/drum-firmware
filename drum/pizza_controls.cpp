@@ -163,6 +163,12 @@ void PizzaControls::notification(musin::timing::SequencerTickEvent /*event*/) {
   // No action needed here regarding _sub_step_tick_counter.
 }
 
+void PizzaControls::refresh_sequencer_display() {
+  bool current_is_running = _sequencer_controller_ref.is_running();
+  display.draw_sequencer_state(sequencer, _sequencer_controller_ref, current_is_running,
+                               _stopped_highlight_factor);
+}
+
 // --- Implementation for getter moved from header ---
 bool PizzaControls::is_running() const {
   return _sequencer_controller_ref.is_running();

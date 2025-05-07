@@ -82,7 +82,6 @@ int main() {
   while (true) {
     pizza_controls.update();
 
-    // PizzaControls now handles updating the sequencer display
     pizza_controls.refresh_sequencer_display();
 
     pizza_display.show();

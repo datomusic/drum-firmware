@@ -40,6 +40,15 @@ enum class DrumpadState : std::uint8_t {
 };
 
 /**
+ * @brief Defines the retrigger behavior for a drumpad when held.
+ */
+enum class RetriggerMode : uint8_t {
+  Off,    ///< No retriggering.
+  Single, ///< Retrigger once per sequencer step.
+  Double  ///< Retrigger twice per sequencer step.
+};
+
+/**
  * @brief Driver for a single analog drumpad sensor connected via an analog multiplexer.
  *
  * This driver reads an ADC channel after setting address lines for a multiplexer.
@@ -72,6 +81,10 @@ public:
       100; // Threshold to register a release start
   static constexpr std::uint16_t DEFAULT_HOLD_THRESHOLD =
       800; // Threshold to maintain for hold state
+  static constexpr std::uint16_t DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD =
+      1200; // ADC value above hold to activate single retrigger
+  static constexpr std::uint16_t DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD =
+      2500; // ADC value above hold to activate double retrigger
 
   // Default Timings
   static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_US =
@@ -104,18 +117,23 @@ public:
    * @param hold_time_us Minimum time the pad must be above hold_threshold after peaking to be
    * considered 'held'.
    * @param pad_index A unique index for this drumpad, used in events.
+   * @param single_retrigger_pressure_threshold ADC value above hold_threshold to activate single retrigger.
+   * @param double_retrigger_pressure_threshold ADC value above hold_threshold to activate double retrigger.
    */
-  explicit Drumpad(AnalogReader &reader, // Accept reference to the analog reader
-                   uint8_t pad_index,    // Add pad index
-                   std::uint16_t noise_threshold = DEFAULT_NOISE_THRESHOLD,
-                   std::uint16_t press_threshold = DEFAULT_PRESS_THRESHOLD,
-                   std::uint16_t velocity_low_threshold = DEFAULT_VELOCITY_LOW_THRESHOLD,
-                   std::uint16_t velocity_high_threshold = DEFAULT_VELOCITY_HIGH_THRESHOLD,
-                   std::uint16_t release_threshold = DEFAULT_RELEASE_THRESHOLD,
-                   std::uint16_t hold_threshold = DEFAULT_HOLD_THRESHOLD,
-                   std::uint32_t scan_interval_us = DEFAULT_SCAN_INTERVAL_US,
-                   std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
-                   std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US);
+  explicit Drumpad(
+      AnalogReader &reader, // Accept reference to the analog reader
+      uint8_t pad_index,    // Add pad index
+      std::uint16_t noise_threshold = DEFAULT_NOISE_THRESHOLD,
+      std::uint16_t press_threshold = DEFAULT_PRESS_THRESHOLD,
+      std::uint16_t velocity_low_threshold = DEFAULT_VELOCITY_LOW_THRESHOLD,
+      std::uint16_t velocity_high_threshold = DEFAULT_VELOCITY_HIGH_THRESHOLD,
+      std::uint16_t release_threshold = DEFAULT_RELEASE_THRESHOLD,
+      std::uint16_t hold_threshold = DEFAULT_HOLD_THRESHOLD,
+      std::uint32_t scan_interval_us = DEFAULT_SCAN_INTERVAL_US,
+      std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
+      std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US,
+      std::uint16_t single_retrigger_pressure_threshold = DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD,
+      std::uint16_t double_retrigger_pressure_threshold = DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD);
 
   // Prevent copying and assignment
   Drumpad(const Drumpad &) = delete;
@@ -179,6 +197,11 @@ public:
     return _current_state;
   }
 
+  /** @brief Get the current retrigger mode of the pad. */
+  RetriggerMode get_retrigger_mode() const {
+    return _current_retrigger_mode;
+  }
+
   /** @brief [DEBUG] Get the last calculated time difference for velocity. */
   uint64_t get_last_velocity_time_diff() const {
     return _last_velocity_time_diff;
@@ -219,12 +242,15 @@ private:
   const std::uint16_t _velocity_high_threshold;
   const std::uint16_t _release_threshold;
   const std::uint16_t _hold_threshold;
+  const std::uint16_t _single_retrigger_pressure_threshold;
+  const std::uint16_t _double_retrigger_pressure_threshold;
   const std::uint32_t _scan_interval_us;
   const std::uint32_t _debounce_time_us;
   const std::uint32_t _hold_time_us;
 
   // --- State ---
   DrumpadState _current_state = DrumpadState::IDLE;
+  RetriggerMode _current_retrigger_mode = RetriggerMode::Off;
   std::uint16_t _last_adc_value = 0;
   absolute_time_t _last_update_time = nil_time;
   absolute_time_t _state_transition_time = nil_time; // Time the current state was entered
@@ -254,17 +280,23 @@ Drumpad<AnalogReader>::Drumpad(AnalogReader &reader,
                                std::uint16_t velocity_high_threshold,
                                std::uint16_t release_threshold, std::uint16_t hold_threshold,
                                std::uint32_t scan_interval_us, std::uint32_t debounce_time_us,
-                               std::uint32_t hold_time_us)
+                               std::uint32_t hold_time_us,
+                               std::uint16_t single_retrigger_pressure_threshold,
+                               std::uint16_t double_retrigger_pressure_threshold)
     : _reader(reader),       // Store reference to the reader
       _pad_index(pad_index), // Initialize pad index
       _noise_threshold(noise_threshold), _press_threshold(press_threshold),
       _velocity_low_threshold(velocity_low_threshold),
       _velocity_high_threshold(velocity_high_threshold), _release_threshold(release_threshold),
-      _hold_threshold(hold_threshold), _scan_interval_us(scan_interval_us),
-      _debounce_time_us(debounce_time_us), _hold_time_us(hold_time_us),
-      _current_state(DrumpadState::IDLE), _last_adc_value(0), _last_update_time(nil_time),
-      _state_transition_time(nil_time), _velocity_low_time(nil_time), _velocity_high_time(nil_time),
-      _just_pressed(false), _just_released(false), _last_velocity(std::nullopt) {
+      _hold_threshold(hold_threshold),
+      _single_retrigger_pressure_threshold(single_retrigger_pressure_threshold),
+      _double_retrigger_pressure_threshold(double_retrigger_pressure_threshold),
+      _scan_interval_us(scan_interval_us), _debounce_time_us(debounce_time_us),
+      _hold_time_us(hold_time_us), _current_state(DrumpadState::IDLE),
+      _current_retrigger_mode(RetriggerMode::Off), _last_adc_value(0),
+      _last_update_time(nil_time), _state_transition_time(nil_time),
+      _velocity_low_time(nil_time), _velocity_high_time(nil_time), _just_pressed(false),
+      _just_released(false), _last_velocity(std::nullopt) {
 }
 
 // --- Update Method ---
@@ -307,6 +339,7 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
   case DrumpadState::IDLE:
     if (current_adc_value >= _press_threshold) {
       _current_state = DrumpadState::RISING;
+      _current_retrigger_mode = RetriggerMode::Off; // Reset retrigger mode on new press
       _state_transition_time = now;
       _velocity_low_time = nil_time;
       _velocity_high_time = nil_time;
@@ -340,31 +373,66 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
   case DrumpadState::PEAKING:
     if (current_adc_value < _velocity_high_threshold) {
       _current_state = DrumpadState::FALLING;
+      // Retrigger mode is determined by pressure while holding, not just falling from peak
     }
-    if (_current_state != DrumpadState::FALLING && current_adc_value >= _hold_threshold &&
-        time_in_state >= _hold_time_us) {
+    // Check for hold state transition from PEAKING
+    if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
       _current_state = DrumpadState::HOLDING;
       notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);
+      // Update retrigger mode based on current pressure in HOLDING state
+      if (current_adc_value >= _double_retrigger_pressure_threshold) {
+        _current_retrigger_mode = RetriggerMode::Double;
+      } else if (current_adc_value >= _single_retrigger_pressure_threshold) {
+        _current_retrigger_mode = RetriggerMode::Single;
+      } else {
+        _current_retrigger_mode = RetriggerMode::Off; // Or keep Single if already in Hold? For now, Off.
+      }
+    } else if (current_adc_value < _release_threshold) { // Fell below release before hold time
+        _current_state = DrumpadState::DEBOUNCING_RELEASE;
+        _current_retrigger_mode = RetriggerMode::Off;
+        _state_transition_time = now;
     }
     break;
 
   case DrumpadState::FALLING:
     if (current_adc_value < _release_threshold) {
       _current_state = DrumpadState::DEBOUNCING_RELEASE;
+      _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
     } else if (current_adc_value >= _hold_threshold && time_in_state >= _hold_time_us) {
       // Check if it went back up and met hold criteria
       _current_state = DrumpadState::HOLDING;
-      // Keep _state_transition_time from PEAKING entry
+      // _state_transition_time is not reset here, as it's a continuation of a hold-like state
+      if (current_adc_value >= _double_retrigger_pressure_threshold) {
+        _current_retrigger_mode = RetriggerMode::Double;
+      } else if (current_adc_value >= _single_retrigger_pressure_threshold) {
+        _current_retrigger_mode = RetriggerMode::Single;
+      } else {
+        _current_retrigger_mode = RetriggerMode::Off;
+      }
+      // notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value); // Optional: re-notify hold
     }
     // Could potentially go back to RISING/PEAKING if signal increases significantly again?
     // (Retrigger logic - complex)
     break;
 
   case DrumpadState::HOLDING:
+    // Update retrigger mode based on current pressure
+    if (current_adc_value >= _double_retrigger_pressure_threshold) {
+      _current_retrigger_mode = RetriggerMode::Double;
+    } else if (current_adc_value >= _single_retrigger_pressure_threshold) {
+      _current_retrigger_mode = RetriggerMode::Single;
+    } else {
+      // If pressure drops below single retrigger while still holding, turn off retrigger.
+      // Or, maintain single retrigger as long as it's above _hold_threshold?
+      // For now, require sustained pressure for retrigger modes.
+      _current_retrigger_mode = RetriggerMode::Off;
+    }
+
     if (current_adc_value <
         _release_threshold) { // Check against release, not hold threshold, to start release
       _current_state = DrumpadState::DEBOUNCING_RELEASE;
+      _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
     }
     break;
@@ -375,12 +443,14 @@ void Drumpad<AnalogReader>::update_state_machine(std::uint16_t current_adc_value
       // Need to know if we came from HOLDING or FALLING/RISING.
       // Simplification: Go back to FALLING, assuming it won't bounce high enough for HOLDING
       // immediately. Simplification: Go back to FALLING. More robust: store previous state.
-      _current_state = DrumpadState::FALLING;
+      _current_state = DrumpadState::FALLING; // Or PEAKING if it bounces high enough
+      // _current_retrigger_mode remains Off as it's trying to release.
       _state_transition_time = now;
     } else if (time_in_state >= _debounce_time_us) {
       // Debounce time elapsed, confirm release
       notify_event(DrumpadEvent::Type::Release, std::nullopt, current_adc_value);
       _current_state = DrumpadState::IDLE;
+      _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
       _just_released = true;
       _last_adc_value = 0;

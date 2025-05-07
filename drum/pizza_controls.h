@@ -181,8 +181,8 @@ public:
 
     PizzaControls *parent_controls;
     drum::SoundRouter &_sound_router; // Added
-    etl::array<musin::ui::AnalogControl, 16> mux_controls;
-    etl::array<AnalogControlEventHandler, 16> control_observers;
+    etl::array<musin::ui::AnalogControl, 11> mux_controls;
+    etl::array<AnalogControlEventHandler, 11> control_observers;
     size_t _next_analog_control_to_update_idx = 0;
   };
 

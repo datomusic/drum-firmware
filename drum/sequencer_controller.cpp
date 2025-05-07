@@ -84,15 +84,11 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
   const musin::timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
-    // Emit Note On event
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
                                           .velocity = step.velocity.value()};
     notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
-
-    // Note: The fade trigger is now handled by an observer (e.g., PizzaControls)
-    // listening to the NoteEvent.
   }
 }
 
@@ -135,7 +131,6 @@ uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interv
 }
 
 // --- Public Methods ---
-
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
@@ -146,7 +141,7 @@ void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
       high_res_ticks_per_step_ = CLOCK_PPQN;
     }
   } else {
-    high_res_ticks_per_step_ = 24; // Default fallback
+    high_res_ticks_per_step_ = 24;
   }
   high_res_ticks_per_step_ = std::max(uint32_t{1}, high_res_ticks_per_step_);
 }
@@ -195,7 +190,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
   }
   tempo_source.add_observer(*this);
   set_state(State::Running);
-  // printf("SequencerController: Started. Waiting for tick %llu\n", next_trigger_tick_target_);
 }
 
 template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks, NumSteps>::stop() {
@@ -205,10 +199,8 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
   tempo_source.remove_observer(*this);
   set_state(State::Stopped);
 
-  // Emit note-offs for all active notes
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
-      // Emit Note Off event
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
@@ -284,8 +276,6 @@ void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) 
     const size_t num_steps = sequencer.get_num_steps();
     repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     repeat_activation_step_counter_ = current_step_counter;
-    // printf("Repeat Activated: Length %lu, Start Step %lu (Abs Counter %llu)\n", repeat_length_,
-    //        repeat_activation_step_index_, repeat_activation_step_counter_);
   }
 }
 
@@ -294,7 +284,6 @@ void SequencerController<NumTracks, NumSteps>::deactivate_repeat() {
   if (repeat_active_) {
     repeat_active_ = false;
     repeat_length_ = 0;
-    // printf("Repeat Deactivated\n");
   }
 }
 
@@ -304,7 +293,6 @@ void SequencerController<NumTracks, NumSteps>::set_repeat_length(uint32_t length
     uint32_t new_length = std::max(uint32_t{1}, length);
     if (new_length != repeat_length_) {
       repeat_length_ = new_length;
-      // printf("Repeat Length Changed: New Length %lu\n", repeat_length_);
     }
   }
 }
@@ -320,8 +308,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_random() {
   if (state_ == State::Running && !random_active_) {
     random_active_ = true;
-    random_track_offsets_ = {}; // Reset offsets when activating
-    // printf("Random Activated\n");
+    random_track_offsets_ = {};
   }
 }
 
@@ -329,7 +316,6 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_random() {
   if (random_active_) {
     random_active_ = false;
-    // printf("Random Deactivated\n");
   }
 }
 

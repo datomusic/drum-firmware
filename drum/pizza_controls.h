@@ -93,6 +93,7 @@ public:
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
     void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
+    [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); } // Added getter
 
   private:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {

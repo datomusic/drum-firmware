@@ -104,7 +104,7 @@ bool PizzaControls::is_running() const {
 void PizzaControls::notification(drum::Events::NoteEvent event) {
   // Trigger fade only for note-on events (velocity > 0)
   // and if the track_index is valid for the drumpads.
-  if (event.velocity > 0 && event.track_index < drumpad_component.drumpads.size()) {
+  if (event.velocity > 0 && event.track_index < drumpad_component.get_num_drumpads()) {
     drumpad_component.trigger_fade(event.track_index);
   }
 }

@@ -20,10 +20,11 @@
 #include "musin/hal/debug_utils.h"
 
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/sequencer_tick_event.h" // Added for SequencerTickEvent
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "musin/timing/tempo_multiplier.h" // Added for TempoMultiplier
-#include "sound_router.h"                 // Added
+#include "musin/timing/tempo_multiplier.h"
+#include "sound_router.h"
 
 namespace drum {
 class PizzaDisplay; // Forward declaration
@@ -32,7 +33,8 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 
 class PizzaControls : public etl::observer<musin::timing::TempoEvent>,
-                      public etl::observer<drum::Events::NoteEvent> { // Added NoteEvent observer
+                      public etl::observer<musin::timing::SequencerTickEvent>, // Added SequencerTickEvent
+                      public etl::observer<drum::Events::NoteEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
@@ -49,7 +51,8 @@ public:
   void init();
   void update();
   void notification(musin::timing::TempoEvent event);
-  void notification(drum::Events::NoteEvent event); // Added for sequencer notes
+  void notification(musin::timing::SequencerTickEvent event); // Added for SequencerTickEvent
+  void notification(drum::Events::NoteEvent event);
 
   // --- Nested Component Definitions ---
 
@@ -96,8 +99,12 @@ public:
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
     void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
-    [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); } // Added getter
+    [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); }
     [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const;
+    [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16>& get_drumpad(size_t index) const {
+        // Consider adding bounds check: hard_assert(index < drumpads.size());
+        return drumpads[index];
+    }
 
     struct NoteRange {
       uint8_t min_note;

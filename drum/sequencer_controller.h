@@ -15,9 +15,6 @@
 
 namespace drum {
 
-// Forward declaration inside the namespace
-class PizzaControls;
-
 // Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
@@ -31,7 +28,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
 template <size_t NumTracks, size_t NumSteps>
 class SequencerController
     : public etl::observer<musin::timing::SequencerTickEvent>,
-      public etl::observable<etl::observer<drum::Events::NoteEvent>, 1> { // Made observable
+      public etl::observable<etl::observer<drum::Events::NoteEvent>, 2> { // Increased observer capacity
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -126,11 +123,6 @@ public:
   [[nodiscard]] bool is_random_active() const;
 
   /**
-   * @brief Set the pointer to the PizzaControls instance for callbacks.
-   */
-  void set_controls_ptr(PizzaControls *ptr); // Use unqualified name within the namespace
-
-  /**
    * @brief Sets the intended state of the repeat effect.
    * Compares the intended state with the current state and performs necessary actions
    * (activate, deactivate, set length).
@@ -174,7 +166,6 @@ private:
 
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
-  PizzaControls *_controls_ptr = nullptr; // Pointer for callbacks
 
 public:
   void activate_repeat(uint32_t length);

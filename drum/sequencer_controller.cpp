@@ -5,8 +5,6 @@
 #include <cmath>
 #include <cstdio>
 
-#include "pizza_controls.h"
-
 namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
@@ -93,11 +91,8 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
 
-    // Trigger fade on the corresponding drumpad if controls pointer is set
-    // This remains as it's a visual effect, not sound generation.
-    if (_controls_ptr) {
-      _controls_ptr->drumpad_component.trigger_fade(static_cast<uint8_t>(track_idx));
-    }
+    // Note: The fade trigger is now handled by an observer (e.g., PizzaControls)
+    // listening to the NoteEvent.
   }
 }
 
@@ -341,11 +336,6 @@ void SequencerController<NumTracks, NumSteps>::deactivate_random() {
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_random_active() const {
   return random_active_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_controls_ptr(PizzaControls *ptr) {
-  _controls_ptr = ptr;
 }
 
 template <size_t NumTracks, size_t NumSteps>

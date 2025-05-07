@@ -29,7 +29,8 @@ class PizzaDisplay; // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 
-class PizzaControls : public etl::observer<musin::timing::TempoEvent> {
+class PizzaControls : public etl::observer<musin::timing::TempoEvent>,
+                      public etl::observer<drum::Events::NoteEvent> { // Added NoteEvent observer
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
@@ -45,6 +46,7 @@ public:
   void init();
   void update();
   void notification(musin::timing::TempoEvent event) override;
+  void notification(const drum::Events::NoteEvent &event) override; // Added for sequencer notes
 
   // --- Nested Component Definitions ---
 

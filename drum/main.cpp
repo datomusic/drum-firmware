@@ -70,9 +70,6 @@ int main() {
   pizza_display.init();
   pizza_controls.init();
 
-  // Set the controls pointer in the sequencer controller
-  sequencer_controller.set_controls_ptr(&pizza_controls);
-
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
   tempo_handler.add_observer(tempo_multiplier);
@@ -80,6 +77,8 @@ int main() {
 
   // Connect SequencerController NoteEvents to SoundRouter
   sequencer_controller.add_observer(sound_router);
+  // Connect SequencerController NoteEvents to PizzaControls for UI feedback (e.g., drumpad fade)
+  sequencer_controller.add_observer(pizza_controls);
 
   sync_out.enable();
 

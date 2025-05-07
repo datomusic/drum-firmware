@@ -96,6 +96,17 @@ public:
     uint8_t get_note_for_pad(uint8_t pad_index) const;
     [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); } // Added getter
 
+    struct NoteRange {
+      uint8_t min_note;
+      uint8_t max_note;
+    };
+    static constexpr etl::array<NoteRange, 4> drumpad_note_ranges = {{
+        {0, 7},   // Pad 0
+        {8, 15},  // Pad 1
+        {16, 23}, // Pad 2
+        {24, 31}  // Pad 3
+    }};
+
   private:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       DrumpadComponent *parent;

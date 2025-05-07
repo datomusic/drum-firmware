@@ -263,7 +263,10 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // 
                                       1000U, 5000U, 200000U},
                Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
-      drumpad_note_numbers{0, 8, 16, 24},
+      drumpad_note_numbers{DrumpadComponent::drumpad_note_ranges[0].min_note,
+                           DrumpadComponent::drumpad_note_ranges[1].min_note,
+                           DrumpadComponent::drumpad_note_ranges[2].min_note,
+                           DrumpadComponent::drumpad_note_ranges[3].min_note},
       _fade_start_time{}, // Initialize before observers to match declaration order
       drumpad_observers{DrumpadEventHandler{this, 0},   // Removed sound_router
                         DrumpadEventHandler{this, 1},   // Removed sound_router
@@ -331,15 +334,19 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   if (pad_index >= drumpad_note_numbers.size())
     return;
 
+  const NoteRange &range = drumpad_note_ranges[pad_index];
   int32_t current_note = drumpad_note_numbers[pad_index];
-  int32_t new_note_number = current_note + offset;
 
-  if (new_note_number < 0) {
-    new_note_number = 31;
-  } else if (new_note_number > 31) {
-    new_note_number = 0;
+  int32_t num_notes_in_range = range.max_note - range.min_note + 1;
+  if (num_notes_in_range <= 0) {
+    return;
   }
-  drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_number);
+
+  int32_t current_note_in_range_idx = current_note - range.min_note;
+  int32_t new_note_in_range_idx = (current_note_in_range_idx + offset);
+  new_note_in_range_idx = (new_note_in_range_idx % num_notes_in_range + num_notes_in_range) % num_notes_in_range;
+
+  drumpad_note_numbers[pad_index] = range.min_note + static_cast<uint8_t>(new_note_in_range_idx);
 
   // Update all steps in the corresponding sequencer track with the new note
   parent_controls->sequencer.get_track(pad_index).set_note(drumpad_note_numbers[pad_index]);

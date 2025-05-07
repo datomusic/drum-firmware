@@ -209,9 +209,20 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       // Get the current note assigned to the corresponding drumpad
       uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
       track.set_step_note(step_idx, note);
+      
+      uint8_t step_velocity;
       // Set default velocity only if it wasn't already set
       if (!track.get_step_velocity(step_idx).has_value()) {
         track.set_step_velocity(step_idx, 100);
+        step_velocity = 100;
+      } else {
+        step_velocity = track.get_step_velocity(step_idx).value();
+      }
+
+      if (!controls->is_running()) {
+        drum::Events::NoteEvent note_event{
+            .track_index = track_idx, .note = note, .velocity = step_velocity};
+        controls->_sound_router_ref.notification(note_event);
       }
     } else {
       // Optionally clear note/velocity when disabling, or leave them

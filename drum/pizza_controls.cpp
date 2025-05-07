@@ -122,17 +122,17 @@ void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
     // Sequencer is running, handle retrigger logic
     _clock_tick_counter = 0; // Reset pulse counter
 
-    uint32_t input_ticks_per_output = _tempo_multiplier_ref.get_input_ticks_per_output_tick();
-    if (input_ticks_per_output == 0) { // Avoid division by zero if not configured
-        _sub_step_tick_counter++;
-        return;
+    uint32_t retrigger_period = _sequencer_controller_ref.get_ticks_per_musical_step();
+
+    if (retrigger_period == 0) { 
+        return; 
     }
 
     for (size_t i = 0; i < drumpad_component.get_num_drumpads(); ++i) {
       const auto& pad = drumpad_component.get_drumpad(i);
       musin::ui::RetriggerMode mode = pad.get_retrigger_mode();
       uint8_t note = drumpad_component.get_note_for_pad(static_cast<uint8_t>(i));
-      constexpr uint8_t retrigger_velocity = 100; // Default velocity for retriggered notes
+      constexpr uint8_t retrigger_velocity = 100; 
 
       bool trigger_now = false;
       if (mode == musin::ui::RetriggerMode::Single) {
@@ -140,11 +140,8 @@ void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
           trigger_now = true;
         }
       } else if (mode == musin::ui::RetriggerMode::Double) {
-        // Trigger at the start and halfway point of the sequencer step
-        // Ensure input_ticks_per_output is at least 2 for halfway point to be meaningful
-        // and distinct from 0.
-        if (_sub_step_tick_counter == 0 || 
-            (input_ticks_per_output >= 2 && _sub_step_tick_counter == (input_ticks_per_output / 2))) {
+        if (_sub_step_tick_counter == 0 ||
+            (retrigger_period >= 2 && _sub_step_tick_counter == (retrigger_period / 2))) {
           trigger_now = true;
         }
       }
@@ -153,19 +150,19 @@ void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
         drum::Events::NoteEvent note_event{
             .track_index = static_cast<uint8_t>(i), .note = note, .velocity = retrigger_velocity};
         _sound_router_ref.notification(note_event);
-        // Optionally trigger fade effect on retriggered notes
-        // drumpad_component.trigger_fade(static_cast<uint8_t>(i));
       }
     }
     _sub_step_tick_counter++;
+    if (_sub_step_tick_counter >= retrigger_period) {
+      _sub_step_tick_counter = 0;
+    }
   }
 }
 
 // Notification handler for SequencerTickEvents from TempoMultiplier
 void PizzaControls::notification(musin::timing::SequencerTickEvent /*event*/) {
-  // This event signals that TempoMultiplier has emitted a tick for the main sequencer.
-  // Reset the sub-step counter.
-  _sub_step_tick_counter = 0;
+  // _sub_step_tick_counter is now managed by the TempoEvent notification.
+  // No action needed here regarding _sub_step_tick_counter.
 }
 
 // --- Implementation for getter moved from header ---

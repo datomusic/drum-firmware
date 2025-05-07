@@ -340,6 +340,12 @@ void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(
 }
 
 template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] uint32_t
+SequencerController<NumTracks, NumSteps>::get_ticks_per_musical_step() const noexcept {
+  return high_res_ticks_per_step_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::toggle() {
   if (is_running()) {
     stop();

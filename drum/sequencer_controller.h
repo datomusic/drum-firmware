@@ -172,6 +172,12 @@ public:
   void deactivate_repeat();
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
+
+  /**
+   * @brief Get the number of high-resolution SequencerTickEvents that form one musical step
+   * (e.g., a 16th note) of this sequencer.
+   */
+  [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 };
 
 } // namespace drum

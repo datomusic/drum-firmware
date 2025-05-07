@@ -168,11 +168,8 @@ void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) 
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::reset() {
-
-  // printf("SequencerController: Resetting.\n");
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
-      // Emit Note Off event
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
@@ -183,14 +180,12 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
 
-  // Reset the 'just played' step index for each track to the *last* step
   if constexpr (NumSteps > 0) {
     _just_played_step_per_track.fill(NumSteps - 1);
   } else {
     _just_played_step_per_track.fill(std::nullopt);
   }
 
-  // Ensure effects are reset
   deactivate_repeat();
   deactivate_random();
 
@@ -201,7 +196,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::start() {
   if (state_ != State::Stopped) {
-    // printf("SequencerController: Already running\n");
     return;
   }
   reset();

@@ -412,37 +412,37 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(
     PizzaControls *parent_ptr,
     drum::SoundRouter &sound_router)                            // Added sound_router
     : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
-      mux_controls{AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},
+      mux_controls{/*AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},*/
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM2, true},
+                  //  AnalogControl{PIN_ADC, analog_address_pins, DRUM2, true},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH1, true},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH2, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, PLAYBUTTON, true},
+                  //  AnalogControl{PIN_ADC, analog_address_pins, PLAYBUTTON, true},
                    AnalogControl{PIN_ADC, analog_address_pins, RANDOM, true},
                    AnalogControl{PIN_ADC, analog_address_pins, VOLUME},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH3, true},
                    AnalogControl{PIN_ADC, analog_address_pins, SWING, true},
                    AnalogControl{PIN_ADC, analog_address_pins, CRUSH, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM3, true},
+                  //  AnalogControl{PIN_ADC, analog_address_pins, DRUM3, true},
                    AnalogControl{PIN_ADC, analog_address_pins, REPEAT, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, DRUM4, true},
+                  //  AnalogControl{PIN_ADC, analog_address_pins, DRUM4, true},
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, true}},
       control_observers{
-          AnalogControlEventHandler{this, DRUM1, _sound_router},      // Pass sound_router
+          // AnalogControlEventHandler{this, DRUM1, _sound_router},      // Pass sound_router
           AnalogControlEventHandler{this, FILTER, _sound_router},     // Pass sound_router
-          AnalogControlEventHandler{this, DRUM2, _sound_router},      // Pass sound_router
+          // AnalogControlEventHandler{this, DRUM2, _sound_router},      // Pass sound_router
           AnalogControlEventHandler{this, PITCH1, _sound_router},     // Pass sound_router
           AnalogControlEventHandler{this, PITCH2, _sound_router},     // Pass sound_router
-          AnalogControlEventHandler{this, PLAYBUTTON, _sound_router}, // Pass sound_router
+          // AnalogControlEventHandler{this, PLAYBUTTON, _sound_router}, // Pass sound_router
           AnalogControlEventHandler{this, RANDOM, _sound_router},     // Pass sound_router
           AnalogControlEventHandler{this, VOLUME, _sound_router},     // Pass sound_router
           AnalogControlEventHandler{this, PITCH3, _sound_router},     // Pass sound_router
           AnalogControlEventHandler{this, SWING, _sound_router},      // Pass sound_router
           AnalogControlEventHandler{this, CRUSH, _sound_router},      // Pass sound_router
-          AnalogControlEventHandler{this, DRUM3, _sound_router},      // Pass sound_router
+          // AnalogControlEventHandler{this, DRUM3, _sound_router},      // Pass sound_router
           AnalogControlEventHandler{this, REPEAT, _sound_router},     // Pass sound_router
-          AnalogControlEventHandler{this, DRUM4, _sound_router},      // Pass sound_router
+          // AnalogControlEventHandler{this, DRUM4, _sound_router},      // Pass sound_router
           AnalogControlEventHandler{this, SPEED, _sound_router},      // Pass sound_router
           AnalogControlEventHandler{this, PITCH4, _sound_router}} {   // Pass sound_router
 }

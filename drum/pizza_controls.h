@@ -45,8 +45,8 @@ public:
 
   void init();
   void update();
-  void notification(musin::timing::TempoEvent event) override;
-  void notification(const drum::Events::NoteEvent &event) override; // Added for sequencer notes
+  void notification(musin::timing::TempoEvent event);
+  void notification(drum::Events::NoteEvent event); // Added for sequencer notes
 
   // --- Nested Component Definitions ---
 

@@ -101,7 +101,7 @@ bool PizzaControls::is_running() const {
 // --- End moved implementation ---
 
 // Notification handler for NoteEvents from SequencerController
-void PizzaControls::notification(const drum::Events::NoteEvent &event) {
+void PizzaControls::notification(drum::Events::NoteEvent event) {
   // Trigger fade only for note-on events (velocity > 0)
   // and if the track_index is valid for the drumpads.
   if (event.velocity > 0 && event.track_index < drumpad_component.drumpads.size()) {

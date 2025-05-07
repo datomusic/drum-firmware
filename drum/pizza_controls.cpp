@@ -416,8 +416,9 @@ void PizzaControls::AnalogControlComponent::init() {
 }
 
 void PizzaControls::AnalogControlComponent::update() {
-  for (auto &control : mux_controls) {
-    control.update();
+  if (!mux_controls.empty()) {
+    mux_controls[_next_analog_control_to_update_idx].update();
+    _next_analog_control_to_update_idx = (_next_analog_control_to_update_idx + 1) % mux_controls.size();
   }
 }
 

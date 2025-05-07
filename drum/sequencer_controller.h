@@ -26,9 +26,9 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController
-    : public etl::observer<musin::timing::SequencerTickEvent>,
-      public etl::observable<etl::observer<drum::Events::NoteEvent>, 2> { // Increased observer capacity
+class SequencerController : public etl::observer<musin::timing::SequencerTickEvent>,
+                            public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                                   2> { // Increased observer capacity
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;

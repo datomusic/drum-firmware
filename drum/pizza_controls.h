@@ -16,11 +16,11 @@
 #include "events.h"
 #include "pico/time.h"
 
-#include "musin/timing/internal_clock.h"
 #include "musin/hal/debug_utils.h"
+#include "musin/timing/internal_clock.h"
 
-#include "musin/timing/step_sequencer.h"
 #include "musin/timing/sequencer_tick_event.h" // Added for SequencerTickEvent
+#include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/tempo_multiplier.h"
@@ -32,9 +32,10 @@ class PizzaDisplay; // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 
-class PizzaControls : public etl::observer<musin::timing::TempoEvent>,
-                      public etl::observer<musin::timing::SequencerTickEvent>, // Added SequencerTickEvent
-                      public etl::observer<drum::Events::NoteEvent> {
+class PizzaControls
+    : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observer<musin::timing::SequencerTickEvent>, // Added SequencerTickEvent
+      public etl::observer<drum::Events::NoteEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
@@ -99,11 +100,14 @@ public:
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
     void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
-    [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); }
+    [[nodiscard]] size_t get_num_drumpads() const {
+      return drumpads.size();
+    }
     [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const;
-    [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16>& get_drumpad(size_t index) const {
-        // Consider adding bounds check: hard_assert(index < drumpads.size());
-        return drumpads[index];
+    [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16> &
+    get_drumpad(size_t index) const {
+      // Consider adding bounds check: hard_assert(index < drumpads.size());
+      return drumpads[index];
     }
 
     struct NoteRange {
@@ -213,9 +217,9 @@ public: // Make components public for access from SequencerController etc.
   PlaybuttonComponent playbutton_component;
 
   // --- Internal State ---
-  uint32_t _clock_tick_counter = 0;          // Counter for LED pulsing when stopped
-  uint32_t _sub_step_tick_counter = 0;     // Counter for TempoEvents within a SequencerTick
-  float _stopped_highlight_factor = 0.0f;    // Brightness factor for LED pulse (0.0-1.0)
+  uint32_t _clock_tick_counter = 0;       // Counter for LED pulsing when stopped
+  uint32_t _sub_step_tick_counter = 0;    // Counter for TempoEvents within a SequencerTick
+  float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
   musin::hal::DebugUtils::SectionProfiler<4> _profiler;
 
   enum class ProfileSection {

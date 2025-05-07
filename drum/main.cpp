@@ -33,7 +33,8 @@ static musin::timing::TempoMultiplier tempo_multiplier(96, 1);
 drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
 
 static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
-                                          tempo_handler, tempo_multiplier, sequencer_controller, sound_router);
+                                          tempo_handler, tempo_multiplier, sequencer_controller,
+                                          sound_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);

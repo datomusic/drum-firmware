@@ -181,7 +181,7 @@ void PizzaDisplay::draw_sequencer_state(
     const auto &track_data = sequencer.get_track(track_idx);
     std::optional<uint32_t> override_color_opt;
     if (track_idx < _track_override_colors.size()) {
-        override_color_opt = _track_override_colors[track_idx];
+      override_color_opt = _track_override_colors[track_idx];
     }
 
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {

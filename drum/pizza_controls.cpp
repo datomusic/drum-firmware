@@ -21,12 +21,13 @@ PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
                              musin::timing::Sequencer<4, 8> &sequencer_ref,
                              musin::timing::InternalClock &clock_ref,
                              musin::timing::TempoHandler &tempo_handler_ref,
+                             musin::timing::TempoMultiplier &tempo_multiplier_ref, // Added
                              drum::DefaultSequencerController &sequencer_controller_ref,
-                             drum::SoundRouter &sound_router_ref) // Added sound_router_ref
+                             drum::SoundRouter &sound_router_ref)
     : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
-      _tempo_handler_ref(tempo_handler_ref), _sequencer_controller_ref(sequencer_controller_ref),
-      _sound_router_ref(sound_router_ref),
-      keypad_component(this), drumpad_component(this),
+      _tempo_handler_ref(tempo_handler_ref), _tempo_multiplier_ref(tempo_multiplier_ref), // Initialize
+      _sequencer_controller_ref(sequencer_controller_ref),
+      _sound_router_ref(sound_router_ref), keypad_component(this), drumpad_component(this),
       analog_component(this, _sound_router_ref),
       _profiler(2000),
       playbutton_component(this) {
@@ -40,6 +41,9 @@ void PizzaControls::init() {
 
   // Register this class to receive tempo events for LED pulsing
   _tempo_handler_ref.add_observer(*this);
+  // Register to receive SequencerTickEvents to reset sub-step counter
+  _tempo_multiplier_ref.add_observer(*this);
+
 
   // Connect DrumpadComponent NoteEvents to SoundRouter
   drumpad_component.add_observer(_sound_router_ref);

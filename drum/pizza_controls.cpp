@@ -191,6 +191,13 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
         break;
       }
       controls->drumpad_component.select_note_for_pad(pad_index, offset);
+      if (!controls->is_running()) {
+        uint8_t note_to_play = controls->drumpad_component.get_note_for_pad(pad_index);
+        drum::Events::NoteEvent note_event{
+            .track_index = pad_index, .note = note_to_play, .velocity = 100 // Default preview velocity
+        };
+        controls->_sound_router_ref.notification(note_event);
+      }
     }
     return;
   }

@@ -22,7 +22,8 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "sound_router.h" // Added
+#include "musin/timing/tempo_multiplier.h" // Added for TempoMultiplier
+#include "sound_router.h"                 // Added
 
 namespace drum {
 class PizzaDisplay; // Forward declaration
@@ -38,8 +39,9 @@ public:
                          musin::timing::Sequencer<4, 8> &sequencer_ref,
                          musin::timing::InternalClock &clock_ref,
                          musin::timing::TempoHandler &tempo_handler_ref,
+                         musin::timing::TempoMultiplier &tempo_multiplier_ref, // Added
                          drum::DefaultSequencerController &sequencer_controller_ref,
-                         drum::SoundRouter &sound_router_ref); // Added sound_router_ref
+                         drum::SoundRouter &sound_router_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -192,8 +194,9 @@ private:
   musin::timing::Sequencer<4, 8> &sequencer;
   musin::timing::InternalClock &_internal_clock;
   musin::timing::TempoHandler &_tempo_handler_ref;
+  musin::timing::TempoMultiplier &_tempo_multiplier_ref; // Added
   drum::DefaultSequencerController &_sequencer_controller_ref;
-  drum::SoundRouter &_sound_router_ref; // Added
+  drum::SoundRouter &_sound_router_ref;
 
 public: // Make components public for access from SequencerController etc.
   // --- Components ---
@@ -203,8 +206,9 @@ public: // Make components public for access from SequencerController etc.
   PlaybuttonComponent playbutton_component;
 
   // --- Internal State ---
-  uint32_t _clock_tick_counter = 0;       // Counter for LED pulsing when stopped
-  float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
+  uint32_t _clock_tick_counter = 0;          // Counter for LED pulsing when stopped
+  uint32_t _sub_step_tick_counter = 0;     // Counter for TempoEvents within a SequencerTick
+  float _stopped_highlight_factor = 0.0f;    // Brightness factor for LED pulse (0.0-1.0)
   musin::hal::DebugUtils::SectionProfiler<4> _profiler;
 
   enum class ProfileSection {

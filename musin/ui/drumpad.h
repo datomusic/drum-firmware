@@ -49,15 +49,6 @@ enum class RetriggerMode : uint8_t {
 };
 
 /**
- * @brief Defines the retrigger behavior for a drumpad when held.
- */
-enum class RetriggerMode : uint8_t {
-  Off,    ///< No retriggering.
-  Single, ///< Retrigger once per sequencer step.
-  Double  ///< Retrigger twice per sequencer step.
-};
-
-/**
  * @brief Driver for a single analog drumpad sensor connected via an analog multiplexer.
  *
  * This driver reads an ADC channel after setting address lines for a multiplexer.

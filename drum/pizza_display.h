@@ -88,6 +88,10 @@ public:
    */
   std::optional<uint32_t> get_drumpad_led_index(uint8_t pad_index) const;
 
+  void set_track_override_color(uint8_t track_index, uint32_t color);
+  void clear_track_override_color(uint8_t track_index);
+  void clear_all_track_override_colors();
+
   /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
    * @tparam NumTracks Number of tracks in the sequencer.
@@ -159,6 +163,7 @@ private:
 
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
+  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
 };
 
 // --- Template Implementation ---
@@ -173,22 +178,30 @@ void PizzaDisplay::draw_sequencer_state(
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
       continue;
 
-    const auto &track = sequencer.get_track(track_idx);
+    const auto &track_data = sequencer.get_track(track_idx);
+    std::optional<uint32_t> override_color_opt;
+    if (track_idx < _track_override_colors.size()) {
+        override_color_opt = _track_override_colors[track_idx];
+    }
+
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
         continue;
 
-      const auto &step = track.get_step(step_idx);
-      uint32_t final_color = calculate_step_color(step);
+      const auto &step = track_data.get_step(step_idx);
+      uint32_t final_color;
 
-      // Check if this specific step was the last one played for this track
+      if (override_color_opt.has_value()) {
+        final_color = override_color_opt.value();
+      } else {
+        final_color = calculate_step_color(step);
+      }
+
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {
         if (is_running) {
-          // Running: Apply fixed highlight
           final_color = apply_highlight(final_color);
         } else {
-          // Stopped: Apply fading highlight using the provided factor
           final_color = apply_fading_highlight(final_color, stopped_highlight_factor);
         }
       }

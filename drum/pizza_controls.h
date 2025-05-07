@@ -95,6 +95,7 @@ public:
     void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
     [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); } // Added getter
+    [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const;
 
     struct NoteRange {
       uint8_t min_note;
@@ -125,6 +126,7 @@ public:
     etl::array<musin::hal::AnalogInMux16, 4> drumpad_readers;
     etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, 4> drumpads;
     etl::array<uint8_t, 4> drumpad_note_numbers;
+    etl::array<bool, 4> _pad_pressed_state{false, false, false, false};
     etl::array<absolute_time_t, 4> _fade_start_time; // Track fade start time per pad
     etl::array<DrumpadEventHandler, 4>
         drumpad_observers; // Declared after _fade_start_time to match init order

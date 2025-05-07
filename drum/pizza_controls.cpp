@@ -72,35 +72,37 @@ void PizzaControls::update() {
     playbutton_component.update(); // Updates the *input* state of the button
   }
 
+  // Update track overrides based on drumpad presses
+  for (uint8_t i = 0; i < drumpad_component.get_num_drumpads(); ++i) {
+    if (drumpad_component.is_pad_pressed(i)) {
+      uint8_t note = drumpad_component.get_note_for_pad(i);
+      uint32_t color = display.get_note_color(note % PizzaDisplay::NUM_NOTE_COLORS);
+      display.set_track_override_color(i, color);
+    } else {
+      display.clear_track_override_color(i);
+    }
+  }
+
   // Update the play button LED based on sequencer state
   if (_sequencer_controller_ref.is_running()) {
-    // Running: Solid color (e.g., white)
     display.set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
-    // Counter is reset in notification when state changes to running
   } else {
-    // Stopped: Pulse based on clock tick counter
-    // Assuming 4/4 time, a beat is a quarter note. PPQN = Ticks per Quarter Note.
     constexpr uint32_t ticks_per_beat = musin::timing::InternalClock::PPQN;
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;
     }
-
-    // Calculate brightness factor (1.0 down to 0.0) based on tick phase
     float brightness_factor = 0.0f;
     if (ticks_per_beat > 0) {
       brightness_factor =
           1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
     }
-    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f); // Store for display
-
+    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f);
     uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * 255.0f);
-
     uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
     uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);
     display.set_play_button_led(pulse_color);
   }
-  // Note: PizzaDisplay::show() must be called later in the main loop
 
   _profiler.check_and_print_report();
 }
@@ -267,6 +269,7 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // 
                            DrumpadComponent::drumpad_note_ranges[1].min_note,
                            DrumpadComponent::drumpad_note_ranges[2].min_note,
                            DrumpadComponent::drumpad_note_ranges[3].min_note},
+      // _pad_pressed_state is initialized by default in the header
       _fade_start_time{}, // Initialize before observers to match declaration order
       drumpad_observers{DrumpadEventHandler{this, 0},   // Removed sound_router
                         DrumpadEventHandler{this, 1},   // Removed sound_router
@@ -361,6 +364,13 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   trigger_fade(pad_index); // Briefly flash when selecting
 }
 
+bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
+  if (pad_index < _pad_pressed_state.size()) {
+    return _pad_pressed_state[pad_index];
+  }
+  return false;
+}
+
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
   if (pad_index < drumpad_note_numbers.size()) {
     return drumpad_note_numbers[pad_index];
@@ -376,19 +386,23 @@ void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-  if (event.type == musin::ui::DrumpadEvent::Type::Press && event.velocity.has_value()) {
-    parent->trigger_fade(event.pad_index); // Trigger fade on physical press
-    uint8_t note = parent->get_note_for_pad(event.pad_index);
-    uint8_t velocity = event.velocity.value();
-    // Emit NoteEvent instead of calling SoundRouter directly
-    drum::Events::NoteEvent note_event{
-        .track_index = event.pad_index, .note = note, .velocity = velocity};
-    parent->notify_observers(note_event);
-  } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
-    uint8_t note = parent->get_note_for_pad(event.pad_index);
-    // Emit NoteEvent with velocity 0 for note off
-    drum::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
-    parent->notify_observers(note_event);
+  if (event.pad_index < parent->_pad_pressed_state.size()) {
+    if (event.type == musin::ui::DrumpadEvent::Type::Press) {
+      parent->_pad_pressed_state[event.pad_index] = true;
+      if (event.velocity.has_value()) {
+        parent->trigger_fade(event.pad_index); // Trigger fade on physical press
+        uint8_t note = parent->get_note_for_pad(event.pad_index);
+        uint8_t velocity = event.velocity.value();
+        drum::Events::NoteEvent note_event{
+            .track_index = event.pad_index, .note = note, .velocity = velocity};
+        parent->notify_observers(note_event);
+      }
+    } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
+      parent->_pad_pressed_state[event.pad_index] = false;
+      uint8_t note = parent->get_note_for_pad(event.pad_index);
+      drum::Events::NoteEvent note_event{.track_index = event.pad_index, .note = note, .velocity = 0};
+      parent->notify_observers(note_event);
+    }
   }
 }
 

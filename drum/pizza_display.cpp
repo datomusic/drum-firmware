@@ -80,7 +80,8 @@ PizzaDisplay::PizzaDisplay()
                    0xFF2060, 0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF,
                    0x2050FF, 0x3078FF, 0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10,
                    0x10FF1E, 0x10FF3C, 0x20FF5A, 0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500,
-                   0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}) {
+                   0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
+      _track_override_colors{} {
 }
 
 bool PizzaDisplay::init() {
@@ -160,6 +161,24 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
   if (led_index_opt.has_value()) {
     uint32_t color = calculate_intensity_color(intensity);
     _leds.set_pixel(led_index_opt.value(), color);
+  }
+}
+
+void PizzaDisplay::set_track_override_color(uint8_t track_index, uint32_t color) {
+  if (track_index < _track_override_colors.size()) {
+    _track_override_colors[track_index] = color;
+  }
+}
+
+void PizzaDisplay::clear_track_override_color(uint8_t track_index) {
+  if (track_index < _track_override_colors.size()) {
+    _track_override_colors[track_index] = std::nullopt;
+  }
+}
+
+void PizzaDisplay::clear_all_track_override_colors() {
+  for (size_t i = 0; i < _track_override_colors.size(); ++i) {
+    _track_override_colors[i] = std::nullopt;
   }
 }
 

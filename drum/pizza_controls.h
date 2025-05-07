@@ -29,7 +29,8 @@ class PizzaDisplay; // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<4, 8>;
 
-class PizzaControls : public etl::observer<musin::timing::TempoEvent> {
+class PizzaControls : public etl::observer<musin::timing::TempoEvent>,
+                      public etl::observer<drum::Events::NoteEvent> { // Added NoteEvent observer
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
@@ -44,7 +45,8 @@ public:
 
   void init();
   void update();
-  void notification(musin::timing::TempoEvent event) override;
+  void notification(musin::timing::TempoEvent event);
+  void notification(drum::Events::NoteEvent event); // Added for sequencer notes
 
   // --- Nested Component Definitions ---
 
@@ -91,6 +93,7 @@ public:
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
     void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
+    [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); } // Added getter
 
   private:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {

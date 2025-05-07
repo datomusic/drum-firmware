@@ -26,6 +26,7 @@ macro(musin_init TARGET)
   target_sources(${TARGET} PRIVATE
     ${MUSIN_ROOT}/pico_uart.cpp
     ${MUSIN_ROOT}/timing/internal_clock.cpp
+    ${MUSIN_ROOT}/timing/sync_out.cpp
   )
 
   target_link_libraries(${TARGET} PRIVATE

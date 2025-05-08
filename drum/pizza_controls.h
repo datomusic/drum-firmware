@@ -108,18 +108,6 @@ public:
       return drumpads[index];
     }
 
-    static constexpr etl::array<uint8_t, 6> drumpad_0_notes = {{0, 1, 2, 3, 5, 7}};
-    static constexpr etl::array<uint8_t, 7> drumpad_1_notes = {{10, 11, 13, 14, 15, 8, 9 }};
-    static constexpr etl::array<uint8_t, 5> drumpad_2_notes = {{16, 17, 19, 20, 21}};
-    static constexpr etl::array<uint8_t, 7> drumpad_3_notes = {{24, 26, 27, 28, 29, 30, 31}};
-
-    static constexpr etl::array<etl::span<const uint8_t>, config::NUM_DRUMPADS> drumpad_note_ranges = {{
-        etl::span<const uint8_t>(drumpad_0_notes),
-        etl::span<const uint8_t>(drumpad_1_notes),
-        etl::span<const uint8_t>(drumpad_2_notes),
-        etl::span<const uint8_t>(drumpad_3_notes)
-    }};
-
   private:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       DrumpadComponent *parent;

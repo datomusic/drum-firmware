@@ -21,8 +21,8 @@ public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
   static constexpr size_t NUM_NOTE_COLORS = 32;
-  static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f; // Moved from config.h
-  static constexpr uint32_t FADE_DURATION_MS = 150;         // Moved from config.h
+  static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
+  static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t HIGHLIGHT_BLEND_AMOUNT = 100;
   static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;
@@ -159,7 +159,7 @@ private:
    * @param color The base color.
    * @return uint32_t The highlighted color (fixed blend).
    */
-  uint32_t apply_highlight(uint32_t color) const; // Kept original signature
+  uint32_t apply_highlight(uint32_t color) const;
 
   /**
    * @brief Apply a fading highlight effect (blend with white) based on a factor.
@@ -167,7 +167,7 @@ private:
    * @param highlight_factor The intensity of the highlight (0.0 = none, 1.0 = full white blend).
    * @return uint32_t The highlighted color.
    */
-  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const; // New function
+  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const;
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and step.
@@ -334,7 +334,7 @@ inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, u
   uint8_t step_index = (SEQUENCER_STEPS_DISPLAYED - 1) - row;
   size_t array_index = step_index * SEQUENCER_TRACKS_DISPLAYED + col;
 
-  if (array_index < std::size(LED_ARRAY)) {
+  if (array_index < LED_ARRAY.size()) {
     return LED_ARRAY[array_index];
   }
   return std::nullopt;

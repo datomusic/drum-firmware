@@ -58,6 +58,21 @@ public:
   void notification(musin::timing::SequencerTickEvent event) override;
 
   /**
+   * @brief Triggers a note on event directly.
+   * @param track_index The logical track index.
+   * @param note The MIDI note number.
+   * @param velocity The MIDI velocity.
+   */
+  void trigger_note_on(uint8_t track_index, uint8_t note, uint8_t velocity);
+
+  /**
+   * @brief Triggers a note off event directly.
+   * @param track_index The logical track index.
+   * @param note The MIDI note number.
+   */
+  void trigger_note_off(uint8_t track_index, uint8_t note);
+
+  /**
    * @brief Get the current logical step index (0 to NumSteps-1) that was last triggered.
    */
   [[nodiscard]] uint32_t get_current_step() const noexcept;

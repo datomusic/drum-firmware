@@ -70,7 +70,7 @@ namespace analog_controls {
     constexpr uint32_t REPEAT_LENGTH_MODE_1 = 3;
     constexpr uint32_t REPEAT_LENGTH_MODE_2 = 1;
     constexpr float MIN_BPM_ADJUST = 30.0f;
-    constexpr float MAX_BPM_ADJUST = 480.0f;
+    constexpr float MAX_BPM_ADJUST = 360.0f;
 }
 
 // PizzaControls specific
@@ -85,7 +85,6 @@ namespace main_controls {
 #include "musin/hal/debug_utils.h"
 #include "musin/timing/internal_clock.h"
 
-#include "musin/timing/sequencer_tick_event.h" // Added for SequencerTickEvent
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
@@ -100,7 +99,6 @@ using DefaultSequencerController = SequencerController<config::NUM_TRACKS, confi
 
 class PizzaControls
     : public etl::observer<musin::timing::TempoEvent>,
-      public etl::observer<musin::timing::SequencerTickEvent>, // Added SequencerTickEvent
       public etl::observer<drum::Events::NoteEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
@@ -118,7 +116,6 @@ public:
   void init();
   void update();
   void notification(musin::timing::TempoEvent event);
-  void notification(musin::timing::SequencerTickEvent event); // Added for SequencerTickEvent
   void notification(drum::Events::NoteEvent event);
 
   void refresh_sequencer_display();
@@ -174,7 +171,6 @@ public:
     [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const;
     [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16> &
     get_drumpad(size_t index) const {
-      // Consider adding bounds check: hard_assert(index < drumpads.size());
       return drumpads[index];
     }
 
@@ -267,7 +263,7 @@ private:
   musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer;
   musin::timing::InternalClock &_internal_clock;
   musin::timing::TempoHandler &_tempo_handler_ref;
-  musin::timing::TempoMultiplier &_tempo_multiplier_ref; // Added
+  musin::timing::TempoMultiplier &_tempo_multiplier_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::SoundRouter &_sound_router_ref;
 
@@ -291,10 +287,10 @@ public: // Make components public for access from SequencerController etc.
     PLAYBUTTON_UPDATE
   };
 
-public:                                  // Add getters for state needed by display drawing
-  [[nodiscard]] bool is_running() const; // Moved definition to .cpp
+public:                                  
+  [[nodiscard]] bool is_running() const;
   [[nodiscard]] float get_stopped_highlight_factor() const {
-    return _stopped_highlight_factor; // This one is simple, can stay inline
+    return _stopped_highlight_factor;
   }
 };
 

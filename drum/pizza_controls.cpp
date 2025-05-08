@@ -599,8 +599,17 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
       playbutton_reader{AnalogInMux16{PIN_ADC, analog_address_pins, PLAYBUTTON}},
-      playbutton{ // Uses template parameters defined in pizza_controls.h for Drumpad
-          playbutton_reader, 0 // id for the Drumpad instance
+      playbutton{
+          playbutton_reader, 0, // id for the Drumpad instance
+          config::drumpad::DEBOUNCE_PRESS_MS,
+          config::drumpad::DEBOUNCE_RELEASE_MS,
+          config::drumpad::HOLD_THRESHOLD_MS,
+          config::drumpad::HOLD_REPEAT_DELAY_MS,
+          config::drumpad::HOLD_REPEAT_INTERVAL_MS,
+          config::drumpad::MIN_PRESSURE_VALUE,
+          config::drumpad::MAX_PRESSURE_VALUE,
+          config::drumpad::MIN_VELOCITY_VALUE,
+          config::drumpad::MAX_VELOCITY_VALUE
       },
       playbutton_observer(this) {
 }

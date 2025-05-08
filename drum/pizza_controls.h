@@ -233,16 +233,7 @@ public:
     void update_playbutton();
     PizzaControls *parent_controls;
     musin::hal::AnalogInMux16 playbutton_reader;
-    musin::ui::Drumpad<musin::hal::AnalogInMux16,
-                       config::drumpad::DEBOUNCE_PRESS_MS,
-                       config::drumpad::DEBOUNCE_RELEASE_MS,
-                       config::drumpad::HOLD_THRESHOLD_MS,
-                       config::drumpad::HOLD_REPEAT_DELAY_MS,
-                       config::drumpad::HOLD_REPEAT_INTERVAL_MS,
-                       config::drumpad::MIN_PRESSURE_VALUE,
-                       config::drumpad::MAX_PRESSURE_VALUE,
-                       config::drumpad::MIN_VELOCITY_VALUE,
-                       config::drumpad::MAX_VELOCITY_VALUE> playbutton;
+    musin::ui::Drumpad<musin::hal::AnalogInMux16> playbutton;
     PlaybuttonEventHandler playbutton_observer;
   };
 

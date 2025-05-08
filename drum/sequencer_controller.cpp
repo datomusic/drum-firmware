@@ -1,7 +1,7 @@
 #include "sequencer_controller.h"
 #include "events.h"
 #include "pico/time.h"
-#include "pizza_controls.h" // For config constants
+#include "pizza_controls.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -12,15 +12,14 @@ template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
-        &tempo_source_ref, // Changed
+        &tempo_source_ref,
     drum::SoundRouter &sound_router_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
       _just_played_step_per_track{}, tempo_source(tempo_source_ref),
       _sound_router_ref(sound_router_ref), state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
-      _retrigger_mode_per_track{},      // Value-initialized to 0
-      _retrigger_progress_ticks_per_track{}, // Value-initialized to 0
-      random_active_(false), random_track_offsets_{} {
+      _retrigger_mode_per_track{}, _retrigger_progress_ticks_per_track{}, random_active_(false),
+      random_track_offsets_{} {
   calculate_timing_params();
   // Seed the random number generator once
   srand(time_us_32());
@@ -224,7 +223,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] musin::timing::TempoEvent event) { // Changed Event Type
+    [[maybe_unused]] musin::timing::TempoEvent event) {
   if (state_ != State::Running)
     return;
 
@@ -449,7 +448,7 @@ void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(uint8
                                                                            uint8_t mode) {
   if (track_index < NumTracks && (mode == 1 || mode == 2)) {
     _retrigger_mode_per_track[track_index] = mode;
-    _retrigger_progress_ticks_per_track[track_index] = 0; // Reset progress
+    _retrigger_progress_ticks_per_track[track_index] = 0;
   }
 }
 
@@ -457,7 +456,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uint8_t track_index) {
   if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = 0; // 0 signifies off
-    _retrigger_progress_ticks_per_track[track_index] = 0; // Reset progress
+    _retrigger_progress_ticks_per_track[track_index] = 0;
   }
 }
 

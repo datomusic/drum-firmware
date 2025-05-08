@@ -195,9 +195,11 @@ private:
   uint32_t repeat_length_ = 0;
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
-  
-  // --- Play On Every Step Members ---
-  bool play_on_every_step = false;
+
+  // --- Retrigger (Play On Every Step) Members ---
+  // Mode per track: 0 = Off, 1 = Single, 2 = Double
+  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
+  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
 
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
@@ -206,8 +208,17 @@ private:
 public:
   void activate_repeat(uint32_t length);
   void deactivate_repeat();
-  void activate_play_on_every_step(uint32_t count);
-  void deactivate_play_on_every_step();
+  /**
+   * @brief Activates retriggering for a specific track.
+   * @param track_index The track to activate retriggering on.
+   * @param mode 1 for single retrigger per step, 2 for double retrigger per step.
+   */
+  void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
+  /**
+   * @brief Deactivates retriggering for a specific track.
+   * @param track_index The track to deactivate retriggering on.
+   */
+  void deactivate_play_on_every_step(uint8_t track_index);
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
 

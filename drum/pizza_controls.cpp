@@ -219,9 +219,10 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
         drum::Events::NoteEvent note_event{
             .track_index = pad_index,
             .note = note_to_play,
-            .velocity = config::keypad::PREVIEW_NOTE_VELOCITY
-        };
-        controls->_sound_router_ref.notification(note_event);
+            .velocity = config::keypad::PREVIEW_NOTE_VELOCITY};
+        // controls->_sound_router_ref.notification(note_event);
+        controls->_sequencer_controller_ref.trigger_note_on(pad_index, note_to_play,
+                                                            config::keypad::PREVIEW_NOTE_VELOCITY);
       }
     }
     return;
@@ -251,9 +252,10 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       }
 
       if (!controls->is_running()) {
-        drum::Events::NoteEvent note_event{
-            .track_index = track_idx, .note = note, .velocity = step_velocity};
-        controls->_sound_router_ref.notification(note_event);
+        // drum::Events::NoteEvent note_event{
+        //     .track_index = track_idx, .note = note, .velocity = step_velocity};
+        // controls->_sound_router_ref.notification(note_event);
+        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
       }
     }
   } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
@@ -438,16 +440,19 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
         parent->trigger_fade(event.pad_index);
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
-        drum::Events::NoteEvent note_event{
-            .track_index = event.pad_index, .note = note, .velocity = velocity};
-        parent->parent_controls->_sound_router_ref.notification(note_event);
+        // drum::Events::NoteEvent note_event{
+        //     .track_index = event.pad_index, .note = note, .velocity = velocity};
+        // parent->parent_controls->_sound_router_ref.notification(note_event);
+        parent->parent_controls->_sequencer_controller_ref.trigger_note_on(event.pad_index, note,
+                                                                          velocity);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
       parent->_pad_pressed_state[event.pad_index] = false;
       uint8_t note = parent->get_note_for_pad(event.pad_index);
-      drum::Events::NoteEvent note_event{
-          .track_index = event.pad_index, .note = note, .velocity = 0};
-      parent->parent_controls->_sound_router_ref.notification(note_event);
+      // drum::Events::NoteEvent note_event{
+      //     .track_index = event.pad_index, .note = note, .velocity = 0};
+      // parent->parent_controls->_sound_router_ref.notification(note_event);
+      parent->parent_controls->_sequencer_controller_ref.trigger_note_off(event.pad_index, note);
     }
   }
 }

@@ -9,7 +9,8 @@
 
 namespace musin::timing {
 
-TempoHandler::TempoHandler(ClockSource initial_source) : current_source_(initial_source) {
+TempoHandler::TempoHandler(InternalClock &internal_clock_ref, ClockSource initial_source)
+    : _internal_clock_ref(internal_clock_ref), current_source_(initial_source) {
   // If managing clock instances internally or needing references:
   // Initialize clock references/pointers here, potentially passed via constructor.
 }
@@ -36,6 +37,15 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     etl::observable<etl::observer<musin::timing::TempoEvent>,
                     MAX_TEMPO_OBSERVERS>::notify_observers(tempo_tick_event);
   }
+}
+
+void TempoHandler::set_bpm(float bpm) {
+  if (current_source_ == ClockSource::INTERNAL) {
+    _internal_clock_ref.set_bpm(bpm);
+  }
+  // If the source is not internal, this call has no effect on the active clock's BPM.
+  // The internal clock's BPM will be updated, but it won't be used until
+  // ClockSource::INTERNAL is selected again.
 }
 
 } // namespace musin::timing

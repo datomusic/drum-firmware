@@ -23,7 +23,8 @@ static drum::SoundRouter sound_router(audio_engine);
 
 static musin::timing::Sequencer<4, 8> pizza_sequencer;
 static musin::timing::InternalClock internal_clock(120.0f);
-static musin::timing::TempoHandler tempo_handler(musin::timing::ClockSource::INTERNAL);
+static musin::timing::TempoHandler tempo_handler(internal_clock,
+                                               musin::timing::ClockSource::INTERNAL);
 
 // Configure TempoMultiplier. If InternalClock provides TempoEvents at 96 PPQN,
 // and SequencerController expects 96 PPQN, then TempoMultiplier should pass through.

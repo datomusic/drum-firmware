@@ -3,7 +3,6 @@
 #include "etl/array.h"
 
 #include "musin/audio/audio_output.h"
-#include "musin/audio/block.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
 #include "musin/audio/memory_reader.h"

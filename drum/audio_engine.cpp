@@ -100,37 +100,18 @@ void AudioEngine::stop_voice(uint8_t voice_index) {
   // TODO: Consider if voice.sound needs a reset/stop method for efficiency
 }
 
-void AudioEngine::set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id, float value) {
-  if (!is_initialized_ || voice_index >= NUM_VOICES) {
-    return;
-  }
-
-  switch (effect_id) {
-  case EFFECT_ID_VOICE_VOLUME: {
-    const float gain = map_value_linear(value, 0.0f, 1.0f);
-    mixer_.gain(voice_index, gain);
-    break;
-  }
-  // TODO: Add cases for other per-voice effects (e.g., panning)
-  default:
-    break;
-  }
-}
-
 void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
 
   const float pitch_multiplier = map_value_pitch_fast(value);
-  // printf("set pitch to %f \n", pitch_multiplier);
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
   // voices_[voice_index].sound.set_speed(pitch_multiplier);
 }
 
 void AudioEngine::set_volume(float volume) {
-
   // Clamp volume to [0.0, 1.0] before passing to AudioOutput
   volume = std::clamp(volume, 0.0f, 1.0f);
   AudioOutput::volume(volume);

@@ -3,26 +3,19 @@
 
 #include "etl/array.h"
 #include "etl/optional.h"
-#include <cstddef> // For size_t
+#include <cstddef>
 #include <cstdint>
 
-// Include necessary Musin headers instead of forward declaring classes used by value
 #include "musin/audio/crusher.h"
-#include "musin/audio/filter.h" // Provides Lowpass
+#include "musin/audio/buffer_source.h"
+#include "musin/audio/filter.h"
 #include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 
-// Forward declaration is sufficient for pointer usage
-namespace musin {
-class BufferSource;
-} // namespace musin
-
 namespace drum {
 
-// Define constants for clarity
 constexpr size_t NUM_VOICES = 4;
-constexpr uint8_t EFFECT_ID_VOICE_VOLUME = 0;
 
 /**
  * @brief Manages audio playback, mixing, and effects for the drum machine.
@@ -79,14 +72,6 @@ public:
   void stop_voice(uint8_t voice_index);
 
   /**
-   * @brief Sets a per-voice/track effect parameter.
-   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
-   * @param effect_id Identifier for the per-voice effect (e.g., EFFECT_ID_VOICE_...).
-   * @param value The parameter value, normalized (0.0f to 1.0f).
-   */
-  void set_voice_effect_parameter(uint8_t voice_index, uint8_t effect_id, float value);
-
-  /**
    * @brief Sets the pitch multiplier for a specific voice/track for the *next* time it's triggered.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
    * @param value The pitch value, normalized (0.0f to 1.0f), mapped internally to a multiplier.
@@ -119,10 +104,9 @@ public:
 
   /**
    * @brief Sets the global crusher bit depth.
-   * @param depth The desired bit depth (e.g., 1 to 16). Values outside a reasonable range might be
-   * clamped internally by the Crusher effect.
+   * @param normalized_value The desired depth amount, normalized (0.0f to 1.0f).
    */
-  void set_crush_depth(uint8_t depth);
+  void set_crush_depth(float normalized_value);
 
 private:
   etl::array<Voice, NUM_VOICES> voices_;

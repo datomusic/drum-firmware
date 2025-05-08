@@ -49,8 +49,6 @@ void PizzaControls::init() {
 
   // Register this class to receive tempo events for LED pulsing
   _tempo_handler_ref.add_observer(*this);
-  // Register to receive SequencerTickEvents to reset sub-step counter
-  _tempo_multiplier_ref.add_observer(*this);
 
   _profiler.add_section("Keypad Update");
   _profiler.add_section("Drumpad Update");
@@ -135,12 +133,6 @@ void PizzaControls::refresh_sequencer_display() {
   bool current_is_running = _sequencer_controller_ref.is_running();
   display.draw_sequencer_state(sequencer, _sequencer_controller_ref, current_is_running,
                                _stopped_highlight_factor);
-}
-
-void PizzaControls::notification(musin::timing::SequencerTickEvent /* event */) {
-  // This notification is received from TempoMultiplier.
-  // It signals a tick at the sequencer's operating resolution.
-  // The _sub_step_tick_counter is no longer used here as retrigger logic moved.
 }
 
 // --- Implementation for getter moved from header ---
@@ -429,22 +421,16 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   if (event.pad_index < parent->_pad_pressed_state.size()) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       parent->_pad_pressed_state[event.pad_index] = true;
+      parent->trigger_fade(event.pad_index);
       if (event.velocity.has_value()) {
-        parent->trigger_fade(event.pad_index);
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
-        // drum::Events::NoteEvent note_event{
-        //     .track_index = event.pad_index, .note = note, .velocity = velocity};
-        // parent->parent_controls->_sound_router_ref.notification(note_event);
         parent->parent_controls->_sequencer_controller_ref.trigger_note_on(event.pad_index, note,
                                                                           velocity);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
       parent->_pad_pressed_state[event.pad_index] = false;
       uint8_t note = parent->get_note_for_pad(event.pad_index);
-      // drum::Events::NoteEvent note_event{
-      //     .track_index = event.pad_index, .note = note, .velocity = 0};
-      // parent->parent_controls->_sound_router_ref.notification(note_event);
       parent->parent_controls->_sequencer_controller_ref.trigger_note_off(event.pad_index, note);
     }
   }

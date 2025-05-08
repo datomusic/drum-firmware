@@ -16,7 +16,7 @@
 #include "events.h"
 #include "pico/time.h"
 
-#include "config.h" // Moved config to its own file
+#include "config.h"
 
 #include "musin/hal/debug_utils.h"
 #include "musin/timing/internal_clock.h"

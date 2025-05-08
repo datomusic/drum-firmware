@@ -301,7 +301,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent Implementation ---
 
-PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // Removed sound_router
+PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) 
     : parent_controls(parent_ptr), // Removed _sound_router init
       drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
@@ -321,10 +321,10 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr) // 
                            DrumpadComponent::drumpad_note_ranges[3].min_note},
       // _pad_pressed_state is initialized by default in the header
       _fade_start_time{}, // Initialize before observers to match declaration order
-      drumpad_observers{DrumpadEventHandler{this, 0},   // Removed sound_router
-                        DrumpadEventHandler{this, 1},   // Removed sound_router
-                        DrumpadEventHandler{this, 2},   // Removed sound_router
-                        DrumpadEventHandler{this, 3}} { // Removed sound_router
+      drumpad_observers{DrumpadEventHandler{this, 0},   
+                        DrumpadEventHandler{this, 1},   
+                        DrumpadEventHandler{this, 2},   
+                        DrumpadEventHandler{this, 3}} { 
 }
 
 void PizzaControls::DrumpadComponent::init() {

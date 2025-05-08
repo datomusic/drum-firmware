@@ -1,7 +1,6 @@
 #include "audio_engine.h"
 
 #include "etl/array.h"
-#include "pico/time.h" // Include if needed for future timing logic
 
 #include "musin/audio/audio_output.h"
 #include "musin/audio/block.h"
@@ -13,8 +12,8 @@
 
 #include "sb25_samples.h"
 
-#include <algorithm> // Include for std::clamp
-#include <cmath>     // Using std::log, std::exp, std::lerp, std::pow
+#include <algorithm>
+#include <cmath>
 
 namespace drum {
 
@@ -72,9 +71,7 @@ bool AudioEngine::init() {
 }
 
 void AudioEngine::process() {
-  if (!is_initialized_) {
-    return;
-  }
+
   AudioOutput::update(lowpass_);
 }
 
@@ -134,43 +131,31 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
 }
 
 void AudioEngine::set_volume(float volume) {
-  if (!is_initialized_) {
-    return;
-  }
+
   // Clamp volume to [0.0, 1.0] before passing to AudioOutput
   volume = std::clamp(volume, 0.0f, 1.0f);
   AudioOutput::volume(volume);
 }
 
 void AudioEngine::set_filter_frequency(float normalized_value) {
-  if (!is_initialized_) {
-    return;
-  }
+
   const float freq = map_value_filter_fast(normalized_value);
   lowpass_.filter.frequency(freq);
 }
 void AudioEngine::set_filter_resonance(float normalized_value) {
-  if (!is_initialized_) {
-    return;
-  }
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   const float resonance = map_value_linear(normalized_value, 0.7f, 3.0f);
   lowpass_.filter.resonance(resonance);
 }
 void AudioEngine::set_crush_rate(float normalized_value) {
-  if (!is_initialized_) {
-    return;
-  }
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float rate = map_value_linear(normalized_value,
-                                      static_cast<float>(AudioOutput::SAMPLE_FREQUENCY), 2000.0f);
+  const float rate = map_value_filter_fast(normalized_value);
   crusher_.sampleRate(rate);
 }
 
-void AudioEngine::set_crush_depth(uint8_t depth) {
-  if (!is_initialized_) {
-    return;
-  }
+void AudioEngine::set_crush_depth(float normalized_value) {
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
+  const uint8_t depth = map_value_linear(normalized_value, 5.0f, 16.0f);
   crusher_.bits(depth);
 }
 } // namespace drum

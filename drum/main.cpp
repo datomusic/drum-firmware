@@ -32,7 +32,7 @@ static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
 
 drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier, sound_router);
 
-static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
+static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer,
                                           tempo_handler, sequencer_controller,
                                           sound_router);
 

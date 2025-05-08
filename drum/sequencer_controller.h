@@ -147,6 +147,21 @@ public:
    */
   void set_intended_repeat_state(std::optional<uint32_t> intended_length);
 
+  /**
+   * @brief Sets the active MIDI note number for a specific track.
+   * This note is used by default when new steps are created or when drumpads are triggered.
+   * @param track_index The logical track index.
+   * @param note The MIDI note number to set as active for the track.
+   */
+  void set_active_note_for_track(uint8_t track_index, uint8_t note);
+
+  /**
+   * @brief Gets the currently active MIDI note number for a specific track.
+   * @param track_index The logical track index.
+   * @return The MIDI note number currently active for the track.
+   */
+  [[nodiscard]] uint8_t get_active_note_for_track(uint8_t track_index) const;
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -186,6 +201,7 @@ private:
 
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
+  etl::array<uint8_t, NumTracks> _active_note_per_track{};
 
 public:
   void activate_repeat(uint32_t length);

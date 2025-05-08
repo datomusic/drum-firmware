@@ -429,13 +429,11 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
       if (current_selection_idx < notes_for_this_pad.size()) {
         return notes_for_this_pad[current_selection_idx];
       } else {
-        // Fallback: Index out of bounds for this pad's notes, return first note of this pad.
         return notes_for_this_pad[0];
       }
     }
   }
-  // Fallback for invalid pad_index or if the note list for a pad is empty.
-  return config::drumpad::DEFAULT_FALLBACK_NOTE; // A general default note.
+  return config::drumpad::DEFAULT_FALLBACK_NOTE;
 }
 
 void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
@@ -450,7 +448,7 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       parent->_pad_pressed_state[event.pad_index] = true;
       if (event.velocity.has_value()) {
-        parent->trigger_fade(event.pad_index); // Trigger fade on physical press
+        parent->trigger_fade(event.pad_index);
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
         drum::Events::NoteEvent note_event{
@@ -561,7 +559,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   }
   case CRUSH:
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
-    // parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
     break;
   case REPEAT: {
     // Determine the intended state based on the knob value

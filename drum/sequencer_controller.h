@@ -3,9 +3,10 @@
 
 #include "etl/array.h"
 #include "etl/observer.h"
-#include "events.h" // Added for NoteEvent
+#include "events.h"
 #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/timing_constants.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -28,7 +29,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
 template <size_t NumTracks, size_t NumSteps>
 class SequencerController : public etl::observer<musin::timing::SequencerTickEvent>,
                             public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                                   2> { // Increased observer capacity
+                                                   2> {
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -143,7 +144,6 @@ private:
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   musin::timing::Sequencer<NumTracks, NumSteps> &sequencer;
-  // drum::SoundRouter &_sound_router; // Removed
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
@@ -163,6 +163,9 @@ private:
   uint32_t repeat_length_ = 0;
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
+  
+  // --- Play On Every Step Members ---
+  bool play_on_every_step = false;
 
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
@@ -170,6 +173,8 @@ private:
 public:
   void activate_repeat(uint32_t length);
   void deactivate_repeat();
+  void activate_play_on_every_step(uint32_t count);
+  void deactivate_play_on_every_step();
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
 

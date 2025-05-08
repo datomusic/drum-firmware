@@ -209,6 +209,7 @@ public:
     etl::array<absolute_time_t, config::NUM_DRUMPADS> _fade_start_time; // Track fade start time per pad
     etl::array<DrumpadEventHandler, config::NUM_DRUMPADS>
         drumpad_observers; // Declared after _fade_start_time to match init order
+    etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };
 
   // --- Playbutton Component ---
@@ -277,7 +278,6 @@ public: // Make components public for access from SequencerController etc.
 
   // --- Internal State ---
   uint32_t _clock_tick_counter = 0;       // Counter for LED pulsing when stopped
-  uint32_t _sub_step_tick_counter = 0;    // Counter for TempoEvents within a SequencerTick
   float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
   musin::hal::DebugUtils::SectionProfiler<4> _profiler;
 

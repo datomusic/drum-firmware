@@ -156,12 +156,6 @@ void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
   }
 }
 
-// Notification handler for SequencerTickEvents from TempoMultiplier
-void PizzaControls::notification(musin::timing::SequencerTickEvent /*event*/) {
-  // _sub_step_tick_counter is now managed by the TempoEvent notification.
-  // No action needed here regarding _sub_step_tick_counter.
-}
-
 void PizzaControls::refresh_sequencer_display() {
   bool current_is_running = _sequencer_controller_ref.is_running();
   display.draw_sequencer_state(sequencer, _sequencer_controller_ref, current_is_running,
@@ -176,8 +170,6 @@ bool PizzaControls::is_running() const {
 
 // Notification handler for NoteEvents from SequencerController
 void PizzaControls::notification(drum::Events::NoteEvent event) {
-  // Trigger fade only for note-on events (velocity > 0)
-  // and if the track_index is valid for the drumpads.
   if (event.velocity > 0 && event.track_index < drumpad_component.get_num_drumpads()) {
     drumpad_component.trigger_fade(event.track_index);
   }
@@ -270,7 +262,6 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       track.set_step_note(step_idx, note);
 
       uint8_t step_velocity;
-      // Set default velocity only if it wasn't already set
       if (!track.get_step_velocity(step_idx).has_value()) {
         track.set_step_velocity(step_idx, config::keypad::DEFAULT_STEP_VELOCITY);
         step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
@@ -283,18 +274,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
             .track_index = track_idx, .note = note, .velocity = step_velocity};
         controls->_sound_router_ref.notification(note_event);
       }
-    } else {
-      // Optionally clear note/velocity when disabling, or leave them
-      // track.set_step_note(step_idx, std::nullopt);
-      // track.set_step_velocity(step_idx, std::nullopt);
     }
   } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    // Set velocity to max on hold (only affects enabled steps implicitly via set_step_velocity)
-    // Note: We might only want to do this if the step *is* enabled.
-    // However, set_step_velocity doesn't check enabled status.
-    // If the step was just enabled by the preceding Press event, this is fine.
-    // If it was already enabled, this is also fine.
-    // If it was disabled, setting velocity might be unwanted, but harmless for now.
     track.set_step_velocity(step_idx, config::keypad::MAX_STEP_VELOCITY_ON_HOLD);
   }
 }

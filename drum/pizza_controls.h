@@ -24,7 +24,7 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "musin/timing/tempo_multiplier.h"
+// #include "musin/timing/tempo_multiplier.h" // Removed as it's no longer used directly by PizzaControls
 #include "sound_router.h"
 
 namespace drum {
@@ -41,7 +41,6 @@ public:
                          musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
                          musin::timing::InternalClock &clock_ref,
                          musin::timing::TempoHandler &tempo_handler_ref,
-                         musin::timing::TempoMultiplier &tempo_multiplier_ref, // Added
                          drum::DefaultSequencerController &sequencer_controller_ref,
                          drum::SoundRouter &sound_router_ref);
 
@@ -184,7 +183,6 @@ private:
   musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer;
   musin::timing::InternalClock &_internal_clock;
   musin::timing::TempoHandler &_tempo_handler_ref;
-  musin::timing::TempoMultiplier &_tempo_multiplier_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::SoundRouter &_sound_router_ref;
 

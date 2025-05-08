@@ -52,7 +52,6 @@ int main() {
 
   midi_init();
 
-  // Initialize Audio Engine (stubbed for now)
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
   }
@@ -66,11 +65,6 @@ int main() {
   internal_clock.add_observer(tempo_handler);
   tempo_handler.add_observer(tempo_multiplier);
   tempo_multiplier.add_observer(sequencer_controller);
-
-  // SoundRouter is now called directly by SequencerController.
-  // PizzaControls will no longer observe NoteEvents from SequencerController directly
-  // as SequencerController no longer emits them to its own observers.
-  // UI feedback for notes (e.g. drumpad fades) will be handled in PizzaControls Phase 2.
 
   sync_out.enable();
 

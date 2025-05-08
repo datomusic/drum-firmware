@@ -30,7 +30,7 @@ static musin::timing::TempoHandler tempo_handler(musin::timing::ClockSource::INT
 // (96, 1) results in _input_ticks_per_output_tick = 1, meaning pass-through.
 static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
 
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier, sound_router);
 
 static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
                                           tempo_handler, tempo_multiplier, sequencer_controller,
@@ -66,9 +66,8 @@ int main() {
   tempo_handler.add_observer(tempo_multiplier);
   tempo_multiplier.add_observer(sequencer_controller);
 
-  // Connect SequencerController NoteEvents to SoundRouter
-  sequencer_controller.add_observer(sound_router);
   // Connect SequencerController NoteEvents to PizzaControls for UI feedback (e.g., drumpad fade)
+  // SoundRouter is now called directly by SequencerController.
   sequencer_controller.add_observer(pizza_controls);
 
   sync_out.enable();

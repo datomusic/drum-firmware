@@ -19,12 +19,10 @@ using musin::ui::Drumpad;
 
 PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
                              musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
-                             musin::timing::InternalClock &clock_ref,
                              musin::timing::TempoHandler &tempo_handler_ref,
                              drum::DefaultSequencerController &sequencer_controller_ref,
                              drum::SoundRouter &sound_router_ref)
-    : display(display_ref), sequencer(sequencer_ref), _internal_clock(clock_ref),
-      _tempo_handler_ref(tempo_handler_ref),
+    : display(display_ref), sequencer(sequencer_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
       keypad_component(this), drumpad_component(this), analog_component(this),
       _profiler(config::PROFILER_REPORT_INTERVAL_MS), playbutton_component(this) {

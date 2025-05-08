@@ -39,7 +39,6 @@ public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
                          musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
-                         musin::timing::InternalClock &clock_ref,
                          musin::timing::TempoHandler &tempo_handler_ref,
                          drum::DefaultSequencerController &sequencer_controller_ref,
                          drum::SoundRouter &sound_router_ref);
@@ -181,7 +180,6 @@ private:
   // --- Shared Resources ---
   drum::PizzaDisplay &display;
   musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer;
-  musin::timing::InternalClock &_internal_clock;
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::SoundRouter &_sound_router_ref;

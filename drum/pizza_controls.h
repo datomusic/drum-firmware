@@ -112,15 +112,12 @@ public:
       return drumpads[index];
     }
 
-    struct NoteRange {
-      uint8_t min_note;
-      uint8_t max_note;
-    };
-    static constexpr etl::array<NoteRange, 4> drumpad_note_ranges = {{
-        {0, 7},   // Pad 0
-        {8, 15},  // Pad 1
-        {16, 23}, // Pad 2
-        {24, 31}  // Pad 3
+    static constexpr size_t NUM_NOTES_PER_DRUMPAD_RANGE = 8;
+    static constexpr etl::array<etl::array<uint8_t, NUM_NOTES_PER_DRUMPAD_RANGE>, 4> drumpad_note_ranges = {{
+        {{0, 1, 2, 3, 4, 5, 6, 7}},    // Pad 0 notes
+        {{8, 9, 10, 11, 12, 13, 14, 15}}, // Pad 1 notes
+        {{16, 17, 18, 19, 20, 21, 22, 23}},// Pad 2 notes
+        {{24, 25, 26, 27, 28, 29, 30, 31}} // Pad 3 notes
     }};
 
   private:

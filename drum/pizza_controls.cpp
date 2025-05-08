@@ -315,10 +315,7 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                                       1000U, 5000U, 200000U},
                Drumpad<AnalogInMux16>{drumpad_readers[3], 3, 50U, 250U, 150U, 1500U, 100U, 800U,
                                       1000U, 5000U, 200000U}},
-      drumpad_note_numbers{DrumpadComponent::drumpad_note_ranges[0].min_note,
-                           DrumpadComponent::drumpad_note_ranges[1].min_note,
-                           DrumpadComponent::drumpad_note_ranges[2].min_note,
-                           DrumpadComponent::drumpad_note_ranges[3].min_note},
+      drumpad_note_numbers{0, 0, 0, 0}, // Initialize with the first index (0) for each pad's note list
       // _pad_pressed_state is initialized by default in the header
       _fade_start_time{}, // Initialize before observers to match declaration order
       drumpad_observers{DrumpadEventHandler{this, 0},   
@@ -347,12 +344,17 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update();
 
-    uint8_t note_index = drumpad_note_numbers[i];
+    uint8_t current_note_selection_idx = drumpad_note_numbers[i];
+    // Ensure the index is valid before accessing, though it should be by design
+    uint8_t note_value = (current_note_selection_idx < drumpad_note_ranges[i].size())
+                           ? drumpad_note_ranges[i][current_note_selection_idx]
+                           : drumpad_note_ranges[i][0]; // Fallback to first note
+
     auto led_index_opt = controls->display.get_drumpad_led_index(i);
 
     if (led_index_opt.has_value()) {
       uint32_t led_index = led_index_opt.value();
-      uint32_t base_color = controls->display.get_note_color(note_index);
+      uint32_t base_color = controls->display.get_note_color(note_value);
       uint32_t final_color = base_color; // Default to base color
 
       // Check fade state
@@ -384,35 +386,35 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
-  if (pad_index >= drumpad_note_numbers.size())
+  if (pad_index >= drumpad_note_ranges.size())
     return;
 
-  const NoteRange &range = drumpad_note_ranges[pad_index];
-  int32_t current_note = drumpad_note_numbers[pad_index];
-
-  int32_t num_notes_in_range = range.max_note - range.min_note + 1;
-  if (num_notes_in_range <= 0) {
+  const auto &notes_for_pad = drumpad_note_ranges[pad_index];
+  if (notes_for_pad.empty()) {
     return;
   }
 
-  int32_t current_note_in_range_idx = current_note - range.min_note;
-  int32_t new_note_in_range_idx = (current_note_in_range_idx + offset);
-  new_note_in_range_idx =
-      (new_note_in_range_idx % num_notes_in_range + num_notes_in_range) % num_notes_in_range;
+  size_t num_notes_in_list = notes_for_pad.size();
+  int32_t current_note_idx = static_cast<int32_t>(drumpad_note_numbers[pad_index]);
 
-  drumpad_note_numbers[pad_index] = range.min_note + static_cast<uint8_t>(new_note_in_range_idx);
+  int32_t new_note_idx = (current_note_idx + offset);
+  new_note_idx = (new_note_idx % static_cast<int32_t>(num_notes_in_list) +
+                  static_cast<int32_t>(num_notes_in_list)) %
+                 static_cast<int32_t>(num_notes_in_list);
 
-  // Update all steps in the corresponding sequencer track with the new note
-  parent_controls->sequencer.get_track(pad_index).set_note(drumpad_note_numbers[pad_index]);
+  drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_idx);
+
+  uint8_t selected_note_value = notes_for_pad[drumpad_note_numbers[pad_index]];
+
+  parent_controls->sequencer.get_track(pad_index).set_note(selected_note_value);
 
   auto led_index_opt = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index_opt.has_value()) {
     uint32_t led_index = led_index_opt.value();
-    uint32_t base_color = parent_controls->display.get_note_color(drumpad_note_numbers[pad_index]);
-    // Just set the base color, brightness is handled by fade logic now
+    uint32_t base_color = parent_controls->display.get_note_color(selected_note_value);
     parent_controls->display.set_led(led_index, base_color);
   }
-  trigger_fade(pad_index); // Briefly flash when selecting
+  trigger_fade(pad_index);
 }
 
 bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
@@ -423,10 +425,20 @@ bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
 }
 
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
-  if (pad_index < drumpad_note_numbers.size()) {
-    return drumpad_note_numbers[pad_index];
+  if (pad_index < drumpad_note_ranges.size()) {
+    const auto &notes_for_this_pad = drumpad_note_ranges[pad_index];
+    if (!notes_for_this_pad.empty()) {
+      uint8_t current_selection_idx = drumpad_note_numbers[pad_index];
+      if (current_selection_idx < notes_for_this_pad.size()) {
+        return notes_for_this_pad[current_selection_idx];
+      } else {
+        // Fallback: Index out of bounds for this pad's notes, return first note of this pad.
+        return notes_for_this_pad[0];
+      }
+    }
   }
-  return 36;
+  // Fallback for invalid pad_index or if the note list for a pad is empty.
+  return 36; // A general default note.
 }
 
 void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {

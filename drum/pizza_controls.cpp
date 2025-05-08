@@ -262,7 +262,7 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
           Drumpad<AnalogInMux16>{drumpad_readers[2], 2, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
           Drumpad<AnalogInMux16>{drumpad_readers[3], 3, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE}},
       // _pad_pressed_state is value-initialized by default in the header
-      _fade_start_time{}, // Initialize before observers to match declaration order, value-initialized
+      // _fade_start_time removed, state is now in PizzaDisplay
       drumpad_observers{DrumpadEventHandler{this, 0},
                         DrumpadEventHandler{this, 1},
                         DrumpadEventHandler{this, 2},
@@ -311,24 +311,26 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
       uint32_t base_color = controls->display.get_note_color(note_value);
       uint32_t final_color = base_color; // Default to base color
 
-      // Check fade state
-      if (!is_nil_time(_fade_start_time[i])) {
-        uint64_t time_since_fade_start_us = absolute_time_diff_us(_fade_start_time[i], now);
-        uint64_t fade_duration_us = static_cast<uint64_t>(config::drumpad::FADE_DURATION_MS) * 1000;
+      // Check fade state using PizzaDisplay
+      absolute_time_t fade_start_time_for_pad = controls->display.get_drumpad_fade_start_time(static_cast<uint8_t>(i));
+      if (!is_nil_time(fade_start_time_for_pad)) {
+        uint64_t time_since_fade_start_us = absolute_time_diff_us(fade_start_time_for_pad, now);
+        // Use constants from PizzaDisplay
+        uint64_t fade_duration_us = static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
 
         if (time_since_fade_start_us < fade_duration_us) {
           // Fade is active: Calculate brightness factor (MIN_FADE_BRIGHTNESS_FACTOR up to 1.0)
           float fade_progress = std::min(1.0f, static_cast<float>(time_since_fade_start_us) /
                                                    static_cast<float>(fade_duration_us));
           float current_brightness_factor =
-              config::drumpad::MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - config::drumpad::MIN_FADE_BRIGHTNESS_FACTOR);
+              PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR);
           uint8_t brightness_value =
               static_cast<uint8_t>(std::clamp(current_brightness_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE, 0.0f, config::DISPLAY_BRIGHTNESS_MAX_VALUE));
           final_color =
               controls->display.leds().adjust_color_brightness(base_color, brightness_value);
         } else {
           // Fade finished in this cycle
-          _fade_start_time[i] = nil_time; // Reset fade start time
+          controls->display.clear_drumpad_fade(static_cast<uint8_t>(i)); // Reset fade state in PizzaDisplay
           // Ensure final color is the base color when fade ends
           final_color = base_color;
         }
@@ -406,9 +408,8 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
 }
 
 void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
-  if (pad_index < _fade_start_time.size()) {
-    _fade_start_time[pad_index] = get_absolute_time();
-  }
+  // Delegate to PizzaDisplay to start the fade
+  parent_controls->display.start_drumpad_fade(pad_index);
 }
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(

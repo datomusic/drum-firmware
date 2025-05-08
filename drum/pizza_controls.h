@@ -126,9 +126,8 @@ public:
     etl::array<musin::hal::AnalogInMux16, config::NUM_DRUMPADS> drumpad_readers;
     etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, config::NUM_DRUMPADS> drumpads;
     etl::array<bool, config::NUM_DRUMPADS> _pad_pressed_state{};
-    etl::array<absolute_time_t, config::NUM_DRUMPADS> _fade_start_time; // Track fade start time per pad
-    etl::array<DrumpadEventHandler, config::NUM_DRUMPADS>
-        drumpad_observers; // Declared after _fade_start_time to match init order
+    // _fade_start_time has been moved to PizzaDisplay
+    etl::array<DrumpadEventHandler, config::NUM_DRUMPADS> drumpad_observers;
     etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };
 

@@ -4,11 +4,13 @@
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "musin/drivers/ws2812.h"
+#include "pico/time.h" // For absolute_time_t
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
+#include "config.h" // For config::NUM_DRUMPADS
 #include "musin/timing/step_sequencer.h"
 #include "sequencer_controller.h"
 
@@ -94,6 +96,26 @@ public:
   void clear_track_override_color(uint8_t track_index);
   void clear_all_track_override_colors();
 
+  // --- Drumpad Fade ---
+  /**
+   * @brief Initiates a fade effect on the specified drumpad LED.
+   * @param pad_index The index of the drumpad (0-based).
+   */
+  void start_drumpad_fade(uint8_t pad_index);
+
+  /**
+   * @brief Clears (stops) the fade effect on the specified drumpad LED.
+   * @param pad_index The index of the drumpad (0-based).
+   */
+  void clear_drumpad_fade(uint8_t pad_index);
+
+  /**
+   * @brief Gets the start time of the fade for a specific drumpad.
+   * @param pad_index The index of the drumpad (0-based).
+   * @return absolute_time_t The time the fade started, or nil_time if not fading.
+   */
+  absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
+
   /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
    * @tparam NumTracks Number of tracks in the sequencer.
@@ -166,6 +188,7 @@ private:
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
+  etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
 };
 
 // --- Template Implementation ---

@@ -43,9 +43,6 @@ void PizzaControls::init() {
   // Register to receive SequencerTickEvents to reset sub-step counter
   _tempo_multiplier_ref.add_observer(*this);
 
-  // Connect DrumpadComponent NoteEvents to SoundRouter
-  drumpad_component.add_observer(_sound_router_ref);
-
   _profiler.add_section("Keypad Update");
   _profiler.add_section("Drumpad Update");
   _profiler.add_section("Analog Update");
@@ -449,14 +446,14 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
         uint8_t velocity = event.velocity.value();
         drum::Events::NoteEvent note_event{
             .track_index = event.pad_index, .note = note, .velocity = velocity};
-        parent->notify_observers(note_event);
+        parent->parent_controls->_sound_router_ref.notification(note_event);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
       parent->_pad_pressed_state[event.pad_index] = false;
       uint8_t note = parent->get_note_for_pad(event.pad_index);
       drum::Events::NoteEvent note_event{
           .track_index = event.pad_index, .note = note, .velocity = 0};
-      parent->notify_observers(note_event);
+      parent->parent_controls->_sound_router_ref.notification(note_event);
     }
   }
 }

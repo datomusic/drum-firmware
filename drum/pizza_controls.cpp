@@ -576,24 +576,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
-
-    // Note: We no longer send a generic REPEAT CC via SoundRouter here,
-    // as the effect is handled internally by the SequencerController.
-    // If a MIDI CC for repeat *is* desired, it would need a specific Parameter.
     break;
   }
-  case DRUM1:
-    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_1, event.value, 0);
-    break;
-  case DRUM2:
-    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_2, event.value, 1);
-    break;
-  case DRUM3:
-    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_3, event.value, 2);
-    break;
-  case DRUM4:
-    _sound_router.set_parameter(drum::Parameter::DRUM_PRESSURE_4, event.value, 3);
-    break;
   case PITCH1:
     _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 0);
     break;

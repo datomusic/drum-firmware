@@ -19,6 +19,8 @@ public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
   static constexpr size_t NUM_NOTE_COLORS = 32;
+  static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f; // Moved from config.h
+  static constexpr uint32_t FADE_DURATION_MS = 150;         // Moved from config.h
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t HIGHLIGHT_BLEND_AMOUNT = 100;
   static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;

@@ -33,8 +33,6 @@ namespace keypad {
 
 // Drumpad Component Configuration
 namespace drumpad {
-    constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
-    constexpr uint32_t FADE_DURATION_MS = 150;
     constexpr uint8_t DEFAULT_FALLBACK_NOTE = 36;
     constexpr uint8_t RETRIGGER_VELOCITY = 100;
 

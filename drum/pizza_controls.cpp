@@ -1,13 +1,12 @@
 #include "pizza_controls.h"
-// #include "midi_functions.h" // No longer directly needed here for notes/cc
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
-#include "pico/time.h" // For get_absolute_time, to_us_since_boot
+#include "pico/time.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
-#include "sound_router.h" // Added
-#include <algorithm>      // For std::clamp
-#include <cmath>          // For fmodf
+#include "sound_router.h"
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 
@@ -89,7 +88,7 @@ void PizzaControls::update() {
   if (_sequencer_controller_ref.is_running()) {
     display.set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
   } else {
-    constexpr uint32_t ticks_per_beat = musin::timing::InternalClock::PPQN;
+    constexpr uint32_t ticks_per_beat = 96; // TODO: take this from configuration
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;

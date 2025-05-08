@@ -96,13 +96,9 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
-  // TODO: Add method to update the track_index -> sample_id mapping if needed.
-
 private:
   AudioEngine &_audio_engine;
   OutputMode _output_mode;
-  // TODO: Add mapping from track_index to sample_id if AudioEngine needs it.
-  // std::array<uint32_t, 4> _track_sample_map;
 };
 
 } // namespace drum

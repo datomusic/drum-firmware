@@ -80,10 +80,11 @@ PizzaDisplay::PizzaDisplay()
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _track_override_colors{}, _drumpad_fade_start_times{} { // Value-initialize to nil_time
-  // Explicitly initialize to nil_time for clarity, though value-initialization should suffice.
+      _track_override_colors{}, _drumpad_fade_start_times{},
+      _drumpad_base_colors{} { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
+    _drumpad_base_colors[i] = 0; // Default to black
   }
 }
 
@@ -143,7 +144,13 @@ uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   return 0;
 }
 
-void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint32_t color) {
+void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint32_t base_color) {
+  if (pad_index < config::NUM_DRUMPADS) {
+    _drumpad_base_colors[pad_index] = base_color;
+  }
+}
+
+void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) {
   std::optional<uint32_t> led_index_opt;
   switch (pad_index) {
   case 0:
@@ -159,6 +166,7 @@ void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint32_t color) {
     led_index_opt = LED_DRUMPAD_4;
     break;
   default:
+    // Should not happen if pad_index is validated by caller or is < config::NUM_DRUMPADS
     return;
   }
 
@@ -213,6 +221,34 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
     return _drumpad_fade_start_times[pad_index];
   }
   return nil_time;
+}
+
+void PizzaDisplay::refresh_drumpad_leds(absolute_time_t now) {
+  for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
+    uint32_t base_color = _drumpad_base_colors[i];
+    uint32_t final_color = base_color;
+    absolute_time_t fade_start_time = _drumpad_fade_start_times[i];
+
+    if (!is_nil_time(fade_start_time)) {
+      uint64_t time_since_fade_start_us = absolute_time_diff_us(fade_start_time, now);
+      uint64_t fade_duration_us = static_cast<uint64_t>(FADE_DURATION_MS) * 1000;
+
+      if (time_since_fade_start_us < fade_duration_us) {
+        float fade_progress = std::min(1.0f, static_cast<float>(time_since_fade_start_us) /
+                                                 static_cast<float>(fade_duration_us));
+        float current_brightness_factor =
+            MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - MIN_FADE_BRIGHTNESS_FACTOR);
+        uint8_t brightness_value = static_cast<uint8_t>(
+            std::clamp(current_brightness_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE, 0.0f,
+                       config::DISPLAY_BRIGHTNESS_MAX_VALUE));
+        final_color = _leds.adjust_color_brightness(base_color, brightness_value);
+      } else {
+        _drumpad_fade_start_times[i] = nil_time; // Fade finished
+        // final_color is already base_color
+      }
+    }
+    _set_physical_drumpad_led(i, final_color);
+  }
 }
 
 } // namespace drum

@@ -304,35 +304,11 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 
     uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
     uint32_t base_color = controls->display.get_note_color(note_value);
-    uint32_t final_color = base_color; 
-
-    // Check fade state using PizzaDisplay
-    absolute_time_t fade_start_time_for_pad = controls->display.get_drumpad_fade_start_time(static_cast<uint8_t>(i));
-    if (!is_nil_time(fade_start_time_for_pad)) {
-      uint64_t time_since_fade_start_us = absolute_time_diff_us(fade_start_time_for_pad, now);
-        // Use constants from PizzaDisplay
-        uint64_t fade_duration_us = static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
-
-        if (time_since_fade_start_us < fade_duration_us) {
-          // Fade is active: Calculate brightness factor (MIN_FADE_BRIGHTNESS_FACTOR up to 1.0)
-          float fade_progress = std::min(1.0f, static_cast<float>(time_since_fade_start_us) /
-                                                   static_cast<float>(fade_duration_us));
-          float current_brightness_factor =
-              PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR + fade_progress * (1.0f - PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR);
-          uint8_t brightness_value =
-              static_cast<uint8_t>(std::clamp(current_brightness_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE, 0.0f, config::DISPLAY_BRIGHTNESS_MAX_VALUE));
-          final_color =
-              controls->display.leds().adjust_color_brightness(base_color, brightness_value);
-        } else {
-          // Fade finished in this cycle
-          controls->display.clear_drumpad_fade(static_cast<uint8_t>(i)); // Reset fade state in PizzaDisplay
-          // Ensure final color is the base color when fade ends
-          final_color = base_color;
-        }
-      }
-
-      controls->display.set_drumpad_led(static_cast<uint8_t>(i), final_color);
+    // Set the base color in PizzaDisplay. The fade calculation will happen in refresh_drumpad_leds.
+    controls->display.set_drumpad_led(static_cast<uint8_t>(i), base_color);
   }
+  // After setting all base colors, refresh the drumpad LEDs to apply fades etc.
+  controls->display.refresh_drumpad_leds(now);
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {

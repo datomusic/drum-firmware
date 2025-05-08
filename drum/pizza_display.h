@@ -117,6 +117,13 @@ public:
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
+   * @brief Updates all drumpad LEDs based on their current base colors and fade states.
+   * This should be called once per update cycle after base colors and fade triggers are set.
+   * @param now The current absolute time.
+   */
+  void refresh_drumpad_leds(absolute_time_t now);
+
+  /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
    * @tparam NumTracks Number of tracks in the sequencer.
    * @tparam NumSteps Number of steps per track in the sequencer.
@@ -189,6 +196,9 @@ private:
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
+  etl::array<uint32_t, config::NUM_DRUMPADS> _drumpad_base_colors;
+
+  void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
 };
 
 // --- Template Implementation ---

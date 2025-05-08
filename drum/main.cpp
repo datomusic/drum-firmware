@@ -28,7 +28,7 @@ static musin::timing::TempoHandler tempo_handler(musin::timing::ClockSource::INT
 // Configure TempoMultiplier. If InternalClock provides TempoEvents at 96 PPQN,
 // and SequencerController expects 96 PPQN, then TempoMultiplier should pass through.
 // (96, 1) results in _input_ticks_per_output_tick = 1, meaning pass-through.
-static musin::timing::TempoMultiplier tempo_multiplier(96, 1);
+static musin::timing::TempoMultiplier tempo_multiplier(48, 1);
 
 drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
 

@@ -79,6 +79,13 @@ public:
   void set_pitch(uint8_t voice_index, float value);
 
   /**
+   * @brief Sets the decay time for a specific voice/track for the *next* time it's triggered.
+   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
+   * @param value The decay value, normalized (0.0f to 1.0f).
+   */
+  void set_decay(uint8_t voice_index, float value);
+
+  /**
    * @brief Sets the master output volume.
    * @param volume The desired volume level (0.0f to 1.0f).
    */

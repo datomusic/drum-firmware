@@ -138,4 +138,8 @@ void AudioEngine::set_crush_depth(float normalized_value) {
   const uint8_t depth = map_value_linear(normalized_value, 5.0f, 16.0f);
   crusher_.bits(depth);
 }
+
+void AudioEngine::set_decay(uint8_t voice_index, float value) {
+  // TODO: Implement decay setting for the specified voice
+}
 } // namespace drum

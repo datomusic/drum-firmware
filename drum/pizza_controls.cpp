@@ -377,10 +377,10 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
     return;
   }
 
-  const auto &notes_for_pad = drumpad_note_ranges[pad_index];
-  if (notes_for_pad.empty()) {
-    return;
-  }
+  // const auto &notes_for_pad = drumpad_note_ranges[pad_index]; // This is already defined above
+  // if (notes_for_pad.empty()) { // This check is already done above
+  //   return;
+  // }
 
   uint8_t current_note = parent_controls->_sequencer_controller_ref.get_active_note_for_track(pad_index);
   size_t num_notes_in_list = notes_for_pad.size();
@@ -416,7 +416,7 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   auto led_index_opt = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index_opt.has_value()) {
     uint32_t led_index = led_index_opt.value();
-    uint32_t base_color = parent_controls->display.get_note_color(selected_note_value);
+    uint32_t base_color = parent_controls->display.get_note_color(new_selected_note_value);
     parent_controls->display.set_led(led_index, base_color);
   }
   trigger_fade(pad_index);

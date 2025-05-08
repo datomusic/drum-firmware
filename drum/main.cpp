@@ -66,9 +66,10 @@ int main() {
   tempo_handler.add_observer(tempo_multiplier);
   tempo_multiplier.add_observer(sequencer_controller);
 
-  // Connect SequencerController NoteEvents to PizzaControls for UI feedback (e.g., drumpad fade)
   // SoundRouter is now called directly by SequencerController.
-  sequencer_controller.add_observer(pizza_controls);
+  // PizzaControls will no longer observe NoteEvents from SequencerController directly
+  // as SequencerController no longer emits them to its own observers.
+  // UI feedback for notes (e.g. drumpad fades) will be handled in PizzaControls Phase 2.
 
   sync_out.enable();
 

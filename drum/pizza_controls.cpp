@@ -125,43 +125,9 @@ void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
     // The PPQN used for calculation in update() is still valid as it defines
     // the resolution we expect the TempoEvents to represent.
   } else {
-    // Sequencer is running, handle retrigger logic
-    _clock_tick_counter = 0; // Reset pulse counter
-
-    uint32_t retrigger_period = _sequencer_controller_ref.get_ticks_per_musical_step();
-
-    if (retrigger_period == 0) {
-      return;
-    }
-
-    for (size_t i = 0; i < drumpad_component.get_num_drumpads(); ++i) {
-      const auto &pad = drumpad_component.get_drumpad(i);
-      musin::ui::RetriggerMode mode = pad.get_retrigger_mode();
-      uint8_t note = drumpad_component.get_note_for_pad(static_cast<uint8_t>(i));
-
-      bool trigger_now = false;
-      if (mode == musin::ui::RetriggerMode::Single) {
-        if (_sub_step_tick_counter == 0) {
-          trigger_now = true;
-        }
-      } else if (mode == musin::ui::RetriggerMode::Double) {
-        if (_sub_step_tick_counter == 0 ||
-            (retrigger_period >= config::main_controls::RETRIGGER_DIVISOR_FOR_DOUBLE_MODE &&
-             _sub_step_tick_counter == (retrigger_period / config::main_controls::RETRIGGER_DIVISOR_FOR_DOUBLE_MODE))) {
-          trigger_now = true;
-        }
-      }
-
-      if (trigger_now) {
-        drum::Events::NoteEvent note_event{
-            .track_index = static_cast<uint8_t>(i), .note = note, .velocity = config::drumpad::RETRIGGER_VELOCITY};
-        _sound_router_ref.notification(note_event);
-      }
-    }
-    _sub_step_tick_counter++;
-    if (_sub_step_tick_counter >= retrigger_period) {
-      _sub_step_tick_counter = 0;
-    }
+    // Sequencer is running, reset the pulse counter.
+    // Retrigger logic is now handled by SequencerController.
+    _clock_tick_counter = 0;
   }
 }
 
@@ -174,8 +140,7 @@ void PizzaControls::refresh_sequencer_display() {
 void PizzaControls::notification(musin::timing::SequencerTickEvent /* event */) {
   // This notification is received from TempoMultiplier.
   // It signals a tick at the sequencer's operating resolution.
-  // Reset the sub-step counter used for retrigger logic within TempoEvents.
-  _sub_step_tick_counter = 0;
+  // The _sub_step_tick_counter is no longer used here as retrigger logic moved.
 }
 
 // --- Implementation for getter moved from header ---
@@ -336,6 +301,19 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update();
+
+    // Update SequencerController with any changes to retrigger mode
+    musin::ui::RetriggerMode current_mode = drumpads[i].get_retrigger_mode();
+    if (current_mode != _last_known_retrigger_mode_per_pad[i]) {
+      if (current_mode == musin::ui::RetriggerMode::Single) {
+        controls->_sequencer_controller_ref.activate_play_on_every_step(static_cast<uint8_t>(i), 1);
+      } else if (current_mode == musin::ui::RetriggerMode::Double) {
+        controls->_sequencer_controller_ref.activate_play_on_every_step(static_cast<uint8_t>(i), 2);
+      } else { // Off or any other state
+        controls->_sequencer_controller_ref.deactivate_play_on_every_step(static_cast<uint8_t>(i));
+      }
+      _last_known_retrigger_mode_per_pad[i] = current_mode;
+    }
 
     uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
 

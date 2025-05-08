@@ -48,16 +48,16 @@ namespace drumpad {
     constexpr uint32_t MIN_VELOCITY_VALUE = 5000U;
     constexpr uint32_t MAX_VELOCITY_VALUE = 200000U;
 
-    constexpr etl::array<uint8_t, 6> drumpad_0_notes = {{0, 1, 2, 3, 5, 7}};
-    constexpr etl::array<uint8_t, 7> drumpad_1_notes = {{10, 11, 13, 14, 15, 8, 9 }};
-    constexpr etl::array<uint8_t, 5> drumpad_2_notes = {{16, 17, 19, 20, 21}};
-    constexpr etl::array<uint8_t, 7> drumpad_3_notes = {{24, 26, 27, 28, 29, 30, 31}};
+    constexpr etl::array<uint8_t, 6> track_0_notes = {{0, 1, 2, 3, 5, 7}};
+    constexpr etl::array<uint8_t, 7> track_1_notes = {{10, 11, 13, 14, 15, 8, 9 }};
+    constexpr etl::array<uint8_t, 5> track_2_notes = {{16, 17, 19, 20, 21}};
+    constexpr etl::array<uint8_t, 7> track_3_notes = {{24, 26, 27, 28, 29, 30, 31}};
 
-    constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> drumpad_note_ranges = {{
-        etl::span<const uint8_t>(drumpad_0_notes),
-        etl::span<const uint8_t>(drumpad_1_notes),
-        etl::span<const uint8_t>(drumpad_2_notes),
-        etl::span<const uint8_t>(drumpad_3_notes)
+    constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> track_note_ranges = {{
+        etl::span<const uint8_t>(track_0_notes),
+        etl::span<const uint8_t>(track_1_notes),
+        etl::span<const uint8_t>(track_2_notes),
+        etl::span<const uint8_t>(track_3_notes)
     }};
 }
 

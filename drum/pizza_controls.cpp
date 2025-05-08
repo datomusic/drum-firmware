@@ -40,9 +40,9 @@ void PizzaControls::init() {
 
   // Initialize active notes in SequencerController based on DrumpadComponent's defaults
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    if (!config::drumpad::drumpad_note_ranges[i].empty()) {
+    if (!config::drumpad::track_note_ranges[i].empty()) {
       _sequencer_controller_ref.set_active_note_for_track(
-          i, config::drumpad::drumpad_note_ranges[i][0]);
+          i, config::drumpad::track_note_ranges[i][0]);
     }
     // If a range is empty, SequencerController will retain its constructor-initialized default for this track.
   }
@@ -340,11 +340,11 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
-  if (pad_index >= config::drumpad::drumpad_note_ranges.size()) {
+  if (pad_index >= config::drumpad::track_note_ranges.size()) {
     return;
   }
 
-  const auto &notes_for_pad = config::drumpad::drumpad_note_ranges[pad_index];
+  const auto &notes_for_pad = config::drumpad::track_note_ranges[pad_index];
   if (notes_for_pad.empty()) {
     return;
   }

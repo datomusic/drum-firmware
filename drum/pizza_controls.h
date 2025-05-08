@@ -176,8 +176,7 @@ public:
   // --- Analog Control Component ---
   class AnalogControlComponent {
   public:
-    explicit AnalogControlComponent(PizzaControls *parent_ptr,
-                                    drum::SoundRouter &sound_router); // Added sound_router
+    explicit AnalogControlComponent(PizzaControls *parent_ptr);
     void init();
     void update();
 
@@ -185,17 +184,14 @@ public:
     struct AnalogControlEventHandler : public etl::observer<musin::ui::AnalogControlEvent> {
       AnalogControlComponent *parent;
       const uint16_t control_id;
-      drum::SoundRouter &_sound_router; // Added
 
-      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id,
-                                          drum::SoundRouter &sr) // Added sr
-          : parent(p), control_id(id), _sound_router(sr) {       // Added _sound_router(sr)
+      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
+          : parent(p), control_id(id) {
       }
       void notification(musin::ui::AnalogControlEvent event) override;
     };
 
     PizzaControls *parent_controls;
-    drum::SoundRouter &_sound_router; // Added
     etl::array<musin::ui::AnalogControl, 11> mux_controls;
     etl::array<AnalogControlEventHandler, 11> control_observers;
     size_t _next_analog_control_to_update_idx = 0;

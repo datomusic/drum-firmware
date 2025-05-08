@@ -28,7 +28,7 @@ PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
       _tempo_handler_ref(tempo_handler_ref),
       _tempo_multiplier_ref(tempo_multiplier_ref), // Initialize
       _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
-      keypad_component(this), drumpad_component(this), analog_component(this, _sound_router_ref),
+      keypad_component(this), drumpad_component(this), analog_component(this),
       _profiler(2000), playbutton_component(this) {
 }
 
@@ -464,9 +464,8 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
 // --- AnalogControlComponent Implementation ---
 
 PizzaControls::AnalogControlComponent::AnalogControlComponent(
-    PizzaControls *parent_ptr,
-    drum::SoundRouter &sound_router)                            // Added sound_router
-    : parent_controls(parent_ptr), _sound_router(sound_router), // Store sound_router reference
+    PizzaControls *parent_ptr)
+    : parent_controls(parent_ptr),
       mux_controls{/*AnalogControl{PIN_ADC, analog_address_pins, DRUM1, true},*/
                    AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
                    //  AnalogControl{PIN_ADC, analog_address_pins, DRUM2, true},
@@ -484,22 +483,22 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, true}},
       control_observers{
-          // AnalogControlEventHandler{this, DRUM1, _sound_router},      // Pass sound_router
-          AnalogControlEventHandler{this, FILTER, _sound_router}, // Pass sound_router
-          // AnalogControlEventHandler{this, DRUM2, _sound_router},      // Pass sound_router
-          AnalogControlEventHandler{this, PITCH1, _sound_router}, // Pass sound_router
-          AnalogControlEventHandler{this, PITCH2, _sound_router}, // Pass sound_router
-          // AnalogControlEventHandler{this, PLAYBUTTON, _sound_router}, // Pass sound_router
-          AnalogControlEventHandler{this, RANDOM, _sound_router}, // Pass sound_router
-          AnalogControlEventHandler{this, VOLUME, _sound_router}, // Pass sound_router
-          AnalogControlEventHandler{this, PITCH3, _sound_router}, // Pass sound_router
-          AnalogControlEventHandler{this, SWING, _sound_router},  // Pass sound_router
-          AnalogControlEventHandler{this, CRUSH, _sound_router},  // Pass sound_router
-          // AnalogControlEventHandler{this, DRUM3, _sound_router},      // Pass sound_router
-          AnalogControlEventHandler{this, REPEAT, _sound_router}, // Pass sound_router
-          // AnalogControlEventHandler{this, DRUM4, _sound_router},      // Pass sound_router
-          AnalogControlEventHandler{this, SPEED, _sound_router},    // Pass sound_router
-          AnalogControlEventHandler{this, PITCH4, _sound_router}} { // Pass sound_router
+          // AnalogControlEventHandler{this, DRUM1},
+          AnalogControlEventHandler{this, FILTER},
+          // AnalogControlEventHandler{this, DRUM2},
+          AnalogControlEventHandler{this, PITCH1},
+          AnalogControlEventHandler{this, PITCH2},
+          // AnalogControlEventHandler{this, PLAYBUTTON},
+          AnalogControlEventHandler{this, RANDOM},
+          AnalogControlEventHandler{this, VOLUME},
+          AnalogControlEventHandler{this, PITCH3},
+          AnalogControlEventHandler{this, SWING},
+          AnalogControlEventHandler{this, CRUSH},
+          // AnalogControlEventHandler{this, DRUM3},
+          AnalogControlEventHandler{this, REPEAT},
+          // AnalogControlEventHandler{this, DRUM4},
+          AnalogControlEventHandler{this, SPEED},
+          AnalogControlEventHandler{this, PITCH4}} {
 }
 
 void PizzaControls::AnalogControlComponent::init() {
@@ -527,8 +526,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case FILTER:
-    _sound_router.set_parameter(drum::Parameter::FILTER_FREQUENCY, event.value);
-    _sound_router.set_parameter(drum::Parameter::FILTER_RESONANCE, (1.0f - event.value));
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY, event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE, (1.0f - event.value));
     break;
   case RANDOM: {
     constexpr float RANDOM_THRESHOLD = 0.1f;
@@ -542,7 +541,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
-    _sound_router.set_parameter(drum::Parameter::VOLUME, event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
     break;
   case SWING: {
     constexpr float center_value = 0.5f;
@@ -557,8 +556,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    _sound_router.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
-    //_sound_router.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
+    // parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
     break;
   case REPEAT: {
     constexpr float REPEAT_THRESHOLD_1 = 0.3f;
@@ -579,16 +578,16 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case PITCH1:
-    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 0);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 0);
     break;
   case PITCH2:
-    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 1);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 1);
     break;
   case PITCH3:
-    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 2);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 2);
     break;
   case PITCH4:
-    _sound_router.set_parameter(drum::Parameter::PITCH, event.value, 3);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 3);
     break;
   case SPEED: {
     constexpr float min_bpm = 30.0f;

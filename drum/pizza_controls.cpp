@@ -383,8 +383,9 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
-  if (pad_index >= drumpad_note_ranges.size())
+  if (pad_index >= drumpad_note_ranges.size()) {
     return;
+  }
 
   const auto &notes_for_pad = drumpad_note_ranges[pad_index];
   if (notes_for_pad.empty()) {
@@ -392,16 +393,16 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   }
 
   size_t num_notes_in_list = notes_for_pad.size();
-  int32_t current_note_idx = static_cast<int32_t>(drumpad_note_numbers[pad_index]);
+  int32_t current_list_idx = static_cast<int32_t>(drumpad_note_numbers[pad_index]);
 
-  int32_t new_note_idx = (current_note_idx + offset);
-  new_note_idx = (new_note_idx % static_cast<int32_t>(num_notes_in_list) +
+  int32_t new_list_idx = (current_list_idx + offset);
+  new_list_idx = (new_list_idx % static_cast<int32_t>(num_notes_in_list) +
                   static_cast<int32_t>(num_notes_in_list)) %
                  static_cast<int32_t>(num_notes_in_list);
 
-  drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_note_idx);
+  drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_list_idx);
 
-  uint8_t selected_note_value = notes_for_pad[drumpad_note_numbers[pad_index]];
+  uint8_t selected_note_value = notes_for_pad[static_cast<uint8_t>(new_list_idx)];
 
   parent_controls->sequencer.get_track(pad_index).set_note(selected_note_value);
 
@@ -422,18 +423,21 @@ bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
 }
 
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
-  if (pad_index < drumpad_note_ranges.size()) {
-    const auto &notes_for_this_pad = drumpad_note_ranges[pad_index];
-    if (!notes_for_this_pad.empty()) {
-      uint8_t current_selection_idx = drumpad_note_numbers[pad_index];
-      if (current_selection_idx < notes_for_this_pad.size()) {
-        return notes_for_this_pad[current_selection_idx];
-      } else {
-        return notes_for_this_pad[0];
-      }
-    }
+  if (pad_index >= drumpad_note_ranges.size()) {
+    return config::drumpad::DEFAULT_FALLBACK_NOTE;
   }
-  return config::drumpad::DEFAULT_FALLBACK_NOTE;
+
+  const auto &notes_for_this_pad = drumpad_note_ranges[pad_index];
+  if (notes_for_this_pad.empty()) {
+    return config::drumpad::DEFAULT_FALLBACK_NOTE;
+  }
+
+  uint8_t current_selection_idx = drumpad_note_numbers[pad_index];
+  if (current_selection_idx >= notes_for_this_pad.size()) {
+    return notes_for_this_pad[0];
+  }
+
+  return notes_for_this_pad[current_selection_idx];
 }
 
 void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {

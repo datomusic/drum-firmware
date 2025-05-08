@@ -38,6 +38,15 @@ void PizzaControls::init() {
   analog_component.init();
   playbutton_component.init();
 
+  // Initialize active notes in SequencerController based on DrumpadComponent's defaults
+  for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
+    if (!DrumpadComponent::drumpad_note_ranges[i].empty()) {
+      _sequencer_controller_ref.set_active_note_for_track(
+          i, DrumpadComponent::drumpad_note_ranges[i][0]);
+    }
+    // If a range is empty, SequencerController will retain its constructor-initialized default for this track.
+  }
+
   // Register this class to receive tempo events for LED pulsing
   _tempo_handler_ref.add_observer(*this);
   // Register to receive SequencerTickEvents to reset sub-step counter
@@ -293,7 +302,6 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
           Drumpad<AnalogInMux16>{drumpad_readers[1], 1, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
           Drumpad<AnalogInMux16>{drumpad_readers[2], 2, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
           Drumpad<AnalogInMux16>{drumpad_readers[3], 3, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE}},
-      drumpad_note_numbers{}, // Initialize with the first index (0) for each pad's note list
       // _pad_pressed_state is value-initialized by default in the header
       _fade_start_time{}, // Initialize before observers to match declaration order, value-initialized
       drumpad_observers{DrumpadEventHandler{this, 0},
@@ -322,11 +330,7 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].update();
 
-    uint8_t current_note_selection_idx = drumpad_note_numbers[i];
-    // Ensure the index is valid before accessing, though it should be by design
-    uint8_t note_value = (current_note_selection_idx < drumpad_note_ranges[i].size())
-                           ? drumpad_note_ranges[i][current_note_selection_idx]
-                           : drumpad_note_ranges[i][0]; // Fallback to first note
+    uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
 
     auto led_index_opt = controls->display.get_drumpad_led_index(i);
 
@@ -373,19 +377,41 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
     return;
   }
 
-  size_t num_notes_in_list = notes_for_pad.size();
-  int32_t current_list_idx = static_cast<int32_t>(drumpad_note_numbers[pad_index]);
+  const auto &notes_for_pad = drumpad_note_ranges[pad_index];
+  if (notes_for_pad.empty()) {
+    return;
+  }
 
+  uint8_t current_note = parent_controls->_sequencer_controller_ref.get_active_note_for_track(pad_index);
+  size_t num_notes_in_list = notes_for_pad.size();
+  int32_t current_list_idx = -1;
+
+  // Find the index of the current_note in the notes_for_pad list
+  for (size_t i = 0; i < num_notes_in_list; ++i) {
+    if (notes_for_pad[i] == current_note) {
+      current_list_idx = static_cast<int32_t>(i);
+      break;
+    }
+  }
+
+  // If current_note wasn't found (e.g. initial state or inconsistency), default to index 0
+  if (current_list_idx == -1) {
+    current_list_idx = 0;
+  }
+  
   int32_t new_list_idx = (current_list_idx + offset);
+  // Modulo arithmetic to wrap around the list
   new_list_idx = (new_list_idx % static_cast<int32_t>(num_notes_in_list) +
                   static_cast<int32_t>(num_notes_in_list)) %
                  static_cast<int32_t>(num_notes_in_list);
 
-  drumpad_note_numbers[pad_index] = static_cast<uint8_t>(new_list_idx);
+  uint8_t new_selected_note_value = notes_for_pad[static_cast<size_t>(new_list_idx)];
 
-  uint8_t selected_note_value = notes_for_pad[static_cast<uint8_t>(new_list_idx)];
-
-  parent_controls->sequencer.get_track(pad_index).set_note(selected_note_value);
+  // Update the active note in SequencerController
+  parent_controls->_sequencer_controller_ref.set_active_note_for_track(pad_index, new_selected_note_value);
+  
+  // Update the default note for new steps in the sequencer track
+  parent_controls->sequencer.get_track(pad_index).set_note(new_selected_note_value);
 
   auto led_index_opt = parent_controls->display.get_drumpad_led_index(pad_index);
   if (led_index_opt.has_value()) {
@@ -404,21 +430,12 @@ bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
 }
 
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
-  if (pad_index >= drumpad_note_ranges.size()) {
-    return config::drumpad::DEFAULT_FALLBACK_NOTE;
+  if (pad_index >= config::NUM_DRUMPADS) {
+    // This case should ideally not happen if pad_index is always valid.
+    // Return a fallback or handle error appropriately.
+    return config::drumpad::DEFAULT_FALLBACK_NOTE; 
   }
-
-  const auto &notes_for_this_pad = drumpad_note_ranges[pad_index];
-  if (notes_for_this_pad.empty()) {
-    return config::drumpad::DEFAULT_FALLBACK_NOTE;
-  }
-
-  uint8_t current_selection_idx = drumpad_note_numbers[pad_index];
-  if (current_selection_idx >= notes_for_this_pad.size()) {
-    return notes_for_this_pad[0];
-  }
-
-  return notes_for_this_pad[current_selection_idx];
+  return parent_controls->_sequencer_controller_ref.get_active_note_for_track(pad_index);
 }
 
 void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {

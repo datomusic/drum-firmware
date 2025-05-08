@@ -149,13 +149,6 @@ bool PizzaControls::is_running() const {
 }
 // --- End moved implementation ---
 
-// Notification handler for NoteEvents from SequencerController
-void PizzaControls::notification(drum::Events::NoteEvent event) {
-  if (event.velocity > 0 && event.track_index < drumpad_component.get_num_drumpads()) {
-    drumpad_component.trigger_fade(event.track_index);
-  }
-}
-
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS, config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
       keypad_observer(this, keypad_cc_map, config::keypad::MIDI_CHANNEL) {

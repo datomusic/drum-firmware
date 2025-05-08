@@ -386,6 +386,27 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_off(uint8_t track_in
   }
 }
 
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_active_note_for_track(uint8_t track_index,
+                                                                         uint8_t note) {
+  if (track_index < NumTracks) {
+    _active_note_per_track[track_index] = note;
+  }
+  // else: track_index is out of bounds, do nothing or log an error.
+  // For now, we silently ignore out-of-bounds access to prevent crashes.
+}
+
+template <size_t NumTracks, size_t NumSteps>
+uint8_t
+SequencerController<NumTracks, NumSteps>::get_active_note_for_track(uint8_t track_index) const {
+  if (track_index < NumTracks) {
+    return _active_note_per_track[track_index];
+  }
+  // track_index is out of bounds. Return a default/safe value.
+  // 0 is a common default for MIDI notes, though often unassigned.
+  return 0; 
+}
+
 // Explicit template instantiation for 4 tracks, 8 steps
 template class SequencerController<4, 8>;
 

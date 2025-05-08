@@ -147,7 +147,7 @@ public:
     };
 
     PizzaControls *parent_controls;
-    musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS, config::keypad::POLL_INTERVAL_MS, config::keypad::DEBOUNCE_TIME_MS, config::keypad::HOLD_TIME_MS> keypad;
+    musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
     static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {

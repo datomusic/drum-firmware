@@ -184,7 +184,7 @@ void PizzaControls::notification(drum::Events::NoteEvent event) {
 }
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins), // Constructor arguments for poll/debounce/hold are now template parameters
+    : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS, config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
       keypad_observer(this, keypad_cc_map, config::keypad::MIDI_CHANNEL) {
 }
 

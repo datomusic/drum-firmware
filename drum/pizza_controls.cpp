@@ -303,18 +303,13 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
     }
 
     uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
+    uint32_t base_color = controls->display.get_note_color(note_value);
+    uint32_t final_color = base_color; 
 
-    auto led_index_opt = controls->display.get_drumpad_led_index(i);
-
-    if (led_index_opt.has_value()) {
-      uint32_t led_index = led_index_opt.value();
-      uint32_t base_color = controls->display.get_note_color(note_value);
-      uint32_t final_color = base_color; // Default to base color
-
-      // Check fade state using PizzaDisplay
-      absolute_time_t fade_start_time_for_pad = controls->display.get_drumpad_fade_start_time(static_cast<uint8_t>(i));
-      if (!is_nil_time(fade_start_time_for_pad)) {
-        uint64_t time_since_fade_start_us = absolute_time_diff_us(fade_start_time_for_pad, now);
+    // Check fade state using PizzaDisplay
+    absolute_time_t fade_start_time_for_pad = controls->display.get_drumpad_fade_start_time(static_cast<uint8_t>(i));
+    if (!is_nil_time(fade_start_time_for_pad)) {
+      uint64_t time_since_fade_start_us = absolute_time_diff_us(fade_start_time_for_pad, now);
         // Use constants from PizzaDisplay
         uint64_t fade_duration_us = static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
 
@@ -336,8 +331,7 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
         }
       }
 
-      controls->display.set_led(led_index, final_color);
-    }
+      controls->display.set_drumpad_led(static_cast<uint8_t>(i), final_color);
   }
 }
 
@@ -382,12 +376,8 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   // Update the default note for new steps in the sequencer track
   parent_controls->sequencer.get_track(pad_index).set_note(new_selected_note_value);
 
-  auto led_index_opt = parent_controls->display.get_drumpad_led_index(pad_index);
-  if (led_index_opt.has_value()) {
-    uint32_t led_index = led_index_opt.value();
-    uint32_t base_color = parent_controls->display.get_note_color(new_selected_note_value);
-    parent_controls->display.set_led(led_index, base_color);
-  }
+  uint32_t base_color = parent_controls->display.get_note_color(new_selected_note_value);
+  parent_controls->display.set_drumpad_led(pad_index, base_color);
   trigger_fade(pad_index);
 }
 

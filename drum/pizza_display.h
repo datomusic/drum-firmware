@@ -90,7 +90,7 @@ public:
    * @param pad_index Index of the drumpad (0-3).
    * @return std::optional containing the physical LED index if valid, otherwise std::nullopt.
    */
-  std::optional<uint32_t> get_drumpad_led_index(uint8_t pad_index) const;
+  void set_drumpad_led(uint8_t pad_index, uint32_t color);
 
   void set_track_override_color(uint8_t track_index, uint32_t color);
   void clear_track_override_color(uint8_t track_index);

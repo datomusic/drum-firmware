@@ -143,18 +143,27 @@ uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   return 0;
 }
 
-std::optional<uint32_t> PizzaDisplay::get_drumpad_led_index(uint8_t pad_index) const {
+void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint32_t color) {
+  std::optional<uint32_t> led_index_opt;
   switch (pad_index) {
   case 0:
-    return LED_DRUMPAD_1;
+    led_index_opt = LED_DRUMPAD_1;
+    break;
   case 1:
-    return LED_DRUMPAD_2;
+    led_index_opt = LED_DRUMPAD_2;
+    break;
   case 2:
-    return LED_DRUMPAD_3;
+    led_index_opt = LED_DRUMPAD_3;
+    break;
   case 3:
-    return LED_DRUMPAD_4;
+    led_index_opt = LED_DRUMPAD_4;
+    break;
   default:
-    return std::nullopt; // Invalid pad index
+    return;
+  }
+
+  if (led_index_opt.has_value()) {
+    _leds.set_pixel(led_index_opt.value(), color);
   }
 }
 

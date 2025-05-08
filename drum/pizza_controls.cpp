@@ -88,7 +88,7 @@ void PizzaControls::update() {
   if (_sequencer_controller_ref.is_running()) {
     display.set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
   } else {
-    constexpr uint32_t ticks_per_beat = _sequencer_controller_ref.get_ticks_per_musical_step();
+    uint32_t ticks_per_beat = _sequencer_controller_ref.get_ticks_per_musical_step();
     uint32_t phase_ticks = 0;
     if (ticks_per_beat > 0) {
       phase_ticks = _clock_tick_counter % ticks_per_beat;

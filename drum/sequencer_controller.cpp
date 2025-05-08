@@ -140,9 +140,9 @@ uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interv
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
-    uint8_t steps_per_quarter = SEQUENCER_RESOLUTION / 4;
-    if (steps_per_quarter > 0) {
-      high_res_ticks_per_step_ = CLOCK_PPQN / steps_per_quarter;
+    uint8_t steps_per_eight = SEQUENCER_RESOLUTION / 8;
+    if (steps_per_eight > 0) {
+      high_res_ticks_per_step_ = CLOCK_PPQN / steps_per_eight;
     } else {
       high_res_ticks_per_step_ = CLOCK_PPQN;
     }

@@ -7,6 +7,7 @@
 #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/timing_constants.h"
+#include "sound_router.h" // Added
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -27,9 +28,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<musin::timing::SequencerTickEvent>,
-                            public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                                   2> {
+class SequencerController : public etl::observer<musin::timing::SequencerTickEvent> {
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -39,10 +38,12 @@ public:
    * @brief Constructor.
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
+   * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-                      etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2>
-                          &tempo_source_ref); // Removed sound_router_ref
+  SequencerController(
+      musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+      etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref,
+      drum::SoundRouter &sound_router_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -149,6 +150,7 @@ private:
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source;
+  drum::SoundRouter &_sound_router_ref; // Added
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---

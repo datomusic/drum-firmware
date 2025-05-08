@@ -4,10 +4,12 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "events.h"
-#include "musin/timing/sequencer_tick_event.h"
+// Removed: #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_event.h"     // Added
+#include "musin/timing/tempo_handler.h"   // Added for MAX_TEMPO_OBSERVERS
 #include "musin/timing/timing_constants.h"
-#include "sound_router.h" // Added
+#include "sound_router.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -28,7 +30,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<musin::timing::SequencerTickEvent> {
+class SequencerController : public etl::observer<musin::timing::TempoEvent> { // Changed Event Type
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -42,7 +44,8 @@ public:
    */
   SequencerController(
       musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref,
+      etl::observable<etl::observer<musin::timing::TempoEvent>,
+                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref, // Changed
       drum::SoundRouter &sound_router_ref);
   ~SequencerController();
 
@@ -50,12 +53,12 @@ public:
   SequencerController &operator=(const SequencerController &) = delete;
 
   /**
-   * @brief Notification handler called when a SequencerTickEvent is received.
+   * @brief Notification handler called when a TempoEvent is received.
    * Implements the etl::observer interface. This is expected to be called
    * at the high resolution defined by CLOCK_PPQN.
-   * @param event The received sequencer tick event.
+   * @param event The received tempo event.
    */
-  void notification(musin::timing::SequencerTickEvent event) override;
+  void notification(musin::timing::TempoEvent event) override; // Changed Event Type
 
   /**
    * @brief Triggers a note on event directly.
@@ -179,8 +182,9 @@ private:
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
-  etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source;
-  drum::SoundRouter &_sound_router_ref; // Added
+  etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
+      &tempo_source; // Changed
+  drum::SoundRouter &_sound_router_ref;
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---

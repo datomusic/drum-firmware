@@ -11,7 +11,8 @@ namespace drum {
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref,
+    etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
+        &tempo_source_ref, // Changed
     drum::SoundRouter &sound_router_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
       _just_played_step_per_track{}, tempo_source(tempo_source_ref),
@@ -223,7 +224,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] musin::timing::SequencerTickEvent event) {
+    [[maybe_unused]] musin::timing::TempoEvent event) { // Changed Event Type
   if (state_ != State::Running)
     return;
 

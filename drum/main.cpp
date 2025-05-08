@@ -10,7 +10,7 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
-#include "musin/timing/tempo_multiplier.h"
+// Removed: #include "musin/timing/tempo_multiplier.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
@@ -26,12 +26,9 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::TempoHandler tempo_handler(internal_clock,
                                                musin::timing::ClockSource::INTERNAL);
 
-// Configure TempoMultiplier. If InternalClock provides TempoEvents at 96 PPQN,
-// and SequencerController expects 96 PPQN, then TempoMultiplier should pass through.
-// (96, 1) results in _input_ticks_per_output_tick = 1, meaning pass-through.
-static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
+// static musin::timing::TempoMultiplier tempo_multiplier(24, 1); // Removed
 
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier, sound_router);
+drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler, sound_router); // Changed tempo_multiplier to tempo_handler
 
 static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer,
                                           tempo_handler, sequencer_controller,
@@ -63,8 +60,8 @@ int main() {
 
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
-  tempo_handler.add_observer(tempo_multiplier);
-  tempo_multiplier.add_observer(sequencer_controller);
+  // tempo_handler.add_observer(tempo_multiplier); // Removed
+  tempo_handler.add_observer(sequencer_controller); // Added
 
   sync_out.enable();
 

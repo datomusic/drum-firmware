@@ -519,7 +519,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   case SPEED: {
     float bpm = config::analog_controls::MIN_BPM_ADJUST + event.value * (config::analog_controls::MAX_BPM_ADJUST - config::analog_controls::MIN_BPM_ADJUST);
-    controls->_internal_clock.set_bpm(bpm);
+    controls->_tempo_handler_ref.set_bpm(bpm);
     break;
   }
   }

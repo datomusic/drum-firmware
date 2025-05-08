@@ -99,6 +99,7 @@ using DefaultSequencerController = SequencerController<config::NUM_TRACKS, confi
 
 class PizzaControls
     : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observer<musin::timing::SequencerTickEvent>, // Added
       public etl::observer<drum::Events::NoteEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
@@ -115,8 +116,9 @@ public:
 
   void init();
   void update();
-  void notification(musin::timing::TempoEvent event);
-  void notification(drum::Events::NoteEvent event);
+  void notification(musin::timing::TempoEvent event) override;
+  void notification(musin::timing::SequencerTickEvent event) override; // Added
+  void notification(drum::Events::NoteEvent event) override;
 
   void refresh_sequencer_display();
 

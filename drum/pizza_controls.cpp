@@ -171,6 +171,13 @@ void PizzaControls::refresh_sequencer_display() {
                                _stopped_highlight_factor);
 }
 
+void PizzaControls::notification(musin::timing::SequencerTickEvent /* event */) {
+  // This notification is received from TempoMultiplier.
+  // It signals a tick at the sequencer's operating resolution.
+  // Reset the sub-step counter used for retrigger logic within TempoEvents.
+  _sub_step_tick_counter = 0;
+}
+
 // --- Implementation for getter moved from header ---
 bool PizzaControls::is_running() const {
   return _sequencer_controller_ref.is_running();

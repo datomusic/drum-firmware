@@ -98,8 +98,7 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
 
 class PizzaControls
-    : public etl::observer<musin::timing::TempoEvent>,
-      public etl::observer<musin::timing::SequencerTickEvent> { // Removed NoteEvent observer
+    : public etl::observer<musin::timing::TempoEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
@@ -116,7 +115,6 @@ public:
   void init();
   void update();
   void notification(musin::timing::TempoEvent event) override;
-  void notification(musin::timing::SequencerTickEvent event) override;
 
   void refresh_sequencer_display();
 

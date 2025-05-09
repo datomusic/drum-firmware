@@ -7,6 +7,8 @@
 #include <cstdint>
 
 #include "musin/timing/clock_event.h" // Include for ClockSource
+#include "musin/timing/internal_clock.h"
+
 
 namespace musin::timing {
 
@@ -27,9 +29,11 @@ class TempoHandler
 public:
   /**
    * @brief Constructor.
+   * @param internal_clock_ref Reference to the InternalClock instance.
    * @param initial_source The clock source to use initially.
    */
-  explicit TempoHandler(ClockSource initial_source = ClockSource::INTERNAL);
+  explicit TempoHandler(InternalClock &internal_clock_ref,
+                        ClockSource initial_source = ClockSource::INTERNAL);
 
   // Prevent copying and assignment
   TempoHandler(const TempoHandler &) = delete;
@@ -54,7 +58,14 @@ public:
    */
   void notification(musin::timing::ClockEvent event);
 
+  /**
+   * @brief Set the tempo for the internal clock, if it's the active source.
+   * @param bpm Beats Per Minute.
+   */
+  void set_bpm(float bpm);
+
 private:
+  InternalClock &_internal_clock_ref;
   ClockSource current_source_;
 
   // Pointers or references to actual clock instances might be needed here

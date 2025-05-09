@@ -16,37 +16,41 @@
 #include "events.h"
 #include "pico/time.h"
 
+#include "config.h"
+
+#include "musin/hal/debug_utils.h"
 #include "musin/timing/internal_clock.h"
 
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "sound_router.h" // Added
+// #include "musin/timing/tempo_multiplier.h" // Removed as it's no longer used directly by PizzaControls
+#include "sound_router.h"
 
 namespace drum {
 class PizzaDisplay; // Forward declaration
 
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
-using DefaultSequencerController = SequencerController<4, 8>;
+using DefaultSequencerController = SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
 
-class PizzaControls : public etl::observer<musin::timing::TempoEvent>,
-                      public etl::observer<drum::Events::NoteEvent> { // Added NoteEvent observer
+class PizzaControls
+    : public etl::observer<musin::timing::TempoEvent> {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
-                         musin::timing::Sequencer<4, 8> &sequencer_ref,
-                         musin::timing::InternalClock &clock_ref,
+                         musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
                          musin::timing::TempoHandler &tempo_handler_ref,
                          drum::DefaultSequencerController &sequencer_controller_ref,
-                         drum::SoundRouter &sound_router_ref); // Added sound_router_ref
+                         drum::SoundRouter &sound_router_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
 
   void init();
   void update();
-  void notification(musin::timing::TempoEvent event);
-  void notification(drum::Events::NoteEvent event); // Added for sequencer notes
+  void notification(musin::timing::TempoEvent event) override;
+
+  void refresh_sequencer_display();
 
   // --- Nested Component Definitions ---
 
@@ -76,7 +80,7 @@ public:
     static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
-        map[i] = (i <= 119) ? static_cast<uint8_t>(i) : 0;
+        map[i] = (i <= config::keypad::MAX_CC_MAPPED_VALUE) ? static_cast<uint8_t>(i) : config::keypad::DEFAULT_CC_UNMAPPED_VALUE;
       }
       return map;
     }();
@@ -85,7 +89,7 @@ public:
 
   // --- Drumpad Component ---
   // Now observes DrumpadEvents and emits NoteEvents
-  class DrumpadComponent : public etl::observable<etl::observer<drum::Events::NoteEvent>, 1> {
+  class DrumpadComponent {
   public:
     explicit DrumpadComponent(PizzaControls *parent_ptr); // Removed sound_router
     void init();
@@ -93,7 +97,14 @@ public:
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
     void trigger_fade(uint8_t pad_index); // New method to start the fade effect
     uint8_t get_note_for_pad(uint8_t pad_index) const;
-    [[nodiscard]] size_t get_num_drumpads() const { return drumpads.size(); } // Added getter
+    [[nodiscard]] size_t get_num_drumpads() const {
+      return config::NUM_DRUMPADS;
+    }
+    [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const;
+    [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16> &
+    get_drumpad(size_t index) const {
+      return drumpads[index];
+    }
 
   private:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
@@ -110,15 +121,12 @@ public:
 
     PizzaControls *parent_controls;
     // drum::SoundRouter &_sound_router; // Removed
-    etl::array<musin::hal::AnalogInMux16, 4> drumpad_readers;
-    etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, 4> drumpads;
-    etl::array<uint8_t, 4> drumpad_note_numbers;
-    etl::array<absolute_time_t, 4> _fade_start_time; // Track fade start time per pad
-    etl::array<DrumpadEventHandler, 4>
-        drumpad_observers; // Declared after _fade_start_time to match init order
-    static constexpr float MIN_FADE_BRIGHTNESS_FACTOR =
-        0.1f; // Brightness factor at the start of fade (10%)
-    static constexpr uint32_t FADE_DURATION_MS = 150; // Fade duration
+    etl::array<musin::hal::AnalogInMux16, config::NUM_DRUMPADS> drumpad_readers;
+    etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, config::NUM_DRUMPADS> drumpads;
+    etl::array<bool, config::NUM_DRUMPADS> _pad_pressed_state{};
+    // _fade_start_time has been moved to PizzaDisplay
+    etl::array<DrumpadEventHandler, config::NUM_DRUMPADS> drumpad_observers;
+    etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };
 
   // --- Playbutton Component ---
@@ -147,8 +155,7 @@ public:
   // --- Analog Control Component ---
   class AnalogControlComponent {
   public:
-    explicit AnalogControlComponent(PizzaControls *parent_ptr,
-                                    drum::SoundRouter &sound_router); // Added sound_router
+    explicit AnalogControlComponent(PizzaControls *parent_ptr);
     void init();
     void update();
 
@@ -156,29 +163,26 @@ public:
     struct AnalogControlEventHandler : public etl::observer<musin::ui::AnalogControlEvent> {
       AnalogControlComponent *parent;
       const uint16_t control_id;
-      drum::SoundRouter &_sound_router; // Added
 
-      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id,
-                                          drum::SoundRouter &sr) // Added sr
-          : parent(p), control_id(id), _sound_router(sr) {       // Added _sound_router(sr)
+      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
+          : parent(p), control_id(id) {
       }
       void notification(musin::ui::AnalogControlEvent event) override;
     };
 
     PizzaControls *parent_controls;
-    drum::SoundRouter &_sound_router; // Added
-    etl::array<musin::ui::AnalogControl, 16> mux_controls;
-    etl::array<AnalogControlEventHandler, 16> control_observers;
+    etl::array<musin::ui::AnalogControl, config::NUM_ANALOG_MUX_CONTROLS> mux_controls;
+    etl::array<AnalogControlEventHandler, config::NUM_ANALOG_MUX_CONTROLS> control_observers;
+    size_t _next_analog_control_to_update_idx = 0;
   };
 
 private:
   // --- Shared Resources ---
   drum::PizzaDisplay &display;
-  musin::timing::Sequencer<4, 8> &sequencer;
-  musin::timing::InternalClock &_internal_clock;
+  musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer;
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
-  drum::SoundRouter &_sound_router_ref; // Added
+  drum::SoundRouter &_sound_router_ref;
 
 public: // Make components public for access from SequencerController etc.
   // --- Components ---
@@ -190,11 +194,19 @@ public: // Make components public for access from SequencerController etc.
   // --- Internal State ---
   uint32_t _clock_tick_counter = 0;       // Counter for LED pulsing when stopped
   float _stopped_highlight_factor = 0.0f; // Brightness factor for LED pulse (0.0-1.0)
+  musin::hal::DebugUtils::SectionProfiler<4> _profiler;
 
-public:                                  // Add getters for state needed by display drawing
-  [[nodiscard]] bool is_running() const; // Moved definition to .cpp
+  enum class ProfileSection {
+    KEYPAD_UPDATE,
+    DRUMPAD_UPDATE,
+    ANALOG_UPDATE,
+    PLAYBUTTON_UPDATE
+  };
+
+public:                                  
+  [[nodiscard]] bool is_running() const;
   [[nodiscard]] float get_stopped_highlight_factor() const {
-    return _stopped_highlight_factor; // This one is simple, can stay inline
+    return _stopped_highlight_factor;
   }
 };
 

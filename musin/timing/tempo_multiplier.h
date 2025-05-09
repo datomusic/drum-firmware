@@ -60,6 +60,13 @@ public:
    */
   void reset();
 
+  /**
+   * @brief Gets the number of input TempoEvents that constitute one output SequencerTickEvent.
+   * This is determined by the current multiplier, divider, and base PPQN.
+   * @return The number of input ticks per output tick.
+   */
+  [[nodiscard]] uint32_t get_input_ticks_per_output_tick() const;
+
 private:
   // Helper function to ensure a value is at least 1
   static constexpr uint32_t max_or_one(uint32_t value) {

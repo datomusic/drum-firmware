@@ -45,6 +45,10 @@ void TempoMultiplier::reset() {
   _output_tick_counter = 0;
 }
 
+uint32_t TempoMultiplier::get_input_ticks_per_output_tick() const {
+  return _input_ticks_per_output_tick;
+}
+
 constexpr void TempoMultiplier::update_ticks_per_output() {
   // Calculate how many high-resolution input ticks make up one output tick using integer math.
   // Base resolution is DEFAULT_PPQN (e.g., 96 PPQN).

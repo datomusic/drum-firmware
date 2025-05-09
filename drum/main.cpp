@@ -1,9 +1,7 @@
-#define ENABLE_PROFILING
-
 #include "musin/usb/usb.h"
 
-#include "pico/stdio_usb.h" // for stdio_usb_init
-#include "pico/time.h"      // for sleep_us
+#include "pico/stdio_usb.h"
+#include "pico/time.h"
 
 #include "audio_engine.h"
 #include "midi_functions.h"
@@ -25,15 +23,19 @@ static drum::SoundRouter sound_router(audio_engine);
 
 static musin::timing::Sequencer<4, 8> pizza_sequencer;
 static musin::timing::InternalClock internal_clock(120.0f);
-static musin::timing::TempoHandler tempo_handler(musin::timing::ClockSource::INTERNAL);
+static musin::timing::TempoHandler tempo_handler(internal_clock,
+                                               musin::timing::ClockSource::INTERNAL);
 
-// Configure TempoMultiplier for 96 PPQN output assuming TempoHandler provides 4 PPQN input
+// Configure TempoMultiplier. If InternalClock provides TempoEvents at 96 PPQN,
+// and SequencerController expects 96 PPQN, then TempoMultiplier should pass through.
+// (96, 1) results in _input_ticks_per_output_tick = 1, meaning pass-through.
 static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
 
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier);
+drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier, sound_router);
 
-static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, internal_clock,
-                                          tempo_handler, sequencer_controller, sound_router);
+static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer,
+                                          tempo_handler, sequencer_controller,
+                                          sound_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
@@ -42,16 +44,6 @@ static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 // TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 
 static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
-
-constexpr size_t MAX_PROFILER_SECTIONS = 5;
-static musin::hal::DebugUtils::SectionProfiler<MAX_PROFILER_SECTIONS> section_profiler(2000);
-enum ProfileSection {
-  CONTROLS_UPDATE,
-  DISPLAY_DRAW,
-  DISPLAY_SHOW,
-  USB_MIDI,
-  AUDIO_PROCESS,
-};
 
 int main() {
   stdio_usb_init();
@@ -75,10 +67,10 @@ int main() {
   tempo_handler.add_observer(tempo_multiplier);
   tempo_multiplier.add_observer(sequencer_controller);
 
-  // Connect SequencerController NoteEvents to SoundRouter
-  sequencer_controller.add_observer(sound_router);
-  // Connect SequencerController NoteEvents to PizzaControls for UI feedback (e.g., drumpad fade)
-  sequencer_controller.add_observer(pizza_controls);
+  // SoundRouter is now called directly by SequencerController.
+  // PizzaControls will no longer observe NoteEvents from SequencerController directly
+  // as SequencerController no longer emits them to its own observers.
+  // UI feedback for notes (e.g. drumpad fades) will be handled in PizzaControls Phase 2.
 
   sync_out.enable();
 
@@ -88,47 +80,18 @@ int main() {
   // TODO: Add logic to register TempoHandler with other clocks
   // TODO: Add logic to start/stop clocks based on TempoHandler source selection
 
-  section_profiler.add_section("Controls Update");
-  section_profiler.add_section("Display Draw");
-  section_profiler.add_section("Display Show");
-  section_profiler.add_section("USB/MIDI");
-  section_profiler.add_section("Audio Process");
-
   while (true) {
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::CONTROLS_UPDATE);
-      pizza_controls.update();
-    }
+    pizza_controls.update();
 
-    // Get state needed for display drawing from controls
-    bool is_running = pizza_controls.is_running();
-    float stopped_highlight_factor = pizza_controls.get_stopped_highlight_factor();
+    pizza_display.show();
+    sleep_us(280);
 
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::DISPLAY_DRAW);
-      pizza_display.draw_sequencer_state(pizza_sequencer, sequencer_controller, is_running,
-                                         stopped_highlight_factor);
-    }
+    musin::usb::background_update();
+    midi_read();
 
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::DISPLAY_SHOW);
-      pizza_display.show();
-    }
-    sleep_us(80);
-
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::USB_MIDI);
-      musin::usb::background_update();
-      midi_read();
-    }
-
-    {
-      musin::hal::DebugUtils::ScopedProfile p(section_profiler, ProfileSection::AUDIO_PROCESS);
-      audio_engine.process();
-    }
+    audio_engine.process();
 
     loop_timer.record_iteration_end();
-    section_profiler.check_and_print_report();
   }
 
   return 0;

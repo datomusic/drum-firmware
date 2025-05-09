@@ -3,9 +3,11 @@
 
 #include "etl/array.h"
 #include "etl/observer.h"
-#include "events.h" // Added for NoteEvent
+#include "events.h"
 #include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/timing_constants.h"
+#include "sound_router.h" // Added
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -26,9 +28,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController
-    : public etl::observer<musin::timing::SequencerTickEvent>,
-      public etl::observable<etl::observer<drum::Events::NoteEvent>, 2> { // Increased observer capacity
+class SequencerController : public etl::observer<musin::timing::SequencerTickEvent> {
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 96;
@@ -38,10 +38,12 @@ public:
    * @brief Constructor.
    * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
+   * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-                      etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2>
-                          &tempo_source_ref); // Removed sound_router_ref
+  SequencerController(
+      musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+      etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref,
+      drum::SoundRouter &sound_router_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -54,6 +56,21 @@ public:
    * @param event The received sequencer tick event.
    */
   void notification(musin::timing::SequencerTickEvent event) override;
+
+  /**
+   * @brief Triggers a note on event directly.
+   * @param track_index The logical track index.
+   * @param note The MIDI note number.
+   * @param velocity The MIDI velocity.
+   */
+  void trigger_note_on(uint8_t track_index, uint8_t note, uint8_t velocity);
+
+  /**
+   * @brief Triggers a note off event directly.
+   * @param track_index The logical track index.
+   * @param note The MIDI note number.
+   */
+  void trigger_note_off(uint8_t track_index, uint8_t note);
 
   /**
    * @brief Get the current logical step index (0 to NumSteps-1) that was last triggered.
@@ -130,6 +147,21 @@ public:
    */
   void set_intended_repeat_state(std::optional<uint32_t> intended_length);
 
+  /**
+   * @brief Sets the active MIDI note number for a specific track.
+   * This note is used by default when new steps are created or when drumpads are triggered.
+   * @param track_index The logical track index.
+   * @param note The MIDI note number to set as active for the track.
+   */
+  void set_active_note_for_track(uint8_t track_index, uint8_t note);
+
+  /**
+   * @brief Gets the currently active MIDI note number for a specific track.
+   * @param track_index The logical track index.
+   * @return The MIDI note number currently active for the track.
+   */
+  [[nodiscard]] uint8_t get_active_note_for_track(uint8_t track_index) const;
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -143,12 +175,12 @@ private:
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   musin::timing::Sequencer<NumTracks, NumSteps> &sequencer;
-  // drum::SoundRouter &_sound_router; // Removed
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source;
+  drum::SoundRouter &_sound_router_ref; // Added
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---
@@ -164,14 +196,37 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
+  // --- Retrigger (Play On Every Step) Members ---
+  // Mode per track: 0 = Off, 1 = Single, 2 = Double
+  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
+  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
+
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
+  etl::array<uint8_t, NumTracks> _active_note_per_track{};
 
 public:
   void activate_repeat(uint32_t length);
   void deactivate_repeat();
+  /**
+   * @brief Activates retriggering for a specific track.
+   * @param track_index The track to activate retriggering on.
+   * @param mode 1 for single retrigger per step, 2 for double retrigger per step.
+   */
+  void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
+  /**
+   * @brief Deactivates retriggering for a specific track.
+   * @param track_index The track to deactivate retriggering on.
+   */
+  void deactivate_play_on_every_step(uint8_t track_index);
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
+
+  /**
+   * @brief Get the number of high-resolution SequencerTickEvents that form one musical step
+   * (e.g., a 16th note) of this sequencer.
+   */
+  [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 };
 
 } // namespace drum

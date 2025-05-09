@@ -4,11 +4,13 @@
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "musin/drivers/ws2812.h"
+#include "pico/time.h" // For absolute_time_t
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
+#include "config.h" // For config::NUM_DRUMPADS
 #include "musin/timing/step_sequencer.h"
 #include "sequencer_controller.h"
 
@@ -19,6 +21,8 @@ public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
   static constexpr size_t NUM_NOTE_COLORS = 32;
+  static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
+  static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t HIGHLIGHT_BLEND_AMOUNT = 100;
   static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;
@@ -86,7 +90,38 @@ public:
    * @param pad_index Index of the drumpad (0-3).
    * @return std::optional containing the physical LED index if valid, otherwise std::nullopt.
    */
-  std::optional<uint32_t> get_drumpad_led_index(uint8_t pad_index) const;
+  void set_drumpad_led(uint8_t pad_index, uint32_t color);
+
+  void set_track_override_color(uint8_t track_index, uint32_t color);
+  void clear_track_override_color(uint8_t track_index);
+  void clear_all_track_override_colors();
+
+  // --- Drumpad Fade ---
+  /**
+   * @brief Initiates a fade effect on the specified drumpad LED.
+   * @param pad_index The index of the drumpad (0-based).
+   */
+  void start_drumpad_fade(uint8_t pad_index);
+
+  /**
+   * @brief Clears (stops) the fade effect on the specified drumpad LED.
+   * @param pad_index The index of the drumpad (0-based).
+   */
+  void clear_drumpad_fade(uint8_t pad_index);
+
+  /**
+   * @brief Gets the start time of the fade for a specific drumpad.
+   * @param pad_index The index of the drumpad (0-based).
+   * @return absolute_time_t The time the fade started, or nil_time if not fading.
+   */
+  absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
+
+  /**
+   * @brief Updates all drumpad LEDs based on their current base colors and fade states.
+   * This should be called once per update cycle after base colors and fade triggers are set.
+   * @param now The current absolute time.
+   */
+  void refresh_drumpad_leds(absolute_time_t now);
 
   /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
@@ -124,7 +159,7 @@ private:
    * @param color The base color.
    * @return uint32_t The highlighted color (fixed blend).
    */
-  uint32_t apply_highlight(uint32_t color) const; // Kept original signature
+  uint32_t apply_highlight(uint32_t color) const;
 
   /**
    * @brief Apply a fading highlight effect (blend with white) based on a factor.
@@ -132,7 +167,7 @@ private:
    * @param highlight_factor The intensity of the highlight (0.0 = none, 1.0 = full white blend).
    * @return uint32_t The highlighted color.
    */
-  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const; // New function
+  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const;
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and step.
@@ -159,6 +194,11 @@ private:
 
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
+  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
+  etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
+  etl::array<uint32_t, config::NUM_DRUMPADS> _drumpad_base_colors;
+
+  void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
 };
 
 // --- Template Implementation ---
@@ -173,22 +213,30 @@ void PizzaDisplay::draw_sequencer_state(
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
       continue;
 
-    const auto &track = sequencer.get_track(track_idx);
+    const auto &track_data = sequencer.get_track(track_idx);
+    std::optional<uint32_t> override_color_opt;
+    if (track_idx < _track_override_colors.size()) {
+      override_color_opt = _track_override_colors[track_idx];
+    }
+
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
         continue;
 
-      const auto &step = track.get_step(step_idx);
-      uint32_t final_color = calculate_step_color(step);
+      const auto &step = track_data.get_step(step_idx);
+      uint32_t final_color;
 
-      // Check if this specific step was the last one played for this track
+      if (override_color_opt.has_value()) {
+        final_color = override_color_opt.value();
+      } else {
+        final_color = calculate_step_color(step);
+      }
+
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {
         if (is_running) {
-          // Running: Apply fixed highlight
           final_color = apply_highlight(final_color);
         } else {
-          // Stopped: Apply fading highlight using the provided factor
           final_color = apply_fading_highlight(final_color, stopped_highlight_factor);
         }
       }
@@ -286,7 +334,7 @@ inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, u
   uint8_t step_index = (SEQUENCER_STEPS_DISPLAYED - 1) - row;
   size_t array_index = step_index * SEQUENCER_TRACKS_DISPLAYED + col;
 
-  if (array_index < std::size(LED_ARRAY)) {
+  if (array_index < LED_ARRAY.size()) {
     return LED_ARRAY[array_index];
   }
   return std::nullopt;

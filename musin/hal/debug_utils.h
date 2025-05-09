@@ -10,7 +10,7 @@ extern "C" {
 #include <cstdio>
 
 
-// #define ENABLE_PROFILING
+#define ENABLE_PROFILING
 
 namespace musin::hal {
 namespace DebugUtils {

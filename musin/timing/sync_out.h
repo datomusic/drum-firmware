@@ -1,11 +1,11 @@
 #ifndef MUSIN_TIMING_SYNC_OUT_H
 #define MUSIN_TIMING_SYNC_OUT_H
 
+#include "etl/observer.h"
 #include "musin/hal/gpio.h"
 #include "musin/timing/clock_event.h"
 #include "musin/timing/internal_clock.h" // For InternalClock reference
-#include "etl/observer.h"
-#include "pico/time.h" // For alarm_id_t, absolute_time_t
+#include "pico/time.h"                   // For alarm_id_t, absolute_time_t
 #include <cstdint>
 
 namespace musin::timing {
@@ -22,7 +22,8 @@ public:
    * @brief Constructor for SyncOut.
    * @param gpio_pin The GPIO pin number to use for the sync output.
    * @param clock_source A reference to the InternalClock instance to observe.
-   * @param ticks_per_pulse The number of internal clock ticks before a pulse is generated. Default is 48.
+   * @param ticks_per_pulse The number of internal clock ticks before a pulse is generated. Default
+   * is 48.
    * @param pulse_duration_ms The duration of the sync pulse in milliseconds. Default is 10ms.
    */
   SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_source,
@@ -70,7 +71,7 @@ private:
   const std::uint64_t _pulse_duration_us; // Store in microseconds for precision with alarms
   std::uint32_t _tick_counter;
   bool _is_enabled;
-  bool _pulse_active; // True if the GPIO pin is currently high
+  bool _pulse_active;         // True if the GPIO pin is currently high
   alarm_id_t _pulse_alarm_id; // Stores the ID of the alarm used to turn the pulse off
 };
 

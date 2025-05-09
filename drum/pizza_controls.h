@@ -30,16 +30,18 @@ namespace drum {
 class PizzaDisplay; // Forward declaration
 
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
-using DefaultSequencerController = SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
+using DefaultSequencerController =
+    SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
 
 class PizzaControls {
 public:
   // Constructor takes essential shared resources and dependencies
-  explicit PizzaControls(drum::PizzaDisplay &display_ref,
-                         musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
-                         musin::timing::TempoHandler &tempo_handler_ref,
-                         drum::DefaultSequencerController &sequencer_controller_ref,
-                         drum::SoundRouter &sound_router_ref);
+  explicit PizzaControls(
+      drum::PizzaDisplay &display_ref,
+      musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
+      musin::timing::TempoHandler &tempo_handler_ref,
+      drum::DefaultSequencerController &sequencer_controller_ref,
+      drum::SoundRouter &sound_router_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -72,7 +74,9 @@ public:
     static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
-        map[i] = (i <= config::keypad::MAX_CC_MAPPED_VALUE) ? static_cast<uint8_t>(i) : config::keypad::DEFAULT_CC_UNMAPPED_VALUE;
+        map[i] = (i <= config::keypad::MAX_CC_MAPPED_VALUE)
+                     ? static_cast<uint8_t>(i)
+                     : config::keypad::DEFAULT_CC_UNMAPPED_VALUE;
       }
       return map;
     }();
@@ -183,7 +187,7 @@ public:
     PLAYBUTTON_UPDATE
   };
 
-public:                                  
+public:
   [[nodiscard]] bool is_running() const;
 };
 

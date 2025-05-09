@@ -26,7 +26,7 @@ public:
    * @param pulse_duration_ms The duration of the sync pulse in milliseconds. Default is 10ms.
    */
   SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_source,
-          std::uint32_t ticks_per_pulse = 48, std::uint32_t pulse_duration_ms = 10);
+          std::uint32_t ticks_per_pulse = 12, std::uint32_t pulse_duration_ms = 10);
 
   ~SyncOut();
 

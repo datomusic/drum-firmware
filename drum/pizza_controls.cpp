@@ -16,11 +16,11 @@ using musin::hal::AnalogInMux16;
 using musin::ui::AnalogControl;
 using musin::ui::Drumpad;
 
-PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
-                             musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
-                             musin::timing::TempoHandler &tempo_handler_ref,
-                             drum::DefaultSequencerController &sequencer_controller_ref,
-                             drum::SoundRouter &sound_router_ref)
+PizzaControls::PizzaControls(
+    drum::PizzaDisplay &display_ref,
+    musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
+    musin::timing::TempoHandler &tempo_handler_ref,
+    drum::DefaultSequencerController &sequencer_controller_ref, drum::SoundRouter &sound_router_ref)
     : display(display_ref), sequencer(sequencer_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
       keypad_component(this), drumpad_component(this), analog_component(this),
@@ -36,10 +36,11 @@ void PizzaControls::init() {
   // Initialize active notes in SequencerController based on DrumpadComponent's defaults
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     if (!config::drumpad::track_note_ranges[i].empty()) {
-      _sequencer_controller_ref.set_active_note_for_track(
-          i, config::drumpad::track_note_ranges[i][0]);
+      _sequencer_controller_ref.set_active_note_for_track(i,
+                                                          config::drumpad::track_note_ranges[i][0]);
     }
-    // If a range is empty, SequencerController will retain its constructor-initialized default for this track.
+    // If a range is empty, SequencerController will retain its constructor-initialized default for
+    // this track.
   }
 
   _profiler.add_section("Keypad Update");
@@ -81,7 +82,9 @@ bool PizzaControls::is_running() const {
 }
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS, config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
+    : parent_controls(parent_ptr),
+      keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS,
+             config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
       keypad_observer(this, keypad_cc_map, config::keypad::MIDI_CHANNEL) {
 }
 
@@ -140,10 +143,9 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       controls->drumpad_component.select_note_for_pad(pad_index, offset);
       if (!controls->is_running()) {
         uint8_t note_to_play = controls->drumpad_component.get_note_for_pad(pad_index);
-        drum::Events::NoteEvent note_event{
-            .track_index = pad_index,
-            .note = note_to_play,
-            .velocity = config::keypad::PREVIEW_NOTE_VELOCITY};
+        drum::Events::NoteEvent note_event{.track_index = pad_index,
+                                           .note = note_to_play,
+                                           .velocity = config::keypad::PREVIEW_NOTE_VELOCITY};
         controls->_sequencer_controller_ref.trigger_note_on(pad_index, note_to_play,
                                                             config::keypad::PREVIEW_NOTE_VELOCITY);
       }
@@ -189,15 +191,32 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
                       AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
-      drumpads{
-          Drumpad<AnalogInMux16>{drumpad_readers[0], 0, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
-          Drumpad<AnalogInMux16>{drumpad_readers[1], 1, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
-          Drumpad<AnalogInMux16>{drumpad_readers[2], 2, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
-          Drumpad<AnalogInMux16>{drumpad_readers[3], 3, config::drumpad::DEBOUNCE_PRESS_MS, config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS, config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS, config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE}},
-      drumpad_observers{DrumpadEventHandler{this, 0},
-                        DrumpadEventHandler{this, 1},
-                        DrumpadEventHandler{this, 2},
-                        DrumpadEventHandler{this, 3}} {
+      drumpads{Drumpad<AnalogInMux16>{
+                   drumpad_readers[0], 0, config::drumpad::DEBOUNCE_PRESS_MS,
+                   config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS,
+                   config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS,
+                   config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE,
+                   config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
+               Drumpad<AnalogInMux16>{
+                   drumpad_readers[1], 1, config::drumpad::DEBOUNCE_PRESS_MS,
+                   config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS,
+                   config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS,
+                   config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE,
+                   config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
+               Drumpad<AnalogInMux16>{
+                   drumpad_readers[2], 2, config::drumpad::DEBOUNCE_PRESS_MS,
+                   config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS,
+                   config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS,
+                   config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE,
+                   config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE},
+               Drumpad<AnalogInMux16>{
+                   drumpad_readers[3], 3, config::drumpad::DEBOUNCE_PRESS_MS,
+                   config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS,
+                   config::drumpad::HOLD_REPEAT_DELAY_MS, config::drumpad::HOLD_REPEAT_INTERVAL_MS,
+                   config::drumpad::MIN_PRESSURE_VALUE, config::drumpad::MAX_PRESSURE_VALUE,
+                   config::drumpad::MIN_VELOCITY_VALUE, config::drumpad::MAX_VELOCITY_VALUE}},
+      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
+                        DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
 }
 
 void PizzaControls::DrumpadComponent::init() {
@@ -232,7 +251,6 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
       }
       _last_known_retrigger_mode_per_pad[i] = current_mode;
     }
-
   }
 }
 
@@ -246,7 +264,8 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
     return;
   }
 
-  uint8_t current_note = parent_controls->_sequencer_controller_ref.get_active_note_for_track(pad_index);
+  uint8_t current_note =
+      parent_controls->_sequencer_controller_ref.get_active_note_for_track(pad_index);
   size_t num_notes_in_list = notes_for_pad.size();
   int32_t current_list_idx = -1;
 
@@ -262,7 +281,7 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   if (current_list_idx == -1) {
     current_list_idx = 0;
   }
-  
+
   int32_t new_list_idx = (current_list_idx + offset);
   // Modulo arithmetic to wrap around the list
   new_list_idx = (new_list_idx % static_cast<int32_t>(num_notes_in_list) +
@@ -272,14 +291,15 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   uint8_t new_selected_note_value = notes_for_pad[static_cast<size_t>(new_list_idx)];
 
   // Update the active note in SequencerController
-  parent_controls->_sequencer_controller_ref.set_active_note_for_track(pad_index, new_selected_note_value);
-  
+  parent_controls->_sequencer_controller_ref.set_active_note_for_track(pad_index,
+                                                                       new_selected_note_value);
+
   // Update the default note for new steps in the sequencer track
   parent_controls->sequencer.get_track(pad_index).set_note(new_selected_note_value);
-
 }
 
-// bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const { // Moved to SequencerController
+// bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const { // Moved to
+// SequencerController
 //   if (pad_index < _pad_pressed_state.size()) {
 //     return _pad_pressed_state[pad_index];
 //   }
@@ -316,8 +336,7 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
 
 // --- AnalogControlComponent Implementation ---
 
-PizzaControls::AnalogControlComponent::AnalogControlComponent(
-    PizzaControls *parent_ptr)
+PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
       mux_controls{AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH1, true},
@@ -330,17 +349,13 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(
                    AnalogControl{PIN_ADC, analog_address_pins, REPEAT, true},
                    AnalogControl{PIN_ADC, analog_address_pins, SPEED, false},
                    AnalogControl{PIN_ADC, analog_address_pins, PITCH4, true}},
-      control_observers{AnalogControlEventHandler{this, FILTER},
-                        AnalogControlEventHandler{this, PITCH1},
-                        AnalogControlEventHandler{this, PITCH2},
-                        AnalogControlEventHandler{this, RANDOM},
-                        AnalogControlEventHandler{this, VOLUME},
-                        AnalogControlEventHandler{this, PITCH3},
-                        AnalogControlEventHandler{this, SWING},
-                        AnalogControlEventHandler{this, CRUSH},
-                        AnalogControlEventHandler{this, REPEAT},
-                        AnalogControlEventHandler{this, SPEED},
-                        AnalogControlEventHandler{this, PITCH4}} {
+      control_observers{
+          AnalogControlEventHandler{this, FILTER}, AnalogControlEventHandler{this, PITCH1},
+          AnalogControlEventHandler{this, PITCH2}, AnalogControlEventHandler{this, RANDOM},
+          AnalogControlEventHandler{this, VOLUME}, AnalogControlEventHandler{this, PITCH3},
+          AnalogControlEventHandler{this, SWING},  AnalogControlEventHandler{this, CRUSH},
+          AnalogControlEventHandler{this, REPEAT}, AnalogControlEventHandler{this, SPEED},
+          AnalogControlEventHandler{this, PITCH4}} {
 }
 
 void PizzaControls::AnalogControlComponent::init() {
@@ -368,8 +383,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case FILTER:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY, event.value);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE, (1.0f - event.value));
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
+                                                             event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
+                                                             (1.0f - event.value));
     break;
   case RANDOM: {
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
@@ -385,9 +402,13 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
     break;
   case SWING: {
-    float distance_from_center = fabsf(event.value - config::analog_controls::SWING_KNOB_CENTER_VALUE); // Range 0.0 to 0.5
+    float distance_from_center =
+        fabsf(event.value - config::analog_controls::SWING_KNOB_CENTER_VALUE); // Range 0.0 to 0.5
 
-    uint8_t swing_percent = config::analog_controls::SWING_BASE_PERCENT + static_cast<uint8_t>(distance_from_center * config::analog_controls::SWING_PERCENT_SENSITIVITY);
+    uint8_t swing_percent =
+        config::analog_controls::SWING_BASE_PERCENT +
+        static_cast<uint8_t>(distance_from_center *
+                             config::analog_controls::SWING_PERCENT_SENSITIVITY);
 
     bool delay_odd = (event.value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
@@ -396,8 +417,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case CRUSH:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_RATE, event.value);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_DEPTH, event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_RATE,
+                                                             event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_DEPTH,
+                                                             event.value);
     break;
   case REPEAT: {
     // Determine the intended state based on the knob value
@@ -413,19 +436,25 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     break;
   }
   case PITCH1:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 0);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+                                                             0);
     break;
   case PITCH2:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 1);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+                                                             1);
     break;
   case PITCH3:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 2);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+                                                             2);
     break;
   case PITCH4:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value, 3);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+                                                             3);
     break;
   case SPEED: {
-    float bpm = config::analog_controls::MIN_BPM_ADJUST + event.value * (config::analog_controls::MAX_BPM_ADJUST - config::analog_controls::MIN_BPM_ADJUST);
+    float bpm = config::analog_controls::MIN_BPM_ADJUST +
+                event.value * (config::analog_controls::MAX_BPM_ADJUST -
+                               config::analog_controls::MIN_BPM_ADJUST);
     controls->_tempo_handler_ref.set_bpm(bpm);
     break;
   }
@@ -435,18 +464,17 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
       playbutton_reader{AnalogInMux16{PIN_ADC, analog_address_pins, PLAYBUTTON}},
-      playbutton{
-          playbutton_reader, 0, // id for the Drumpad instance
-          config::drumpad::DEBOUNCE_PRESS_MS,
-          config::drumpad::DEBOUNCE_RELEASE_MS,
-          config::drumpad::HOLD_THRESHOLD_MS,
-          config::drumpad::HOLD_REPEAT_DELAY_MS,
-          config::drumpad::HOLD_REPEAT_INTERVAL_MS,
-          config::drumpad::MIN_PRESSURE_VALUE,
-          config::drumpad::MAX_PRESSURE_VALUE,
-          config::drumpad::MIN_VELOCITY_VALUE,
-          config::drumpad::MAX_VELOCITY_VALUE
-      },
+      playbutton{playbutton_reader,
+                 0, // id for the Drumpad instance
+                 config::drumpad::DEBOUNCE_PRESS_MS,
+                 config::drumpad::DEBOUNCE_RELEASE_MS,
+                 config::drumpad::HOLD_THRESHOLD_MS,
+                 config::drumpad::HOLD_REPEAT_DELAY_MS,
+                 config::drumpad::HOLD_REPEAT_INTERVAL_MS,
+                 config::drumpad::MIN_PRESSURE_VALUE,
+                 config::drumpad::MAX_PRESSURE_VALUE,
+                 config::drumpad::MIN_VELOCITY_VALUE,
+                 config::drumpad::MAX_VELOCITY_VALUE},
       playbutton_observer(this) {
 }
 

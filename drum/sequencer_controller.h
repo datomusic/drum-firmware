@@ -14,8 +14,8 @@
 #include <cstdlib>
 #include <optional>
 
-#include <cstddef> // For size_t
 #include "config.h" // For drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS
+#include <cstddef>  // For size_t
 
 namespace drum {
 

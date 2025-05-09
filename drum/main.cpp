@@ -74,18 +74,16 @@ int main() {
 
   while (true) {
     pizza_controls.update();
+    audio_engine.process();
 
     // Update time-based animations (e.g., drumpad fades)
     pizza_display.draw_animations(get_absolute_time());
-
     pizza_display.draw_base_elements();
     pizza_display.show();
     sleep_us(280);
 
     musin::usb::background_update();
     midi_read();
-
-    audio_engine.process();
 
     loop_timer.record_iteration_end();
   }

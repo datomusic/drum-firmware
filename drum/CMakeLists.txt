@@ -22,7 +22,6 @@ add_executable(${EXECUTABLE_NAME}
   pizza_controls.cpp
   pizza_display.cpp
   ../musin/timing/tempo_handler.cpp
-  ../musin/timing/tempo_multiplier.cpp
   sequencer_controller.cpp
   sound_router.cpp
   audio_engine.cpp

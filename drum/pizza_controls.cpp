@@ -234,7 +234,7 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
     }
 
   }
-  controls->display.refresh_drumpad_leds(now);
+  // controls->display.refresh_drumpad_leds(now); // Moved to main.cpp
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {

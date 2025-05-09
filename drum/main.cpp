@@ -77,6 +77,9 @@ int main() {
   while (true) {
     pizza_controls.update();
 
+    // Refresh drumpad LEDs based on control inputs and fade states
+    pizza_display.refresh_drumpad_leds(get_absolute_time()); 
+    
     pizza_display.update_core_leds(); // Update LEDs based on model state
     pizza_display.show();
     sleep_us(280);

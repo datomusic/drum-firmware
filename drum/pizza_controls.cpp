@@ -70,17 +70,7 @@ void PizzaControls::update() {
     playbutton_component.update(); // Updates the *input* state of the button
   }
 
-  // Update track overrides based on drumpad presses
-  for (uint8_t i = 0; i < drumpad_component.get_num_drumpads(); ++i) {
-    if (drumpad_component.is_pad_pressed(i)) {
-      uint8_t note = drumpad_component.get_note_for_pad(i);
-      uint32_t color = display.get_note_color(note % PizzaDisplay::NUM_NOTE_COLORS);
-      display.set_track_override_color(i, color);
-    } else {
-      display.clear_track_override_color(i);
-    }
-  }
-
+  // Track override color functionality removed.
   // Play button LED and sequencer display are now handled by PizzaDisplay::update_core_leds()
 
   _profiler.check_and_print_report();

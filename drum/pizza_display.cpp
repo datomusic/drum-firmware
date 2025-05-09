@@ -84,9 +84,8 @@ PizzaDisplay::PizzaDisplay(
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _track_override_colors{}, _drumpad_fade_start_times{},
-      _drumpad_base_colors{}, _sequencer_ref(sequencer_ref),
-      _sequencer_controller_ref(sequencer_controller_ref),
+      _drumpad_fade_start_times{}, _drumpad_base_colors{},
+      _sequencer_ref(sequencer_ref), _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
@@ -241,9 +240,6 @@ void PizzaDisplay::clear_track_override_color(uint8_t track_index) {
 void PizzaDisplay::clear_all_track_override_colors() {
   for (size_t i = 0; i < _track_override_colors.size(); ++i) {
     _track_override_colors[i] = std::nullopt;
-  }
-}
-
 // --- Drumpad Fade Implementations ---
 
 void PizzaDisplay::start_drumpad_fade(uint8_t pad_index) {

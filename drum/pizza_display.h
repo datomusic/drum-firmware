@@ -99,10 +99,6 @@ public:
    */
   void set_drumpad_led(uint8_t pad_index, uint32_t color);
 
-  void set_track_override_color(uint8_t track_index, uint32_t color);
-  void clear_track_override_color(uint8_t track_index);
-  void clear_all_track_override_colors();
-
   /**
    * @brief Updates core LED elements like the play button and sequencer steps.
    * This method should be called regularly in the main loop before show().
@@ -209,7 +205,6 @@ private:
 
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
-  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
   etl::array<uint32_t, config::NUM_DRUMPADS> _drumpad_base_colors;
 
@@ -240,23 +235,13 @@ void PizzaDisplay::draw_sequencer_state(
       continue;
 
     const auto &track_data = sequencer.get_track(track_idx);
-    std::optional<uint32_t> override_color_opt;
-    if (track_idx < _track_override_colors.size()) {
-      override_color_opt = _track_override_colors[track_idx];
-    }
 
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
         continue;
 
       const auto &step = track_data.get_step(step_idx);
-      uint32_t final_color;
-
-      if (override_color_opt.has_value()) {
-        final_color = override_color_opt.value();
-      } else {
-        final_color = calculate_step_color(step);
-      }
+      uint32_t final_color = calculate_step_color(step);
 
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {

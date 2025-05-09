@@ -4,12 +4,11 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "events.h"
-// Removed: #include "musin/timing/sequencer_tick_event.h"
+#include "sound_router.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"     // Added
 #include "musin/timing/tempo_handler.h"   // Added for MAX_TEMPO_OBSERVERS
 #include "musin/timing/timing_constants.h"
-#include "sound_router.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -33,7 +32,7 @@ template <size_t NumTracks, size_t NumSteps>
 class SequencerController : public etl::observer<musin::timing::TempoEvent> { // Changed Event Type
 public:
   // --- Constants ---
-  static constexpr uint32_t CLOCK_PPQN = 96;
+  static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
 
   /**
@@ -184,7 +183,6 @@ private:
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
       &tempo_source; // Changed
-  drum::SoundRouter &_sound_router_ref;
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---

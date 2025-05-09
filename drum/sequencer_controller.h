@@ -15,6 +15,7 @@
 #include <optional>
 
 #include <cstddef> // For size_t
+// #include "config.h" // Moved to top for MAX_NOTE_EVENT_OBSERVERS
 
 namespace drum {
 
@@ -28,8 +29,13 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * and the musical pattern storage (Sequencer). It operates on a high-resolution
  * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
+#include "config.h" // For drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS
+
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<musin::timing::TempoEvent> { // Changed Event Type
+class SequencerController
+    : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                             drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 24;

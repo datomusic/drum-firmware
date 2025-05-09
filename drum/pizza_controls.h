@@ -186,9 +186,6 @@ public:
 
 public:                                  
   [[nodiscard]] bool is_running() const;
-  [[nodiscard]] float get_stopped_highlight_factor() const {
-    return _stopped_highlight_factor;
-  }
 };
 
 } // namespace drum

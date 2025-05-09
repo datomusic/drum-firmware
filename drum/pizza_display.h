@@ -17,7 +17,6 @@
 #include "musin/timing/tempo_event.h"   // For TempoEvent
 #include "musin/timing/tempo_handler.h" // For TempoHandler
 #include "sequencer_controller.h"
-#include "config.h"       // For config::NUM_DRUMPADS
 
 namespace drum {
 

@@ -26,7 +26,8 @@ drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler, s
 
 // View
 // TODO: notify pizza_display on note_on for drumpad fade
-static drum::PizzaDisplay pizza_display(pizza_sequencer, sequencer_controller, tempo_handler);
+static drum::PizzaDisplay pizza_display(pizza_sequencer, sequencer_controller,
+                                          tempo_handler);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer,

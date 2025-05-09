@@ -13,6 +13,7 @@
 #include "config.h" // For config::NUM_DRUMPADS
 #include "musin/timing/step_sequencer.h"
 #include "sequencer_controller.h"
+#include "musin/timing/tempo_handler.h"  // For TempoHandler
 
 namespace drum {
 
@@ -29,7 +30,11 @@ public:
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
-  PizzaDisplay();
+  explicit PizzaDisplay(
+      musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
+      drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+          &sequencer_controller_ref,
+      musin::timing::TempoHandler &tempo_handler_ref);
 
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;
@@ -197,6 +202,12 @@ private:
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
   etl::array<uint32_t, config::NUM_DRUMPADS> _drumpad_base_colors;
+
+  // Model References
+  musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_ref;
+  drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+      &_sequencer_controller_ref;
+  musin::timing::TempoHandler &_tempo_handler_ref;
 
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
 };

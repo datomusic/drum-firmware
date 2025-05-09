@@ -74,14 +74,20 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
 
 } // anonymous namespace
 
-PizzaDisplay::PizzaDisplay()
+PizzaDisplay::PizzaDisplay(
+    musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
+    drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+        &sequencer_controller_ref,
+    musin::timing::TempoHandler &tempo_handler_ref)
     : _leds(PIN_LED_DATA, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS, DEFAULT_COLOR_CORRECTION),
       note_colors({0xFF0000, 0xFF0020, 0xFF0040, 0xFF0060, 0xFF1010, 0xFF1020, 0xFF2040, 0xFF2060,
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
       _track_override_colors{}, _drumpad_fade_start_times{},
-      _drumpad_base_colors{} { // Value-initialize
+      _drumpad_base_colors{}, _sequencer_ref(sequencer_ref),
+      _sequencer_controller_ref(sequencer_controller_ref),
+      _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
     _drumpad_base_colors[i] = 0; // Default to black

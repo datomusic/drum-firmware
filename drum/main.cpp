@@ -22,10 +22,10 @@ static musin::timing::Sequencer<4, 8> pizza_sequencer; // TODO: move into sequen
 static musin::timing::InternalClock internal_clock(120.0f); // TODO: move into sequencer_controller
 static musin::timing::TempoHandler tempo_handler(internal_clock,
                                                musin::timing::ClockSource::INTERNAL);
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler, sound_router);
+// SoundRouter reference removed from SequencerController constructor
+drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler); 
 
 // View
-// TODO: notify pizza_display on note_on for drumpad fade
 static drum::PizzaDisplay pizza_display(pizza_sequencer, sequencer_controller,
                                           tempo_handler);
 
@@ -60,7 +60,11 @@ int main() {
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
   tempo_handler.add_observer(sequencer_controller);
-  tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events
+  tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
+
+  // Register SoundRouter and PizzaDisplay as observers of NoteEvents from SequencerController
+  sequencer_controller.add_observer(sound_router);
+  sequencer_controller.add_observer(pizza_display);
 
   sync_out.enable();
 

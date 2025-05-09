@@ -128,6 +128,14 @@ void PizzaDisplay::update_core_leds() {
   draw_sequencer_state(_sequencer_ref, _sequencer_controller_ref);
 }
 
+void PizzaDisplay::notification(drum::Events::NoteEvent event) {
+  if (event.velocity > 0) { // Note On
+    if (event.track_index < config::NUM_DRUMPADS) { // Ensure track_index is valid for drumpads
+        this->start_drumpad_fade(event.track_index);
+    }
+  }
+}
+
 bool PizzaDisplay::init() {
   // printf("PizzaDisplay: Initializing LEDs...\n");
 

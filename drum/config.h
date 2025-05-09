@@ -78,6 +78,11 @@ namespace main_controls {
     constexpr uint8_t RETRIGGER_DIVISOR_FOR_DOUBLE_MODE = 2;
 }
 
+// SequencerController specific
+namespace sequencer_controller {
+    constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 4; 
+}
+
 } // namespace config
 } // namespace drum
 

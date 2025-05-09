@@ -15,11 +15,13 @@
 #include "sequencer_controller.h"
 #include "musin/timing/tempo_handler.h"  // For TempoHandler
 #include "musin/timing/tempo_event.h"    // For TempoEvent
+#include "events.h"                      // For drum::Events::NoteEvent
 #include "etl/observer.h"              // For etl::observer
 
 namespace drum {
 
-class PizzaDisplay : public etl::observer<musin::timing::TempoEvent> {
+class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
+                     public etl::observer<drum::Events::NoteEvent> {
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -108,6 +110,11 @@ public:
    * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).
    */
   void notification(musin::timing::TempoEvent event) override;
+
+  /**
+   * @brief Handles NoteEvent notifications for triggering drumpad fades.
+   */
+  void notification(drum::Events::NoteEvent event) override;
 
   // --- Drumpad Fade ---
   /**

@@ -12,11 +12,10 @@ template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
     etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
-        &tempo_source_ref,
-    drum::SoundRouter &sound_router_ref)
+        &tempo_source_ref)
     : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
       _just_played_step_per_track{}, tempo_source(tempo_source_ref),
-      _sound_router_ref(sound_router_ref), state_(State::Stopped), swing_percent_(50),
+      state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
       _retrigger_mode_per_track{}, _retrigger_progress_ticks_per_track{}, random_active_(false),
       random_track_offsets_{} {
@@ -74,7 +73,8 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_off_event{.track_index = track_index_u8,
                                            .note = last_played_note_per_track[track_idx].value(),
                                            .velocity = 0};
-    _sound_router_ref.notification(note_off_event);
+    // _sound_router_ref.notification(note_off_event); // SoundRouter observes this now
+    this->notify_observers(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
@@ -92,7 +92,8 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
                                           .velocity = step.velocity.value()};
-    _sound_router_ref.notification(note_on_event);
+    // _sound_router_ref.notification(note_on_event); // SoundRouter observes this now
+    this->notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
   }
 }
@@ -168,7 +169,8 @@ void SequencerController<NumTracks, NumSteps>::reset() {
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      _sound_router_ref.notification(note_off_event);
+      // _sound_router_ref.notification(note_off_event); // SoundRouter observes this now
+      this->notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -212,7 +214,8 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      _sound_router_ref.notification(note_off_event);
+      // _sound_router_ref.notification(note_off_event); // SoundRouter observes this now
+      this->notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -400,13 +403,15 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_on(uint8_t track_ind
     if (last_played_note_per_track[track_index].value() != note ) { // Only send note off if it's a different note
         drum::Events::NoteEvent note_off_event{
             .track_index = track_index, .note = last_played_note_per_track[track_index].value(), .velocity = 0};
-        _sound_router_ref.notification(note_off_event);
+        // _sound_router_ref.notification(note_off_event); // SoundRouter observes this now
+        this->notify_observers(note_off_event);
     }
   }
   
   drum::Events::NoteEvent note_on_event{
       .track_index = track_index, .note = note, .velocity = velocity};
-  _sound_router_ref.notification(note_on_event);
+  // _sound_router_ref.notification(note_on_event); // SoundRouter observes this now
+  this->notify_observers(note_on_event);
   last_played_note_per_track[track_index] = note;
 }
 
@@ -417,7 +422,8 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_off(uint8_t track_in
       last_played_note_per_track[track_index].value() == note) {
     drum::Events::NoteEvent note_off_event{
         .track_index = track_index, .note = note, .velocity = 0};
-    _sound_router_ref.notification(note_off_event);
+    // _sound_router_ref.notification(note_off_event); // SoundRouter observes this now
+    this->notify_observers(note_off_event);
     last_played_note_per_track[track_index] = std::nullopt;
   }
 }

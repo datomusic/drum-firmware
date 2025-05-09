@@ -18,10 +18,9 @@ using musin::ui::Drumpad;
 
 PizzaControls::PizzaControls(
     drum::PizzaDisplay &display_ref,
-    musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
     musin::timing::TempoHandler &tempo_handler_ref,
     drum::DefaultSequencerController &sequencer_controller_ref, drum::SoundRouter &sound_router_ref)
-    : display(display_ref), sequencer(sequencer_ref), _tempo_handler_ref(tempo_handler_ref),
+    : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
       keypad_component(this), drumpad_component(this), analog_component(this),
       _profiler(config::PROFILER_REPORT_INTERVAL_MS), playbutton_component(this) {
@@ -158,7 +157,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row; // Map row to step index (0-7)
 
   // Get a reference to the track to modify it
-  auto &track = controls->sequencer.get_track(track_idx);
+  auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(track_idx);
 
   if (event.type == musin::ui::KeypadEvent::Type::Press) {
     bool now_enabled = track.toggle_step_enabled(step_idx);
@@ -295,7 +294,7 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
                                                                        new_selected_note_value);
 
   // Update the default note for new steps in the sequencer track
-  parent_controls->sequencer.get_track(pad_index).set_note(new_selected_note_value);
+  parent_controls->_sequencer_controller_ref.get_sequencer().get_track(pad_index).set_note(new_selected_note_value);
 }
 
 // bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const { // Moved to

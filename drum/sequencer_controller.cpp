@@ -84,7 +84,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
              num_steps)
           : 0;
 
-  const musin::timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
+  const musin::timing::Step &step = sequencer_.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,

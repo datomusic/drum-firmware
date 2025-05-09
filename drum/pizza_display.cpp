@@ -263,7 +263,8 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
   return nil_time;
 }
 
-void PizzaDisplay::refresh_drumpad_leds(absolute_time_t now) {
+void PizzaDisplay::draw_animations(absolute_time_t now) {
+  // --- Drumpad Fades ---
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
     uint32_t base_color = get_note_color(active_note % NUM_NOTE_COLORS);

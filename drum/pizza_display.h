@@ -137,11 +137,11 @@ public:
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
-   * @brief Updates all drumpad LEDs based on their current base colors and fade states.
-   * This should be called once per update cycle after base colors and fade triggers are set.
+   * @brief Updates time-based animations, such as drumpad LED fades.
+   * This should be called once per update cycle.
    * @param now The current absolute time.
    */
-  void refresh_drumpad_leds(absolute_time_t now);
+  void draw_animations(absolute_time_t now);
 
   /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.

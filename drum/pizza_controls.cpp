@@ -278,7 +278,6 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   // Update the default note for new steps in the sequencer track
   parent_controls->sequencer.get_track(pad_index).set_note(new_selected_note_value);
 
-  trigger_fade(pad_index);
 }
 
 bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
@@ -295,16 +294,11 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
   return parent_controls->_sequencer_controller_ref.get_active_note_for_track(pad_index);
 }
 
-void PizzaControls::DrumpadComponent::trigger_fade(uint8_t pad_index) {
-  parent_controls->display.start_drumpad_fade(pad_index);
-}
-
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
   if (event.pad_index < parent->_pad_pressed_state.size()) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       parent->_pad_pressed_state[event.pad_index] = true;
-      parent->trigger_fade(event.pad_index);
       if (event.velocity.has_value()) {
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();

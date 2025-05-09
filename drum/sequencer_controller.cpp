@@ -1,7 +1,7 @@
 #include "sequencer_controller.h"
 #include "events.h"
 #include "pico/time.h"
-#include "pizza_controls.h"
+#include "config.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

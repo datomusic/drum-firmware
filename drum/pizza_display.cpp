@@ -84,8 +84,8 @@ PizzaDisplay::PizzaDisplay(
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _drumpad_fade_start_times{},
-      _sequencer_ref(sequencer_ref), _sequencer_controller_ref(sequencer_controller_ref),
+      _drumpad_fade_start_times{}, _sequencer_ref(sequencer_ref),
+      _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
@@ -119,7 +119,8 @@ void PizzaDisplay::update_core_leds() {
           1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
     }
     _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f);
-    uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE);
+    uint8_t brightness =
+        static_cast<uint8_t>(_stopped_highlight_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE);
     uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
     uint32_t pulse_color = _leds.adjust_color_brightness(base_color, brightness);
     set_play_button_led(pulse_color);
@@ -144,9 +145,9 @@ void PizzaDisplay::update_track_override_colors() {
 }
 
 void PizzaDisplay::notification(drum::Events::NoteEvent event) {
-  if (event.velocity > 0) { // Note On
+  if (event.velocity > 0) {                         // Note On
     if (event.track_index < config::NUM_DRUMPADS) { // Ensure track_index is valid for drumpads
-        this->start_drumpad_fade(event.track_index);
+      this->start_drumpad_fade(event.track_index);
     }
   }
 }

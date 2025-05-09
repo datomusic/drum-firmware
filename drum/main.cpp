@@ -1,9 +1,9 @@
-#include "musin/usb/usb.h"
 #include "musin/hal/debug_utils.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
+#include "musin/usb/usb.h"
 
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
@@ -18,21 +18,19 @@
 // Model
 static drum::AudioEngine audio_engine;
 static drum::SoundRouter sound_router(audio_engine);
-static musin::timing::Sequencer<4, 8> pizza_sequencer; // TODO: move into sequencer_controller
+static musin::timing::Sequencer<4, 8> pizza_sequencer;      // TODO: move into sequencer_controller
 static musin::timing::InternalClock internal_clock(120.0f); // TODO: move into sequencer_controller
 static musin::timing::TempoHandler tempo_handler(internal_clock,
-                                               musin::timing::ClockSource::INTERNAL);
+                                                 musin::timing::ClockSource::INTERNAL);
 // SoundRouter reference removed from SequencerController constructor
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler); 
+drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler);
 
 // View
-static drum::PizzaDisplay pizza_display(pizza_sequencer, sequencer_controller,
-                                          tempo_handler);
+static drum::PizzaDisplay pizza_display(pizza_sequencer, sequencer_controller, tempo_handler);
 
 // Controller
-static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer,
-                                          tempo_handler, sequencer_controller,
-                                          sound_router);
+static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, tempo_handler,
+                                          sequencer_controller, sound_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
@@ -78,9 +76,9 @@ int main() {
     pizza_controls.update();
 
     // Refresh drumpad LEDs based on control inputs and fade states
-    pizza_display.refresh_drumpad_leds(get_absolute_time()); 
-    
-    pizza_display.update_core_leds(); // Update LEDs based on model state
+    pizza_display.refresh_drumpad_leds(get_absolute_time());
+
+    pizza_display.update_core_leds();
     pizza_display.show();
     sleep_us(280);
 

@@ -90,6 +90,9 @@ PizzaDisplay::PizzaDisplay(
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
   }
+  for (size_t i = 0; i < SEQUENCER_TRACKS_DISPLAYED; ++i) {
+    _track_override_colors[i] = std::nullopt;
+  }
 }
 
 void PizzaDisplay::notification(musin::timing::TempoEvent /* event */) {

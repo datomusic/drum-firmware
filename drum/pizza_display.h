@@ -35,7 +35,6 @@ public:
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
   explicit PizzaDisplay(
-      musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
       drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
           &sequencer_controller_ref,
       musin::timing::TempoHandler &tempo_handler_ref);
@@ -210,7 +209,6 @@ private:
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
 
   // Model References
-  musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_ref;
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;

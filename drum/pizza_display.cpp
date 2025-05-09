@@ -225,21 +225,6 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
   }
 }
 
-void PizzaDisplay::set_track_override_color(uint8_t track_index, uint32_t color) {
-  if (track_index < _track_override_colors.size()) {
-    _track_override_colors[track_index] = color;
-  }
-}
-
-void PizzaDisplay::clear_track_override_color(uint8_t track_index) {
-  if (track_index < _track_override_colors.size()) {
-    _track_override_colors[track_index] = std::nullopt;
-  }
-}
-
-void PizzaDisplay::clear_all_track_override_colors() {
-  for (size_t i = 0; i < _track_override_colors.size(); ++i) {
-    _track_override_colors[i] = std::nullopt;
 // --- Drumpad Fade Implementations ---
 
 void PizzaDisplay::start_drumpad_fade(uint8_t pad_index) {

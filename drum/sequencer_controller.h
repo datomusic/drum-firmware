@@ -4,11 +4,11 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "events.h"
-#include "sound_router.h"
 #include "musin/timing/step_sequencer.h"
-#include "musin/timing/tempo_event.h"     // Added
-#include "musin/timing/tempo_handler.h"   // Added for MAX_TEMPO_OBSERVERS
+#include "musin/timing/tempo_event.h"   // Added
+#include "musin/timing/tempo_handler.h" // Added for MAX_TEMPO_OBSERVERS
 #include "musin/timing/timing_constants.h"
+#include "sound_router.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -47,10 +47,10 @@ public:
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(
-      musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<musin::timing::TempoEvent>,
-                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref); // Changed, SoundRouter removed
+  SequencerController(musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
+                      etl::observable<etl::observer<musin::timing::TempoEvent>,
+                                      musin::timing::MAX_TEMPO_OBSERVERS>
+                          &tempo_source_ref); // Changed, SoundRouter removed
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;

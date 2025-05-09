@@ -10,13 +10,13 @@
 #include <cstdint>
 #include <optional>
 
-#include "config.h" // For config::NUM_DRUMPADS
+#include "config.h"       // For config::NUM_DRUMPADS
+#include "etl/observer.h" // For etl::observer
+#include "events.h"       // For drum::Events::NoteEvent
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_event.h"   // For TempoEvent
+#include "musin/timing/tempo_handler.h" // For TempoHandler
 #include "sequencer_controller.h"
-#include "musin/timing/tempo_handler.h"  // For TempoHandler
-#include "musin/timing/tempo_event.h"    // For TempoEvent
-#include "events.h"                      // For drum::Events::NoteEvent
-#include "etl/observer.h"              // For etl::observer
 
 namespace drum {
 
@@ -252,7 +252,8 @@ void PizzaDisplay::draw_sequencer_state(
       uint32_t final_color = base_step_color;
 
       // Apply track override color if active
-      if (track_idx < _track_override_colors.size() && _track_override_colors[track_idx].has_value()) {
+      if (track_idx < _track_override_colors.size() &&
+          _track_override_colors[track_idx].has_value()) {
         final_color = _track_override_colors[track_idx].value();
       }
 

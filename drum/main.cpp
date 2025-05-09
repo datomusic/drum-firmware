@@ -24,7 +24,7 @@ static musin::timing::TempoHandler tempo_handler(internal_clock,
                                                  musin::timing::ClockSource::INTERNAL);
 // SoundRouter reference removed from SequencerController constructor
 // pizza_sequencer removed from SequencerController constructor
-drum::SequencerController sequencer_controller(tempo_handler);
+drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> sequencer_controller(tempo_handler);
 
 // View
 // pizza_sequencer removed from PizzaDisplay constructor

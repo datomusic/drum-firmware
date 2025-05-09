@@ -95,12 +95,6 @@ public:
   uint32_t get_note_color(uint8_t note_index) const;
 
   /**
-   * @brief Get the physical LED index for a given drumpad.
-   * @param pad_index Index of the drumpad (0-3).
-   * @return std::optional containing the physical LED index if valid, otherwise std::nullopt.
-   */
-
-  /**
    * @brief Draws base LED elements like the play button and sequencer steps.
    * This method should be called regularly in the main loop before show().
    * It reflects the direct state of the model without animations.
@@ -236,7 +230,6 @@ void PizzaDisplay::draw_sequencer_state(
     const drum::SequencerController<NumTracks, NumSteps> &controller) {
 
   bool is_running = _sequencer_controller_ref.is_running();
-  // _stopped_highlight_factor is now a member and updated in update_core_leds()
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)

@@ -88,7 +88,7 @@ public:
     [[nodiscard]] size_t get_num_drumpads() const {
       return config::NUM_DRUMPADS;
     }
-    [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const;
+    // [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const; // Moved to SequencerController
     [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16> &
     get_drumpad(size_t index) const {
       return drumpads[index];
@@ -110,7 +110,7 @@ public:
     PizzaControls *parent_controls;
     etl::array<musin::hal::AnalogInMux16, config::NUM_DRUMPADS> drumpad_readers;
     etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, config::NUM_DRUMPADS> drumpads;
-    etl::array<bool, config::NUM_DRUMPADS> _pad_pressed_state{};
+    // etl::array<bool, config::NUM_DRUMPADS> _pad_pressed_state{}; // Moved to SequencerController
     etl::array<DrumpadEventHandler, config::NUM_DRUMPADS> drumpad_observers;
     etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };

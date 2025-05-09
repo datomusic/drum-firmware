@@ -17,8 +17,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       _just_played_step_per_track{}, tempo_source(tempo_source_ref),
       state_(State::Stopped), swing_percent_(50),
       swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
-      _retrigger_mode_per_track{}, _retrigger_progress_ticks_per_track{}, random_active_(false),
-      random_track_offsets_{} {
+      _pad_pressed_state{}, _retrigger_mode_per_track{}, _retrigger_progress_ticks_per_track{},
+      random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
   // Seed the random number generator once
   srand(time_us_32());
@@ -29,6 +29,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   } else {
     _just_played_step_per_track.fill(std::nullopt);
   }
+  _pad_pressed_state.fill(false);
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -439,7 +440,23 @@ SequencerController<NumTracks, NumSteps>::get_active_note_for_track(uint8_t trac
   }
   // track_index is out of bounds. Return a default/safe value.
   // 0 is a common default for MIDI notes, though often unassigned.
-  return 0; 
+  return 0;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_pad_pressed_state(uint8_t track_index,
+                                                                     bool is_pressed) {
+  if (track_index < NumTracks) {
+    _pad_pressed_state[track_index] = is_pressed;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::is_pad_pressed(uint8_t track_index) const {
+  if (track_index < NumTracks) {
+    return _pad_pressed_state[track_index];
+  }
+  return false;
 }
 
 template <size_t NumTracks, size_t NumSteps>

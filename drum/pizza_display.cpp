@@ -125,7 +125,19 @@ void PizzaDisplay::update_core_leds() {
   // Draw sequencer state
   // The template arguments are resolved because _sequencer_ref and _sequencer_controller_ref
   // are typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
+  update_track_override_colors(); // Update override colors based on pad states
   draw_sequencer_state(_sequencer_ref, _sequencer_controller_ref);
+}
+
+void PizzaDisplay::update_track_override_colors() {
+  for (uint8_t track_idx = 0; track_idx < SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
+    if (_sequencer_controller_ref.is_pad_pressed(track_idx)) {
+      uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(track_idx);
+      _track_override_colors[track_idx] = get_note_color(active_note % NUM_NOTE_COLORS);
+    } else {
+      _track_override_colors[track_idx] = std::nullopt;
+    }
+  }
 }
 
 void PizzaDisplay::notification(drum::Events::NoteEvent event) {

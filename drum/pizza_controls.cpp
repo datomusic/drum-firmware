@@ -279,12 +279,12 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
 
 }
 
-bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const {
-  if (pad_index < _pad_pressed_state.size()) {
-    return _pad_pressed_state[pad_index];
-  }
-  return false;
-}
+// bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const { // Moved to SequencerController
+//   if (pad_index < _pad_pressed_state.size()) {
+//     return _pad_pressed_state[pad_index];
+//   }
+//   return false;
+// }
 
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
   if (pad_index >= config::NUM_DRUMPADS) {
@@ -295,19 +295,21 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-  if (event.pad_index < parent->_pad_pressed_state.size()) {
+  // parent_controls is PizzaControls, which has _sequencer_controller_ref
+  auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
+
+  if (event.pad_index < config::NUM_DRUMPADS) { // Check against known drumpad count
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
-      parent->_pad_pressed_state[event.pad_index] = true;
+      seq_controller.set_pad_pressed_state(event.pad_index, true);
       if (event.velocity.has_value()) {
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
-        parent->parent_controls->_sequencer_controller_ref.trigger_note_on(event.pad_index, note,
-                                                                          velocity);
+        seq_controller.trigger_note_on(event.pad_index, note, velocity);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
-      parent->_pad_pressed_state[event.pad_index] = false;
+      seq_controller.set_pad_pressed_state(event.pad_index, false);
       uint8_t note = parent->get_note_for_pad(event.pad_index);
-      parent->parent_controls->_sequencer_controller_ref.trigger_note_off(event.pad_index, note);
+      seq_controller.trigger_note_off(event.pad_index, note);
     }
   }
 }

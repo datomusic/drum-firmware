@@ -212,6 +212,7 @@ private:
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
+  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
 
   // Model References
   musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_ref;
@@ -223,6 +224,7 @@ private:
   float _stopped_highlight_factor = 0.0f;
 
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
+  void update_track_override_colors();
 };
 
 // --- Template Implementation ---
@@ -246,8 +248,15 @@ void PizzaDisplay::draw_sequencer_state(
         continue;
 
       const auto &step = track_data.get_step(step_idx);
-      uint32_t final_color = calculate_step_color(step);
+      uint32_t base_step_color = calculate_step_color(step);
+      uint32_t final_color = base_step_color;
 
+      // Apply track override color if active
+      if (track_idx < _track_override_colors.size() && _track_override_colors[track_idx].has_value()) {
+        final_color = _track_override_colors[track_idx].value();
+      }
+
+      // Apply highlighting for the currently playing step (on top of base or override color)
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {
         if (is_running) {

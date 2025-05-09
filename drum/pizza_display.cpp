@@ -94,6 +94,42 @@ PizzaDisplay::PizzaDisplay(
   }
 }
 
+void PizzaDisplay::notification(musin::timing::TempoEvent /* event */) {
+  if (!_sequencer_controller_ref.is_running()) {
+    _clock_tick_counter++;
+  } else {
+    _clock_tick_counter = 0;
+  }
+}
+
+void PizzaDisplay::update_core_leds() {
+  // Update play button LED
+  if (_sequencer_controller_ref.is_running()) {
+    set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
+  } else {
+    uint32_t ticks_per_beat = _sequencer_controller_ref.get_ticks_per_musical_step();
+    uint32_t phase_ticks = 0;
+    if (ticks_per_beat > 0) {
+      phase_ticks = _clock_tick_counter % ticks_per_beat;
+    }
+    float brightness_factor = 0.0f;
+    if (ticks_per_beat > 0) {
+      brightness_factor =
+          1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
+    }
+    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f);
+    uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE);
+    uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
+    uint32_t pulse_color = _leds.adjust_color_brightness(base_color, brightness);
+    set_play_button_led(pulse_color);
+  }
+
+  // Draw sequencer state
+  // The template arguments are resolved because _sequencer_ref and _sequencer_controller_ref
+  // are typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
+  draw_sequencer_state(_sequencer_ref, _sequencer_controller_ref);
+}
+
 bool PizzaDisplay::init() {
   // printf("PizzaDisplay: Initializing LEDs...\n");
 

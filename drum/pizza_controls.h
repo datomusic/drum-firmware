@@ -32,8 +32,7 @@ class PizzaDisplay; // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController = SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
 
-class PizzaControls
-    : public etl::observer<musin::timing::TempoEvent> {
+class PizzaControls {
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
@@ -47,9 +46,6 @@ public:
 
   void init();
   void update();
-  void notification(musin::timing::TempoEvent event) override;
-
-  void refresh_sequencer_display();
 
   class KeypadComponent {
   public:
@@ -179,8 +175,6 @@ public:
   AnalogControlComponent analog_component;
   PlaybuttonComponent playbutton_component;
 
-  uint32_t _clock_tick_counter = 0;
-  float _stopped_highlight_factor = 0.0f;
   musin::hal::DebugUtils::SectionProfiler<4> _profiler;
 
   enum class ProfileSection {

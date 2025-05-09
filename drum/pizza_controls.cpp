@@ -42,9 +42,6 @@ void PizzaControls::init() {
     // If a range is empty, SequencerController will retain its constructor-initialized default for this track.
   }
 
-  // Register this class to receive tempo events for LED pulsing
-  _tempo_handler_ref.add_observer(*this);
-
   _profiler.add_section("Keypad Update");
   _profiler.add_section("Drumpad Update");
   _profiler.add_section("Analog Update");
@@ -84,50 +81,9 @@ void PizzaControls::update() {
     }
   }
 
-  // Update the play button LED based on sequencer state
-  if (_sequencer_controller_ref.is_running()) {
-    display.set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
-  } else {
-    uint32_t ticks_per_beat = _sequencer_controller_ref.get_ticks_per_musical_step();
-    uint32_t phase_ticks = 0;
-    if (ticks_per_beat > 0) {
-      phase_ticks = _clock_tick_counter % ticks_per_beat;
-    }
-    float brightness_factor = 0.0f;
-    if (ticks_per_beat > 0) {
-      brightness_factor =
-          1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
-    }
-    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f);
-    uint8_t brightness = static_cast<uint8_t>(_stopped_highlight_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE);
-    uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
-    uint32_t pulse_color = display.leds().adjust_color_brightness(base_color, brightness);
-    display.set_play_button_led(pulse_color);
-  }
-
-  refresh_sequencer_display();
+  // Play button LED and sequencer display are now handled by PizzaDisplay::update_core_leds()
 
   _profiler.check_and_print_report();
-}
-
-void PizzaControls::notification(musin::timing::TempoEvent /* event */) {
-  // This notification is now driven by the active clock source via TempoHandler.
-  // Only advance the counter if the sequencer is NOT running.
-  if (!_sequencer_controller_ref.is_running()) {
-    _clock_tick_counter++;
-    // The PPQN used for calculation in update() is still valid as it defines
-    // the resolution we expect the TempoEvents to represent.
-  } else {
-    // Sequencer is running, reset the pulse counter.
-    // Retrigger logic is now handled by SequencerController.
-    _clock_tick_counter = 0;
-  }
-}
-
-void PizzaControls::refresh_sequencer_display() {
-  bool current_is_running = _sequencer_controller_ref.is_running();
-  display.draw_sequencer_state(sequencer, _sequencer_controller_ref, current_is_running,
-                               _stopped_highlight_factor);
 }
 
 bool PizzaControls::is_running() const {

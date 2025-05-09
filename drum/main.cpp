@@ -60,6 +60,7 @@ int main() {
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
   tempo_handler.add_observer(sequencer_controller);
+  tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events
 
   sync_out.enable();
 
@@ -72,6 +73,7 @@ int main() {
   while (true) {
     pizza_controls.update();
 
+    pizza_display.update_core_leds(); // Update LEDs based on model state
     pizza_display.show();
     sleep_us(280);
 

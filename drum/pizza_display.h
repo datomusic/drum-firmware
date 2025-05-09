@@ -14,10 +14,12 @@
 #include "musin/timing/step_sequencer.h"
 #include "sequencer_controller.h"
 #include "musin/timing/tempo_handler.h"  // For TempoHandler
+#include "musin/timing/tempo_event.h"    // For TempoEvent
+#include "etl/observer.h"              // For etl::observer
 
 namespace drum {
 
-class PizzaDisplay {
+class PizzaDisplay : public etl::observer<musin::timing::TempoEvent> {
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -101,6 +103,17 @@ public:
   void clear_track_override_color(uint8_t track_index);
   void clear_all_track_override_colors();
 
+  /**
+   * @brief Updates core LED elements like the play button and sequencer steps.
+   * This method should be called regularly in the main loop before show().
+   */
+  void update_core_leds();
+
+  /**
+   * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).
+   */
+  void notification(musin::timing::TempoEvent event) override;
+
   // --- Drumpad Fade ---
   /**
    * @brief Initiates a fade effect on the specified drumpad LED.
@@ -134,13 +147,10 @@ public:
    * @tparam NumSteps Number of steps per track in the sequencer.
    * @param sequencer A const reference to the sequencer data object.
    * @param controller A const reference to the sequencer controller object.
-   * @param is_running Whether the sequencer is currently running.
-   * @param stopped_highlight_factor The highlight factor (0.0-1.0) to use when stopped.
    */
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
-                            const drum::SequencerController<NumTracks, NumSteps> &controller,
-                            bool is_running, float stopped_highlight_factor);
+                            const drum::SequencerController<NumTracks, NumSteps> &controller);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -209,6 +219,9 @@ private:
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
 
+  uint32_t _clock_tick_counter = 0;
+  float _stopped_highlight_factor = 0.0f;
+
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
 };
 
@@ -217,8 +230,10 @@ private:
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
-    const drum::SequencerController<NumTracks, NumSteps> &controller, bool is_running,
-    float stopped_highlight_factor) {
+    const drum::SequencerController<NumTracks, NumSteps> &controller) {
+
+  bool is_running = _sequencer_controller_ref.is_running();
+  // _stopped_highlight_factor is now a member and updated in update_core_leds()
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
@@ -248,7 +263,7 @@ void PizzaDisplay::draw_sequencer_state(
         if (is_running) {
           final_color = apply_highlight(final_color);
         } else {
-          final_color = apply_fading_highlight(final_color, stopped_highlight_factor);
+          final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
         }
       }
 

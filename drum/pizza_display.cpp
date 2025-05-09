@@ -103,7 +103,7 @@ void PizzaDisplay::notification(musin::timing::TempoEvent /* event */) {
   }
 }
 
-void PizzaDisplay::update_core_leds() {
+void PizzaDisplay::draw_base_elements() {
   // Update play button LED
   if (_sequencer_controller_ref.is_running()) {
     set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);

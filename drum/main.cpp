@@ -78,7 +78,7 @@ int main() {
     // Update time-based animations (e.g., drumpad fades)
     pizza_display.draw_animations(get_absolute_time());
 
-    pizza_display.update_core_leds();
+    pizza_display.draw_base_elements();
     pizza_display.show();
     sleep_us(280);
 

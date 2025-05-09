@@ -101,10 +101,11 @@ public:
    */
 
   /**
-   * @brief Updates core LED elements like the play button and sequencer steps.
+   * @brief Draws base LED elements like the play button and sequencer steps.
    * This method should be called regularly in the main loop before show().
+   * It reflects the direct state of the model without animations.
    */
-  void update_core_leds();
+  void draw_base_elements();
 
   /**
    * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).

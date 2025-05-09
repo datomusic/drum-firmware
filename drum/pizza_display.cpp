@@ -75,7 +75,6 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
 } // anonymous namespace
 
 PizzaDisplay::PizzaDisplay(
-    musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_ref,
     drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
         &sequencer_controller_ref,
     musin::timing::TempoHandler &tempo_handler_ref)
@@ -84,7 +83,7 @@ PizzaDisplay::PizzaDisplay(
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _drumpad_fade_start_times{}, _sequencer_ref(sequencer_ref),
+      _drumpad_fade_start_times{},
       _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
@@ -127,10 +126,10 @@ void PizzaDisplay::draw_base_elements() {
   }
 
   // Draw sequencer state
-  // The template arguments are resolved because _sequencer_ref and _sequencer_controller_ref
-  // are typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
+  // The template arguments are resolved because _sequencer_controller_ref
+  // is typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
   update_track_override_colors(); // Update override colors based on pad states
-  draw_sequencer_state(_sequencer_ref, _sequencer_controller_ref);
+  draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
 }
 
 void PizzaDisplay::update_track_override_colors() {

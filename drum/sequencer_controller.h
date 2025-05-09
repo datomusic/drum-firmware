@@ -8,7 +8,6 @@
 #include "musin/timing/tempo_event.h"   // Added
 #include "musin/timing/tempo_handler.h" // Added for MAX_TEMPO_OBSERVERS
 #include "musin/timing/timing_constants.h"
-#include "sound_router.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -42,14 +41,12 @@ public:
 
   /**
    * @brief Constructor.
-   * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
-   * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-                      etl::observable<etl::observer<musin::timing::TempoEvent>,
-                                      musin::timing::MAX_TEMPO_OBSERVERS>
-                          &tempo_source_ref); // Changed, SoundRouter removed
+  SequencerController(
+      etl::observable<etl::observer<musin::timing::TempoEvent>,
+                      musin::timing::MAX_TEMPO_OBSERVERS>
+          &tempo_source_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -171,6 +168,15 @@ public:
   void set_pad_pressed_state(uint8_t track_index, bool is_pressed);
   [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
 
+  /**
+   * @brief Get a reference to the internal sequencer instance.
+   */
+  [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() { return sequencer_; }
+  /**
+   * @brief Get a const reference to the internal sequencer instance.
+   */
+  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() const { return sequencer_; }
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -183,13 +189,13 @@ private:
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
-  musin::timing::Sequencer<NumTracks, NumSteps> &sequencer;
+  musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
-      &tempo_source; // Changed
+      &tempo_source;
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---

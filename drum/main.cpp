@@ -18,18 +18,21 @@
 // Model
 static drum::AudioEngine audio_engine;
 static drum::SoundRouter sound_router(audio_engine);
-static musin::timing::Sequencer<4, 8> pizza_sequencer;      // TODO: move into sequencer_controller
+// static musin::timing::Sequencer<4, 8> pizza_sequencer; // Moved into sequencer_controller
 static musin::timing::InternalClock internal_clock(120.0f); // TODO: move into sequencer_controller
 static musin::timing::TempoHandler tempo_handler(internal_clock,
                                                  musin::timing::ClockSource::INTERNAL);
 // SoundRouter reference removed from SequencerController constructor
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_handler);
+// pizza_sequencer removed from SequencerController constructor
+drum::SequencerController sequencer_controller(tempo_handler);
 
 // View
-static drum::PizzaDisplay pizza_display(pizza_sequencer, sequencer_controller, tempo_handler);
+// pizza_sequencer removed from PizzaDisplay constructor
+static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
 
 // Controller
-static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer, tempo_handler,
+// pizza_sequencer removed from PizzaControls constructor
+static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
                                           sequencer_controller, sound_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;

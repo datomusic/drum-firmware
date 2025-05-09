@@ -97,7 +97,6 @@ public:
    * @param pad_index Index of the drumpad (0-3).
    * @return std::optional containing the physical LED index if valid, otherwise std::nullopt.
    */
-  void set_drumpad_led(uint8_t pad_index, uint32_t color);
 
   /**
    * @brief Updates core LED elements like the play button and sequencer steps.
@@ -206,7 +205,6 @@ private:
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
-  etl::array<uint32_t, config::NUM_DRUMPADS> _drumpad_base_colors;
 
   // Model References
   musin::timing::Sequencer<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_ref;

@@ -84,12 +84,11 @@ PizzaDisplay::PizzaDisplay(
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _drumpad_fade_start_times{}, _drumpad_base_colors{},
+      _drumpad_fade_start_times{},
       _sequencer_ref(sequencer_ref), _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
-    _drumpad_base_colors[i] = 0; // Default to black
   }
 }
 
@@ -185,12 +184,6 @@ uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   return 0;
 }
 
-void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint32_t base_color) {
-  if (pad_index < config::NUM_DRUMPADS) {
-    _drumpad_base_colors[pad_index] = base_color;
-  }
-}
-
 void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) {
   std::optional<uint32_t> led_index_opt;
   switch (pad_index) {
@@ -248,7 +241,8 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
 
 void PizzaDisplay::refresh_drumpad_leds(absolute_time_t now) {
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    uint32_t base_color = _drumpad_base_colors[i];
+    uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
+    uint32_t base_color = get_note_color(active_note % NUM_NOTE_COLORS);
     uint32_t final_color = base_color;
     absolute_time_t fade_start_time = _drumpad_fade_start_times[i];
 

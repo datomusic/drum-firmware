@@ -233,12 +233,7 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
       _last_known_retrigger_mode_per_pad[i] = current_mode;
     }
 
-    uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
-    uint32_t base_color = controls->display.get_note_color(note_value);
-    // Set the base color in PizzaDisplay. The fade calculation will happen in refresh_drumpad_leds.
-    controls->display.set_drumpad_led(static_cast<uint8_t>(i), base_color);
   }
-  // After setting all base colors, refresh the drumpad LEDs to apply fades etc.
   controls->display.refresh_drumpad_leds(now);
 }
 
@@ -283,8 +278,6 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
   // Update the default note for new steps in the sequencer track
   parent_controls->sequencer.get_track(pad_index).set_note(new_selected_note_value);
 
-  uint32_t base_color = parent_controls->display.get_note_color(new_selected_note_value);
-  parent_controls->display.set_drumpad_led(pad_index, base_color);
   trigger_fade(pad_index);
 }
 

@@ -44,8 +44,7 @@ public:
   SequencerController(
       musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
       etl::observable<etl::observer<musin::timing::TempoEvent>,
-                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref, // Changed
-      drum::SoundRouter &sound_router_ref);
+                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref); // Changed, SoundRouter removed
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;

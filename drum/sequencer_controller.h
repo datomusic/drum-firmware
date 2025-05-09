@@ -164,6 +164,9 @@ public:
    */
   [[nodiscard]] uint8_t get_active_note_for_track(uint8_t track_index) const;
 
+  void set_pad_pressed_state(uint8_t track_index, bool is_pressed);
+  [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -206,6 +209,7 @@ private:
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
+  etl::array<bool, NumTracks> _pad_pressed_state; // Added for track override colors
 
 public:
   void activate_repeat(uint32_t length);

@@ -3,7 +3,7 @@
 
 struct SampleBank {
   constexpr bool get_sample(const unsigned index){
-    return false;
+    return index < 32;
   }
 };
 

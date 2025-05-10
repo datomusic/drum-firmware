@@ -23,6 +23,8 @@ struct Voice : VoiceControls {
 } // namespace rompler
 
 struct Rompler {
+  static const uint8_t VoiceCount = 4;
+
   constexpr Rompler(SampleBank &bank) : bank(bank) {
   }
 

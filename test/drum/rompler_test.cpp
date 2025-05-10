@@ -5,7 +5,9 @@ TEST_CASE("Rompler runs") {
   CONST_BODY(({
     SampleBank samples;
     Rompler romp(samples);
-    romp.get_voice(3).play();
+    for (int i = 0; i < Rompler::VoiceCount; ++i) {
+      romp.get_voice(i).play();
+    }
 
     REQUIRE(1 == 1);
   }));

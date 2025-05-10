@@ -17,6 +17,9 @@ include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
 
+# this must be called after pico_sdk_init.cmake is included
+pico_sdk_init()
+
 macro(musin_init TARGET)
   target_include_directories(${TARGET} PRIVATE
     ${MUSIN_ROOT}/..
@@ -33,8 +36,6 @@ macro(musin_init TARGET)
     pico_stdlib
     etl::etl
   )
-  # this must be called after pico_sdk_init.cmake is included
-  pico_sdk_init()
   # pico_enable_stdio_uart(${TARGET} 1)
   pico_enable_stdio_usb(${TARGET} 1)
   pico_add_extra_outputs(${TARGET})

@@ -1,14 +1,5 @@
-#include <catch2/catch_test_macros.hpp>
-
+#include "../test_support.h"
 #include "musin/audio/pitch_shifter.h"
-
-#define CONST_BODY(BODY)                                                                           \
-  constexpr auto body = []() {                                                                     \
-    BODY;                                                                                          \
-    return 0;                                                                                      \
-  };                                                                                               \
-  /* constexpr const auto _ = body(); // This line causes issues with assert */                    \
-  body();
 
 template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
   constexpr DummyBufferReader() {
@@ -82,12 +73,12 @@ TEST_CASE("PitchShifter reads samples") {
 
     int16_t *write_position = buffer;
 
-    assert(AUDIO_BLOCK_SAMPLES == 20);
+    REQUIRE(AUDIO_BLOCK_SAMPLES == 20);
 
     while (shifter.has_data()) {
       AudioBlock block;
       auto samples_read = shifter.read_samples(block);
-      assert(samples_read == AUDIO_BLOCK_SAMPLES);
+      REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
       total_samples_read += samples_read;
       loop_counter += 1;
       for (size_t i = 0; i < samples_read; ++i) {
@@ -97,12 +88,12 @@ TEST_CASE("PitchShifter reads samples") {
     }
 
     for (size_t i = 0; i < 100; ++i) {
-      assert(buffer[i] == i + 1);
+      REQUIRE(buffer[i] == i + 1);
     }
 
-    assert(reader.read_counter == 100);
-    assert(total_samples_read == 100);
-    assert(loop_counter == 5);
+    REQUIRE(reader.read_counter == 100);
+    REQUIRE(total_samples_read == 100);
+    REQUIRE(loop_counter == 5);
   }));
 }
 
@@ -119,32 +110,59 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
-    assert(reader.read_counter == 4);
-    assert(samples_read == AUDIO_BLOCK_SAMPLES);
+    REQUIRE(reader.read_counter == 4);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
-    // Interpolated values
-    assert(block[0] == 0);
-    assert(block[1] == 0);
-    assert(block[2] == 0);
-    assert(block[3] == 0);
-    assert(block[4] == 0);
-    assert(block[5] == 0);
-    assert(block[6] == 1);
-    assert(block[7] == 1);
-    assert(block[8] == 1);
-    assert(block[9] == 2);
-    assert(block[10] == 2);
-    assert(block[11] == 3);
-    assert(block[12] == 3);
-    assert(block[13] == 2);
-    assert(block[14] == 0);
-    assert(block[15] == 0);
-    assert(block[16] == 0);
-    assert(block[17] == 0);
-    assert(block[18] == 0);
-    assert(block[19] == 0);
-    assert(block[19] == 0);
-    assert(block[19] == 0);
+    // Quadratic interpolated values
+    /*
+    REQUIRE(block[0] == 0);
+    REQUIRE(block[1] == 0);
+    REQUIRE(block[2] == 0);
+    REQUIRE(block[3] == 0);
+    REQUIRE(block[4] == 0);
+    REQUIRE(block[5] == 0);
+    REQUIRE(block[6] == 1);
+    REQUIRE(block[7] == 1);
+    REQUIRE(block[8] == 1);
+    REQUIRE(block[9] == 2);
+    REQUIRE(block[10] == 2);
+    REQUIRE(block[11] == 3);
+    REQUIRE(block[12] == 3);
+    REQUIRE(block[13] == 2);
+    REQUIRE(block[14] == 0);
+    REQUIRE(block[15] == 0);
+    REQUIRE(block[16] == 0);
+    REQUIRE(block[17] == 0);
+    REQUIRE(block[18] == 0);
+    REQUIRE(block[19] == 0);
+    REQUIRE(block[19] == 0);
+    REQUIRE(block[19] == 0);
+    */
+
+    // Linear interpolated values
+    // TODO: Replace with above implementation when PitchShifter uses quad interpolation again.
+    REQUIRE(block[0] == 0);
+    REQUIRE(block[1] == 0);
+    REQUIRE(block[2] == 0);
+    REQUIRE(block[3] == 0);
+    REQUIRE(block[4] == 0);
+    REQUIRE(block[5] == 0);
+    REQUIRE(block[6] == 1);
+    REQUIRE(block[7] == 1);
+    REQUIRE(block[8] == 2);
+    REQUIRE(block[9] == 2);
+    REQUIRE(block[10] == 3);
+    REQUIRE(block[11] == 3);
+    REQUIRE(block[12] == 4);
+    REQUIRE(block[13] == 2);
+    REQUIRE(block[14] == 0);
+    REQUIRE(block[15] == 0);
+    REQUIRE(block[16] == 0);
+    REQUIRE(block[17] == 0);
+    REQUIRE(block[18] == 0);
+    REQUIRE(block[19] == 0);
+    REQUIRE(block[19] == 0);
+    REQUIRE(block[19] == 0);
   }));
 }
 

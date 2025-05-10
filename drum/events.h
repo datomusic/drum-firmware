@@ -9,6 +9,7 @@
 namespace drum {
 enum class Parameter : uint8_t;
 }
+#include <optional> // Required for std::optional
 
 namespace drum::Events {
 
@@ -25,8 +26,8 @@ struct NoteEvent {
  * @brief Event data structure for parameter change events.
  */
 struct ParameterChangeEvent {
-  drum::Parameter param_id;        // The parameter that changed
-  float value;               // The new value (typically 0.0f to 1.0f)
+  drum::Parameter param_id;           // The parameter that changed
+  float value;                        // The new value (typically 0.0f to 1.0f)
   std::optional<uint8_t> track_index; // Optional track index for per-track parameters
 };
 

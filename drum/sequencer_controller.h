@@ -4,16 +4,17 @@
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "events.h"
-#include "musin/timing/sequencer_tick_event.h"
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_event.h"   // Added
+#include "musin/timing/tempo_handler.h" // Added for MAX_TEMPO_OBSERVERS
 #include "musin/timing/timing_constants.h"
-#include "sound_router.h" // Added
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
 
-#include <cstddef> // For size_t
+#include "config.h" // For drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS
+#include <cstddef>  // For size_t
 
 namespace drum {
 
@@ -27,35 +28,38 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  * and the musical pattern storage (Sequencer). It operates on a high-resolution
  * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
  */
+
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<musin::timing::SequencerTickEvent> {
+class SequencerController
+    : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                             drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   // --- Constants ---
-  static constexpr uint32_t CLOCK_PPQN = 96;
+  static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
 
   /**
    * @brief Constructor.
-   * @param sequencer_ref A reference to the main Sequencer instance.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    * @param sound_router_ref A reference to the SoundRouter instance.
    */
   SequencerController(
-      musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-      etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref,
-      drum::SoundRouter &sound_router_ref);
+      etl::observable<etl::observer<musin::timing::TempoEvent>,
+                      musin::timing::MAX_TEMPO_OBSERVERS>
+          &tempo_source_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
   SequencerController &operator=(const SequencerController &) = delete;
 
   /**
-   * @brief Notification handler called when a SequencerTickEvent is received.
+   * @brief Notification handler called when a TempoEvent is received.
    * Implements the etl::observer interface. This is expected to be called
    * at the high resolution defined by CLOCK_PPQN.
-   * @param event The received sequencer tick event.
+   * @param event The received tempo event.
    */
-  void notification(musin::timing::SequencerTickEvent event) override;
+  void notification(musin::timing::TempoEvent event) override; // Changed Event Type
 
   /**
    * @brief Triggers a note on event directly.
@@ -162,6 +166,18 @@ public:
    */
   [[nodiscard]] uint8_t get_active_note_for_track(uint8_t track_index) const;
 
+  void set_pad_pressed_state(uint8_t track_index, bool is_pressed);
+  [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
+
+  /**
+   * @brief Get a reference to the internal sequencer instance.
+   */
+  [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() { return sequencer_; }
+  /**
+   * @brief Get a const reference to the internal sequencer instance.
+   */
+  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() const { return sequencer_; }
+
 private:
   enum class State : uint8_t {
     Stopped,
@@ -174,13 +190,13 @@ private:
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
-  musin::timing::Sequencer<NumTracks, NumSteps> &sequencer;
+  musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   etl::array<int8_t, NumTracks> track_offsets_{};
-  etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source;
-  drum::SoundRouter &_sound_router_ref; // Added
+  etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
+      &tempo_source;
   State state_ = State::Stopped;
 
   // --- Swing Timing Members ---
@@ -204,6 +220,7 @@ private:
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
+  etl::array<bool, NumTracks> _pad_pressed_state; // Added for track override colors
 
 public:
   void activate_repeat(uint32_t length);

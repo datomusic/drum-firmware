@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "musin/audio/crusher.h"
 #include "musin/audio/buffer_source.h"
+#include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
 #include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"

@@ -1,4 +1,5 @@
 #include "sequencer_controller.h"
+#include "config.h"
 #include "events.h"
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants
@@ -10,16 +11,13 @@ namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    musin::timing::Sequencer<NumTracks, NumSteps> &sequencer_ref,
-    etl::observable<etl::observer<musin::timing::SequencerTickEvent>, 2> &tempo_source_ref,
-    drum::SoundRouter &sound_router_ref)
-    : sequencer(sequencer_ref), current_step_counter(0), last_played_note_per_track{},
-      _just_played_step_per_track{}, tempo_source(tempo_source_ref),
-      _sound_router_ref(sound_router_ref), state_(State::Stopped), swing_percent_(50),
-      swing_delays_odd_steps_(false), high_res_tick_counter_(0), next_trigger_tick_target_(0),
-      _retrigger_mode_per_track{},      // Value-initialized to 0
-      _retrigger_progress_ticks_per_track{}, // Value-initialized to 0
-      random_active_(false), random_track_offsets_{} {
+    etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
+        &tempo_source_ref)
+    : /* sequencer_ is default-initialized */ current_step_counter(0), last_played_note_per_track{},
+      _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
+      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
+      next_trigger_tick_target_(0), _pad_pressed_state{}, _retrigger_mode_per_track{},
+      _retrigger_progress_ticks_per_track{}, random_active_(false), random_track_offsets_{} {
   calculate_timing_params();
   // Seed the random number generator once
   srand(time_us_32());
@@ -30,6 +28,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   } else {
     _just_played_step_per_track.fill(std::nullopt);
   }
+  _pad_pressed_state.fill(false);
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -50,7 +49,7 @@ void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
 
 template <size_t NumTracks, size_t NumSteps>
 size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_index() const {
-  const size_t num_steps = sequencer.get_num_steps();
+  const size_t num_steps = sequencer_.get_num_steps();
   if (num_steps == 0)
     return 0;
 
@@ -66,7 +65,7 @@ size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_index() con
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_idx,
                                                                   size_t step_index_to_play) {
-  const size_t num_steps = sequencer.get_num_steps();
+  const size_t num_steps = sequencer_.get_num_steps();
   uint8_t track_index_u8 = static_cast<uint8_t>(track_idx);
 
   // Emit Note Off event if a note was previously playing on this track
@@ -74,7 +73,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_off_event{.track_index = track_index_u8,
                                            .note = last_played_note_per_track[track_idx].value(),
                                            .velocity = 0};
-    _sound_router_ref.notification(note_off_event);
+    this->notify_observers(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
@@ -86,13 +85,13 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
              num_steps)
           : 0;
 
-  const musin::timing::Step &step = sequencer.get_track(track_idx).get_step(wrapped_step);
+  const musin::timing::Step &step = sequencer_.get_track(track_idx).get_step(wrapped_step);
   if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
                                           .velocity = step.velocity.value()};
-    _sound_router_ref.notification(note_on_event);
+    this->notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
   }
 }
@@ -139,9 +138,9 @@ uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interv
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
-    uint8_t steps_per_quarter = SEQUENCER_RESOLUTION / 4;
-    if (steps_per_quarter > 0) {
-      high_res_ticks_per_step_ = CLOCK_PPQN / steps_per_quarter;
+    uint8_t steps_per_eight = SEQUENCER_RESOLUTION / 8;
+    if (steps_per_eight > 0) {
+      high_res_ticks_per_step_ = CLOCK_PPQN / steps_per_eight;
     } else {
       high_res_ticks_per_step_ = CLOCK_PPQN;
     }
@@ -168,7 +167,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      _sound_router_ref.notification(note_off_event);
+      this->notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -212,7 +211,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      _sound_router_ref.notification(note_off_event);
+      this->notify_observers(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -223,7 +222,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] musin::timing::SequencerTickEvent event) {
+    [[maybe_unused]] musin::timing::TempoEvent event) {
   if (state_ != State::Running)
     return;
 
@@ -252,8 +251,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
     size_t base_step_index = calculate_base_step_index();
 
-    size_t num_tracks = sequencer.get_num_tracks();
-    size_t num_steps = sequencer.get_num_steps();
+    size_t num_tracks = sequencer_.get_num_tracks();
+    size_t num_steps = sequencer_.get_num_steps();
 
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
       size_t step_index_to_play_for_track = base_step_index;
@@ -286,7 +285,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] uint32_t SequencerController<NumTracks, NumSteps>::get_current_step() const noexcept {
-  const size_t num_steps = sequencer.get_num_steps();
+  const size_t num_steps = sequencer_.get_num_steps();
   if (num_steps == 0)
     return 0;
   return current_step_counter % num_steps;
@@ -311,7 +310,7 @@ void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) 
   if (state_ == State::Running && !repeat_active_) {
     repeat_active_ = true;
     repeat_length_ = std::max(uint32_t{1}, length);
-    const size_t num_steps = sequencer.get_num_steps();
+    const size_t num_steps = sequencer_.get_num_steps();
     repeat_activation_step_index_ = (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     repeat_activation_step_counter_ = current_step_counter;
   }
@@ -397,16 +396,19 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_on(uint8_t track_ind
                                                                uint8_t velocity) {
   // Ensure any previously playing note on this track is turned off first
   if (last_played_note_per_track[track_index].has_value()) {
-    if (last_played_note_per_track[track_index].value() != note ) { // Only send note off if it's a different note
-        drum::Events::NoteEvent note_off_event{
-            .track_index = track_index, .note = last_played_note_per_track[track_index].value(), .velocity = 0};
-        _sound_router_ref.notification(note_off_event);
+    if (last_played_note_per_track[track_index].value() !=
+        note) { // Only send note off if it's a different note
+      drum::Events::NoteEvent note_off_event{.track_index = track_index,
+                                             .note =
+                                                 last_played_note_per_track[track_index].value(),
+                                             .velocity = 0};
+      this->notify_observers(note_off_event);
     }
   }
-  
+
   drum::Events::NoteEvent note_on_event{
       .track_index = track_index, .note = note, .velocity = velocity};
-  _sound_router_ref.notification(note_on_event);
+  this->notify_observers(note_on_event);
   last_played_note_per_track[track_index] = note;
 }
 
@@ -415,9 +417,8 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_off(uint8_t track_in
   // Only send note off if this note was the one playing
   if (last_played_note_per_track[track_index].has_value() &&
       last_played_note_per_track[track_index].value() == note) {
-    drum::Events::NoteEvent note_off_event{
-        .track_index = track_index, .note = note, .velocity = 0};
-    _sound_router_ref.notification(note_off_event);
+    drum::Events::NoteEvent note_off_event{.track_index = track_index, .note = note, .velocity = 0};
+    this->notify_observers(note_off_event);
     last_played_note_per_track[track_index] = std::nullopt;
   }
 }
@@ -440,7 +441,23 @@ SequencerController<NumTracks, NumSteps>::get_active_note_for_track(uint8_t trac
   }
   // track_index is out of bounds. Return a default/safe value.
   // 0 is a common default for MIDI notes, though often unassigned.
-  return 0; 
+  return 0;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_pad_pressed_state(uint8_t track_index,
+                                                                     bool is_pressed) {
+  if (track_index < NumTracks) {
+    _pad_pressed_state[track_index] = is_pressed;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::is_pad_pressed(uint8_t track_index) const {
+  if (track_index < NumTracks) {
+    return _pad_pressed_state[track_index];
+  }
+  return false;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -448,7 +465,7 @@ void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(uint8
                                                                            uint8_t mode) {
   if (track_index < NumTracks && (mode == 1 || mode == 2)) {
     _retrigger_mode_per_track[track_index] = mode;
-    _retrigger_progress_ticks_per_track[track_index] = 0; // Reset progress
+    _retrigger_progress_ticks_per_track[track_index] = 0;
   }
 }
 
@@ -456,7 +473,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uint8_t track_index) {
   if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = 0; // 0 signifies off
-    _retrigger_progress_ticks_per_track[track_index] = 0; // Reset progress
+    _retrigger_progress_ticks_per_track[track_index] = 0;
   }
 }
 

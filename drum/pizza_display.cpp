@@ -74,17 +74,80 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
 
 } // anonymous namespace
 
-PizzaDisplay::PizzaDisplay()
+PizzaDisplay::PizzaDisplay(
+    drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+        &sequencer_controller_ref,
+    musin::timing::TempoHandler &tempo_handler_ref)
     : _leds(PIN_LED_DATA, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS, DEFAULT_COLOR_CORRECTION),
       note_colors({0xFF0000, 0xFF0020, 0xFF0040, 0xFF0060, 0xFF1010, 0xFF1020, 0xFF2040, 0xFF2060,
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _track_override_colors{}, _drumpad_fade_start_times{},
-      _drumpad_base_colors{} { // Value-initialize
+      _drumpad_fade_start_times{},
+      _sequencer_controller_ref(sequencer_controller_ref),
+      _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
-    _drumpad_base_colors[i] = 0; // Default to black
+  }
+  for (size_t i = 0; i < SEQUENCER_TRACKS_DISPLAYED; ++i) {
+    _track_override_colors[i] = std::nullopt;
+  }
+}
+
+void PizzaDisplay::notification(musin::timing::TempoEvent /* event */) {
+  if (!_sequencer_controller_ref.is_running()) {
+    _clock_tick_counter++;
+  } else {
+    _clock_tick_counter = 0;
+  }
+}
+
+void PizzaDisplay::draw_base_elements() {
+  // Update play button LED
+  if (_sequencer_controller_ref.is_running()) {
+    set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
+  } else {
+    uint32_t ticks_per_beat = _sequencer_controller_ref.get_ticks_per_musical_step();
+    uint32_t phase_ticks = 0;
+    if (ticks_per_beat > 0) {
+      phase_ticks = _clock_tick_counter % ticks_per_beat;
+    }
+    float brightness_factor = 0.0f;
+    if (ticks_per_beat > 0) {
+      brightness_factor =
+          1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
+    }
+    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f);
+    uint8_t brightness =
+        static_cast<uint8_t>(_stopped_highlight_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE);
+    uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
+    uint32_t pulse_color = _leds.adjust_color_brightness(base_color, brightness);
+    set_play_button_led(pulse_color);
+  }
+
+  // Draw sequencer state
+  // The template arguments are resolved because _sequencer_controller_ref
+  // is typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
+  update_track_override_colors(); // Update override colors based on pad states
+  draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
+}
+
+void PizzaDisplay::update_track_override_colors() {
+  for (uint8_t track_idx = 0; track_idx < SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
+    if (_sequencer_controller_ref.is_pad_pressed(track_idx)) {
+      uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(track_idx);
+      _track_override_colors[track_idx] = get_note_color(active_note % NUM_NOTE_COLORS);
+    } else {
+      _track_override_colors[track_idx] = std::nullopt;
+    }
+  }
+}
+
+void PizzaDisplay::notification(drum::Events::NoteEvent event) {
+  if (event.velocity > 0) {                         // Note On
+    if (event.track_index < config::NUM_DRUMPADS) { // Ensure track_index is valid for drumpads
+      this->start_drumpad_fade(event.track_index);
+    }
   }
 }
 
@@ -144,12 +207,6 @@ uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
   return 0;
 }
 
-void PizzaDisplay::set_drumpad_led(uint8_t pad_index, uint32_t base_color) {
-  if (pad_index < config::NUM_DRUMPADS) {
-    _drumpad_base_colors[pad_index] = base_color;
-  }
-}
-
 void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) {
   std::optional<uint32_t> led_index_opt;
   switch (pad_index) {
@@ -184,24 +241,6 @@ void PizzaDisplay::set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity) {
   }
 }
 
-void PizzaDisplay::set_track_override_color(uint8_t track_index, uint32_t color) {
-  if (track_index < _track_override_colors.size()) {
-    _track_override_colors[track_index] = color;
-  }
-}
-
-void PizzaDisplay::clear_track_override_color(uint8_t track_index) {
-  if (track_index < _track_override_colors.size()) {
-    _track_override_colors[track_index] = std::nullopt;
-  }
-}
-
-void PizzaDisplay::clear_all_track_override_colors() {
-  for (size_t i = 0; i < _track_override_colors.size(); ++i) {
-    _track_override_colors[i] = std::nullopt;
-  }
-}
-
 // --- Drumpad Fade Implementations ---
 
 void PizzaDisplay::start_drumpad_fade(uint8_t pad_index) {
@@ -223,9 +262,11 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
   return nil_time;
 }
 
-void PizzaDisplay::refresh_drumpad_leds(absolute_time_t now) {
+void PizzaDisplay::draw_animations(absolute_time_t now) {
+  // --- Drumpad Fades ---
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    uint32_t base_color = _drumpad_base_colors[i];
+    uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
+    uint32_t base_color = get_note_color(active_note % NUM_NOTE_COLORS);
     uint32_t final_color = base_color;
     absolute_time_t fade_start_time = _drumpad_fade_start_times[i];
 

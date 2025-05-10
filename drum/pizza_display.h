@@ -10,13 +10,18 @@
 #include <cstdint>
 #include <optional>
 
-#include "config.h" // For config::NUM_DRUMPADS
+#include "config.h"       // For config::NUM_DRUMPADS
+#include "etl/observer.h" // For etl::observer
+#include "events.h"       // For drum::Events::NoteEvent
 #include "musin/timing/step_sequencer.h"
+#include "musin/timing/tempo_event.h"   // For TempoEvent
+#include "musin/timing/tempo_handler.h" // For TempoHandler
 #include "sequencer_controller.h"
 
 namespace drum {
 
-class PizzaDisplay {
+class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
+                     public etl::observer<drum::Events::NoteEvent> {
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -29,7 +34,10 @@ public:
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
-  PizzaDisplay();
+  explicit PizzaDisplay(
+      drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+          &sequencer_controller_ref,
+      musin::timing::TempoHandler &tempo_handler_ref);
 
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;
@@ -86,15 +94,21 @@ public:
   uint32_t get_note_color(uint8_t note_index) const;
 
   /**
-   * @brief Get the physical LED index for a given drumpad.
-   * @param pad_index Index of the drumpad (0-3).
-   * @return std::optional containing the physical LED index if valid, otherwise std::nullopt.
+   * @brief Draws base LED elements like the play button and sequencer steps.
+   * This method should be called regularly in the main loop before show().
+   * It reflects the direct state of the model without animations.
    */
-  void set_drumpad_led(uint8_t pad_index, uint32_t color);
+  void draw_base_elements();
 
-  void set_track_override_color(uint8_t track_index, uint32_t color);
-  void clear_track_override_color(uint8_t track_index);
-  void clear_all_track_override_colors();
+  /**
+   * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).
+   */
+  void notification(musin::timing::TempoEvent event) override;
+
+  /**
+   * @brief Handles NoteEvent notifications for triggering drumpad fades.
+   */
+  void notification(drum::Events::NoteEvent event) override;
 
   // --- Drumpad Fade ---
   /**
@@ -117,11 +131,11 @@ public:
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
-   * @brief Updates all drumpad LEDs based on their current base colors and fade states.
-   * This should be called once per update cycle after base colors and fade triggers are set.
+   * @brief Updates time-based animations, such as drumpad LED fades.
+   * This should be called once per update cycle.
    * @param now The current absolute time.
    */
-  void refresh_drumpad_leds(absolute_time_t now);
+  void draw_animations(absolute_time_t now);
 
   /**
    * @brief Update the keypad LEDs to reflect the current state of the sequencer.
@@ -129,13 +143,10 @@ public:
    * @tparam NumSteps Number of steps per track in the sequencer.
    * @param sequencer A const reference to the sequencer data object.
    * @param controller A const reference to the sequencer controller object.
-   * @param is_running Whether the sequencer is currently running.
-   * @param stopped_highlight_factor The highlight factor (0.0-1.0) to use when stopped.
    */
   template <size_t NumTracks, size_t NumSteps>
   void draw_sequencer_state(const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
-                            const drum::SequencerController<NumTracks, NumSteps> &controller,
-                            bool is_running, float stopped_highlight_factor);
+                            const drum::SequencerController<NumTracks, NumSteps> &controller);
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -194,11 +205,19 @@ private:
 
   musin::drivers::WS2812<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
-  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
-  etl::array<uint32_t, config::NUM_DRUMPADS> _drumpad_base_colors;
+  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
+
+  // Model References
+  drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+      &_sequencer_controller_ref;
+  musin::timing::TempoHandler &_tempo_handler_ref;
+
+  uint32_t _clock_tick_counter = 0;
+  float _stopped_highlight_factor = 0.0f;
 
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
+  void update_track_override_colors();
 };
 
 // --- Template Implementation ---
@@ -206,38 +225,37 @@ private:
 template <size_t NumTracks, size_t NumSteps>
 void PizzaDisplay::draw_sequencer_state(
     const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
-    const drum::SequencerController<NumTracks, NumSteps> &controller, bool is_running,
-    float stopped_highlight_factor) {
+    const drum::SequencerController<NumTracks, NumSteps> &controller) {
+
+  bool is_running = _sequencer_controller_ref.is_running();
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
       continue;
 
     const auto &track_data = sequencer.get_track(track_idx);
-    std::optional<uint32_t> override_color_opt;
-    if (track_idx < _track_override_colors.size()) {
-      override_color_opt = _track_override_colors[track_idx];
-    }
 
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
         continue;
 
       const auto &step = track_data.get_step(step_idx);
-      uint32_t final_color;
+      uint32_t base_step_color = calculate_step_color(step);
+      uint32_t final_color = base_step_color;
 
-      if (override_color_opt.has_value()) {
-        final_color = override_color_opt.value();
-      } else {
-        final_color = calculate_step_color(step);
+      // Apply track override color if active
+      if (track_idx < _track_override_colors.size() &&
+          _track_override_colors[track_idx].has_value()) {
+        final_color = _track_override_colors[track_idx].value();
       }
 
+      // Apply highlighting for the currently playing step (on top of base or override color)
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
       if (just_played_step.has_value() && step_idx == just_played_step.value()) {
         if (is_running) {
           final_color = apply_highlight(final_color);
         } else {
-          final_color = apply_fading_highlight(final_color, stopped_highlight_factor);
+          final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
         }
       }
 

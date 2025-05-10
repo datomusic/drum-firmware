@@ -7,16 +7,12 @@ namespace musin::timing {
 
 SyncOut::SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_source,
                  std::uint32_t ticks_per_pulse, std::uint32_t pulse_duration_ms)
-    : _gpio(gpio_pin),
-      _clock_source(clock_source),
+    : _gpio(gpio_pin), _clock_source(clock_source),
       _ticks_per_pulse((ticks_per_pulse == 0) ? 1 : ticks_per_pulse), // Default to 1 if 0 is passed
       _pulse_duration_us((pulse_duration_ms == 0)
                              ? 1000 // Default to 1ms if 0 is passed
                              : static_cast<std::uint64_t>(pulse_duration_ms) * 1000),
-      _tick_counter(0),
-      _is_enabled(false),
-      _pulse_active(false),
-      _pulse_alarm_id(0) {
+      _tick_counter(0), _is_enabled(false), _pulse_active(false), _pulse_alarm_id(0) {
   _gpio.set_direction(musin::hal::GpioDirection::OUT);
   _gpio.write(false); // Ensure output is initially low
 }
@@ -64,7 +60,8 @@ void SyncOut::enable() {
   _clock_source.add_observer(*this);
   _is_enabled = true;
   _tick_counter = 0; // Reset counter on enable
-                     // printf("SyncOut: Enabled. Pin: %u\n", _gpio.get_pin_num()); // Assuming GpioPin has get_pin_num()
+                     // printf("SyncOut: Enabled. Pin: %u\n", _gpio.get_pin_num()); // Assuming
+                     // GpioPin has get_pin_num()
 }
 
 void SyncOut::disable() {

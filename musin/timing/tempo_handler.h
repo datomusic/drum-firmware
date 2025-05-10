@@ -9,7 +9,6 @@
 #include "musin/timing/clock_event.h" // Include for ClockSource
 #include "musin/timing/internal_clock.h"
 
-
 namespace musin::timing {
 
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)

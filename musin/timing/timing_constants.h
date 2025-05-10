@@ -9,7 +9,7 @@ namespace musin::timing {
  * @brief Default Pulses Per Quarter Note (PPQN) used for high-resolution timing.
  * Standard MIDI clock is 24, common sequencer resolution is 96.
  */
-constexpr uint32_t DEFAULT_PPQN = 96;
+constexpr uint32_t DEFAULT_PPQN = 24;
 
 } // namespace musin::timing
 

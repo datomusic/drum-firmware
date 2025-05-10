@@ -1,47 +1,42 @@
+#include "musin/hal/debug_utils.h"
+#include "musin/timing/internal_clock.h"
+#include "musin/timing/step_sequencer.h"
+#include "musin/timing/sync_out.h"
+#include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
 
 #include "audio_engine.h"
+#include "config.h"
 #include "midi_functions.h"
-#include "musin/hal/debug_utils.h"
-#include "musin/timing/internal_clock.h"
-#include "musin/timing/step_sequencer.h"
-#include "musin/timing/sync_out.h"
-#include "musin/timing/tempo_handler.h"
-#include "musin/timing/tempo_multiplier.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
-static drum::PizzaDisplay pizza_display;
-
+// Model
 static drum::AudioEngine audio_engine;
 static drum::SoundRouter sound_router(audio_engine);
-
-static musin::timing::Sequencer<4, 8> pizza_sequencer;
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::TempoHandler tempo_handler(internal_clock,
-                                               musin::timing::ClockSource::INTERNAL);
+                                                 musin::timing::ClockSource::INTERNAL);
 
-// Configure TempoMultiplier. If InternalClock provides TempoEvents at 96 PPQN,
-// and SequencerController expects 96 PPQN, then TempoMultiplier should pass through.
-// (96, 1) results in _input_ticks_per_output_tick = 1, meaning pass-through.
-static musin::timing::TempoMultiplier tempo_multiplier(24, 1);
+drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+    sequencer_controller(tempo_handler);
 
-drum::SequencerController sequencer_controller(pizza_sequencer, tempo_multiplier, sound_router);
+// View
+static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
 
-static drum::PizzaControls pizza_controls(pizza_display, pizza_sequencer,
-                                          tempo_handler, sequencer_controller,
+// Controller
+static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
                                           sound_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
 // TODO: Instantiate MIDIClock, ExternalSyncClock when available
-// TODO: Add logic to dynamically change tempo_multiplier ratio if input PPQN changes
 
 static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
@@ -52,7 +47,6 @@ int main() {
 
   midi_init();
 
-  // Initialize Audio Engine (stubbed for now)
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
   }
@@ -64,13 +58,12 @@ int main() {
 
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
-  tempo_handler.add_observer(tempo_multiplier);
-  tempo_multiplier.add_observer(sequencer_controller);
+  tempo_handler.add_observer(sequencer_controller);
+  tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // SoundRouter is now called directly by SequencerController.
-  // PizzaControls will no longer observe NoteEvents from SequencerController directly
-  // as SequencerController no longer emits them to its own observers.
-  // UI feedback for notes (e.g. drumpad fades) will be handled in PizzaControls Phase 2.
+  // Register SoundRouter and PizzaDisplay as observers of NoteEvents from SequencerController
+  sequencer_controller.add_observer(sound_router);
+  sequencer_controller.add_observer(pizza_display);
 
   sync_out.enable();
 
@@ -82,14 +75,16 @@ int main() {
 
   while (true) {
     pizza_controls.update();
+    audio_engine.process();
 
+    // Update time-based animations (e.g., drumpad fades)
+    pizza_display.draw_animations(get_absolute_time());
+    pizza_display.draw_base_elements();
     pizza_display.show();
-    sleep_us(280);
+    sleep_us(280); // TODO: remove this once we move to DMA WS2812
 
     musin::usb::background_update();
     midi_read();
-
-    audio_engine.process();
 
     loop_timer.record_iteration_end();
   }

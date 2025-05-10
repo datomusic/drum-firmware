@@ -2,8 +2,12 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
+#include "pico/time.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
+#include "sound_router.h"
+#include <algorithm>
+#include <cmath>
 #include "sound_router.h"
 #include <algorithm>
 #include <cmath>
@@ -98,6 +102,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
   // Sample Select (Column 4)
   if (event.col >= config::keypad::SAMPLE_SELECT_START_COLUMN) {
+  if (event.col >= config::keypad::SAMPLE_SELECT_START_COLUMN) {
     if (event.type == musin::ui::KeypadEvent::Type::Press) {
       uint8_t pad_index = 0;
       int8_t offset = 0;
@@ -164,6 +169,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       track.set_step_note(step_idx, note);
 
       uint8_t step_velocity;
+
+      uint8_t step_velocity;
       if (!track.get_step_velocity(step_idx).has_value()) {
         track.set_step_velocity(step_idx, config::keypad::DEFAULT_STEP_VELOCITY);
         step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
@@ -176,6 +183,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       }
     }
   } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
+    track.set_step_velocity(step_idx, config::keypad::MAX_STEP_VELOCITY_ON_HOLD);
     track.set_step_velocity(step_idx, config::keypad::MAX_STEP_VELOCITY_ON_HOLD);
   }
 }
@@ -246,10 +254,36 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
       }
       _last_known_retrigger_mode_per_pad[i] = current_mode;
     }
+
+    uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
+    uint32_t base_color = controls->display.get_note_color(note_value);
+    // Set the base color in PizzaDisplay. The fade calculation will happen in refresh_drumpad_leds.
+    controls->display.set_drumpad_led(static_cast<uint8_t>(i), base_color);
+  }
+  // After setting all base colors, refresh the drumpad LEDs to apply fades etc.
+  controls->display.refresh_drumpad_leds(now);
+    // Update SequencerController with any changes to retrigger mode
+    musin::ui::RetriggerMode current_mode = drumpads[i].get_retrigger_mode();
+    if (current_mode != _last_known_retrigger_mode_per_pad[i]) {
+      if (current_mode == musin::ui::RetriggerMode::Single) {
+        controls->_sequencer_controller_ref.activate_play_on_every_step(static_cast<uint8_t>(i), 1);
+      } else if (current_mode == musin::ui::RetriggerMode::Double) {
+        controls->_sequencer_controller_ref.activate_play_on_every_step(static_cast<uint8_t>(i), 2);
+      } else { // Off or any other state
+        controls->_sequencer_controller_ref.deactivate_play_on_every_step(static_cast<uint8_t>(i));
+      }
+      _last_known_retrigger_mode_per_pad[i] = current_mode;
+    }
   }
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
+  if (pad_index >= config::drumpad::track_note_ranges.size()) {
+    return;
+  }
+
+  const auto &notes_for_pad = config::drumpad::track_note_ranges[pad_index];
+  if (notes_for_pad.empty()) {
   if (pad_index >= config::drumpad::track_note_ranges.size()) {
     return;
   }
@@ -358,6 +392,10 @@ void PizzaControls::AnalogControlComponent::update() {
     mux_controls[_next_analog_control_to_update_idx].update();
     _next_analog_control_to_update_idx =
         (_next_analog_control_to_update_idx + 1) % mux_controls.size();
+  if (!mux_controls.empty()) {
+    mux_controls[_next_analog_control_to_update_idx].update();
+    _next_analog_control_to_update_idx =
+        (_next_analog_control_to_update_idx + 1) % mux_controls.size();
   }
 }
 
@@ -379,6 +417,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   case RANDOM: {
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
     bool should_be_active = (event.value >= config::analog_controls::RANDOM_ACTIVATION_THRESHOLD);
+    bool should_be_active = (event.value >= config::analog_controls::RANDOM_ACTIVATION_THRESHOLD);
 
     if (should_be_active && !was_active) {
       controls->_sequencer_controller_ref.activate_random();
@@ -387,6 +426,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
   } break;
   case VOLUME:
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
     break;
   case SWING: {
@@ -398,6 +438,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
         static_cast<uint8_t>(distance_from_center *
                              config::analog_controls::SWING_PERCENT_SENSITIVITY);
 
+    bool delay_odd = (event.value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
     bool delay_odd = (event.value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
 
@@ -413,6 +454,10 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   case REPEAT: {
     // Determine the intended state based on the knob value
     std::optional<uint32_t> intended_length = std::nullopt;
+    if (event.value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD) {
+      intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
+    } else if (event.value >= config::analog_controls::REPEAT_MODE_1_THRESHOLD) {
+      intended_length = config::analog_controls::REPEAT_LENGTH_MODE_1;
     if (event.value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD) {
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
     } else if (event.value >= config::analog_controls::REPEAT_MODE_1_THRESHOLD) {

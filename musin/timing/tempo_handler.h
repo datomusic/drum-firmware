@@ -29,8 +29,11 @@ public:
   /**
    * @brief Constructor.
    * @param internal_clock_ref Reference to the InternalClock instance.
+   * @param internal_clock_ref Reference to the InternalClock instance.
    * @param initial_source The clock source to use initially.
    */
+  explicit TempoHandler(InternalClock &internal_clock_ref,
+                        ClockSource initial_source = ClockSource::INTERNAL);
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
@@ -63,7 +66,14 @@ public:
    */
   void set_bpm(float bpm);
 
+  /**
+   * @brief Set the tempo for the internal clock, if it's the active source.
+   * @param bpm Beats Per Minute.
+   */
+  void set_bpm(float bpm);
+
 private:
+  InternalClock &_internal_clock_ref;
   InternalClock &_internal_clock_ref;
   ClockSource current_source_;
 

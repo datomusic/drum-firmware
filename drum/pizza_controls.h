@@ -19,6 +19,9 @@
 #include "config.h"
 
 #include "musin/hal/debug_utils.h"
+#include "config.h"
+
+#include "musin/hal/debug_utils.h"
 #include "musin/timing/internal_clock.h"
 
 #include "musin/timing/step_sequencer.h"
@@ -148,6 +151,7 @@ public:
   class AnalogControlComponent {
   public:
     explicit AnalogControlComponent(PizzaControls *parent_ptr);
+    explicit AnalogControlComponent(PizzaControls *parent_ptr);
     void init();
     void update();
 
@@ -158,11 +162,16 @@ public:
 
       constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
           : parent(p), control_id(id) {
+      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
+          : parent(p), control_id(id) {
       }
       void notification(musin::ui::AnalogControlEvent event) override;
     };
 
     PizzaControls *parent_controls;
+    etl::array<musin::ui::AnalogControl, config::NUM_ANALOG_MUX_CONTROLS> mux_controls;
+    etl::array<AnalogControlEventHandler, config::NUM_ANALOG_MUX_CONTROLS> control_observers;
+    size_t _next_analog_control_to_update_idx = 0;
     etl::array<musin::ui::AnalogControl, config::NUM_ANALOG_MUX_CONTROLS> mux_controls;
     etl::array<AnalogControlEventHandler, config::NUM_ANALOG_MUX_CONTROLS> control_observers;
     size_t _next_analog_control_to_update_idx = 0;
@@ -173,6 +182,7 @@ private:
   drum::PizzaDisplay &display;
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
+  drum::SoundRouter &_sound_router_ref;
   drum::SoundRouter &_sound_router_ref;
 
 public:

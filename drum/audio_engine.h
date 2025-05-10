@@ -4,6 +4,7 @@
 #include "etl/array.h"
 #include "etl/optional.h"
 #include <cstddef>
+#include <cstddef>
 #include <cstdint>
 
 #include "musin/audio/buffer_source.h"
@@ -86,6 +87,13 @@ public:
   void set_decay(uint8_t voice_index, float value);
 
   /**
+   * @brief Sets the decay time for a specific voice/track for the *next* time it's triggered.
+   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
+   * @param value The decay value, normalized (0.0f to 1.0f).
+   */
+  void set_decay(uint8_t voice_index, float value);
+
+  /**
    * @brief Sets the master output volume.
    * @param volume The desired volume level (0.0f to 1.0f).
    */
@@ -112,7 +120,9 @@ public:
   /**
    * @brief Sets the global crusher bit depth.
    * @param normalized_value The desired depth amount, normalized (0.0f to 1.0f).
+   * @param normalized_value The desired depth amount, normalized (0.0f to 1.0f).
    */
+  void set_crush_depth(float normalized_value);
   void set_crush_depth(float normalized_value);
 
 private:

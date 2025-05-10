@@ -1,25 +1,7 @@
-#include <cassert> // For assert when STATIC_TESTS is enabled
-#include <catch2/catch_test_macros.hpp>
+#include "../test_support.h"
 
 #include "musin/audio/block.h" // Include AudioBlock definition
 #include "musin/audio/memory_reader.h"
-
-// While working on tests, disable constexpr testing to get proper assertions.
-#define STATIC_TESTS 0 // Set to 1 to enable constexpr tests with assert
-
-#if STATIC_TESTS == 0
-#define CONST_BODY
-#else
-#define CONST_BODY(BODY)                                                                           \
-  constexpr auto body = []() {                                                                     \
-    BODY;                                                                                          \
-    return 0;                                                                                      \
-  };                                                                                               \
-  constexpr const auto _ = body();                                                                 \
-  body();
-#undef REQUIRE
-#define REQUIRE assert
-#endif
 
 TEST_CASE("MemorySampleReader streams samples") {
   CONST_BODY(({

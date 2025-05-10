@@ -12,15 +12,15 @@ typedef void(ControlChangeCallback)(byte channel, byte controller, byte value);
 typedef void(PitchBendCallback)(byte channel, int bend);
 
 struct Callbacks {
-  NoteCallback *note_on;
-  NoteCallback *note_off;
-  VoidCallback *clock;
-  VoidCallback *start;
-  VoidCallback *cont;
-  VoidCallback *stop;
-  ControlChangeCallback *cc;
-  PitchBendCallback *pitch_bend;
-  SyxCallback *sysex;
+  NoteCallback *note_on = nullptr;
+  NoteCallback *note_off = nullptr;
+  VoidCallback *clock = nullptr;
+  VoidCallback *start = nullptr;
+  VoidCallback *cont = nullptr;
+  VoidCallback *stop = nullptr;
+  ControlChangeCallback *cc = nullptr;
+  PitchBendCallback *pitch_bend = nullptr;
+  SyxCallback *sysex = nullptr;
 };
 
 void init(const Callbacks &callbacks);

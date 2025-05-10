@@ -5,16 +5,12 @@ set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 
 set(CMAKE_CXX_STANDARD 20)
 
-project(musin-test)
-
-include(${CMAKE_CURRENT_LIST_DIR}/../../musin/generic_sources.cmake)
+project(drum-test)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
 
 add_executable(${PROJECT_NAME}
-  audio/pitch_shifter_test.cpp
-  audio/memory_reader_test.cpp
 )
 
 if(${STATIC_TESTS})
@@ -25,7 +21,6 @@ if(${STATIC_TESTS})
 endif(${STATIC_TESTS})
 
 target_sources(${PROJECT_NAME} PRIVATE
-  ${musin_audio_generic_sources}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

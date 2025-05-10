@@ -34,6 +34,11 @@ using DefaultSequencerController =
     SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
 
 class PizzaControls {
+  friend class KeypadComponent;
+  friend class DrumpadComponent;
+  friend class AnalogControlComponent;
+  friend class PlaybuttonComponent;
+
 public:
   // Constructor takes essential shared resources and dependencies
   explicit PizzaControls(

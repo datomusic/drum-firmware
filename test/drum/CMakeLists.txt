@@ -11,6 +11,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
 
 add_executable(${PROJECT_NAME}
+  rompler_test.cpp
 )
 
 if(${STATIC_TESTS})

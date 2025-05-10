@@ -1,6 +1,7 @@
 #ifndef PITCH_SHIFTER_H_0GR8ZAHC
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
+#include <algorithm> // For std::clamp
 #include <cstdint>
 
 #include "port/section_macros.h"
@@ -26,17 +27,19 @@ struct PitchShifter : SampleReader {
     const float a2 = y2 - y0;
     const float a3 = y1;
 
-    float result = a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
+    float float_val = a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
 
-    // Saturate result to int16_t range
-    if (result > INT16_MAX) {
-      return INT16_MAX;
-    }
-    if (result < INT16_MIN) {
-      return INT16_MIN;
-    }
+    // Clamp float_val to the range of int32_t to prevent undefined behavior
+    // when casting a float outside the representable range of int32_t.
+    float_val = std::clamp(float_val, static_cast<float>(INT32_MIN), static_cast<float>(INT32_MAX));
 
-    return static_cast<int16_t>(result);
+    // Convert to int32_t (this truncates)
+    int32_t val_i32 = static_cast<int32_t>(float_val);
+
+    // Saturate to 16-bit signed range using ARM SSAT instruction via GCC intrinsic
+    int32_t saturated_val = __builtin_ssat(val_i32, 16);
+
+    return static_cast<int16_t>(saturated_val);
   }
 
   // Reader interface

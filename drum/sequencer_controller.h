@@ -217,11 +217,6 @@ private:
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
   etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
 
-  // --- Retrigger (Play On Every Step) Members ---
-  // Mode per track: 0 = Off, 1 = Single, 2 = Double
-  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
-
   bool random_active_ = false;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
@@ -241,25 +236,8 @@ public:
    * @param track_index The track to deactivate retriggering on.
    */
   void deactivate_play_on_every_step(uint8_t track_index);
-  /**
-   * @brief Activates retriggering for a specific track.
-   * @param track_index The track to activate retriggering on.
-   * @param mode 1 for single retrigger per step, 2 for double retrigger per step.
-   */
-  void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
-  /**
-   * @brief Deactivates retriggering for a specific track.
-   * @param track_index The track to deactivate retriggering on.
-   */
-  void deactivate_play_on_every_step(uint8_t track_index);
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
-
-  /**
-   * @brief Get the number of high-resolution SequencerTickEvents that form one musical step
-   * (e.g., a 16th note) of this sequencer.
-   */
-  [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 
   /**
    * @brief Get the number of high-resolution SequencerTickEvents that form one musical step

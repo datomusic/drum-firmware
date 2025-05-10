@@ -213,30 +213,16 @@ void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) 
   case 0:
     led_index_opt = LED_DRUMPAD_1;
     break;
-    led_index_opt = LED_DRUMPAD_1;
-    break;
   case 1:
-    led_index_opt = LED_DRUMPAD_2;
-    break;
     led_index_opt = LED_DRUMPAD_2;
     break;
   case 2:
     led_index_opt = LED_DRUMPAD_3;
     break;
-    led_index_opt = LED_DRUMPAD_3;
-    break;
   case 3:
     led_index_opt = LED_DRUMPAD_4;
     break;
-    led_index_opt = LED_DRUMPAD_4;
-    break;
   default:
-    // Should not happen if pad_index is validated by caller or is < config::NUM_DRUMPADS
-    return;
-  }
-
-  if (led_index_opt.has_value()) {
-    _leds.set_pixel(led_index_opt.value(), color);
     // Should not happen if pad_index is validated by caller or is < config::NUM_DRUMPADS
     return;
   }

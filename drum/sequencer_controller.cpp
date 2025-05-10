@@ -185,9 +185,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
-  for (size_t i = 0; i < NumTracks; ++i) {
-    deactivate_play_on_every_step(static_cast<uint8_t>(i));
-  }
 
   uint32_t first_interval = calculate_next_trigger_interval();
   next_trigger_tick_target_ = first_interval;
@@ -221,9 +218,6 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
-  for (size_t i = 0; i < NumTracks; ++i) {
-    deactivate_play_on_every_step(static_cast<uint8_t>(i));
-  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -233,24 +227,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
 
   high_res_tick_counter_++;
-
-  // Process per-tick retrigger logic (e.g., for double mode's mid-step note)
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (_retrigger_mode_per_track[track_idx] > 0) {
-      _retrigger_progress_ticks_per_track[track_idx]++;
-
-      if (_retrigger_mode_per_track[track_idx] == 2 && // Double mode
-          high_res_ticks_per_step_ >=
-              drum::config::main_controls::RETRIGGER_DIVISOR_FOR_DOUBLE_MODE &&
-          _retrigger_progress_ticks_per_track[track_idx] ==
-              (high_res_ticks_per_step_ /
-               drum::config::main_controls::RETRIGGER_DIVISOR_FOR_DOUBLE_MODE)) {
-        uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
-        trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
-                        drum::config::drumpad::RETRIGGER_VELOCITY);
-      }
-    }
-  }
 
   // Process per-tick retrigger logic (e.g., for double mode's mid-step note)
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
@@ -289,15 +265,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
       }
       _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
       process_track_step(track_idx, step_index_to_play_for_track);
-
-      // Handle the first retrigger note for the main step event
-      if (_retrigger_mode_per_track[track_idx] > 0) {
-        uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
-        trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
-                        drum::config::drumpad::RETRIGGER_VELOCITY);
-      }
-      // Reset retrigger progress for this track as a new main step has occurred
-      _retrigger_progress_ticks_per_track[track_idx] = 0;
 
       // Handle the first retrigger note for the main step event
       if (_retrigger_mode_per_track[track_idx] > 0) {
@@ -407,12 +374,6 @@ void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(
   } else if (should_be_active && was_active) {
     set_repeat_length(intended_length.value());
   }
-}
-
-template <size_t NumTracks, size_t NumSteps>
-[[nodiscard]] uint32_t
-SequencerController<NumTracks, NumSteps>::get_ticks_per_musical_step() const noexcept {
-  return high_res_ticks_per_step_;
 }
 
 template <size_t NumTracks, size_t NumSteps>

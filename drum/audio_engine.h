@@ -4,7 +4,6 @@
 #include "etl/array.h"
 #include "etl/optional.h"
 #include <cstddef>
-#include <cstddef>
 #include <cstdint>
 
 #include "musin/audio/buffer_source.h"

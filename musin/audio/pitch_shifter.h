@@ -1,8 +1,9 @@
 #ifndef PITCH_SHIFTER_H_0GR8ZAHC
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
-#include <algorithm> // For std::clamp
+#include <algorithm>
 #include <cstdint>
+#include <arm_acle.h>
 
 #include "port/section_macros.h"
 
@@ -37,7 +38,7 @@ struct PitchShifter : SampleReader {
     int32_t val_i32 = static_cast<int32_t>(float_val);
 
     // Saturate to 16-bit signed range using ARM SSAT instruction via GCC intrinsic
-    int32_t saturated_val = __builtin_ssat(val_i32, 16);
+    int32_t saturated_val = __ssat(val_i32, 16);
 
     return static_cast<int16_t>(saturated_val);
   }
@@ -143,12 +144,8 @@ private:
 
   // Using float instead of double for better performance on Cortex-M33 FPU
   float speed;
-// Align interpolation buffer to word boundary for better memory access
-#ifdef TARGET_ARM_CORTEX_M
+  // Align interpolation buffer to word boundary for better memory access
   alignas(4) int16_t interpolation_samples[4];
-#else
-  int16_t interpolation_samples[4];
-#endif
   uint32_t source_index;
   float position;
   float remainder;

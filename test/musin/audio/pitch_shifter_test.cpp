@@ -1,4 +1,4 @@
-#include "../test_support.h"
+#include "test_support.h"
 #include "musin/audio/pitch_shifter.h"
 
 // Outputs a multiple of CHUNK_SIZE samples per call to read_samples, up to AUDIO_BLOCK_SAMPLES.

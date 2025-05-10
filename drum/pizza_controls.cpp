@@ -232,7 +232,6 @@ void PizzaControls::DrumpadComponent::update() {
 }
 
 void PizzaControls::DrumpadComponent::update_drumpads() {
-  absolute_time_t now = get_absolute_time();
   PizzaControls *controls = parent_controls;
 
   for (size_t i = 0; i < drumpads.size(); ++i) {
@@ -248,16 +247,14 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
       } else { // Off or any other state
         controls->_sequencer_controller_ref.deactivate_play_on_every_step(static_cast<uint8_t>(i));
       }
-      _last_known_retrigger_mode_per_pad[i] = current_mode;
     }
+    _last_known_retrigger_mode_per_pad[i] = current_mode;
 
-    uint8_t note_value = get_note_for_pad(static_cast<uint8_t>(i));
-    uint32_t base_color = controls->display.get_note_color(note_value);
-    // Set the base color in PizzaDisplay. The fade calculation will happen in refresh_drumpad_leds.
-    controls->display.set_drumpad_led(static_cast<uint8_t>(i), base_color);
+    // The drumpad LED colors, including fades, are handled by PizzaDisplay::draw_animations(),
+    // which is called in the main loop. PizzaControls updates the necessary state
+    // (e.g., active note via SequencerController, fade start times via NoteEvents)
+    // that PizzaDisplay uses for drawing.
   }
-  // After setting all base colors, refresh the drumpad LEDs to apply fades etc.
-  controls->display.refresh_drumpad_leds(now);
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {

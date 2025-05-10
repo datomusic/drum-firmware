@@ -16,10 +16,10 @@ using musin::hal::AnalogInMux16;
 using musin::ui::AnalogControl;
 using musin::ui::Drumpad;
 
-PizzaControls::PizzaControls(
-    drum::PizzaDisplay &display_ref,
-    musin::timing::TempoHandler &tempo_handler_ref,
-    drum::DefaultSequencerController &sequencer_controller_ref, drum::SoundRouter &sound_router_ref)
+PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
+                             musin::timing::TempoHandler &tempo_handler_ref,
+                             drum::DefaultSequencerController &sequencer_controller_ref,
+                             drum::SoundRouter &sound_router_ref)
     : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
       keypad_component(this), drumpad_component(this), analog_component(this),
@@ -69,10 +69,6 @@ void PizzaControls::update() {
                                             static_cast<size_t>(ProfileSection::PLAYBUTTON_UPDATE));
     playbutton_component.update(); // Updates the *input* state of the button
   }
-
-  // Track override color functionality removed.
-  // Play button LED and sequencer display are now handled by PizzaDisplay::update_core_leds()
-
   _profiler.check_and_print_report();
 }
 
@@ -294,16 +290,9 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int
                                                                        new_selected_note_value);
 
   // Update the default note for new steps in the sequencer track
-  parent_controls->_sequencer_controller_ref.get_sequencer().get_track(pad_index).set_note(new_selected_note_value);
+  parent_controls->_sequencer_controller_ref.get_sequencer().get_track(pad_index).set_note(
+      new_selected_note_value);
 }
-
-// bool PizzaControls::DrumpadComponent::is_pad_pressed(uint8_t pad_index) const { // Moved to
-// SequencerController
-//   if (pad_index < _pad_pressed_state.size()) {
-//     return _pad_pressed_state[pad_index];
-//   }
-//   return false;
-// }
 
 uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
   if (pad_index >= config::NUM_DRUMPADS) {

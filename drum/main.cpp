@@ -9,6 +9,7 @@
 #include "pico/time.h"
 
 #include "audio_engine.h"
+#include "config.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
@@ -18,22 +19,19 @@
 // Model
 static drum::AudioEngine audio_engine;
 static drum::SoundRouter sound_router(audio_engine);
-// static musin::timing::Sequencer<4, 8> pizza_sequencer; // Moved into sequencer_controller
-static musin::timing::InternalClock internal_clock(120.0f); // TODO: move into sequencer_controller
+static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::TempoHandler tempo_handler(internal_clock,
                                                  musin::timing::ClockSource::INTERNAL);
-// SoundRouter reference removed from SequencerController constructor
-// pizza_sequencer removed from SequencerController constructor
-drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> sequencer_controller(tempo_handler);
+
+drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+    sequencer_controller(tempo_handler);
 
 // View
-// pizza_sequencer removed from PizzaDisplay constructor
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
 
 // Controller
-// pizza_sequencer removed from PizzaControls constructor
-static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
-                                          sequencer_controller, sound_router);
+static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
+                                          sound_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
@@ -83,7 +81,7 @@ int main() {
     pizza_display.draw_animations(get_absolute_time());
     pizza_display.draw_base_elements();
     pizza_display.show();
-    sleep_us(280);
+    sleep_us(280); // TODO: remove this once we move to DMA WS2812
 
     musin::usb::background_update();
     midi_read();

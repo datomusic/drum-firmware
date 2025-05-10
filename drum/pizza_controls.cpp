@@ -168,8 +168,6 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
       track.set_step_note(step_idx, note);
 
       uint8_t step_velocity;
-
-      uint8_t step_velocity;
       if (!track.get_step_velocity(step_idx).has_value()) {
         track.set_step_velocity(step_idx, config::keypad::DEFAULT_STEP_VELOCITY);
         step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;

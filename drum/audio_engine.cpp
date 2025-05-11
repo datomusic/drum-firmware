@@ -48,6 +48,7 @@ AudioEngine::AudioEngine()
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
       profiler_() {
   profiler_.add_section("AudioProcessUpdate");
+  profiler_.add_section("AudioPlayOnVoiceUpdate");
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
   crusher_.sampleRate(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
@@ -81,6 +82,8 @@ void AudioEngine::process() {
 }
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity) {
+  musin::hal::DebugUtils::ScopedProfile p(
+      profiler_, static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE));
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }

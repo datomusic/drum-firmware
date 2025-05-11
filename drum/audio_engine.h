@@ -124,8 +124,8 @@ private:
   Crusher crusher_;
   Lowpass lowpass_;
 
-  musin::hal::DebugUtils::SectionProfiler<1> profiler_;
-  enum class ProfileSection { AUDIO_PROCESS_UPDATE };
+  musin::hal::DebugUtils::SectionProfiler<2> profiler_;
+  enum class ProfileSection { AUDIO_PROCESS_UPDATE, PLAY_ON_VOICE_UPDATE };
 
   bool is_initialized_ = false;
 };

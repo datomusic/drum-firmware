@@ -13,15 +13,15 @@ InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is
 
 void InternalClock::set_bpm(float bpm) {
   if (bpm <= 0.0f) {
-    printf("InternalClock Warning: Ignoring invalid BPM value: %.2f\n", bpm);
+    // printf("InternalClock Warning: Ignoring invalid BPM value: %.2f\n", bpm);
     return;
   }
 
   if (bpm != _current_bpm) {
     _current_bpm = bpm;
     calculate_interval();
-    printf("InternalClock: BPM set to %.2f, Interval updated to %lld us\n", _current_bpm,
-           _tick_interval_us);
+    // printf("InternalClock: BPM set to %.2f, Interval updated to %lld us\n", _current_bpm,
+    //        _tick_interval_us);
 
     if (_is_running) {
       stop();
@@ -36,11 +36,11 @@ float InternalClock::get_bpm() const {
 
 void InternalClock::start() {
   if (_is_running) {
-    printf("InternalClock: Already running.\n");
+    // printf("InternalClock: Already running.\n");
     return;
   }
   if (_tick_interval_us <= 0) {
-    printf("InternalClock Error: Cannot start, invalid interval (%lld us).\n", _tick_interval_us);
+    // printf("InternalClock Error: Cannot start, invalid interval (%lld us).\n", _tick_interval_us);
     return;
   }
 
@@ -49,16 +49,16 @@ void InternalClock::start() {
   // The delay is negative to indicate the time *between starts* of callbacks
   if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this, &_timer_info)) {
     _is_running = true;
-    printf("InternalClock: Started. Interval: %lld us\n", _tick_interval_us);
+    // printf("InternalClock: Started. Interval: %lld us\n", _tick_interval_us);
   } else {
-    printf("InternalClock Error: Failed to add repeating timer.\n");
+    // printf("InternalClock Error: Failed to add repeating timer.\n");
     _is_running = false;
   }
 }
 
 void InternalClock::stop() {
   if (!_is_running) {
-    printf("InternalClock: Already stopped.\n");
+    // printf("InternalClock: Already stopped.\n");
     return;
   }
 
@@ -66,15 +66,6 @@ void InternalClock::stop() {
   bool cancelled = cancel_repeating_timer(&_timer_info);
   _is_running = false; // Assume stopped even if cancel fails (shouldn't happen often)
 
-  if (cancelled) {
-    printf("InternalClock: Stopped.\n");
-  } else {
-    // This might happen if the timer fired and the callback returned false
-    // between the check for _is_running and the cancel_repeating_timer call,
-    // or if the timer wasn't validly added in the first place.
-    printf("InternalClock Warning: cancel_repeating_timer failed (timer might have already "
-           "stopped).\n");
-  }
   _timer_info = {};
 }
 
@@ -104,7 +95,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
 
   // Check if the instance thinks it should still be running
   if (!instance->_is_running) {
-    printf("InternalClock Callback: Instance stopped, cancelling timer.\n");
+    // printf("InternalClock Callback: Instance stopped, cancelling timer.\n");
     return false; // Stop the timer
   }
 

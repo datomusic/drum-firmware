@@ -4,17 +4,17 @@
 #include "etl/observer.h"
 #include "musin/timing/clock_event.h"
 #include "musin/timing/timing_constants.h"
-#include <atomic> // For std::atomic
+#include <atomic>
 #include <cstdint>
 
 extern "C" {
-#include "pico/time.h" // Use pico_time for repeating_timer
+#include "pico/time.h"
 }
 
 namespace musin::timing {
 
 // Maximum number of observers InternalClock can notify (e.g., TempoHandler, PizzaControls)
-constexpr size_t MAX_CLOCK_OBSERVERS = 3; // Increased from 2
+constexpr size_t MAX_CLOCK_OBSERVERS = 3;
 
 /**
  * @brief Generates clock ticks based on an internal timer and BPM setting.
@@ -85,14 +85,14 @@ private:
   int64_t calculate_tick_interval(float bpm) const;
 
   float _current_bpm;
-  int64_t _tick_interval_us = 0; // Current interval between ticks in microseconds
+  int64_t _tick_interval_us = 0;
   bool _is_running = false;
   struct repeating_timer _timer_info; // Stores repeating timer state
 
   // For pending BPM changes
-  volatile float _pending_bpm = 0.0f; // Written by main thread, read by ISR
+  volatile float _pending_bpm = 0.0f;             // Written by main thread, read by ISR
   volatile int64_t _pending_tick_interval_us = 0; // Written by main thread, read by ISR
-  std::atomic<bool> _bpm_change_pending{false}; // Synchronizes access to pending values
+  std::atomic<bool> _bpm_change_pending{false};   // Synchronizes access to pending values
 };
 
 } // namespace musin::timing

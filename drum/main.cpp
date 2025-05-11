@@ -5,6 +5,7 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
+#include "hardware/watchdog.h"
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
 
@@ -42,6 +43,14 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
 int main() {
   stdio_usb_init();
+
+  if (watchdog_caused_reboot()) {
+    printf("Rebooted by Watchdog!\n");
+  }
+
+  constexpr uint32_t WATCHDOG_MAXIMUM_INTERVAL = 8388;
+  constexpr bool WATCHDOG_DISABLE_ON_DEBUG = true;
+  watchdog_enable(WATCHDOG_MAXIMUM_INTERVAL, WATCHDOG_DISABLE_ON_DEBUG);
 
   musin::usb::init();
 
@@ -86,6 +95,8 @@ int main() {
     midi_read();
 
     loop_timer.record_iteration_end();
+
+    watchdog_update();
   }
 
   return 0;

@@ -245,8 +245,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
           }
         }
         key.press_event_time = nil_time; // Reset for next press cycle
-        key.transition_time = nil_time; // Reset for next state change
-
+        key.transition_time = nil_time;  // Reset for next state change
       }
       // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
     } else {

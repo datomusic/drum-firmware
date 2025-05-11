@@ -53,7 +53,8 @@ enum class KeyState : std::uint8_t {
 struct KeyData {
   KeyState state = KeyState::IDLE;            ///< Current debounced and hold state.
   absolute_time_t transition_time = nil_time; ///< Time of the last relevant state change start.
-  absolute_time_t press_event_time = nil_time; ///< Time of the confirmed press event for tap detection.
+  absolute_time_t press_event_time =
+      nil_time;              ///< Time of the confirmed press event for tap detection.
   bool just_pressed = false; ///< Flag indicating a transition to PRESSED occurred in the last scan.
   bool just_released = false; ///< Flag indicating a transition to IDLE occurred in the last scan.
 };
@@ -80,7 +81,7 @@ public:
   static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_MS = 10; ///< 10ms default scan rate
   static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_MS = 5;  ///< 5ms default debounce time
   static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS = 500;    ///< 500ms default hold time
-  static constexpr std::uint32_t DEFAULT_TAP_TIME_MS = 150;     ///< 150ms default tap time threshold
+  static constexpr std::uint32_t DEFAULT_TAP_TIME_MS = 60; ///< 150ms default tap time threshold
 
   /**
    * @brief Construct a new Keypad_HC138 driver instance.

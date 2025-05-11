@@ -3,13 +3,67 @@
 #include <MIDI.h>
 #include <USB-MIDI.h>
 
+struct MIDISettings {
+  /*! Running status enables short messages when sending multiple values
+  of the same type and channel.\n
+  Must be disabled to send USB MIDI messages to a computer
+  Warning: does not work with some hardware, enable with caution.
+  */
+  static const bool UseRunningStatus = false;
+
+  /*! NoteOn with 0 velocity should be handled as NoteOf.\n
+  Set to true  to get NoteOff events when receiving null-velocity NoteOn messages.\n
+  Set to false to get NoteOn  events when receiving null-velocity NoteOn messages.
+  */
+  static const bool HandleNullVelocityNoteOnAsNoteOff = true;
+
+  /*! Setting this to true will make MIDI.read parse only one byte of data for each
+  call when data is available. This can speed up your application if receiving
+  a lot of traffic, but might induce MIDI Thru and treatment latency.
+  */
+  static const bool Use1ByteParsing = true;
+
+  /*! Maximum size of SysEx receivable. Decrease to save RAM if you don't expect
+  to receive SysEx, or adjust accordingly.
+  */
+  static const unsigned SysExMaxSize = 128;
+
+  /*! Global switch to turn on/off sender ActiveSensing
+  Set to true to send ActiveSensing
+  Set to false will not send ActiveSensing message (will also save memory)
+  */
+  static const bool UseSenderActiveSensing = false;
+
+  /*! Global switch to turn on/off receiver ActiveSensing
+  Set to true to check for message timeouts (via ErrorCallback)
+  Set to false will not check if chained device are still alive (if they use ActiveSensing) (will
+  also save memory)
+  */
+  static const bool UseReceiverActiveSensing = false;
+
+  /*! Active Sensing is intended to be sent
+  repeatedly by the sender to tell the receiver that a connection is alive. Use
+  of this message is optional. When initially received, the
+  receiver will expect to receive another Active Sensing
+  message each 300ms (max), and if it does not then it will
+  assume that the connection has been terminated. At
+  termination, the receiver will turn off all voices and return to
+  normal (non- active sensing) operation.
+
+  Typical value is 250 (ms) - an Active Sensing command is send every 250ms.
+  (All Roland devices send Active Sensing every 250ms)
+
+  Setting this field to 0 will disable sending MIDI active sensing.
+  */
+  static const uint16_t SenderActiveSensingPeriodicity = 0;
+};
+
 static usbMidi::usbMidiTransport usbTransport(0);
-static midi::MidiInterface<usbMidi::usbMidiTransport> usb_midi(usbTransport);
+static midi::MidiInterface<usbMidi::usbMidiTransport, MIDISettings> usb_midi(usbTransport);
 
 static PicoUART serial;
 static midi::SerialMIDI<PicoUART> serialTransport(serial);
-static midi::MidiInterface<midi::SerialMIDI<PicoUART>>
-    serial_midi(serialTransport);
+static midi::MidiInterface<midi::SerialMIDI<PicoUART>, MIDISettings> serial_midi(serialTransport);
 
 #define ALL_TRANSPORTS(function_call)                                                              \
   usb_midi.function_call;                                                                          \

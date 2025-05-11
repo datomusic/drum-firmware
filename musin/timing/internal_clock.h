@@ -74,14 +74,21 @@ private:
   // handle_tick() logic moved into timer_callback
 
   /**
-   * @brief Calculate the timer interval in microseconds based on current BPM and PPQN.
+   * @brief Calculate the timer interval in microseconds for a given BPM and current PPQN.
+   * @param bpm The beats per minute to calculate interval for.
+   * @return The calculated interval in microseconds, or 0 if BPM is invalid.
    */
-  void calculate_interval();
+  int64_t calculate_tick_interval(float bpm) const;
 
   float _current_bpm;
-  int64_t _tick_interval_us = 0; // Interval between ticks in microseconds
+  int64_t _tick_interval_us = 0; // Current interval between ticks in microseconds
   bool _is_running = false;
   struct repeating_timer _timer_info; // Stores repeating timer state
+
+  // For pending BPM changes
+  volatile float _pending_bpm = 0.0f;
+  volatile int64_t _pending_tick_interval_us = 0;
+  volatile bool _bpm_change_pending = false;
 };
 
 } // namespace musin::timing

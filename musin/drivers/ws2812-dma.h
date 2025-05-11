@@ -135,9 +135,11 @@ private:
   uint8_t _draw_buffer_index; // Index of the buffer currently being drawn to (0 or 1)
   unsigned int _pio_program_offset = 0;
   bool _initialized = false;
+  absolute_time_t _last_show_time;
 
   // --- Constants ---
-  // static constexpr uint32_t LATCH_DELAY_US = 80; // Moved to namespace constant G_LATCH_DELAY_US
+  static constexpr uint32_t MAX_FRAMERATE = 60;
+  static constexpr uint32_t MIN_FRAME_TIME_US = 1000000 / MAX_FRAMERATE;
 
   // --- PIO Program Info ---
   // Handled dynamically in init()
@@ -152,7 +154,7 @@ WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order, uint8_t 
                                  std::optional<uint32_t> color_correction)
     : _pio(nullptr), _sm_index(UINT_MAX), _data_pin(data_pin), _order(order),
       _brightness(initial_brightness), _color_correction(color_correction), _buffers{},
-      _draw_buffer_index(0) {
+      _draw_buffer_index(0), _last_show_time(nil_time()) {
 }
 
 template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
@@ -263,6 +265,15 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
     assert(_initialized);
     return;
   }
+
+  absolute_time_t current_time = get_absolute_time();
+  if (!is_nil_time(_last_show_time)) {
+    uint64_t elapsed_us = absolute_time_diff_us(_last_show_time, current_time);
+    if (elapsed_us < MIN_FRAME_TIME_US) {
+      return;
+    }
+  }
+
   assert(_pio != nullptr && _sm_index != UINT_MAX && _dma_channel != -1);
   assert(g_handlers_initialized);
 
@@ -280,6 +291,7 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
 
   // Switch to the other buffer for the next drawing operations.
   _draw_buffer_index = 1 - _draw_buffer_index;
+  _last_show_time = current_time;
 }
 
 // --- Namespace-level Static Handler Implementations ---

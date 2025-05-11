@@ -24,7 +24,7 @@ extern "C" {
 namespace musin::drivers {
 
 // --- Namespace-level constants and state for shared IRQ/Alarm resources ---
-static constexpr uint32_t G_LATCH_DELAY_US = 80;
+static constexpr uint32_t G_LATCH_DELAY_US = 200;
 static int g_dma_channel = -1;
 static semaphore_t g_reset_delay_complete_sem;
 static volatile alarm_id_t g_reset_delay_alarm_id = 0;
@@ -217,8 +217,7 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
     printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
   } else {
     if (g_dma_channel != _dma_channel) {
-      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different
-      channels (%d vs %d).\n", g_dma_channel, _dma_channel);
+      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different channels (%d vs %d).\n", g_dma_channel, _dma_channel);
       dma_channel_unclaim(_dma_channel);
       _dma_channel = -1;
       return false;

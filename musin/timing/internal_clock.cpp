@@ -7,11 +7,9 @@
 namespace musin::timing {
 
 InternalClock::InternalClock(float initial_bpm)
-    : _current_bpm(initial_bpm), _is_running(false), _bpm_change_pending(false) {
+    : _current_bpm(initial_bpm), _is_running(false), _bpm_change_pending{false} {
   _timer_info = {};
   _tick_interval_us = calculate_tick_interval(initial_bpm);
-  // Ensure _pending_bpm is also initialized reasonably, though not strictly necessary
-  // if _bpm_change_pending is false.
   _pending_bpm = initial_bpm;
   _pending_tick_interval_us = _tick_interval_us;
 }
@@ -21,9 +19,7 @@ void InternalClock::set_bpm(float bpm) {
     return;
   }
 
-  // If a change is already pending, update the pending values.
-  // If not pending, and new bpm is same as current, do nothing.
-  if (_bpm_change_pending) {
+  if (_bpm_change_pending.load(std::memory_order_relaxed)) {
     if (bpm == _pending_bpm) {
       return;
     }
@@ -38,24 +34,16 @@ void InternalClock::set_bpm(float bpm) {
   if (_is_running) {
     _pending_bpm = bpm;
     _pending_tick_interval_us = new_interval;
-    _bpm_change_pending = true; // Set flag last
+    _bpm_change_pending.store(true, std::memory_order_relaxed);
   } else {
     _current_bpm = bpm;
     _tick_interval_us = new_interval;
-    // If a pending change was made but clock stopped before it applied, clear it.
-    _bpm_change_pending = false;
+    _bpm_change_pending.store(false, std::memory_order_relaxed);
   }
 }
 
 float InternalClock::get_bpm() const {
-  // If a change is pending, conceptually the BPM is already the pending one,
-  // even if the timer interval hasn't caught up yet.
-  // Or, return _current_bpm to reflect the BPM of the *last* tick.
-  // For simplicity and to reflect what set_bpm intended, let's consider pending.
-  // However, to strictly reflect the *current operating* BPM of the timer:
   return _current_bpm;
-  // If you want to reflect the *target* BPM:
-  // return _bpm_change_pending ? _pending_bpm : _current_bpm;
 }
 
 void InternalClock::start() {
@@ -82,7 +70,7 @@ void InternalClock::stop() {
   // Cancel the repeating timer
   cancel_repeating_timer(&_timer_info);
   _is_running = false;
-  _bpm_change_pending = false; // Clear any pending BPM change
+  _bpm_change_pending.store(false, std::memory_order_relaxed);
 
   _timer_info = {};
 }
@@ -115,7 +103,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
   instance->notify_observers(tick_event);
 
   // Check for and apply pending BPM change for the *next* interval
-  if (instance->_bpm_change_pending) {
+  if (instance->_bpm_change_pending.load(std::memory_order_relaxed)) {
     int64_t new_interval = instance->_pending_tick_interval_us;
     float new_bpm = instance->_pending_bpm;
 
@@ -125,12 +113,12 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
     if (new_interval <= 0) {
       // Invalid interval, stop the clock
       instance->_is_running = false;
-      instance->_bpm_change_pending = false; // Clear flag
-      return false;                          // Stop the timer
+      instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
+      return false; // Stop the timer
     }
     rt->delay_us = -new_interval; // Set the next interval for the timer
 
-    instance->_bpm_change_pending = false; // Clear flag last
+    instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
   }
 
   return instance->_is_running; // Continue if still running

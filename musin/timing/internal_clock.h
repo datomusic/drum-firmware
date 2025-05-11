@@ -4,8 +4,12 @@
 #include "etl/observer.h"
 #include "musin/timing/clock_event.h"
 #include "musin/timing/timing_constants.h"
-#include "pico/time.h" // Use pico_time for repeating_timer
+#include <atomic> // For std::atomic
 #include <cstdint>
+
+extern "C" {
+#include "pico/time.h" // Use pico_time for repeating_timer
+}
 
 namespace musin::timing {
 
@@ -86,9 +90,9 @@ private:
   struct repeating_timer _timer_info; // Stores repeating timer state
 
   // For pending BPM changes
-  volatile float _pending_bpm = 0.0f;
-  volatile int64_t _pending_tick_interval_us = 0;
-  volatile bool _bpm_change_pending = false;
+  volatile float _pending_bpm = 0.0f; // Written by main thread, read by ISR
+  volatile int64_t _pending_tick_interval_us = 0; // Written by main thread, read by ISR
+  std::atomic<bool> _bpm_change_pending{false}; // Synchronizes access to pending values
 };
 
 } // namespace musin::timing

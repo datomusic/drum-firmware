@@ -12,6 +12,7 @@
 #include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
+#include "musin/hal/debug_utils.h"
 
 namespace drum {
 
@@ -122,6 +123,9 @@ private:
   AudioMixer<NUM_VOICES> mixer_;
   Crusher crusher_;
   Lowpass lowpass_;
+
+  musin::hal::DebugUtils::SectionProfiler<1> profiler_;
+  enum class ProfileSection { AUDIO_PROCESS_UPDATE };
 
   bool is_initialized_ = false;
 };

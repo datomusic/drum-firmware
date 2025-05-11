@@ -114,7 +114,6 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
     REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
     // Quadratic interpolated values
-    /*
     REQUIRE(block[0] == 0);
     REQUIRE(block[1] == 0);
     REQUIRE(block[2] == 0);
@@ -128,32 +127,6 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
     REQUIRE(block[10] == 2);
     REQUIRE(block[11] == 3);
     REQUIRE(block[12] == 3);
-    REQUIRE(block[13] == 2);
-    REQUIRE(block[14] == 0);
-    REQUIRE(block[15] == 0);
-    REQUIRE(block[16] == 0);
-    REQUIRE(block[17] == 0);
-    REQUIRE(block[18] == 0);
-    REQUIRE(block[19] == 0);
-    REQUIRE(block[19] == 0);
-    REQUIRE(block[19] == 0);
-    */
-
-    // Linear interpolated values
-    // TODO: Replace with above implementation when PitchShifter uses quad interpolation again.
-    REQUIRE(block[0] == 0);
-    REQUIRE(block[1] == 0);
-    REQUIRE(block[2] == 0);
-    REQUIRE(block[3] == 0);
-    REQUIRE(block[4] == 0);
-    REQUIRE(block[5] == 0);
-    REQUIRE(block[6] == 1);
-    REQUIRE(block[7] == 1);
-    REQUIRE(block[8] == 2);
-    REQUIRE(block[9] == 2);
-    REQUIRE(block[10] == 3);
-    REQUIRE(block[11] == 3);
-    REQUIRE(block[12] == 4);
     REQUIRE(block[13] == 2);
     REQUIRE(block[14] == 0);
     REQUIRE(block[15] == 0);

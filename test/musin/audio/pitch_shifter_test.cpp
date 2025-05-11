@@ -1,6 +1,8 @@
 #include "../test_support.h"
 #include "musin/audio/pitch_shifter.h"
 
+// Produces samples with values from 1 to MAX_SAMPLES (inclusive).
+// Outputs CHUNK_SIZE samples per call to read_samples.
 template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
   constexpr DummyBufferReader() {
     reset();

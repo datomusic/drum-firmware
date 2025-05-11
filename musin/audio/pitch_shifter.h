@@ -3,11 +3,11 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <arm_acle.h>
 
 #include "port/section_macros.h"
 
 #include "buffered_reader.h"
+#include "dspinst.h"
 #include "sample_reader.h"
 
 struct PitchShifter : SampleReader {
@@ -35,12 +35,9 @@ struct PitchShifter : SampleReader {
     float_val = std::clamp(float_val, static_cast<float>(INT32_MIN), static_cast<float>(INT32_MAX));
 
     // Convert to int32_t (this truncates)
-    int32_t val_i32 = static_cast<int32_t>(float_val);
+    const int32_t val_i32 = static_cast<int32_t>(float_val);
 
-    // Saturate to 16-bit signed range using ARM SSAT instruction via GCC intrinsic
-    int32_t saturated_val = __ssat(val_i32, 16);
-
-    return static_cast<int16_t>(saturated_val);
+    return static_cast<int16_t>(saturate16(val_i32));
   }
 
   // Reader interface

@@ -5,6 +5,7 @@
 
 namespace intrinsics {
 template <int bits> static constexpr int16_t signed_saturate(const int32_t value) {
+  // Only support 16bit for now, since that's all we're using.
   static_assert(bits == 16);
 
   if (value > INT16_MAX) {

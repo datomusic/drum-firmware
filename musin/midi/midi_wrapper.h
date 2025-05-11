@@ -3,6 +3,8 @@
 #include <midi_Defs.h>
 
 namespace MIDI {
+  static const unsigned SysExMaxSize = 128;
+
 using MidiType = ::midi::MidiType; // Alias the original library's MidiType
 
 typedef void(VoidCallback)();

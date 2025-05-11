@@ -26,7 +26,7 @@ struct MIDISettings {
   /*! Maximum size of SysEx receivable. Decrease to save RAM if you don't expect
   to receive SysEx, or adjust accordingly.
   */
-  static const unsigned SysExMaxSize = 128;
+  static const unsigned SysExMaxSize = MIDI::SysExMaxSize;
 
   /*! Global switch to turn on/off sender ActiveSensing
   Set to true to send ActiveSensing

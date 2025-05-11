@@ -21,10 +21,11 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(const std::array<uint32_t, 3> &deco
                                              // No key_data_buffer parameter
                                              std::uint32_t scan_interval_ms,
                                              std::uint32_t debounce_time_ms,
-                                             std::uint32_t hold_time_ms)
+                                             std::uint32_t hold_time_ms,
+                                             std::uint32_t tap_time_ms)
     : // Store timing parameters (convert ms to us for internal storage)
       _scan_interval_us(scan_interval_ms * 1000), _debounce_time_us(debounce_time_ms * 1000),
-      _hold_time_us(hold_time_ms * 1000),
+      _hold_time_us(hold_time_ms * 1000), _tap_time_us(tap_time_ms * 1000),
       // _internal_key_data is default-initialized (member array)
       // Initialize time
       _last_scan_time(nil_time)
@@ -182,6 +183,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
         // Debounce confirmed, transition to PRESSED
         KeyState next_state = KeyState::PRESSED;
         key.transition_time = now;                    // Record press time for hold check
+        key.press_event_time = now;                   // Record press time for tap check
         key.just_pressed = true;                      // Set event flag
         notify_event(r, c, KeypadEvent::Type::Press); // Notify observers
 
@@ -232,9 +234,19 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
       if (absolute_time_diff_us(key.transition_time, now) >= _debounce_time_us) {
         // Debounce confirmed, transition to IDLE
         key.state = KeyState::IDLE;
-        key.transition_time = nil_time;
+        // key.transition_time is already set from when release debounce started
         key.just_released = true;                       // Set event flag
         notify_event(r, c, KeypadEvent::Type::Release); // Notify observers
+
+        // Check for tap event
+        if (!is_nil_time(key.press_event_time)) {
+          if (absolute_time_diff_us(key.press_event_time, now) < _tap_time_us) {
+            notify_event(r, c, KeypadEvent::Type::Tap);
+          }
+        }
+        key.press_event_time = nil_time; // Reset for next press cycle
+        key.transition_time = nil_time; // Reset for next state change
+
       }
       // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
     } else {

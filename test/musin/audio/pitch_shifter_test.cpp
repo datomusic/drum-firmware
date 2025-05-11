@@ -37,8 +37,8 @@ template <int SAMPLE_COUNT, int CHUNK_SIZE> struct DummyBufferReader : SampleRea
       return 0;
     }
 
-    if (consumed == 0 || samples_written == 0) {
-      active = 0;
+    if (read_counter == samples.size() || consumed == 0 || samples_written == 0) {
+      active = false;
     }
 
     return samples_written;
@@ -58,7 +58,7 @@ TEST_CASE("PitchShifter reads samples") {
   CONST_BODY(({
     etl::array<int16_t, 100> samples;
     for (int i = 0; i < 100; ++i) {
-      samples[i] = i;
+      samples[i] = i + 1;
     }
 
     auto reader = DummyBufferReader<100, 4>(samples);
@@ -102,7 +102,7 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
 
   CONST_BODY(({
     const int CHUNK_SIZE = 4;
-    auto reader = DummyBufferReader<4, CHUNK_SIZE>({0, 1, 2, 3});
+    auto reader = DummyBufferReader<4, CHUNK_SIZE>({1, 2, 3, 4});
     PitchShifter shifter = PitchShifter(reader);
     shifter.reset();
 

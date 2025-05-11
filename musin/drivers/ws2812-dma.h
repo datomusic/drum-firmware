@@ -131,7 +131,8 @@ private:
 
   // --- State ---
   // Consider alignas(4) if issues arise, but start without it.
-  std::array<uint32_t, NUM_LEDS> _pixel_buffer;
+  std::array<uint32_t, NUM_LEDS> _buffers[2];
+  uint8_t _draw_buffer_index; // Index of the buffer currently being drawn to (0 or 1)
   unsigned int _pio_program_offset = 0;
   bool _initialized = false;
 
@@ -150,7 +151,8 @@ template <size_t NUM_LEDS>
 WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order, uint8_t initial_brightness,
                                  std::optional<uint32_t> color_correction)
     : _pio(nullptr), _sm_index(UINT_MAX), _data_pin(data_pin), _order(order),
-      _brightness(initial_brightness), _color_correction(color_correction), _pixel_buffer{} {
+      _brightness(initial_brightness), _color_correction(color_correction), _buffers{},
+      _draw_buffer_index(0) {
 }
 
 template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
@@ -241,7 +243,7 @@ void WS2812_DMA<NUM_LEDS>::set_pixel(unsigned int index, uint8_t r, uint8_t g, u
   uint8_t final_r, final_g, final_b;
   apply_brightness_and_correction(r, g, b, final_r, final_g, final_b);
   // Pack color directly into the buffer in the format PIO expects (shifted)
-  _pixel_buffer[index] = pack_color(final_r, final_g, final_b) << 8;
+  _buffers[_draw_buffer_index][index] = pack_color(final_r, final_g, final_b) << 8;
 }
 
 template <size_t NUM_LEDS>
@@ -268,10 +270,16 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
 
   dma_channel_abort(_dma_channel);
 
+  // The buffer that was being drawn to is now ready for display.
+  const auto &buffer_to_display = _buffers[_draw_buffer_index];
+
   dma_channel_set_config(_dma_channel, &_dma_config, false);
   dma_channel_set_write_addr(_dma_channel, &_pio->txf[_sm_index], false);
   dma_channel_set_trans_count(_dma_channel, NUM_LEDS, false);
-  dma_channel_set_read_addr(_dma_channel, _pixel_buffer.data(), true);
+  dma_channel_set_read_addr(_dma_channel, buffer_to_display.data(), true);
+
+  // Switch to the other buffer for the next drawing operations.
+  _draw_buffer_index = 1 - _draw_buffer_index;
 }
 
 // --- Namespace-level Static Handler Implementations ---
@@ -308,7 +316,7 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::clear() {
     return;
   }
   // Fill buffer with 0 (already shifted left by 8, so 0 is still 0)
-  std::fill(_pixel_buffer.begin(), _pixel_buffer.end(), 0);
+  std::fill(_buffers[_draw_buffer_index].begin(), _buffers[_draw_buffer_index].end(), 0);
 }
 
 template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amount) {
@@ -320,7 +328,7 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amoun
     return;
   }
 
-  for (uint32_t &packed_shifted_color : _pixel_buffer) {
+  for (uint32_t &packed_shifted_color : _buffers[_draw_buffer_index]) {
     if (packed_shifted_color == 0)
       continue;
 

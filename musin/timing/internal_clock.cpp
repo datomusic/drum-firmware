@@ -86,8 +86,6 @@ void InternalClock::stop() {
 
   _timer_info = {};
 }
-  return _current_bpm;
-}
 
 bool InternalClock::is_running() const {
   return _is_running;

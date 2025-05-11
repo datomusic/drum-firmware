@@ -2,8 +2,8 @@
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
 #include <algorithm>
-#include <cstdint>
 #include <arm_acle.h>
+#include <cstdint>
 
 #include "port/section_macros.h"
 
@@ -150,7 +150,7 @@ private:
   float position;
   float remainder;
   SampleReader &sample_reader;
-  BufferedReader buffered_reader;
+  BufferedReader<> buffered_reader;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

@@ -28,8 +28,8 @@
 #ifndef DSPINST_H
 #define DSPINST_H
 
-#include <stdint.h>
 #include "port/intrinsics.h"
+#include <stdint.h>
 
 // computes limit((val >> rshift), 2**bits)
 static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t rshift)

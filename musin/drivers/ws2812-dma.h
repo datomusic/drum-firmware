@@ -24,7 +24,7 @@ extern "C" {
 namespace musin::drivers {
 
 // --- Namespace-level constants and state for shared IRQ/Alarm resources ---
-static constexpr uint32_t G_LATCH_DELAY_US = 80;
+static constexpr uint32_t G_LATCH_DELAY_US = 100;
 static int g_dma_channel = -1;
 static semaphore_t g_reset_delay_complete_sem;
 static volatile alarm_id_t g_reset_delay_alarm_id = 0;
@@ -138,7 +138,7 @@ private:
   absolute_time_t _last_show_time;
 
   // --- Constants ---
-  static constexpr uint32_t MAX_FRAMERATE = 60;
+  static constexpr uint32_t MAX_FRAMERATE = 300;
   static constexpr uint32_t MIN_FRAME_TIME_US = 1000000 / MAX_FRAMERATE;
 
   // --- PIO Program Info ---
@@ -154,7 +154,7 @@ WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order, uint8_t 
                                  std::optional<uint32_t> color_correction)
     : _pio(nullptr), _sm_index(UINT_MAX), _data_pin(data_pin), _order(order),
       _brightness(initial_brightness), _color_correction(color_correction), _buffers{},
-      _draw_buffer_index(0), _last_show_time(nil_time()) {
+      _draw_buffer_index(0), _last_show_time(nil_time) {
 }
 
 template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
@@ -221,7 +221,9 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
     printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
   } else {
     if (g_dma_channel != _dma_channel) {
-      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different channels (%d vs %d).\n", g_dma_channel, _dma_channel);
+      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different channels "
+             "(%d vs %d).\n",
+             g_dma_channel, _dma_channel);
       dma_channel_unclaim(_dma_channel);
       _dma_channel = -1;
       return false;
@@ -231,8 +233,7 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
 
   _initialized = true;
   printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u using DMA%d\n",
-  NUM_LEDS,
-        pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
+         NUM_LEDS, pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
   return true;
 }
 

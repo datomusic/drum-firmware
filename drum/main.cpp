@@ -81,7 +81,6 @@ int main() {
     pizza_display.draw_animations(get_absolute_time());
     pizza_display.draw_base_elements();
     pizza_display.show();
-    sleep_us(280); // TODO: remove this once we move to DMA WS2812
 
     musin::usb::background_update();
     midi_read();

@@ -29,6 +29,7 @@
 #define DSPINST_H
 
 #include <stdint.h>
+#include "port/intrinsics.h"
 
 // computes limit((val >> rshift), 2**bits)
 static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t rshift)
@@ -48,14 +49,9 @@ static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t 
 }
 
 // computes limit(val, 2**bits)
-static inline int16_t saturate16(int32_t val) __attribute__((always_inline, unused));
-static inline int16_t saturate16(int32_t val) {
-
-  if (val > 32767)
-    val = 32767;
-  else if (val < -32768)
-    val = -32768;
-  return val;
+static constexpr int16_t saturate16(const int32_t value) __attribute__((always_inline, unused));
+static constexpr int16_t saturate16(const int32_t value) {
+  return intrinsics::signed_saturate<16>(value);
 }
 
 // computes ((a[31:0] * b[15:0]) >> 16)

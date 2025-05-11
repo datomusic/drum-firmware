@@ -24,7 +24,7 @@ extern "C" {
 namespace musin::drivers {
 
 // --- Namespace-level constants and state for shared IRQ/Alarm resources ---
-static constexpr uint32_t G_LATCH_DELAY_US = 200;
+static constexpr uint32_t G_LATCH_DELAY_US = 80;
 static int g_dma_channel = -1;
 static semaphore_t g_reset_delay_complete_sem;
 static volatile alarm_id_t g_reset_delay_alarm_id = 0;
@@ -303,9 +303,8 @@ static void dma_complete_handler() {
 
     g_reset_delay_alarm_id = add_alarm_in_us(G_LATCH_DELAY_US, reset_delay_complete, NULL, true);
     if (g_reset_delay_alarm_id <= 0) {
-      printf("WS2812_DMA Error: Failed to schedule latch alarm.\n");
+      busy_wait_us_32(G_LATCH_DELAY_US);
       sem_release(&g_reset_delay_complete_sem);
-      printf("WS2812_DMA Warning: Semaphore released immediately due to alarm failure.\n");
     }
   }
 }

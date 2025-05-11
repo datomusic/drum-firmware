@@ -44,10 +44,8 @@ public:
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(
-      etl::observable<etl::observer<musin::timing::TempoEvent>,
-                      musin::timing::MAX_TEMPO_OBSERVERS>
-          &tempo_source_ref);
+  SequencerController(etl::observable<etl::observer<musin::timing::TempoEvent>,
+                                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -172,11 +170,15 @@ public:
   /**
    * @brief Get a reference to the internal sequencer instance.
    */
-  [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() { return sequencer_; }
+  [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() {
+    return sequencer_;
+  }
   /**
    * @brief Get a const reference to the internal sequencer instance.
    */
-  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() const { return sequencer_; }
+  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() const {
+    return sequencer_;
+  }
 
 private:
   enum class State : uint8_t {

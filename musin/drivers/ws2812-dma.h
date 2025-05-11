@@ -24,7 +24,7 @@ extern "C" {
 namespace musin::drivers {
 
 // --- Namespace-level constants and state for shared IRQ/Alarm resources ---
-static constexpr uint32_t G_LATCH_DELAY_US = 80;
+static constexpr uint32_t G_LATCH_DELAY_US = 100;
 static int g_dma_channel = -1;
 static semaphore_t g_reset_delay_complete_sem;
 static volatile alarm_id_t g_reset_delay_alarm_id = 0;
@@ -131,12 +131,15 @@ private:
 
   // --- State ---
   // Consider alignas(4) if issues arise, but start without it.
-  std::array<uint32_t, NUM_LEDS> _pixel_buffer;
+  std::array<uint32_t, NUM_LEDS> _buffers[2];
+  uint8_t _draw_buffer_index; // Index of the buffer currently being drawn to (0 or 1)
   unsigned int _pio_program_offset = 0;
   bool _initialized = false;
+  absolute_time_t _last_show_time;
 
   // --- Constants ---
-  // static constexpr uint32_t LATCH_DELAY_US = 80; // Moved to namespace constant G_LATCH_DELAY_US
+  static constexpr uint32_t MAX_FRAMERATE = 300;
+  static constexpr uint32_t MIN_FRAME_TIME_US = 1000000 / MAX_FRAMERATE;
 
   // --- PIO Program Info ---
   // Handled dynamically in init()
@@ -150,7 +153,8 @@ template <size_t NUM_LEDS>
 WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order, uint8_t initial_brightness,
                                  std::optional<uint32_t> color_correction)
     : _pio(nullptr), _sm_index(UINT_MAX), _data_pin(data_pin), _order(order),
-      _brightness(initial_brightness), _color_correction(color_correction), _pixel_buffer{} {
+      _brightness(initial_brightness), _color_correction(color_correction), _buffers{},
+      _draw_buffer_index(0), _last_show_time(nil_time) {
 }
 
 template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
@@ -217,8 +221,9 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
     printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
   } else {
     if (g_dma_channel != _dma_channel) {
-      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different
-      channels (%d vs %d).\n", g_dma_channel, _dma_channel);
+      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different channels "
+             "(%d vs %d).\n",
+             g_dma_channel, _dma_channel);
       dma_channel_unclaim(_dma_channel);
       _dma_channel = -1;
       return false;
@@ -228,8 +233,7 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
 
   _initialized = true;
   printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u using DMA%d\n",
-  NUM_LEDS,
-        pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
+         NUM_LEDS, pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
   return true;
 }
 
@@ -242,7 +246,7 @@ void WS2812_DMA<NUM_LEDS>::set_pixel(unsigned int index, uint8_t r, uint8_t g, u
   uint8_t final_r, final_g, final_b;
   apply_brightness_and_correction(r, g, b, final_r, final_g, final_b);
   // Pack color directly into the buffer in the format PIO expects (shifted)
-  _pixel_buffer[index] = pack_color(final_r, final_g, final_b) << 8;
+  _buffers[_draw_buffer_index][index] = pack_color(final_r, final_g, final_b) << 8;
 }
 
 template <size_t NUM_LEDS>
@@ -262,6 +266,15 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
     assert(_initialized);
     return;
   }
+
+  absolute_time_t current_time = get_absolute_time();
+  if (!is_nil_time(_last_show_time)) {
+    uint64_t elapsed_us = absolute_time_diff_us(_last_show_time, current_time);
+    if (elapsed_us < MIN_FRAME_TIME_US) {
+      return;
+    }
+  }
+
   assert(_pio != nullptr && _sm_index != UINT_MAX && _dma_channel != -1);
   assert(g_handlers_initialized);
 
@@ -269,10 +282,17 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
 
   dma_channel_abort(_dma_channel);
 
+  // The buffer that was being drawn to is now ready for display.
+  const auto &buffer_to_display = _buffers[_draw_buffer_index];
+
   dma_channel_set_config(_dma_channel, &_dma_config, false);
   dma_channel_set_write_addr(_dma_channel, &_pio->txf[_sm_index], false);
   dma_channel_set_trans_count(_dma_channel, NUM_LEDS, false);
-  dma_channel_set_read_addr(_dma_channel, _pixel_buffer.data(), true);
+  dma_channel_set_read_addr(_dma_channel, buffer_to_display.data(), true);
+
+  // Switch to the other buffer for the next drawing operations.
+  _draw_buffer_index = 1 - _draw_buffer_index;
+  _last_show_time = current_time;
 }
 
 // --- Namespace-level Static Handler Implementations ---
@@ -296,9 +316,8 @@ static void dma_complete_handler() {
 
     g_reset_delay_alarm_id = add_alarm_in_us(G_LATCH_DELAY_US, reset_delay_complete, NULL, true);
     if (g_reset_delay_alarm_id <= 0) {
-      printf("WS2812_DMA Error: Failed to schedule latch alarm.\n");
+      busy_wait_us_32(G_LATCH_DELAY_US);
       sem_release(&g_reset_delay_complete_sem);
-      printf("WS2812_DMA Warning: Semaphore released immediately due to alarm failure.\n");
     }
   }
 }
@@ -309,7 +328,7 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::clear() {
     return;
   }
   // Fill buffer with 0 (already shifted left by 8, so 0 is still 0)
-  std::fill(_pixel_buffer.begin(), _pixel_buffer.end(), 0);
+  std::fill(_buffers[_draw_buffer_index].begin(), _buffers[_draw_buffer_index].end(), 0);
 }
 
 template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amount) {
@@ -321,7 +340,7 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amoun
     return;
   }
 
-  for (uint32_t &packed_shifted_color : _pixel_buffer) {
+  for (uint32_t &packed_shifted_color : _buffers[_draw_buffer_index]) {
     if (packed_shifted_color == 0)
       continue;
 

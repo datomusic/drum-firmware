@@ -126,7 +126,7 @@ bool InternalClock::timer_callback(struct repeating_timer *rt) {
       // Invalid interval, stop the clock
       instance->_is_running = false;
       instance->_bpm_change_pending = false; // Clear flag
-      return false;                         // Stop the timer
+      return false;                          // Stop the timer
     }
     rt->delay_us = -new_interval; // Set the next interval for the timer
 

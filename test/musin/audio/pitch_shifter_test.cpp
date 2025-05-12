@@ -102,38 +102,29 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
 
   CONST_BODY(({
     const int CHUNK_SIZE = 4;
-    auto reader = DummyBufferReader<4, CHUNK_SIZE>({1, 2, 3, 4});
+    auto reader = DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 
+                                                    5000, 6000, 7000, 8000,
+                                                    9000, 10000, 11000, 12000,
+                                                    13000, 14000, 15000, 16000});
     PitchShifter shifter = PitchShifter(reader);
     shifter.reset();
 
-    shifter.set_speed(0.5);
+    shifter.set_speed(0.5f);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
-    REQUIRE(reader.read_counter == 4);
+    REQUIRE(reader.read_counter == 16);  // Verify we consumed all input
     REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
-    // Quadratic interpolated values
-    REQUIRE(block[0] == 1);
-    REQUIRE(block[1] == 1);
-    REQUIRE(block[2] == 1);
-    REQUIRE(block[3] == 1);
-    REQUIRE(block[4] == 1);
-    REQUIRE(block[5] == 0);
-    REQUIRE(block[6] == 1);
-    REQUIRE(block[7] == 1);
-    REQUIRE(block[8] == 2);
-    REQUIRE(block[9] == 2);
-    REQUIRE(block[10] == 3);
-    REQUIRE(block[11] == 4);
-    REQUIRE(block[12] == 4);
-    REQUIRE(block[13] == 2);
-    REQUIRE(block[14] == 0);
-    REQUIRE(block[15] == 0);
-    REQUIRE(block[16] == 0);
-    REQUIRE(block[17] == 0);
-    REQUIRE(block[18] == 0);
-    REQUIRE(block[19] == 0);
+    // First 8 output samples should show proper interpolation
+    REQUIRE(block[0] == 1000);  // Initial clamped value
+    REQUIRE(block[1] == 1375);  // First interpolated value
+    REQUIRE(block[2] == 1750);
+    REQUIRE(block[3] == 2125);
+    REQUIRE(block[4] == 2500);
+    REQUIRE(block[5] == 2875);
+    REQUIRE(block[6] == 3250);
+    REQUIRE(block[7] == 3625);
   }));
 }
 

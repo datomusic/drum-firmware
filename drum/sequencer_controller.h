@@ -139,6 +139,10 @@ public:
    */
   void deactivate_random();
 
+  void set_random_probability(uint8_t percent) {
+    random_probability_ = std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
+  }
+
   [[nodiscard]] bool is_random_active() const;
 
   /**

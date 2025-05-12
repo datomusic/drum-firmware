@@ -27,6 +27,7 @@
 
 #include "filter.h"
 #include "dspinst.h"
+#include "port/section_macros.h"
 
 // State Variable Filter (Chamberlin) with 2X oversampling
 // http://www.musicdsp.org/showArchiveComment.php?ArchiveID=92
@@ -46,7 +47,7 @@
 // no audible difference.
 // #define IMPROVE_EXPONENTIAL_ACCURACY
 
-void Filter::update_fixed(const AudioBlock &in, Filter::Outputs &outputs) {
+void __time_critical_func(Filter::update_fixed)(const AudioBlock &in, Filter::Outputs &outputs) {
   const int16_t *end = in.cend();
   const int16_t *input_iterator = in.cbegin();
 
@@ -89,7 +90,7 @@ void Filter::update_fixed(const AudioBlock &in, Filter::Outputs &outputs) {
   state_bandpass = bandpass;
 }
 
-void Filter::update_variable(const AudioBlock &in, const AudioBlock &ctl,
+void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const AudioBlock &ctl,
                              Filter::Outputs &outputs) {
   const int16_t *end = in.cend();
   const int16_t *input_iterator = in.cbegin();

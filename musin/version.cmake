@@ -1,5 +1,5 @@
 # version.cmake - Generates version information from git
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 
 # Function to extract version information from git
 function(configure_version_from_git)
@@ -122,7 +122,7 @@ function(configure_version_from_git)
   set(VERSION_BCD ${VERSION_BCD_VALUE} PARENT_SCOPE)
 
   # Format the decimal packed value as a 4-digit hex string for display
-  string(FORMAT "%04x" ${VERSION_BCD_VALUE} VERSION_PACKED_HEX_STRING)
+  string(HEX ${VERSION_BCD_VALUE} VERSION_PACKED_HEX_STRING)
 
   # Display version info during cmake configuration
   message(STATUS "Firmware Version: ${VERSION_STRING}")

@@ -14,6 +14,8 @@ generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 # Add the generated directory to include paths
 include_directories(${CMAKE_BINARY_DIR}/generated)
 
+message(STATUS "USB bcdDevice will be set to: ${VERSION_BCD}")
+
 project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}

@@ -97,8 +97,7 @@ TEST_CASE("PitchShifter reads samples") {
   }));
 }
 
-TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
-          "sample count is equal to chunk size of the underlying reader") {
+TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sample count is equal to chunk size of the underlying reader") {
 
   CONST_BODY(({
     const int CHUNK_SIZE = 4;

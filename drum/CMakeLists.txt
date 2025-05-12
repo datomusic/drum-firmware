@@ -11,12 +11,36 @@ include(${CMAKE_CURRENT_LIST_DIR}/../musin/version.cmake)
 # Generate version header file
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
+# Sample generation setup
+find_program(XXD_PROGRAM xxd)
+if(NOT XXD_PROGRAM)
+    message(FATAL_ERROR "xxd not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd\n  MacOS: brew install xxd")
+endif()
+
+set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers.sh")
+set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
+
+if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/generated/sample_data.h
+    COMMAND ${XXD_PROGRAM} --version
+    COMMAND ${GENERATE_SAMPLES_SCRIPT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support
+    COMMENT "Generating sample headers"
+  )
+  
+  add_custom_target(generate_samples DEPENDS ${CMAKE_BINARY_DIR}/generated/sample_data.h)
+else()
+  message(WARNING "Sample generation script/samples missing - firmware might not build correctly")
+endif()
+
 # Add the generated directory to include paths
 include_directories(${CMAKE_BINARY_DIR}/generated)
 
 project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
+  ${CMAKE_BINARY_DIR}/generated/sample_data.h
   main.cpp
   midi_functions.cpp
   pizza_controls.cpp
@@ -49,6 +73,11 @@ musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
+
+# Add sample generation dependency after executable is defined
+if(TARGET generate_samples)
+  add_dependencies(${EXECUTABLE_NAME} generate_samples)
+endif()
 
 
 # Explicitly find the size utility, hinting at the Pico toolchain path

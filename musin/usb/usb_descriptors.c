@@ -25,19 +25,16 @@
 
 #define TUD_RPI_RESET_DESC_LEN 9
 #if !PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE
-#define USBD_DESC_LEN                                                          \
-  (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_MIDI_DESC_LEN)
+#define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_MIDI_DESC_LEN)
 #else
-#define USBD_DESC_LEN                                                          \
-  (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_MIDI_DESC_LEN +                \
-   TUD_RPI_RESET_DESC_LEN)
+#define USBD_DESC_LEN                                                                              \
+  (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_MIDI_DESC_LEN + TUD_RPI_RESET_DESC_LEN)
 #endif
 #if !PICO_STDIO_USB_DEVICE_SELF_POWERED
 #define USBD_CONFIGURATION_DESCRIPTOR_ATTRIBUTE (0)
 #define USBD_MAX_POWER_MA (250)
 #else
-#define USBD_CONFIGURATION_DESCRIPTOR_ATTRIBUTE                                \
-  TUSB_DESC_CONFIG_ATT_SELF_POWERED
+#define USBD_CONFIGURATION_DESCRIPTOR_ATTRIBUTE TUSB_DESC_CONFIG_ATT_SELF_POWERED
 #define USBD_MAX_POWER_MA (1)
 #endif
 
@@ -79,7 +76,7 @@ static const tusb_desc_device_t usbd_desc_device = {
 // for driverless access, but will still not work if bcdUSB = 0x210 and no
 // descriptor is provided. Therefore always use bcdUSB = 0x200 if the Microsoft
 // OS 2.0 descriptor isn't enabled
-#if PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE &&                        \
+#if PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE &&                                            \
     PICO_STDIO_USB_RESET_INTERFACE_SUPPORT_MS_OS_20_DESCRIPTOR
     .bcdUSB = 0x0210,
 #else
@@ -91,26 +88,27 @@ static const tusb_desc_device_t usbd_desc_device = {
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = USBD_VID,
     .idProduct = USBD_PID,
-    .bcdDevice = 0x0100,
+#ifndef USBD_DEVICE_BCD
+#define USBD_DEVICE_BCD 0x0100 // Default bcdDevice 1.00 if not set by build system
+#endif
+    .bcdDevice = USBD_DEVICE_BCD,
     .iManufacturer = USBD_STR_MANUF,
     .iProduct = USBD_STR_PRODUCT,
     .iSerialNumber = USBD_STR_SERIAL,
     .bNumConfigurations = 1,
 };
 
-#define TUD_RPI_RESET_DESCRIPTOR(_itfnum, _stridx)                             \
-  /* Interface */                                                              \
-  9, TUSB_DESC_INTERFACE, _itfnum, 0, 0, TUSB_CLASS_VENDOR_SPECIFIC,           \
-      RESET_INTERFACE_SUBCLASS, RESET_INTERFACE_PROTOCOL, _stridx,
+#define TUD_RPI_RESET_DESCRIPTOR(_itfnum, _stridx)                                                 \
+  /* Interface */                                                                                  \
+  9, TUSB_DESC_INTERFACE, _itfnum, 0, 0, TUSB_CLASS_VENDOR_SPECIFIC, RESET_INTERFACE_SUBCLASS,     \
+      RESET_INTERFACE_PROTOCOL, _stridx,
 
 static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
     TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, USBD_STR_0, USBD_DESC_LEN,
-                          USBD_CONFIGURATION_DESCRIPTOR_ATTRIBUTE,
-                          USBD_MAX_POWER_MA),
+                          USBD_CONFIGURATION_DESCRIPTOR_ATTRIBUTE, USBD_MAX_POWER_MA),
 
-    TUD_CDC_DESCRIPTOR(USBD_ITF_CDC, USBD_STR_CDC, USBD_CDC_EP_CMD,
-                       USBD_CDC_CMD_MAX_SIZE, USBD_CDC_EP_OUT, USBD_CDC_EP_IN,
-                       USBD_CDC_IN_OUT_MAX_SIZE),
+    TUD_CDC_DESCRIPTOR(USBD_ITF_CDC, USBD_STR_CDC, USBD_CDC_EP_CMD, USBD_CDC_CMD_MAX_SIZE,
+                       USBD_CDC_EP_OUT, USBD_CDC_EP_IN, USBD_CDC_IN_OUT_MAX_SIZE),
 
     // MIDI: Interface number, string index, EP OUT & EP IN
     TUD_MIDI_DESCRIPTOR(ITF_NUM_MIDI, 0, EPNUM_MIDI_OUT, EPNUM_MIDI_IN, 64),
@@ -138,8 +136,7 @@ const uint8_t *tud_descriptor_configuration_cb(__unused uint8_t index) {
   return usbd_desc_cfg;
 }
 
-const uint16_t *tud_descriptor_string_cb(uint8_t index,
-                                         __unused uint16_t langid) {
+const uint16_t *tud_descriptor_string_cb(uint8_t index, __unused uint16_t langid) {
 #ifndef USBD_DESC_STR_MAX
 #define USBD_DESC_STR_MAX (20)
 #elif USBD_DESC_STR_MAX > 127

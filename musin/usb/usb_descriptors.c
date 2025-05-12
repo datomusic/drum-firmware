@@ -91,7 +91,10 @@ static const tusb_desc_device_t usbd_desc_device = {
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = USBD_VID,
     .idProduct = USBD_PID,
-    .bcdDevice = 0x0100,
+#ifndef USBD_DEVICE_BCD
+#define USBD_DEVICE_BCD 0x0100 // Default bcdDevice 1.00 if not set by build system
+#endif
+    .bcdDevice = USBD_DEVICE_BCD,
     .iManufacturer = USBD_STR_MANUF,
     .iProduct = USBD_STR_PRODUCT,
     .iSerialNumber = USBD_STR_SERIAL,

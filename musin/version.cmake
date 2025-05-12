@@ -88,8 +88,14 @@ function(configure_version_from_git)
   set(VERSION_BASE ${VERSION_BASE} PARENT_SCOPE)
   set(VERSION_IS_RELEASE ${VERSION_IS_RELEASE} PARENT_SCOPE)
   
+  # Create BCD version (MM.mm -> 0xMMmm)
+  # Ensure major and minor are treated as decimal numbers for the calculation
+  math(EXPR VERSION_BCD "(${VERSION_MAJOR} * 256) + ${VERSION_MINOR}")
+  set(VERSION_BCD ${VERSION_BCD} PARENT_SCOPE)
+
   # Display version info during cmake configuration
   message(STATUS "Firmware Version: ${VERSION_STRING}")
+  message(STATUS "Firmware BCD Version: 0x${VERSION_BCD}")
 endfunction()
 
 # Configure version header file

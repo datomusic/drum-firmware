@@ -186,12 +186,6 @@ public:
   }
 
 private:
-  enum class State : uint8_t {
-    Stopped,
-    Running,
-    Repeating
-  };
-  void set_state(State new_state);
   void calculate_timing_params();
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
@@ -201,26 +195,21 @@ private:
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
-  etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
       &tempo_source;
-  State state_ = State::Stopped;
+  bool _running = false;
 
-  // --- Swing Timing Members ---
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;
   uint64_t high_res_tick_counter_ = 0;
   uint64_t next_trigger_tick_target_ = 0;
 
-  // --- Repeat Effect Members ---
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  // --- Retrigger (Play On Every Step) Members ---
-  // Mode per track: 0 = Off, 1 = Single, 2 = Double
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
   etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
 
@@ -228,7 +217,7 @@ private:
   uint8_t random_probability_ = drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
-  etl::array<bool, NumTracks> _pad_pressed_state; // Added for track override colors
+  etl::array<bool, NumTracks> _pad_pressed_state;
 
 public:
   void activate_repeat(uint32_t length);

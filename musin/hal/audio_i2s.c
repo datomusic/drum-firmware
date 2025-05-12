@@ -206,6 +206,10 @@ static void wrap_producer_give(audio_connection_t *connection, audio_buffer_t *b
 #endif
 }
 
+/**
+ * @brief Audio connection structure for mono-to-stereo conversion with buffering on consumer take.
+ * Uses the wrap_consumer_take function to handle dynamic frequency changes and format conversion.
+ */
 static struct buffer_copying_on_consumer_take_connection m2s_audio_i2s_ct_connection = {
         .core = {
                 .consumer_pool_take = wrap_consumer_take,

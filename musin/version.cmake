@@ -88,25 +88,46 @@ function(configure_version_from_git)
   set(VERSION_BASE ${VERSION_BASE} PARENT_SCOPE)
   set(VERSION_IS_RELEASE ${VERSION_IS_RELEASE} PARENT_SCOPE)
   
-  # Create BCD version (MM.mm -> 0xMMmm)
-  # Ensure major and minor are treated as decimal numbers for the calculation
-  math(EXPR _CALCULATED_BCD "(${VERSION_MAJOR} * 256) + ${VERSION_MINOR}")
-  
-  if("${_CALCULATED_BCD}" STREQUAL "")
-    # math(EXPR) failed or resulted in an empty string.
-    # This could happen if VERSION_MAJOR or VERSION_MINOR were not valid numeric strings.
-    set(VERSION_BCD_VALUE "0") # Default to decimal 0 (BCD 0x0000 for version 0.0)
-    message(WARNING "Could not compute BCD version from git tag (MAJOR='${VERSION_MAJOR}', MINOR='${VERSION_MINOR}'). Using default BCD value 0 (0x0000).")
-  else()
-    set(VERSION_BCD_VALUE ${_CALCULATED_BCD})
+  # Create packed version (Major: 4 bits, Minor: 6 bits, Patch: 4 bits)
+  set(_MAJOR ${VERSION_MAJOR})
+  set(_MINOR ${VERSION_MINOR})
+  set(_PATCH ${VERSION_PATCH})
+
+  # Clamp values and issue warnings if necessary
+  if(_MAJOR GREATER 15)
+    message(WARNING "Major version (${_MAJOR}) exceeds limit (15). Clamping to 15.")
+    set(_MAJOR 15)
   endif()
-  
+  if(_MINOR GREATER 63)
+    message(WARNING "Minor version (${_MINOR}) exceeds limit (63). Clamping to 63.")
+    set(_MINOR 63)
+  endif()
+  if(_PATCH GREATER 15) # Patch uses 4 bits (0-15)
+    message(WARNING "Patch version (${_PATCH}) exceeds limit (15). Clamping to 15.")
+    set(_PATCH 15)
+  endif()
+
+  # Calculate the packed value using bitwise operations
+  # (Major in top 4 bits) << 12 | (Minor in next 6 bits) << 6 | (Patch in bottom 4 bits)
+  math(EXPR _CALCULATED_PACKED_VERSION "(${_MAJOR} << 12) | (${_MINOR} << 6) | ${_PATCH}")
+
+  # Check if calculation resulted in an empty string (should not happen with clamping and default values)
+  if("${_CALCULATED_PACKED_VERSION}" STREQUAL "")
+    set(VERSION_BCD_VALUE "0") # Default to 0 if something unexpected happened
+    message(WARNING "Could not compute packed version (MAJOR='${_MAJOR}', MINOR='${_MINOR}', PATCH='${_PATCH}'). Using default value 0 (0x0000).")
+  else()
+    set(VERSION_BCD_VALUE ${_CALCULATED_PACKED_VERSION})
+  endif()
+
   set(VERSION_BCD ${VERSION_BCD_VALUE} PARENT_SCOPE)
+
+  # Format the decimal packed value as a 4-digit hex string for display
+  string(FORMAT "%04x" ${VERSION_BCD_VALUE} VERSION_PACKED_HEX_STRING)
 
   # Display version info during cmake configuration
   message(STATUS "Firmware Version: ${VERSION_STRING}")
-  # Display the decimal value that will be passed to the C compiler for USBD_DEVICE_BCD
-  message(STATUS "Firmware BCD (decimal value for C compiler): ${VERSION_BCD_VALUE}")
+  # Display the intended 4-digit hex representation of the packed version
+  message(STATUS "Firmware Packed Version (for USB bcdDevice): 0x${VERSION_PACKED_HEX_STRING}")
 endfunction()
 
 # Configure version header file

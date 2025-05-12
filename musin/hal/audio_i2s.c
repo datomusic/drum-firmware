@@ -31,20 +31,43 @@ CU_REGISTER_DEBUG_PINS(audio_timing)
 #define GPIO_FUNC_PIOx __CONCAT(GPIO_FUNC_PIO, PICO_AUDIO_I2S_PIO)
 #define DREQ_PIOx_TX0 __CONCAT(__CONCAT(DREQ_PIO, PICO_AUDIO_I2S_PIO), _TX0)
 
+/**
+ * @brief Shared state between the main application and the DMA IRQ handler.
+ */
 struct {
-    audio_buffer_t *playing_buffer;
-    uint32_t freq;
-    uint8_t pio_sm;
-    uint8_t dma_channel;
+    audio_buffer_t *playing_buffer; ///< Pointer to the audio buffer currently being played.
+    uint32_t freq;                  ///< Current sample frequency being used by the PIO state machine.
+    uint8_t pio_sm;                 ///< The PIO state machine instance number being used.
+    uint8_t dma_channel;            ///< The DMA channel number being used.
 } shared_state;
 
+/**
+ * @brief Audio format definition for the PIO I2S consumer.
+ * Configured during setup based on the producer format.
+ */
 audio_format_t pio_i2s_consumer_format;
+/**
+ * @brief Audio buffer format definition linking to the PIO I2S consumer format.
+ */
 audio_buffer_format_t pio_i2s_consumer_buffer_format = {
         .format = &pio_i2s_consumer_format,
 };
 
+/**
+ * @brief Interrupt Service Routine (ISR) for handling DMA transfer completion.
+ * This function is marked as time-critical and runs within an ISR context.
+ */
 static void __isr __time_critical_func(audio_i2s_dma_irq_handler)();
 
+/**
+ * @brief Configures the PIO I2S audio output.
+ *
+ * Sets up the PIO state machine, DMA channel, and GPIO pins required for I2S audio output.
+ *
+ * @param intended_audio_format Pointer to the desired audio format from the producer.
+ * @param config Pointer to the I2S configuration structure containing pin and resource assignments.
+ * @return const audio_format_t* Pointer to the actual audio format configured (currently returns intended_audio_format).
+ */
 const audio_format_t *audio_i2s_setup(const audio_format_t *intended_audio_format,
                                                const audio_i2s_config_t *config) {
     uint func = GPIO_FUNC_PIOx;

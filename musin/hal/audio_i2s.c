@@ -121,8 +121,19 @@ const audio_format_t *audio_i2s_setup(const audio_format_t *intended_audio_forma
     return intended_audio_format;
 }
 
+/**
+ * @brief Pointer to the consumer audio buffer pool used by the I2S driver.
+ */
 static audio_buffer_pool_t *audio_i2s_consumer;
 
+/**
+ * @brief Updates the PIO state machine clock divider to match the desired sample frequency.
+ *
+ * Calculates the required clock divider based on the system clock frequency and the target
+ * sample frequency, then configures the PIO state machine.
+ *
+ * @param sample_freq The target sample frequency in Hz.
+ */
 static void update_pio_frequency(uint32_t sample_freq) {
     uint32_t system_clock_frequency = clock_get_hz(clk_sys);
     assert(system_clock_frequency < 0x40000000);
@@ -132,6 +143,17 @@ static void update_pio_frequency(uint32_t sample_freq) {
     shared_state.freq = sample_freq;
 }
 
+/**
+ * @brief Wrapper function for taking buffers from the consumer pool.
+ *
+ * This function is used as the `consumer_pool_take` callback in certain audio connections.
+ * It handles dynamic frequency updates if the producer's sample rate changes and then
+ * calls the appropriate format-specific consumer take function (e.g., mono-to-stereo).
+ *
+ * @param connection Pointer to the audio connection structure.
+ * @param block Whether the call should block if no buffer is available.
+ * @return audio_buffer_t* Pointer to the taken audio buffer, or NULL if non-blocking and no buffer is available.
+ */
 static audio_buffer_t *wrap_consumer_take(audio_connection_t *connection, bool block) {
     // support dynamic frequency shifting
     if (connection->producer_pool->format->sample_freq != shared_state.freq) {
@@ -152,6 +174,16 @@ static audio_buffer_t *wrap_consumer_take(audio_connection_t *connection, bool b
 #endif
 }
 
+/**
+ * @brief Wrapper function for giving buffers back to the producer pool.
+ *
+ * This function is used as the `producer_pool_give` callback in certain audio connections.
+ * It handles dynamic frequency updates if the producer's sample rate changes and then
+ * calls the appropriate format-specific producer give function (e.g., stereo-to-stereo).
+ *
+ * @param connection Pointer to the audio connection structure.
+ * @param buffer Pointer to the audio buffer being given back.
+ */
 static void wrap_producer_give(audio_connection_t *connection, audio_buffer_t *buffer) {
     // support dynamic frequency shifting
     if (connection->producer_pool->format->sample_freq != shared_state.freq) {

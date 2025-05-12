@@ -20,6 +20,14 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       _retrigger_progress_ticks_per_track{}, random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
       random_track_offsets_{}, _active_note_per_track{} {
+
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    if (track_idx < config::drumpad::track_note_ranges.size() &&
+        !config::drumpad::track_note_ranges[track_idx].empty()) {
+      _active_note_per_track[track_idx] = config::drumpad::track_note_ranges[track_idx][0];
+    }
+  }
+
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint8_t initial_note = _active_note_per_track[track_idx];
     auto &track = sequencer_.get_track(track_idx);

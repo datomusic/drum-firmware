@@ -268,8 +268,7 @@ void PizzaDisplay::draw_animations(absolute_time_t now) {
                        config::DISPLAY_BRIGHTNESS_MAX_VALUE));
         final_color = _leds.adjust_color_brightness(base_color, brightness_value);
       } else {
-        _drumpad_fade_start_times[i] = nil_time; // Fade finished
-        // final_color is already base_color
+        _drumpad_fade_start_times[i] = nil_time;
       }
     }
     _set_physical_drumpad_led(i, final_color);

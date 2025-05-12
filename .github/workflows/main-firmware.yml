@@ -100,6 +100,9 @@ jobs:
           make
           sudo make install
 
+      - name: Install sample dependencies
+        run: sudo apt update && sudo apt install -y xxd ffmpeg
+
       - name: Build firmware
         working-directory: drum
         run: cmake -S . -B build -DPICO_BOARD=dato_submarine && cd build && make -j

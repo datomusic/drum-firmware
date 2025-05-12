@@ -224,10 +224,24 @@ static struct producer_pool_blocking_give_connection m2s_audio_i2s_pg_connection
         }
 };
 
+/**
+ * @brief Producer give function for the pass-through connection.
+ * Directly queues the full buffer to the consumer pool.
+ *
+ * @param connection Pointer to the audio connection structure.
+ * @param buffer Pointer to the audio buffer being given.
+ */
 static void pass_thru_producer_give(audio_connection_t *connection, audio_buffer_t *buffer) {
     queue_full_audio_buffer(connection->consumer_pool, buffer);
 }
 
+/**
+ * @brief Consumer give function for the pass-through connection.
+ * Directly queues the free buffer back to the producer pool.
+ *
+ * @param connection Pointer to the audio connection structure.
+ * @param buffer Pointer to the audio buffer being given back.
+ */
 static void pass_thru_consumer_give(audio_connection_t *connection, audio_buffer_t *buffer) {
     queue_free_audio_buffer(connection->producer_pool, buffer);
 }
@@ -241,14 +255,47 @@ static struct producer_pool_blocking_give_connection audio_i2s_pass_thru_connect
         }
 };
 
+/**
+ * @brief Connects a producer audio buffer pool directly to the I2S output using a pass-through connection.
+ *
+ * This is a convenience function that calls audio_i2s_connect_extra with default buffer settings
+ * suitable for a direct pass-through without intermediate buffering.
+ *
+ * @param producer Pointer to the producer audio buffer pool.
+ * @param connection Pointer to the audio connection structure to use (can be NULL for default pass-through).
+ * @return true if the connection was successful, false otherwise.
+ */
 bool audio_i2s_connect_thru(audio_buffer_pool_t *producer, audio_connection_t *connection) {
     return audio_i2s_connect_extra(producer, false, 2, 256, connection);
 }
 
+/**
+ * @brief Connects a producer audio buffer pool to the I2S output.
+ *
+ * This is a convenience function that calls audio_i2s_connect_thru with a NULL connection,
+ * resulting in a default pass-through connection being used.
+ *
+ * @param producer Pointer to the producer audio buffer pool.
+ * @return true if the connection was successful, false otherwise.
+ */
 bool audio_i2s_connect(audio_buffer_pool_t *producer) {
     return audio_i2s_connect_thru(producer, NULL);
 }
 
+/**
+ * @brief Connects a producer audio buffer pool to the I2S output with extended configuration options.
+ *
+ * This function allows specifying buffering behavior (on give or take), the number of buffers,
+ * and the size of each buffer for the internal consumer pool. It also allows providing a custom
+ * audio connection structure.
+ *
+ * @param producer Pointer to the producer audio buffer pool.
+ * @param buffer_on_give If true, buffering occurs when giving buffers back to the producer; otherwise, buffering occurs on taking buffers from the consumer.
+ * @param buffer_count The number of buffers to create in the internal consumer pool.
+ * @param samples_per_buffer The number of samples each buffer in the internal consumer pool should hold.
+ * @param connection Pointer to a custom audio connection structure to use (if NULL, a default connection based on buffer_on_give and buffer_count is selected).
+ * @return true if the connection was successful, false otherwise.
+ */
 bool audio_i2s_connect_extra(audio_buffer_pool_t *producer, bool buffer_on_give, uint buffer_count,
                                  uint samples_per_buffer, audio_connection_t *connection) {
     printf("Connecting PIO I2S audio\n");

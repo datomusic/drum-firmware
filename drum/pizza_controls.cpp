@@ -155,28 +155,29 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   // Get a reference to the track to modify it
   auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(track_idx);
 
+  uint8_t step_velocity;
+  bool now_enabled;
+
   if (event.type == musin::ui::KeypadEvent::Type::Press) {
-    bool now_enabled = track.toggle_step_enabled(step_idx);
-
-    if (now_enabled) {
-      // Get the current note assigned to the corresponding drumpad
-      uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
-      track.set_step_note(step_idx, note);
-
-      uint8_t step_velocity;
-      if (!track.get_step_velocity(step_idx).has_value()) {
-        track.set_step_velocity(step_idx, config::keypad::DEFAULT_STEP_VELOCITY);
-        step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
-      } else {
-        step_velocity = track.get_step_velocity(step_idx).value();
-      }
-
-      if (!controls->is_running()) {
-        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
-      }
-    }
+    now_enabled = track.toggle_step_enabled(step_idx);
+    step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
   } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    track.set_step_velocity(step_idx, config::keypad::MAX_STEP_VELOCITY_ON_HOLD);
+    step_velocity = config::keypad::MAX_STEP_VELOCITY_ON_HOLD;
+  } else if (event.type == musin::ui::KeypadEvent::Type::Tap) {
+    now_enabled = track.toggle_step_enabled(step_idx);
+    step_velocity = config::keypad::STEP_VELOCITY_ON_TAP;
+  }
+
+  if (now_enabled) {
+    // Get the current note assigned to the corresponding drumpad
+    uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
+    track.set_step_note(step_idx, note);
+
+    track.set_step_velocity(step_idx, step_velocity);
+
+    if (!controls->is_running()) {
+      controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+    }
   }
 }
 

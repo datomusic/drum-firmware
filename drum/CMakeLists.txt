@@ -25,11 +25,11 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
   file(GLOB_RECURSE SAMPLE_FILES "${SAMPLES_DIR}/*.wav")
   
   add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/generated/sample_data.h
+    OUTPUT ${SAMPLES_DIR}/../sample_data.h
     COMMAND ${XXD_PROGRAM} --version
     COMMAND ${FFMPEG_PROGRAM} -version
     COMMAND ${GENERATE_SAMPLES_SCRIPT}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support
+    WORKING_DIRECTORY ${SAMPLES_DIR}/..
     COMMENT "Generating sample headers"
     DEPENDS 
       ${GENERATE_SAMPLES_SCRIPT}
@@ -37,7 +37,7 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
     VERBATIM
   )
   
-  add_custom_target(generate_samples DEPENDS ${CMAKE_BINARY_DIR}/generated/sample_data.h)
+  add_custom_target(generate_samples DEPENDS ${SAMPLES_DIR}/../sample_data.h)
 else()
   message(WARNING "Sample generation script/samples missing - firmware might not build correctly")
 endif()
@@ -48,7 +48,6 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
-  ${CMAKE_BINARY_DIR}/generated/sample_data.h
   main.cpp
   midi_functions.cpp
   pizza_controls.cpp

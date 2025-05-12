@@ -352,6 +352,11 @@ bool audio_i2s_connect_extra(audio_buffer_pool_t *producer, bool buffer_on_give,
     return true;
 }
 
+/**
+ * @brief Audio connection structure for mono S8 to stereo/mono S16 conversion.
+ * Handles the conversion from signed 8-bit PCM to signed 16-bit PCM, potentially
+ * duplicating mono channels to stereo if needed. Buffering occurs on consumer take.
+ */
 static struct buffer_copying_on_consumer_take_connection m2s_audio_i2s_connection_s8 = {
         .core = {
 #if PICO_AUDIO_I2S_MONO_OUTPUT

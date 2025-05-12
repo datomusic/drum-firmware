@@ -4,18 +4,18 @@
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "musin/drivers/ws2812-dma.h"
-#include "pico/time.h" // For absolute_time_t
+#include "pico/time.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
-#include "config.h"       // For config::NUM_DRUMPADS
-#include "etl/observer.h" // For etl::observer
-#include "events.h"       // For drum::Events::NoteEvent
+#include "config.h"
+#include "etl/observer.h"
+#include "events.h"
 #include "musin/timing/step_sequencer.h"
-#include "musin/timing/tempo_event.h"   // For TempoEvent
-#include "musin/timing/tempo_handler.h" // For TempoHandler
+#include "musin/timing/tempo_event.h"
+#include "musin/timing/tempo_handler.h"
 #include "sequencer_controller.h"
 
 namespace drum {

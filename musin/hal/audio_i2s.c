@@ -477,8 +477,20 @@ void __isr __time_critical_func(audio_i2s_dma_irq_handler)() {
 #endif
 }
 
+/**
+ * @brief Flag indicating whether the audio output is currently enabled.
+ */
 static bool audio_enabled;
 
+/**
+ * @brief Enables or disables the PIO I2S audio output.
+ *
+ * Controls the DMA IRQ and the PIO state machine. When enabling, it starts the
+ * first DMA transfer. When disabling, it ensures any in-flight buffer is returned
+ * to the pool.
+ *
+ * @param enabled true to enable audio output, false to disable.
+ */
 void audio_i2s_set_enabled(bool enabled) {
     if (enabled != audio_enabled) {
 #ifndef NDEBUG

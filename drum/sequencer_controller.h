@@ -35,7 +35,6 @@ class SequencerController
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS> {
 public:
-  // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
 

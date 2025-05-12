@@ -132,7 +132,8 @@ endfunction()
 
 # Configure version header file
 function(generate_version_header HEADER_FILE)
-  configure_version_from_git()
+  # Version variables should already be set by calling configure_version_from_git()
+  # in the main CMakeLists.txt before calling this function.
   
   # Create header file content
   file(WRITE ${HEADER_FILE} "#ifndef FIRMWARE_VERSION_H\n")

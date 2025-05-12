@@ -8,7 +8,10 @@ set(EXECUTABLE_NAME drum)
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/version.cmake)
 
-# Generate version header file
+# Configure version variables first
+configure_version_from_git()
+
+# Generate version header file using the configured variables
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
 # Add the generated directory to include paths

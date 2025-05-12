@@ -163,4 +163,34 @@ struct Lowpass : BufferSource {
   Filter filter;
 };
 
+struct Highpass : BufferSource {
+  Highpass(BufferSource &from) : from(from) {
+  }
+
+  void fill_buffer(AudioBlock &out_samples) {
+    from.fill_buffer(out_samples);
+    filter.update_fixed(out_samples, outputs);
+    etl::copy(outputs.highpass.cbegin(), outputs.highpass.cend(), out_samples.begin());
+  }
+
+  /**
+   * @brief Sets the filter cutoff frequency using a normalized value [0.0, 1.0].
+   */
+  void frequency(float freq_normalized) {
+    filter.frequency_normalized(freq_normalized);
+  }
+
+  /**
+   * @brief Sets the filter resonance using a normalized value [0.0, 1.0].
+   */
+  void resonance(float res_normalized) {
+    filter.resonance_normalized(res_normalized);
+  }
+
+  BufferSource &from;
+  Filter::Outputs outputs;
+  Filter filter;
+};
+
+
 #endif

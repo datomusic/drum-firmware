@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Script to convert WAV samples to raw PCM, then to C arrays using xxd,
 # and list the base names for use in C++ code.
@@ -6,7 +6,7 @@
 # Ensure sox and xxd are installed
 
 set -e # Exit immediately if a command exits with a non-zero status.
-# set -o pipefail # Ensure pipeline errors are caught
+set -o pipefail # Ensure pipeline errors are caught
 
 # Define the directory containing the samples
 SAMPLE_DIR="samples"

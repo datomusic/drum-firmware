@@ -90,12 +90,23 @@ function(configure_version_from_git)
   
   # Create BCD version (MM.mm -> 0xMMmm)
   # Ensure major and minor are treated as decimal numbers for the calculation
-  math(EXPR VERSION_BCD "(${VERSION_MAJOR} * 256) + ${VERSION_MINOR}")
-  set(VERSION_BCD ${VERSION_BCD} PARENT_SCOPE)
+  math(EXPR _CALCULATED_BCD "(${VERSION_MAJOR} * 256) + ${VERSION_MINOR}")
+  
+  if("${_CALCULATED_BCD}" STREQUAL "")
+    # math(EXPR) failed or resulted in an empty string.
+    # This could happen if VERSION_MAJOR or VERSION_MINOR were not valid numeric strings.
+    set(VERSION_BCD_VALUE "0") # Default to decimal 0 (BCD 0x0000 for version 0.0)
+    message(WARNING "Could not compute BCD version from git tag (MAJOR='${VERSION_MAJOR}', MINOR='${VERSION_MINOR}'). Using default BCD value 0 (0x0000).")
+  else()
+    set(VERSION_BCD_VALUE ${_CALCULATED_BCD})
+  endif()
+  
+  set(VERSION_BCD ${VERSION_BCD_VALUE} PARENT_SCOPE)
 
   # Display version info during cmake configuration
   message(STATUS "Firmware Version: ${VERSION_STRING}")
-  message(STATUS "Firmware BCD Version: 0x${VERSION_BCD}")
+  # Display the decimal value that will be passed to the C compiler for USBD_DEVICE_BCD
+  message(STATUS "Firmware BCD (decimal value for C compiler): ${VERSION_BCD_VALUE}")
 endfunction()
 
 # Configure version header file

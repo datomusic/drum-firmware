@@ -77,9 +77,9 @@ void __time_critical_func(Filter::update_fixed)(const AudioBlock &in, Filter::Ou
     lowpass = lowpass + MULT(fmult, bandpass);
     highpass = input - lowpass - MULT(damp, bandpass);
     bandpass = bandpass + MULT(fmult, highpass);
-    lowpasstmp = signed_saturate_rshift(lowpass + lowpasstmp, 16, 13);
-    bandpasstmp = signed_saturate_rshift(bandpass + bandpasstmp, 16, 13);
-    highpasstmp = signed_saturate_rshift(highpass + highpasstmp, 16, 13);
+    lowpasstmp = signed_saturate_rshift16(lowpass + lowpasstmp, 13);
+    bandpasstmp = signed_saturate_rshift16(bandpass + bandpasstmp, 13);
+    highpasstmp = signed_saturate_rshift16(highpass + highpasstmp, 13);
     *lowpass_iterator++ = lowpasstmp;
     *bandpass_iterator++ = bandpasstmp;
     *highpass_iterator++ = highpasstmp;
@@ -165,9 +165,9 @@ void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const A
     lowpass = lowpass + MULT(fmult, bandpass);
     highpass = input - lowpass - MULT(damp, bandpass);
     bandpass = bandpass + MULT(fmult, highpass);
-    lowpasstmp = signed_saturate_rshift(lowpass + lowpasstmp, 16, 13);
-    bandpasstmp = signed_saturate_rshift(bandpass + bandpasstmp, 16, 13);
-    highpasstmp = signed_saturate_rshift(highpass + highpasstmp, 16, 13);
+    lowpasstmp = signed_saturate_rshift16(lowpass + lowpasstmp, 13);
+    bandpasstmp = signed_saturate_rshift16(bandpass + bandpasstmp, 13);
+    highpasstmp = signed_saturate_rshift16(highpass + highpasstmp, 13);
     *lowpass_iterator++ = lowpasstmp;
     *bandpass_iterator++ = bandpasstmp;
     *highpass_iterator++ = highpasstmp;

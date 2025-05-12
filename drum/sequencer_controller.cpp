@@ -17,7 +17,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
       swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
       next_trigger_tick_target_(0), _pad_pressed_state{}, _retrigger_mode_per_track{},
-      _retrigger_progress_ticks_per_track{}, random_active_(false), 
+      _retrigger_progress_ticks_per_track{}, random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
       random_track_offsets_{} {
   calculate_timing_params();
@@ -89,7 +89,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
 
   const musin::timing::Step &step = sequencer_.get_track(track_idx).get_step(wrapped_step);
   bool actually_enabled = step.enabled;
-  
+
   if (random_active_) {
     // Only apply probability flip if random is active
     const bool flip_step = (rand() % 100) >= random_probability_;

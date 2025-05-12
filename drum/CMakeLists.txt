@@ -13,8 +13,9 @@ generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
 # Sample generation setup
 find_program(XXD_PROGRAM xxd)
-if(NOT XXD_PROGRAM)
-    message(FATAL_ERROR "xxd not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd\n  MacOS: brew install xxd")
+find_program(FFMPEG_PROGRAM ffmpeg)
+if(NOT XXD_PROGRAM OR NOT FFMPEG_PROGRAM)
+    message(FATAL_ERROR "xxd/ffmpeg not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd ffmpeg\n  MacOS: brew install xxd ffmpeg")
 endif()
 
 set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers.sh")
@@ -24,6 +25,7 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
   add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/generated/sample_data.h
     COMMAND ${XXD_PROGRAM} --version
+    COMMAND ${FFMPEG_PROGRAM} -version
     COMMAND ${GENERATE_SAMPLES_SCRIPT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support
     COMMENT "Generating sample headers"

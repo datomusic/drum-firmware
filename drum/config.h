@@ -44,6 +44,7 @@ constexpr uint32_t HOLD_REPEAT_DELAY_MS = 1500U;
 constexpr uint32_t HOLD_REPEAT_INTERVAL_MS = 100U;
 constexpr uint32_t MIN_PRESSURE_VALUE = 800U;
 constexpr uint32_t MAX_PRESSURE_VALUE = 1000U;
+constexpr uint8_t RANDOM_PROBABILITY_DEFAULT = 75; // 75% chance to flip steps when random is active
 constexpr uint32_t MIN_VELOCITY_VALUE = 5000U;
 constexpr uint32_t MAX_VELOCITY_VALUE = 200000U;
 

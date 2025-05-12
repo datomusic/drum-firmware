@@ -14,12 +14,31 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
         &tempo_source_ref)
     : /* sequencer_ is default-initialized */ current_step_counter(0), last_played_note_per_track{},
-      _just_played_step_per_track{}, tempo_source(tempo_source_ref), state_(State::Stopped),
+      _just_played_step_per_track{}, tempo_source(tempo_source_ref), _running(false),
       swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
       next_trigger_tick_target_(0), _pad_pressed_state{}, _retrigger_mode_per_track{},
-      _retrigger_progress_ticks_per_track{}, random_active_(false), random_track_offsets_{} {
+      _retrigger_progress_ticks_per_track{}, random_active_(false),
+      random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
+      random_track_offsets_{}, _active_note_per_track{} {
+
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    if (track_idx < config::drumpad::track_note_ranges.size() &&
+        !config::drumpad::track_note_ranges[track_idx].empty()) {
+      _active_note_per_track[track_idx] = config::drumpad::track_note_ranges[track_idx][0];
+    }
+  }
+
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    uint8_t initial_note = _active_note_per_track[track_idx];
+    auto &track = sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      auto &step = track.get_step(step_idx);
+      step.note = initial_note;
+      step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+    }
+  }
+
   calculate_timing_params();
-  // Seed the random number generator once
   srand(time_us_32());
 
   // Initialize last played step to the final step index for initial highlight
@@ -33,19 +52,10 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::~SequencerController() {
-  if (state_ != State::Stopped) {
+  if (_running) {
     tempo_source.remove_observer(*this);
   }
 }
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_state(State new_state) {
-  if (state_ != new_state) {
-    state_ = new_state;
-  }
-}
-
-// --- Helper Methods ---
 
 template <size_t NumTracks, size_t NumSteps>
 size_t SequencerController<NumTracks, NumSteps>::calculate_base_step_index() const {
@@ -77,8 +87,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
-  const int effective_step_with_fixed_offset =
-      static_cast<int>(step_index_to_play) + track_offsets_[track_idx];
+  const int effective_step_with_fixed_offset = static_cast<int>(step_index_to_play);
   const size_t wrapped_step =
       (num_steps > 0)
           ? ((effective_step_with_fixed_offset % static_cast<int>(num_steps) + num_steps) %
@@ -86,7 +95,15 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
           : 0;
 
   const musin::timing::Step &step = sequencer_.get_track(track_idx).get_step(wrapped_step);
-  if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
+  bool actually_enabled = step.enabled;
+
+  if (random_active_) {
+    // Only apply probability flip if random is active
+    const bool flip_step = (rand() % 100) <= random_probability_;
+    actually_enabled = flip_step ? !step.enabled : step.enabled;
+  }
+
+  if (actually_enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
@@ -134,7 +151,6 @@ uint32_t SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interv
   return std::max(uint32_t{1}, interval);
 }
 
-// --- Public Methods ---
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
   if constexpr (SEQUENCER_RESOLUTION > 0) {
@@ -192,19 +208,19 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::start() {
-  if (state_ != State::Stopped) {
+  if (_running) {
     return;
   }
   tempo_source.add_observer(*this);
-  set_state(State::Running);
+  _running = true;
 }
 
 template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks, NumSteps>::stop() {
-  if (state_ == State::Stopped) {
+  if (!_running) {
     return;
   }
   tempo_source.remove_observer(*this);
-  set_state(State::Stopped);
+  _running = false;
 
   for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
     if (last_played_note_per_track[track_idx].has_value()) {
@@ -223,7 +239,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
     [[maybe_unused]] musin::timing::TempoEvent event) {
-  if (state_ != State::Running)
+  if (!_running)
     return;
 
   high_res_tick_counter_++;
@@ -302,12 +318,12 @@ SequencerController<NumTracks, NumSteps>::get_last_played_step_for_track(size_t 
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_running() const {
-  return state_ == State::Running;
+  return _running;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_repeat(uint32_t length) {
-  if (state_ == State::Running && !repeat_active_) {
+  if (_running && !repeat_active_) {
     repeat_active_ = true;
     repeat_length_ = std::max(uint32_t{1}, length);
     const size_t num_steps = sequencer_.get_num_steps();
@@ -339,11 +355,9 @@ template <size_t NumTracks, size_t NumSteps>
   return repeat_active_;
 }
 
-// --- Random Effect Methods ---
-
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_random() {
-  if (state_ == State::Running && !random_active_) {
+  if (_running && !random_active_) {
     random_active_ = true;
     random_track_offsets_ = {};
   }

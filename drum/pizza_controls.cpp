@@ -32,16 +32,6 @@ void PizzaControls::init() {
   analog_component.init();
   playbutton_component.init();
 
-  // Initialize active notes in SequencerController based on DrumpadComponent's defaults
-  for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    if (!config::drumpad::track_note_ranges[i].empty()) {
-      _sequencer_controller_ref.set_active_note_for_track(i,
-                                                          config::drumpad::track_note_ranges[i][0]);
-    }
-    // If a range is empty, SequencerController will retain its constructor-initialized default for
-    // this track.
-  }
-
   _profiler.add_section("Keypad Update");
   _profiler.add_section("Drumpad Update");
   _profiler.add_section("Analog Update");
@@ -390,6 +380,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     } else if (!should_be_active && was_active) {
       controls->_sequencer_controller_ref.deactivate_random();
     }
+    controls->_sequencer_controller_ref.set_random_probability(event.value * 33);
   } break;
   case VOLUME:
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);

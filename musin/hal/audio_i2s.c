@@ -455,7 +455,14 @@ static inline void audio_start_dma_transfer() {
     dma_channel_transfer_from_buffer_now(shared_state.dma_channel, ab->buffer->bytes, ab->sample_count);
 }
 
-// irq handler for DMA
+/**
+ * @brief Interrupt Service Routine (ISR) for handling DMA transfer completion for I2S audio.
+ *
+ * This function is marked as time-critical and runs within an ISR context (DMA IRQ).
+ * It acknowledges the DMA interrupt, gives the completed audio buffer back to the
+ * consumer pool, takes the next available buffer, and starts a new DMA transfer.
+ * If no buffer is available, it initiates a transfer of silence.
+ */
 void __isr __time_critical_func(audio_i2s_dma_irq_handler)() {
 #if PICO_AUDIO_I2S_NOOP
     assert(false);

@@ -22,6 +22,8 @@ set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/
 set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
 
 if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
+  file(GLOB_RECURSE SAMPLE_FILES "${SAMPLES_DIR}/*.wav")
+  
   add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/generated/sample_data.h
     COMMAND ${XXD_PROGRAM} --version
@@ -29,6 +31,10 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
     COMMAND ${GENERATE_SAMPLES_SCRIPT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support
     COMMENT "Generating sample headers"
+    DEPENDS 
+      ${GENERATE_SAMPLES_SCRIPT}
+      ${SAMPLE_FILES}
+    VERBATIM
   )
   
   add_custom_target(generate_samples DEPENDS ${CMAKE_BINARY_DIR}/generated/sample_data.h)

@@ -31,24 +31,16 @@
 #include "port/intrinsics.h"
 #include <stdint.h>
 
-// computes limit((val >> rshift), 2**bits)
-static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t rshift)
+// computes limit((val >> rshift), 2**16)
+// Returns a 16-bit signed integer.
+static inline int16_t signed_saturate_rshift16(int32_t val, int32_t rshift)
     __attribute__((always_inline, unused));
-static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t rshift) {
-  int32_t out, max;
-  out = val >> rshift;
-  max = 1 << (bits - 1);
-  if (out >= 0) {
-    if (out > max - 1)
-      out = max - 1;
-  } else {
-    if (out < -max)
-      out = -max;
-  }
-  return out;
+static inline int16_t signed_saturate_rshift16(int32_t val, int32_t rshift) {
+  int32_t out = val >> rshift;
+  return intrinsics::signed_saturate<16>(out);
 }
 
-// computes limit(val, 2**bits)
+// computes limit(val, 2**16)
 static constexpr int16_t saturate16(const int32_t value) __attribute__((always_inline, unused));
 static constexpr int16_t saturate16(const int32_t value) {
   return intrinsics::signed_saturate<16>(value);

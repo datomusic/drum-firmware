@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/sh
 
 # Script to convert WAV samples to raw PCM, then to C arrays using xxd,
 # and list the base names for use in C++ code.
@@ -6,6 +6,7 @@
 # Ensure sox and xxd are installed
 
 set -e # Exit immediately if a command exits with a non-zero status.
+set -o pipefail # Ensure pipeline errors are caught
 
 # Define the directory containing the samples
 SAMPLE_DIR="samples"
@@ -32,7 +33,7 @@ echo "struct SampleData{const int16_t *data; const uint32_t length;};" >> "$all_
 echo "static constexpr const etl::array<SampleData, 51> all_samples = {" >> "$all_samples_header"
 
 # Find all .wav files and process them
-find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d $'\0' wav_file; do
+find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
   # Get the filename without extension (e.g., AudioSampleKickc78_16bit_44kw)
   base_name=$(basename "$wav_file" .wav)
 

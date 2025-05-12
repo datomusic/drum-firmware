@@ -34,7 +34,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       auto &step = track.get_step(step_idx);
       step.note = initial_note;
-      step.velocity = 0;
+      step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
     }
   }
 
@@ -109,7 +109,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
 
   if (random_active_) {
     // Only apply probability flip if random is active
-    const bool flip_step = (rand() % 100) >= random_probability_;
+    const bool flip_step = (rand() % 100) <= random_probability_;
     actually_enabled = flip_step ? !step.enabled : step.enabled;
   }
 

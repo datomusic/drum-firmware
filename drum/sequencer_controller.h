@@ -141,6 +141,7 @@ public:
 
   void set_random_probability(uint8_t percent) {
     random_probability_ = std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
+    printf("Probability set to %d\n", random_probability_);
   }
 
   [[nodiscard]] bool is_random_active() const;

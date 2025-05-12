@@ -380,7 +380,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     } else if (!should_be_active && was_active) {
       controls->_sequencer_controller_ref.deactivate_random();
     }
-    controls->_sequencer_controller_ref.set_random_probability(event.value * 100);
+    controls->_sequencer_controller_ref.set_random_probability(event.value * 33);
   } break;
   case VOLUME:
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);

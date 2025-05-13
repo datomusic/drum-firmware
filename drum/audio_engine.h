@@ -122,6 +122,7 @@ private:
   AudioMixer<NUM_VOICES> mixer_;
   Crusher crusher_;
   Lowpass lowpass_;
+  Highpass highpass_;
 
   bool is_initialized_ = false;
 };

@@ -48,20 +48,29 @@ private:
 
 struct Protocol {
   constexpr void handle_chunk(const Chunk &chunk) {
+    if (chunk.size() == 0) {
+      return;
+    }
+
+    Chunk::Data::const_iterator iterator = chunk.cbegin();
+    if ((*iterator++) != midi::SystemExclusive) {
+      return;
+    }
+
     if (state == State::Idle) {
-      if (chunk.size() >= 3 && chunk[1] == DatoId && chunk[2] == DrumId) {
+      if ((*iterator++) == DatoId && (*iterator++) == DrumId) {
         state = State::Identified;
-        parse_part(chunk.cbegin() + 3, chunk.cend());
+        parse_part(iterator, chunk.cend());
       }
     } else {
-      parse_part(chunk.cbegin(), chunk.cend());
+      parse_part(iterator, chunk.cend());
     }
   }
 
   enum class State {
     Idle,
     Identified,
-    FileTransfer,
+    ByteTransfer,
   };
 
   // Mainly here for testing. Don't rely on it for external functionality.
@@ -75,8 +84,9 @@ private:
   static const uint8_t DrumId = 0x65; // Device ID for DRUM
 
   enum Tag {
-    BeginFileTransfer = 0x08,
-    EndFileTransfer = 0x09
+    BeginByteTransfer = 0x10,
+    Bytes = 0x11,
+    EndByteTransfer = 0x12,
   };
 
   constexpr void parse_part(Chunk::Data::const_iterator iterator,
@@ -90,13 +100,13 @@ private:
       const auto tag = *iterator;
       iterator++;
 
-      if (tag == BeginFileTransfer) {
-        state = State::FileTransfer;
+      if (tag == BeginByteTransfer) {
+        state = State::ByteTransfer;
         parse_part(iterator, end);
       }
     } break;
 
-    case State::FileTransfer: {
+    case State::ByteTransfer: {
       // TODO: - Decode sysex messages to bytes
       //       - Pass them to some handler based on type
       //       - Currently only one type of file transfer (samples)

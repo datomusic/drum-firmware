@@ -4,6 +4,16 @@
 
 typedef sysex::Protocol::State State;
 
+TEST_CASE("Protocol with empty bytes") {
+  CONST_BODY(({
+    sysex::Protocol protocol;
+    const uint8_t data[0] = {};
+    sysex::Chunk chunk(data, 0);
+    protocol.handle_chunk(chunk);
+    REQUIRE(protocol.__get_state() == State::Idle);
+  }));
+}
+
 TEST_CASE("Protocol identifies") {
   CONST_BODY(({
     sysex::Protocol protocol;

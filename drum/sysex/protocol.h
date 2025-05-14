@@ -47,14 +47,11 @@ private:
 };
 
 struct Protocol {
-  constexpr void handle_chunk(const Chunk &chunk) {
-    if (chunk.size() == 0) {
-      return;
-    }
-
+  // TODO: Return informative error on failure
+  constexpr bool handle_chunk(const Chunk &chunk) {
     Chunk::Data::const_iterator iterator = chunk.cbegin();
-    if ((*iterator++) != midi::SystemExclusive) {
-      return;
+    if (chunk.size() == 0 || (*iterator++) != midi::SystemExclusive) {
+      return false;
     }
 
     if (state == State::Idle) {
@@ -65,6 +62,8 @@ struct Protocol {
     } else {
       parse_part(iterator, chunk.cend());
     }
+
+    return true;
   }
 
   enum class State {

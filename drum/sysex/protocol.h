@@ -1,50 +1,10 @@
 #ifndef SYSEX_PROTOCOL_H_O6CX5YEN
 #define SYSEX_PROTOCOL_H_O6CX5YEN
 
-#include <algorithm>
-
-#include "etl/array.h"
-#include "musin/midi/midi_wrapper.h"
+#include "./chunk.h"
+#include "./codec.h"
 
 namespace sysex {
-
-// NOTE: If `length` is set larger than Data::SIZE, it will be truncated.
-//       TODO: Error instead, when `length` is too large.
-struct Chunk {
-  typedef etl::array<uint8_t, MIDI::SysExMaxSize> Data;
-
-  // Copy bytes to make sure we have ownership.
-  constexpr Chunk(const uint8_t *bytes, const uint8_t length)
-      : data(copy_bytes(bytes, length)), length(length) {
-  }
-
-  constexpr const uint8_t &operator[](const size_t i) const {
-    // TODO: Add some kind of range checking, at least in debug?
-    return data[i];
-  }
-
-  constexpr size_t size() const {
-    return length;
-  }
-
-  constexpr Data::const_iterator cbegin() const {
-    return data.cbegin();
-  }
-
-  constexpr Data::const_iterator cend() const {
-    return data.cbegin() + length;
-  }
-
-private:
-  const Data data;
-  const size_t length;
-
-  static constexpr Data copy_bytes(const uint8_t *bytes, const size_t length) {
-    Data copied;
-    std::copy(bytes, bytes + std::min(length, Data::SIZE), copied.begin());
-    return copied;
-  }
-};
 
 struct Protocol {
   // TODO: Return informative error on failure
@@ -106,6 +66,7 @@ private:
     } break;
 
     case State::ByteTransfer: {
+      const auto bytes = codec::decode(iterator, end);
       // TODO: - Decode sysex messages to bytes
       //       - Pass them to some handler based on type
       //       - Currently only one type of file transfer (samples)

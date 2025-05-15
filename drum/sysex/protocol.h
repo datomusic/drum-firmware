@@ -1,6 +1,10 @@
 #ifndef SYSEX_PROTOCOL_H_O6CX5YEN
 #define SYSEX_PROTOCOL_H_O6CX5YEN
-#include "../file_ops.h"
+
+#include "etl/delegate.h"
+#include "etl/optional.h"
+
+// #include "../file_ops.h"
 #include "./chunk.h"
 #include "./codec.h"
 
@@ -12,11 +16,13 @@
 
 namespace sysex {
 
-template <typename FileHandle> struct Protocol {
-  typedef FileOps<FileHandle, 128> FileOperations;
+template <typename FileOperations> struct Protocol {
+  // typedef FileOps<FileHandle, 128> FileOperations;
 
+  /*
   constexpr Protocol(FileOperations file_ops) : file_ops(file_ops) {
   }
+  */
 
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
@@ -55,9 +61,14 @@ template <typename FileHandle> struct Protocol {
   }
 
 private:
-  const FileOperations file_ops;
-  etl::optional<FileHandle> file_handle;
+  // const FileOperations file_ops;
+  // etl::optional<FileHandle> file_handle;
+  etl::optional<typename FileOperations::Handle> file_handle;
   State state = State::Idle;
+
+  typedef etl::delegate<typename FileOperations::Handle(const typename FileOperations::Path &path)>
+      FileOpen;
+  // static FileOpen file_open = FileOpen::create<FileOperations::open>();
 
   // TODO: Make externally configurable
   static const uint8_t DatoId = 0x7D; // Manufacturer ID for Dato
@@ -84,9 +95,11 @@ private:
       case BeginFileWrite: {
         // TODO: Error if file is already open, maybe?
         // Get file path
+        file_handle.emplace(FileOperations::open("/temp_sample"));
       } break;
       case EndFileTransfer: {
-        // TODO: Close the handle
+        // Destroyng the file handle should close the file.
+        file_handle.reset();
       } break;
       }
     }

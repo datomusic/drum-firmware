@@ -1,11 +1,31 @@
 #include "test_support.h"
 
+#include "etl/array.h"
+#include "etl/string.h"
+
 #include "drum/sysex/protocol.h"
 
 using etl::array;
 
-typedef sysex::Protocol<int> Protocol;
+struct TestFileOps {
+  typedef int Handle;
+  typedef etl::string<64> Path;
+  static const unsigned BlockSize = 128;
+
+  // Handle should close upon destruction
+  static Handle open(const Path &path) {
+    return 0;
+  }
+
+  static size_t write(const Handle &handle, const etl::span<const uint8_t, BlockSize> &bytes) {
+    return 0;
+  }
+};
+
+typedef sysex::Protocol<TestFileOps> Protocol;
 typedef Protocol::State State;
+
+/*
 typedef Protocol::FileOperations File;
 
 static constexpr File::FileHandle
@@ -14,10 +34,11 @@ test_open(const Protocol::FileOperations::Path &path) {
 }
 
 static constexpr Protocol::FileOperations file_ops{.open = File::Open::create<test_open>()};
+*/
 
 TEST_CASE("Protocol with empty bytes") {
   CONST_BODY(({
-    Protocol protocol(file_ops);
+    Protocol protocol;
     const uint8_t data[0] = {};
     sysex::Chunk chunk(data, 0);
     protocol.handle_chunk(chunk);
@@ -27,7 +48,7 @@ TEST_CASE("Protocol with empty bytes") {
 
 TEST_CASE("Protocol identifies") {
   CONST_BODY(({
-    Protocol protocol(file_ops);
+    Protocol protocol;
     REQUIRE(protocol.__get_state() == State::Idle);
 
     const uint8_t data[3] = {0, 0x7D, 0x65};

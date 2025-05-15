@@ -4,6 +4,12 @@
 #include "./chunk.h"
 #include "./codec.h"
 
+// TODO: Currently handles file streaming/writing, as well as sysex decoding.
+//       Processing of the byte stream can be offloaded to something external,
+//       which keeps this focused on the sysex transport layer, while dealing with
+//       the data happens elsewhere. That way, we could change transport later or support
+//       multiple transports, like WebSerial etc.
+
 namespace sysex {
 
 template <typename FileHandle> struct Protocol {

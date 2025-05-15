@@ -2,13 +2,22 @@
 
 #include "drum/sysex/protocol.h"
 
-typedef sysex::Protocol::State State;
-
 using etl::array;
+
+typedef sysex::Protocol<int> Protocol;
+typedef Protocol::State State;
+typedef Protocol::FileOperations File;
+
+static constexpr File::FileHandle
+test_open(const Protocol::FileOperations::Path &path) {
+  return 0;
+}
+
+static constexpr Protocol::FileOperations file_ops{.open = File::Open::create<test_open>()};
 
 TEST_CASE("Protocol with empty bytes") {
   CONST_BODY(({
-    sysex::Protocol protocol;
+    Protocol protocol(file_ops);
     const uint8_t data[0] = {};
     sysex::Chunk chunk(data, 0);
     protocol.handle_chunk(chunk);
@@ -18,7 +27,7 @@ TEST_CASE("Protocol with empty bytes") {
 
 TEST_CASE("Protocol identifies") {
   CONST_BODY(({
-    sysex::Protocol protocol;
+    Protocol protocol(file_ops);
     REQUIRE(protocol.__get_state() == State::Idle);
 
     const uint8_t data[3] = {0, 0x7D, 0x65};

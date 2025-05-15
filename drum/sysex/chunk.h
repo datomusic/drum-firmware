@@ -1,4 +1,3 @@
-
 #ifndef SYSEX_CHUNK_H_JY7GCIDU
 #define SYSEX_CHUNK_H_JY7GCIDU
 

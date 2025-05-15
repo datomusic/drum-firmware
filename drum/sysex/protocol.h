@@ -66,9 +66,9 @@ private:
     } break;
 
     case State::ByteTransfer: {
-      const auto bytes = codec::decode(iterator, end);
-      // TODO: - Decode sysex messages to bytes
-      //       - Pass them to some handler based on type
+      etl::array<uint16_t, Chunk::Data::SIZE> bytes;
+      const auto byte_count = codec::decode<Chunk::Data::SIZE>(etl::span(iterator, end), bytes);
+      // TODO: - Pass bytes to some handler based on type
       //       - Currently only one type of file transfer (samples)
     } break;
 

@@ -7,28 +7,34 @@
 namespace sysex {
 
 struct Protocol {
-  // TODO: Return informative error on failure
+  // TODO: Return informative error on failure.
+  // Current return value indicates if the message was accepted at all.
   constexpr bool handle_chunk(const Chunk &chunk) {
     Chunk::Data::const_iterator iterator = chunk.cbegin();
-    if (chunk.size() == 0 || (*iterator++) != midi::SystemExclusive) {
+
+    // Make sure it's for us, and we have space for at least a tag
+    if (!(chunk.size() >= 4 && (*iterator++) == 0 && (*iterator++) == DatoId &&
+          (*iterator++) == DrumId)) {
       return false;
     }
 
-    if (state == State::Idle) {
-      if ((*iterator++) == DatoId && (*iterator++) == DrumId) {
-        state = State::Identified;
-        parse_part(iterator, chunk.cend());
-      }
-    } else {
-      parse_part(iterator, chunk.cend());
+    etl::array<uint16_t, Chunk::Data::SIZE> bytes;
+    const auto byte_count =
+        codec::decode<Chunk::Data::SIZE>(etl::span(iterator, chunk.cend()), bytes);
+
+    if (byte_count == 0) {
+      return true;
     }
+
+    auto byte_iterator = bytes.cbegin();
+    const uint16_t tag = (*byte_iterator++);
+    handle_packet(tag, etl::span(byte_iterator, bytes.cend()));
 
     return true;
   }
 
   enum class State {
     Idle,
-    Identified,
     ByteTransfer,
   };
 
@@ -48,35 +54,17 @@ private:
     EndByteTransfer = 0x12,
   };
 
-  constexpr void parse_part(Chunk::Data::const_iterator iterator,
-                            const Chunk::Data::const_iterator end) {
-    if (iterator == end) {
-      return;
-    }
-
-    switch (state) {
-    case State::Identified: {
-      const auto tag = *iterator;
-      iterator++;
-
-      if (tag == BeginByteTransfer) {
-        state = State::ByteTransfer;
-        parse_part(iterator, end);
-      }
+  constexpr void handle_packet(const uint16_t tag,
+                               const etl::span<const uint16_t, Chunk::Data::SIZE> &bytes) {
+    switch (tag) {
+    case BeginByteTransfer: {
     } break;
-
-    case State::ByteTransfer: {
-      etl::array<uint16_t, Chunk::Data::SIZE> bytes;
-      const auto byte_count = codec::decode<Chunk::Data::SIZE>(etl::span(iterator, end), bytes);
-      // TODO: - Pass bytes to some handler based on type
-      //       - Currently only one type of file transfer (samples)
+    case Bytes: {
     } break;
-
-    case State::Idle: {
-      // TODO: Unexpected situation. Log it somehow.
+    case EndByteTransfer: {
     } break;
     }
-  }
+  };
 
   State state = State::Idle;
 };

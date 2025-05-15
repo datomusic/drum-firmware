@@ -21,11 +21,11 @@ TEST_CASE("Protocol identifies") {
     sysex::Protocol protocol;
     REQUIRE(protocol.__get_state() == State::Idle);
 
-    const uint8_t data[3] = {midi::SystemExclusive, 0x7D, 0x65};
+    const uint8_t data[3] = {0, 0x7D, 0x65};
     sysex::Chunk chunk(data, 3);
     protocol.handle_chunk(chunk);
 
-    REQUIRE(protocol.__get_state() == State::Identified);
+    REQUIRE(protocol.__get_state() == State::Idle);
   }));
 }
 

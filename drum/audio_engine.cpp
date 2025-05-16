@@ -5,7 +5,7 @@
 #include "musin/audio/audio_output.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
-#include "musin/audio/memory_reader.h"
+// Removed #include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 
@@ -40,7 +40,7 @@ float map_value_filter_fast(float normalized_value) {
 
 } // namespace
 
-AudioEngine::Voice::Voice() : sound(reader.emplace()) {
+AudioEngine::Voice::Voice() : sound(reader.emplace()) { // reader is default constructed here
 }
 
 AudioEngine::AudioEngine()
@@ -93,7 +93,7 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
   Voice &voice = voices_[voice_index];
 
   const SampleData& current_sample_data = all_samples[sample_index];
-  voice.reader->set_source(current_sample_data.get_attack_buffer_ptr(), current_sample_data.get_attack_buffer_length());
+  voice.reader->set_source(current_sample_data); // Pass the SampleData object directly
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);

@@ -3,6 +3,7 @@
 
 extern "C" {
 #include "pico/time.h"
+#include "pico/malloc.h"
 }
 #include "etl/array.h"
 #include "etl/string.h"

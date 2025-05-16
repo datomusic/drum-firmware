@@ -3,7 +3,6 @@
 
 #include "etl/optional.h"
 
-// #include "../file_ops.h"
 #include "./chunk.h"
 #include "./codec.h"
 
@@ -15,9 +14,12 @@
 
 namespace sysex {
 
-/*
+// Wraps a file handle to ensure it gets closed through RAII.
 template <typename FileOperations> struct File {
-  constexpr File(const FileOperations::Path &path) : handle(FileOperations::open(path)) {
+  constexpr File() : handle(FileOperations::open("")) {
+  }
+
+  constexpr File(const char *path) : handle(FileOperations::open(path)) {
   }
 
   constexpr size_t write(const etl::array<uint8_t, FileOperations::BlockSize> &bytes) {
@@ -29,9 +31,8 @@ template <typename FileOperations> struct File {
   }
 
 private:
-  const FileOperations::Handle handle;
+  FileOperations::Handle handle;
 };
-*/
 
 template <typename FileOperations> struct Protocol {
 
@@ -88,11 +89,8 @@ template <typename FileOperations> struct Protocol {
   }
 
 private:
-  // Wraps a file handle to ensure it gets closed through RAII.
-
-  // etl::optional<File<FileOperations>> opened_file;
-  etl::optional<typename FileOperations::Handle> opened_file;
   State state = State::Idle;
+  etl::optional<File<FileOperations>> opened_file;
 
   // TODO: Make externally configurable
   static const uint8_t DatoId = 0x7D; // Manufacturer ID for Dato
@@ -119,21 +117,21 @@ private:
             (*byte_iterator++) = tmp_bytes[1];
           }
 
-          FileOperations::write(opened_file.value(), bytes);
-          // opened_file->write(bytes);
+          opened_file->write(bytes);
         } else {
           // TODO: Error: Expected file to be open.
         }
       } else {
-        // Close the file and report error.
+        opened_file.reset();
+        // TODO: Report error
       }
     } break;
     default:
       switch (tag) {
       case BeginFileWrite: {
         // TODO: Error if file is already open, maybe?
-        // Get file path
-        opened_file.emplace(FileOperations::open("/temp_sample"));
+        // TODO: Get file path from sysex
+        opened_file.emplace("/temp_sample");
         state = State::FileTransfer;
       } break;
       case EndFileTransfer: {

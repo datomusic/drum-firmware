@@ -20,7 +20,7 @@ struct TestFileOps {
     return 0;
   }
 
-  static constexpr void close(const Handle &handle) {
+  static constexpr void close(Handle &handle) {
   }
 
   static constexpr size_t write(const Handle &handle, const etl::array<uint8_t, BlockSize> &bytes) {
@@ -31,18 +31,6 @@ struct TestFileOps {
 typedef sysex::Protocol<TestFileOps> Protocol;
 typedef Protocol::State State;
 
-/*
-typedef Protocol::FileOperations File;
-
-static constexpr File::FileHandle
-test_open(const Protocol::FileOperations::Path &path) {
-  return 0;
-}
-
-static constexpr Protocol::FileOperations file_ops{.open = File::Open::create<test_open>()};
-*/
-
-/*
 TEST_CASE("Protocol with empty bytes") {
   CONST_BODY(({
     Protocol protocol;
@@ -65,7 +53,6 @@ TEST_CASE("Protocol identifies") {
     REQUIRE(protocol.__get_state() == State::Idle);
   }));
 }
-*/
 
 TEST_CASE("Protocol receives file data") {
   CONST_BODY(({

@@ -147,7 +147,7 @@ private:
   float position;
   float remainder;
   SampleReader &sample_reader;
-  BufferedReader<> buffered_reader;
+  musin::BufferedReader<> buffered_reader;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

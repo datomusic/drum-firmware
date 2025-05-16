@@ -107,10 +107,9 @@ struct Filter {
 private:
   // Internal frequency calculation based on normalized input
   void calculate_frequency(float freq_normalized) {
-    // Logarithmic mapping: 0.0 -> 20Hz, 1.0 -> SAMPLE_FREQ / 2.5f
-    const float min_freq = 20.0f;
-    const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 2.5f;
-    const float log_min = std::log(min_freq); // Use std::log
+    // Logarithmic mapping: 0.0 -> MIN_AUDIBLE_FREQ_HZ, 1.0 -> SAMPLE_FREQ / MAX_FREQ_NYQUIST_DIVISOR
+    const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / MAX_FREQ_NYQUIST_DIVISOR;
+    const float log_min = std::log(MIN_AUDIBLE_FREQ_HZ); // Use std::log
     const float log_max = std::log(max_freq); // Use std::log
     const float log_freq = log_min + freq_normalized * (log_max - log_min);
     const float freq_hz = std::exp(log_freq); // Use std::exp
@@ -118,10 +117,8 @@ private:
   }
   // Internal resonance calculation based on normalized input
   void calculate_resonance(float res_normalized) {
-    // Linear mapping: 0.0 -> 0.7, 1.0 -> 5.0
-    const float min_q = 0.7f;
-    const float max_q = 5.0f;
-    const float q = min_q + res_normalized * (max_q - min_q);
+    // Linear mapping: 0.0 -> MIN_RESONANCE_Q, 1.0 -> MAX_RESONANCE_Q
+    const float q = MIN_RESONANCE_Q + res_normalized * (MAX_RESONANCE_Q - MIN_RESONANCE_Q);
     resonance(q); // Call the original resonance setter
   }
 

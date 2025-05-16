@@ -259,3 +259,4 @@ void Filter::update_variable(AudioBlock &input, AudioBlock &control,
                   outputs.bandpass.begin(), outputs.highpass.begin());
 }
 */
+} // namespace musin::audio

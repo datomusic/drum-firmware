@@ -1,10 +1,12 @@
-#ifndef DRUM_SB25_SAMPLES_H_
-#define DRUM_SB25_SAMPLES_H_
+#ifndef MUSIN_AUDIO_SAMPLE_DATA_H_
+#define MUSIN_AUDIO_SAMPLE_DATA_H_
 
 #include "etl/array.h"
 #include "musin/audio/block.h" // For AUDIO_BLOCK_SAMPLES
 #include <cstdint>
 #include <algorithm> // For std::min
+
+namespace musin {
 
 class SampleData {
 public:
@@ -53,6 +55,6 @@ private:
   uint32_t flash_data_length_;       // Length of the data in flash after the attack portion
 };
 
-extern const etl::array<SampleData, 32> all_samples;
+} // namespace musin
 
-#endif // DRUM_SB25_SAMPLES_H_
+#endif // MUSIN_AUDIO_SAMPLE_DATA_H_

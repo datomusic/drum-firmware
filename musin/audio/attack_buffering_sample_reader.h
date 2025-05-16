@@ -1,8 +1,8 @@
 #ifndef MUSIN_AUDIO_ATTACK_BUFFERING_SAMPLE_READER_H_
 #define MUSIN_AUDIO_ATTACK_BUFFERING_SAMPLE_READER_H_
 
-#include "musin/audio/sample_reader.h" // Includes block.h for AudioBlock and AUDIO_BLOCK_SAMPLES
-#include "drum/sb25_samples.h"      // For drum::SampleData
+#include "musin/audio/sample_reader.h"
+#include "musin/audio/sample_data.h"
 #include <algorithm> // For std::copy, std::min
 #include <cstdint>
 #include "port/section_macros.h"

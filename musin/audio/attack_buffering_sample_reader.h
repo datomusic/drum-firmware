@@ -16,13 +16,13 @@ public:
         flash_read_pos_(0),
         is_initialized_(false) {}
 
-  constexpr explicit AttackBufferingSampleReader(const drum::SampleData& sample_data_ref)
+  constexpr explicit AttackBufferingSampleReader(const SampleData& sample_data_ref)
       : sample_data_ptr_(&sample_data_ref),
         ram_read_pos_(0),
         flash_read_pos_(0),
         is_initialized_(true) {}
 
-  constexpr void set_source(const drum::SampleData& sample_data_ref) {
+  constexpr void set_source(const SampleData& sample_data_ref) {
     sample_data_ptr_ = &sample_data_ref;
     reset(); // Reset read positions for the new source
     is_initialized_ = true;
@@ -92,7 +92,7 @@ public:
   }
 
 private:
-  const drum::SampleData* sample_data_ptr_; // Pointer to the sample data
+  const SampleData* sample_data_ptr_; // Pointer to the sample data
   uint32_t ram_read_pos_;    // Current read position within the RAM attack buffer
   uint32_t flash_read_pos_;  // Current read position within the flash data portion
   bool is_initialized_;      // Flag to indicate if sample_data_ptr_ points to a valid SampleData

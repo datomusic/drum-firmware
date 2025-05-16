@@ -6,6 +6,8 @@
 #include <algorithm>       // For std::copy
 #include <stdint.h>
 
+namespace musin {
+
 // Default number of audio blocks for EACH of the two internal ping-pong buffers.
 // Each block is AUDIO_BLOCK_SAMPLES (e.g., 128) samples.
 // Total RAM = 2 * NumBlocksPerSlot * AUDIO_BLOCK_SAMPLES * sizeof(int16_t).
@@ -97,5 +99,7 @@ private:
   uint32_t samples_in_active_buffer;
   uint32_t current_read_position_in_active_buffer;
 };
+
+} // namespace musin
 
 #endif /* end of include guard: CHUNK_READER_H_FBMGJA3O */

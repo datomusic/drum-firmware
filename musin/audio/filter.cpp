@@ -29,13 +29,65 @@
 #include "dspinst.h"
 #include "port/section_macros.h"
 
+namespace musin::audio {
+
+namespace { // Anonymous namespace for implementation-specific constants and helpers
+
+// --- Fixed-point arithmetic constants ---
+// MULT macro replacement: (multiply_32x32_rshift32_rounded(a, b) << 2)
+// This is effectively a right shift by 30 with rounding from the rshift32 part.
+static inline int32_t multiply_32x32_rshift30_rounded(int32_t a, int32_t b) {
+  return (multiply_32x32_rshift32_rounded(a, b) << 2);
+}
+
+// Input scaling for filter processing
+constexpr int32_t INPUT_SCALE_LSHIFT = 12;
+// Right shift for averaging input in Chamberlin filter ( (input + inputprev) >> 1 )
+constexpr int32_t INPUT_AVG_RSHIFT = 1;
+// Output scaling for final sample value
+constexpr int32_t OUTPUT_SCALE_RSHIFT = 13; // Results in Q1.15 if input is Q1.15 and intermediate is Q.27
+
+// --- Constants for update_variable (frequency modulation) ---
+// Mask to get fractional part of control signal for exp2 approximation
+constexpr int32_t N_CONTROL_FRAC_MASK = 0x7FFFFFF; // 27 fractional bits
+
+#ifdef IMPROVE_EXPONENTIAL_ACCURACY
+// exp2 polynomial by Stefan Stenzel: x = n << 3
+constexpr int32_t X_N_LSHIFT_PRE_POLY_STEFAN = 3;
+constexpr int32_t EXP2_POLY_STEFAN_C0 = 536870912;    // Q29
+constexpr int32_t EXP2_POLY_STEFAN_C1 = 1494202713;   // Q29
+constexpr int32_t EXP2_POLY_STEFAN_C2 = 1934101615;   // Q29
+constexpr int32_t EXP2_POLY_STEFAN_C3_FACTOR = 1358044250; // Q29
+// Post-accumulation shifts for Stefan Stenzel polynomial terms
+constexpr int32_t EXP2_POLY_STEFAN_C2_POST_LSHIFT = 1;
+constexpr int32_t EXP2_POLY_STEFAN_C3_POST_LSHIFT = 1;
+#else
+// exp2 algorithm by Laurent de Soras: (n + C0) << C1_SHIFT
+constexpr int32_t N_LAURENT_OFFSET = 134217728; // Q27
+constexpr int32_t N_LAURENT_LSHIFT = 3;
+constexpr int32_t EXP2_LAURENT_C0 = 715827883;  // Q29
+constexpr int32_t EXP2_LAURENT_C1 = 715827882;  // Q29
+#endif
+
+// Final scaling for 'n' based on integer part of control signal
+constexpr int32_t N_FINAL_RSHIFT_BASE = 6;
+constexpr int32_t CONTROL_INT_RSHIFT = 27; // To get integer part of control
+
+// fmult limits and scaling
+constexpr int32_t FMULT_MAX_VAL = 5378279; // Max value for fmult before final shift
+constexpr int32_t FMULT_POST_SCALE_LSHIFT = 8;
+
+#ifdef IMPROVE_HIGH_FREQUENCY_ACCURACY
+// Polynomial approximation for high frequency accuracy
+constexpr int32_t HIGH_FREQ_ACC_POLY_C0 = 2145892402; // Q31
+constexpr int32_t HIGH_FREQ_ACC_POLY_C1_FACTOR = -1383276101; // Q31
+constexpr int32_t HIGH_FREQ_ACC_POST_LSHIFT = 1;
+#endif
+
+} // namespace
+
 // State Variable Filter (Chamberlin) with 2X oversampling
 // http://www.musicdsp.org/showArchiveComment.php?ArchiveID=92
-
-// The fast 32x32 with rshift32 discards 2 bits, which probably
-// never matter.
-// #define MULT(a, b) (int32_t)(((int64_t)(a) * (b)) >> 30)
-#define MULT(a, b) (multiply_32x32_rshift32_rounded(a, b) << 2)
 
 // It's very unlikely anyone could hear any difference, but if you
 // care deeply about numerical precision in seldom-used cases,

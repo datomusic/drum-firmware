@@ -58,16 +58,13 @@ public:
   };
 
   Filter() {
-    frequency(1000);
-    octaveControl(1.0); // default values
-    resonance(0.707);
+    // Initialize with default values by calling the setters
+    frequency(1000.0f); // Default frequency
+    octave_control(1.0f); // default values
+    resonance(0.707f); // Default resonance (Butterworth)
     state_inputprev = 0;
     state_lowpass = 0;
     state_bandpass = 0;
-    // Initialize with default values by calling the setters
-    frequency(1000.0f); // Default frequency
-    octave_control(1.0f); // Default octave control
-    resonance(0.707f); // Default resonance (Butterworth)
   }
 
   void frequency(float freq) {

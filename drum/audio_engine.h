@@ -121,8 +121,8 @@ private:
 
   AudioMixer<NUM_VOICES> mixer_;
   Crusher crusher_;
-  Lowpass lowpass_;
-  Highpass highpass_;
+  musin::audio::Lowpass lowpass_;
+  musin::audio::Highpass highpass_;
 
   bool is_initialized_ = false;
 };

@@ -8,13 +8,28 @@ extern "C" {
 #include "etl/string.h"
 #include <cstdint>
 #include <cstdio>
-
+#include <unistd.h> // For sbrk
 
 #define ENABLE_PROFILING
+
+// Linker script symbols for memory regions
+extern "C" {
+  extern char __heap_start__[];
+  extern char __heap_end__[];
+  extern char __StackLimit[];
+  extern char __StackTop[];
+}
 
 namespace musin::hal {
 namespace DebugUtils {
 #ifdef ENABLE_PROFILING
+
+// Helper to get current stack pointer
+static inline void* get_current_sp() {
+  void* sp;
+  asm volatile ("mov %0, sp" : "=r" (sp));
+  return sp;
+}
 
 /**
  * @brief Measures and reports the average execution time of registered code sections.
@@ -84,6 +99,44 @@ private:
       _sections[i].accumulated_time_us = 0;
       _sections[i].call_count = 0;
     }
+    printf("------------------------\n");
+
+    // Memory usage report
+    printf("--- Memory Report ---\n");
+
+    // Heap statistics
+    char* heap_start = __heap_start__;
+    char* heap_end = __heap_end__;
+    size_t total_heap_size = static_cast<size_t>(heap_end - heap_start);
+    char* current_break = static_cast<char*>(sbrk(0));
+    size_t used_heap_size = 0;
+    if (current_break >= heap_start && current_break <= heap_end) {
+      used_heap_size = static_cast<size_t>(current_break - heap_start);
+    } else if (current_break == (char*)-1) { // sbrk error or heap not used/available via sbrk
+      // Could indicate an issue or simply that sbrk is not tracking the heap as expected
+      // For now, report used_heap_size as 0 or an error indicator if preferred
+    }
+
+
+    printf("Heap: Total %u B, Used %u B, Free %u B\n",
+           static_cast<unsigned int>(total_heap_size),
+           static_cast<unsigned int>(used_heap_size),
+           static_cast<unsigned int>(total_heap_size - used_heap_size));
+
+    // Stack statistics
+    char* stack_limit = __StackLimit;
+    char* stack_top = __StackTop; // Typically highest address, stack grows down
+    size_t total_stack_size = static_cast<size_t>(stack_top - stack_limit);
+    char* current_stack_pointer = static_cast<char*>(get_current_sp());
+    size_t used_stack_size = 0;
+    if (current_stack_pointer >= stack_limit && current_stack_pointer <= stack_top) {
+       used_stack_size = static_cast<size_t>(stack_top - current_stack_pointer);
+    }
+
+    printf("Stack: Total %u B, Used %u B, Free %u B\n",
+           static_cast<unsigned int>(total_stack_size),
+           static_cast<unsigned int>(used_stack_size),
+           static_cast<unsigned int>(total_stack_size - used_stack_size));
     printf("------------------------\n");
   }
 

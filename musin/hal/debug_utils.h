@@ -9,14 +9,14 @@ extern "C" {
 #include "etl/string.h"
 #include <cstdint>
 #include <cstdio>
-#include <unistd.h> // For sbrk
+// #include <unistd.h> // For sbrk - no longer needed
 
 #define ENABLE_PROFILING
 
 // Linker script symbols for memory regions
 extern "C" {
-  extern char __heap_start__[];
-  extern char __heap_end__[];
+  // extern char __heap_start__[]; // Provided by mallinfo()
+  // extern char __heap_end__[];   // Provided by mallinfo()
   extern char __StackLimit[];
   extern char __StackTop[];
 }
@@ -105,24 +105,18 @@ private:
     // Memory usage report
     printf("--- Memory Report ---\n");
 
-    // Heap statistics
-    char* heap_start = __heap_start__;
-    char* heap_end = __heap_end__;
-    size_t total_heap_size = static_cast<size_t>(heap_end - heap_start);
-    char* current_break = static_cast<char*>(sbrk(0));
-    size_t used_heap_size = 0;
-    if (current_break >= heap_start && current_break <= heap_end) {
-      used_heap_size = static_cast<size_t>(current_break - heap_start);
-    } else if (current_break == (char*)-1) { // sbrk error or heap not used/available via sbrk
-      // Could indicate an issue or simply that sbrk is not tracking the heap as expected
-      // For now, report used_heap_size as 0 or an error indicator if preferred
-    }
+    // Heap statistics using mallinfo
+    struct mallinfo mi = mallinfo();
+    unsigned int total_heap_size_mallinfo = mi.arena;
+    unsigned int used_heap_size_mallinfo = mi.uordblks;
+    unsigned int free_heap_size_mallinfo = mi.fordblks; 
+    // Alternatively, free_heap_size_mallinfo = total_heap_size_mallinfo - used_heap_size_mallinfo;
+    // fordblks is generally more accurate for the sum of free blocks.
 
-
-    printf("Heap: Total %u B, Used %u B, Free %u B\n",
-           static_cast<unsigned int>(total_heap_size),
-           static_cast<unsigned int>(used_heap_size),
-           static_cast<unsigned int>(total_heap_size - used_heap_size));
+    printf("Heap: Total %u B, Used %u B, Free %u B (via mallinfo)\n",
+           total_heap_size_mallinfo,
+           used_heap_size_mallinfo,
+           free_heap_size_mallinfo);
 
     // Stack statistics
     char* stack_limit = __StackLimit;

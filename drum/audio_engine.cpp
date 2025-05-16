@@ -92,7 +92,8 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
 
   Voice &voice = voices_[voice_index];
 
-  voice.reader->set_source(all_samples[sample_index].data, all_samples[sample_index].length);
+  const SampleData& current_sample_data = all_samples[sample_index];
+  voice.reader->set_source(current_sample_data.get_attack_buffer_ptr(), current_sample_data.get_attack_buffer_length());
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);

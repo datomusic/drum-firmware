@@ -25,8 +25,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef filter_variable_h_
-#define filter_variable_h_
+#ifndef MUSIN_AUDIO_FILTER_H_
+#define MUSIN_AUDIO_FILTER_H_
 
 #include "audio_output.h"
 #include <cmath> // Include for std::log, std::exp
@@ -46,6 +46,7 @@ public:
 
   static constexpr float MIN_RESONANCE_Q = 0.7f;
   static constexpr float MAX_RESONANCE_Q = 5.0f;
+  static constexpr int32_t Q30_INT_SCALE = (1 << 30);
 
   static constexpr float MIN_OCTAVE_CONTROL = 0.0f;
   static constexpr float MAX_OCTAVE_CONTROL = 6.9999f;       // Approx 7 octaves
@@ -87,7 +88,7 @@ public:
       q = MAX_RESONANCE_Q;
     // TODO: allow lower Q when frequency is lower
     // 1073741824.0f is 2^30, for Q30 representation of (1/q)
-    setting_damp = (1.0f / q) * (1 << 30); // Q30
+    setting_damp = (1.0f / q) * Q30_INT_SCALE;
   }
 
   void octave_control(float n) {

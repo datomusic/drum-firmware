@@ -45,10 +45,17 @@ AudioEngine::Voice::Voice() : sound(reader.emplace()) { // reader is default con
 
 AudioEngine::AudioEngine()
     : voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
-      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
-      profiler_() {
-  profiler_.add_section("AudioProcessUpdate");
-  profiler_.add_section("AudioPlayOnVoiceUpdate");
+      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_) {
+  // Add sections to the global profiler instance
+  // Note: Ensure kGlobalProfilerMaxSections in debug_utils.h is sufficient.
+  // The enum values for ProfileSection should correspond to the order of add_section calls.
+  musin::hal::DebugUtils::g_section_profiler.add_section("AudioProcessUpdate");        // Index 0
+  musin::hal::DebugUtils::g_section_profiler.add_section("AudioPlayOnVoiceUpdate");    // Index 1
+
+  // Static asserts to ensure enum values match the assumed indices
+  static_assert(static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE) == 0, "ProfileSection enum mismatch for AUDIO_PROCESS_UPDATE");
+  static_assert(static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE) == 1, "ProfileSection enum mismatch for PLAY_ON_VOICE_UPDATE");
+
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
   crusher_.sampleRate(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
@@ -75,15 +82,15 @@ bool AudioEngine::init() {
 void AudioEngine::process() {
   {
     musin::hal::DebugUtils::ScopedProfile p(
-        profiler_, static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE));
+        musin::hal::DebugUtils::g_section_profiler, static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE));
     AudioOutput::update(lowpass_);
   }
-  profiler_.check_and_print_report();
+  musin::hal::DebugUtils::g_section_profiler.check_and_print_report();
 }
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity) {
   musin::hal::DebugUtils::ScopedProfile p(
-      profiler_, static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE));
+      musin::hal::DebugUtils::g_section_profiler, static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE));
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }

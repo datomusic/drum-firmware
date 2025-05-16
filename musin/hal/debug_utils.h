@@ -32,6 +32,10 @@ inline std::atomic<uint32_t> g_pitch_shifter_underruns{0};
 
 #ifdef ENABLE_PROFILING
 
+// Define the number of sections for the global profiler
+constexpr size_t kGlobalProfilerMaxSections = 2; // Matches AudioEngine's previous usage
+inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
+
 // Helper to get current stack pointer
 static inline void* get_current_sp() {
   void* sp;
@@ -206,8 +210,9 @@ private:
   absolute_time_t _start_time;
 };
 
-#else
+#else // ENABLE_PROFILING not defined
 
+// Stub for SectionProfiler class
 template <size_t MaxSections>
 class SectionProfiler {
 public:
@@ -217,6 +222,12 @@ public:
   void check_and_print_report() {}
 };
 
+// Define the number of sections for the global profiler (must match ENABLE_PROFILING case)
+constexpr size_t kGlobalProfilerMaxSections = 2;
+// Stub for the global profiler instance
+inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
+
+// Stub for ScopedProfile class
 template <size_t MaxSections>
 class ScopedProfile {
 public:

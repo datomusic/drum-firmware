@@ -27,7 +27,7 @@ private:
    * @brief Internal structure representing a single audio voice.
    */
   struct Voice {
-    etl::optional<musin::AttackBufferingSampleReader> reader; // Changed type
+    etl::optional<musin::AttackBufferingSampleReader<>> reader; // Use default template arg
     Sound sound;
     float current_pitch = 1.0f;
 

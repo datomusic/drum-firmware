@@ -12,6 +12,7 @@
 
 namespace musin {
 
+template <size_t NumFlashBufferBlocks = musin::DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT>
 class AttackBufferingSampleReader : public SampleReader {
 public:
   constexpr AttackBufferingSampleReader()
@@ -121,7 +122,7 @@ private:
 
   // Internal readers for handling the flash data portion with double buffering
   musin::MemorySampleReader flash_data_memory_reader_;
-  musin::BufferedReader<musin::DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT> flash_data_buffered_reader_;
+  musin::BufferedReader<NumFlashBufferBlocks> flash_data_buffered_reader_;
 };
 
 } // namespace musin

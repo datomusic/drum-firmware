@@ -10,7 +10,7 @@
 // Each block is AUDIO_BLOCK_SAMPLES (e.g., 128) samples.
 // Total RAM = 2 * NumBlocksPerSlot * AUDIO_BLOCK_SAMPLES * sizeof(int16_t).
 // E.g., 2 slots * 4 blocks/slot * 128 samples/block * 2 bytes/sample = 2048 bytes.
-constexpr size_t DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT = 4;
+constexpr size_t DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT = 1;
 
 template <size_t NumBlocksPerSlot = DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT> struct BufferedReader {
   static_assert(NumBlocksPerSlot > 0, "Number of RAM blocks per slot must be greater than 0");

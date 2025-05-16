@@ -9,7 +9,7 @@
 #include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
-#include "musin/audio/memory_reader.h"
+#include "musin/audio/attack_buffering_sample_reader.h" // Changed include
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 #include "musin/hal/debug_utils.h"
@@ -27,7 +27,7 @@ private:
    * @brief Internal structure representing a single audio voice.
    */
   struct Voice {
-    etl::optional<musin::MemorySampleReader> reader;
+    etl::optional<musin::AttackBufferingSampleReader> reader; // Changed type
     Sound sound;
     float current_pitch = 1.0f;
 

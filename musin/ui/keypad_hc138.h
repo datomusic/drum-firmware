@@ -24,7 +24,8 @@ struct KeypadEvent {
   enum class Type : uint8_t {
     Press,
     Release,
-    Hold
+    Hold,
+    Tap
   };
 
   uint8_t row;
@@ -52,6 +53,8 @@ enum class KeyState : std::uint8_t {
 struct KeyData {
   KeyState state = KeyState::IDLE;            ///< Current debounced and hold state.
   absolute_time_t transition_time = nil_time; ///< Time of the last relevant state change start.
+  absolute_time_t press_event_time =
+      nil_time;              ///< Time of the confirmed press event for tap detection.
   bool just_pressed = false; ///< Flag indicating a transition to PRESSED occurred in the last scan.
   bool just_released = false; ///< Flag indicating a transition to IDLE occurred in the last scan.
 };
@@ -78,6 +81,7 @@ public:
   static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_MS = 10; ///< 10ms default scan rate
   static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_MS = 5;  ///< 5ms default debounce time
   static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS = 500;    ///< 500ms default hold time
+  static constexpr std::uint32_t DEFAULT_TAP_TIME_MS = 60; ///< 150ms default tap time threshold
 
   /**
    * @brief Construct a new Keypad_HC138 driver instance.
@@ -90,13 +94,15 @@ public:
    * @param scan_interval_ms Time between full keypad scans in milliseconds.
    * @param debounce_time_ms Time duration for debouncing transitions in milliseconds.
    * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
+   * @param tap_time_ms Maximum time between a press and release to be considered a 'tap'.
    */
   Keypad_HC138(const std::array<uint32_t, 3> &decoder_address_pins,
                const std::array<uint32_t, NumCols> &col_pins, // Use std::array reference
                // No longer need key_data_buffer parameter
                std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
                std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,
-               std::uint32_t hold_time_ms = DEFAULT_HOLD_TIME_MS);
+               std::uint32_t hold_time_ms = DEFAULT_HOLD_TIME_MS,
+               std::uint32_t tap_time_ms = DEFAULT_TAP_TIME_MS);
 
   // Prevent copying and assignment
   Keypad_HC138(const Keypad_HC138 &) = delete;
@@ -190,6 +196,7 @@ private:
   const std::uint32_t _scan_interval_us;
   const std::uint32_t _debounce_time_us;
   const std::uint32_t _hold_time_us;
+  const std::uint32_t _tap_time_us;
 
   // --- State ---
   std::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer

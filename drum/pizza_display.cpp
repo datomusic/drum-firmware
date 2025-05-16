@@ -13,10 +13,9 @@ extern "C" {
 
 namespace drum {
 
-namespace { // Anonymous namespace for internal helpers
+namespace {
 
 constexpr auto PULL_CHECK_DELAY_US = 10;
-// Note: MAX_BRIGHTNESS is defined in the header (pizza_display.h)
 constexpr uint8_t REDUCED_BRIGHTNESS = 100;
 constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
 
@@ -63,9 +62,6 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
     state_str = "Undetermined / Inconsistent Reads";
   }
 
-  // printf("PizzaDisplay Init: Pin %lu (%s) external state check result: %s\n", gpio, name,
-  // state_str);
-
   gpio_disable_pulls(gpio);
   sleep_us(PULL_CHECK_DELAY_US);
 
@@ -83,9 +79,8 @@ PizzaDisplay::PizzaDisplay(
                    0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
                    0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
                    0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
-      _drumpad_fade_start_times{},
-      _sequencer_controller_ref(sequencer_controller_ref),
-      _tempo_handler_ref(tempo_handler_ref) { // Value-initialize
+      _drumpad_fade_start_times{}, _sequencer_controller_ref(sequencer_controller_ref),
+      _tempo_handler_ref(tempo_handler_ref) {
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
   }
@@ -103,7 +98,6 @@ void PizzaDisplay::notification(musin::timing::TempoEvent /* event */) {
 }
 
 void PizzaDisplay::draw_base_elements() {
-  // Update play button LED
   if (_sequencer_controller_ref.is_running()) {
     set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
   } else {
@@ -125,10 +119,9 @@ void PizzaDisplay::draw_base_elements() {
     set_play_button_led(pulse_color);
   }
 
-  // Draw sequencer state
   // The template arguments are resolved because _sequencer_controller_ref
   // is typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
-  update_track_override_colors(); // Update override colors based on pad states
+  update_track_override_colors();
   draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
 }
 
@@ -144,26 +137,20 @@ void PizzaDisplay::update_track_override_colors() {
 }
 
 void PizzaDisplay::notification(drum::Events::NoteEvent event) {
-  if (event.velocity > 0) {                         // Note On
-    if (event.track_index < config::NUM_DRUMPADS) { // Ensure track_index is valid for drumpads
+  if (event.velocity > 0) {
+    if (event.track_index < config::NUM_DRUMPADS) {
       this->start_drumpad_fade(event.track_index);
     }
   }
 }
 
 bool PizzaDisplay::init() {
-  // printf("PizzaDisplay: Initializing LEDs...\n");
-
-  // Check LED data pin state to determine initial brightness. Pullup = SK6812, pulldown = SK6805
   ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
   uint8_t initial_brightness =
       (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
-  // printf("PizzaDisplay: Setting initial LED brightness to %u (based on pin state: %d)\n",
-  //        initial_brightness, static_cast<int>(led_pin_state));
   _leds.set_brightness(initial_brightness);
 
   if (!_leds.init()) {
-    // printf("Error: Failed to initialize WS2812 LED driver!\n");
     return false;
   }
 
@@ -172,7 +159,6 @@ bool PizzaDisplay::init() {
   gpio_put(PIN_LED_ENABLE, 1);
   clear();
   show();
-  // printf("PizzaDisplay: Initialization Complete.\n");
   return true;
 }
 
@@ -223,7 +209,6 @@ void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) 
     led_index_opt = LED_DRUMPAD_4;
     break;
   default:
-    // Should not happen if pad_index is validated by caller or is < config::NUM_DRUMPADS
     return;
   }
 
@@ -263,7 +248,6 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
 }
 
 void PizzaDisplay::draw_animations(absolute_time_t now) {
-  // --- Drumpad Fades ---
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
     uint32_t base_color = get_note_color(active_note % NUM_NOTE_COLORS);
@@ -284,8 +268,7 @@ void PizzaDisplay::draw_animations(absolute_time_t now) {
                        config::DISPLAY_BRIGHTNESS_MAX_VALUE));
         final_color = _leds.adjust_color_brightness(base_color, brightness_value);
       } else {
-        _drumpad_fade_start_times[i] = nil_time; // Fade finished
-        // final_color is already base_color
+        _drumpad_fade_start_times[i] = nil_time;
       }
     }
     _set_physical_drumpad_led(i, final_color);

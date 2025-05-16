@@ -6,27 +6,39 @@
 
 namespace musin::timing {
 
-InternalClock::InternalClock(float initial_bpm) : _current_bpm(initial_bpm), _is_running(false) {
+InternalClock::InternalClock(float initial_bpm)
+    : _current_bpm(initial_bpm), _is_running(false), _bpm_change_pending{false} {
   _timer_info = {};
-  calculate_interval();
+  _tick_interval_us = calculate_tick_interval(initial_bpm);
+  _pending_bpm = initial_bpm;
+  _pending_tick_interval_us = _tick_interval_us;
 }
 
 void InternalClock::set_bpm(float bpm) {
   if (bpm <= 0.0f) {
-    printf("InternalClock Warning: Ignoring invalid BPM value: %.2f\n", bpm);
     return;
   }
 
-  if (bpm != _current_bpm) {
-    _current_bpm = bpm;
-    calculate_interval();
-    printf("InternalClock: BPM set to %.2f, Interval updated to %lld us\n", _current_bpm,
-           _tick_interval_us);
-
-    if (_is_running) {
-      stop();
-      start();
+  if (_bpm_change_pending.load(std::memory_order_relaxed)) {
+    if (bpm == _pending_bpm) {
+      return;
     }
+  } else {
+    if (bpm == _current_bpm) {
+      return;
+    }
+  }
+
+  int64_t new_interval = calculate_tick_interval(bpm);
+
+  if (_is_running) {
+    _pending_bpm = bpm;
+    _pending_tick_interval_us = new_interval;
+    _bpm_change_pending.store(true, std::memory_order_relaxed);
+  } else {
+    _current_bpm = bpm;
+    _tick_interval_us = new_interval;
+    _bpm_change_pending.store(false, std::memory_order_relaxed);
   }
 }
 
@@ -36,45 +48,30 @@ float InternalClock::get_bpm() const {
 
 void InternalClock::start() {
   if (_is_running) {
-    printf("InternalClock: Already running.\n");
     return;
   }
   if (_tick_interval_us <= 0) {
-    printf("InternalClock Error: Cannot start, invalid interval (%lld us).\n", _tick_interval_us);
     return;
   }
 
   // Add the repeating timer
-  // Pass 'this' as user_data so the static callback can access the instance
-  // The delay is negative to indicate the time *between starts* of callbacks
   if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this, &_timer_info)) {
     _is_running = true;
-    printf("InternalClock: Started. Interval: %lld us\n", _tick_interval_us);
   } else {
-    printf("InternalClock Error: Failed to add repeating timer.\n");
     _is_running = false;
   }
 }
 
 void InternalClock::stop() {
   if (!_is_running) {
-    printf("InternalClock: Already stopped.\n");
     return;
   }
 
   // Cancel the repeating timer
-  bool cancelled = cancel_repeating_timer(&_timer_info);
-  _is_running = false; // Assume stopped even if cancel fails (shouldn't happen often)
+  cancel_repeating_timer(&_timer_info);
+  _is_running = false;
+  _bpm_change_pending.store(false, std::memory_order_relaxed);
 
-  if (cancelled) {
-    printf("InternalClock: Stopped.\n");
-  } else {
-    // This might happen if the timer fired and the callback returned false
-    // between the check for _is_running and the cancel_repeating_timer call,
-    // or if the timer wasn't validly added in the first place.
-    printf("InternalClock Warning: cancel_repeating_timer failed (timer might have already "
-           "stopped).\n");
-  }
   _timer_info = {};
 }
 
@@ -82,40 +79,49 @@ bool InternalClock::is_running() const {
   return _is_running;
 }
 
-void InternalClock::calculate_interval() {
-  if (_current_bpm <= 0.0f) {
-    _tick_interval_us = 0;
-    return;
+int64_t InternalClock::calculate_tick_interval(float bpm) const {
+  if (bpm <= 0.0f) {
+    return 0;
   }
-  float ticks_per_second = (_current_bpm / 60.0f) * static_cast<float>(PPQN);
+  float ticks_per_second = (bpm / 60.0f) * static_cast<float>(PPQN);
   if (ticks_per_second <= 0.0f) {
-    _tick_interval_us = 0;
-    return;
+    return 0;
   }
-  _tick_interval_us = static_cast<int64_t>(1000000.0f / ticks_per_second);
+  return static_cast<int64_t>(1000000.0f / ticks_per_second);
 }
 
 // --- Static Timer Callback ---
-// Signature matches repeating_timer_callback_t
 bool InternalClock::timer_callback(struct repeating_timer *rt) {
-  // Retrieve the instance pointer from user_data
   InternalClock *instance = static_cast<InternalClock *>(rt->user_data);
-  // Assuming instance is always valid as per design constraints.
 
-  // Check if the instance thinks it should still be running
   if (!instance->_is_running) {
-    printf("InternalClock Callback: Instance stopped, cancelling timer.\n");
-    return false; // Stop the timer
+    return false; // Stop the timer if the clock instance was stopped
   }
 
-  // Create and notify observers with a ClockEvent, specifying the source
+  // Notify observers for the current tick (based on the old interval)
   musin::timing::ClockEvent tick_event{musin::timing::ClockSource::INTERNAL};
   instance->notify_observers(tick_event);
 
-  // Return true to continue the repeating timer
-  return true;
-}
+  // Check for and apply pending BPM change for the *next* interval
+  if (instance->_bpm_change_pending.load(std::memory_order_relaxed)) {
+    int64_t new_interval = instance->_pending_tick_interval_us;
+    float new_bpm = instance->_pending_bpm;
 
-// handle_tick() method removed
+    instance->_current_bpm = new_bpm;
+    instance->_tick_interval_us = new_interval;
+
+    if (new_interval <= 0) {
+      // Invalid interval, stop the clock
+      instance->_is_running = false;
+      instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
+      return false; // Stop the timer
+    }
+    rt->delay_us = -new_interval; // Set the next interval for the timer
+
+    instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
+  }
+
+  return instance->_is_running; // Continue if still running
+}
 
 } // namespace musin::timing

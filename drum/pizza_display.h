@@ -3,19 +3,19 @@
 
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
-#include "musin/drivers/ws2812.h"
-#include "pico/time.h" // For absolute_time_t
+#include "musin/drivers/ws2812-dma.h"
+#include "pico/time.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
-#include "config.h"       // For config::NUM_DRUMPADS
-#include "etl/observer.h" // For etl::observer
-#include "events.h"       // For drum::Events::NoteEvent
+#include "config.h"
+#include "etl/observer.h"
+#include "events.h"
 #include "musin/timing/step_sequencer.h"
-#include "musin/timing/tempo_event.h"   // For TempoEvent
-#include "musin/timing/tempo_handler.h" // For TempoHandler
+#include "musin/timing/tempo_event.h"
+#include "musin/timing/tempo_handler.h"
 #include "sequencer_controller.h"
 
 namespace drum {
@@ -34,10 +34,9 @@ public:
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
-  explicit PizzaDisplay(
-      drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
-          &sequencer_controller_ref,
-      musin::timing::TempoHandler &tempo_handler_ref);
+  explicit PizzaDisplay(drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+                            &sequencer_controller_ref,
+                        musin::timing::TempoHandler &tempo_handler_ref);
 
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;
@@ -153,7 +152,7 @@ public:
    * Allows access to driver methods like adjust_color_brightness.
    * @return const musin::drivers::WS2812<NUM_LEDS>&
    */
-  const musin::drivers::WS2812<NUM_LEDS> &leds() const {
+  const musin::drivers::WS2812_DMA<NUM_LEDS> &leds() const {
     return _leds;
   }
 
@@ -203,7 +202,7 @@ private:
    */
   uint32_t calculate_intensity_color(uint8_t intensity) const;
 
-  musin::drivers::WS2812<NUM_LEDS> _leds;
+  musin::drivers::WS2812_DMA<NUM_LEDS> _leds;
   etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;

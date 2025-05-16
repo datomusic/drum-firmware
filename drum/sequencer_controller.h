@@ -35,7 +35,6 @@ class SequencerController
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS> {
 public:
-  // --- Constants ---
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
 
@@ -44,10 +43,8 @@ public:
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(
-      etl::observable<etl::observer<musin::timing::TempoEvent>,
-                      musin::timing::MAX_TEMPO_OBSERVERS>
-          &tempo_source_ref);
+  SequencerController(etl::observable<etl::observer<musin::timing::TempoEvent>,
+                                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -141,6 +138,11 @@ public:
    */
   void deactivate_random();
 
+  void set_random_probability(uint8_t percent) {
+    random_probability_ = std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
+    printf("Probability set to %d\n", random_probability_);
+  }
+
   [[nodiscard]] bool is_random_active() const;
 
   /**
@@ -172,19 +174,17 @@ public:
   /**
    * @brief Get a reference to the internal sequencer instance.
    */
-  [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() { return sequencer_; }
+  [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() {
+    return sequencer_;
+  }
   /**
    * @brief Get a const reference to the internal sequencer instance.
    */
-  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps>& get_sequencer() const { return sequencer_; }
+  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() const {
+    return sequencer_;
+  }
 
 private:
-  enum class State : uint8_t {
-    Stopped,
-    Running,
-    Repeating
-  };
-  void set_state(State new_state);
   void calculate_timing_params();
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
@@ -194,33 +194,29 @@ private:
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
-  etl::array<int8_t, NumTracks> track_offsets_{};
   etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
       &tempo_source;
-  State state_ = State::Stopped;
+  bool _running = false;
 
-  // --- Swing Timing Members ---
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;
   uint64_t high_res_tick_counter_ = 0;
   uint64_t next_trigger_tick_target_ = 0;
 
-  // --- Repeat Effect Members ---
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  // --- Retrigger (Play On Every Step) Members ---
-  // Mode per track: 0 = Off, 1 = Single, 2 = Double
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
   etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
 
   bool random_active_ = false;
+  uint8_t random_probability_ = drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
-  etl::array<bool, NumTracks> _pad_pressed_state; // Added for track override colors
+  etl::array<bool, NumTracks> _pad_pressed_state;
 
 public:
   void activate_repeat(uint32_t length);

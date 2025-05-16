@@ -40,11 +40,10 @@ class PizzaControls {
 
 public:
   // Constructor takes essential shared resources and dependencies
-  explicit PizzaControls(
-      drum::PizzaDisplay &display_ref,
-      musin::timing::TempoHandler &tempo_handler_ref,
-      drum::DefaultSequencerController &sequencer_controller_ref,
-      drum::SoundRouter &sound_router_ref);
+  explicit PizzaControls(drum::PizzaDisplay &display_ref,
+                         musin::timing::TempoHandler &tempo_handler_ref,
+                         drum::DefaultSequencerController &sequencer_controller_ref,
+                         drum::SoundRouter &sound_router_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;

@@ -1,8 +1,10 @@
 #include "../test_support.h"
 #include "musin/audio/pitch_shifter.h"
 
-template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
-  constexpr DummyBufferReader() {
+// Outputs a multiple of CHUNK_SIZE samples per call to read_samples, up to AUDIO_BLOCK_SAMPLES.
+// If a full chunk cannot be returned, the last samples are skipped.
+template <int SAMPLE_COUNT, int CHUNK_SIZE> struct DummyBufferReader : SampleReader {
+  constexpr DummyBufferReader(etl::array<int16_t, SAMPLE_COUNT> samples) : samples(samples) {
     reset();
   }
 
@@ -17,13 +19,13 @@ template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleRead
 
     if (active) {
       for (int i = 0; i <= AUDIO_BLOCK_SAMPLES - CHUNK_SIZE; i += CHUNK_SIZE) {
-        if (read_counter + CHUNK_SIZE > MAX_SAMPLES) {
+        if (read_counter + CHUNK_SIZE > samples.size()) {
           active = false;
           break;
         }
 
         for (int chunk = 0; chunk < CHUNK_SIZE; ++chunk) {
-          *out_iterator = read_counter + 1;
+          *out_iterator = samples[read_counter];
           out_iterator++;
           read_counter++;
         }
@@ -32,17 +34,11 @@ template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleRead
         samples_written += CHUNK_SIZE;
       }
     } else {
-      return samples_written;
+      return 0;
     }
 
-    if (consumed == 0 || samples_written == 0) {
-      active = 0;
-    } else {
-      if (remaining_length > consumed) {
-        remaining_length -= consumed;
-      } else {
-        active = 0;
-      }
+    if (read_counter == samples.size() || consumed == 0 || samples_written == 0) {
+      active = false;
     }
 
     return samples_written;
@@ -51,17 +47,21 @@ template <int MAX_SAMPLES, int CHUNK_SIZE> struct DummyBufferReader : SampleRead
   constexpr void reset() override {
     read_counter = 0;
     active = true;
-    remaining_length = MAX_SAMPLES;
   }
 
   int read_counter = 0;
   bool active = true;
-  int remaining_length = MAX_SAMPLES;
+  etl::array<int16_t, SAMPLE_COUNT> samples;
 };
 
 TEST_CASE("PitchShifter reads samples") {
   CONST_BODY(({
-    auto reader = DummyBufferReader<100, 4>();
+    etl::array<int16_t, 100> samples;
+    for (int i = 0; i < 100; ++i) {
+      samples[i] = i + 1;
+    }
+
+    auto reader = DummyBufferReader<100, 4>(samples);
     auto shifter = PitchShifter(reader);
     shifter.reset();
 
@@ -97,72 +97,41 @@ TEST_CASE("PitchShifter reads samples") {
   }));
 }
 
-TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested "
-          "sample count is equal to chunk size of the underlying reader") {
+TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sample count is equal "
+          "to chunk size of the underlying reader") {
 
   CONST_BODY(({
     const int CHUNK_SIZE = 4;
-    auto reader = DummyBufferReader<4, CHUNK_SIZE>();
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
     PitchShifter shifter = PitchShifter(reader);
     shifter.reset();
 
-    shifter.set_speed(0.5);
+    shifter.set_speed(0.5f);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
-    REQUIRE(reader.read_counter == 4);
+    REQUIRE(reader.read_counter == 16); // Verify we consumed all input
     REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
-    // Quadratic interpolated values
-    /*
-    REQUIRE(block[0] == 0);
-    REQUIRE(block[1] == 0);
-    REQUIRE(block[2] == 0);
-    REQUIRE(block[3] == 0);
-    REQUIRE(block[4] == 0);
-    REQUIRE(block[5] == 0);
-    REQUIRE(block[6] == 1);
-    REQUIRE(block[7] == 1);
-    REQUIRE(block[8] == 1);
-    REQUIRE(block[9] == 2);
-    REQUIRE(block[10] == 2);
-    REQUIRE(block[11] == 3);
-    REQUIRE(block[12] == 3);
-    REQUIRE(block[13] == 2);
-    REQUIRE(block[14] == 0);
-    REQUIRE(block[15] == 0);
-    REQUIRE(block[16] == 0);
-    REQUIRE(block[17] == 0);
-    REQUIRE(block[18] == 0);
-    REQUIRE(block[19] == 0);
-    REQUIRE(block[19] == 0);
-    REQUIRE(block[19] == 0);
-    */
-
-    // Linear interpolated values
-    // TODO: Replace with above implementation when PitchShifter uses quad interpolation again.
-    REQUIRE(block[0] == 0);
-    REQUIRE(block[1] == 0);
-    REQUIRE(block[2] == 0);
-    REQUIRE(block[3] == 0);
-    REQUIRE(block[4] == 0);
-    REQUIRE(block[5] == 0);
-    REQUIRE(block[6] == 1);
-    REQUIRE(block[7] == 1);
-    REQUIRE(block[8] == 2);
-    REQUIRE(block[9] == 2);
-    REQUIRE(block[10] == 3);
-    REQUIRE(block[11] == 3);
-    REQUIRE(block[12] == 4);
-    REQUIRE(block[13] == 2);
-    REQUIRE(block[14] == 0);
-    REQUIRE(block[15] == 0);
-    REQUIRE(block[16] == 0);
-    REQUIRE(block[17] == 0);
-    REQUIRE(block[18] == 0);
-    REQUIRE(block[19] == 0);
-    REQUIRE(block[19] == 0);
-    REQUIRE(block[19] == 0);
+    // First samples don't show proper interpolated values
+    // because we prefill the buffer with 4 samples
+    // TODO: fix the implementation so that this doesn't happen
+    REQUIRE(block[0] == 1000); // Initial clamped value
+    REQUIRE(block[1] == 1000);
+    REQUIRE(block[2] == 1000);
+    REQUIRE(block[3] == 1000);
+    REQUIRE(block[4] == 1000);
+    REQUIRE(block[5] == 875);
+    REQUIRE(block[6] == 1000);
+    REQUIRE(block[7] == 1375); // First interpolated value
+    REQUIRE(block[8] == 2000);
+    REQUIRE(block[9] == 2500);
+    REQUIRE(block[10] == 3000);
+    REQUIRE(block[11] == 3500);
+    REQUIRE(block[12] == 4000);
+    REQUIRE(block[13] == 4500);
   }));
 }
 

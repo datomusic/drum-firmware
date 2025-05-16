@@ -8,11 +8,16 @@ set(EXECUTABLE_NAME drum)
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/version.cmake)
 
-# Generate version header file
+# Configure version variables first
+configure_version_from_git()
+
+# Generate version header file using the configured variables
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
 # Add the generated directory to include paths
 include_directories(${CMAKE_BINARY_DIR}/generated)
+
+message(STATUS "USB bcdDevice will be set to: ${VERSION_BCD}")
 
 project(${EXECUTABLE_NAME})
 
@@ -31,7 +36,8 @@ add_executable(${EXECUTABLE_NAME}
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
   USBD_MANUFACTURER="Dato"
-  USBD_PRODUCT="DRUM"
+  USBD_PRODUCT="DRUM" # Ensure product string is clean
+  USBD_DEVICE_BCD=${VERSION_BCD}
   PICO_PROGRAM_DESCRIPTION="DRUM"
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
   AUDIO_BLOCK_SAMPLES=128

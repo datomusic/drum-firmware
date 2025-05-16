@@ -9,14 +9,14 @@ extern "C" {
 #include "etl/string.h"
 #include <cstdint>
 #include <cstdio>
-// #include <unistd.h> // For sbrk - no longer needed
+#include <unistd.h> // For sbrk
 
 #define ENABLE_PROFILING
 
 // Linker script symbols for memory regions
 extern "C" {
-  // extern char __heap_start__[]; // Provided by mallinfo()
-  // extern char __heap_end__[];   // Provided by mallinfo()
+  extern char __heap_start__[];
+  extern char __HeapLimit[]; // End of the heap
   extern char __StackLimit[];
   extern char __StackTop[];
 }
@@ -105,18 +105,31 @@ private:
     // Memory usage report
     printf("--- Memory Report ---\n");
 
-    // Heap statistics using mallinfo
-    struct mallinfo mi = mallinfo();
-    unsigned int total_heap_size_mallinfo = mi.arena;
-    unsigned int used_heap_size_mallinfo = mi.uordblks;
-    unsigned int free_heap_size_mallinfo = mi.fordblks; 
-    // Alternatively, free_heap_size_mallinfo = total_heap_size_mallinfo - used_heap_size_mallinfo;
-    // fordblks is generally more accurate for the sum of free blocks.
+    // Heap statistics
+    char* heap_start_addr = __heap_start__;
+    char* heap_limit_addr = __HeapLimit; // Use the provided __HeapLimit
+    size_t total_heap_size = static_cast<size_t>(heap_limit_addr - heap_start_addr);
+    
+    char* current_break = static_cast<char*>(sbrk(0));
+    size_t used_heap_size = 0;
+    if (current_break >= heap_start_addr && current_break <= heap_limit_addr) {
+      used_heap_size = static_cast<size_t>(current_break - heap_start_addr);
+    } else if (current_break == (char*)-1) { 
+      // sbrk error or heap not used/available via sbrk.
+      // This might happen if the heap is not managed in a way sbrk can track,
+      // or if sbrk is not implemented/supported fully for the target.
+      // Report used_heap_size as 0 or an error indicator.
+      // For now, we'll stick to 0 if current_break is out of expected range.
+    }
+    // Ensure used_heap_size does not exceed total_heap_size in case of sbrk anomalies
+    if (used_heap_size > total_heap_size) {
+        used_heap_size = total_heap_size; 
+    }
 
-    printf("Heap: Total %u B, Used %u B, Free %u B (via mallinfo)\n",
-           total_heap_size_mallinfo,
-           used_heap_size_mallinfo,
-           free_heap_size_mallinfo);
+    printf("Heap: Total %u B, Used %u B, Free %u B\n",
+           static_cast<unsigned int>(total_heap_size),
+           static_cast<unsigned int>(used_heap_size),
+           static_cast<unsigned int>(total_heap_size - used_heap_size));
 
     // Stack statistics
     char* stack_limit = __StackLimit;

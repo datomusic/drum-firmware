@@ -15,7 +15,7 @@ extern "C" {
 
 // Linker script symbols for memory regions
 extern "C" {
-  extern char __heap_start__[];
+  extern char __end__[];
   extern char __HeapLimit[]; // End of the heap
   extern char __StackLimit[];
   extern char __StackTop[];
@@ -106,7 +106,7 @@ private:
     printf("--- Memory Report ---\n");
 
     // Heap statistics
-    char* heap_start_addr = __heap_start__;
+    char* heap_start_addr = __end__;
     char* heap_limit_addr = __HeapLimit; // Use the provided __HeapLimit
     size_t total_heap_size = static_cast<size_t>(heap_limit_addr - heap_start_addr);
     

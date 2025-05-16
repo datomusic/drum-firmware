@@ -65,8 +65,6 @@ TEST_CASE("Protocol receives file data") {
     protocol.handle_chunk(sysex::Chunk(byte_transfer, 9));
 
     REQUIRE(protocol.__get_state() == State::FileTransfer);
-    // REQUIRE(protocol.__get_state() == State::Idle);
-    // REQUIRE(1 == 0);
   }));
 }
 

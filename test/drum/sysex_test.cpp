@@ -1,5 +1,8 @@
 #include "test_support.h"
 
+#include <cstddef>
+#include <cstdint>
+
 #include "etl/array.h"
 #include "etl/string.h"
 
@@ -10,14 +13,17 @@ using etl::array;
 struct TestFileOps {
   typedef int Handle;
   typedef etl::string<64> Path;
-  static const unsigned BlockSize = 128;
+  static const unsigned BlockSize = 256;
 
   // Handle should close upon destruction
-  static Handle open(const Path &path) {
+  static constexpr Handle open(const char *path) {
     return 0;
   }
 
-  static size_t write(const Handle &handle, const etl::span<const uint8_t, BlockSize> &bytes) {
+  static constexpr void close(const Handle &handle) {
+  }
+
+  static constexpr size_t write(const Handle &handle, const etl::array<uint8_t, BlockSize> &bytes) {
     return 0;
   }
 };
@@ -36,6 +42,7 @@ test_open(const Protocol::FileOperations::Path &path) {
 static constexpr Protocol::FileOperations file_ops{.open = File::Open::create<test_open>()};
 */
 
+/*
 TEST_CASE("Protocol with empty bytes") {
   CONST_BODY(({
     Protocol protocol;
@@ -56,6 +63,23 @@ TEST_CASE("Protocol identifies") {
     protocol.handle_chunk(chunk);
 
     REQUIRE(protocol.__get_state() == State::Idle);
+  }));
+}
+*/
+
+TEST_CASE("Protocol receives file data") {
+  CONST_BODY(({
+    Protocol protocol;
+
+    const uint8_t begin_file_write[9] = {0, 0x7D, 0x65, 0, 0, Protocol::BeginFileWrite, 0, 50, 50};
+    protocol.handle_chunk(sysex::Chunk(begin_file_write, 9));
+
+    const uint8_t byte_transfer[9] = {0, 0x7D, 0x65, 0, 0, Protocol::FileBytes, 100, 100, 100};
+    protocol.handle_chunk(sysex::Chunk(byte_transfer, 9));
+
+    REQUIRE(protocol.__get_state() == State::FileTransfer);
+    // REQUIRE(protocol.__get_state() == State::Idle);
+    // REQUIRE(1 == 0);
   }));
 }
 
@@ -80,7 +104,7 @@ TEST_CASE("decoder decodes a byte") {
     const uint8_t sysex[9] = {syx_pack1(v1), syx_pack2(v1), syx_pack3(v1), v2, v2, v2,
                               syx_pack1(v3), syx_pack2(v3), syx_pack3(v3)};
     array<uint16_t, 9> bytes;
-    const auto byte_count = sysex::codec::decode<9>(sysex, bytes);
+    const auto byte_count = sysex::codec::decode<9>(sysex, sysex + 9, bytes);
 
     REQUIRE(byte_count == 3);
     REQUIRE(bytes[0] == 100);

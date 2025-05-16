@@ -1,7 +1,6 @@
 #ifndef SYSEX_PROTOCOL_H_O6CX5YEN
 #define SYSEX_PROTOCOL_H_O6CX5YEN
 
-#include "etl/delegate.h"
 #include "etl/optional.h"
 
 // #include "../file_ops.h"
@@ -16,13 +15,33 @@
 
 namespace sysex {
 
-template <typename FileOperations> struct Protocol {
-  // typedef FileOps<FileHandle, 128> FileOperations;
-
-  /*
-  constexpr Protocol(FileOperations file_ops) : file_ops(file_ops) {
+/*
+template <typename FileOperations> struct File {
+  constexpr File(const FileOperations::Path &path) : handle(FileOperations::open(path)) {
   }
-  */
+
+  constexpr size_t write(const etl::array<uint8_t, FileOperations::BlockSize> &bytes) {
+    return FileOperations::write(handle, bytes);
+  }
+
+  constexpr ~File() {
+    FileOperations::close(handle);
+  }
+
+private:
+  const FileOperations::Handle handle;
+};
+*/
+
+template <typename FileOperations> struct Protocol {
+
+  enum Tag {
+    BeginFileWrite = 0x10,
+    FileBytes = 0x11,
+    EndFileTransfer = 0x12,
+  };
+
+  typedef etl::array<uint16_t, Chunk::Data::SIZE> Values;
 
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
@@ -34,25 +53,33 @@ template <typename FileOperations> struct Protocol {
           (*iterator++) == DrumId)) {
       return false;
     }
+    // printf("Authenticated!\n");
 
-    etl::array<uint16_t, Chunk::Data::SIZE> bytes;
-    const auto byte_count =
-        codec::decode<Chunk::Data::SIZE>(etl::span(iterator, chunk.cend()), bytes);
+    Values values;
+    const auto value_count = codec::decode<Chunk::Data::SIZE>(iterator, chunk.cend(), values);
 
-    if (byte_count == 0) {
+    if (value_count == 0) {
+      // printf("No values!\n");
       return true;
     }
 
-    auto byte_iterator = bytes.cbegin();
-    const uint16_t tag = (*byte_iterator++);
-    handle_packet(tag, etl::span(byte_iterator, bytes.cend()));
+    auto value_iterator = values.cbegin();
+    Values::const_iterator values_end = value_iterator + value_count;
+    const uint16_t tag = (*value_iterator++);
+    // printf("tag: %i\n", tag);
+    if (value_iterator != values_end) {
+      // printf("Handling packet\n");
+      handle_packet(tag, value_iterator, values_end);
+    } else {
+      // TODO: Error? Unless we support tags with no content.
+    }
 
     return true;
   }
 
   enum class State {
     Idle,
-    ByteTransfer,
+    FileTransfer,
   };
 
   // Mainly here for testing. Don't rely on it for external functionality.
@@ -61,31 +88,42 @@ template <typename FileOperations> struct Protocol {
   }
 
 private:
-  // const FileOperations file_ops;
-  // etl::optional<FileHandle> file_handle;
-  etl::optional<typename FileOperations::Handle> file_handle;
-  State state = State::Idle;
+  // Wraps a file handle to ensure it gets closed through RAII.
 
-  typedef etl::delegate<typename FileOperations::Handle(const typename FileOperations::Path &path)>
-      FileOpen;
-  // static FileOpen file_open = FileOpen::create<FileOperations::open>();
+  // etl::optional<File<FileOperations>> opened_file;
+  etl::optional<typename FileOperations::Handle> opened_file;
+  State state = State::Idle;
 
   // TODO: Make externally configurable
   static const uint8_t DatoId = 0x7D; // Manufacturer ID for Dato
   static const uint8_t DrumId = 0x65; // Device ID for DRUM
 
-  enum Tag {
-    BeginFileWrite = 0x10,
-    FileBytes = 0x11,
-    EndFileTransfer = 0x12,
-  };
-
-  constexpr void handle_packet(const uint16_t tag,
-                               const etl::span<const uint16_t, Chunk::Data::SIZE> &bytes) {
+  constexpr void handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
+                               const Values::const_iterator values_end) {
     switch (state) {
-    case State::ByteTransfer: {
+    case State::FileTransfer: {
       if (tag == FileBytes) {
-        // Stream to open temporary file
+        if (opened_file.has_value()) {
+          // We want to write all the 16bit values in one go.
+          // If we, for some reason, must support different combinations of sysex size and block
+          // size, this code becomes more complicated.
+          static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
+
+          etl::array<uint8_t, FileOperations::BlockSize> bytes;
+          auto byte_iterator = bytes.begin();
+          while (value_iterator != values_end) {
+            const uint16_t value = (*value_iterator++);
+            // printf("Writing value: %i\n", value);
+            const auto tmp_bytes = std::bit_cast<etl::array<uint8_t, 2>>(value);
+            (*byte_iterator++) = tmp_bytes[0];
+            (*byte_iterator++) = tmp_bytes[1];
+          }
+
+          FileOperations::write(opened_file.value(), bytes);
+          // opened_file->write(bytes);
+        } else {
+          // TODO: Error: Expected file to be open.
+        }
       } else {
         // Close the file and report error.
       }
@@ -95,11 +133,13 @@ private:
       case BeginFileWrite: {
         // TODO: Error if file is already open, maybe?
         // Get file path
-        file_handle.emplace(FileOperations::open("/temp_sample"));
+        opened_file.emplace(FileOperations::open("/temp_sample"));
+        state = State::FileTransfer;
       } break;
       case EndFileTransfer: {
         // Destroyng the file handle should close the file.
-        file_handle.reset();
+        opened_file.reset();
+        state = State::Idle;
       } break;
       }
     }

@@ -45,7 +45,8 @@ constexpr int32_t INPUT_SCALE_LSHIFT = 12;
 // Right shift for averaging input in Chamberlin filter ( (input + inputprev) >> 1 )
 constexpr int32_t INPUT_AVG_RSHIFT = 1;
 // Output scaling for final sample value
-constexpr int32_t OUTPUT_SCALE_RSHIFT = 13; // Results in Q1.15 if input is Q1.15 and intermediate is Q.27
+constexpr int32_t OUTPUT_SCALE_RSHIFT =
+    13; // Results in Q1.15 if input is Q1.15 and intermediate is Q.27
 
 // --- Constants for update_variable (frequency modulation) ---
 // Mask to get fractional part of control signal for exp2 approximation
@@ -54,9 +55,9 @@ constexpr int32_t N_CONTROL_FRAC_MASK = 0x7FFFFFF; // 27 fractional bits
 #ifdef IMPROVE_EXPONENTIAL_ACCURACY
 // exp2 polynomial by Stefan Stenzel: x = n << 3
 constexpr int32_t X_N_LSHIFT_PRE_POLY_STEFAN = 3;
-constexpr int32_t EXP2_POLY_STEFAN_C0 = 536870912;    // Q29
-constexpr int32_t EXP2_POLY_STEFAN_C1 = 1494202713;   // Q29
-constexpr int32_t EXP2_POLY_STEFAN_C2 = 1934101615;   // Q29
+constexpr int32_t EXP2_POLY_STEFAN_C0 = 536870912;         // Q29
+constexpr int32_t EXP2_POLY_STEFAN_C1 = 1494202713;        // Q29
+constexpr int32_t EXP2_POLY_STEFAN_C2 = 1934101615;        // Q29
 constexpr int32_t EXP2_POLY_STEFAN_C3_FACTOR = 1358044250; // Q29
 // Post-accumulation shifts for Stefan Stenzel polynomial terms
 constexpr int32_t EXP2_POLY_STEFAN_C2_POST_LSHIFT = 1;
@@ -65,8 +66,8 @@ constexpr int32_t EXP2_POLY_STEFAN_C3_POST_LSHIFT = 1;
 // exp2 algorithm by Laurent de Soras: (n + C0) << C1_SHIFT
 constexpr int32_t N_LAURENT_OFFSET = 134217728; // Q27
 constexpr int32_t N_LAURENT_LSHIFT = 3;
-constexpr int32_t EXP2_LAURENT_C0 = 715827883;  // Q29
-constexpr int32_t EXP2_LAURENT_C1 = 715827882;  // Q29
+constexpr int32_t EXP2_LAURENT_C0 = 715827883; // Q29
+constexpr int32_t EXP2_LAURENT_C1 = 715827882; // Q29
 #endif
 
 // Final scaling for 'n' based on integer part of control signal
@@ -79,7 +80,7 @@ constexpr int32_t FMULT_POST_SCALE_LSHIFT = 8;
 
 #ifdef IMPROVE_HIGH_FREQUENCY_ACCURACY
 // Polynomial approximation for high frequency accuracy
-constexpr int32_t HIGH_FREQ_ACC_POLY_C0 = 2145892402; // Q31
+constexpr int32_t HIGH_FREQ_ACC_POLY_C0 = 2145892402;         // Q31
 constexpr int32_t HIGH_FREQ_ACC_POLY_C1_FACTOR = -1383276101; // Q31
 constexpr int32_t HIGH_FREQ_ACC_POST_LSHIFT = 1;
 #endif
@@ -120,7 +121,8 @@ void __time_critical_func(Filter::update_fixed)(const AudioBlock &in, Filter::Ou
   do {
     input = (*input_iterator++) << INPUT_SCALE_LSHIFT;
     lowpass = lowpass + multiply_32x32_rshift30_rounded(fmult, bandpass);
-    highpass = ((input + inputprev) >> INPUT_AVG_RSHIFT) - lowpass - multiply_32x32_rshift30_rounded(damp, bandpass);
+    highpass = ((input + inputprev) >> INPUT_AVG_RSHIFT) - lowpass -
+               multiply_32x32_rshift30_rounded(damp, bandpass);
     inputprev = input;
     bandpass = bandpass + multiply_32x32_rshift30_rounded(fmult, highpass);
     lowpasstmp = lowpass;
@@ -143,7 +145,7 @@ void __time_critical_func(Filter::update_fixed)(const AudioBlock &in, Filter::Ou
 }
 
 void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const AudioBlock &ctl,
-                             Filter::Outputs &outputs) {
+                                                   Filter::Outputs &outputs) {
   const int16_t *end = in.cend();
   const int16_t *input_iterator = in.cbegin();
   const int16_t *ctl_iterator = ctl.cbegin();
@@ -167,8 +169,9 @@ void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const A
   do {
     // compute fmult using control input, fcenter and octavemult
     control = *ctl_iterator++; // signal is always 15 fractional bits
-    control *= octavemult;     // octavemult range: 0 to 28671 (12 frac bits) -> control is now Q15.12 (27 total, 12 frac)
-    n = control & N_CONTROL_FRAC_MASK;   // 27 fractional control bits (actually Q0.27 from Q15.12)
+    control *= octavemult; // octavemult range: 0 to 28671 (12 frac bits) -> control is now Q15.12
+                           // (27 total, 12 frac)
+    n = control & N_CONTROL_FRAC_MASK; // 27 fractional control bits (actually Q0.27 from Q15.12)
 #ifdef IMPROVE_EXPONENTIAL_ACCURACY
     // exp2 polynomial suggested by Stefan Stenzel on "music-dsp"
     // mail list, Wed, 3 Sep 2014 10:08:55 +0200
@@ -180,15 +183,19 @@ void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const A
     int32_t sq = multiply_32x32_rshift32_rounded(x, x);
     // n (Q29), sq (Q0.28), C2 (Q29). Result is Q29.
     n = multiply_accumulate_32x32_rshift32_rounded(n, sq, EXP2_POLY_STEFAN_C2);
-    // sq(Q0.28), x(Q0.30), C3_FACTOR(Q29). (x*C3_FACTOR)>>32 is Q0.27. (sq * Q0.27)>>32 is Q(-5). Shifted by 1 makes it Q(-4)
-    // This part seems to have precision issues or complex Q format interactions.
-    // Original: (multiply_32x32_rshift32_rounded(sq, multiply_32x32_rshift32_rounded(x, 1358044250)) << 1);
-    // Assuming the original intent was to keep things aligned for Q29 result after n = n + term
-    // Let's re-evaluate Q formats if issues arise. For now, direct constant replacement.
-    int32_t term3_intermediate = multiply_32x32_rshift32_rounded(x, EXP2_POLY_STEFAN_C3_FACTOR); // Q0.30 * Q29 -> Q0.27
-    term3_intermediate = multiply_32x32_rshift32_rounded(sq, term3_intermediate); // Q0.28 * Q0.27 -> Q(-5)
-    n = n + (term3_intermediate << EXP2_POLY_STEFAN_C3_POST_LSHIFT); // Q29 + Q(-4) -> Q29 (if lower bits truncated)
-    n = n << EXP2_POLY_STEFAN_C2_POST_LSHIFT; // Q29 -> Q30
+    // sq(Q0.28), x(Q0.30), C3_FACTOR(Q29). (x*C3_FACTOR)>>32 is Q0.27. (sq * Q0.27)>>32 is Q(-5).
+    // Shifted by 1 makes it Q(-4) This part seems to have precision issues or complex Q format
+    // interactions. Original: (multiply_32x32_rshift32_rounded(sq,
+    // multiply_32x32_rshift32_rounded(x, 1358044250)) << 1); Assuming the original intent was to
+    // keep things aligned for Q29 result after n = n + term Let's re-evaluate Q formats if issues
+    // arise. For now, direct constant replacement.
+    int32_t term3_intermediate =
+        multiply_32x32_rshift32_rounded(x, EXP2_POLY_STEFAN_C3_FACTOR); // Q0.30 * Q29 -> Q0.27
+    term3_intermediate =
+        multiply_32x32_rshift32_rounded(sq, term3_intermediate); // Q0.28 * Q0.27 -> Q(-5)
+    n = n + (term3_intermediate
+             << EXP2_POLY_STEFAN_C3_POST_LSHIFT); // Q29 + Q(-4) -> Q29 (if lower bits truncated)
+    n = n << EXP2_POLY_STEFAN_C2_POST_LSHIFT;     // Q29 -> Q30
 #else
     // exp2 algorithm by Laurent de Soras
     // https://www.musicdsp.org/en/latest/Other/106-fast-exp2-approximation.html
@@ -198,17 +205,19 @@ void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const A
     n = multiply_32x32_rshift32_rounded(n, n);
     // (Q0.28 * Q29) >> 32 -> Q(-5). Shifted by 3 -> Q(-2).
     // n + Q29 -> Q29. Result is Q29.
-    n = multiply_32x32_rshift32_rounded(n, EXP2_LAURENT_C0) << N_LAURENT_LSHIFT; // Original had <<3 here
+    n = multiply_32x32_rshift32_rounded(n, EXP2_LAURENT_C0)
+        << N_LAURENT_LSHIFT; // Original had <<3 here
     n = n + EXP2_LAURENT_C1; // Q29 + Q29 -> Q29
 #endif
-    // n is Q29 or Q30. control is Q15.12. (control >> 27) extracts integer part of control (top 4 bits of original 15.12 if it was < 16)
-    // Shift amount is (6 - int_part_of_control).
-    // n is then shifted right. Result is fmult_scaling_factor.
+    // n is Q29 or Q30. control is Q15.12. (control >> 27) extracts integer part of control (top 4
+    // bits of original 15.12 if it was < 16) Shift amount is (6 - int_part_of_control). n is then
+    // shifted right. Result is fmult_scaling_factor.
     n = n >> (N_FINAL_RSHIFT_BASE - (control >> CONTROL_INT_RSHIFT));
     fmult = multiply_32x32_rshift32_rounded(fcenter, n); // fcenter (Q.31), n (scaled). fmult is Q.X
     if (fmult > FMULT_MAX_VAL)
       fmult = FMULT_MAX_VAL;
-    fmult = fmult << FMULT_POST_SCALE_LSHIFT; // fmult becomes Q4.28 (compatible with MULT macro usage)
+    fmult =
+        fmult << FMULT_POST_SCALE_LSHIFT; // fmult becomes Q4.28 (compatible with MULT macro usage)
 // fmult is within 0.4% accuracy for all but the top 2 octaves
 // of the audio band.  This math improves accuracy above 5 kHz.
 // Without this, the filter still works fine for processing
@@ -231,7 +240,8 @@ void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const A
     // now do the state variable filter as normal, using fmult
     input = (*input_iterator++) << INPUT_SCALE_LSHIFT;
     lowpass = lowpass + multiply_32x32_rshift30_rounded(fmult, bandpass);
-    highpass = ((input + inputprev) >> INPUT_AVG_RSHIFT) - lowpass - multiply_32x32_rshift30_rounded(damp, bandpass);
+    highpass = ((input + inputprev) >> INPUT_AVG_RSHIFT) - lowpass -
+               multiply_32x32_rshift30_rounded(damp, bandpass);
     inputprev = input;
     bandpass = bandpass + multiply_32x32_rshift30_rounded(fmult, highpass);
     lowpasstmp = lowpass;

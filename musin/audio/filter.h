@@ -48,7 +48,7 @@ public:
   static constexpr float MAX_RESONANCE_Q = 5.0f;
 
   static constexpr float MIN_OCTAVE_CONTROL = 0.0f;
-  static constexpr float MAX_OCTAVE_CONTROL = 6.9999f; // Approx 7 octaves
+  static constexpr float MAX_OCTAVE_CONTROL = 6.9999f;       // Approx 7 octaves
   static constexpr float OCTAVE_CONTROL_INT_SCALE = 4096.0f; // For Q12 representation
 
   struct Outputs {
@@ -59,9 +59,9 @@ public:
 
   Filter() {
     // Initialize with default values by calling the setters
-    frequency(1000.0f); // Default frequency
+    frequency(1000.0f);   // Default frequency
     octave_control(1.0f); // default values
-    resonance(0.707f); // Default resonance (Butterworth)
+    resonance(0.707f);    // Default resonance (Butterworth)
     state_inputprev = 0;
     state_lowpass = 0;
     state_bandpass = 0;
@@ -72,7 +72,7 @@ public:
       freq = MIN_AUDIBLE_FREQ_HZ;
     else if (freq > static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / MAX_FREQ_NYQUIST_DIVISOR)
       freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / MAX_FREQ_NYQUIST_DIVISOR;
-    
+
     const float radians_per_sample_half = PI_F / static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
     setting_fcenter = (freq * (radians_per_sample_half / 2.0f)) * Q31_FLOAT_SCALE;
     // TODO: should we use an approximation when freq is not a const,
@@ -126,10 +126,12 @@ public:
 private:
   // Internal frequency calculation based on normalized input
   void calculate_frequency(float freq_normalized) {
-    // Logarithmic mapping: 0.0 -> MIN_AUDIBLE_FREQ_HZ, 1.0 -> SAMPLE_FREQ / MAX_FREQ_NYQUIST_DIVISOR
-    const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / MAX_FREQ_NYQUIST_DIVISOR; // Ensure float division
-    const float log_min = std::log(MIN_AUDIBLE_FREQ_HZ); 
-    const float log_max = std::log(max_freq); 
+    // Logarithmic mapping: 0.0 -> MIN_AUDIBLE_FREQ_HZ, 1.0 -> SAMPLE_FREQ /
+    // MAX_FREQ_NYQUIST_DIVISOR
+    const float max_freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) /
+                           MAX_FREQ_NYQUIST_DIVISOR; // Ensure float division
+    const float log_min = std::log(MIN_AUDIBLE_FREQ_HZ);
+    const float log_max = std::log(max_freq);
     const float log_freq = log_min + freq_normalized * (log_max - log_min);
     const float freq_hz = std::exp(log_freq); // Use std::exp
     frequency(freq_hz);                       // Call the original frequency setter

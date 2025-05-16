@@ -39,8 +39,10 @@ static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t 
   int32_t out, max;
   out = val >> rshift;
   // Basic bounds check for bits to prevent undefined behavior with shifts
-  if (bits <= 0) return 0;
-  if (bits > 31) bits = 31; // Avoid shifting by 31 or more in max calculation
+  if (bits <= 0)
+    return 0;
+  if (bits > 31)
+    bits = 31; // Avoid shifting by 31 or more in max calculation
 
   max = 1 << (bits - 1);
   if (out >= 0) {
@@ -52,7 +54,6 @@ static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t 
   }
   return out;
 }
-
 
 // computes limit((val >> rshift), 2**16)
 // Returns a 16-bit signed integer.

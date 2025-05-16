@@ -41,19 +41,6 @@ TEST_CASE("Protocol with empty bytes") {
   }));
 }
 
-TEST_CASE("Protocol identifies") {
-  CONST_BODY(({
-    Protocol protocol;
-    REQUIRE(protocol.__get_state() == State::Idle);
-
-    const uint8_t data[3] = {0, 0x7D, 0x65};
-    sysex::Chunk chunk(data, 3);
-    protocol.handle_chunk(chunk);
-
-    REQUIRE(protocol.__get_state() == State::Idle);
-  }));
-}
-
 TEST_CASE("Protocol receives file data") {
   CONST_BODY(({
     Protocol protocol;

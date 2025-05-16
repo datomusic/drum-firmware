@@ -3,9 +3,10 @@
 
 #include "musin/audio/sample_reader.h"
 #include "musin/audio/sample_data.h"
-#include "musin/audio/memory_reader.h"      // Added include
-#include "musin/audio/buffered_reader.h"    // Added include
-#include <algorithm> // For std::copy, std::min, std::fill
+#include "musin/audio/memory_reader.h"   // Added include
+#include "musin/audio/buffered_reader.h" // Added include
+#include "musin/hal/debug_utils.h"       // For underrun counter
+#include <algorithm>                     // For std::copy, std::min, std::fill
 #include <cstdint>
 #include "port/section_macros.h"
 
@@ -99,6 +100,15 @@ public:
     // 3. Fill remaining part of the block with zeros if not enough samples were read
     if (samples_written_total < AUDIO_BLOCK_SAMPLES) {
       std::fill(out.begin() + samples_written_total, out.end(), 0);
+    }
+
+    if (samples_written_total < out.size()) {
+      // Check if we should have been able to provide more data
+      bool still_has_ram_data = ram_read_pos_ < sample_data_ptr_->get_attack_buffer_length();
+      // flash_data_buffered_reader_.has_data() reflects state *after* reads in this block
+      if (still_has_ram_data || flash_data_buffered_reader_.has_data()) {
+        musin::hal::DebugUtils::g_attack_buffer_reader_underruns++;
+      }
     }
 
     return samples_written_total;

@@ -1,6 +1,7 @@
 #include "audio_output.h"
-#include <algorithm> // For std::clamp
-#include <cmath>     // For std::round
+#include "musin/hal/debug_utils.h" // For underrun counter
+#include <algorithm>               // For std::clamp
+#include <cmath>                   // For std::round
 
 #include "pico/audio.h"
 #include "pico/audio_i2s.h"
@@ -152,9 +153,12 @@ bool AudioOutput::update(BufferSource &source) {
       buffer->sample_count = block.size(); // Should match AUDIO_BLOCK_SAMPLES
 
       give_audio_buffer(producer_pool, buffer);
-      return false;
+      return false; // Successfully processed a buffer
+    } else {
+      // Buffer was not available from the pool, potential underrun
+      musin::hal::DebugUtils::g_audio_output_underruns++;
     }
   }
 
-  return false;
+  return false; // No buffer processed or running is false
 }

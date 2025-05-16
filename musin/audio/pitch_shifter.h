@@ -8,6 +8,7 @@
 
 #include "buffered_reader.h"
 #include "dspinst.h"
+#include "musin/hal/debug_utils.h" // For underrun counter
 #include "sample_reader.h"
 
 struct PitchShifter : SampleReader {
@@ -126,6 +127,13 @@ private:
       // Write the interpolated sample to output
       out[out_sample_index] = interpolated_value;
       samples_generated++;
+    }
+
+    if (samples_generated < out.size() && buffered_reader.has_data()) {
+      // If we didn't fill the block but the underlying reader still has data,
+      // it's a pitch shifter specific underrun (couldn't process fast enough
+      // or logic error in resampling).
+      musin::hal::DebugUtils::g_pitch_shifter_underruns++;
     }
 
     return samples_generated;

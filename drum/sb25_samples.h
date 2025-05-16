@@ -39,10 +39,10 @@ public:
   }
 
   // Public accessors
-  [[nodiscard]] const int16_t* get_attack_buffer_ptr() const { return attack_buffer_ptr_; }
-  [[nodiscard]] uint32_t get_attack_buffer_length() const { return attack_buffer_length_; }
-  [[nodiscard]] const int16_t* get_flash_data_ptr() const { return flash_data_ptr_; }
-  [[nodiscard]] uint32_t get_flash_data_length() const { return flash_data_length_; }
+  [[nodiscard]] constexpr const int16_t* get_attack_buffer_ptr() const { return attack_buffer_ptr_; }
+  [[nodiscard]] constexpr uint32_t get_attack_buffer_length() const { return attack_buffer_length_; }
+  [[nodiscard]] constexpr const int16_t* get_flash_data_ptr() const { return flash_data_ptr_; }
+  [[nodiscard]] constexpr uint32_t get_flash_data_length() const { return flash_data_length_; }
 
 private:
   etl::array<int16_t, AUDIO_BLOCK_SAMPLES> attack_buffer_ram_;

@@ -29,12 +29,12 @@ public:
     is_initialized_ = true;
   }
 
-  void reset() override {
+  constexpr void reset() override {
     ram_read_pos_ = 0;
     flash_read_pos_ = 0;
   }
 
-  bool __time_critical_func(has_data)() override {
+  constexpr bool __time_critical_func(has_data)() override {
     if (!is_initialized_ || !sample_data_ptr_) {
       return false;
     }
@@ -43,7 +43,7 @@ public:
            (flash_read_pos_ < sample_data_ptr_->get_flash_data_length());
   }
 
-  uint32_t __time_critical_func(read_samples)(AudioBlock &out) override {
+  constexpr uint32_t __time_critical_func(read_samples)(AudioBlock &out) override {
     if (!is_initialized_ || !sample_data_ptr_) { // Added null check for sample_data_ptr_
       std::fill(out.begin(), out.end(), 0);
       return 0;

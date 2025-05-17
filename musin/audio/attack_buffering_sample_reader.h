@@ -104,6 +104,23 @@ public:
     return samples_written_total;
   }
 
+  constexpr bool __time_critical_func(read_next)(int16_t &out) override {
+    if (!is_initialized_ || !sample_data_ptr_) {
+      out = 0; // Provide a default value for safety, though caller should check return
+      return false;
+    }
+
+    // 1. Try to read from RAM attack buffer
+    if (ram_read_pos_ < sample_data_ptr_->get_attack_buffer_length()) {
+      out = sample_data_ptr_->get_attack_buffer_ptr()[ram_read_pos_];
+      ram_read_pos_++;
+      return true;
+    }
+
+    // 2. If RAM is exhausted, try to read from buffered flash data
+    return flash_data_buffered_reader_.read_next(out);
+  }
+
 private:
   const SampleData *sample_data_ptr_; // Pointer to the sample data
   uint32_t ram_read_pos_;             // Current read position within the RAM attack buffer

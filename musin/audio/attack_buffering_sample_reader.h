@@ -44,7 +44,6 @@ public:
 
   constexpr void reset() override {
     ram_read_pos_ = 0;
-    // flash_data_memory_reader_ is reset via flash_data_buffered_reader_'s reset
     flash_data_buffered_reader_.reset();
   }
 

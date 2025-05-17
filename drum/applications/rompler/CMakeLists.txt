@@ -22,4 +22,4 @@ musin_init_audio(${PROJECT_NAME})
 
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_add_extra_outputs(${PROJECT_NAME})
-# musin_init_filesystem(${EXECUTABLE_NAME})
+musin_init_filesystem(${PROJECT_NAME})

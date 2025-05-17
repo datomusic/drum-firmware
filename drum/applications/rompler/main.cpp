@@ -7,7 +7,10 @@
 
 #include "../../sysex/protocol.h"
 #include "musin/audio/audio_output.h"
+#include "musin/filesystem/filesystem.h"
 #include "rompler.h"
+
+#define REFORMAT false
 
 // File receiving:
 // - React to some file-transfer start event. SysEx message or something else.
@@ -26,7 +29,7 @@ struct PrintingFileOps {
 
   struct Handle {
 
-    constexpr Handle(const char *path) {
+    Handle(const char *path) {
       if (file_pointer) {
         fclose(file_pointer);
         // TODO: Report some error. This should not happen;
@@ -50,7 +53,7 @@ struct PrintingFileOps {
     }
 
     // TODO: Use Chunk instead
-    constexpr size_t write(const etl::array<uint8_t, BlockSize> &bytes, const size_t count) {
+    size_t write(const etl::array<uint8_t, BlockSize> &bytes, const size_t count) {
       printf("Writing %i bytes\n", count);
       if (file_pointer) {
         const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), count, file_pointer);
@@ -68,7 +71,7 @@ struct PrintingFileOps {
 
   // Handle should close upon destruction
   // TODO: Return optional instead, if handle could not be opened.
-  constexpr Handle open(const char *path) {
+  Handle open(const char *path) {
     printf("Opening new file: %s\n", path);
     return Handle(path);
   }
@@ -80,9 +83,9 @@ static sysex::Protocol syx_protocol(file_ops);
 static void handle_sysex(byte *data, unsigned length) {
   const auto chunk = sysex::Chunk(data, length);
   printf("Handling sysex\n");
-  const auto result = syx_protocol.handle_chunk(chunk);
-  printf("result: %i\n", result);
-  printf("State: %i\n", syx_protocol.__get_state());
+  syx_protocol.handle_chunk(chunk);
+  // printf("result: %i\n", result);
+  // printf("State: %i\n", syx_protocol.__get_state());
   /*
   switch(result){
 
@@ -97,6 +100,13 @@ int main() {
   for (int i = 0; i < 80; ++i) {
     sleep_ms(100);
     printf(".\n");
+  }
+
+  printf("Initializing filesystem\n");
+  const auto fs_init_result = musin::filesystem::init(REFORMAT);
+
+  if (!fs_init_result) {
+    printf("Filesystem initialization failed: %i\n", fs_init_result);
   }
 
   SampleBank bank;

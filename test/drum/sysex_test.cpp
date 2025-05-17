@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "etl/array.h"
+#include "etl/span.h"
 
 #include "drum/sysex/protocol.h"
 
@@ -23,11 +24,12 @@ struct TestFileOps {
       parent.file_is_open = false;
     }
 
-    // TODO: Use Chunk instead
-    constexpr size_t write(const etl::array<uint8_t, BlockSize> &bytes, const size_t count) {
-      parent.content = bytes;
-      parent.byte_count = count;
-      return count;
+    constexpr size_t write(const etl::span<const uint8_t> &bytes) {
+      // TODO: Indicate error when write is truncated.
+      etl::copy_n(bytes.cbegin(), std::min(bytes.size(), parent.content.size()),
+                  parent.content.begin());
+      parent.byte_count = bytes.size();
+      return bytes.size();
     }
   };
 

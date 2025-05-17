@@ -2,6 +2,7 @@
 #define SYSEX_PROTOCOL_H_O6CX5YEN
 
 #include "etl/optional.h"
+#include "etl/span.h"
 #include "etl/string_view.h"
 
 #include "./chunk.h"
@@ -26,10 +27,9 @@ template <typename FileOperations> struct Protocol {
         : handle(file_ops.open(path)) {
     }
 
-    constexpr size_t write(const etl::array<uint8_t, FileOperations::BlockSize> &bytes,
-                           const size_t count) {
+    constexpr size_t write(const etl::span<const uint8_t> &bytes) {
       if (handle.has_value()) {
-        return handle->write(bytes, count);
+        return handle->write(bytes);
       } else {
         return 0;
       }
@@ -169,7 +169,7 @@ private:
             count += 2;
           }
 
-          opened_file->write(bytes, count);
+          opened_file->write(etl::span{bytes.cbegin(), count});
         } else {
           // TODO: Error: Expected file to be open.
         }

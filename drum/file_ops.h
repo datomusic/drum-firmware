@@ -5,7 +5,7 @@
 #include "etl/span.h"
 #include "etl/string.h"
 
-template <typename Handle, int BlockSize> struct FileOps {
+template <typename Handle, int BlockSize> struct FileOperations {
   typedef Handle FileHandle;
   typedef etl::string<64> Path;
   typedef etl::delegate<Handle(const Path &path)> Open;

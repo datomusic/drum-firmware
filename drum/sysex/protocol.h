@@ -15,26 +15,34 @@
 namespace sysex {
 
 // Wraps a file handle to ensure it gets closed through RAII.
-template <typename FileOperations> struct File {
-  constexpr File() : handle(FileOperations::open("")) {
-  }
-
-  constexpr File(const char *path) : handle(FileOperations::open(path)) {
-  }
-
-  constexpr size_t write(const etl::array<uint8_t, FileOperations::BlockSize> &bytes) {
-    return FileOperations::write(handle, bytes);
-  }
-
-  constexpr ~File() {
-    FileOperations::close(handle);
-  }
-
-private:
-  FileOperations::Handle handle;
-};
 
 template <typename FileOperations> struct Protocol {
+  constexpr Protocol(FileOperations &file_ops) : file_ops(file_ops) {
+  }
+
+  struct File {
+    constexpr File(FileOperations &file_ops, const char *path) : handle(file_ops.open(path)) {
+    }
+
+    constexpr size_t write(const etl::array<uint8_t, FileOperations::BlockSize> &bytes,
+                           const size_t count) {
+      if (handle.has_value()) {
+        return handle->write(bytes, count);
+      } else {
+        return 0;
+      }
+    }
+
+    constexpr ~File() {
+      if (handle.has_value()) {
+        handle->close();
+        handle.reset();
+      }
+    }
+
+  private:
+    etl::optional<typename FileOperations::Handle> handle;
+  };
 
   enum Tag {
     BeginFileWrite = 0x10,
@@ -54,25 +62,21 @@ template <typename FileOperations> struct Protocol {
           (*iterator++) == DrumId)) {
       return false;
     }
-    // printf("Authenticated!\n");
 
     Values values;
     const auto value_count = codec::decode<Chunk::Data::SIZE>(iterator, chunk.cend(), values);
 
     if (value_count == 0) {
-      // printf("No values!\n");
       return true;
     }
 
     auto value_iterator = values.cbegin();
     Values::const_iterator values_end = value_iterator + value_count;
     const uint16_t tag = (*value_iterator++);
-    // printf("tag: %i\n", tag);
-    if (value_iterator != values_end) {
-      // printf("Handling packet\n");
+    if (!handle_no_body(tag) && value_iterator != values_end) {
       handle_packet(tag, value_iterator, values_end);
     } else {
-      // TODO: Error? Unless we support tags with no content.
+      // TODO: Error?
     }
 
     return true;
@@ -89,12 +93,28 @@ template <typename FileOperations> struct Protocol {
   }
 
 private:
+  FileOperations &file_ops;
   State state = State::Idle;
-  etl::optional<File<FileOperations>> opened_file;
+  etl::optional<File> opened_file;
 
   // TODO: Make externally configurable
   static const uint8_t DatoId = 0x7D; // Manufacturer ID for Dato
   static const uint8_t DrumId = 0x65; // Device ID for DRUM
+                                      //
+  // Handle packets without body
+  constexpr bool handle_no_body(const uint16_t tag) {
+    switch (state) {
+    case State::FileTransfer: {
+      if (tag == EndFileTransfer) {
+        opened_file.reset();
+        state = State::Idle;
+        return true;
+      }
+    } break;
+    }
+
+    return false;
+  };
 
   constexpr void handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
                                const Values::const_iterator values_end) {
@@ -109,15 +129,16 @@ private:
 
           etl::array<uint8_t, FileOperations::BlockSize> bytes;
           auto byte_iterator = bytes.begin();
+          size_t count = 0;
           while (value_iterator != values_end) {
             const uint16_t value = (*value_iterator++);
-            // printf("Writing value: %i\n", value);
             const auto tmp_bytes = std::bit_cast<etl::array<uint8_t, 2>>(value);
             (*byte_iterator++) = tmp_bytes[0];
             (*byte_iterator++) = tmp_bytes[1];
+            count += 2;
           }
 
-          opened_file->write(bytes);
+          opened_file->write(bytes, count);
         } else {
           // TODO: Error: Expected file to be open.
         }
@@ -131,7 +152,7 @@ private:
       case BeginFileWrite: {
         // TODO: Error if file is already open, maybe?
         // TODO: Get file path from sysex
-        opened_file.emplace("/temp_sample");
+        opened_file.emplace(file_ops, "/temp_sample");
         state = State::FileTransfer;
       } break;
       case EndFileTransfer: {

@@ -4,28 +4,41 @@
 #include <cstdint>
 
 #include "etl/array.h"
-#include "etl/string.h"
 
 #include "drum/sysex/protocol.h"
 
 using etl::array;
 
 struct TestFileOps {
-  typedef int Handle;
-  typedef etl::string<64> Path;
   static const unsigned BlockSize = 256;
 
+  struct Handle {
+    TestFileOps &parent;
+
+    constexpr Handle(TestFileOps &parent) : parent(parent) {
+      parent.file_is_open = true;
+    }
+
+    constexpr void close() {
+      parent.file_is_open = false;
+    }
+
+    // TODO: Use Chunk instead
+    constexpr size_t write(const etl::array<uint8_t, BlockSize> &bytes, const size_t count) {
+      parent.content = bytes;
+      parent.byte_count = count;
+      return count;
+    }
+  };
+
   // Handle should close upon destruction
-  static constexpr Handle open(const char *path) {
-    return 0;
+  constexpr Handle open(const char *path) {
+    return Handle(*this);
   }
 
-  static constexpr void close(Handle &handle) {
-  }
-
-  static constexpr size_t write(const Handle &handle, const etl::array<uint8_t, BlockSize> &bytes) {
-    return 0;
-  }
+  bool file_is_open = false;
+  size_t byte_count = 0;
+  etl::array<uint8_t, BlockSize> content;
 };
 
 typedef sysex::Protocol<TestFileOps> Protocol;
@@ -33,7 +46,8 @@ typedef Protocol::State State;
 
 TEST_CASE("Protocol with empty bytes") {
   CONST_BODY(({
-    Protocol protocol;
+    TestFileOps file_ops;
+    Protocol protocol(file_ops);
     const uint8_t data[0] = {};
     sysex::Chunk chunk(data, 0);
     protocol.handle_chunk(chunk);
@@ -43,15 +57,27 @@ TEST_CASE("Protocol with empty bytes") {
 
 TEST_CASE("Protocol receives file data") {
   CONST_BODY(({
-    Protocol protocol;
+    TestFileOps file_ops;
+    REQUIRE(file_ops.file_is_open == false);
+    Protocol protocol(file_ops);
 
     const uint8_t begin_file_write[9] = {0, 0x7D, 0x65, 0, 0, Protocol::BeginFileWrite, 0, 50, 50};
     protocol.handle_chunk(sysex::Chunk(begin_file_write, 9));
 
-    const uint8_t byte_transfer[9] = {0, 0x7D, 0x65, 0, 0, Protocol::FileBytes, 100, 100, 100};
-    protocol.handle_chunk(sysex::Chunk(byte_transfer, 9));
-
     REQUIRE(protocol.__get_state() == State::FileTransfer);
+    REQUIRE(file_ops.file_is_open == true);
+    REQUIRE(file_ops.byte_count == 0);
+
+    const uint8_t byte_transfer[9] = {0, 0x7D, 0x65, 0, 0, Protocol::FileBytes, 0, 0, 127};
+    protocol.handle_chunk(sysex::Chunk(byte_transfer, 9));
+    REQUIRE(file_ops.byte_count == 2);
+    REQUIRE(file_ops.content[0] == 127);
+    REQUIRE(file_ops.content[1] == 0);
+
+    const uint8_t end_write[6] = {0, 0x7D, 0x65, 0, 0, Protocol::EndFileTransfer};
+    protocol.handle_chunk(sysex::Chunk(end_write, 6));
+    REQUIRE(protocol.__get_state() == State::Idle);
+    REQUIRE(file_ops.file_is_open == false);
   }));
 }
 

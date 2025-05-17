@@ -1,6 +1,8 @@
 #ifndef PRINTING_FILE_OPS_H_CVXHHJDO
 #define PRINTING_FILE_OPS_H_CVXHHJDO
 
+#include <stdio.h>
+
 #include "etl/span.h"
 #include "etl/string_view.h"
 
@@ -15,10 +17,7 @@ struct PrintingFileOps {
         // TODO: Report some error. This should not happen;
       }
 
-      // Truncates file names to 64 characters, which should be more than enough...
-      char cpath[64];
-      path.copy(cpath, 64, 0);
-      file_pointer = fopen(cpath, "wb");
+      file_pointer = fopen(path.data(), "wb");
       if (!file_pointer) {
         printf("ERROR: Failed opening file\n");
       }

@@ -63,8 +63,11 @@ TEST_CASE("Protocol receives file data") {
     REQUIRE(file_ops.file_is_open == false);
     Protocol protocol(file_ops);
 
-    const uint8_t begin_file_write[10] = {midi::SystemExclusive,    0, 0x7D, 0x65, 0, 0,
-                                          Protocol::BeginFileWrite, 0, 50,   50};
+    // TODO: Simplify building of SysEx messages, so we don't have to repeat the header in each one
+
+    const uint8_t begin_file_write[10] = {
+        midi::SystemExclusive,    0, 0x7D, 0x65, 0, 0,
+        Protocol::BeginFileWrite, 0, 0,    64}; // Represents a file-name with ASCII character '@'
     protocol.handle_chunk(sysex::Chunk(begin_file_write, 10));
 
     REQUIRE(protocol.__get_state() == State::FileTransfer);

@@ -19,6 +19,8 @@ namespace sysex {
 // Wraps a file handle to ensure it gets closed through RAII.
 
 template <typename FileOperations> struct Protocol {
+  static const unsigned MaxFilenameLength = 256;
+
   constexpr Protocol(FileOperations &file_ops) : file_ops(file_ops) {
   }
 
@@ -149,6 +151,19 @@ private:
 
   constexpr void handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
                                const Values::const_iterator values_end) {
+    etl::array<uint8_t, FileOperations::BlockSize> byte_array;
+    auto byte_iterator = byte_array.begin();
+    size_t byte_count = 0;
+    while (value_iterator != values_end) {
+      const uint16_t value = (*value_iterator++);
+      const auto tmp_bytes = std::bit_cast<etl::array<uint8_t, 2>>(value);
+      (*byte_iterator++) = tmp_bytes[0];
+      (*byte_iterator++) = tmp_bytes[1];
+      byte_count += 2;
+    }
+
+    const auto bytes = etl::span{byte_array.cbegin(), byte_count};
+
     switch (state) {
     case State::FileTransfer: {
       if (tag == FileBytes) {
@@ -158,18 +173,7 @@ private:
           // size, this code becomes more complicated.
           static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
 
-          etl::array<uint8_t, FileOperations::BlockSize> bytes;
-          auto byte_iterator = bytes.begin();
-          size_t count = 0;
-          while (value_iterator != values_end) {
-            const uint16_t value = (*value_iterator++);
-            const auto tmp_bytes = std::bit_cast<etl::array<uint8_t, 2>>(value);
-            (*byte_iterator++) = tmp_bytes[0];
-            (*byte_iterator++) = tmp_bytes[1];
-            count += 2;
-          }
-
-          opened_file->write(etl::span{bytes.cbegin(), count});
+          opened_file->write(bytes);
         } else {
           // TODO: Error: Expected file to be open.
         }
@@ -182,8 +186,18 @@ private:
       switch (tag) {
       case BeginFileWrite: {
         // TODO: Error if file is already open, maybe?
-        // TODO: Get file path from sysex
-        opened_file.emplace(file_ops, "/temp_sample");
+
+        // TODO: Convert bytes into ASCII string in nicer way.
+        //       This is a workaround, since etl::string is not constexpr.
+        char path[MaxFilenameLength];
+        const auto path_length = std::min((size_t)MaxFilenameLength, bytes.size());
+        for (unsigned i = 0; i < path_length; ++i) {
+          path[i] = bytes[0];
+        }
+
+        path[path_length - 1] = '\0';
+
+        opened_file.emplace(file_ops, path);
         state = State::FileTransfer;
       } break;
       case EndFileTransfer: {

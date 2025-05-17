@@ -61,7 +61,7 @@ async function send_file_content(data) {
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(100)
+      await sleepMs(30)
     }
 
   }
@@ -75,7 +75,7 @@ async function send_file_content(data) {
 
 
 begin_file_transfer("test_file");
-const data = fs.readFileSync('../../experiments/support/samples/002.wav');
+const data = fs.readFileSync('../../experiments/support/samples/002.pcm');
 
 send_file_content(data).then( () => {
   end_file_transfer();

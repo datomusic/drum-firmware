@@ -1,19 +1,18 @@
 #include <pico/stdio_usb.h>
 #include <pico/time.h>
-
-#include "musin/usb/usb.h"
-
 #include <stdio.h>
 
-#include "../../sysex/protocol.h"
 #include "musin/audio/audio_output.h"
+#include "musin/audio/file_reader.h"
+#include "musin/audio/mixer.h"
+#include "musin/audio/sound.h"
 #include "musin/filesystem/filesystem.h"
+#include "musin/usb/usb.h"
+
+#include "../../sysex/protocol.h"
 #include "rompler.h"
 
-#include "musin/audio/file_reader.h"
-#include "musin/audio/sound.h"
-
-#define REFORMAT false
+#define REFORMAT_FS_ON_BOOT false
 
 // File receiving:
 // - React to some file-transfer start event. SysEx message or something else.
@@ -113,11 +112,16 @@ struct FileSound {
 };
 
 FileSound tmp_sample;
+FileSound tmp_sample2;
 
 static void handle_note_on(const uint8_t, const uint8_t, const uint8_t) {
   printf("Playing sample\n");
   tmp_sample.sound.play(1);
 }
+
+const etl::array<BufferSource *, 2> sources = {&tmp_sample.sound, &tmp_sample2.sound};
+
+AudioMixer mixer(sources);
 
 int main() {
   stdio_usb_init();
@@ -129,7 +133,7 @@ int main() {
   }
 
   printf("Initializing filesystem\n");
-  const auto fs_init_result = musin::filesystem::init(REFORMAT);
+  const auto fs_init_result = musin::filesystem::init(REFORMAT_FS_ON_BOOT);
 
   if (!fs_init_result) {
     printf("Filesystem initialization failed: %i\n", fs_init_result);
@@ -149,6 +153,7 @@ int main() {
   AudioOutput::volume(0.5);
 
   printf("[Rompler] Starting main loop\n");
+  tmp_sample.reader.load("/tmp_sample");
   while (true) {
     musin::usb::background_update();
     MIDI::read();
@@ -160,10 +165,9 @@ int main() {
         received_new_file = false;
       }
 
-      AudioOutput::update(tmp_sample.sound);
+      tmp_sample.reader.update();
+      AudioOutput::update(mixer);
     }
-
-    sleep_ms(1);
   }
   return 0;
 }

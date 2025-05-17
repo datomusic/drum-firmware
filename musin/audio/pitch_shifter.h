@@ -2,6 +2,7 @@
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
 #include <algorithm>
+#include <cmath> // Added for floor()
 #include <cstdint>
 
 #include "port/section_macros.h"
@@ -19,27 +20,25 @@ struct PitchShifter : SampleReader {
     reset();
   }
 
-  // Optimized cubic interpolation for ARM Cortex-M33 with FPU
+  // Improved cubic interpolation using Catmull-Rom spline
   constexpr static int16_t
   __time_critical_func(cubic_interpolate)(const int16_t y0, const int16_t y1, const int16_t y2,
                                           const int16_t y3, const float mu) {
-    // Cubic interpolation formula optimized for FPU
     const float mu2 = mu * mu;
-    const float a0 = y3 - y2 - y0 + y1;
-    const float a1 = y0 - y1 - a0;
-    const float a2 = y2 - y0;
+    const float mu3 = mu2 * mu;
+
+    // Catmull-Rom cubic interpolation coefficients
+    const float a0 = -0.5f * y0 + 1.5f * y1 - 1.5f * y2 + 0.5f * y3;
+    const float a1 = y0 - 2.5f * y1 + 2.0f * y2 - 0.5f * y3;
+    const float a2 = -0.5f * y0 + 0.5f * y2;
     const float a3 = y1;
 
-    float float_val = a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
+    float result = a0 * mu3 + a1 * mu2 + a2 * mu + a3;
 
-    // Clamp float_val to the range of int32_t to prevent undefined behavior
-    // when casting a float outside the representable range of int32_t.
-    float_val = std::clamp(float_val, static_cast<float>(INT32_MIN), static_cast<float>(INT32_MAX));
+    // Clamp to int16_t range
+    result = std::clamp(result, -32768.0f, 32767.0f);
 
-    // Convert to int32_t (this truncates)
-    const int32_t val_i32 = static_cast<int32_t>(float_val);
-
-    return static_cast<int16_t>(saturate16(val_i32));
+    return static_cast<int16_t>(result);
   }
 
   // Reader interface
@@ -59,7 +58,7 @@ struct PitchShifter : SampleReader {
     }
 
     position = 0.0f;
-    remainder = 0.0f;
+    buffer_position = 0;
     source_index = 0;
 
     // Reset internal buffer for read_next when resampling
@@ -126,21 +125,17 @@ private:
   constexpr uint32_t __time_critical_func(read_resampled)(AudioBlock &out) {
     int16_t sample = 0;
     uint32_t samples_generated = 0;
+    float current_position = position;
 
     // Process each output sample
     for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
-      // Calculate interpolated value
-      const int16_t interpolated_value =
-          cubic_interpolate(interpolation_samples[0], interpolation_samples[1],
-                            interpolation_samples[2], interpolation_samples[3], remainder);
+      // Get the integer and fractional parts of the current position
+      int new_buffer_position = static_cast<int>(std::floor(current_position));
+      float mu = current_position - static_cast<float>(new_buffer_position);
 
-      // Update position based on playback speed
-      this->position += this->speed;
-      const uint32_t new_source_index = static_cast<uint32_t>(position);
-
-      // Advance source position and fill interpolation buffer as needed
+      // Ensure we have enough samples in the buffer for interpolation
       bool has_more_data = true;
-      while (source_index < new_source_index && has_more_data) {
+      while (source_index <= new_buffer_position + 3 && has_more_data) {
         has_more_data = sample_reader.read_next(sample);
         if (!has_more_data) {
           sample = 0; // Use silence if we run out of data
@@ -151,23 +146,32 @@ private:
       }
 
       // If we're completely out of data, stop generating samples
-      if (!has_more_data &&
-          source_index >
-              new_source_index +
-                  4) { // Check against new_source_index + 4 to allow interpolation buffer to clear
-        // Fill remaining output with silence if we ran out of source data mid-block
-        for (uint32_t i = out_sample_index; i < out.size(); ++i) {
-          out[i] = 0;
-        }
-        break;
+      if (!has_more_data && source_index < new_buffer_position + 4) {
+        // // Fill the rest of the output buffer with silence
+        // for (uint32_t i = out_sample_index; i < out.size(); ++i) {
+        //   out[i] = 0;
+        // }
+        // samples_generated = out.size(); // Mark the entire block as "generated" (filled)
+        break;                          // Exit the main sample generation loop
       }
 
-      // Calculate fractional position for next interpolation
-      remainder = position - static_cast<float>(source_index);
+      // Get interpolation buffer indices relative to our current position
+      int idx_offset = new_buffer_position - (source_index - 4);
+
+      // Calculate interpolated value
+      const int16_t interpolated_value = cubic_interpolate(
+          interpolation_samples[(0 + idx_offset) & 3],
+          interpolation_samples[(1 + idx_offset) & 3],
+          interpolation_samples[(2 + idx_offset) & 3],
+          interpolation_samples[(3 + idx_offset) & 3],
+          mu);
 
       // Write the interpolated sample to output
       out[out_sample_index] = interpolated_value;
       samples_generated++;
+
+      // Advance position based on playback speed
+      current_position += this->speed;
     }
 
     if (samples_generated < out.size() && sample_reader.has_data()) {
@@ -176,12 +180,15 @@ private:
       // or logic error in resampling).
       musin::hal::DebugUtils::g_pitch_shifter_underruns++;
     }
+    // Save position for next call
+    position = current_position;
+    buffer_position = static_cast<int>(std::floor(position));
 
     return samples_generated;
   }
 
   constexpr void __time_critical_func(shift_interpolation_samples)(const int16_t sample) {
-    // Shift samples in the interpolation buffer
+    // Shift samples in the interpolation buffer using a circular buffer approach
     interpolation_samples[0] = interpolation_samples[1];
     interpolation_samples[1] = interpolation_samples[2];
     interpolation_samples[2] = interpolation_samples[3];
@@ -194,7 +201,7 @@ private:
   alignas(4) int16_t interpolation_samples[4];
   uint32_t source_index;
   float position;
-  float remainder;
+  int buffer_position;
   SampleReader &sample_reader;
   // musin::BufferedReader<> buffered_reader; // Removed
 

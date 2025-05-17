@@ -112,6 +112,13 @@ struct FileSound {
   Sound sound;
 };
 
+FileSound tmp_sample;
+
+static void handle_note_on(const uint8_t, const uint8_t, const uint8_t) {
+  printf("Playing sample\n");
+  tmp_sample.sound.play(1);
+}
+
 int main() {
   stdio_usb_init();
   musin::usb::init();
@@ -131,7 +138,7 @@ int main() {
   SampleBank bank;
   Rompler rompler(bank);
 
-  MIDI::init(MIDI::Callbacks{.sysex = handle_sysex});
+  MIDI::init(MIDI::Callbacks{.note_on = handle_note_on, .sysex = handle_sysex});
 
   printf("Initializing audio output\n");
   if (!AudioOutput::init()) {
@@ -139,7 +146,7 @@ int main() {
     return 1;
   }
 
-  FileSound tmp_sample;
+  AudioOutput::volume(0.5);
 
   printf("[Rompler] Starting main loop\n");
   while (true) {
@@ -152,6 +159,8 @@ int main() {
         tmp_sample.reader.load("/tmp_sample");
         received_new_file = false;
       }
+
+      AudioOutput::update(tmp_sample.sound);
     }
 
     sleep_ms(1);

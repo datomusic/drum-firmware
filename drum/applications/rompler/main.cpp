@@ -31,13 +31,16 @@ struct PrintingFileOps {
 
   struct Handle {
 
-    Handle(const char *path) {
+    Handle(const etl::string_view &path) {
       if (file_pointer) {
         fclose(file_pointer);
         // TODO: Report some error. This should not happen;
       }
 
-      file_pointer = fopen(path, "wb");
+      // Truncates file names to 64 characters, which should be more than enough...
+      char cpath[64];
+      path.copy(cpath, 64, 0);
+      file_pointer = fopen(cpath, "wb");
       if (!file_pointer) {
         printf("ERROR: Failed opening file\n");
       }
@@ -55,10 +58,10 @@ struct PrintingFileOps {
     }
 
     // TODO: Use Chunk instead
-    size_t write(const etl::array<uint8_t, BlockSize> &bytes, const size_t count) {
-      printf("Writing %i bytes\n", count);
+    size_t write(const etl::span<const uint8_t> &bytes) {
+      printf("Writing %i bytes\n", bytes.size());
       if (file_pointer) {
-        const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), count, file_pointer);
+        const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), bytes.size(), file_pointer);
         printf("written: %i\n", written);
         return written;
       } else {
@@ -73,10 +76,10 @@ struct PrintingFileOps {
 
   // Handle should close upon destruction
   // TODO: Return optional instead, if handle could not be opened.
-  Handle open(const char * /* path */) {
+  Handle open(const etl::string_view &path) {
     // TODO: Use actual path
-    const char *path = "/tmp_sample";
-    printf("Opening new file: %s\n", path);
+    // const char *path = "/tmp_sample";
+    printf("Opening new file: %s\n", path.data());
     return Handle(path);
   }
 };

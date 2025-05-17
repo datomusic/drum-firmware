@@ -93,7 +93,19 @@ function pcm_from_wav(path) {
   return wav.data.samples
 }
 
-begin_file_transfer("test_file");
+
+const sample_index = process.argv[2]
+const filename = process.argv[3]
+
+if (!sample_index) {
+}
+
+if (!sample_index || !filename) {
+  console.log("Error: Supply sample index as first argument and filename as second argument.");
+  return;
+}
+
+begin_file_transfer(sample_index);
 
 // const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
 const data = fs.readFileSync('../../experiments/support/samples/006.pcm');

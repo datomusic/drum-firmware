@@ -61,21 +61,24 @@ TEST_CASE("Protocol receives file data") {
     REQUIRE(file_ops.file_is_open == false);
     Protocol protocol(file_ops);
 
-    const uint8_t begin_file_write[9] = {0, 0x7D, 0x65, 0, 0, Protocol::BeginFileWrite, 0, 50, 50};
-    protocol.handle_chunk(sysex::Chunk(begin_file_write, 9));
+    const uint8_t begin_file_write[10] = {midi::SystemExclusive,    0, 0x7D, 0x65, 0, 0,
+                                          Protocol::BeginFileWrite, 0, 50,   50};
+    protocol.handle_chunk(sysex::Chunk(begin_file_write, 10));
 
     REQUIRE(protocol.__get_state() == State::FileTransfer);
     REQUIRE(file_ops.file_is_open == true);
     REQUIRE(file_ops.byte_count == 0);
 
-    const uint8_t byte_transfer[9] = {0, 0x7D, 0x65, 0, 0, Protocol::FileBytes, 0, 0, 127};
-    protocol.handle_chunk(sysex::Chunk(byte_transfer, 9));
+    const uint8_t byte_transfer[10] = {midi::SystemExclusive, 0, 0x7D, 0x65, 0, 0,
+                                       Protocol::FileBytes,   0, 0,    127};
+    protocol.handle_chunk(sysex::Chunk(byte_transfer, 10));
     REQUIRE(file_ops.byte_count == 2);
     REQUIRE(file_ops.content[0] == 127);
     REQUIRE(file_ops.content[1] == 0);
 
-    const uint8_t end_write[6] = {0, 0x7D, 0x65, 0, 0, Protocol::EndFileTransfer};
-    protocol.handle_chunk(sysex::Chunk(end_write, 6));
+    const uint8_t end_write[7] = {midi::SystemExclusive,    0, 0x7D, 0x65, 0, 0,
+                                  Protocol::EndFileTransfer};
+    protocol.handle_chunk(sysex::Chunk(end_write, 7));
     REQUIRE(protocol.__get_state() == State::Idle);
     REQUIRE(file_ops.file_is_open == false);
   }));

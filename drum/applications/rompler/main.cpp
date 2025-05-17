@@ -53,6 +53,7 @@ static sysex::Protocol syx_protocol(file_ops);
 
 static void handle_sysex(byte *data, unsigned length) {
   const auto chunk = sysex::Chunk(data, length);
+  printf("Handling sysex\n");
   syx_protocol.handle_chunk(chunk);
 }
 
@@ -76,9 +77,10 @@ int main() {
     return 1;
   }
 
-  printf("Starting main loop\n");
+  printf("[Rompler] Starting main loop\n");
   while (true) {
     musin::usb::background_update();
+    MIDI::read();
     sleep_ms(1);
   }
   return 0;

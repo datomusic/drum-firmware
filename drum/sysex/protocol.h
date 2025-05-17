@@ -55,20 +55,25 @@ template <typename FileOperations> struct Protocol {
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
   constexpr bool handle_chunk(const Chunk &chunk) {
-    Chunk::Data::const_iterator iterator = chunk.cbegin();
+    // 7 bytes minimum: SysEx start + 3-byte manufacturer ID + 3 bytes for one encoded 16bit value.
+    if (chunk.size() < 7) {
+      return false;
+    }
 
-    // Make sure it's for us, and we have space for at least a tag
-    if (!(chunk.size() >= 4 && (*iterator++) == 0 && (*iterator++) == DatoId &&
-          (*iterator++) == DrumId)) {
+    Chunk::Data::const_iterator iterator = chunk.cbegin();
+    if ((*iterator++) != midi::SystemExclusive) {
+      // Not a sysex message
+      return false;
+    }
+
+    // Check 3-byte manufacturer ID
+    if ((*iterator++) != 0 || (*iterator++) != DatoId || (*iterator++) != DrumId) {
+      // Not for us
       return false;
     }
 
     Values values;
     const auto value_count = codec::decode<Chunk::Data::SIZE>(iterator, chunk.cend(), values);
-
-    if (value_count == 0) {
-      return true;
-    }
 
     auto value_iterator = values.cbegin();
     Values::const_iterator values_end = value_iterator + value_count;

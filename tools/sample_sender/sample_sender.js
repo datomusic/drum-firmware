@@ -4,9 +4,9 @@ const fs = require('fs');
 const output = new midi.Output();
 const count = output.getPortCount();
 console.log("Outputs: " + count);
-const name = output.getPortName(0);
+const name = output.getPortName(1);
 console.log("Name: " + name);
-output.openPort(0);
+output.openPort(1);
 
 
 function send_drum_message(tag, body) {
@@ -17,9 +17,9 @@ function send_drum_message(tag, body) {
     [0xF7]));
 }
 
-function begin_file_transfer() {
+function begin_file_transfer(file_name) {
   console.log("begin_file_transfer");
-  send_drum_message(0x10, []);
+  send_drum_message(0x10, [0, 0, 0]); // TODO: Actually send file_name
 }
 
 function end_file_transfer() {
@@ -61,7 +61,7 @@ async function send_file_content(data) {
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(50)
+      await sleepMs(100)
     }
 
   }
@@ -69,10 +69,12 @@ async function send_file_content(data) {
   if (i != data.length) {
     console.warn("Warning: Skipped last data byte");
   }
+
+  await sleepMs(100)
 }
 
 
-begin_file_transfer();
+begin_file_transfer("test_file");
 const data = fs.readFileSync('../../experiments/support/samples/002.wav');
 
 send_file_content(data).then( () => {

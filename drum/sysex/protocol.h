@@ -50,26 +50,35 @@ template <typename FileOperations> struct Protocol {
     EndFileTransfer = 0x12,
   };
 
+  enum class Result {
+    OK,
+    ShortMessage,
+    NotSysex,
+    InvalidManufacturer,
+    InvalidContent,
+    // UnknownTag,
+  };
+
   typedef etl::array<uint16_t, Chunk::Data::SIZE> Values;
 
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
-  constexpr bool handle_chunk(const Chunk &chunk) {
+  constexpr Result handle_chunk(const Chunk &chunk) {
     // 7 bytes minimum: SysEx start + 3-byte manufacturer ID + 3 bytes for one encoded 16bit value.
     if (chunk.size() < 7) {
-      return false;
+      return Result::ShortMessage;
     }
 
     Chunk::Data::const_iterator iterator = chunk.cbegin();
     if ((*iterator++) != midi::SystemExclusive) {
       // Not a sysex message
-      return false;
+      return Result::NotSysex;
     }
 
     // Check 3-byte manufacturer ID
     if ((*iterator++) != 0 || (*iterator++) != DatoId || (*iterator++) != DrumId) {
       // Not for us
-      return false;
+      return Result::InvalidManufacturer;
     }
 
     Values values;
@@ -78,13 +87,16 @@ template <typename FileOperations> struct Protocol {
     auto value_iterator = values.cbegin();
     Values::const_iterator values_end = value_iterator + value_count;
     const uint16_t tag = (*value_iterator++);
-    if (!handle_no_body(tag) && value_iterator != values_end) {
-      handle_packet(tag, value_iterator, values_end);
-    } else {
-      // TODO: Error?
+
+    if (!handle_no_body(tag)) {
+      if (value_iterator != values_end) {
+        handle_packet(tag, value_iterator, values_end);
+      } else {
+        return Result::InvalidContent;
+      }
     }
 
-    return true;
+    return Result::OK;
   }
 
   enum class State {

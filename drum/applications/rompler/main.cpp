@@ -54,7 +54,14 @@ static sysex::Protocol syx_protocol(file_ops);
 static void handle_sysex(byte *data, unsigned length) {
   const auto chunk = sysex::Chunk(data, length);
   printf("Handling sysex\n");
-  syx_protocol.handle_chunk(chunk);
+  const auto result = syx_protocol.handle_chunk(chunk);
+  printf("result: %i\n", result);
+  printf("State: %i\n", syx_protocol.__get_state());
+  /*
+  switch(result){
+
+  }
+  */
 }
 
 int main() {

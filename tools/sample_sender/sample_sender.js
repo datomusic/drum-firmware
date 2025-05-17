@@ -31,7 +31,23 @@ function send_drum_message(tag, body) {
 
 function begin_file_transfer(file_name) {
   console.log("begin_file_transfer");
-  send_drum_message(0x10, [0, 0, 0]); // TODO: Actually send file_name
+  const encoded = new TextEncoder().encode(file_name);
+
+  var bytes = [];
+
+  var i = 0;
+  for (i=0;i<encoded.length;i+=2) {
+    // Pack two bytes into a 16bit value, and then into 3 sysex bytes.
+    const lower = encoded[i]
+    const upper = encoded[i+1]
+    bytes = bytes.concat(pack3_16((upper << 8) + lower));
+  }
+
+  if (encoded.length % 2 == 0) {
+    bytes = bytes.concat(pack3_16(encoded[encoded.length - 1] << 8));
+  }
+
+  send_drum_message(0x10, bytes);
 }
 
 function end_file_transfer() {
@@ -75,7 +91,6 @@ async function send_file_content(data) {
       // Don't overload buffers of the DRUM
       await sleepMs(5)
     }
-
   }
 
   if (i != data.length) {
@@ -94,21 +109,21 @@ function pcm_from_wav(path) {
 }
 
 
-const sample_index = process.argv[2]
-const filename = process.argv[3]
+const sample_filename = process.argv[2]
+const source_path = process.argv[3]
 
-if (!sample_index) {
+if (!sample_filename) {
 }
 
-if (!sample_index || !filename) {
-  console.log("Error: Supply sample index as first argument and filename as second argument.");
+if (!sample_filename || !source_path) {
+  console.log("Error: Supply target filename as first argument and source file path as second argument.");
   return;
 }
 
-begin_file_transfer(sample_index);
+begin_file_transfer(sample_filename);
 
 // const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
-const data = fs.readFileSync('../../experiments/support/samples/006.pcm');
+const data = fs.readFileSync(source_path);
 
 send_file_content(data).then( () => {
   end_file_transfer();

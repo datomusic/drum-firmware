@@ -192,7 +192,7 @@ private:
         char path[MaxFilenameLength];
         const auto path_length = std::min((size_t)MaxFilenameLength, bytes.size());
         for (unsigned i = 0; i < path_length; ++i) {
-          path[i] = bytes[0];
+          path[i] = bytes[i];
         }
 
         path[path_length - 1] = '\0';

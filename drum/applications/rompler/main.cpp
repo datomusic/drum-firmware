@@ -1,3 +1,4 @@
+#include <hardware/sync.h>
 #include <pico/stdio_usb.h>
 #include <pico/time.h>
 #include <stdio.h>
@@ -10,7 +11,7 @@
 #include "musin/usb/usb.h"
 
 #include "../../sysex/protocol.h"
-#include "printing_file_ops.h"
+#include "standard_file_ops.h"
 #include "rompler.h"
 
 #define REFORMAT_FS_ON_BOOT false
@@ -27,7 +28,7 @@
 // - Pass the filled buffer to sink (which will write data to file)
 // - If other buffer is filled
 
-PrintingFileOps file_ops;
+StandardFileOps file_ops;
 static sysex::Protocol syx_protocol(file_ops);
 typedef sysex::Protocol<PrintingFileOps>::Result SyxProcotolResult;
 
@@ -35,18 +36,10 @@ bool received_new_file = false;
 
 static void handle_sysex(byte *data, unsigned length) {
   const auto chunk = sysex::Chunk(data, length);
-  printf("Handling sysex\n");
   const auto result = syx_protocol.handle_chunk(chunk);
   if (result == SyxProcotolResult::FileWritten) {
     received_new_file = true;
   }
-  // printf("result: %i\n", result);
-  // printf("State: %i\n", syx_protocol.__get_state());
-  /*
-  switch(result){
-
-  }
-  */
 }
 
 struct FileSound {
@@ -57,15 +50,29 @@ struct FileSound {
   Sound sound;
 };
 
-FileSound tmp_sample;
-FileSound tmp_sample2;
+FileSound sample0;
+FileSound sample1;
+FileSound sample2;
+FileSound sample3;
 
-static void handle_note_on(const uint8_t, const uint8_t, const uint8_t) {
-  printf("Playing sample\n");
-  tmp_sample.sound.play(1);
+etl::array<FileSound *, 4> sounds = {&sample0, &sample1, &sample2, &sample3};
+const etl::array<BufferSource *, 4> sources = {&sample0.sound, &sample1.sound, &sample2.sound,
+                                               &sample3.sound};
+
+static void load_samples() {
+  sounds[0]->reader.load("/sample_0");
+  sounds[1]->reader.load("/sample_1");
+  sounds[2]->reader.load("/sample_2");
+  sounds[3]->reader.load("/sample_3");
 }
 
-const etl::array<BufferSource *, 2> sources = {&tmp_sample.sound, &tmp_sample2.sound};
+void handle_note_on(byte, byte note, byte ) {
+  printf("Received midi note %d\n", note);
+  // const float pitch = (float)(velocity) / 64.0;
+  const unsigned sound_index = (note  % 4);
+  printf("Playing sound: %i\n", sound_index);
+  sounds[sound_index]->sound.play(1);
+}
 
 AudioMixer mixer(sources);
 
@@ -96,10 +103,12 @@ int main() {
     return 1;
   }
 
-  AudioOutput::volume(0.5);
+  AudioOutput::volume(0.7);
 
   printf("[Rompler] Starting main loop\n");
-  tmp_sample.reader.load("/tmp_sample");
+
+  load_samples();
+
   while (true) {
     musin::usb::background_update();
     MIDI::read();
@@ -107,11 +116,18 @@ int main() {
     if (!syx_protocol.busy()) {
       if (received_new_file) {
         printf("Loading new sample!\n");
-        tmp_sample.reader.load("/tmp_sample");
+        load_samples();
         received_new_file = false;
       }
 
-      tmp_sample.reader.update();
+      for (auto sound : sounds) {
+        if (sound->reader.needs_update()) {
+          const auto status = save_and_disable_interrupts();
+          sound->reader.update();
+          restore_interrupts(status);
+        }
+      }
+
       AudioOutput::update(mixer);
     }
   }

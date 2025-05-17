@@ -6,7 +6,7 @@
 #include "etl/span.h"
 #include "etl/string_view.h"
 
-struct PrintingFileOps {
+struct StandardFileOps {
   static const unsigned BlockSize = 256;
 
   struct Handle {
@@ -17,6 +17,7 @@ struct PrintingFileOps {
         // TODO: Report some error. This should not happen;
       }
 
+      printf("Writing file: '%s'\n", path.data());
       file_pointer = fopen(path.data(), "wb");
       if (!file_pointer) {
         printf("ERROR: Failed opening file\n");
@@ -26,6 +27,7 @@ struct PrintingFileOps {
     void close() {
       printf("Closing file!\n");
       if (file_pointer) {
+        fflush(file_pointer);
         fclose(file_pointer);
         file_pointer = nullptr;
       } else {
@@ -36,10 +38,10 @@ struct PrintingFileOps {
 
     // TODO: Use Chunk instead
     size_t write(const etl::span<const uint8_t> &bytes) {
-      printf("Writing %i bytes\n", bytes.size());
+      // printf("Writing %i bytes\n", bytes.size());
       if (file_pointer) {
         const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), bytes.size(), file_pointer);
-        printf("written: %i\n", written);
+        // printf("written: %i\n", written);
         return written;
       } else {
         // TODO: Error writing to a handle that should be exist.

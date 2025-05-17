@@ -16,10 +16,16 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   AUDIO_BLOCK_SAMPLES=128
 )
 
+if(SWAP_AUDIO_CLOCK)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
+    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
+  )
+endif(SWAP_AUDIO_CLOCK)
+
 musin_init(${PROJECT_NAME})
 musin_init_usb_midi(${PROJECT_NAME})
 musin_init_audio(${PROJECT_NAME})
+musin_init_filesystem(${PROJECT_NAME})
 
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_add_extra_outputs(${PROJECT_NAME})
-musin_init_filesystem(${PROJECT_NAME})

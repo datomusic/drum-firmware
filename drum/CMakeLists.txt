@@ -80,6 +80,12 @@ if(SIZE_UTIL_PATH)
     )
 endif()
 
+if(SWAP_AUDIO_CLOCK)
+  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
+  )
+endif(SWAP_AUDIO_CLOCK)
+
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 

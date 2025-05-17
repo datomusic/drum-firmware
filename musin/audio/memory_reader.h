@@ -83,9 +83,9 @@ struct MemorySampleReader : SampleReader {
   constexpr bool read_next(int16_t &out) override {
     if (m_buffer_read_idx >= m_buffer_valid_samples) { // If current buffer is exhausted
       m_buffer_valid_samples = reader.read_chunk(m_buffer.begin()); // Refill it
-      m_buffer_read_idx = 0;                                     // Reset read index for new buffer
-      if (m_buffer_valid_samples == 0) {                         // If refill yielded nothing
-        out = 0; // Default value, consistent with other readers
+      m_buffer_read_idx = 0;             // Reset read index for new buffer
+      if (m_buffer_valid_samples == 0) { // If refill yielded nothing
+        out = 0;                         // Default value, consistent with other readers
         return false;
       }
     }
@@ -120,11 +120,11 @@ struct MemorySampleReader : SampleReader {
       // Mark internal buffer as fully consumed because 'reader' will advance.
       m_buffer_read_idx = 0;
       m_buffer_valid_samples = 0;
-      
+
       // Read directly into the output block. read_chunk will fill up to AUDIO_BLOCK_SAMPLES
       // or fewer if the source is exhausted.
       uint32_t samples_read_from_main_reader = reader.read_chunk(out_ptr);
-      
+
       total_samples_copied_from_source += samples_read_from_main_reader;
       out_ptr += samples_read_from_main_reader;
       samples_to_fill_in_block -= samples_read_from_main_reader;

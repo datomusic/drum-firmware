@@ -122,7 +122,8 @@ private:
 
   AudioMixer<NUM_VOICES> mixer_;
   Crusher crusher_;
-  Lowpass lowpass_;
+  musin::audio::Lowpass lowpass_;
+  musin::audio::Highpass highpass_;
 
   // profiler_ member is removed, ProfileSection enum remains for use with the global profiler
   enum class ProfileSection {

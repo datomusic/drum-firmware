@@ -9,7 +9,7 @@
 // Removed #include "buffered_reader.h"
 #include "dspinst.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
-#include "sample_reader.h" // Includes block.h for AudioBlock
+#include "sample_reader.h"         // Includes block.h for AudioBlock
 
 struct PitchShifter : SampleReader {
   constexpr PitchShifter(SampleReader &reader)
@@ -113,13 +113,14 @@ struct PitchShifter : SampleReader {
 
   constexpr void set_speed(const float new_speed) {
     // Clamp speed to valid range
-    if (new_speed < 0.2f) {
-      this->speed = 0.2f;
-    } else if (new_speed > 2.0f) {
-      this->speed = 2.0f;
-    } else {
-      this->speed = new_speed;
-    }
+    // if (new_speed < 0.2f) {
+    //   this->speed = 0.2f;
+    // } else if (new_speed > 2.0f) {
+    //   this->speed = 2.0f;
+    // } else {
+    //   this->speed = new_speed;
+    // }
+    this->speed = 1.0f;
   }
 
 private:
@@ -151,7 +152,10 @@ private:
       }
 
       // If we're completely out of data, stop generating samples
-      if (!has_more_data && source_index > new_source_index + 4) { // Check against new_source_index + 4 to allow interpolation buffer to clear
+      if (!has_more_data &&
+          source_index >
+              new_source_index +
+                  4) { // Check against new_source_index + 4 to allow interpolation buffer to clear
         // Fill remaining output with silence if we ran out of source data mid-block
         for (uint32_t i = out_sample_index; i < out.size(); ++i) {
           out[i] = 0;

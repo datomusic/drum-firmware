@@ -6,10 +6,10 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "musin/audio/attack_buffering_sample_reader.h" // Changed include
 #include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
-#include "musin/audio/attack_buffering_sample_reader.h" // Changed include
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 #include "musin/hal/debug_utils.h"
@@ -125,7 +125,10 @@ private:
   Lowpass lowpass_;
 
   // profiler_ member is removed, ProfileSection enum remains for use with the global profiler
-  enum class ProfileSection { AUDIO_PROCESS_UPDATE, PLAY_ON_VOICE_UPDATE };
+  enum class ProfileSection {
+    AUDIO_PROCESS_UPDATE,
+    PLAY_ON_VOICE_UPDATE
+  };
 
   bool is_initialized_ = false;
 };

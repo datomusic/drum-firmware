@@ -49,12 +49,14 @@ AudioEngine::AudioEngine()
   // Add sections to the global profiler instance
   // Note: Ensure kGlobalProfilerMaxSections in debug_utils.h is sufficient.
   // The enum values for ProfileSection should correspond to the order of add_section calls.
-  musin::hal::DebugUtils::g_section_profiler.add_section("AudioProcessUpdate");        // Index 0
-  musin::hal::DebugUtils::g_section_profiler.add_section("AudioPlayOnVoiceUpdate");    // Index 1
+  musin::hal::DebugUtils::g_section_profiler.add_section("AudioProcessUpdate");     // Index 0
+  musin::hal::DebugUtils::g_section_profiler.add_section("AudioPlayOnVoiceUpdate"); // Index 1
 
   // Static asserts to ensure enum values match the assumed indices
-  static_assert(static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE) == 0, "ProfileSection enum mismatch for AUDIO_PROCESS_UPDATE");
-  static_assert(static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE) == 1, "ProfileSection enum mismatch for PLAY_ON_VOICE_UPDATE");
+  static_assert(static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE) == 0,
+                "ProfileSection enum mismatch for AUDIO_PROCESS_UPDATE");
+  static_assert(static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE) == 1,
+                "ProfileSection enum mismatch for PLAY_ON_VOICE_UPDATE");
 
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
@@ -82,7 +84,8 @@ bool AudioEngine::init() {
 void AudioEngine::process() {
   {
     musin::hal::DebugUtils::ScopedProfile p(
-        musin::hal::DebugUtils::g_section_profiler, static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE));
+        musin::hal::DebugUtils::g_section_profiler,
+        static_cast<size_t>(ProfileSection::AUDIO_PROCESS_UPDATE));
     AudioOutput::update(lowpass_);
   }
   musin::hal::DebugUtils::g_section_profiler.check_and_print_report();
@@ -90,7 +93,8 @@ void AudioEngine::process() {
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity) {
   musin::hal::DebugUtils::ScopedProfile p(
-      musin::hal::DebugUtils::g_section_profiler, static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE));
+      musin::hal::DebugUtils::g_section_profiler,
+      static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE));
   if (!is_initialized_ || voice_index >= NUM_VOICES) {
     return;
   }
@@ -99,7 +103,7 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
 
   Voice &voice = voices_[voice_index];
 
-  const musin::SampleData& current_sample_data = all_samples[sample_index];
+  const musin::SampleData &current_sample_data = all_samples[sample_index];
   voice.reader->set_source(current_sample_data); // Pass the musin::SampleData object directly
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;

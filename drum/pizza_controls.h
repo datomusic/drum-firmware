@@ -17,7 +17,8 @@
 #include "pico/time.h"
 
 #include "config.h"
-// Note: musin/hal/debug_utils.h is removed as ScopedProfile and SectionProfiler are no longer used here.
+// Note: musin/hal/debug_utils.h is removed as ScopedProfile and SectionProfiler are no longer used
+// here.
 #include "musin/timing/internal_clock.h"
 
 #include "musin/timing/step_sequencer.h"

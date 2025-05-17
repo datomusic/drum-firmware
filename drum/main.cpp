@@ -84,7 +84,7 @@ int main() {
 
     musin::usb::background_update();
     midi_read();
-
+    sleep_us(100);
     loop_timer.record_iteration_end();
   }
 

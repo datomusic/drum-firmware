@@ -113,14 +113,13 @@ struct PitchShifter : SampleReader {
 
   constexpr void set_speed(const float new_speed) {
     // Clamp speed to valid range
-    // if (new_speed < 0.2f) {
-    //   this->speed = 0.2f;
-    // } else if (new_speed > 2.0f) {
-    //   this->speed = 2.0f;
-    // } else {
-    //   this->speed = new_speed;
-    // }
-    this->speed = 1.0f;
+    if (new_speed < 0.2f) {
+      this->speed = 0.2f;
+    } else if (new_speed > 2.0f) {
+      this->speed = 2.0f;
+    } else {
+      this->speed = new_speed;
+    }
   }
 
 private:

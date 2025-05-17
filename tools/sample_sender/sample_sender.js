@@ -1,12 +1,24 @@
 const midi = require('midi');
 const fs = require('fs');
+const wavefile = require('wavefile');
 
-const output = new midi.Output();
-const count = output.getPortCount();
-console.log("Outputs: " + count);
-const name = output.getPortName(1);
-console.log("Name: " + name);
-output.openPort(1);
+
+
+function find_dato_drum(){
+  const output = new midi.Output();
+  const count = output.getPortCount();
+  for (var i=0;i<count;++i) {
+    if (output.getPortName(i).includes("Pico")) { // TODO: Replace with Dato DRUM at some point.
+      output.openPort(i);
+      return output;
+    }
+  }
+
+  return null;
+}
+
+
+const output = find_dato_drum();
 
 
 function send_drum_message(tag, body) {
@@ -61,7 +73,7 @@ async function send_file_content(data) {
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(30)
+      await sleepMs(5)
     }
 
   }
@@ -74,11 +86,19 @@ async function send_file_content(data) {
 }
 
 
+function pcm_from_wav(path) {
+  const wav = new wavefile.WaveFile(data);
+  wav.toSampleRate(44100)
+  console.log(wav);
+  return wav.data.samples
+}
+
 begin_file_transfer("test_file");
-const data = fs.readFileSync('../../experiments/support/samples/002.pcm');
+
+// const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
+const data = fs.readFileSync('../../experiments/support/samples/006.pcm');
 
 send_file_content(data).then( () => {
   end_file_transfer();
   output.closePort();
 })
-

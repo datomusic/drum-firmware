@@ -10,6 +10,9 @@
 #include "musin/filesystem/filesystem.h"
 #include "rompler.h"
 
+#include "musin/audio/file_reader.h"
+#include "musin/audio/sound.h"
+
 #define REFORMAT false
 
 // File receiving:
@@ -71,7 +74,9 @@ struct PrintingFileOps {
 
   // Handle should close upon destruction
   // TODO: Return optional instead, if handle could not be opened.
-  Handle open(const char *path) {
+  Handle open(const char * /* path */) {
+    // TODO: Use actual path
+    const char *path = "/tmp_sample";
     printf("Opening new file: %s\n", path);
     return Handle(path);
   }
@@ -79,11 +84,17 @@ struct PrintingFileOps {
 
 PrintingFileOps file_ops;
 static sysex::Protocol syx_protocol(file_ops);
+typedef sysex::Protocol<PrintingFileOps>::Result SyxProcotolResult;
+
+bool received_new_file = false;
 
 static void handle_sysex(byte *data, unsigned length) {
   const auto chunk = sysex::Chunk(data, length);
   printf("Handling sysex\n");
-  syx_protocol.handle_chunk(chunk);
+  const auto result = syx_protocol.handle_chunk(chunk);
+  if (result == SyxProcotolResult::FileWritten) {
+    received_new_file = true;
+  }
   // printf("result: %i\n", result);
   // printf("State: %i\n", syx_protocol.__get_state());
   /*
@@ -92,6 +103,14 @@ static void handle_sysex(byte *data, unsigned length) {
   }
   */
 }
+
+struct FileSound {
+  FileSound() : sound(Sound(reader)) {
+  }
+
+  musin::Audio::FileReader reader;
+  Sound sound;
+};
 
 int main() {
   stdio_usb_init();
@@ -120,10 +139,21 @@ int main() {
     return 1;
   }
 
+  FileSound tmp_sample;
+
   printf("[Rompler] Starting main loop\n");
   while (true) {
     musin::usb::background_update();
     MIDI::read();
+
+    if (!syx_protocol.busy()) {
+      if (received_new_file) {
+        printf("Loading new sample!\n");
+        tmp_sample.reader.load("/tmp_sample");
+        received_new_file = false;
+      }
+    }
+
     sleep_ms(1);
   }
   return 0;

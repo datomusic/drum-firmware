@@ -50,8 +50,11 @@ template <typename FileOperations> struct Protocol {
     EndFileTransfer = 0x12,
   };
 
+  // TODO: Clean up results to separate successes and errors.
   enum class Result {
     OK,
+    FileWritten,
+    FileError,
     ShortMessage,
     NotSysex,
     InvalidManufacturer,
@@ -88,15 +91,22 @@ template <typename FileOperations> struct Protocol {
     Values::const_iterator values_end = value_iterator + value_count;
     const uint16_t tag = (*value_iterator++);
 
-    if (!handle_no_body(tag)) {
-      if (value_iterator != values_end) {
-        handle_packet(tag, value_iterator, values_end);
-      } else {
-        return Result::InvalidContent;
-      }
+    const auto maybe_result = handle_no_body(tag);
+    if (maybe_result.has_value()) {
+      return *maybe_result;
+    }
+
+    if (value_iterator != values_end) {
+      handle_packet(tag, value_iterator, values_end);
+    } else {
+      return Result::InvalidContent;
     }
 
     return Result::OK;
+  }
+
+  constexpr bool busy() {
+    return state != State::Idle;
   }
 
   enum class State {
@@ -119,20 +129,20 @@ private:
   static const uint8_t DrumId = 0x65; // Device ID for DRUM
 
   // Handle packets without body
-  constexpr bool handle_no_body(const uint16_t tag) {
+  constexpr etl::optional<Result> handle_no_body(const uint16_t tag) {
     switch (state) {
     case State::FileTransfer: {
       if (tag == EndFileTransfer) {
         opened_file.reset();
         state = State::Idle;
-        return true;
+        return Result::FileWritten;
       }
     } break;
     default:
       break;
     }
 
-    return false;
+    return etl::nullopt;
   };
 
   constexpr void handle_packet(const uint16_t tag, Values::const_iterator value_iterator,

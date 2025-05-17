@@ -21,7 +21,35 @@
 // - Pass the filled buffer to sink (which will write data to file)
 // - If other buffer is filled
 
-static sysex::Protocol syx_protocol;
+struct PrintingFileOps {
+  static const unsigned BlockSize = 256;
+
+  struct Handle {
+
+    constexpr Handle() {
+    }
+
+    void close() {
+      printf("Closing file!\n");
+      return;
+    }
+
+    // TODO: Use Chunk instead
+    constexpr size_t write(const etl::array<uint8_t, BlockSize> & /* bytes */, const size_t count) {
+      printf("Writing %i bytes\n", count);
+      return count;
+    }
+  };
+
+  // Handle should close upon destruction
+  constexpr Handle open(const char *path) {
+    printf("Opening new file: %s\n", path);
+    return Handle();
+  }
+};
+
+PrintingFileOps file_ops;
+static sysex::Protocol syx_protocol(file_ops);
 
 static void handle_sysex(byte *data, unsigned length) {
   const auto chunk = sysex::Chunk(data, length);

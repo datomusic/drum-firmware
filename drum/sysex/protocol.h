@@ -100,7 +100,7 @@ private:
   // TODO: Make externally configurable
   static const uint8_t DatoId = 0x7D; // Manufacturer ID for Dato
   static const uint8_t DrumId = 0x65; // Device ID for DRUM
-                                      //
+
   // Handle packets without body
   constexpr bool handle_no_body(const uint16_t tag) {
     switch (state) {
@@ -111,6 +111,8 @@ private:
         return true;
       }
     } break;
+    default:
+      break;
     }
 
     return false;

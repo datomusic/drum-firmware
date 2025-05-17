@@ -32,7 +32,7 @@ struct TestFileOps {
   };
 
   // Handle should close upon destruction
-  constexpr Handle open(const char *path) {
+  constexpr Handle open(const etl::string_view &path) {
     return Handle(*this);
   }
 

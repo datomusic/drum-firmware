@@ -2,6 +2,7 @@
 #define SYSEX_PROTOCOL_H_O6CX5YEN
 
 #include "etl/optional.h"
+#include "etl/string_view.h"
 
 #include "./chunk.h"
 #include "./codec.h"
@@ -21,7 +22,8 @@ template <typename FileOperations> struct Protocol {
   }
 
   struct File {
-    constexpr File(FileOperations &file_ops, const char *path) : handle(file_ops.open(path)) {
+    constexpr File(FileOperations &file_ops, const etl::string_view &path)
+        : handle(file_ops.open(path)) {
     }
 
     constexpr size_t write(const etl::array<uint8_t, FileOperations::BlockSize> &bytes,

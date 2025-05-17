@@ -10,6 +10,7 @@
 #include "musin/usb/usb.h"
 
 #include "../../sysex/protocol.h"
+#include "printing_file_ops.h"
 #include "rompler.h"
 
 #define REFORMAT_FS_ON_BOOT false
@@ -25,64 +26,6 @@
 // - Switch buffers, and read following bytes into second one
 // - Pass the filled buffer to sink (which will write data to file)
 // - If other buffer is filled
-
-struct PrintingFileOps {
-  static const unsigned BlockSize = 256;
-
-  struct Handle {
-
-    Handle(const etl::string_view &path) {
-      if (file_pointer) {
-        fclose(file_pointer);
-        // TODO: Report some error. This should not happen;
-      }
-
-      // Truncates file names to 64 characters, which should be more than enough...
-      char cpath[64];
-      path.copy(cpath, 64, 0);
-      file_pointer = fopen(cpath, "wb");
-      if (!file_pointer) {
-        printf("ERROR: Failed opening file\n");
-      }
-    }
-
-    void close() {
-      printf("Closing file!\n");
-      if (file_pointer) {
-        fclose(file_pointer);
-        file_pointer = nullptr;
-      } else {
-        // TODO: Error closing a non-existent handle
-      }
-      return;
-    }
-
-    // TODO: Use Chunk instead
-    size_t write(const etl::span<const uint8_t> &bytes) {
-      printf("Writing %i bytes\n", bytes.size());
-      if (file_pointer) {
-        const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), bytes.size(), file_pointer);
-        printf("written: %i\n", written);
-        return written;
-      } else {
-        // TODO: Error writing to a handle that should be exist.
-        return 0;
-      }
-    }
-
-  private:
-    FILE *file_pointer = nullptr;
-  };
-
-  // Handle should close upon destruction
-  // TODO: Return optional instead, if handle could not be opened.
-  Handle open(const etl::string_view &path) {
-    // TODO: Use actual path
-    // const char *path = "/tmp_sample";
-    printf("Opening new file: %s\n", path.data());
-    return Handle(path);
-  }
-};
 
 PrintingFileOps file_ops;
 static sysex::Protocol syx_protocol(file_ops);

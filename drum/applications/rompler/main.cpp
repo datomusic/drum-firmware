@@ -12,7 +12,6 @@
 
 #include "../../sysex/protocol.h"
 #include "standard_file_ops.h"
-#include "rompler.h"
 
 #define REFORMAT_FS_ON_BOOT false
 
@@ -30,7 +29,7 @@
 
 StandardFileOps file_ops;
 static sysex::Protocol syx_protocol(file_ops);
-typedef sysex::Protocol<PrintingFileOps>::Result SyxProcotolResult;
+typedef sysex::Protocol<StandardFileOps>::Result SyxProcotolResult;
 
 bool received_new_file = false;
 
@@ -66,10 +65,10 @@ static void load_samples() {
   sounds[3]->reader.load("/sample_3");
 }
 
-void handle_note_on(byte, byte note, byte ) {
+void handle_note_on(byte, byte note, byte) {
   printf("Received midi note %d\n", note);
   // const float pitch = (float)(velocity) / 64.0;
-  const unsigned sound_index = (note  % 4);
+  const unsigned sound_index = (note % 4);
   printf("Playing sound: %i\n", sound_index);
   sounds[sound_index]->sound.play(1);
 }
@@ -91,9 +90,6 @@ int main() {
   if (!fs_init_result) {
     printf("Filesystem initialization failed: %i\n", fs_init_result);
   }
-
-  SampleBank bank;
-  Rompler rompler(bank);
 
   MIDI::init(MIDI::Callbacks{.note_on = handle_note_on, .sysex = handle_sysex});
 

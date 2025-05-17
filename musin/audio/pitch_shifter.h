@@ -6,14 +6,13 @@
 
 #include "port/section_macros.h"
 
-#include "buffered_reader.h"
+// Removed #include "buffered_reader.h"
 #include "dspinst.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
 #include "sample_reader.h"
 
 struct PitchShifter : SampleReader {
-  constexpr PitchShifter(SampleReader &reader)
-      : speed(1.0f), sample_reader(reader), buffered_reader(reader) {
+  constexpr PitchShifter(SampleReader &reader) : speed(1.0f), sample_reader(reader) {
     // Initialize interpolation buffer to avoid clicks/pops
     reset();
   }
@@ -47,10 +46,10 @@ struct PitchShifter : SampleReader {
     // This helps prevent clicks/pops at the beginning
     int16_t first_sample = 0;
     // Try to get the first sample if available
-    buffered_reader.reset();
-    if (buffered_reader.has_data()) {
-      buffered_reader.read_next(first_sample);
-      buffered_reader.reset(); // Reset again after reading the first sample
+    sample_reader.reset();
+    if (sample_reader.has_data()) {
+      sample_reader.read_next(first_sample);
+      sample_reader.reset(); // Reset again after reading the first sample
     }
 
     for (int i = 0; i < 4; i++) {
@@ -64,7 +63,7 @@ struct PitchShifter : SampleReader {
 
   // Reader interface
   constexpr bool has_data() override {
-    return buffered_reader.has_data();
+    return sample_reader.has_data();
   }
 
   // Reader interface
@@ -107,7 +106,7 @@ private:
       // Advance source position and fill interpolation buffer as needed
       bool has_more_data = true;
       while (source_index < new_source_index && has_more_data) {
-        has_more_data = buffered_reader.read_next(sample);
+        has_more_data = sample_reader.read_next(sample);
         if (!has_more_data) {
           sample = 0; // Use silence if we run out of data
         }
@@ -117,7 +116,11 @@ private:
       }
 
       // If we're completely out of data, stop generating samples
-      if (!has_more_data && source_index > new_source_index + 4) {
+      if (!has_more_data && source_index > new_source_index + 4) { // Check against new_source_index + 4 to allow interpolation buffer to clear
+        // Fill remaining output with silence if we ran out of source data mid-block
+        for (uint32_t i = out_sample_index; i < out.size(); ++i) {
+          out[i] = 0;
+        }
         break;
       }
 
@@ -129,7 +132,7 @@ private:
       samples_generated++;
     }
 
-    if (samples_generated < out.size() && buffered_reader.has_data()) {
+    if (samples_generated < out.size() && sample_reader.has_data()) {
       // If we didn't fill the block but the underlying reader still has data,
       // it's a pitch shifter specific underrun (couldn't process fast enough
       // or logic error in resampling).
@@ -155,7 +158,7 @@ private:
   float position;
   float remainder;
   SampleReader &sample_reader;
-  musin::BufferedReader<> buffered_reader;
+  // musin::BufferedReader<> buffered_reader; // Removed
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

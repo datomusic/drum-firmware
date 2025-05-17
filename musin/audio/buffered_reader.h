@@ -19,11 +19,9 @@ template <size_t NumBlocksPerSlot = DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT> struct
   static constexpr size_t SAMPLES_PER_SLOT = NumBlocksPerSlot * AUDIO_BLOCK_SAMPLES;
 
   constexpr BufferedReader(SampleReader &reader)
-      : reader(reader),
-        active_buffer_ptr(&buffer_a),
-        inactive_buffer_ptr(&buffer_b),
-        samples_in_active_buffer(0),
-        current_read_position_in_active_buffer(0) {}
+      : reader(reader), active_buffer_ptr(&buffer_a), inactive_buffer_ptr(&buffer_b),
+        samples_in_active_buffer(0), current_read_position_in_active_buffer(0) {
+  }
 
   constexpr void reset() {
     reader.reset();
@@ -36,8 +34,7 @@ template <size_t NumBlocksPerSlot = DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT> struct
   }
 
   constexpr bool has_data() const {
-    return (current_read_position_in_active_buffer < samples_in_active_buffer) ||
-           reader.has_data();
+    return (current_read_position_in_active_buffer < samples_in_active_buffer) || reader.has_data();
   }
 
 private:
@@ -88,9 +85,9 @@ public:
         }
       }
 
-      uint32_t samples_to_copy_this_iteration = std::min(
-          samples_requested - samples_copied_total,
-          samples_in_active_buffer - current_read_position_in_active_buffer);
+      uint32_t samples_to_copy_this_iteration =
+          std::min(samples_requested - samples_copied_total,
+                   samples_in_active_buffer - current_read_position_in_active_buffer);
 
       std::copy(active_buffer_ptr->begin() + current_read_position_in_active_buffer,
                 active_buffer_ptr->begin() + current_read_position_in_active_buffer +

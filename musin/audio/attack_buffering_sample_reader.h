@@ -1,14 +1,14 @@
 #ifndef MUSIN_AUDIO_ATTACK_BUFFERING_SAMPLE_READER_H_
 #define MUSIN_AUDIO_ATTACK_BUFFERING_SAMPLE_READER_H_
 
-#include "musin/audio/sample_reader.h"
-#include "musin/audio/sample_data.h"
-#include "musin/audio/memory_reader.h"   // Added include
 #include "musin/audio/buffered_reader.h" // Added include
-#include "musin/hal/debug_utils.h"       // For underrun counter
-#include <algorithm>                     // For std::copy, std::min, std::fill
-#include <cstdint>
+#include "musin/audio/memory_reader.h"   // Added include
+#include "musin/audio/sample_data.h"
+#include "musin/audio/sample_reader.h"
+#include "musin/hal/debug_utils.h" // For underrun counter
 #include "port/section_macros.h"
+#include <algorithm> // For std::copy, std::min, std::fill
+#include <cstdint>
 
 namespace musin {
 
@@ -16,28 +16,22 @@ template <size_t NumFlashBufferBlocks = musin::DEFAULT_AUDIO_BLOCKS_PER_BUFFER_S
 class AttackBufferingSampleReader : public SampleReader {
 public:
   constexpr AttackBufferingSampleReader()
-      : sample_data_ptr_(nullptr),
-        ram_read_pos_(0),
-        is_initialized_(false),
+      : sample_data_ptr_(nullptr), ram_read_pos_(0), is_initialized_(false),
         flash_data_memory_reader_(), // Default constructed
-        flash_data_buffered_reader_(flash_data_memory_reader_) {}
+        flash_data_buffered_reader_(flash_data_memory_reader_) {
+  }
 
-  constexpr explicit AttackBufferingSampleReader(const SampleData& sample_data_ref)
-      : sample_data_ptr_(&sample_data_ref),
-        ram_read_pos_(0),
-        is_initialized_(true),
-        flash_data_memory_reader_(
-            sample_data_ref.get_flash_data_ptr(),
-            sample_data_ref.get_flash_data_length()
-        ),
-        flash_data_buffered_reader_(flash_data_memory_reader_) {}
+  constexpr explicit AttackBufferingSampleReader(const SampleData &sample_data_ref)
+      : sample_data_ptr_(&sample_data_ref), ram_read_pos_(0), is_initialized_(true),
+        flash_data_memory_reader_(sample_data_ref.get_flash_data_ptr(),
+                                  sample_data_ref.get_flash_data_length()),
+        flash_data_buffered_reader_(flash_data_memory_reader_) {
+  }
 
-  constexpr void set_source(const SampleData& sample_data_ref) {
+  constexpr void set_source(const SampleData &sample_data_ref) {
     sample_data_ptr_ = &sample_data_ref;
-    flash_data_memory_reader_.set_source(
-        sample_data_ptr_->get_flash_data_ptr(),
-        sample_data_ptr_->get_flash_data_length()
-    );
+    flash_data_memory_reader_.set_source(sample_data_ptr_->get_flash_data_ptr(),
+                                         sample_data_ptr_->get_flash_data_length());
     reset(); // Resets ram_read_pos_ and flash_data_buffered_reader_
     is_initialized_ = true;
   }
@@ -53,7 +47,7 @@ public:
     }
     // Check if there's data left in RAM attack buffer
     if (ram_read_pos_ < sample_data_ptr_->get_attack_buffer_length()) {
-        return true;
+      return true;
     }
     // If RAM is exhausted, check the buffered reader for flash data
     return flash_data_buffered_reader_.has_data();
@@ -66,17 +60,16 @@ public:
     }
 
     uint32_t samples_written_total = 0;
-    int16_t* out_ptr = out.begin();
+    int16_t *out_ptr = out.begin();
 
     // 1. Read from RAM attack buffer if available
     if (ram_read_pos_ < sample_data_ptr_->get_attack_buffer_length()) {
-      const uint32_t ram_samples_to_read = std::min(
-          static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES - samples_written_total),
-          sample_data_ptr_->get_attack_buffer_length() - ram_read_pos_
-      );
+      const uint32_t ram_samples_to_read =
+          std::min(static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES - samples_written_total),
+                   sample_data_ptr_->get_attack_buffer_length() - ram_read_pos_);
 
       if (ram_samples_to_read > 0) {
-        const int16_t* ram_source_ptr = sample_data_ptr_->get_attack_buffer_ptr() + ram_read_pos_;
+        const int16_t *ram_source_ptr = sample_data_ptr_->get_attack_buffer_ptr() + ram_read_pos_;
         std::copy(ram_source_ptr, ram_source_ptr + ram_samples_to_read, out_ptr);
         ram_read_pos_ += ram_samples_to_read;
         samples_written_total += ram_samples_to_read;
@@ -112,9 +105,9 @@ public:
   }
 
 private:
-  const SampleData* sample_data_ptr_; // Pointer to the sample data
-  uint32_t ram_read_pos_;    // Current read position within the RAM attack buffer
-  bool is_initialized_;      // Flag to indicate if sample_data_ptr_ points to a valid SampleData
+  const SampleData *sample_data_ptr_; // Pointer to the sample data
+  uint32_t ram_read_pos_;             // Current read position within the RAM attack buffer
+  bool is_initialized_; // Flag to indicate if sample_data_ptr_ points to a valid SampleData
 
   // Internal readers for handling the flash data portion with double buffering
   musin::MemorySampleReader flash_data_memory_reader_;

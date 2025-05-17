@@ -86,15 +86,12 @@ public:
 
     // 2. Read from buffered flash data if more samples are needed and RAM buffer is exhausted
     if (samples_written_total < AUDIO_BLOCK_SAMPLES) {
-      while (samples_written_total < AUDIO_BLOCK_SAMPLES) {
-        int16_t sample_value;
-        if (flash_data_buffered_reader_.read_next(sample_value)) {
-          *out_ptr++ = sample_value;
-          samples_written_total++;
-        } else {
-          break; // No more data from buffered reader
-        }
-      }
+      uint32_t samples_needed_from_flash = AUDIO_BLOCK_SAMPLES - samples_written_total;
+      uint32_t samples_read_from_flash =
+          flash_data_buffered_reader_.read_buffered_chunk(out_ptr, samples_needed_from_flash);
+
+      samples_written_total += samples_read_from_flash;
+      out_ptr += samples_read_from_flash; // Advance out_ptr by the number of samples read
     }
 
     // 3. Fill remaining part of the block with zeros if not enough samples were read

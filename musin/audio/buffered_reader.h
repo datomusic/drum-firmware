@@ -65,6 +65,44 @@ private:
   }
 
 public:
+  // Reads a chunk of samples into the provided destination buffer.
+  // Returns the number of samples actually read.
+  constexpr uint32_t read_buffered_chunk(int16_t *dest_buffer, uint32_t samples_requested) {
+    uint32_t samples_copied_total = 0;
+
+    while (samples_copied_total < samples_requested) {
+      if (current_read_position_in_active_buffer >= samples_in_active_buffer) {
+        // Active buffer is exhausted, switch and attempt to fill the new active one.
+        etl::array<int16_t, SAMPLES_PER_SLOT> *temp_ptr = active_buffer_ptr;
+        active_buffer_ptr = inactive_buffer_ptr;
+        inactive_buffer_ptr = temp_ptr;
+
+        current_read_position_in_active_buffer = 0;
+        samples_in_active_buffer = 0; // Mark as empty before fill attempt
+
+        fill_buffer_slot(*active_buffer_ptr, samples_in_active_buffer);
+
+        if (samples_in_active_buffer == 0) {
+          // No more data could be buffered.
+          break;
+        }
+      }
+
+      uint32_t samples_to_copy_this_iteration = std::min(
+          samples_requested - samples_copied_total,
+          samples_in_active_buffer - current_read_position_in_active_buffer);
+
+      std::copy(active_buffer_ptr->begin() + current_read_position_in_active_buffer,
+                active_buffer_ptr->begin() + current_read_position_in_active_buffer +
+                    samples_to_copy_this_iteration,
+                dest_buffer + samples_copied_total);
+
+      current_read_position_in_active_buffer += samples_to_copy_this_iteration;
+      samples_copied_total += samples_to_copy_this_iteration;
+    }
+    return samples_copied_total;
+  }
+
   constexpr bool read_next(int16_t &out) {
     if (current_read_position_in_active_buffer >= samples_in_active_buffer) {
       // Active buffer is exhausted, switch and attempt to fill the new active one.

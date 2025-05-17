@@ -26,25 +26,51 @@ struct PrintingFileOps {
 
   struct Handle {
 
-    constexpr Handle() {
+    constexpr Handle(const char *path) {
+      if (file_pointer) {
+        fclose(file_pointer);
+        // TODO: Report some error. This should not happen;
+      }
+
+      file_pointer = fopen(path, "wb");
+      if (!file_pointer) {
+        printf("ERROR: Failed opening file\n");
+      }
     }
 
     void close() {
       printf("Closing file!\n");
+      if (file_pointer) {
+        fclose(file_pointer);
+        file_pointer = nullptr;
+      } else {
+        // TODO: Error closing a non-existent handle
+      }
       return;
     }
 
     // TODO: Use Chunk instead
-    constexpr size_t write(const etl::array<uint8_t, BlockSize> & /* bytes */, const size_t count) {
+    constexpr size_t write(const etl::array<uint8_t, BlockSize> &bytes, const size_t count) {
       printf("Writing %i bytes\n", count);
-      return count;
+      if (file_pointer) {
+        const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), count, file_pointer);
+        printf("written: %i\n", written);
+        return written;
+      } else {
+        // TODO: Error writing to a handle that should be exist.
+        return 0;
+      }
     }
+
+  private:
+    FILE *file_pointer = nullptr;
   };
 
   // Handle should close upon destruction
+  // TODO: Return optional instead, if handle could not be opened.
   constexpr Handle open(const char *path) {
     printf("Opening new file: %s\n", path);
-    return Handle();
+    return Handle(path);
   }
 };
 

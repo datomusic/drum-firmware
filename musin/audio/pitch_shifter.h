@@ -15,7 +15,7 @@
 struct PitchShifter : SampleReader {
   constexpr PitchShifter(SampleReader &reader)
       : speed(1.0f), sample_reader(reader), m_internal_buffer_read_idx(0),
-        m_internal_buffer_valid_samples(0) {
+        m_internal_buffer_valid_samples(0), has_reached_end(false) {
     // Initialize interpolation buffer to avoid clicks/pops
     reset();
   }
@@ -60,6 +60,7 @@ struct PitchShifter : SampleReader {
     position = 0.0f;
     buffer_position = 0;
     source_index = 0;
+    has_reached_end = false;
 
     // Reset internal buffer for read_next when resampling
     m_internal_buffer_read_idx = 0;
@@ -71,8 +72,10 @@ struct PitchShifter : SampleReader {
     if (this->speed > 0.99f && this->speed < 1.01f) {
       return sample_reader.has_data();
     } else {
+      // Either we have buffered samples or the source still has data
+      // or we're still processing the last few samples in the interpolation buffer
       return (m_internal_buffer_read_idx < m_internal_buffer_valid_samples) ||
-             sample_reader.has_data();
+             sample_reader.has_data() || !has_reached_end;
     }
   }
 
@@ -138,33 +141,32 @@ private:
       while (source_index <= new_buffer_position + 3 && has_more_data) {
         has_more_data = sample_reader.read_next(sample);
         if (!has_more_data) {
-          sample = 0; // Use silence if we run out of data
+          // Reached the end of input data
+          has_reached_end = true;
+          // Don't immediately exit - we can still use the samples in the buffer
+          // Just pad with zeros if needed
+          sample = 0;
         }
 
         shift_interpolation_samples(sample);
         source_index++;
       }
 
-      // If we're completely out of data, stop generating samples
-      if (!has_more_data && source_index < new_buffer_position + 4) {
-        // // Fill the rest of the output buffer with silence
-        // for (uint32_t i = out_sample_index; i < out.size(); ++i) {
-        //   out[i] = 0;
-        // }
-        // samples_generated = out.size(); // Mark the entire block as "generated" (filled)
-        break;                          // Exit the main sample generation loop
-      }
+      // Calculate interpolated value even if we've reached the end of the source data
+      // This allows us to use the remaining samples in the interpolation buffer
 
       // Get interpolation buffer indices relative to our current position
+      // Ensure we're using the correct indices from our circular buffer
       int idx_offset = new_buffer_position - (source_index - 4);
 
+      // Safely access the circular buffer
+      const int16_t y0 = interpolation_samples[(0 + idx_offset) & 3];
+      const int16_t y1 = interpolation_samples[(1 + idx_offset) & 3];
+      const int16_t y2 = interpolation_samples[(2 + idx_offset) & 3];
+      const int16_t y3 = interpolation_samples[(3 + idx_offset) & 3];
+
       // Calculate interpolated value
-      const int16_t interpolated_value = cubic_interpolate(
-          interpolation_samples[(0 + idx_offset) & 3],
-          interpolation_samples[(1 + idx_offset) & 3],
-          interpolation_samples[(2 + idx_offset) & 3],
-          interpolation_samples[(3 + idx_offset) & 3],
-          mu);
+      const int16_t interpolated_value = cubic_interpolate(y0, y1, y2, y3, mu);
 
       // Write the interpolated sample to output
       out[out_sample_index] = interpolated_value;
@@ -172,6 +174,21 @@ private:
 
       // Advance position based on playback speed
       current_position += this->speed;
+
+      // If we've moved past the available data and we've already reached the end,
+      // start fading out the sound to avoid abrupt stopping
+      if (has_reached_end && new_buffer_position > source_index) {
+        // Only continue for a few more samples to provide a smooth tail-off
+        int samples_beyond_end = new_buffer_position - source_index;
+        if (samples_beyond_end > 8) { // Arbitrary cutoff for tail fade-out
+          // Fill the rest of the output buffer with silence
+          for (uint32_t i = out_sample_index + 1; i < out.size(); ++i) {
+            out[i] = 0;
+          }
+          samples_generated = out_sample_index + 1;
+          break; // Exit the main sample generation loop
+        }
+      }
     }
 
     if (samples_generated < out.size() && sample_reader.has_data()) {
@@ -180,6 +197,7 @@ private:
       // or logic error in resampling).
       musin::hal::DebugUtils::g_pitch_shifter_underruns++;
     }
+
     // Save position for next call
     position = current_position;
     buffer_position = static_cast<int>(std::floor(position));
@@ -204,6 +222,7 @@ private:
   int buffer_position;
   SampleReader &sample_reader;
   // musin::BufferedReader<> buffered_reader; // Removed
+  bool has_reached_end; // Tracks if we've reached the end of source data
 
   // Internal buffer for read_next when resampling
   AudioBlock m_internal_buffer;

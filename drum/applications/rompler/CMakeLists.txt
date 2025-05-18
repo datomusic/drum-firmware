@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(${CMAKE_CURRENT_LIST_DIR}/../../../musin/musin_init.cmake)
+
 project(rompler)
 
 add_executable(${PROJECT_NAME}
   main.cpp
 )
-
-include(${CMAKE_CURRENT_LIST_DIR}/../../../musin/musin_init.cmake)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/../..

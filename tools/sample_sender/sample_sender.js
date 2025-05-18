@@ -109,14 +109,14 @@ function pcm_from_wav(path) {
 }
 
 
-const sample_filename = process.argv[2]
-const source_path = process.argv[3]
+const source_path = process.argv[2]
+const sample_filename = process.argv[3]
 
 if (!sample_filename) {
 }
 
 if (!sample_filename || !source_path) {
-  console.log("Error: Supply target filename as first argument and source file path as second argument.");
+  console.log("Error: Supply source file path as first argument and target on-device filename as second argument.");
   return;
 }
 

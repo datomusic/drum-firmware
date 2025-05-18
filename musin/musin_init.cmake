@@ -62,7 +62,7 @@ macro(musin_init_usb_midi TARGET)
     ${MUSIN_ROOT}/midi/midi_wrapper.cpp
   )
 
-  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  target_compile_definitions(${TARGET} PRIVATE
     PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
   )
 

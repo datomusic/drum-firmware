@@ -3,7 +3,7 @@
 # This can be structured better if/when the pico port is properly broken out,
 # but should be okay for now.
 
-include(${CMAKE_CURRENT_LIST_DIR}/paths.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/musin_paths.cmake)
 
 set(musin_audio_generic_sources
   ${MUSIN_AUDIO}/data_ulaw.c

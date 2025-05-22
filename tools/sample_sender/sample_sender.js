@@ -7,11 +7,15 @@ const wavefile = require('wavefile');
 function find_dato_drum(){
   const output = new midi.Output();
   const count = output.getPortCount();
+  const validPortNames = ["Pico", "Dato DRUM"]; // Array of valid port name substrings
+
   for (var i=0;i<count;++i) {
-    if (output.getPortName(i).includes("Pico")) { // TODO: Replace with Dato DRUM at some point.
-      try {
-        output.openPort(i);
-        console.log(`Opened MIDI port: ${output.getPortName(i)}`);
+    const portName = output.getPortName(i);
+    for (const validName of validPortNames) {
+      if (portName.includes(validName)) {
+        try {
+          output.openPort(i);
+          console.log(`Opened MIDI port: ${portName}`);
         return output;
       } catch (e) {
         console.error(`Error opening MIDI port ${output.getPortName(i)}: ${e.message}`);
@@ -20,7 +24,7 @@ function find_dato_drum(){
     }
   }
 
-  console.error("No suitable MIDI output port found containing 'Pico'.");
+  console.error(`No suitable MIDI output port found containing any of: ${validPortNames.join(", ")}.`);
   if (count > 0) {
     console.log("Available MIDI output ports:");
     for (var i = 0; i < count; ++i) {

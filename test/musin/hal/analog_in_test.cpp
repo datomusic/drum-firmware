@@ -4,6 +4,8 @@
 #include <array>
 #include <catch2/catch_approx.hpp>
 
+using Catch::Approx;
+
 // Test fixture to reset mock hardware state before each test
 struct AnalogInFixture {
     AnalogInFixture() {

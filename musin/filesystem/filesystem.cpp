@@ -1,3 +1,4 @@
+extern "C" {
 #include "blockdevice/flash.h"
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h"
@@ -5,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+}
 
 namespace musin::filesystem {
 

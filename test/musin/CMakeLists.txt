@@ -15,6 +15,9 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT
 add_executable(${PROJECT_NAME}
   audio/pitch_shifter_test.cpp
   audio/memory_reader_test.cpp
+  hal/mock_hardware.cpp
+  hal/analog_in_test.cpp
+  ui/keypad_hc138_test.cpp
 )
 
 if(${STATIC_TESTS})
@@ -26,6 +29,7 @@ endif(${STATIC_TESTS})
 
 target_sources(${PROJECT_NAME} PRIVATE
   ${musin_audio_generic_sources}
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/hal/analog_in.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

@@ -77,7 +77,7 @@ AudioMixer mixer(sources);
 
 int main() {
   stdio_usb_init();
-  musin::usb::init();
+  musin::usb::init(true);
 
   for (int i = 0; i < 80; ++i) {
     sleep_ms(100);

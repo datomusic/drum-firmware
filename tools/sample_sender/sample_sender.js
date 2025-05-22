@@ -9,24 +9,41 @@ function find_dato_drum(){
   const count = output.getPortCount();
   for (var i=0;i<count;++i) {
     if (output.getPortName(i).includes("Pico")) { // TODO: Replace with Dato DRUM at some point.
-      output.openPort(i);
-      return output;
+      try {
+        output.openPort(i);
+        console.log(`Opened MIDI port: ${output.getPortName(i)}`);
+        return output;
+      } catch (e) {
+        console.error(`Error opening MIDI port ${output.getPortName(i)}: ${e.message}`);
+        // Continue searching for other ports
+      }
     }
   }
-
+  console.error("No suitable MIDI output port found containing 'Pico'.");
+  console.error("Please ensure your Dato DRUM device is connected and not in use by another application.");
   return null;
 }
 
 
 const output = find_dato_drum();
 
+if (!output) {
+  console.error("Failed to initialize MIDI output. Exiting.");
+  process.exit(1);
+}
+
 
 function send_drum_message(tag, body) {
-  output.sendMessage([0xF0].concat(
-    [0, 0x7D, 0x65], // Manufacturer ID
-    [0, 0, tag],
-    body,
-    [0xF7]));
+  try {
+    output.sendMessage([0xF0].concat(
+      [0, 0x7D, 0x65], // Manufacturer ID
+      [0, 0, tag],
+      body,
+      [0xF7]));
+  } catch (e) {
+    console.error(`Error sending MIDI message: ${e.message}`);
+    // Depending on the severity, you might want to re-throw or exit
+  }
 }
 
 function begin_file_transfer(file_name) {

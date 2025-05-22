@@ -3,6 +3,7 @@
 #include "../test_support.h"
 #include <array>
 #include <vector>
+#include <catch2/catch_approx.hpp>
 
 // Observer class to capture keypad events
 class KeypadObserver : public etl::observer<musin::ui::KeypadEvent> {

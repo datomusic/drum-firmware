@@ -2,6 +2,7 @@
 #include "../test_support.h"
 #include "mock_hardware.h"
 #include <array>
+#include <catch2/catch_approx.hpp>
 
 // Test fixture to reset mock hardware state before each test
 struct AnalogInFixture {

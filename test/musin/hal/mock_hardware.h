@@ -16,17 +16,17 @@ constexpr uint8_t GPIO_OUT = 1;
 
 // Mock GPIO state
 struct GpioState {
-    bool initialized = false;
-    uint8_t direction = GPIO_IN;
-    bool value = false;
+  bool initialized = false;
+  uint8_t direction = GPIO_IN;
+  bool value = false;
 };
 
 // Mock ADC state
 struct AdcState {
-    bool initialized = false;
-    bool temp_sensor_enabled = false;
-    uint8_t selected_input = 0;
-    std::map<uint8_t, uint16_t> channel_values;
+  bool initialized = false;
+  bool temp_sensor_enabled = false;
+  uint8_t selected_input = 0;
+  std::map<uint8_t, uint16_t> channel_values;
 };
 
 // Global state for mocking

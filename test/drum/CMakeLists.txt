@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 project(drum-test)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../musin/paths.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_paths.cmake)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)

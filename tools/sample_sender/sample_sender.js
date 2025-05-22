@@ -7,7 +7,7 @@ const wavefile = require('wavefile');
 function find_dato_drum(){
   const output = new midi.Output();
   const count = output.getPortCount();
-  const validPortNames = ["Pico", "Dato DRUM"]; // Array of valid port name substrings
+  const validPortNames = ["Pico", "DRUM"]; // Array of valid port name substrings
 
   for (var i=0;i<count;++i) {
     const portName = output.getPortName(i);

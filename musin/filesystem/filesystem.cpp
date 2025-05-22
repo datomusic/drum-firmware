@@ -10,7 +10,7 @@ extern "C" {
 
 namespace musin::filesystem {
 
-static bool format_filesystem_internal(filesystem_t *lfs, blockdevice_t *flash) {
+bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash) {
   printf("Formatting filesystem with littlefs\n");
   int err = fs_format(lfs, flash);
   if (err == -1) {
@@ -33,7 +33,7 @@ bool init(bool force_format) {
   filesystem_t *lfs = filesystem_littlefs_create(500, 16);
 
   if (force_format) {
-    return format_filesystem_internal(lfs, flash);
+    return format_filesystem(lfs, flash);
   } else {
     printf("Attempting to mount filesystem\n");
     int err = fs_mount("/", lfs, flash);

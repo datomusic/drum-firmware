@@ -19,7 +19,16 @@ function find_dato_drum(){
       }
     }
   }
+
   console.error("No suitable MIDI output port found containing 'Pico'.");
+  if (count > 0) {
+    console.log("Available MIDI output ports:");
+    for (var i = 0; i < count; ++i) {
+      console.log(`  ${i}: ${output.getPortName(i)}`);
+    }
+  } else {
+    console.log("No MIDI output ports found.");
+  }
   console.error("Please ensure your Dato DRUM device is connected and not in use by another application.");
   return null;
 }

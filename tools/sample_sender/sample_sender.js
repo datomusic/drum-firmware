@@ -21,8 +21,9 @@ function find_dato_drum(){
         console.error(`Error opening MIDI port ${output.getPortName(i)}: ${e.message}`);
         // Continue searching for other ports
       }
-    }
-  }
+    } // Closes: if (portName.includes(validName))
+  } // Closes: for (const validName of validPortNames)
+} // Closes: for (var i=0;i<count;++i)
 
   console.error(`No suitable MIDI output port found containing any of: ${validPortNames.join(", ")}.`);
   if (count > 0) {
@@ -147,7 +148,7 @@ if (!sample_filename) {
 
 if (!sample_filename || !source_path) {
   console.log("Error: Supply source file path as first argument and target on-device filename as second argument.");
-  return;
+  process.exit(1);
 }
 
 begin_file_transfer(sample_filename);

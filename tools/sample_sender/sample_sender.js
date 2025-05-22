@@ -38,9 +38,9 @@ function find_dato_drum(){
 }
 
 
-const output = find_dato_drum();
+const activeMidiOutput = find_dato_drum();
 
-if (!output) {
+if (!activeMidiOutput) {
   console.error("Failed to initialize MIDI output. Exiting.");
   process.exit(1);
 }
@@ -48,7 +48,7 @@ if (!output) {
 
 function send_drum_message(tag, body) {
   try {
-    output.sendMessage([0xF0].concat(
+    activeMidiOutput.sendMessage([0xF0].concat(
       [0, 0x7D, 0x65], // Manufacturer ID
       [0, 0, tag],
       body,
@@ -157,5 +157,5 @@ const data = fs.readFileSync(source_path);
 
 send_file_content(data).then( () => {
   end_file_transfer();
-  output.closePort();
+  activeMidiOutput.closePort();
 })

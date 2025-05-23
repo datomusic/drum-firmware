@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 
 # Script to convert WAV samples to raw PCM, then to C arrays using xxd,
 # and list the base names for use in C++ code.
@@ -6,9 +6,11 @@
 # Ensure sox and xxd are installed
 
 set -e # Exit immediately if a command exits with a non-zero status.
+set -o pipefail # Ensure pipeline errors are caught
 
-# Define the directory containing the samples
-SAMPLE_DIR="samples"
+# Define the directory containing the samples (relative to script location)
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+SAMPLE_DIR="$SCRIPT_DIR/samples"
 
 # Check if the sample directory exists
 if [ ! -d "$SAMPLE_DIR" ]; then
@@ -31,8 +33,14 @@ echo "#include \"etl/array.h\"" >> "$all_samples_header"
 echo "struct SampleData{const int16_t *data; const uint32_t length;};" >> "$all_samples_header"
 echo "static constexpr const etl::array<SampleData, 51> all_samples = {" >> "$all_samples_header"
 
-# Find all .wav files and process them
-find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d $'\0' wav_file; do
+# Find all .wav files and process them with absolute paths
+find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
+  # Validate file exists before processing
+  if [[ ! -f "$wav_file" ]]; then
+    echo "Error: File '$wav_file' not found!"
+    exit 1
+  fi
+  echo "DEBUG: wav_file immediately after read: [$wav_file]"
   # Get the filename without extension (e.g., AudioSampleKickc78_16bit_44kw)
   base_name=$(basename "$wav_file" .wav)
 
@@ -45,6 +53,10 @@ find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d $'\
   c_file="$SAMPLE_DIR/${c_symbol_base}data.h" # Match CMakeLists.txt pattern
 
   echo "Processing: $base_name"
+  echo "DEBUG: Current PWD: $(pwd)"
+  echo "DEBUG: SAMPLE_DIR in loop is: [$SAMPLE_DIR]"
+  echo "DEBUG: wav_file before ffmpeg: [$wav_file]" # Clarified context
+  echo "DEBUG: pcm_file is: [$pcm_file]"
 
   # 1. Convert WAV to raw PCM using sox
   echo "  Converting to PCM: $pcm_file"

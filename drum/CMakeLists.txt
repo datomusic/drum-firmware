@@ -14,8 +14,40 @@ configure_version_from_git()
 # Generate version header file using the configured variables
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
+# Sample generation setup
+find_program(XXD_PROGRAM xxd)
+find_program(FFMPEG_PROGRAM ffmpeg)
+if(NOT XXD_PROGRAM OR NOT FFMPEG_PROGRAM)
+    message(FATAL_ERROR "xxd/ffmpeg not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd ffmpeg\n  MacOS: brew install xxd ffmpeg")
+endif()
+
+set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers_v2.sh")
+set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
+set(GENERATED_SAMPLES_OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated/samples") # Output directory for generated sample files
+
+if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
+  file(GLOB_RECURSE SAMPLE_FILES "${SAMPLES_DIR}/*.wav")
+  
+  add_custom_command(
+    OUTPUT ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h # Main output artifact
+    COMMAND ${XXD_PROGRAM} --version # Optional: keep for logging
+    COMMAND ${FFMPEG_PROGRAM} -version # Optional: keep for logging
+    COMMAND ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
+    COMMENT "Generating sample headers using v2 script"
+    DEPENDS 
+      ${GENERATE_SAMPLES_SCRIPT}
+      ${SAMPLE_FILES}
+    VERBATIM
+  )
+  
+  add_custom_target(generate_samples DEPENDS ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h)
+else()
+  message(WARNING "Sample generation script/samples missing - firmware might not build correctly")
+endif()
+
 # Add the generated directory to include paths
-include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${CMAKE_BINARY_DIR}/generated) # For version.h
+# Note: GENERATED_SAMPLES_OUTPUT_DIR will be added to target_include_directories later
 
 message(STATUS "USB bcdDevice will be set to: ${VERSION_BCD}")
 
@@ -45,7 +77,8 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 
 # Add include directories for the target
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ../experiments/support # For all_samples.h
+    ../experiments/support # For sample_conversion.h and potentially other support files
+    ${GENERATED_SAMPLES_OUTPUT_DIR} # For all_samples.h, sample_data.h etc.
     # Add other specific include paths here if needed
 )
 
@@ -55,6 +88,11 @@ musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
+
+# Add sample generation dependency after executable is defined
+if(TARGET generate_samples)
+  add_dependencies(${EXECUTABLE_NAME} generate_samples)
+endif()
 
 
 # Explicitly find the size utility, hinting at the Pico toolchain path

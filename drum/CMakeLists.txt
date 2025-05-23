@@ -20,30 +20,31 @@ endif()
 
 set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers_v2.sh")
 set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
+set(GENERATED_SAMPLES_OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated/samples") # Output directory for generated sample files
 
 if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
   file(GLOB_RECURSE SAMPLE_FILES "${SAMPLES_DIR}/*.wav")
   
   add_custom_command(
-    OUTPUT ${SAMPLES_DIR}/../sample_data.h
-    COMMAND ${XXD_PROGRAM} --version
-    COMMAND ${FFMPEG_PROGRAM} -version
-    COMMAND ${GENERATE_SAMPLES_SCRIPT}
-    WORKING_DIRECTORY ${SAMPLES_DIR}/..
-    COMMENT "Generating sample headers"
+    OUTPUT ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h # Main output artifact
+    COMMAND ${XXD_PROGRAM} --version # Optional: keep for logging
+    COMMAND ${FFMPEG_PROGRAM} -version # Optional: keep for logging
+    COMMAND ${CMAKE_COMMAND} -E env BASH_EXECUTABLE=/bin/bash ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
+    COMMENT "Generating sample headers using v2 script"
     DEPENDS 
       ${GENERATE_SAMPLES_SCRIPT}
       ${SAMPLE_FILES}
     VERBATIM
   )
   
-  add_custom_target(generate_samples DEPENDS ${SAMPLES_DIR}/../sample_data.h)
+  add_custom_target(generate_samples DEPENDS ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h)
 else()
   message(WARNING "Sample generation script/samples missing - firmware might not build correctly")
 endif()
 
 # Add the generated directory to include paths
-include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${CMAKE_BINARY_DIR}/generated) # For version.h
+# Note: GENERATED_SAMPLES_OUTPUT_DIR will be added to target_include_directories later
 
 project(${EXECUTABLE_NAME})
 
@@ -70,7 +71,8 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
 
 # Add include directories for the target
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ../experiments/support # For all_samples.h
+    ../experiments/support # For sample_conversion.h and potentially other support files
+    ${GENERATED_SAMPLES_OUTPUT_DIR} # For all_samples.h, sample_data.h etc.
     # Add other specific include paths here if needed
 )
 

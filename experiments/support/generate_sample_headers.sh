@@ -40,6 +40,7 @@ echo "----------------------------------------"
 
 # Find all .wav files and process them
 find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
+  echo "DEBUG: wav_file immediately after read: [$wav_file]"
   # Get the filename without extension (e.g., AudioSampleKickc78_16bit_44kw)
   base_name=$(basename "$wav_file" .wav)
 
@@ -54,7 +55,7 @@ find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' 
   echo "Processing: $base_name"
   echo "DEBUG: Current PWD: $(pwd)"
   echo "DEBUG: SAMPLE_DIR in loop is: [$SAMPLE_DIR]"
-  echo "DEBUG: wav_file is: [$wav_file]"
+  echo "DEBUG: wav_file before ffmpeg: [$wav_file]" # Clarified context
   echo "DEBUG: pcm_file is: [$pcm_file]"
 
   # 1. Convert WAV to raw PCM using sox

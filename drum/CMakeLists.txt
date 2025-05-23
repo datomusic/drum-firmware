@@ -18,7 +18,7 @@ if(NOT XXD_PROGRAM OR NOT FFMPEG_PROGRAM)
     message(FATAL_ERROR "xxd/ffmpeg not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd ffmpeg\n  MacOS: brew install xxd ffmpeg")
 endif()
 
-set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers.sh")
+set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers_v2.sh")
 set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
 
 if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")

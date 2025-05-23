@@ -46,6 +46,9 @@ find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' 
   c_file="$SAMPLE_DIR/${c_symbol_base}data.h" # Match CMakeLists.txt pattern
 
   echo "Processing: $base_name"
+  echo "DEBUG: Current PWD: $(pwd)"
+  echo "DEBUG: wav_file is: [$wav_file]"
+  echo "DEBUG: pcm_file is: [$pcm_file]"
 
   # 1. Convert WAV to raw PCM using sox
   echo "  Converting to PCM: $pcm_file"

@@ -8,8 +8,9 @@
 set -e # Exit immediately if a command exits with a non-zero status.
 set -o pipefail # Ensure pipeline errors are caught
 
-# Define the directory containing the samples
-SAMPLE_DIR="samples"
+# Define the directory containing the samples (relative to script location)
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+SAMPLE_DIR="$SCRIPT_DIR/samples"
 
 # Check if the sample directory exists
 if [ ! -d "$SAMPLE_DIR" ]; then
@@ -33,7 +34,7 @@ echo "struct SampleData{const int16_t *data; const uint32_t length;};" >> "$all_
 echo "static constexpr const etl::array<SampleData, 51> all_samples = {" >> "$all_samples_header"
 
 # Find all .wav files and process them with absolute paths
-find "$(pwd)/$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
+find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
   # Validate file exists before processing
   if [[ ! -f "$wav_file" ]]; then
     echo "Error: File '$wav_file' not found!"

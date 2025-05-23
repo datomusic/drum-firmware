@@ -32,14 +32,13 @@ echo "#include \"etl/array.h\"" >> "$all_samples_header"
 echo "struct SampleData{const int16_t *data; const uint32_t length;};" >> "$all_samples_header"
 echo "static constexpr const etl::array<SampleData, 51> all_samples = {" >> "$all_samples_header"
 
-# DEBUG: Show what find outputs before the loop
-echo "DEBUG: Output of find command (piped to xxd):"
-find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | xxd
-echo "DEBUG: End of find command output."
-echo "----------------------------------------"
-
-# Find all .wav files and process them
-find "$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
+# Find all .wav files and process them with absolute paths
+find "$(pwd)/$SAMPLE_DIR" -maxdepth 1 -name "*.wav" -print0 | while IFS= read -r -d '' wav_file; do
+  # Validate file exists before processing
+  if [[ ! -f "$wav_file" ]]; then
+    echo "Error: File '$wav_file' not found!"
+    exit 1
+  fi
   echo "DEBUG: wav_file immediately after read: [$wav_file]"
   # Get the filename without extension (e.g., AudioSampleKickc78_16bit_44kw)
   base_name=$(basename "$wav_file" .wav)

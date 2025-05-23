@@ -29,7 +29,7 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
     OUTPUT ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h # Main output artifact
     COMMAND ${XXD_PROGRAM} --version # Optional: keep for logging
     COMMAND ${FFMPEG_PROGRAM} -version # Optional: keep for logging
-    COMMAND ${CMAKE_COMMAND} -E env BASH_EXECUTABLE=/bin/bash ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
+    COMMAND ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
     COMMENT "Generating sample headers using v2 script"
     DEPENDS 
       ${GENERATE_SAMPLES_SCRIPT}

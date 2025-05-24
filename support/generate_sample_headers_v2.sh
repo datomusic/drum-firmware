@@ -121,7 +121,10 @@ if [[ -z "$output_dir_arg" ]]; then
 else
   output_dir="${output_dir_arg%/}"
 fi
-output_dir=$(realpath -m "$output_dir") # Resolve and create if -m is supported, or use mkdir -p later
+
+# Create output directory if it doesn't exist BEFORE trying to get its realpath
+mkdir -p "$output_dir"
+output_dir=$(realpath "$output_dir") # Resolve to absolute path
 
 # --- Pre-flight Checks ---
 if ! command_exists ffmpeg; then
@@ -139,8 +142,7 @@ if [ ! -d "$sample_dir" ]; then
   exit 1
 fi
 
-# Create output directory if it doesn't exist
-mkdir -p "$output_dir"
+# Output directory is already created and resolved above
 echo "Source directory: '$sample_dir'"
 echo "Output directory: '$output_dir'"
 echo "Output type: '$output_type'"

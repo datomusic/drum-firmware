@@ -169,7 +169,7 @@ if $generate_c_headers; then
 // It should provide a function like:
 // template <unsigned int N>
 // constexpr etl::array<int16_t, N / 2> int16FromBytes(const unsigned char (&bytes)[N]) { ... }
-#include "sample_conversion.h"
+#include "support/sample_conversion.h"
 
 EOF
 

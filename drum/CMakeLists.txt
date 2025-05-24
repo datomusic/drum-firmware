@@ -18,8 +18,8 @@ if(NOT XXD_PROGRAM OR NOT FFMPEG_PROGRAM)
     message(FATAL_ERROR "xxd/ffmpeg not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd ffmpeg\n  MacOS: brew install xxd ffmpeg")
 endif()
 
-set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers_v2.sh")
-set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
+set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../support/generate_sample_headers_v2.sh")
+set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../support/samples")
 set(GENERATED_SAMPLES_OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated/samples") # Output directory for generated sample files
 
 if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
@@ -29,7 +29,7 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
     OUTPUT ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h # Main output artifact
     COMMAND ${XXD_PROGRAM} --version # Optional: keep for logging
     COMMAND ${FFMPEG_PROGRAM} -version # Optional: keep for logging
-    COMMAND ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
+    COMMAND bash ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
     COMMENT "Generating sample headers using v2 script"
     DEPENDS 
       ${GENERATE_SAMPLES_SCRIPT}

@@ -45,40 +45,54 @@ sample_dir_arg=""
 output_dir_arg=""
 output_type="$DEFAULT_OUTPUT_TYPE"
 
-# Parse command-line options
-# Using a loop for robust long option parsing alongside short options
-parsed_args=$(getopt -o s:o:t:h --long sample-dir:,output-dir:,type:,help -- "$@")
-if [[ $? -ne 0 ]]; then
-    usage
-fi
-eval set -- "$parsed_args"
-
-while true; do
+# Manual argument parsing loop
+while [ "$#" -gt 0 ]; do
   case "$1" in
     -s|--sample-dir)
-      sample_dir_arg="$2"
-      shift 2
+      if [ -n "$2" ] && [[ "$2" != -* ]]; then # Check if $2 exists and is not an option starting with -
+        sample_dir_arg="$2"
+        shift # Consume the argument value
+      else
+        echo "Error: Argument for $1 is missing or invalid." >&2
+        usage >&2 # usage function already calls exit
+      fi
       ;;
     -o|--output-dir)
-      output_dir_arg="$2"
-      shift 2
+      if [ -n "$2" ] && [[ "$2" != -* ]]; then
+        output_dir_arg="$2"
+        shift # Consume the argument value
+      else
+        echo "Error: Argument for $1 is missing or invalid." >&2
+        usage >&2
+      fi
       ;;
     -t|--type)
-      output_type="$2"
-      shift 2
+      if [ -n "$2" ] && [[ "$2" != -* ]]; then
+        output_type="$2"
+        shift # Consume the argument value
+      else
+        echo "Error: Argument for $1 is missing or invalid." >&2
+        usage >&2
+      fi
       ;;
     -h|--help)
-      usage
+      usage # usage function already calls exit
       ;;
-    --)
-      shift
+    --) # End of options marker
+      shift # Consume the --
+      break # Stop processing options, remaining arguments are positional
+      ;;
+    -*) # Unknown option
+      echo "Error: Unknown option: $1" >&2
+      usage >&2
+      ;;
+    *)  # Positional argument or end of arguments
+      # This script doesn't expect positional arguments here after all options are parsed.
+      # If we encounter one, it's likely an error or options parsing is done.
       break
       ;;
-    *)
-      echo "Internal error!"
-      exit 1
-      ;;
   esac
+  shift # Consume the current option/argument that was processed
 done
 
 # Validate required arguments

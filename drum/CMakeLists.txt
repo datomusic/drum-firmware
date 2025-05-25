@@ -11,7 +11,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../musin/version.cmake)
 # Configure version variables first
 configure_version_from_git()
 
-# Generate version header file using the configured variables
+# Generate version header file
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
 # Sample generation setup
@@ -21,8 +21,8 @@ if(NOT XXD_PROGRAM OR NOT FFMPEG_PROGRAM)
     message(FATAL_ERROR "xxd/ffmpeg not found! Required for sample generation. Install via:\n  Ubuntu/Debian: sudo apt install xxd ffmpeg\n  MacOS: brew install xxd ffmpeg")
 endif()
 
-set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/generate_sample_headers_v2.sh")
-set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../experiments/support/samples")
+set(GENERATE_SAMPLES_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../support/generate_sample_headers.sh")
+set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../support/samples")
 set(GENERATED_SAMPLES_OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated/samples") # Output directory for generated sample files
 
 if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
@@ -32,8 +32,8 @@ if(EXISTS "${GENERATE_SAMPLES_SCRIPT}" AND EXISTS "${SAMPLES_DIR}")
     OUTPUT ${GENERATED_SAMPLES_OUTPUT_DIR}/all_samples.h # Main output artifact
     COMMAND ${XXD_PROGRAM} --version # Optional: keep for logging
     COMMAND ${FFMPEG_PROGRAM} -version # Optional: keep for logging
-    COMMAND ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
-    COMMENT "Generating sample headers using v2 script"
+    COMMAND bash ${GENERATE_SAMPLES_SCRIPT} -s ${SAMPLES_DIR} -o ${GENERATED_SAMPLES_OUTPUT_DIR}
+    COMMENT "Generating sample headers using"
     DEPENDS 
       ${GENERATE_SAMPLES_SCRIPT}
       ${SAMPLE_FILES}
@@ -48,8 +48,6 @@ endif()
 # Add the generated directory to include paths
 include_directories(${CMAKE_BINARY_DIR}/generated) # For version.h
 # Note: GENERATED_SAMPLES_OUTPUT_DIR will be added to target_include_directories later
-
-message(STATUS "USB bcdDevice will be set to: ${VERSION_BCD}")
 
 project(${EXECUTABLE_NAME})
 
@@ -68,8 +66,7 @@ add_executable(${EXECUTABLE_NAME}
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
   USBD_MANUFACTURER="Dato"
-  USBD_PRODUCT="DRUM" # Ensure product string is clean
-  USBD_DEVICE_BCD=${VERSION_BCD}
+  USBD_PRODUCT="DRUM"
   PICO_PROGRAM_DESCRIPTION="DRUM"
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
   AUDIO_BLOCK_SAMPLES=128

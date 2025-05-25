@@ -100,9 +100,6 @@ jobs:
           make
           sudo make install
 
-      - name: List samples directory                                                               
-        run: ls -lA experiments/support/samples/   
-
       - name: Install sample dependencies
         run: sudo apt update && sudo apt install -y xxd ffmpeg
 

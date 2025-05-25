@@ -13,7 +13,8 @@ struct blockdevice_t;
  * This function attempts to mount the existing filesystem. If `force_format` is true,
  * it will format the filesystem before attempting to mount.
  *
- * @param force_format If true, the filesystem will be formatted even if mounting an existing one could succeed.
+ * @param force_format If true, the filesystem will be formatted even if mounting an existing one
+ * could succeed.
  * @return true if the filesystem is successfully initialized (mounted), false otherwise.
  */
 bool init(bool force_format);
@@ -30,6 +31,6 @@ bool init(bool force_format);
  */
 bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash);
 
-}
+} // namespace musin::filesystem
 
 #endif /* end of include guard: FILESYSTEM_H_A1PWKQIM */

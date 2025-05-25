@@ -45,9 +45,11 @@ AudioEngine::Voice::Voice() : sound(reader.emplace()) {
 
 AudioEngine::AudioEngine()
     : voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
-      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_) {
+      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_), highpass_(lowpass_) {
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
+  highpass_.filter.frequency(100.0f);
+  lowpass_.filter.resonance(0.7f);
   crusher_.sampleRate(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
   crusher_.bits(16);
 
@@ -71,7 +73,7 @@ bool AudioEngine::init() {
 
 void AudioEngine::process() {
 
-  AudioOutput::update(lowpass_);
+  AudioOutput::update(highpass_);
 }
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity) {

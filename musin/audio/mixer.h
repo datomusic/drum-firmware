@@ -114,8 +114,8 @@ template <size_t N> struct AudioMixer : BufferSource {
           const int32_t value =
               out_samples[sample_index] +
               ((static_cast<int32_t>(temp_buffer[sample_index]) * multiplier) >> 8);
-          // Use the saturation function from dspinst.h
-          out_samples[sample_index] = signed_saturate_rshift(value, 16, 0);
+          // Use the 16-bit saturation function from dspinst.h
+          out_samples[sample_index] = signed_saturate_rshift16(value, 0);
         }
       }
     }

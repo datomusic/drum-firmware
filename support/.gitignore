@@ -1,3 +1,4 @@
 all_samples.h
 sample_data.h
 samples/*.h
+samples/*.pcm

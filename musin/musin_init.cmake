@@ -15,7 +15,9 @@ list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 include(${SDK_PATH}/pico_sdk_init.cmake)
 include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
+if(NOT TARGET etl::etl)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
+endif()
 
 # this must be called after pico_sdk_init.cmake is included
 pico_sdk_init()

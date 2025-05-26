@@ -88,8 +88,13 @@ template <typename FileOperations> struct Protocol {
       return Result::InvalidManufacturer;
     }
 
-    Values values;
+    Values values{};  // Initialize the values array
     const auto value_count = codec::decode<Chunk::Data::SIZE>(iterator, chunk.cend(), values);
+
+    // Check if we have at least one value for the tag
+    if (value_count == 0) {
+      return Result::InvalidContent;
+    }
 
     auto value_iterator = values.cbegin();
     Values::const_iterator values_end = value_iterator + value_count;

@@ -166,10 +166,12 @@ private:
     printf("------------------------\n");
   }
 
-  etl::array<ProfiledSection, MaxSections> _sections;
-  size_t _current_section_count;
-  absolute_time_t _last_print_time;
+  // Members ordered to match constructor initializer list
   uint64_t _print_interval_us;
+  size_t _current_section_count;
+  // Other members
+  etl::array<ProfiledSection, MaxSections> _sections;
+  absolute_time_t _last_print_time;
 };
 
 /**

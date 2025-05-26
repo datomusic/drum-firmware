@@ -12,18 +12,11 @@
 #include "musin/hal/debug_utils.h" // For underrun counter
 #include "sample_reader.h"         // Includes block.h for AudioBlock
 
-struct PitchShifter : SampleReader {
-  constexpr PitchShifter(SampleReader &reader)
-      : speed(1.0f), sample_reader(reader), m_internal_buffer_read_idx(0),
-        m_internal_buffer_valid_samples(0), has_reached_end(false) {
-    // Initialize interpolation buffer to avoid clicks/pops
-    reset();
-  }
-
-  // Improved cubic interpolation using Catmull-Rom spline
+// Interpolator strategies
+struct CubicInterpolator {
   constexpr static int16_t
-  __time_critical_func(cubic_interpolate)(const int16_t y0, const int16_t y1, const int16_t y2,
-                                          const int16_t y3, const float mu) {
+  __time_critical_func(interpolate)(const int16_t y0, const int16_t y1, const int16_t y2,
+                                     const int16_t y3, const float mu) {
     const float mu2 = mu * mu;
     const float mu3 = mu2 * mu;
 
@@ -39,6 +32,29 @@ struct PitchShifter : SampleReader {
     result = std::clamp(result, -32768.0f, 32767.0f);
 
     return static_cast<int16_t>(result);
+  }
+};
+
+struct NearestNeighborInterpolator {
+  constexpr static int16_t
+  __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1, const int16_t y2,
+                                     const int16_t /*y3*/, const float mu) {
+    // y0 and y3 are not used for nearest neighbor interpolation focusing on y1 and y2.
+    // mu is the fractional position between y1 and y2.
+    if (mu < 0.5f) {
+      return y1;
+    } else {
+      return y2;
+    }
+  }
+};
+
+template <typename InterpolatorStrategy> struct PitchShifter : SampleReader {
+  constexpr PitchShifter(SampleReader &reader)
+      : speed(1.0f), sample_reader(reader), m_internal_buffer_read_idx(0),
+        m_internal_buffer_valid_samples(0), has_reached_end(false) {
+    // Initialize interpolation buffer to avoid clicks/pops
+    reset();
   }
 
   // Reader interface
@@ -166,7 +182,7 @@ private:
       const int16_t y3 = interpolation_samples[(3 + idx_offset) & 3];
 
       // Calculate interpolated value
-      const int16_t interpolated_value = cubic_interpolate(y0, y1, y2, y3, mu);
+      const int16_t interpolated_value = InterpolatorStrategy::interpolate(y0, y1, y2, y3, mu);
 
       // Write the interpolated sample to output
       out[out_sample_index] = interpolated_value;

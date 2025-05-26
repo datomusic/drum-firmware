@@ -1,4 +1,4 @@
-#include "../test_support.h"
+#include "test_support.h"
 
 #include "musin/audio/block.h" // Include AudioBlock definition
 #include "musin/audio/memory_reader.h"

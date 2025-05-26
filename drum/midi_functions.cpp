@@ -27,7 +27,9 @@ static void midi_print_serial_number();
 
 // --- Static Helper Functions (Internal Linkage) ---
 
+#include <stdio.h>
 static void handle_sysex(uint8_t *const data, const size_t length) {
+  printf("HANDLRE SYX\n");
   // Check for Dato Manufacturer ID and DRUM Device ID
   if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DRUM_ID) {
     switch (data[3]) { // Check the command byte

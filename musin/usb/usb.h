@@ -6,7 +6,7 @@
 namespace musin {
 namespace usb {
 
-void init();
+void init(bool block_until_connected = false);
 void disconnect();
 bool background_update();
 bool midi_read(uint8_t packet[4]);

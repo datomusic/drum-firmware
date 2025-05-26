@@ -1,8 +1,6 @@
 #ifndef HARDWARE_SERIAL_H_VBZTXRD8
 #define HARDWARE_SERIAL_H_VBZTXRD8
 
-#include "hardware/gpio.h"
-#include "hardware/uart.h"
 #include <stddef.h>
 #include <stdint.h>
 

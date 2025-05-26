@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "midi": "^2.0.0",
+    "wavefile": "^11.0.0"
+  }
+}

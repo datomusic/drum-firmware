@@ -248,8 +248,8 @@ EOF
 
       # Convert PCM to C array using xxd and modify declarations using sed
       xxd -i "$pcm_file_path" \
-        | sed "s/unsigned char.*\[\]/const unsigned char __in_flash() samples_${c_symbol_base}_bytes[]/" \
-        | sed "s/unsigned int.*len/const unsigned int samples_${c_symbol_base}_bytes_len/" >> "$c_header_file_path"
+        | sed "s/unsigned char.*\[\]/constexpr const unsigned char __in_flash() samples_${c_symbol_base}_bytes[]/" \
+        | sed "s/unsigned int.*len/constexpr const unsigned int samples_${c_symbol_base}_bytes_len/" >> "$c_header_file_path"
 
       cat >> "$c_header_file_path" <<EOF
 

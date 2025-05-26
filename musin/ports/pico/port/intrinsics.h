@@ -1,7 +1,9 @@
 #ifndef INTRINSICS_H_KIJFC2HZ
 #define INTRINSICS_H_KIJFC2HZ
 
+extern "C" {
 #include <arm_acle.h>
+}
 #include <cstdint>
 
 namespace intrinsics {

@@ -154,7 +154,7 @@ private:
 
       // Ensure we have enough samples in the buffer for interpolation
       bool has_more_data = true;
-      while (source_index <= new_buffer_position + 3 && has_more_data) {
+      while (source_index <= static_cast<uint32_t>(new_buffer_position + 3) && has_more_data) {
         has_more_data = sample_reader.read_next(sample);
         if (!has_more_data) {
           // Reached the end of input data
@@ -193,9 +193,9 @@ private:
 
       // If we've moved past the available data and we've already reached the end,
       // start fading out the sound to avoid abrupt stopping
-      if (has_reached_end && new_buffer_position > source_index) {
+      if (has_reached_end && static_cast<uint32_t>(new_buffer_position) > source_index) {
         // Only continue for a few more samples to provide a smooth tail-off
-        int samples_beyond_end = new_buffer_position - source_index;
+        int samples_beyond_end = new_buffer_position - static_cast<int>(source_index); // Keep consistent types for subtraction
         if (samples_beyond_end > 8) { // Arbitrary cutoff for tail fade-out
           // Fill the rest of the output buffer with silence
           for (uint32_t i = out_sample_index + 1; i < out.size(); ++i) {

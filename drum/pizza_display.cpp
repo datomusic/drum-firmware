@@ -127,7 +127,9 @@ void PizzaDisplay::draw_base_elements() {
 
 void PizzaDisplay::update_track_override_colors() {
   for (uint8_t track_idx = 0; track_idx < SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
-    if (_sequencer_controller_ref.is_pad_pressed(track_idx)) {
+    // Check if either the pad is pressed or retrigger mode is active
+    if (_sequencer_controller_ref.is_pad_pressed(track_idx) || 
+        _sequencer_controller_ref.get_retrigger_mode_for_track(track_idx) > 0) {
       uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(track_idx);
       _track_override_colors[track_idx] = get_note_color(active_note % NUM_NOTE_COLORS);
     } else {

@@ -125,11 +125,12 @@ public:
     etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };
 
-  class PlaybuttonComponent {
+  class PlaybuttonComponent : public etl::observer<musin::timing::TempoEvent> {
   public:
     explicit PlaybuttonComponent(PizzaControls *parent_ptr);
     void init();
     void update();
+    void notification(musin::timing::TempoEvent event) override;
 
   private:
     struct PlaybuttonEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
@@ -145,6 +146,8 @@ public:
     musin::hal::AnalogInMux16 playbutton_reader;
     musin::ui::Drumpad<musin::hal::AnalogInMux16> playbutton;
     PlaybuttonEventHandler playbutton_observer;
+    bool is_in_hold_state = false;
+    uint8_t current_pad_index = 0;
   };
 
   class AnalogControlComponent {

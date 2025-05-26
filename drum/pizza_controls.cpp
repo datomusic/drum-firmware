@@ -465,6 +465,7 @@ PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_pt
 void PizzaControls::PlaybuttonComponent::init() {
   playbutton_reader.init();
   playbutton.add_observer(playbutton_observer);
+  parent_controls->_tempo_handler_ref.add_observer(*this);
 }
 
 void PizzaControls::PlaybuttonComponent::update() {
@@ -475,6 +476,39 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     musin::ui::DrumpadEvent event) {
   if (event.type == musin::ui::DrumpadEvent::Type::Press) {
     parent->parent_controls->_sequencer_controller_ref.toggle();
+  } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
+    parent->is_in_hold_state = true;
+  } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
+    parent->is_in_hold_state = false;
+  }
+}
+
+void PizzaControls::PlaybuttonComponent::notification(musin::timing::TempoEvent event) {
+  if (!is_in_hold_state || !parent_controls->is_running()) {
+    return;
+  }
+
+  // Only process on beat events (quarter notes)
+  if (event.type == musin::timing::TempoEvent::Type::Beat) {
+    // Round robin through the pads
+    if (current_pad_index >= config::NUM_DRUMPADS) {
+      current_pad_index = 0;
+    }
+    
+    // Get the current note for this pad
+    uint8_t current_note = parent_controls->drumpad_component.get_note_for_pad(current_pad_index);
+    
+    // Step to the next note for this pad
+    parent_controls->drumpad_component.select_note_for_pad(current_pad_index, 1);
+    
+    // Trigger the note
+    parent_controls->_sequencer_controller_ref.trigger_note_on(
+        current_pad_index, 
+        current_note, 
+        config::keypad::PREVIEW_NOTE_VELOCITY);
+    
+    // Move to the next pad for the next beat
+    current_pad_index = (current_pad_index + 1) % config::NUM_DRUMPADS;
   }
 }
 } // namespace drum

@@ -3,37 +3,39 @@
 #include <midi_Defs.h>
 
 namespace MIDI {
+static const unsigned SysExMaxSize = 128;
+
 using MidiType = ::midi::MidiType; // Alias the original library's MidiType
 
 typedef void(VoidCallback)();
-typedef void(SyxCallback)(byte *data, unsigned length);
-typedef void(NoteCallback)(byte channel, byte note, byte velocity);
-typedef void(ControlChangeCallback)(byte channel, byte controller, byte value);
-typedef void(PitchBendCallback)(byte channel, int bend);
+typedef void(SyxCallback)(uint8_t *data, unsigned length);
+typedef void(NoteCallback)(uint8_t channel, uint8_t note, uint8_t velocity);
+typedef void(ControlChangeCallback)(uint8_t channel, uint8_t controller, uint8_t value);
+typedef void(PitchBendCallback)(uint8_t channel, int bend);
 
 struct Callbacks {
-  NoteCallback *note_on;
-  NoteCallback *note_off;
-  VoidCallback *clock;
-  VoidCallback *start;
-  VoidCallback *cont;
-  VoidCallback *stop;
-  ControlChangeCallback *cc;
-  PitchBendCallback *pitch_bend;
-  SyxCallback *sysex;
+  NoteCallback *note_on = nullptr;
+  NoteCallback *note_off = nullptr;
+  VoidCallback *clock = nullptr;
+  VoidCallback *start = nullptr;
+  VoidCallback *cont = nullptr;
+  VoidCallback *stop = nullptr;
+  ControlChangeCallback *cc = nullptr;
+  PitchBendCallback *pitch_bend = nullptr;
+  SyxCallback *sysex = nullptr;
 };
 
 void init(const Callbacks &callbacks);
 /** @brief Read MIDI messages for a specific channel. */
-void read(byte channel);
+void read(uint8_t channel);
 /** @brief Read MIDI messages for all channels (OMNI). */
 void read();
 void sendRealTime(MidiType message);
-void sendControlChange(byte cc, byte value, byte channel);
-void sendNoteOn(byte inNoteNumber, byte inVelocity, byte inChannel);
-void sendNoteOff(byte inNoteNumber, byte inVelocity, byte inChannel);
-void sendPitchBend(int bend, byte channel);
-void sendSysEx(unsigned length, const byte *bytes);
+void sendControlChange(uint8_t cc, uint8_t value, uint8_t channel);
+void sendNoteOn(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
+void sendNoteOff(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
+void sendPitchBend(int bend, uint8_t channel);
+void sendSysEx(unsigned length, const uint8_t *bytes);
 
 }; // namespace MIDI
 

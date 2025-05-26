@@ -15,7 +15,12 @@ list(APPEND PICO_BOARD_HEADER_DIRS ${MUSIN_ROOT}/boards)
 include(${SDK_PATH}/pico_sdk_init.cmake)
 include(${SDK_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
+if(NOT TARGET etl::etl)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lib/etl etl_build)
+endif()
+
+# this must be called after pico_sdk_init.cmake is included
+pico_sdk_init()
 
 macro(musin_init TARGET)
   target_include_directories(${TARGET} PRIVATE
@@ -33,8 +38,6 @@ macro(musin_init TARGET)
     pico_stdlib
     etl::etl
   )
-  # this must be called after pico_sdk_init.cmake is included
-  pico_sdk_init()
   # pico_enable_stdio_uart(${TARGET} 1)
   pico_enable_stdio_usb(${TARGET} 1)
   pico_add_extra_outputs(${TARGET})
@@ -61,7 +64,7 @@ macro(musin_init_usb_midi TARGET)
     ${MUSIN_ROOT}/midi/midi_wrapper.cpp
   )
 
-  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+  target_compile_definitions(${TARGET} PRIVATE
     PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
   )
 

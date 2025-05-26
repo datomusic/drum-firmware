@@ -1,6 +1,5 @@
 #include "sb25_samples.h"
-#include "experiments/support/sample_data.h"
-#include "musin/audio/sample_data.h"
+#include "generated/samples/sample_data.h"
 
 using musin::SampleData;
 

@@ -172,6 +172,13 @@ public:
   [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
 
   /**
+   * @brief Get the current retrigger mode for a track.
+   * @param track_index The track index to check.
+   * @return 0 for off, 1 for single retrigger, 2 for double retrigger.
+   */
+  [[nodiscard]] uint8_t get_retrigger_mode_for_track(uint8_t track_index) const;
+
+  /**
    * @brief Get a reference to the internal sequencer instance.
    */
   [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() {

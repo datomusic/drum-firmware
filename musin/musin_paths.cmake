@@ -1,0 +1,6 @@
+set(MUSIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
+set(MUSIN_AUDIO ${MUSIN_ROOT}/audio)
+set(MUSIN_UI ${MUSIN_ROOT}/ui)
+set(MUSIN_LIBRARIES ${MUSIN_ROOT}/ports/pico/libraries)
+set(MUSIN_USB ${MUSIN_ROOT}/usb)
+set(MUSIN_DRIVERS ${MUSIN_ROOT}/drivers)

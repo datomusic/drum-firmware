@@ -1,5 +1,6 @@
 #include "usb.h"
 #include "device/usbd.h"
+#include "class/midi/midi_device.h"
 #include "tusb.h"
 
 #ifndef USB_DEVICE_INSTANCE
@@ -36,12 +37,14 @@ void midi_send(const uint8_t packet[4]) {
   tud_midi_packet_write(packet);
 }
 
-void init() {
+void init(const bool block_until_connected) {
   tusb_init();
 
-  // while (!tud_cdc_connected()) {
-  //   tud_task();
-  // }
+  if(block_until_connected) {
+    while (!tud_cdc_connected()) {
+      tud_task();
+    }
+  }
 }
 
 } // namespace usb

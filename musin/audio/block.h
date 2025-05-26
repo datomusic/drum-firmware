@@ -11,6 +11,8 @@
 // to avoid indexing out of bounds.
 
 struct AudioBlock {
+  static const auto MaxSamples = AUDIO_BLOCK_SAMPLES;
+
   constexpr int16_t &operator[](const size_t i) {
     // TODO: Add some kind of range checking, at least in debug?
     return data[i];
@@ -37,7 +39,7 @@ struct AudioBlock {
   }
 
 private:
-  etl::array<int16_t, AUDIO_BLOCK_SAMPLES> data;
+  etl::array<int16_t, MaxSamples> data;
 };
 
 #endif /* end of include guard: BLOCK_H_WDR6BFX7 */

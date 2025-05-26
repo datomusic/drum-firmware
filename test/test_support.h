@@ -3,7 +3,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#ifdef STATIC_TESTS
+#if STATIC_TESTS == 1
 
 #define CONST_BODY(BODY)                                                                           \
   constexpr auto body = []() {                                                                     \

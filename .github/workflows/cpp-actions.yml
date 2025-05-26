@@ -57,8 +57,8 @@ jobs:
         name: Checkout etl
         run: git submodule update --init lib/etl
 
-      - name: Test Musin
-        working-directory: test/musin
-        run: bash ./run_tests.sh
+      - name: Run tests
+        working-directory: test
+        run: bash ./run_all_tests.sh
 
 

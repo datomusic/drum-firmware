@@ -5,16 +5,16 @@ set(CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g3")
 
 set(CMAKE_CXX_STANDARD 20)
 
-project(musin-test)
+project(drum-test)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../musin/generic_sources.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../musin/musin_paths.cmake)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/etl etl_build)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT_LIST_DIR}/Catch2_build)
 
 add_executable(${PROJECT_NAME}
-  audio/pitch_shifter_test.cpp
-  audio/memory_reader_test.cpp
+  rompler_test.cpp
+  sysex_test.cpp
 )
 
 if(${STATIC_TESTS})
@@ -22,16 +22,22 @@ if(${STATIC_TESTS})
   target_compile_definitions(${PROJECT_NAME} PRIVATE
     STATIC_TESTS=1
   )
+else(${STATIC_TESTS})
+  message("CMake: Building runnable tests")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
+    STATIC_TESTS=0
+  )
 endif(${STATIC_TESTS})
 
 target_sources(${PROJECT_NAME} PRIVATE
-  ${musin_audio_generic_sources}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
   ${CMAKE_CURRENT_LIST_DIR}/../..
+  ${MUSIN_LIBRARIES}/arduino_midi_library/src
+  ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE

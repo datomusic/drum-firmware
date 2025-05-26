@@ -229,21 +229,24 @@ private:
     interpolation_samples[3] = sample;
   }
 
+  // Members are ordered to match the constructor's member initializer list
+  // to prevent -Wreorder warnings.
+
   // Using float instead of double for better performance on Cortex-M33 FPU
   float speed;
+  SampleReader &sample_reader;
+  uint32_t m_internal_buffer_read_idx;
+  uint32_t m_internal_buffer_valid_samples;
+  bool has_reached_end; // Tracks if we've reached the end of source data
+
+  // Other members (initialized in reset() or by default constructor)
   // Align interpolation buffer to word boundary for better memory access
   alignas(4) int16_t interpolation_samples[4];
   uint32_t source_index;
   float position;
   int buffer_position;
-  SampleReader &sample_reader;
-  // musin::BufferedReader<> buffered_reader; // Removed
-  bool has_reached_end; // Tracks if we've reached the end of source data
-
   // Internal buffer for read_next when resampling
   AudioBlock m_internal_buffer;
-  uint32_t m_internal_buffer_read_idx;
-  uint32_t m_internal_buffer_valid_samples;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

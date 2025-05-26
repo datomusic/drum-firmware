@@ -170,7 +170,7 @@ public:
 
   void set_pad_pressed_state(uint8_t track_index, bool is_pressed);
   [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
-  
+
   /**
    * @brief Get the current retrigger mode for a track.
    * @param track_index The track index to check.

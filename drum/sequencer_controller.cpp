@@ -475,7 +475,8 @@ bool SequencerController<NumTracks, NumSteps>::is_pad_pressed(uint8_t track_inde
 }
 
 template <size_t NumTracks, size_t NumSteps>
-uint8_t SequencerController<NumTracks, NumSteps>::get_retrigger_mode_for_track(uint8_t track_index) const {
+uint8_t
+SequencerController<NumTracks, NumSteps>::get_retrigger_mode_for_track(uint8_t track_index) const {
   if (track_index < NumTracks) {
     return _retrigger_mode_per_track[track_index];
   }

@@ -14,9 +14,9 @@
 
 // Interpolator strategies
 struct CubicInterpolator {
-  constexpr static int16_t
-  __time_critical_func(interpolate)(const int16_t y0, const int16_t y1, const int16_t y2,
-                                     const int16_t y3, const float mu) {
+  constexpr static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                                             const int16_t y2, const int16_t y3,
+                                                             const float mu) {
     const float mu2 = mu * mu;
     const float mu3 = mu2 * mu;
 
@@ -36,9 +36,9 @@ struct CubicInterpolator {
 };
 
 struct NearestNeighborInterpolator {
-  constexpr static int16_t
-  __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1, const int16_t y2,
-                                     const int16_t /*y3*/, const float mu) {
+  constexpr static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
+                                                             const int16_t y2, const int16_t /*y3*/,
+                                                             const float mu) {
     // y0 and y3 are not used for nearest neighbor interpolation focusing on y1 and y2.
     // mu is the fractional position between y1 and y2.
     if (mu < 0.5f) {
@@ -195,8 +195,10 @@ private:
       // start fading out the sound to avoid abrupt stopping
       if (has_reached_end && static_cast<uint32_t>(new_buffer_position) > source_index) {
         // Only continue for a few more samples to provide a smooth tail-off
-        int samples_beyond_end = new_buffer_position - static_cast<int>(source_index); // Keep consistent types for subtraction
-        if (samples_beyond_end > 8) { // Arbitrary cutoff for tail fade-out
+        int samples_beyond_end =
+            new_buffer_position -
+            static_cast<int>(source_index); // Keep consistent types for subtraction
+        if (samples_beyond_end > 8) {       // Arbitrary cutoff for tail fade-out
           // Fill the rest of the output buffer with silence
           for (uint32_t i = out_sample_index + 1; i < out.size(); ++i) {
             out[i] = 0;

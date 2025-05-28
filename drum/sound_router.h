@@ -2,6 +2,7 @@
 #define SB25_DRUM_SOUND_ROUTER_H_
 
 #include "audio_engine.h"
+#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK
 #include "etl/observer.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
@@ -12,13 +13,6 @@ namespace drum {
 
 // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
-// Provide necessary constants for the template arguments of SequencerController
-// This avoids including the full "config.h" in this header if not otherwise needed.
-namespace config {
-constexpr size_t NUM_TRACKS = 4; // Must match the value in config.h
-constexpr size_t NUM_STEPS_PER_TRACK = 8; // Must match the value in config.h
-} // namespace config
-
 
 /**
  * @brief Defines the possible output destinations for sound events.

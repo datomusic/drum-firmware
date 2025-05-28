@@ -10,6 +10,16 @@
 
 namespace drum {
 
+// Forward declaration
+template <size_t NumTracks, size_t NumSteps> class SequencerController;
+// Provide necessary constants for the template arguments of SequencerController
+// This avoids including the full "config.h" in this header if not otherwise needed.
+namespace config {
+constexpr size_t NUM_TRACKS = 4; // Must match the value in config.h
+constexpr size_t NUM_STEPS_PER_TRACK = 8; // Must match the value in config.h
+} // namespace config
+
+
 /**
  * @brief Defines the possible output destinations for sound events.
  */
@@ -49,8 +59,11 @@ public:
   /**
    * @brief Constructor.
    * @param audio_engine Reference to the audio engine instance.
+   * @param sequencer_controller Reference to the sequencer controller instance.
    */
-  explicit SoundRouter(AudioEngine &audio_engine);
+  explicit SoundRouter(
+      AudioEngine &audio_engine,
+      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller);
 
   // Delete copy and move operations
   SoundRouter(const SoundRouter &) = delete;
@@ -96,8 +109,21 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
+  /**
+   * @brief Handles an incoming MIDI Note On/Off message.
+   * If the note corresponds to a configured track:
+   * - For Note On (velocity > 0): Plays the sound on the audio engine and sets the active note
+   *   for that track in the sequencer controller.
+   * - For Note Off (velocity == 0): Plays the sound on the audio engine (which should handle
+   *   velocity 0 as silence or note off).
+   * @param note The MIDI note number.
+   * @param velocity The MIDI velocity (0 for Note Off).
+   */
+  void handle_incoming_midi_note(uint8_t note, uint8_t velocity);
+
 private:
   AudioEngine &_audio_engine;
+  SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;
 };
 

@@ -18,13 +18,15 @@
 
 // Model
 static drum::AudioEngine audio_engine;
-static drum::SoundRouter sound_router(audio_engine);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::TempoHandler tempo_handler(internal_clock,
                                                  musin::timing::ClockSource::INTERNAL);
 
+// SequencerController needs to be declared before SoundRouter if SoundRouter depends on it.
 drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
+
+static drum::SoundRouter sound_router(audio_engine, sequencer_controller);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
@@ -45,7 +47,7 @@ int main() {
 
   musin::usb::init();
 
-  midi_init();
+  midi_init(sound_router); // Pass the sound_router instance to midi_init
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state

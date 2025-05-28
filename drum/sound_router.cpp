@@ -1,8 +1,10 @@
 #include "sound_router.h"
+#include "config.h" // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
 #include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
-#include <algorithm> // For std::clamp
-#include <cstdint>   // For uint8_t
+#include "sequencer_controller.h" // For SequencerController
+#include <algorithm>              // For std::clamp, std::find
+#include <cstdint>                // For uint8_t
 
 namespace { // Anonymous namespace for internal linkage
 
@@ -64,8 +66,12 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
 
 // --- SoundRouter Implementation ---
 
-SoundRouter::SoundRouter(AudioEngine &audio_engine)
-    : _audio_engine(audio_engine), _output_mode(OutputMode::BOTH) {
+SoundRouter::SoundRouter(
+    AudioEngine &audio_engine,
+    SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+        &sequencer_controller)
+    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
+      _output_mode(OutputMode::BOTH) {
   // TODO: Initialize _track_sample_map if added
 }
 
@@ -168,6 +174,32 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
 
 void SoundRouter::notification(drum::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
+}
+
+void SoundRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
+  for (size_t track_idx = 0; track_idx < drum::config::drumpad::track_note_ranges.size();
+       ++track_idx) {
+    if (track_idx >= drum::config::NUM_TRACKS)
+      break; // Ensure we don't go out of bounds if config sizes differ
+
+    const auto &notes_for_track = drum::config::drumpad::track_note_ranges[track_idx];
+    auto it = std::find(notes_for_track.begin(), notes_for_track.end(), note);
+
+    if (it != notes_for_track.end()) {
+      // Note found for this track.
+      // Play the sound on the audio engine for this track.
+      // The AudioEngine::play_on_voice should handle velocity 0 as note off.
+      _audio_engine.play_on_voice(static_cast<uint8_t>(track_idx), note, velocity);
+
+      // Set the active note for that track in the sequencer controller,
+      // only if it's a Note On (velocity > 0).
+      if (velocity > 0) {
+        _sequencer_controller.set_active_note_for_track(static_cast<uint8_t>(track_idx), note);
+      }
+      // Assuming a note belongs to only one track's list for this purpose, so we can stop.
+      return;
+    }
+  }
 }
 
 } // namespace drum

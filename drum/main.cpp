@@ -46,6 +46,7 @@ int main() {
   musin::usb::init();
 
   midi_init();
+  set_sequencer_controller(sequencer_controller);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state

@@ -7,6 +7,7 @@ extern "C" {
 
 #include "musin/midi/midi_wrapper.h" // For MIDI namespace and byte type
 #include "version.h"                 // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
+#include "config.h"                  // For track_note_ranges
 
 // --- Constants ---
 #define SYSEX_DATO_ID 0x7D // Manufacturer ID for Dato
@@ -24,6 +25,13 @@ extern "C" {
 static void midi_print_identity();
 static void midi_print_firmware_version();
 static void midi_print_serial_number();
+
+// Global pointer to the sequencer controller instance
+namespace {
+  void* sequencer_controller_ptr = nullptr;
+  constexpr size_t NUM_TRACKS = drum::config::NUM_TRACKS;
+  constexpr size_t NUM_STEPS = drum::config::NUM_STEPS_PER_TRACK;
+}
 
 // --- Static Helper Functions (Internal Linkage) ---
 
@@ -56,6 +64,59 @@ static void handle_sysex(uint8_t *const data, const size_t length) {
   }
 }
 
+// MIDI note-on handler
+static void handle_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
+  if (!sequencer_controller_ptr) {
+    return; // No sequencer controller set
+  }
+
+  auto& controller = *static_cast<drum::SequencerController<NUM_TRACKS, NUM_STEPS>*>(sequencer_controller_ptr);
+  
+  // Check if the note is in any of the track note ranges
+  for (size_t track_idx = 0; track_idx < drum::config::NUM_TRACKS; ++track_idx) {
+    const auto& track_notes = drum::config::drumpad::track_note_ranges[track_idx];
+    
+    // Check if the note is in this track's note range
+    for (size_t i = 0; i < track_notes.size(); ++i) {
+      if (track_notes[i] == note) {
+        // Note found in this track's range
+        // Set the note as the active note for this track
+        controller.set_active_note_for_track(track_idx, note);
+        
+        // Trigger the note on the corresponding voice
+        controller.trigger_note_on(track_idx, note, velocity);
+        
+        return; // Exit after handling the note
+      }
+    }
+  }
+}
+
+// MIDI note-off handler
+static void handle_note_off(uint8_t channel, uint8_t note, uint8_t velocity) {
+  if (!sequencer_controller_ptr) {
+    return; // No sequencer controller set
+  }
+
+  auto& controller = *static_cast<drum::SequencerController<NUM_TRACKS, NUM_STEPS>*>(sequencer_controller_ptr);
+  
+  // Check if the note is in any of the track note ranges
+  for (size_t track_idx = 0; track_idx < drum::config::NUM_TRACKS; ++track_idx) {
+    const auto& track_notes = drum::config::drumpad::track_note_ranges[track_idx];
+    
+    // Check if the note is in this track's note range
+    for (size_t i = 0; i < track_notes.size(); ++i) {
+      if (track_notes[i] == note) {
+        // Note found in this track's range
+        // Trigger the note off on the corresponding voice
+        controller.trigger_note_off(track_idx, note);
+        
+        return; // Exit after handling the note
+      }
+    }
+  }
+}
+
 // --- Public Function Definitions (External Linkage) ---
 
 void send_midi_start() {
@@ -72,8 +133,8 @@ void midi_read() {
 
 void midi_init() {
   MIDI::init(MIDI::Callbacks{
-      .note_on = nullptr,
-      .note_off = nullptr,
+      .note_on = handle_note_on,
+      .note_off = handle_note_off,
       .clock = nullptr,
       .start = nullptr,
       .cont = nullptr,
@@ -82,6 +143,12 @@ void midi_init() {
       .pitch_bend = nullptr,
       .sysex = handle_sysex, // Register the SysEx handler
   });
+}
+
+// Implementation of the template function to set the sequencer controller
+template <size_t NumTracks, size_t NumSteps>
+void set_sequencer_controller(drum::SequencerController<NumTracks, NumSteps>& controller) {
+  sequencer_controller_ptr = &controller;
 }
 
 // --- Static Helper Function Implementations ---
@@ -145,3 +212,7 @@ static void midi_print_serial_number() {
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
+
+// Explicit template instantiation for the sequencer controller with the configured track and step counts
+template void set_sequencer_controller<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>(
+    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>& controller);

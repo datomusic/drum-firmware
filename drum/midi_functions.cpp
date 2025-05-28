@@ -2,7 +2,7 @@
 #include "sound_router.h" // For drum::SoundRouter
 
 extern "C" {
-#include "pico/bootrom.h" // For reset_usb_boot
+#include "pico/bootrom.h"   // For reset_usb_boot
 #include "pico/unique_id.h" // For pico_get_unique_board_id
 }
 

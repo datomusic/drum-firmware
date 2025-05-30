@@ -48,10 +48,10 @@ constexpr uint8_t RANDOM_PROBABILITY_DEFAULT = 75; // 75% chance to flip steps w
 constexpr uint32_t MIN_VELOCITY_VALUE = 5000U;
 constexpr uint32_t MAX_VELOCITY_VALUE = 200000U;
 
-constexpr etl::array<uint8_t, 6> track_0_notes = {{0, 1, 2, 3, 5, 7}};
-constexpr etl::array<uint8_t, 7> track_1_notes = {{10, 11, 13, 14, 15, 8, 9}};
-constexpr etl::array<uint8_t, 5> track_2_notes = {{16, 17, 19, 20, 21}};
-constexpr etl::array<uint8_t, 7> track_3_notes = {{24, 26, 27, 28, 29, 30, 31}};
+constexpr etl::array<uint8_t, 8> track_0_notes = {{0, 1, 2, 3, 4, 5, 6, 7}};
+constexpr etl::array<uint8_t, 8> track_1_notes = {{10, 11, 12, 13, 14, 15, 8, 9}};
+constexpr etl::array<uint8_t, 8> track_2_notes = {{16, 17, 18, 19, 20, 21, 22, 23}};
+constexpr etl::array<uint8_t, 8> track_3_notes = {{24, 25, 26, 27, 28, 29, 30, 31}};
 
 constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> track_note_ranges = {
     {etl::span<const uint8_t>(track_0_notes), etl::span<const uint8_t>(track_1_notes),
@@ -80,6 +80,11 @@ constexpr uint8_t RETRIGGER_DIVISOR_FOR_DOUBLE_MODE = 2;
 // SequencerController specific
 namespace sequencer_controller {
 constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 4;
+}
+
+// SoundRouter specific
+namespace sound_router {
+constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 2; // For PizzaDisplay and AudioEngine
 }
 
 } // namespace config

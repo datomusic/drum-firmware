@@ -1,4 +1,5 @@
 #include "midi_functions.h"
+#include "sound_router.h" // For drum::SoundRouter
 
 extern "C" {
 #include "pico/bootrom.h"   // For reset_usb_boot
@@ -24,6 +25,12 @@ extern "C" {
 static void midi_print_identity();
 static void midi_print_firmware_version();
 static void midi_print_serial_number();
+static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
+static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity);
+
+// --- Static Variables ---
+// Pointer to the SoundRouter instance, to be set in midi_init
+static drum::SoundRouter *g_sound_router_ptr = nullptr;
 
 // --- Static Helper Functions (Internal Linkage) ---
 
@@ -70,10 +77,11 @@ void midi_read() {
   MIDI::read();
 }
 
-void midi_init() {
+void midi_init(drum::SoundRouter &sound_router) {
+  g_sound_router_ptr = &sound_router;
   MIDI::init(MIDI::Callbacks{
-      .note_on = nullptr,
-      .note_off = nullptr,
+      .note_on = midi_note_on_callback,
+      .note_off = midi_note_off_callback,
       .clock = nullptr,
       .start = nullptr,
       .cont = nullptr,
@@ -106,6 +114,25 @@ static void midi_print_identity() {
       0xF7};
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
+}
+
+// --- MIDI Callback Implementations ---
+
+static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
+  // Channel is currently ignored for this specific feature, as the note number
+  // itself determines the track based on drum::config::drumpad::track_note_ranges.
+  if (g_sound_router_ptr) {
+    g_sound_router_ptr->handle_incoming_midi_note(note, velocity);
+  }
+}
+
+static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
+  // MIDI Note Off can be represented as Note On with velocity 0.
+  // Or by a distinct Note Off message (velocity might be non-zero, e.g., release velocity).
+  // We'll pass 0 velocity to handle_incoming_midi_note to signify note off.
+  if (g_sound_router_ptr) {
+    g_sound_router_ptr->handle_incoming_midi_note(note, 0);
+  }
 }
 
 static void midi_print_firmware_version() {

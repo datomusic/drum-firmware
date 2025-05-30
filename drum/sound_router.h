@@ -2,6 +2,7 @@
 #define SB25_DRUM_SOUND_ROUTER_H_
 
 #include "audio_engine.h"
+#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially sound_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
@@ -9,6 +10,9 @@
 #include <optional>
 
 namespace drum {
+
+// Forward declaration
+template <size_t NumTracks, size_t NumSteps> class SequencerController;
 
 /**
  * @brief Defines the possible output destinations for sound events.
@@ -44,13 +48,18 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class SoundRouter : public etl::observer<drum::Events::NoteEvent> {
+class SoundRouter : public etl::observer<drum::Events::NoteEvent>,
+                    public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                           drum::config::sound_router::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
    * @param audio_engine Reference to the audio engine instance.
+   * @param sequencer_controller Reference to the sequencer controller instance.
    */
-  explicit SoundRouter(AudioEngine &audio_engine);
+  explicit SoundRouter(
+      AudioEngine &audio_engine,
+      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller);
 
   // Delete copy and move operations
   SoundRouter(const SoundRouter &) = delete;
@@ -96,8 +105,21 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
+  /**
+   * @brief Handles an incoming MIDI Note On/Off message.
+   * If the note corresponds to a configured track:
+   * - For Note On (velocity > 0): Plays the sound on the audio engine and sets the active note
+   *   for that track in the sequencer controller.
+   * - For Note Off (velocity == 0): Plays the sound on the audio engine (which should handle
+   *   velocity 0 as silence or note off).
+   * @param note The MIDI note number.
+   * @param velocity The MIDI velocity (0 for Note Off).
+   */
+  void handle_incoming_midi_note(uint8_t note, uint8_t velocity);
+
 private:
   AudioEngine &_audio_engine;
+  SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;
 };
 

@@ -67,6 +67,10 @@ int main() {
   sequencer_controller.add_observer(sound_router);
   sequencer_controller.add_observer(pizza_display);
 
+  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from SoundRouter
+  sound_router.add_observer(pizza_display);
+  sound_router.add_observer(audio_engine);
+
   sync_out.enable();
 
   if (tempo_handler.get_clock_source() == musin::timing::ClockSource::INTERNAL) {

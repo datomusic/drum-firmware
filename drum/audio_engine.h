@@ -2,9 +2,9 @@
 #define SB25_DRUM_AUDIO_ENGINE_H_
 
 #include "etl/array.h"
-#include "etl/optional.h"
 #include "etl/observer.h" // Required for etl::observer
-#include "events.h"       // Required for drum::Events::NoteEvent
+#include "etl/optional.h"
+#include "events.h" // Required for drum::Events::NoteEvent
 #include <cstddef>
 #include <cstdint>
 

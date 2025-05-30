@@ -191,11 +191,8 @@ void SoundRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
       // The AudioEngine::play_on_voice should handle velocity 0 as note off.
 
       // Notify observers (like PizzaDisplay) about this note event
-      drum::Events::NoteEvent event {
-        .track_index = static_cast<uint8_t>(track_idx),
-        .note = note,
-        .velocity = velocity
-      };
+      drum::Events::NoteEvent event{
+          .track_index = static_cast<uint8_t>(track_idx), .note = note, .velocity = velocity};
       this->notify_observers(event);
 
       // Set the active note for that track in the sequencer controller,

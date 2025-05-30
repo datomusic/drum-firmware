@@ -3,6 +3,8 @@
 
 #include "etl/array.h"
 #include "etl/optional.h"
+#include "etl/observer.h" // Required for etl::observer
+#include "events.h"       // Required for drum::Events::NoteEvent
 #include <cstddef>
 #include <cstdint>
 
@@ -20,7 +22,7 @@ constexpr size_t NUM_VOICES = 4;
 /**
  * @brief Manages audio playback, mixing, and effects for the drum machine.
  */
-class AudioEngine {
+class AudioEngine : public etl::observer<drum::Events::NoteEvent> {
 private:
   /**
    * @brief Internal structure representing a single audio voice.
@@ -114,6 +116,12 @@ public:
    * @param normalized_value The desired depth amount, normalized (0.0f to 1.0f).
    */
   void set_crush_depth(float normalized_value);
+
+  /**
+   * @brief Handles incoming NoteEvents to play or stop sounds.
+   * @param event The NoteEvent received.
+   */
+  void notification(drum::Events::NoteEvent event) override;
 
 private:
   etl::array<Voice, NUM_VOICES> voices_;

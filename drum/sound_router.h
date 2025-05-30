@@ -2,7 +2,7 @@
 #define SB25_DRUM_SOUND_ROUTER_H_
 
 #include "audio_engine.h"
-#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK
+#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially sound_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
@@ -48,7 +48,9 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class SoundRouter : public etl::observer<drum::Events::NoteEvent> {
+class SoundRouter : public etl::observer<drum::Events::NoteEvent>,
+                    public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                           drum::config::sound_router::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.

@@ -138,11 +138,11 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
       // Map CC numbers to parameters based on DATO_Drum_midi_implementation_chart.md
       // Global Controls
       if (controller == 7) { // Master Volume
-        param_id_opt = drum::Parameter::MASTER_VOLUME;
+        param_id_opt = drum::Parameter::VOLUME;
       } else if (controller == 9) { // Swing
         param_id_opt = drum::Parameter::SWING;
       } else if (controller == 12) { // Crush Effect
-        param_id_opt = drum::Parameter::CRUSH_EFFECT_AMOUNT;
+        param_id_opt = drum::Parameter::CRUSH_EFFECT;
       } else if (controller == 15) { // Tempo
         param_id_opt = drum::Parameter::TEMPO_BPM;
       } else if (controller == 16) { // Random Effect

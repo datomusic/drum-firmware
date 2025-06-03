@@ -47,8 +47,9 @@ constexpr uint32_t MAX_PRESSURE_VALUE = 1000U;
 constexpr uint8_t RANDOM_PROBABILITY_DEFAULT = 75; // 75% chance to flip steps when random is active
 constexpr uint32_t MIN_VELOCITY_VALUE = 5000U;
 constexpr uint32_t MAX_VELOCITY_VALUE = 200000U;
+} // namespace drumpad
 
-// MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md
+// MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md for general MIDI input
 // Track 1 - Kick/Bass Drums
 constexpr etl::array<uint8_t, 8> track_0_notes = {{35, 36, 37, 41, 43, 47, 48, 50}};
 // Track 2 - Snare Drums
@@ -61,7 +62,6 @@ constexpr etl::array<uint8_t, 8> track_3_notes = {{42, 44, 46, 49, 51, 52, 53, 5
 constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> track_note_ranges = {
     {etl::span<const uint8_t>(track_0_notes), etl::span<const uint8_t>(track_1_notes),
      etl::span<const uint8_t>(track_2_notes), etl::span<const uint8_t>(track_3_notes)}};
-} // namespace drumpad
 
 // Analog Control Component Configuration
 namespace analog_controls {

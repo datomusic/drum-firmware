@@ -177,12 +177,11 @@ void SoundRouter::notification(drum::Events::NoteEvent event) {
 }
 
 void SoundRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
-  for (size_t track_idx = 0; track_idx < drum::config::drumpad::track_note_ranges.size();
-       ++track_idx) {
+  for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size(); ++track_idx) {
     if (track_idx >= drum::config::NUM_TRACKS)
       break; // Ensure we don't go out of bounds if config sizes differ
 
-    const auto &notes_for_track = drum::config::drumpad::track_note_ranges[track_idx];
+    const auto &notes_for_track = drum::config::track_note_ranges[track_idx];
     auto it = std::find(notes_for_track.begin(), notes_for_track.end(), note);
 
     if (it != notes_for_track.end()) {

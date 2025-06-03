@@ -2,6 +2,7 @@
 #define SB25_DRUM_MIDI_FUNCTIONS_H
 
 #include <cstdint> // For uint8_t
+#include <cstddef> // For size_t
 
 // Forward declaration
 namespace drum {

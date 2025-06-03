@@ -8,10 +8,7 @@
 namespace drum {
 class SoundRouter;
 template <size_t NumTracks, size_t NumSteps> class SequencerController; // Forward declare
-namespace config { // Forward declare config to access constants
-constexpr size_t NUM_TRACKS = 4; // Example, ensure this matches your actual config
-constexpr size_t NUM_STEPS_PER_TRACK = 8; // Example
-} // namespace config
+// drum::config constants will be picked up from config.h
 } // namespace drum
 
 // Function declarations (prototypes) for functions defined in midi.cpp

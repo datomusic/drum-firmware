@@ -11,6 +11,14 @@
 
 namespace musin::timing {
 
+/**
+ * @brief Defines the playback state of the sequencer.
+ */
+enum class PlaybackState : uint8_t {
+  STOPPED,
+  PLAYING
+};
+
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
 
@@ -63,9 +71,16 @@ public:
    */
   void set_bpm(float bpm);
 
+  /**
+   * @brief Set the current playback state.
+   * @param new_state The new playback state.
+   */
+  void set_playback_state(PlaybackState new_state);
+
 private:
   InternalClock &_internal_clock_ref;
   ClockSource current_source_;
+  PlaybackState _playback_state;
 
   // Pointers or references to actual clock instances might be needed here
   // if TempoHandler needs to interact with them directly (e.g., enable/disable).

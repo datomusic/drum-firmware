@@ -22,9 +22,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       random_track_offsets_{}, _active_note_per_track{} {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (track_idx < config::drumpad::track_note_ranges.size() &&
-        !config::drumpad::track_note_ranges[track_idx].empty()) {
-      _active_note_per_track[track_idx] = config::drumpad::track_note_ranges[track_idx][0];
+    if (track_idx < config::track_note_ranges.size() &&
+        !config::track_note_ranges[track_idx].empty()) {
+      _active_note_per_track[track_idx] = config::track_note_ranges[track_idx][0];
     }
   }
 

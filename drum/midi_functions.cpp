@@ -119,19 +119,23 @@ static void midi_print_identity() {
 // --- MIDI Callback Implementations ---
 
 static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  // Channel is currently ignored for this specific feature, as the note number
-  // itself determines the track based on drum::config::drumpad::track_note_ranges.
-  if (g_sound_router_ptr) {
-    g_sound_router_ptr->handle_incoming_midi_note(note, velocity);
+  // Process note events only on MIDI channel 10 (GM Percussion Standard)
+  if (channel == 10) {
+    if (g_sound_router_ptr) {
+      g_sound_router_ptr->handle_incoming_midi_note(note, velocity);
+    }
   }
 }
 
 static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  // MIDI Note Off can be represented as Note On with velocity 0.
-  // Or by a distinct Note Off message (velocity might be non-zero, e.g., release velocity).
-  // We'll pass 0 velocity to handle_incoming_midi_note to signify note off.
-  if (g_sound_router_ptr) {
-    g_sound_router_ptr->handle_incoming_midi_note(note, 0);
+  // Process note events only on MIDI channel 10 (GM Percussion Standard)
+  if (channel == 10) {
+    // MIDI Note Off can be represented as Note On with velocity 0,
+    // or by a distinct Note Off message.
+    // Pass 0 velocity to handle_incoming_midi_note to signify note off.
+    if (g_sound_router_ptr) {
+      g_sound_router_ptr->handle_incoming_midi_note(note, 0);
+    }
   }
 }
 

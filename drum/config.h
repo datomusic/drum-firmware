@@ -48,10 +48,15 @@ constexpr uint8_t RANDOM_PROBABILITY_DEFAULT = 75; // 75% chance to flip steps w
 constexpr uint32_t MIN_VELOCITY_VALUE = 5000U;
 constexpr uint32_t MAX_VELOCITY_VALUE = 200000U;
 
-constexpr etl::array<uint8_t, 8> track_0_notes = {{0, 1, 2, 3, 4, 5, 6, 7}};
-constexpr etl::array<uint8_t, 8> track_1_notes = {{10, 11, 12, 13, 14, 15, 8, 9}};
-constexpr etl::array<uint8_t, 8> track_2_notes = {{16, 17, 18, 19, 20, 21, 22, 23}};
-constexpr etl::array<uint8_t, 8> track_3_notes = {{24, 25, 26, 27, 28, 29, 30, 31}};
+// MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md
+// Track 1 - Kick/Bass Drums
+constexpr etl::array<uint8_t, 8> track_0_notes = {{35, 36, 37, 41, 43, 47, 48, 50}};
+// Track 2 - Snare Drums
+constexpr etl::array<uint8_t, 8> track_1_notes = {{38, 40, 39, 54, 56, 75, 76, 77}};
+// Track 3 - Percussion
+constexpr etl::array<uint8_t, 8> track_2_notes = {{45, 58, 59, 60, 61, 62, 63, 64}};
+// Track 4 - Hi-Hats & Cymbals
+constexpr etl::array<uint8_t, 8> track_3_notes = {{42, 44, 46, 49, 51, 52, 53, 57}};
 
 constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> track_note_ranges = {
     {etl::span<const uint8_t>(track_0_notes), etl::span<const uint8_t>(track_1_notes),

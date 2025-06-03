@@ -126,126 +126,48 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
     return;
   }
 
-  float normalized_value = static_cast<float>(value) / 127.0f;
-  std::optional<drum::Parameter> param_id_opt = std::nullopt;
-  std::optional<uint8_t> resolved_track_index = std::nullopt;
+  // Process CCs only if local control is OFF
+  if (g_sound_router_ptr->get_local_control_mode() == drum::LocalControlMode::OFF) {
+    float normalized_value = static_cast<float>(value) / 127.0f;
 
-  // Try per-track parameters first. These are sent on channels 1-4 by SoundRouter.
-  // MIDI channels 1-4 map to track_index 0-3.
-  if (channel >= 1 && channel <= drum::config::NUM_TRACKS) {
-    uint8_t track_idx = channel - 1;
-    switch (controller) {
-    // PITCH: CC16 on Ch1 (Tr0), CC17 on Ch2 (Tr1), ..., CC19 on Ch4 (Tr3)
-    case 16: // Track 1 Pitch in DATO DRUM MIDI chart is CC 21
-      if (track_idx == 0) {
-        param_id_opt = drum::Parameter::PITCH;
-        resolved_track_index = track_idx;
-      }
-      break;
-    case 17: // Track 2 Pitch in DATO DRUM MIDI chart is CC 22
-      if (track_idx == 1) {
-        param_id_opt = drum::Parameter::PITCH;
-        resolved_track_index = track_idx;
-      }
-      break;
-    case 18: // Track 3 Pitch in DATO DRUM MIDI chart is CC 23
-      if (track_idx == 2) {
-        param_id_opt = drum::Parameter::PITCH;
-        resolved_track_index = track_idx;
-      }
-      break;
-    case 19: // Track 4 Pitch in DATO DRUM MIDI chart is CC 24
-      if (track_idx == 3) {
-        param_id_opt = drum::Parameter::PITCH;
-        resolved_track_index = track_idx;
-      }
-      break;
+    // DATO DRUM MIDI chart specifies default MIDI Channel 10 for controls
+    if (channel == 10) {
+      std::optional<drum::Parameter> param_id_opt = std::nullopt;
+      std::optional<uint8_t> resolved_track_index = std::nullopt;
 
-    // DRUM_PRESSURE_X: CC20 for DP1 on Ch1 (Tr0), CC21 for DP2 on Ch2 (Tr1), ...
-    // These are custom CCs not in the DATO DRUM chart, used internally.
-    case 20:
-      if (track_idx == 0) {
-        param_id_opt = drum::Parameter::DRUM_PRESSURE_1;
-        resolved_track_index = track_idx;
+      // Map CC numbers to parameters based on DATO_Drum_midi_implementation_chart.md
+      // Global Controls
+      if (controller == 7) { // Master Volume
+        param_id_opt = drum::Parameter::MASTER_VOLUME;
+      } else if (controller == 9) { // Swing
+        param_id_opt = drum::Parameter::SWING;
+      } else if (controller == 12) { // Crush Effect
+        param_id_opt = drum::Parameter::CRUSH_EFFECT_AMOUNT;
+      } else if (controller == 15) { // Tempo
+        param_id_opt = drum::Parameter::TEMPO_BPM;
+      } else if (controller == 16) { // Random Effect
+        param_id_opt = drum::Parameter::RANDOM_EFFECT;
+      } else if (controller == 17) { // Repeat Effect
+        param_id_opt = drum::Parameter::REPEAT_EFFECT;
+      } else if (controller == 74) { // Filter Cutoff
+        param_id_opt = drum::Parameter::FILTER_FREQUENCY;
+      } else if (controller == 75) { // Filter Resonance
+        param_id_opt = drum::Parameter::FILTER_RESONANCE;
       }
-      break;
-    case 21:
-      if (track_idx == 1) {
-        param_id_opt = drum::Parameter::DRUM_PRESSURE_2;
-        resolved_track_index = track_idx;
+      // Per-Track Pitch Controls (CC 21-24 on Channel 10)
+      else if (controller >= 21 && controller <= 24) {
+        param_id_opt = drum::Parameter::PITCH;
+        resolved_track_index = controller - 21; // CC 21 -> Tr 0, CC 22 -> Tr 1, etc.
       }
-      break;
-    case 22:
-      if (track_idx == 2) {
-        param_id_opt = drum::Parameter::DRUM_PRESSURE_3;
-        resolved_track_index = track_idx;
+
+      if (param_id_opt.has_value()) {
+        if (resolved_track_index.has_value() && resolved_track_index.value() >= drum::config::NUM_TRACKS) {
+          // Invalid track index derived from CC
+          return;
+        }
+        g_sound_router_ptr->set_parameter(param_id_opt.value(), normalized_value, resolved_track_index);
       }
-      break;
-    case 23:
-      if (track_idx == 3) {
-        param_id_opt = drum::Parameter::DRUM_PRESSURE_4;
-        resolved_track_index = track_idx;
-      }
-      break;
-    default:
-      // Also check for DATO DRUM spec per-track pitch CCs if channel matches
-      // DATO DRUM MIDI chart uses CCs 21-24 for Track 1-4 Pitch respectively, on default channel 10.
-      // However, our SoundRouter sends pitch on per-track channels 1-4 using CCs 16-19.
-      // For input, we should prioritize what SoundRouter sends.
-      // If we want to *also* support the DATO DRUM spec for input (e.g. CC21 on Ch10 for Track 1 Pitch),
-      // that would require additional logic, potentially checking channel 10 specifically.
-      // For now, this callback primarily mirrors SoundRouter's output CC mapping for input.
-      break;
     }
-  }
-
-  // If not matched as a per-track parameter, try global parameters.
-  // Global parameters are sent on channel 1 by SoundRouter, so we expect them on channel 1.
-  // The DATO DRUM MIDI chart specifies default channel 10 for most percussion controls.
-  // We will listen on channel 1 as per SoundRouter's output behavior for these.
-  if (!param_id_opt.has_value() && channel == 1) {
-    switch (controller) {
-    case 7: // Master Volume (DATO CC 7)
-      param_id_opt = drum::Parameter::VOLUME;
-      break;
-    case 9: // Swing (DATO CC 9)
-      param_id_opt = drum::Parameter::SWING;
-      break;
-    // case 12: // Crush Effect (DATO CC 12) - Our CRUSH_RATE/DEPTH are on 77/78
-    //   break;
-    case 15: // Tempo (DATO CC 15)
-      param_id_opt = drum::Parameter::TEMPO_BPM;
-      break;
-    case 16: // Random Effect (DATO CC 16)
-      param_id_opt = drum::Parameter::RANDOM_EFFECT;
-      break;
-    case 17: // Repeat Effect (DATO CC 17)
-      param_id_opt = drum::Parameter::REPEAT_EFFECT;
-      break;
-    case 74: // Filter Cutoff (DATO CC 74) - Our FILTER_FREQUENCY is on 75
-      // param_id_opt = drum::Parameter::FILTER_FREQUENCY; // If we want to map DATO's CC 74
-      break;
-    case 75: // Filter Resonance (DATO CC 75) - Our FILTER_RESONANCE is on 76
-             // SoundRouter maps FILTER_FREQUENCY to CC 75
-      param_id_opt = drum::Parameter::FILTER_FREQUENCY;
-      break;
-    case 76: // SoundRouter maps FILTER_RESONANCE to CC 76
-      param_id_opt = drum::Parameter::FILTER_RESONANCE;
-      break;
-    case 77: // SoundRouter maps CRUSH_RATE to CC 77
-      param_id_opt = drum::Parameter::CRUSH_RATE;
-      break;
-    case 78: // SoundRouter maps CRUSH_DEPTH to CC 78
-      param_id_opt = drum::Parameter::CRUSH_DEPTH;
-      break;
-    default:
-      break;
-    }
-    // For global parameters, resolved_track_index remains std::nullopt.
-  }
-
-  if (param_id_opt.has_value()) {
-    g_sound_router_ptr->set_parameter(param_id_opt.value(), normalized_value, resolved_track_index);
   }
 }
 

@@ -26,49 +26,40 @@ namespace drum {
 // --- MIDI CC Mapping ---
 constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uint8_t> track_index) {
   switch (param_id) {
-  case Parameter::DRUM_PRESSURE_1:
-    return 20;
-  case Parameter::DRUM_PRESSURE_2:
-    return 21;
-  case Parameter::DRUM_PRESSURE_3:
-    return 22;
-  case Parameter::DRUM_PRESSURE_4:
-    return 23;
   case Parameter::PITCH:
     if (track_index.has_value()) {
       switch (track_index.value()) {
       case 0:
-        return 16;
+        return 21; // Track 1 Pitch CC (DATO Chart)
       case 1:
-        return 17;
+        return 22; // Track 2 Pitch CC (DATO Chart)
       case 2:
-        return 18;
+        return 23; // Track 3 Pitch CC (DATO Chart)
       case 3:
-        return 19;
+        return 24; // Track 4 Pitch CC (DATO Chart)
       default:
         break;
       }
     }
-    return 0;
+    return 0; // Invalid or no track index for pitch
 
-  case Parameter::FILTER_FREQUENCY:
-    return 75;
-  case Parameter::FILTER_RESONANCE:
-    return 76;
-  case Parameter::VOLUME:
+  // Global Parameters from MIDI Chart
+  case Parameter::MASTER_VOLUME:
     return 7;
-  case Parameter::CRUSH_RATE:
-    return 77;
-  case Parameter::CRUSH_DEPTH:
-    return 78;
   case Parameter::SWING:
     return 9;
+  case Parameter::CRUSH_EFFECT_AMOUNT:
+    return 12;
   case Parameter::TEMPO_BPM:
     return 15;
   case Parameter::RANDOM_EFFECT:
     return 16;
   case Parameter::REPEAT_EFFECT:
     return 17;
+  case Parameter::FILTER_FREQUENCY:
+    return 74;
+  case Parameter::FILTER_RESONANCE:
+    return 75;
   }
   return 0;
 }
@@ -79,8 +70,8 @@ SoundRouter::SoundRouter(
     AudioEngine &audio_engine,
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller)
-    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
-      _output_mode(OutputMode::BOTH) {
+    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller), _output_mode(OutputMode::BOTH),
+      _local_control_mode(LocalControlMode::ON) { // Default local control to ON
   // TODO: Initialize _track_sample_map if added
 }
 
@@ -92,12 +83,21 @@ OutputMode SoundRouter::get_output_mode() const {
   return _output_mode;
 }
 
+void SoundRouter::set_local_control_mode(LocalControlMode mode) {
+  _local_control_mode = mode;
+}
+
+LocalControlMode SoundRouter::get_local_control_mode() const {
+  return _local_control_mode;
+}
+
 void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t velocity) {
   if (track_index >= 4)
     return;
 
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
-    send_midi_note(static_cast<uint8_t>(track_index + 1), midi_note, velocity);
+    // Send MIDI notes on channel 10 as per GM Percussion Standard / DATO Chart
+    send_midi_note(10, midi_note, velocity);
   }
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
@@ -115,10 +115,8 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
 void SoundRouter::set_parameter(Parameter param_id, float value,
                                 std::optional<uint8_t> track_index) {
 
-  if ((param_id == Parameter::PITCH || param_id == Parameter::DRUM_PRESSURE_1 ||
-       param_id == Parameter::DRUM_PRESSURE_2 || param_id == Parameter::DRUM_PRESSURE_3 ||
-       param_id == Parameter::DRUM_PRESSURE_4) &&
-      (!track_index.has_value() || track_index.value() >= 4)) {
+  if (param_id == Parameter::PITCH &&
+      (!track_index.has_value() || track_index.value() >= config::NUM_TRACKS)) {
     return;
   }
 
@@ -127,10 +125,8 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
     if (cc_number > 0) {
-      uint8_t midi_channel = 1;
-      if (track_index.has_value()) {
-        midi_channel = track_index.value() + 1;
-      }
+      // Send all CCs on channel 10 for consistency with DATO MIDI chart
+      uint8_t midi_channel = 10;
       uint8_t midi_value = static_cast<uint8_t>(std::round(value * 127.0f));
       midi_value = std::min(midi_value, static_cast<uint8_t>(127));
       send_midi_cc(midi_channel, cc_number, midi_value);
@@ -140,20 +136,6 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
     switch (param_id) {
-    case Parameter::DRUM_PRESSURE_1:
-      // TODO: Map DRUM_PRESSURE_1 to a specific voice effect ID and call audio engine
-      // Example: _audio_engine.set_voice_effect_parameter(track_index.value(),
-      // EFFECT_ID_VOICE_DRUM1, value);
-      break;
-    case Parameter::DRUM_PRESSURE_2:
-      // TODO: Map DRUM_PRESSURE_2
-      break;
-    case Parameter::DRUM_PRESSURE_3:
-      // TODO: Map DRUM_PRESSURE_3
-      break;
-    case Parameter::DRUM_PRESSURE_4:
-      // TODO: Map DRUM_PRESSURE_4
-      break;
     case Parameter::PITCH:
       _audio_engine.set_pitch(track_index.value(), value);
       break;
@@ -163,16 +145,19 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
     case Parameter::FILTER_RESONANCE:
       _audio_engine.set_filter_resonance(value);
       break;
-    case Parameter::VOLUME:
+    case Parameter::MASTER_VOLUME:
       _audio_engine.set_volume(value);
       break;
-    case Parameter::CRUSH_RATE:
-      _audio_engine.set_crush_rate(value);
-      break;
-    case Parameter::CRUSH_DEPTH: {
-      uint8_t depth = 3 + static_cast<uint8_t>(std::round((1.0f - value) * 11.0f));
-      depth = std::clamp(depth, static_cast<uint8_t>(1), static_cast<uint8_t>(16));
-      _audio_engine.set_crush_depth(depth);
+    case Parameter::CRUSH_EFFECT_AMOUNT: {
+      // AudioEngine::set_crush_depth expects a normalized value (0.0 to 1.0)
+      // It internally maps this to bit depth (5 to 16).
+      // Higher normalized value should mean more crush (lower bit depth).
+      // The map_value_linear in AudioEngine for crush_depth is (normalized_value, 5.0f, 16.0f)
+      // So a higher normalized_value gives a higher bit depth (less crush). This is inverted from typical "amount".
+      // To make higher CC value = more crush, we pass (1.0f - value) to set_crush_depth.
+      _audio_engine.set_crush_depth(1.0f - value);
+      // Optionally, also control crush_rate with the same value or a fixed one.
+      // _audio_engine.set_crush_rate(1.0f - value); // Example if rate is also controlled
       break;
     }
     case Parameter::SWING:

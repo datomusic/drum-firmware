@@ -6,15 +6,20 @@
 // Forward declaration
 namespace drum {
 class SoundRouter;
+template <size_t NumTracks, size_t NumSteps> class SequencerController; // Forward declare
+namespace config { // Forward declare config to access constants
+constexpr size_t NUM_TRACKS = 4; // Example, ensure this matches your actual config
+constexpr size_t NUM_STEPS_PER_TRACK = 8; // Example
+} // namespace config
 } // namespace drum
 
 // Function declarations (prototypes) for functions defined in midi.cpp
-
 /**
  * @brief Initialize the MIDI system and callbacks.
  * @param sound_router Reference to the SoundRouter for handling MIDI note events.
+ * @param sequencer_controller Reference to the SequencerController for transport control.
  */
-void midi_init(drum::SoundRouter &sound_router);
+void midi_init(drum::SoundRouter &sound_router, drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller);
 
 /**
  * @brief Process incoming MIDI messages. Should be called periodically.

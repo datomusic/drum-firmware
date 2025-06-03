@@ -9,6 +9,7 @@ extern "C" {
 #include "musin/midi/midi_wrapper.h" // For MIDI namespace and byte type
 #include "version.h"                 // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include "config.h"                  // For drum::config::NUM_TRACKS
+#include "sequencer_controller.h"    // For SequencerController
 #include <optional>                  // For std::optional
 
 // --- Constants ---
@@ -30,10 +31,14 @@ static void midi_print_serial_number();
 static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
 static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity);
 static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
+static void midi_start_input_callback();
+static void midi_stop_input_callback();
+static void midi_continue_input_callback();
 
 // --- Static Variables ---
 // Pointer to the SoundRouter instance, to be set in midi_init
 static drum::SoundRouter *g_sound_router_ptr = nullptr;
+static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> *g_sequencer_controller_ptr = nullptr;
 
 // --- Static Helper Functions (Internal Linkage) ---
 
@@ -80,15 +85,18 @@ void midi_read() {
   MIDI::read();
 }
 
-void midi_init(drum::SoundRouter &sound_router) {
+void midi_init(
+    drum::SoundRouter &sound_router,
+    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller) {
   g_sound_router_ptr = &sound_router;
+  g_sequencer_controller_ptr = &sequencer_controller;
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,
       .note_off = midi_note_off_callback,
       .clock = nullptr,
-      .start = nullptr,
-      .cont = nullptr,
-      .stop = nullptr,
+      .start = midi_start_input_callback,
+      .cont = midi_continue_input_callback,
+      .stop = midi_stop_input_callback,
       .cc = midi_cc_callback,
       .pitch_bend = nullptr,
       .sysex = handle_sysex, // Register the SysEx handler
@@ -117,6 +125,27 @@ static void midi_print_identity() {
       0xF7};
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
+}
+
+static void midi_start_input_callback() {
+  if (g_sequencer_controller_ptr) {
+    // Per DATO chart: Begin/resume playback from current step
+    g_sequencer_controller_ptr->start();
+  }
+}
+
+static void midi_stop_input_callback() {
+  if (g_sequencer_controller_ptr) {
+    // Per DATO chart: Stop playback, maintain step position
+    g_sequencer_controller_ptr->stop();
+  }
+}
+
+static void midi_continue_input_callback() {
+  if (g_sequencer_controller_ptr) {
+    // Per DATO chart: Begin/resume playback from current step (same as Start)
+    g_sequencer_controller_ptr->start();
+  }
 }
 
 // --- MIDI Callback Implementations ---

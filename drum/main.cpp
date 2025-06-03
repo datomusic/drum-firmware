@@ -47,7 +47,7 @@ int main() {
 
   musin::usb::init();
 
-  midi_init(sound_router); // Pass the sound_router instance to midi_init
+  midi_init(sound_router, sequencer_controller); // Pass sound_router and sequencer_controller
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state

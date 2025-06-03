@@ -4,6 +4,7 @@
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
 #include "sequencer_controller.h" // For SequencerController
 #include <algorithm>              // For std::clamp, std::find
+#include <cmath>                  // For std::round
 #include <cstdint>                // For uint8_t
 
 namespace { // Anonymous namespace for internal linkage
@@ -60,6 +61,14 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
     return 77;
   case Parameter::CRUSH_DEPTH:
     return 78;
+  case Parameter::SWING:
+    return 9;
+  case Parameter::TEMPO_BPM:
+    return 15;
+  case Parameter::RANDOM_EFFECT:
+    return 16;
+  case Parameter::REPEAT_EFFECT:
+    return 17;
   }
   return 0;
 }
@@ -166,6 +175,18 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
       _audio_engine.set_crush_depth(depth);
       break;
     }
+    case Parameter::SWING:
+      // TODO: Implement swing effect in sequencer/audio path
+      break;
+    case Parameter::TEMPO_BPM:
+      // TODO: Implement tempo change in sequencer/audio path
+      break;
+    case Parameter::RANDOM_EFFECT:
+      // TODO: Implement random effect in sequencer/audio path
+      break;
+    case Parameter::REPEAT_EFFECT:
+      // TODO: Implement repeat effect in sequencer/audio path
+      break;
     }
   }
 }

@@ -41,7 +41,12 @@ enum class Parameter : uint8_t {
   VOLUME,
   CRUSH_RATE,
   CRUSH_DEPTH,
-  // Note: RANDOM, SWING, REPEAT, SPEED are handled directly by SequencerController/InternalClock
+  // Note: SPEED is handled directly by SequencerController/InternalClock.
+  // SWING, TEMPO_BPM, RANDOM_EFFECT, REPEAT_EFFECT are handled via set_parameter.
+  SWING,
+  TEMPO_BPM,
+  RANDOM_EFFECT,
+  REPEAT_EFFECT,
 };
 
 /*

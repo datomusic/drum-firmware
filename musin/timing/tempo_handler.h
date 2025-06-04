@@ -11,6 +11,9 @@
 
 namespace musin::timing {
 
+// Forward declaration for MidiClockProcessor
+class MidiClockProcessor;
+
 /**
  * @brief Defines the playback state of the sequencer.
  */
@@ -37,9 +40,11 @@ public:
   /**
    * @brief Constructor.
    * @param internal_clock_ref Reference to the InternalClock instance.
+   * @param midi_clock_processor_ref Reference to the MidiClockProcessor instance.
    * @param initial_source The clock source to use initially.
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
+                        MidiClockProcessor &midi_clock_processor_ref,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
   // Prevent copying and assignment
@@ -79,6 +84,7 @@ public:
 
 private:
   InternalClock &_internal_clock_ref;
+  MidiClockProcessor &_midi_clock_processor_ref;
   ClockSource current_source_;
   PlaybackState _playback_state;
 

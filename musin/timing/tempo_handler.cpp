@@ -7,26 +7,50 @@
 
 // Include headers for specific clock types if needed for identification
 // #include "internal_clock.h"
-// #include "midi_clock.h"
+#include "musin/timing/midi_clock_processor.h" // Added include
 // #include "external_sync_clock.h"
 
 namespace musin::timing {
 
-TempoHandler::TempoHandler(InternalClock &internal_clock_ref, ClockSource initial_source)
-    : _internal_clock_ref(internal_clock_ref), current_source_(initial_source),
+TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
+                           MidiClockProcessor &midi_clock_processor_ref,
+                           ClockSource initial_source)
+    : _internal_clock_ref(internal_clock_ref),
+      _midi_clock_processor_ref(midi_clock_processor_ref), // Initialize new member
+      current_source_(ClockSource::INTERNAL), // Initialize current_source_ before calling set_clock_source
       _playback_state(PlaybackState::STOPPED) {
-  // If managing clock instances internally or needing references:
-  // Initialize clock references/pointers here, potentially passed via constructor.
+  // Set the initial clock source, which will also handle starting the correct clock
+  set_clock_source(initial_source);
 }
 
 void TempoHandler::set_clock_source(ClockSource source) {
-  if (source != current_source_) {
-    current_source_ = source;
-    // Add logic here if switching sources requires actions like:
-    // - Detaching from the old source's observable notifications
-    // - Attaching to the new source's observable notifications
-    // - Resetting tempo calculation state
+  if (source == current_source_) {
+    return;
   }
+
+  // Stop the currently active clock source if necessary
+  if (current_source_ == ClockSource::INTERNAL) {
+    _internal_clock_ref.stop();
+  }
+  // else if (current_source_ == ClockSource::MIDI) {
+  //   // MidiClockProcessor typically doesn't need explicit stop from TempoHandler
+  //   // as it's driven by external events. If it had a 'stopListening' or 'reset'
+  //   // method, it could be called here.
+  // }
+  // Add logic for other clock sources (e.g., EXTERNAL_SYNC) if they are managed here
+
+  current_source_ = source;
+
+  // Start the new clock source if necessary
+  if (current_source_ == ClockSource::INTERNAL) {
+    _internal_clock_ref.start();
+  }
+  // else if (current_source_ == ClockSource::MIDI) {
+  //   // MidiClockProcessor is driven by external MIDI ticks.
+  //   // Ensure internal clock is stopped (handled above).
+  //   // If MidiClockProcessor had a 'startListening' or 'reset' method, call it here.
+  // }
+  // Add logic for other clock sources (e.g., EXTERNAL_SYNC)
 }
 
 ClockSource TempoHandler::get_clock_source() const {

@@ -2,6 +2,7 @@
 #include "musin/timing/clock_event.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::sendRealTime
+#include "drum/config.h"             // For drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER
 #include "midi_Defs.h"               // For midi::Clock
 
 // Include headers for specific clock types if needed for identification
@@ -33,13 +34,18 @@ ClockSource TempoHandler::get_clock_source() const {
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
-  // Only process and forward ticks if they come from the currently selected source
-  if (event.source == current_source_) {
-    // If the clock source is internal and playback is active, send MIDI clock
-    if (current_source_ == ClockSource::INTERNAL && _playback_state == PlaybackState::PLAYING) {
-      MIDI::sendRealTime(midi::Clock);
-    }
-
+  // Only process and forward ticks if they come from the currently selected source                                   
+  if (event.source == ClockSource::INTERNAL && current_source_ == ClockSource::INTERNAL) {                                             
+    // If internal clock is the master, send MIDI clock if playing OR                                                                  
+    // if configured to send when stopped.                                                                                             
+    if (_playback_state == PlaybackState::PLAYING ||                                                                                   
+        drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER) {                                                                        
+       MIDI::sendRealTime(midi::Clock);                                                                                                 
+     }                                                                                                                                  
+  }                                                                                                                                    
+  // Forward TempoEvent if the event source matches the current handler source                                                         
+  // This part is separate from MIDI clock sending.                                                                                    
+  if (event.source == current_source_) {    
     musin::timing::TempoEvent tempo_tick_event;
     // Populate TempoEvent with timestamp or other data if needed later
     etl::observable<etl::observer<musin::timing::TempoEvent>,

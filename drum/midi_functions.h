@@ -3,6 +3,7 @@
 
 #include <cstdint> // For uint8_t
 #include <cstddef> // For size_t
+#include "config.h"
 
 // Forward declaration
 namespace drum {

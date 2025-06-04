@@ -210,6 +210,7 @@ void SequencerController<NumTracks, NumSteps>::start() {
   if (_running) {
     return;
   }
+  tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
   tempo_source.add_observer(*this);
   _running = true;
 }
@@ -218,6 +219,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
   if (!_running) {
     return;
   }
+  tempo_source.set_playback_state(musin::timing::PlaybackState::STOPPED);  
   tempo_source.remove_observer(*this);
   _running = false;
 

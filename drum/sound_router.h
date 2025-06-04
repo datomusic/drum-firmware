@@ -40,9 +40,9 @@ enum class Parameter : uint8_t {
   PITCH, // Pitch control for a specific track (CC 21-24)
 
   // Global Parameters
-  MASTER_VOLUME,         // CC 7
+  VOLUME,                // CC 7
   SWING,                 // CC 9
-  CRUSH_EFFECT_AMOUNT,   // CC 12
+  CRUSH_EFFECT,          // CC 12
   TEMPO_BPM,             // CC 15
   RANDOM_EFFECT,         // CC 16
   REPEAT_EFFECT,         // CC 17

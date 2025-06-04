@@ -145,28 +145,43 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
       std::optional<uint8_t> resolved_track_index = std::nullopt;
 
       // Map CC numbers to parameters based on DATO_Drum_midi_implementation_chart.md
+      switch (controller) {
       // Global Controls (on default channel)
-      if (controller == 7) { // Master Volume
+      case 7: // Master Volume
         param_id_opt = drum::Parameter::VOLUME;
-      } else if (controller == 9) { // Swing
+        break;
+      case 9: // Swing
         param_id_opt = drum::Parameter::SWING;
-      } else if (controller == 12) { // Crush Effect
+        break;
+      case 12: // Crush Effect
         param_id_opt = drum::Parameter::CRUSH_EFFECT;
-      } else if (controller == 15) { // Tempo
+        break;
+      case 15: // Tempo
         param_id_opt = drum::Parameter::TEMPO;
-      } else if (controller == 16) { // Random Effect
+        break;
+      case 16: // Random Effect
         param_id_opt = drum::Parameter::RANDOM_EFFECT;
-      } else if (controller == 17) { // Repeat Effect
+        break;
+      case 17: // Repeat Effect
         param_id_opt = drum::Parameter::REPEAT_EFFECT;
-      } else if (controller == 74) { // Filter Cutoff
+        break;
+      case 74: // Filter Cutoff
         param_id_opt = drum::Parameter::FILTER_FREQUENCY;
-      } else if (controller == 75) { // Filter Resonance
+        break;
+      case 75: // Filter Resonance
         param_id_opt = drum::Parameter::FILTER_RESONANCE;
-      }
+        break;
       // Per-Track Pitch Controls (CC 21-24 on default channel)
-      else if (controller >= 21 && controller <= 24) {
+      case 21: // Track 1 Pitch
+      case 22: // Track 2 Pitch
+      case 23: // Track 3 Pitch
+      case 24: // Track 4 Pitch
         param_id_opt = drum::Parameter::PITCH;
         resolved_track_index = controller - 21; // CC 21 -> Tr 0, CC 22 -> Tr 1, etc.
+        break;
+      default:
+        // Unhandled CC
+        break;
       }
 
       if (param_id_opt.has_value()) {

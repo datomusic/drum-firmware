@@ -15,6 +15,7 @@
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
+#include "musin/midi/midi_message_queue.h" // For processing MIDI output queue
 
 // Model
 static drum::AudioEngine audio_engine;
@@ -90,6 +91,7 @@ int main() {
 
     musin::usb::background_update();
     midi_read();
+    musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
 
     loop_timer.record_iteration_end();
   }

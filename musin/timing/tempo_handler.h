@@ -82,6 +82,12 @@ public:
    */
   void set_playback_state(PlaybackState new_state);
 
+  /**
+   * @brief Periodically called to update internal state, like auto-switching clock source.
+   * Should be called from the main application loop.
+   */
+  void update();
+
 private:
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;

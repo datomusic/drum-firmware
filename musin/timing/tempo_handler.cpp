@@ -18,36 +18,36 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
     : _internal_clock_ref(internal_clock_ref),
       _midi_clock_processor_ref(midi_clock_processor_ref), // Initialize new member
       current_source_(ClockSource::INTERNAL), // Initialize current_source_ before calling set_clock_source
-      _playback_state(PlaybackState::STOPPED) {
-  // Set the initial clock source, which will also handle starting the correct clock
-  set_clock_source(initial_source);
+      _playback_state(PlaybackState::STOPPED) { // Default to INTERNAL, then set explicitly.
+  set_clock_source(initial_source); // Set the initial clock source
 }
 
 void TempoHandler::set_clock_source(ClockSource source) {
   if (source == current_source_) {
-    return;
+    return; // No change needed
   }
 
-  // Stop the currently active clock source if necessary
+  // Cleanup for the old source
   if (current_source_ == ClockSource::INTERNAL) {
+    _internal_clock_ref.remove_observer(*this);
     _internal_clock_ref.stop();
   } else if (current_source_ == ClockSource::MIDI) {
     _midi_clock_processor_ref.remove_observer(*this);
     _midi_clock_processor_ref.reset(); // Reset when switching away from MIDI
   }
-  // Add logic for other clock sources (e.g., EXTERNAL_SYNC) if they are managed here
 
   current_source_ = source;
 
-  // Start the new clock source if necessary
+  // Setup for the new source
   if (current_source_ == ClockSource::INTERNAL) {
+    _internal_clock_ref.add_observer(*this);
     _internal_clock_ref.start();
   } else if (current_source_ == ClockSource::MIDI) {
     _midi_clock_processor_ref.add_observer(*this); // Observe when MIDI is the source
     // MidiClockProcessor is driven by external MIDI ticks.
-    // Ensure internal clock is stopped (handled above).
+    // Internal clock was stopped above if it was the previous source.
   }
-  // Add logic for other clock sources (e.g., EXTERNAL_SYNC)
+  // printf("TempoHandler: Switched clock source to %s\n", current_source_ == ClockSource::INTERNAL ? "INTERNAL" : "MIDI");
 }
 
 ClockSource TempoHandler::get_clock_source() const {
@@ -55,18 +55,27 @@ ClockSource TempoHandler::get_clock_source() const {
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
-  // Only process and forward ticks if they come from the currently selected source                                   
-  if (event.source == ClockSource::INTERNAL && current_source_ == ClockSource::INTERNAL) {                                             
-    // If internal clock is the master, send MIDI clock if playing OR                                                                  
-    // if configured to send when stopped.                                                                                             
+  // If a MIDI clock event arrives and we are not yet on MIDI source,
+  // it's a strong indication to switch if MidiClockProcessor is now active.
+  if (event.source == ClockSource::MIDI && current_source_ != ClockSource::MIDI) {
+    if (_midi_clock_processor_ref.get_derived_bpm() > 0.0f) {
+      // printf("TempoHandler: MIDI clock event received while not on MIDI source. Switching to MIDI.\n");
+      set_clock_source(ClockSource::MIDI);
+    }
+  }
+
+  // Handle MIDI Clock output if internal source is master
+  // This should only happen if the event is from InternalClock AND current_source_ is INTERNAL
+  if (event.source == ClockSource::INTERNAL && current_source_ == ClockSource::INTERNAL) {
     if (_playback_state == PlaybackState::PLAYING ||                                                                                   
         drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER) {                                                                        
        MIDI::sendRealTime(midi::Clock);                                                                                                 
      }                                                                                                                                  
-  }                                                                                                                                    
-  // Forward TempoEvent if the event source matches the current handler source                                                         
-  // This part is separate from MIDI clock sending.                                                                                    
-  if (event.source == current_source_) {    
+  }
+
+  // Forward TempoEvent if the event source matches the current handler source.
+  // This ensures we only process ticks from the authoritative source.
+  if (event.source == current_source_) {
     musin::timing::TempoEvent tempo_tick_event;
     // Populate TempoEvent with timestamp or other data if needed later
     etl::observable<etl::observer<musin::timing::TempoEvent>,
@@ -85,6 +94,23 @@ void TempoHandler::set_bpm(float bpm) {
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
+}
+
+void TempoHandler::update() {
+  // This method is called from the main loop to handle auto-switching.
+  if (current_source_ == ClockSource::INTERNAL) {
+    // If we are on internal clock, check if MIDI clock has become active
+    if (_midi_clock_processor_ref.get_derived_bpm() > 0.0f) {
+      // printf("TempoHandler Update: MIDI clock detected. Switching to MIDI.\n");
+      set_clock_source(ClockSource::MIDI);
+    }
+  } else if (current_source_ == ClockSource::MIDI) {
+    // If we are on MIDI clock, check if it has timed out
+    if (_midi_clock_processor_ref.get_derived_bpm() == 0.0f) {
+      // printf("TempoHandler Update: MIDI clock timed out. Switching to INTERNAL.\n");
+      set_clock_source(ClockSource::INTERNAL);
+    }
+  }
 }
 
 } // namespace musin::timing

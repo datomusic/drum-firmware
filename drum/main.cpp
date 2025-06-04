@@ -64,9 +64,7 @@ int main() {
   pizza_controls.init();
 
   // --- Initialize Clocking System ---
-  internal_clock.add_observer(tempo_handler);
-  // TempoHandler now manages its observation of MidiClockProcessor internally
-  // So, remove: midi_clock_processor.add_observer(tempo_handler);
+  // TempoHandler's constructor calls set_clock_source, which handles initial observation.
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
@@ -80,12 +78,7 @@ int main() {
 
   sync_out.enable();
 
-  // The initial clock starting is now handled by TempoHandler's constructor
-  // via its call to set_clock_source.
-  // No need for:
-  // if (tempo_handler.get_clock_source() == musin::timing::ClockSource::INTERNAL) {
-  //   internal_clock.start();
-  // }
+  // Initial clock source (INTERNAL by default) is started by TempoHandler's constructor.
 
   // TODO: Add logic to register TempoHandler with other clocks (e.g. ExternalSyncClock)
   //       and update TempoHandler to manage them if necessary.
@@ -104,6 +97,7 @@ int main() {
 
     musin::usb::background_update();
     midi_read();
+    tempo_handler.update(); // Call TempoHandler update for auto-switching logic
     musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
 
     loop_timer.record_iteration_end();

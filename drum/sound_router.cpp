@@ -96,8 +96,8 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
     return;
 
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
-    // Send MIDI notes on channel 10 as per GM Percussion Standard / DATO Chart
-    send_midi_note(10, midi_note, velocity);
+    // Send MIDI notes on the configured default MIDI channel
+    send_midi_note(drum::config::DEFAULT_MIDI_CHANNEL, midi_note, velocity);
   }
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
@@ -125,8 +125,7 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
     if (cc_number > 0) {
-      // Send all CCs on channel 10 for consistency with DATO MIDI chart
-      uint8_t midi_channel = 10;
+      uint8_t midi_channel = drum::config::DEFAULT_MIDI_CHANNEL;
       uint8_t midi_value = static_cast<uint8_t>(std::round(value * 127.0f));
       midi_value = std::min(midi_value, static_cast<uint8_t>(127));
       send_midi_cc(midi_channel, cc_number, midi_value);

@@ -159,13 +159,13 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
   if (g_sound_router_ptr->get_local_control_mode() == drum::LocalControlMode::OFF) {
     float normalized_value = static_cast<float>(value) / 127.0f;
 
-    // DATO DRUM MIDI chart specifies default MIDI Channel 10 for controls
-    if (channel == 10) {
+    // Process CCs on the configured default MIDI channel
+    if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
       std::optional<drum::Parameter> param_id_opt = std::nullopt;
       std::optional<uint8_t> resolved_track_index = std::nullopt;
 
       // Map CC numbers to parameters based on DATO_Drum_midi_implementation_chart.md
-      // Global Controls
+      // Global Controls (on default channel)
       if (controller == 7) { // Master Volume
         param_id_opt = drum::Parameter::VOLUME;
       } else if (controller == 9) { // Swing
@@ -183,7 +183,7 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
       } else if (controller == 75) { // Filter Resonance
         param_id_opt = drum::Parameter::FILTER_RESONANCE;
       }
-      // Per-Track Pitch Controls (CC 21-24 on Channel 10)
+      // Per-Track Pitch Controls (CC 21-24 on default channel)
       else if (controller >= 21 && controller <= 24) {
         param_id_opt = drum::Parameter::PITCH;
         resolved_track_index = controller - 21; // CC 21 -> Tr 0, CC 22 -> Tr 1, etc.
@@ -201,8 +201,8 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
 }
 
 static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  // Process note events only on MIDI channel 10 (GM Percussion Standard)
-  if (channel == 10) {
+  // Process note events only on the configured default MIDI channel
+  if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
     if (g_sound_router_ptr) {
       g_sound_router_ptr->handle_incoming_midi_note(note, velocity);
     }
@@ -210,8 +210,8 @@ static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocit
 }
 
 static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  // Process note events only on MIDI channel 10 (GM Percussion Standard)
-  if (channel == 10) {
+  // Process note events only on the configured default MIDI channel
+  if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
     // MIDI Note Off can be represented as Note On with velocity 0,
     // or by a distinct Note Off message.
     // Pass 0 velocity to handle_incoming_midi_note to signify note off.

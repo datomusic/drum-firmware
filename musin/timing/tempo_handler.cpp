@@ -15,11 +15,19 @@ namespace musin::timing {
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
                            ClockSource initial_source)
-    : _internal_clock_ref(internal_clock_ref),
-      _midi_clock_processor_ref(midi_clock_processor_ref), // Initialize new member
-      current_source_(ClockSource::INTERNAL), // Initialize current_source_ before calling set_clock_source
-      _playback_state(PlaybackState::STOPPED) { // Default to INTERNAL, then set explicitly.
-  set_clock_source(initial_source); // Set the initial clock source
+    : _internal_clock_ref(internal_clock_ref), 
+      _midi_clock_processor_ref(midi_clock_processor_ref),
+      current_source_(initial_source), // Initialize current_source_ directly with initial_source
+      _playback_state(PlaybackState::STOPPED) {
+
+  // Directly set up the initial source
+  if (current_source_ == ClockSource::INTERNAL) {
+    _internal_clock_ref.add_observer(*this);
+    _internal_clock_ref.start();
+  } else if (current_source_ == ClockSource::MIDI) {
+    _midi_clock_processor_ref.add_observer(*this);
+    // MidiClockProcessor is driven by external MIDI ticks, no explicit start from here.
+  }
 }
 
 void TempoHandler::set_clock_source(ClockSource source) {

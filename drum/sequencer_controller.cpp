@@ -377,6 +377,11 @@ template <size_t NumTracks, size_t NumSteps>
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_random_probability(uint8_t percent) {
+  random_probability_ = std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(
     std::optional<uint32_t> intended_length) {
   bool should_be_active = intended_length.has_value();

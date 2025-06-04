@@ -1,6 +1,7 @@
 #include "musin/midi/midi_message_queue.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal actual send functions
 #include "pico/time.h"      // For RP2040 specific timing (get_absolute_time, absolute_time_diff_us, is_nil_time)
+#include <cstdio>           // For printf
 
 namespace musin::midi {
 
@@ -21,6 +22,7 @@ bool enqueue_midi_message(const OutgoingMidiMessage& message) {
         return true;
     }
     // Optional: Handle queue full error (e.g., log, drop oldest, etc.)
+    printf("MIDI QUEUE FULL!\n");
     return false; // Dropping new message if queue is full
 }
 
@@ -47,6 +49,10 @@ void process_midi_output_queue() {
         }
     }
 
+    if (!can_send && message_to_process.type == MidiMessageType::NOTE_ON) {
+        printf("MIDI Q: Note send deferred by rate limit.\n");
+    }
+
     if (can_send) {
         // Make a copy and pop before sending, in case sending itself triggers another enqueue.
         OutgoingMidiMessage message = message_to_process; // Copy the message
@@ -54,6 +60,7 @@ void process_midi_output_queue() {
 
         switch (message.type) {
             case MidiMessageType::NOTE_ON:
+                printf("MIDI Q: Processing NOTE_ON ch=%d n=%d v=%d\n", message.data.note_message.channel, message.data.note_message.note, message.data.note_message.velocity); // DEBUG
                 MIDI::internal::_sendNoteOn_actual(message.data.note_message.channel,
                                                    message.data.note_message.note,
                                                    message.data.note_message.velocity);

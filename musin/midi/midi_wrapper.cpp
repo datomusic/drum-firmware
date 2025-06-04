@@ -3,6 +3,7 @@
 #include <MIDI.h>
 #include "musin/midi/midi_message_queue.h" // For enqueuing messages
 #include <USB-MIDI.h>
+#include <cstdio> // For printf
 
 struct MIDISettings {
   /*! Running status enables short messages when sending multiple values
@@ -107,8 +108,12 @@ void MIDI::sendControlChange(const byte cc, const byte value, const byte channel
 }
 
 void MIDI::sendNoteOn(const byte note, const byte velocity, const byte channel) {
+  printf("MIDI::sendNoteOn: ch=%d, n=%d, v=%d\n", channel, note, velocity); // DEBUG
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, true);
-  musin::midi::enqueue_midi_message(msg);
+  bool enqueued = musin::midi::enqueue_midi_message(msg);
+  if (!enqueued) {
+    printf("MIDI::sendNoteOn: FAILED TO ENQUEUE\n"); // DEBUG
+  }
 }
 
 void MIDI::sendNoteOff(const byte note, const byte velocity, const byte channel) {

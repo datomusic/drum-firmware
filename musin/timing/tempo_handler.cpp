@@ -1,9 +1,9 @@
 #include "musin/timing/tempo_handler.h"
-#include "musin/timing/clock_event.h"
-#include "musin/timing/tempo_event.h"
-#include "musin/midi/midi_wrapper.h" // For MIDI::sendRealTime
 #include "drum/config.h"             // For drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER
 #include "midi_Defs.h"               // For midi::Clock
+#include "musin/midi/midi_wrapper.h" // For MIDI::sendRealTime
+#include "musin/timing/clock_event.h"
+#include "musin/timing/tempo_event.h"
 
 // Include headers for specific clock types if needed for identification
 // #include "internal_clock.h"
@@ -13,10 +13,8 @@
 namespace musin::timing {
 
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
-                           MidiClockProcessor &midi_clock_processor_ref,
-                           ClockSource initial_source)
-    : _internal_clock_ref(internal_clock_ref), 
-      _midi_clock_processor_ref(midi_clock_processor_ref),
+                           MidiClockProcessor &midi_clock_processor_ref, ClockSource initial_source)
+    : _internal_clock_ref(internal_clock_ref), _midi_clock_processor_ref(midi_clock_processor_ref),
       current_source_(initial_source), // Initialize current_source_ directly with initial_source
       _playback_state(PlaybackState::STOPPED),
       _send_this_internal_tick_as_midi_clock(true) { // Initialize flag
@@ -57,7 +55,8 @@ void TempoHandler::set_clock_source(ClockSource source) {
     // MidiClockProcessor is driven by external MIDI ticks.
     // Internal clock was stopped above if it was the previous source.
   }
-  // printf("TempoHandler: Switched clock source to %s\n", current_source_ == ClockSource::INTERNAL ? "INTERNAL" : "MIDI");
+  // printf("TempoHandler: Switched clock source to %s\n", current_source_ == ClockSource::INTERNAL
+  // ? "INTERNAL" : "MIDI");
 }
 
 ClockSource TempoHandler::get_clock_source() const {
@@ -69,7 +68,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   // it's a strong indication to switch if MidiClockProcessor is now active.
   if (event.source == ClockSource::MIDI && current_source_ != ClockSource::MIDI) {
     if (_midi_clock_processor_ref.get_derived_bpm() > 0.0f) {
-      // printf("TempoHandler: MIDI clock event received while not on MIDI source. Switching to MIDI.\n");
+      // printf("TempoHandler: MIDI clock event received while not on MIDI source. Switching to
+      // MIDI.\n");
       set_clock_source(ClockSource::MIDI);
     }
   }
@@ -85,7 +85,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
       // Toggle the flag for the next tick
       _send_this_internal_tick_as_midi_clock = !_send_this_internal_tick_as_midi_clock;
     } else {
-      _send_this_internal_tick_as_midi_clock = true; // Ensure it's ready if playback starts/config changes
+      _send_this_internal_tick_as_midi_clock =
+          true; // Ensure it's ready if playback starts/config changes
     }
   }
 

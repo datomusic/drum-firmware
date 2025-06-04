@@ -1,7 +1,7 @@
 #include "midi_wrapper.h"
 #include "../pico_uart.h"
-#include <MIDI.h>
 #include "musin/midi/midi_message_queue.h" // For enqueuing messages
+#include <MIDI.h>
 #include <USB-MIDI.h>
 #include <cstdio> // For printf
 
@@ -135,7 +135,8 @@ void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
   ALL_TRANSPORTS(sendRealTime(message));
 }
 
-void MIDI::internal::_sendControlChange_actual(const byte channel, const byte controller, const byte value) {
+void MIDI::internal::_sendControlChange_actual(const byte channel, const byte controller,
+                                               const byte value) {
   ALL_TRANSPORTS(sendControlChange(controller, value, channel));
 }
 

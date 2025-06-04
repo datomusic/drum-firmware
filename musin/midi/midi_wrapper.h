@@ -48,7 +48,6 @@ void _sendPitchBend_actual(uint8_t channel, int bend);
 void _sendSysEx_actual(unsigned length, const uint8_t *bytes);
 } // namespace internal
 
-
 }; // namespace MIDI
 
 #endif /* end of include guard: MIDI_H_Z6SY8IRY */

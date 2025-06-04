@@ -1,27 +1,27 @@
 #ifndef MUSIN_TIMING_MIDI_CLOCK_PROCESSOR_H
 #define MUSIN_TIMING_MIDI_CLOCK_PROCESSOR_H
 
-#include "etl/observer.h"
 #include "etl/array.h"
+#include "etl/observer.h"
 #include "musin/timing/clock_event.h"
 #include "musin/timing/timing_constants.h" // For DEFAULT_PPQN (though MIDI clock is fixed at 24)
-#include "pico/time.h" // For absolute_time_t, etc.
+#include "pico/time.h"                     // For absolute_time_t, etc.
 #include <cstdint>
 #include <numeric> // For std::accumulate
 
 namespace musin::timing {
 
 // Maximum number of observers MidiClockProcessor can notify (e.g., TempoHandler)
-constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 1; 
+constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 1;
 // Number of raw tick intervals to average for BPM. MIDI clock is 24 PPQN.
 // Averaging over one quarter note (24 ticks) can provide a good balance.
-constexpr size_t MIDI_CLOCK_INTERVAL_HISTORY_SIZE = 24; 
+constexpr size_t MIDI_CLOCK_INTERVAL_HISTORY_SIZE = 24;
 
 /**
  * @brief Processes raw incoming MIDI clock ticks to derive a stable tempo and generate ClockEvents.
  */
-class MidiClockProcessor
-    : public etl::observable<etl::observer<musin::timing::ClockEvent>, MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS> {
+class MidiClockProcessor : public etl::observable<etl::observer<musin::timing::ClockEvent>,
+                                                  MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS> {
 public:
   MidiClockProcessor();
 

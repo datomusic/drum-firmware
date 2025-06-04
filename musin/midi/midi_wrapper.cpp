@@ -108,11 +108,9 @@ void MIDI::sendControlChange(const byte cc, const byte value, const byte channel
 }
 
 void MIDI::sendNoteOn(const byte note, const byte velocity, const byte channel) {
-  printf("MIDI::sendNoteOn: ch=%d, n=%d, v=%d\n", channel, note, velocity); // DEBUG
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, true);
   bool enqueued = musin::midi::enqueue_midi_message(msg);
   if (!enqueued) {
-    printf("MIDI::sendNoteOn: FAILED TO ENQUEUE\n"); // DEBUG
   }
 }
 
@@ -142,7 +140,6 @@ void MIDI::internal::_sendControlChange_actual(const byte channel, const byte co
 }
 
 void MIDI::internal::_sendNoteOn_actual(const byte channel, const byte note, const byte velocity) {
-  printf("MIDI_ACTUAL: _sendNoteOn_actual: ch=%d, n=%d, v=%d\n", channel, note, velocity);
   ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
 }
 

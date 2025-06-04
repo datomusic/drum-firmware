@@ -22,7 +22,7 @@ bool enqueue_midi_message(const OutgoingMidiMessage& message) {
         return true;
     }
     // Optional: Handle queue full error (e.g., log, drop oldest, etc.)
-    printf("MIDI QUEUE FULL!\n");
+    // printf("MIDI QUEUE FULL!\n");
     return false; // Dropping new message if queue is full
 }
 
@@ -60,7 +60,7 @@ void process_midi_output_queue() {
 
         switch (message.type) {
             case MidiMessageType::NOTE_ON:
-                printf("MIDI Q: Processing NOTE_ON ch=%d n=%d v=%d\n", message.data.note_message.channel, message.data.note_message.note, message.data.note_message.velocity); // DEBUG
+                // printf("MIDI Q: Processing NOTE_ON ch=%d n=%d v=%d\n", message.data.note_message.channel, message.data.note_message.note, message.data.note_message.velocity); // DEBUG
                 MIDI::internal::_sendNoteOn_actual(message.data.note_message.channel,
                                                    message.data.note_message.note,
                                                    message.data.note_message.velocity);

@@ -50,7 +50,7 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
     return 9;
   case Parameter::CRUSH_EFFECT:
     return 12;
-  case Parameter::TEMPO_BPM:
+  case Parameter::TEMPO:
     return 15;
   case Parameter::RANDOM_EFFECT:
     return 16;
@@ -70,7 +70,8 @@ SoundRouter::SoundRouter(
     AudioEngine &audio_engine,
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller)
-    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller), _output_mode(OutputMode::BOTH),
+    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
+      _output_mode(OutputMode::BOTH),
       _local_control_mode(LocalControlMode::ON) { // Default local control to ON
   // TODO: Initialize _track_sample_map if added
 }
@@ -152,8 +153,9 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
       // It internally maps this to bit depth (5 to 16).
       // Higher normalized value should mean more crush (lower bit depth).
       // The map_value_linear in AudioEngine for crush_depth is (normalized_value, 5.0f, 16.0f)
-      // So a higher normalized_value gives a higher bit depth (less crush). This is inverted from typical "amount".
-      // To make higher CC value = more crush, we pass (1.0f - value) to set_crush_depth.
+      // So a higher normalized_value gives a higher bit depth (less crush). This is inverted from
+      // typical "amount". To make higher CC value = more crush, we pass (1.0f - value) to
+      // set_crush_depth.
       _audio_engine.set_crush_depth(1.0f - value);
       // Optionally, also control crush_rate with the same value or a fixed one.
       // _audio_engine.set_crush_rate(1.0f - value); // Example if rate is also controlled
@@ -162,7 +164,7 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
     case Parameter::SWING:
       // TODO: Implement swing effect in sequencer/audio path
       break;
-    case Parameter::TEMPO_BPM:
+    case Parameter::TEMPO:
       // TODO: Implement tempo change in sequencer/audio path
       break;
     case Parameter::RANDOM_EFFECT:

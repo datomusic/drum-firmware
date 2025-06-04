@@ -381,7 +381,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
       controls->_sequencer_controller_ref.deactivate_random();
     }
     controls->_sequencer_controller_ref.set_random_probability(event.value * 33);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::RANDOM_EFFECT, event.value, 0);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::RANDOM_EFFECT,
+                                                             event.value, 0);
   } break;
   case VOLUME:
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
@@ -399,7 +400,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
 
     controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::SWING, event.value, 0);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::SWING, event.value,
+                                                             0);
     break;
   }
   case CRUSH:
@@ -417,7 +419,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::REPEAT_EFFECT, event.value);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::REPEAT_EFFECT,
+                                                             event.value);
     break;
   }
   case PITCH1:
@@ -441,6 +444,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
                 event.value * (config::analog_controls::MAX_BPM_ADJUST -
                                config::analog_controls::MIN_BPM_ADJUST);
     controls->_tempo_handler_ref.set_bpm(bpm);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::TEMPO, event.value);
     break;
   }
   }

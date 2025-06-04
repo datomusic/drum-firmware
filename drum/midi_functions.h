@@ -1,9 +1,9 @@
 #ifndef SB25_DRUM_MIDI_FUNCTIONS_H
 #define SB25_DRUM_MIDI_FUNCTIONS_H
 
-#include <cstdint> // For uint8_t
-#include <cstddef> // For size_t
 #include "config.h"
+#include <cstddef> // For size_t
+#include <cstdint> // For uint8_t
 
 // Forward declarations
 namespace drum {
@@ -26,7 +26,8 @@ class MidiClockProcessor; // Forward declaration
  * @param midi_clock_processor Reference to the MidiClockProcessor for handling MIDI clock input.
  */
 void midi_init(drum::SoundRouter &sound_router,
-               drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+               drum::SequencerController<drum::config::NUM_TRACKS,
+                                         drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
                musin::timing::MidiClockProcessor &midi_clock_processor);
 
 /**

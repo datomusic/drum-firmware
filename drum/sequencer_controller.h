@@ -196,7 +196,7 @@ private:
   musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
-  etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track; 
+  etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
 

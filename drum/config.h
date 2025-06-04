@@ -19,7 +19,7 @@ constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
 
 // MIDI Configuration
 constexpr uint8_t DEFAULT_MIDI_CHANNEL = 10; // Default MIDI Channel (GM Percussion Standard)
-constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = true;
+constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = false;
 
 // Keypad Component Configuration
 namespace keypad {

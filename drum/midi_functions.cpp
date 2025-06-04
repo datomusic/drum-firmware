@@ -6,12 +6,12 @@ extern "C" {
 #include "pico/unique_id.h" // For pico_get_unique_board_id
 }
 
-#include "musin/midi/midi_wrapper.h" // For MIDI namespace and byte type
+#include "config.h"                            // For drum::config::NUM_TRACKS
+#include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
-#include "version.h"                 // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
-#include "config.h"                  // For drum::config::NUM_TRACKS
-#include "sequencer_controller.h"    // For SequencerController
-#include <optional>                  // For std::optional
+#include "sequencer_controller.h"              // For SequencerController
+#include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
+#include <optional>                            // For std::optional
 
 // --- Constants ---
 #define SYSEX_DATO_ID 0x7D // Manufacturer ID for Dato
@@ -28,7 +28,8 @@ extern "C" {
 // --- Static Variables ---
 // Pointers to global objects, to be set in midi_init
 static drum::SoundRouter *sound_router_ptr = nullptr;
-static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> *sequencer_controller_ptr = nullptr;
+static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+    *sequencer_controller_ptr = nullptr;
 static musin::timing::MidiClockProcessor *midi_clock_processor_ptr = nullptr;
 
 // --- Helper Functions (Internal Linkage) ---
@@ -47,7 +48,6 @@ void midi_stop_input_callback();
 void midi_continue_input_callback();
 void midi_clock_input_callback();
 void handle_sysex(uint8_t *const data, const size_t length);
-
 
 void handle_sysex(uint8_t *const data, const size_t length) {
   printf("HANDLE SYSEX\n");
@@ -170,11 +170,13 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
       }
 
       if (param_id_opt.has_value()) {
-        if (resolved_track_index.has_value() && resolved_track_index.value() >= drum::config::NUM_TRACKS) {
+        if (resolved_track_index.has_value() &&
+            resolved_track_index.value() >= drum::config::NUM_TRACKS) {
           // Invalid track index derived from CC
           return;
         }
-        sound_router_ptr->set_parameter(param_id_opt.value(), normalized_value, resolved_track_index);
+        sound_router_ptr->set_parameter(param_id_opt.value(), normalized_value,
+                                        resolved_track_index);
       }
     }
   }
@@ -255,10 +257,10 @@ void midi_read() {
   MIDI::read();
 }
 
-void midi_init(
-    drum::SoundRouter &sound_router,
-    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-    musin::timing::MidiClockProcessor &midi_clock_processor) {
+void midi_init(drum::SoundRouter &sound_router,
+               drum::SequencerController<drum::config::NUM_TRACKS,
+                                         drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+               musin::timing::MidiClockProcessor &midi_clock_processor) {
   sound_router_ptr = &sound_router;
   sequencer_controller_ptr = &sequencer_controller;
   midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor

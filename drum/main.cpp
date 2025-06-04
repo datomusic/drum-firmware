@@ -11,11 +11,11 @@
 #include "audio_engine.h"
 #include "config.h"
 #include "midi_functions.h"
+#include "musin/midi/midi_message_queue.h" // For processing MIDI output queue
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
-#include "musin/midi/midi_message_queue.h" // For processing MIDI output queue
 
 #include "musin/timing/midi_clock_processor.h" // Added for MidiClockProcessor
 
@@ -96,8 +96,8 @@ int main() {
     pizza_display.show();
 
     musin::usb::background_update();
-    midi_read();
-    tempo_handler.update(); // Call TempoHandler update for auto-switching logic
+    midi_read();                              // Process the incoming MIDI messages
+    tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
     musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
 
     loop_timer.record_iteration_end();

@@ -13,18 +13,6 @@ extern "C" {
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include <optional>                            // For std::optional
 
-// --- Constants ---
-#define SYSEX_DATO_ID 0x7D // Manufacturer ID for Dato
-#define SYSEX_UNIVERSAL_NONREALTIME_ID 0x7E
-#define SYSEX_UNIVERSAL_REALTIME_ID 0x7F // Kept for completeness, though not used here
-#define SYSEX_DRUM_ID 0x65               // Device ID for DRUM
-#define SYSEX_ALL_ID 0x7F                // Target all devices
-
-// Command bytes for Dato/DRUM specific SysEx
-#define SYSEX_FIRMWARE_VERSION 0x01  // Custom command to request firmware version
-#define SYSEX_SERIAL_NUMBER 0x02     // Custom command to request serial number
-#define SYSEX_REBOOT_BOOTLOADER 0x0B // Custom command to reboot to bootloader
-
 // --- Static Variables ---
 // Pointers to global objects, to be set in midi_init
 static drum::SoundRouter *sound_router_ptr = nullptr;
@@ -34,6 +22,19 @@ static musin::timing::MidiClockProcessor *midi_clock_processor_ptr = nullptr;
 
 // --- Helper Functions (Internal Linkage) ---
 namespace { // Anonymous namespace for internal linkage
+
+// --- Constants ---
+static constexpr uint8_t SYSEX_DATO_ID = 0x7D; // Manufacturer ID for Dato
+static constexpr uint8_t SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
+static constexpr uint8_t SYSEX_UNIVERSAL_REALTIME_ID =
+    0x7F; // Kept for completeness, though not used here
+static constexpr uint8_t SYSEX_DRUM_ID = 0x65; // Device ID for DRUM
+static constexpr uint8_t SYSEX_ALL_ID = 0x7F;  // Target all devices
+
+// Command bytes for Dato/DRUM specific SysEx
+static constexpr uint8_t SYSEX_FIRMWARE_VERSION = 0x01;  // Custom command to request firmware version
+static constexpr uint8_t SYSEX_SERIAL_NUMBER = 0x02;     // Custom command to request serial number
+static constexpr uint8_t SYSEX_REBOOT_BOOTLOADER = 0x0B; // Custom command to reboot to bootloader
 
 #include <stdio.h>
 // Forward Declarations for Helper Functions within anonymous namespace
@@ -80,7 +81,7 @@ void handle_sysex(uint8_t *const data, const size_t length) {
 // --- Helper Function Implementations ---
 
 void midi_print_identity() {
-  uint8_t sysex[] = {
+  static constexpr uint8_t sysex[] = {
       0xF0,
       SYSEX_UNIVERSAL_NONREALTIME_ID, // 0x7E
       SYSEX_DRUM_ID,                  // Target Device ID
@@ -204,10 +205,11 @@ void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint
 }
 
 void midi_print_firmware_version() {
-  uint8_t sysex[] = {0xF0,
-                     SYSEX_DATO_ID,
-                     SYSEX_DRUM_ID,
-                     SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
+  static constexpr uint8_t sysex[] = {
+      0xF0,
+      SYSEX_DATO_ID,
+      SYSEX_DRUM_ID,
+      SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
                      (uint8_t)(FIRMWARE_MAJOR & 0x7F),
                      (uint8_t)(FIRMWARE_MINOR & 0x7F),
                      (uint8_t)(FIRMWARE_PATCH & 0x7F),

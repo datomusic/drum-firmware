@@ -132,8 +132,8 @@ void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
   ALL_TRANSPORTS(sendRealTime(message));
 }
 
-void MIDI::internal::_sendControlChange_actual(const byte cc, const byte value, const byte channel) {
-  ALL_TRANSPORTS(sendControlChange(cc, value, channel));
+void MIDI::internal::_sendControlChange_actual(const byte channel, const byte controller, const byte value) {
+  ALL_TRANSPORTS(sendControlChange(controller, value, channel));
 }
 
 void MIDI::internal::_sendNoteOn_actual(const byte note, const byte velocity, const byte channel) {

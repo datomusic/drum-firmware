@@ -173,7 +173,7 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
       } else if (controller == 12) { // Crush Effect
         param_id_opt = drum::Parameter::CRUSH_EFFECT;
       } else if (controller == 15) { // Tempo
-        param_id_opt = drum::Parameter::TEMPO_BPM;
+        param_id_opt = drum::Parameter::TEMPO;
       } else if (controller == 16) { // Random Effect
         param_id_opt = drum::Parameter::RANDOM_EFFECT;
       } else if (controller == 17) { // Repeat Effect

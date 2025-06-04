@@ -48,6 +48,7 @@ void midi_continue_input_callback();
 void midi_clock_input_callback();
 void handle_sysex(uint8_t *const data, const size_t length);
 
+
 void handle_sysex(uint8_t *const data, const size_t length) {
   printf("HANDLE SYSEX\n");
   // Check for Dato Manufacturer ID and DRUM Device ID
@@ -74,40 +75,6 @@ void handle_sysex(uint8_t *const data, const size_t length) {
       }
     }
   }
-}
-
-// --- Public Function Definitions (External Linkage) ---
-
-void send_midi_start() {
-  MIDI::sendRealTime(midi::Start);
-}
-
-void send_midi_stop() {
-  MIDI::sendRealTime(midi::Stop);
-}
-
-void midi_read() {
-  MIDI::read();
-}
-
-void midi_init(
-    drum::SoundRouter &sound_router,
-    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-    musin::timing::MidiClockProcessor &midi_clock_processor) {
-  sound_router_ptr = &sound_router;
-  sequencer_controller_ptr = &sequencer_controller;
-  midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor
-  MIDI::init(MIDI::Callbacks{
-      .note_on = midi_note_on_callback,
-      .note_off = midi_note_off_callback,
-      .clock = midi_clock_input_callback, // Register MIDI clock callback
-      .start = midi_start_input_callback,
-      .cont = midi_continue_input_callback,
-      .stop = midi_stop_input_callback,
-      .cc = midi_cc_callback,
-      .pitch_bend = nullptr,
-      .sysex = handle_sysex, // Register the SysEx handler
-  });
 }
 
 // --- Helper Function Implementations ---
@@ -273,3 +240,37 @@ void midi_print_serial_number() {
 }
 
 } // anonymous namespace
+
+// --- Public Function Definitions (External Linkage) ---
+
+void send_midi_start() {
+  MIDI::sendRealTime(midi::Start);
+}
+
+void send_midi_stop() {
+  MIDI::sendRealTime(midi::Stop);
+}
+
+void midi_read() {
+  MIDI::read();
+}
+
+void midi_init(
+    drum::SoundRouter &sound_router,
+    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+    musin::timing::MidiClockProcessor &midi_clock_processor) {
+  sound_router_ptr = &sound_router;
+  sequencer_controller_ptr = &sequencer_controller;
+  midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor
+  MIDI::init(MIDI::Callbacks{
+      .note_on = midi_note_on_callback,
+      .note_off = midi_note_off_callback,
+      .clock = midi_clock_input_callback, // Register MIDI clock callback
+      .start = midi_start_input_callback,
+      .cont = midi_continue_input_callback,
+      .stop = midi_stop_input_callback,
+      .cc = midi_cc_callback,
+      .pitch_bend = nullptr,
+      .sysex = handle_sysex, // Register the SysEx handler
+  });
+}

@@ -3,7 +3,9 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
+#include "musin/timing/midi_clock_processor.h"
 #include "musin/usb/usb.h"
+#include "musin/midi/midi_message_queue.h"
 
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
@@ -11,18 +13,15 @@
 #include "audio_engine.h"
 #include "config.h"
 #include "midi_functions.h"
-#include "musin/midi/midi_message_queue.h" // For processing MIDI output queue
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
-#include "musin/timing/midi_clock_processor.h" // Added for MidiClockProcessor
-
 // Model
 static drum::AudioEngine audio_engine;
 static musin::timing::InternalClock internal_clock(120.0f);
-static musin::timing::MidiClockProcessor midi_clock_processor; // Instantiate MidiClockProcessor
+static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
                                                  musin::timing::ClockSource::INTERNAL);
 
@@ -42,8 +41,6 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequence
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
-// TODO: Instantiate MIDIClock, ExternalSyncClock when available
-
 static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
 int main() {
@@ -51,14 +48,12 @@ int main() {
 
   musin::usb::init();
 
-  // Pass sound_router, sequencer_controller, and midi_clock_processor
   midi_init(sound_router, sequencer_controller, midi_clock_processor);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
   }
-  // TODO: Set initial SoundRouter output mode if needed (defaults to BOTH)
-  // sound_router.set_output_mode(drum::OutputMode::AUDIO);
+  sound_router.set_output_mode(drum::OutputMode::BOTH);
 
   pizza_display.init();
   pizza_controls.init();
@@ -96,7 +91,7 @@ int main() {
     pizza_display.show();
 
     musin::usb::background_update();
-    midi_read();                              // Process the incoming MIDI messages
+    midi_read();                              // TODO: turn this into a musin input queue
     tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
     musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
 

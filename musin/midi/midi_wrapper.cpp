@@ -142,6 +142,7 @@ void MIDI::internal::_sendControlChange_actual(const byte channel, const byte co
 }
 
 void MIDI::internal::_sendNoteOn_actual(const byte note, const byte velocity, const byte channel) {
+  printf("MIDI_ACTUAL: _sendNoteOn_actual: ch=%d, n=%d, v=%d\n", channel, note, velocity); // ADD THIS LINE
   ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
 }
 

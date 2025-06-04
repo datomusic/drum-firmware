@@ -31,12 +31,10 @@ void TempoHandler::set_clock_source(ClockSource source) {
   // Stop the currently active clock source if necessary
   if (current_source_ == ClockSource::INTERNAL) {
     _internal_clock_ref.stop();
+  } else if (current_source_ == ClockSource::MIDI) {
+    _midi_clock_processor_ref.remove_observer(*this);
+    _midi_clock_processor_ref.reset(); // Reset when switching away from MIDI
   }
-  // else if (current_source_ == ClockSource::MIDI) {
-  //   // MidiClockProcessor typically doesn't need explicit stop from TempoHandler
-  //   // as it's driven by external events. If it had a 'stopListening' or 'reset'
-  //   // method, it could be called here.
-  // }
   // Add logic for other clock sources (e.g., EXTERNAL_SYNC) if they are managed here
 
   current_source_ = source;
@@ -44,12 +42,11 @@ void TempoHandler::set_clock_source(ClockSource source) {
   // Start the new clock source if necessary
   if (current_source_ == ClockSource::INTERNAL) {
     _internal_clock_ref.start();
+  } else if (current_source_ == ClockSource::MIDI) {
+    _midi_clock_processor_ref.add_observer(*this); // Observe when MIDI is the source
+    // MidiClockProcessor is driven by external MIDI ticks.
+    // Ensure internal clock is stopped (handled above).
   }
-  // else if (current_source_ == ClockSource::MIDI) {
-  //   // MidiClockProcessor is driven by external MIDI ticks.
-  //   // Ensure internal clock is stopped (handled above).
-  //   // If MidiClockProcessor had a 'startListening' or 'reset' method, call it here.
-  // }
   // Add logic for other clock sources (e.g., EXTERNAL_SYNC)
 }
 

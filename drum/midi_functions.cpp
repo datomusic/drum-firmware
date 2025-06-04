@@ -7,6 +7,7 @@ extern "C" {
 }
 
 #include "musin/midi/midi_wrapper.h" // For MIDI namespace and byte type
+#include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
 #include "version.h"                 // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include "config.h"                  // For drum::config::NUM_TRACKS
 #include "sequencer_controller.h"    // For SequencerController
@@ -34,11 +35,13 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
 static void midi_start_input_callback();
 static void midi_stop_input_callback();
 static void midi_continue_input_callback();
+static void midi_clock_input_callback(); // Added for MIDI clock
 
 // --- Static Variables ---
 // Pointer to the SoundRouter instance, to be set in midi_init
 static drum::SoundRouter *g_sound_router_ptr = nullptr;
 static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> *g_sequencer_controller_ptr = nullptr;
+static musin::timing::MidiClockProcessor *g_midi_clock_processor_ptr = nullptr; // Added for MIDI clock processor
 
 // --- Static Helper Functions (Internal Linkage) ---
 
@@ -87,13 +90,15 @@ void midi_read() {
 
 void midi_init(
     drum::SoundRouter &sound_router,
-    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller) {
+    drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+    musin::timing::MidiClockProcessor &midi_clock_processor) {
   g_sound_router_ptr = &sound_router;
   g_sequencer_controller_ptr = &sequencer_controller;
+  g_midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,
       .note_off = midi_note_off_callback,
-      .clock = nullptr,
+      .clock = midi_clock_input_callback, // Register MIDI clock callback
       .start = midi_start_input_callback,
       .cont = midi_continue_input_callback,
       .stop = midi_stop_input_callback,
@@ -145,6 +150,12 @@ static void midi_continue_input_callback() {
   if (g_sequencer_controller_ptr) {
     // Per DATO chart: Begin/resume playback from current step (same as Start)
     g_sequencer_controller_ptr->start();
+  }
+}
+
+static void midi_clock_input_callback() {
+  if (g_midi_clock_processor_ptr) {
+    g_midi_clock_processor_ptr->on_midi_clock_tick_received();
   }
 }
 

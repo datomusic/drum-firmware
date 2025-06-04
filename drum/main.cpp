@@ -52,7 +52,7 @@ int main() {
   musin::usb::init();
 
   // Pass sound_router, sequencer_controller, and midi_clock_processor
-  midi_init(sound_router, sequencer_controller, midi_clock_processor); 
+  midi_init(sound_router, sequencer_controller, midi_clock_processor);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
@@ -65,7 +65,8 @@ int main() {
 
   // --- Initialize Clocking System ---
   internal_clock.add_observer(tempo_handler);
-  midi_clock_processor.add_observer(tempo_handler); // TempoHandler observes MidiClockProcessor
+  // TempoHandler now manages its observation of MidiClockProcessor internally
+  // So, remove: midi_clock_processor.add_observer(tempo_handler);
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 

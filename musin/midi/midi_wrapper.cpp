@@ -141,16 +141,16 @@ void MIDI::internal::_sendControlChange_actual(const byte channel, const byte co
   ALL_TRANSPORTS(sendControlChange(controller, value, channel));
 }
 
-void MIDI::internal::_sendNoteOn_actual(const byte note, const byte velocity, const byte channel) {
-  printf("MIDI_ACTUAL: _sendNoteOn_actual: ch=%d, n=%d, v=%d\n", channel, note, velocity); // ADD THIS LINE
+void MIDI::internal::_sendNoteOn_actual(const byte channel, const byte note, const byte velocity) {
+  printf("MIDI_ACTUAL: _sendNoteOn_actual: ch=%d, n=%d, v=%d\n", channel, note, velocity);
   ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
 }
 
-void MIDI::internal::_sendNoteOff_actual(const byte note, const byte velocity, const byte channel) {
+void MIDI::internal::_sendNoteOff_actual(const byte channel, const byte note, const byte velocity) {
   ALL_TRANSPORTS(sendNoteOff(note, velocity, channel));
 }
 
-void MIDI::internal::_sendPitchBend_actual(const int bend, const byte channel) {
+void MIDI::internal::_sendPitchBend_actual(const byte channel, const int bend) {
   ALL_TRANSPORTS(sendPitchBend(bend, channel));
 }
 

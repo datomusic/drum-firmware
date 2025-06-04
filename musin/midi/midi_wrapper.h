@@ -42,9 +42,9 @@ namespace internal {
 // They are called by the midi_message_queue processor.
 void _sendRealTime_actual(MidiType message);
 void _sendControlChange_actual(uint8_t channel, uint8_t controller, uint8_t value);
-void _sendNoteOn_actual(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
-void _sendNoteOff_actual(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
-void _sendPitchBend_actual(int bend, uint8_t channel);
+void _sendNoteOn_actual(uint8_t channel, uint8_t note, uint8_t velocity);
+void _sendNoteOff_actual(uint8_t channel, uint8_t note, uint8_t velocity);
+void _sendPitchBend_actual(uint8_t channel, int bend);
 void _sendSysEx_actual(unsigned length, const uint8_t *bytes);
 } // namespace internal
 

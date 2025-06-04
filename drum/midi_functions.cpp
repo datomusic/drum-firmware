@@ -11,6 +11,7 @@ extern "C" {
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
 #include "sequencer_controller.h"              // For SequencerController
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
+#include <cassert>                             // For assert
 #include <optional>                            // For std::optional
 
 // --- Static Variables ---
@@ -103,38 +104,36 @@ void midi_print_identity() {
 }
 
 void midi_start_input_callback() {
-  if (sequencer_controller_ptr) {
-    // Per DATO chart: Begin/resume playback from current step
-    sequencer_controller_ptr->start();
-  }
+  assert(sequencer_controller_ptr != nullptr &&
+         "sequencer_controller_ptr must be initialized via midi_init()");
+  // Per DATO chart: Begin/resume playback from current step
+  sequencer_controller_ptr->start();
 }
 
 void midi_stop_input_callback() {
-  if (sequencer_controller_ptr) {
-    // Per DATO chart: Stop playback, maintain step position
-    sequencer_controller_ptr->stop();
-  }
+  assert(sequencer_controller_ptr != nullptr &&
+         "sequencer_controller_ptr must be initialized via midi_init()");
+  // Per DATO chart: Stop playback, maintain step position
+  sequencer_controller_ptr->stop();
 }
 
 void midi_continue_input_callback() {
-  if (sequencer_controller_ptr) {
-    // Per DATO chart: Begin/resume playback from current step (same as Start)
-    sequencer_controller_ptr->start();
-  }
+  assert(sequencer_controller_ptr != nullptr &&
+         "sequencer_controller_ptr must be initialized via midi_init()");
+  // Per DATO chart: Begin/resume playback from current step (same as Start)
+  sequencer_controller_ptr->start();
 }
 
 void midi_clock_input_callback() {
-  if (midi_clock_processor_ptr) {
-    midi_clock_processor_ptr->on_midi_clock_tick_received();
-  }
+  assert(midi_clock_processor_ptr != nullptr &&
+         "midi_clock_processor_ptr must be initialized via midi_init()");
+  midi_clock_processor_ptr->on_midi_clock_tick_received();
 }
 
 // --- MIDI Callback Implementations ---
 
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
-  if (sound_router_ptr == nullptr) {
-    return;
-  }
+  assert(sound_router_ptr != nullptr && "sound_router_ptr must be initialized via midi_init()");
 
   // Process CCs only if local control is OFF
   if (sound_router_ptr->get_local_control_mode() == drum::LocalControlMode::OFF) {
@@ -186,9 +185,8 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
   // Process note events only on the configured default MIDI channel
   if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
-    if (sound_router_ptr) {
-      sound_router_ptr->handle_incoming_midi_note(note, velocity);
-    }
+    assert(sound_router_ptr != nullptr && "sound_router_ptr must be initialized via midi_init()");
+    sound_router_ptr->handle_incoming_midi_note(note, velocity);
   }
 }
 
@@ -198,9 +196,8 @@ void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint
     // MIDI Note Off can be represented as Note On with velocity 0,
     // or by a distinct Note Off message.
     // Pass 0 velocity to handle_incoming_midi_note to signify note off.
-    if (sound_router_ptr) {
-      sound_router_ptr->handle_incoming_midi_note(note, 0);
-    }
+    assert(sound_router_ptr != nullptr && "sound_router_ptr must be initialized via midi_init()");
+    sound_router_ptr->handle_incoming_midi_note(note, 0);
   }
 }
 

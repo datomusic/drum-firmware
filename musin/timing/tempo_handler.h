@@ -93,6 +93,7 @@ private:
   MidiClockProcessor &_midi_clock_processor_ref;
   ClockSource current_source_;
   PlaybackState _playback_state;
+  bool _send_this_internal_tick_as_midi_clock;
 
   // Pointers or references to actual clock instances might be needed here
   // if TempoHandler needs to interact with them directly (e.g., enable/disable).

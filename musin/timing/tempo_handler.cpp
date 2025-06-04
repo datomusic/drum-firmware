@@ -18,7 +18,8 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
     : _internal_clock_ref(internal_clock_ref), 
       _midi_clock_processor_ref(midi_clock_processor_ref),
       current_source_(initial_source), // Initialize current_source_ directly with initial_source
-      _playback_state(PlaybackState::STOPPED) {
+      _playback_state(PlaybackState::STOPPED),
+      _send_this_internal_tick_as_midi_clock(true) { // Initialize flag
 
   // Directly set up the initial source
   if (current_source_ == ClockSource::INTERNAL) {
@@ -49,6 +50,7 @@ void TempoHandler::set_clock_source(ClockSource source) {
   // Setup for the new source
   if (current_source_ == ClockSource::INTERNAL) {
     _internal_clock_ref.add_observer(*this);
+    _send_this_internal_tick_as_midi_clock = true; // Reset for consistent start
     _internal_clock_ref.start();
   } else if (current_source_ == ClockSource::MIDI) {
     _midi_clock_processor_ref.add_observer(*this); // Observe when MIDI is the source
@@ -75,10 +77,16 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   // Handle MIDI Clock output if internal source is master
   // This should only happen if the event is from InternalClock AND current_source_ is INTERNAL
   if (event.source == ClockSource::INTERNAL && current_source_ == ClockSource::INTERNAL) {
-    if (_playback_state == PlaybackState::PLAYING ||                                                                                   
-        drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER) {                                                                        
-       MIDI::sendRealTime(midi::Clock);                                                                                                 
-     }                                                                                                                                  
+    if (_playback_state == PlaybackState::PLAYING ||
+        drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER) {
+      if (_send_this_internal_tick_as_midi_clock) {
+        MIDI::sendRealTime(midi::Clock);
+      }
+      // Toggle the flag for the next tick
+      _send_this_internal_tick_as_midi_clock = !_send_this_internal_tick_as_midi_clock;
+    } else {
+      _send_this_internal_tick_as_midi_clock = true; // Ensure it's ready if playback starts/config changes
+    }
   }
 
   // Forward TempoEvent if the event source matches the current handler source.
@@ -102,6 +110,10 @@ void TempoHandler::set_bpm(float bpm) {
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
+  if (current_source_ == ClockSource::INTERNAL && _playback_state == PlaybackState::STOPPED) {
+    // When stopping, reset the flag so the first tick on resume (if conditions met) sends a clock.
+    _send_this_internal_tick_as_midi_clock = true;
+  }
 }
 
 void TempoHandler::update() {

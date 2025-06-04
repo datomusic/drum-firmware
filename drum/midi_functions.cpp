@@ -25,29 +25,31 @@ extern "C" {
 #define SYSEX_SERIAL_NUMBER 0x02     // Custom command to request serial number
 #define SYSEX_REBOOT_BOOTLOADER 0x0B // Custom command to reboot to bootloader
 
-// --- Forward Declarations for Static Helper Functions ---
-static void midi_print_identity();
-static void midi_print_firmware_version();
-static void midi_print_serial_number();
-static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
-static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity);
-static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
-static void midi_start_input_callback();
-static void midi_stop_input_callback();
-static void midi_continue_input_callback();
-static void midi_clock_input_callback(); // Added for MIDI clock
-
 // --- Static Variables ---
-// Pointer to the SoundRouter instance, to be set in midi_init
-static drum::SoundRouter *g_sound_router_ptr = nullptr;
-static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> *g_sequencer_controller_ptr = nullptr;
-static musin::timing::MidiClockProcessor *g_midi_clock_processor_ptr = nullptr; // Added for MIDI clock processor
+// Pointers to global objects, to be set in midi_init
+static drum::SoundRouter *sound_router_ptr = nullptr;
+static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> *sequencer_controller_ptr = nullptr;
+static musin::timing::MidiClockProcessor *midi_clock_processor_ptr = nullptr;
 
-// --- Static Helper Functions (Internal Linkage) ---
+// --- Helper Functions (Internal Linkage) ---
+namespace { // Anonymous namespace for internal linkage
 
 #include <stdio.h>
-static void handle_sysex(uint8_t *const data, const size_t length) {
-  printf("HANDLRE SYX\n");
+// Forward Declarations for Helper Functions within anonymous namespace
+void midi_print_identity();
+void midi_print_firmware_version();
+void midi_print_serial_number();
+void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
+void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity);
+void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
+void midi_start_input_callback();
+void midi_stop_input_callback();
+void midi_continue_input_callback();
+void midi_clock_input_callback();
+void handle_sysex(uint8_t *const data, const size_t length);
+
+void handle_sysex(uint8_t *const data, const size_t length) {
+  printf("HANDLE SYSEX\n");
   // Check for Dato Manufacturer ID and DRUM Device ID
   if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DRUM_ID) {
     switch (data[3]) { // Check the command byte
@@ -92,9 +94,9 @@ void midi_init(
     drum::SoundRouter &sound_router,
     drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
     musin::timing::MidiClockProcessor &midi_clock_processor) {
-  g_sound_router_ptr = &sound_router;
-  g_sequencer_controller_ptr = &sequencer_controller;
-  g_midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor
+  sound_router_ptr = &sound_router;
+  sequencer_controller_ptr = &sequencer_controller;
+  midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,
       .note_off = midi_note_off_callback,
@@ -108,9 +110,9 @@ void midi_init(
   });
 }
 
-// --- Static Helper Function Implementations ---
+// --- Helper Function Implementations ---
 
-static void midi_print_identity() {
+void midi_print_identity() {
   uint8_t sysex[] = {
       0xF0,
       SYSEX_UNIVERSAL_NONREALTIME_ID, // 0x7E
@@ -132,42 +134,42 @@ static void midi_print_identity() {
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
 
-static void midi_start_input_callback() {
-  if (g_sequencer_controller_ptr) {
+void midi_start_input_callback() {
+  if (sequencer_controller_ptr) {
     // Per DATO chart: Begin/resume playback from current step
-    g_sequencer_controller_ptr->start();
+    sequencer_controller_ptr->start();
   }
 }
 
-static void midi_stop_input_callback() {
-  if (g_sequencer_controller_ptr) {
+void midi_stop_input_callback() {
+  if (sequencer_controller_ptr) {
     // Per DATO chart: Stop playback, maintain step position
-    g_sequencer_controller_ptr->stop();
+    sequencer_controller_ptr->stop();
   }
 }
 
-static void midi_continue_input_callback() {
-  if (g_sequencer_controller_ptr) {
+void midi_continue_input_callback() {
+  if (sequencer_controller_ptr) {
     // Per DATO chart: Begin/resume playback from current step (same as Start)
-    g_sequencer_controller_ptr->start();
+    sequencer_controller_ptr->start();
   }
 }
 
-static void midi_clock_input_callback() {
-  if (g_midi_clock_processor_ptr) {
-    g_midi_clock_processor_ptr->on_midi_clock_tick_received();
+void midi_clock_input_callback() {
+  if (midi_clock_processor_ptr) {
+    midi_clock_processor_ptr->on_midi_clock_tick_received();
   }
 }
 
 // --- MIDI Callback Implementations ---
 
-static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
-  if (g_sound_router_ptr == nullptr) {
+void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
+  if (sound_router_ptr == nullptr) {
     return;
   }
 
   // Process CCs only if local control is OFF
-  if (g_sound_router_ptr->get_local_control_mode() == drum::LocalControlMode::OFF) {
+  if (sound_router_ptr->get_local_control_mode() == drum::LocalControlMode::OFF) {
     float normalized_value = static_cast<float>(value) / 127.0f;
 
     // Process CCs on the configured default MIDI channel
@@ -205,34 +207,34 @@ static void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value)
           // Invalid track index derived from CC
           return;
         }
-        g_sound_router_ptr->set_parameter(param_id_opt.value(), normalized_value, resolved_track_index);
+        sound_router_ptr->set_parameter(param_id_opt.value(), normalized_value, resolved_track_index);
       }
     }
   }
 }
 
-static void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
+void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
   // Process note events only on the configured default MIDI channel
   if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
-    if (g_sound_router_ptr) {
-      g_sound_router_ptr->handle_incoming_midi_note(note, velocity);
+    if (sound_router_ptr) {
+      sound_router_ptr->handle_incoming_midi_note(note, velocity);
     }
   }
 }
 
-static void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
+void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
   // Process note events only on the configured default MIDI channel
   if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
     // MIDI Note Off can be represented as Note On with velocity 0,
     // or by a distinct Note Off message.
     // Pass 0 velocity to handle_incoming_midi_note to signify note off.
-    if (g_sound_router_ptr) {
-      g_sound_router_ptr->handle_incoming_midi_note(note, 0);
+    if (sound_router_ptr) {
+      sound_router_ptr->handle_incoming_midi_note(note, 0);
     }
   }
 }
 
-static void midi_print_firmware_version() {
+void midi_print_firmware_version() {
   uint8_t sysex[] = {0xF0,
                      SYSEX_DATO_ID,
                      SYSEX_DRUM_ID,
@@ -245,7 +247,7 @@ static void midi_print_firmware_version() {
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
 
-static void midi_print_serial_number() {
+void midi_print_serial_number() {
   pico_unique_board_id_t id;
   pico_get_unique_board_id(&id); // Get the 64-bit (8-byte) unique ID
 
@@ -269,3 +271,5 @@ static void midi_print_serial_number() {
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
+
+} // anonymous namespace

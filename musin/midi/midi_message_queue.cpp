@@ -27,7 +27,7 @@ bool enqueue_midi_message(const OutgoingMidiMessage& message) {
 }
 
 // Rate limiting for non-real-time messages
-constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME = 2000; // 2ms (2000us) between CC/Note/SysEx
+constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME = 500; // Try 0.5ms
 static absolute_time_t last_non_realtime_send_time = nil_time;
 
 void process_midi_output_queue() {
@@ -49,8 +49,8 @@ void process_midi_output_queue() {
         }
     }
 
-    if (!can_send && message_to_process.type == MidiMessageType::NOTE_ON) {
-        printf("MIDI Q: Note send deferred by rate limit.\n");
+    if (!can_send && (message_to_process.type == MidiMessageType::NOTE_ON || message_to_process.type == MidiMessageType::NOTE_OFF || message_to_process.type == MidiMessageType::CONTROL_CHANGE)) {
+        // printf("MIDI Q: Non-RT msg (type %d) deferred by rate limit. Time since last: %lld us\n", (int)message_to_process.type, is_nil_time(last_non_realtime_send_time) ? -1 : absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time())); // More detailed debug
     }
 
     if (can_send) {

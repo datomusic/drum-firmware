@@ -173,11 +173,20 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
         break;
       // Per-Track Pitch Controls (CC 21-24 on default channel)
       case 21: // Track 1 Pitch
+        param_id_opt = drum::Parameter::PITCH;
+        resolved_track_index = 0;
+        break;
       case 22: // Track 2 Pitch
+        param_id_opt = drum::Parameter::PITCH;
+        resolved_track_index = 1;
+        break;
       case 23: // Track 3 Pitch
+        param_id_opt = drum::Parameter::PITCH;
+        resolved_track_index = 2;
+        break;
       case 24: // Track 4 Pitch
         param_id_opt = drum::Parameter::PITCH;
-        resolved_track_index = controller - 21; // CC 21 -> Tr 0, CC 22 -> Tr 1, etc.
+        resolved_track_index = 3;
         break;
       default:
         // Unhandled CC

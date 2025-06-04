@@ -17,9 +17,11 @@ constexpr size_t NUM_ANALOG_MUX_CONTROLS = 11;
 constexpr uint32_t PROFILER_REPORT_INTERVAL_MS = 2000;
 constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
 
+constexpr bool SEND_MIDI_CLOCK_SHEN_STOPPED_AS_MASTER = true;
+
 // Keypad Component Configuration
 namespace keypad {
-constexpr uint8_t MIDI_CHANNEL = 0;
+constexpr uint8_t _CHANNEL = 0;
 constexpr uint32_t DEBOUNCE_TIME_MS = 10;
 constexpr uint32_t POLL_INTERVAL_MS = 5;
 constexpr uint32_t HOLD_TIME_MS = 1000;

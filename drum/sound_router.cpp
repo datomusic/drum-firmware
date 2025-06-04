@@ -44,11 +44,11 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
     return 0; // Invalid or no track index for pitch
 
   // Global Parameters from MIDI Chart
-  case Parameter::MASTER_VOLUME:
+  case Parameter::VOLUME:
     return 7;
   case Parameter::SWING:
     return 9;
-  case Parameter::CRUSH_EFFECT_AMOUNT:
+  case Parameter::CRUSH_EFFECT:
     return 12;
   case Parameter::TEMPO_BPM:
     return 15;
@@ -145,10 +145,10 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
     case Parameter::FILTER_RESONANCE:
       _audio_engine.set_filter_resonance(value);
       break;
-    case Parameter::MASTER_VOLUME:
+    case Parameter::VOLUME:
       _audio_engine.set_volume(value);
       break;
-    case Parameter::CRUSH_EFFECT_AMOUNT: {
+    case Parameter::CRUSH_EFFECT: {
       // AudioEngine::set_crush_depth expects a normalized value (0.0 to 1.0)
       // It internally maps this to bit depth (5 to 16).
       // Higher normalized value should mean more crush (lower bit depth).

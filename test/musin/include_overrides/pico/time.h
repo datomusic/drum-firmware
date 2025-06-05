@@ -1,5 +1,5 @@
-#ifndef MOCK_PICO_TIME_H
-#define MOCK_PICO_TIME_H
+#ifndef TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_TIME_H_
+#define TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_TIME_H_
 
 #include <cstdint> // For uint64_t, int64_t
 
@@ -56,4 +56,4 @@ static inline void set_mock_time_us(uint64_t us) {
   mock_current_time = us;
 }
 
-#endif // MOCK_PICO_TIME_H
+#endif // TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_TIME_H_

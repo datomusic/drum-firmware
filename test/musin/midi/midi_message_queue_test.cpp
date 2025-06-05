@@ -194,6 +194,9 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
   SECTION("FIFO Order") {
     reset_test_state();
+    // Initialize time to allow first message to send immediately
+    set_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST * 2);
+    
     OutgoingMidiMessage note_on_msg(1, 60, 100, true);
     OutgoingMidiMessage cc_msg(1, 7, 127); // CC, Ch 1, Ctrl 7, Val 127
 

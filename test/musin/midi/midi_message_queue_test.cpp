@@ -120,6 +120,12 @@ void reset_test_state() {
   set_mock_time_us(0);                     // Reset time again for a clean start
 }
 
+// Helper function to get mock time, useful for debugging or more complex assertions
+// Not strictly necessary for these tests but good practice for mock time modules.
+absolute_time_t get_mock_time_us() {
+  return mock_current_time;
+}
+
 TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
   using namespace musin::midi;
 
@@ -381,10 +387,4 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
       REQUIRE(MIDI::internal::mock_midi_calls[0].sysex_data.empty());
     }
   }
-}
-
-// Helper function to get mock time, useful for debugging or more complex assertions
-// Not strictly necessary for these tests but good practice for mock time modules.
-absolute_time_t get_mock_time_us() {
-  return mock_current_time;
 }

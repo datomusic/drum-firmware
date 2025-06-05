@@ -29,7 +29,7 @@ bool enqueue_midi_message(const OutgoingMidiMessage &message) {
 }
 
 // Rate limiting for non-real-time messages
-constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME = 500; // Try 0.5ms
+constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME = 960; // 3125 bytes per second at 3 bytes each
 static absolute_time_t last_non_realtime_send_time = nil_time;
 
 void process_midi_output_queue() {

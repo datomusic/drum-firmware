@@ -387,7 +387,8 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
       // Compare the truncated data
       REQUIRE(std::equal(MIDI::internal::mock_midi_calls[0].sysex_data.begin(),
                          MIDI::internal::mock_midi_calls[0].sysex_data.end(),
-                         long_payload_vec.begin()));
+                         long_payload_vec.begin(),
+                         long_payload_vec.begin() + MIDI::SysExMaxSize));
     }
 
     SECTION("SysEx with zero length but non-null pointer in constructor") {

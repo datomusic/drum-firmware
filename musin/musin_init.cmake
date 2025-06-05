@@ -61,7 +61,7 @@ macro(musin_init_usb_midi TARGET)
     ${MUSIN_USB}/usb.cpp
     ${MUSIN_USB}/usb_descriptors.c
     ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
-    ${MUSIN_ROOT}/midi/midi_wrapper.cpp
+    ${MUSIN_ROOT}/ports/pico/port/midi_wrapper.cpp
     ${MUSIN_ROOT}/midi/midi_message_queue.cpp
     ${MUSIN_ROOT}/timing/midi_clock_processor.cpp
   )

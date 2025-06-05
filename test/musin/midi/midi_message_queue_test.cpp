@@ -106,18 +106,30 @@ void _sendSysEx_actual(unsigned length, const uint8_t *bytes) {
 // Helper to reset all mocks and queue state for a clean test environment
 void reset_test_state() {
   MIDI::internal::reset_mock_midi_calls();
-  set_mock_time_us(0);
-  // Clear the actual queue by processing any remaining items
-  // This loop ensures that if processing one item allows another (due to time advance),
-  // it also gets processed.
+
+  // Advance current time significantly to create a new "present" for this test section,
+  // ensuring that any last_non_realtime_send_time from previous tests is now in the distant past.
+  // A jump equivalent to twice the time to clear a full queue should be sufficient.
+  // Using musin::midi::MIDI_QUEUE_SIZE from the included header.
+  const uint64_t significant_time_jump =
+      MIN_INTERVAL_US_NON_REALTIME_TEST * musin::midi::MIDI_QUEUE_SIZE * 2;
+  advance_mock_time_us(significant_time_jump);
+
+  // Clear the actual queue by processing any remaining items.
+  // These items are processed relative to the new advanced time.
   while (!musin::midi::midi_output_queue.empty()) {
-    // Advance time significantly to ensure any rate-limited items are processed
-    // This ensures that the queue is truly empty before the next test section.
-    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST * 2);
+    // Advance time just enough to allow the next message to be processed.
+    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
     musin::midi::process_midi_output_queue();
   }
   MIDI::internal::reset_mock_midi_calls(); // Reset calls again after clearing queue
-  set_mock_time_us(0);                     // Reset time again for a clean start
+
+  // After clearing the queue, last_non_realtime_send_time might have been updated.
+  // Advance the current time by MIN_INTERVAL_US_NON_REALTIME_TEST once more.
+  // This ensures that the first message enqueued by the actual test logic
+  // can be sent immediately, as mock_current_time will be sufficiently past
+  // the last_non_realtime_send_time set during the queue drain (if any).
+  advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
 }
 
 // Helper function to get mock time, useful for debugging or more complex assertions
@@ -195,8 +207,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
   SECTION("FIFO Order") {
     reset_test_state();
     
-    // Initialize time to allow first message to send immediately
-    set_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST * 2);
+    // Time is now set by reset_test_state() to allow the first message to send.
     INFO("Initial time: " << get_mock_time_us());
 
     OutgoingMidiMessage note_on_msg(1, 60, 100, true);

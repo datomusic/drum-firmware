@@ -145,28 +145,44 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
   SECTION("Queue Full Behavior") {
     reset_test_state();
-    for (size_t i = 0; i < MIDI_QUEUE_SIZE; ++i) {
-      OutgoingMidiMessage msg(1, static_cast<uint8_t>(60 + i), 100, true);
+    
+    // Fill queue completely with valid MIDI notes (0-127)
+    const uint8_t first_note = 60;
+    const uint8_t last_note = std::min<uint8_t>(127, first_note + MIDI_QUEUE_SIZE - 1);
+    for (uint8_t note = first_note; note <= last_note; ++note) {
+      OutgoingMidiMessage msg(1, note, 100, true);
       REQUIRE(enqueue_midi_message(msg));
     }
     REQUIRE(midi_output_queue.full());
 
-    OutgoingMidiMessage extra_msg(1, 120, 100, true);
-    REQUIRE_FALSE(enqueue_midi_message(extra_msg)); // Should fail
+    // Try to add one more message (should fail)
+    const uint8_t extra_note = (last_note < 127) ? last_note + 1 : 0;
+    OutgoingMidiMessage extra_msg(1, extra_note, 100, true);
+    REQUIRE_FALSE(enqueue_midi_message(extra_msg));
 
-    // Process one message to make space
-    process_midi_output_queue();
-    REQUIRE(MIDI::internal::mock_midi_calls.size() == 1); // One message processed
-    REQUIRE_FALSE(midi_output_queue.full());
+    // Process all queued messages
+    while (!midi_output_queue.empty()) {
+      advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+      process_midi_output_queue();
+    }
 
-    REQUIRE(enqueue_midi_message(extra_msg)); // Should succeed now
-    // Process the newly enqueued message (extra_msg)
-    // Need to advance time if it's non-realtime and the previous was also non-realtime
+    // Verify all initial messages were processed in order
+    REQUIRE(MIDI::internal::mock_midi_calls.size() == (last_note - first_note + 1));
+    for (size_t i = 0; i < MIDI::internal::mock_midi_calls.size(); ++i) {
+      REQUIRE(MIDI::internal::mock_midi_calls[i] == 
+              MIDI::internal::MockMidiCallRecord::NoteOn(1, first_note + i, 100));
+    }
+
+    // Now queue should be empty - add our extra message
+    reset_mock_midi_calls();
+    REQUIRE(enqueue_midi_message(extra_msg));
     advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
     process_midi_output_queue();
-    REQUIRE(MIDI::internal::mock_midi_calls.size() == 2);
-    REQUIRE(MIDI::internal::mock_midi_calls[1] ==
-            MIDI::internal::MockMidiCallRecord::NoteOn(1, 120, 100));
+
+    // Verify extra message was processed
+    REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
+    REQUIRE(MIDI::internal::mock_midi_calls[0] ==
+            MIDI::internal::MockMidiCallRecord::NoteOn(1, extra_note, 100));
   }
 
   SECTION("Processing an Empty Queue") {

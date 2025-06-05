@@ -1,4 +1,4 @@
-#include "midi_wrapper.h"
+#include "musin/midi/midi_wrapper.h"
 #include "../pico_uart.h"
 #include "musin/midi/midi_message_queue.h" // For enqueuing messages
 #include <MIDI.h>

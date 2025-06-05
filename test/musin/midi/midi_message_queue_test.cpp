@@ -1,6 +1,7 @@
 #include "test_support.h" // Assumed to bring in Catch2
 #include "musin/midi/midi_message_queue.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal declarations and ::midi::MidiType
+#include "pico/time.h"               // For absolute_time_t definition from mock
 
 #include <vector>
 #include <string>

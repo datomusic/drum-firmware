@@ -15,6 +15,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT
 add_executable(${PROJECT_NAME}
   audio/pitch_shifter_test.cpp
   audio/memory_reader_test.cpp
+  midi/midi_message_queue_test.cpp
 )
 
 if(${STATIC_TESTS})

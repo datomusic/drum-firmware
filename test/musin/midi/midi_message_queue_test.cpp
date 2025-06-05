@@ -194,23 +194,53 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
   SECTION("FIFO Order") {
     reset_test_state();
+    
+    // Debug print initial state
+    printf("Initial time: %llu\n", get_mock_time_us());
+    
     // Initialize time to allow first message to send immediately
     set_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST * 2);
-    
+    printf("Set initial time to: %llu\n", get_mock_time_us());
+
     OutgoingMidiMessage note_on_msg(1, 60, 100, true);
     OutgoingMidiMessage cc_msg(1, 7, 127); // CC, Ch 1, Ctrl 7, Val 127
 
     REQUIRE(enqueue_midi_message(note_on_msg));
     REQUIRE(enqueue_midi_message(cc_msg));
 
-    process_midi_output_queue(); // Process Note On
+    printf("Queue size after enqueue: %zu\n", midi_output_queue.size());
+
+    // First process - should send Note On
+    process_midi_output_queue();
+    printf("After first process - mock calls: %zu\n", MIDI::internal::mock_midi_calls.size());
+    printf("Current time: %llu\n", get_mock_time_us());
+    
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
+    if (!MIDI::internal::mock_midi_calls.empty()) {
+      printf("First call: %s ch=%d p1=%d p2=%d\n", 
+             MIDI::internal::mock_midi_calls[0].function_name.c_str(),
+             MIDI::internal::mock_midi_calls[0].channel,
+             MIDI::internal::mock_midi_calls[0].p1,
+             MIDI::internal::mock_midi_calls[0].p2);
+    }
     REQUIRE(MIDI::internal::mock_midi_calls[0] ==
             MIDI::internal::MockMidiCallRecord::NoteOn(1, 60, 100));
 
-    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST); // Allow CC to be sent
-    process_midi_output_queue();                             // Process CC
+    // Advance time and process CC
+    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+    printf("Advanced time to: %llu\n", get_mock_time_us());
+    
+    process_midi_output_queue();
+    printf("After second process - mock calls: %zu\n", MIDI::internal::mock_midi_calls.size());
+    
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 2);
+    if (MIDI::internal::mock_midi_calls.size() > 1) {
+      printf("Second call: %s ch=%d p1=%d p2=%d\n", 
+             MIDI::internal::mock_midi_calls[1].function_name.c_str(),
+             MIDI::internal::mock_midi_calls[1].channel,
+             MIDI::internal::mock_midi_calls[1].p1,
+             MIDI::internal::mock_midi_calls[1].p2);
+    }
     REQUIRE(MIDI::internal::mock_midi_calls[1] ==
             MIDI::internal::MockMidiCallRecord::ControlChange(1, 7, 127));
     REQUIRE(midi_output_queue.empty());

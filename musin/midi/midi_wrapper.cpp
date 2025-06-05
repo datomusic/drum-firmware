@@ -3,7 +3,6 @@
 #include "musin/midi/midi_message_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
-#include <cstdio> // For printf
 
 struct MIDISettings {
   /*! Running status enables short messages when sending multiple values

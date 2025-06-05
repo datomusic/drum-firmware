@@ -27,15 +27,15 @@ namespace { // Anonymous namespace for internal linkage
 // --- Constants ---
 static constexpr uint8_t SYSEX_DATO_ID = 0x7D; // Manufacturer ID for Dato
 static constexpr uint8_t SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
-static constexpr uint8_t SYSEX_UNIVERSAL_REALTIME_ID =
-    0x7F; // Kept for completeness, though not used here
-static constexpr uint8_t SYSEX_DRUM_ID = 0x65; // Device ID for DRUM
-static constexpr uint8_t SYSEX_ALL_ID = 0x7F;  // Target all devices
+static constexpr uint8_t SYSEX_UNIVERSAL_REALTIME_ID = 0x7F; // Unused
+static constexpr uint8_t SYSEX_DRUM_ID = 0x65;               // Device ID for DRUM
+static constexpr uint8_t SYSEX_ALL_ID = 0x7F;                // Target all devices
 
 // Command bytes for Dato/DRUM specific SysEx
-static constexpr uint8_t SYSEX_FIRMWARE_VERSION = 0x01;  // Custom command to request firmware version
-static constexpr uint8_t SYSEX_SERIAL_NUMBER = 0x02;     // Custom command to request serial number
-static constexpr uint8_t SYSEX_REBOOT_BOOTLOADER = 0x0B; // Custom command to reboot to bootloader
+static constexpr uint8_t SYSEX_FIRMWARE_VERSION =
+    0x01; // Custom command to request firmware version
+static constexpr uint8_t SYSEX_SERIAL_NUMBER = 0x02;
+static constexpr uint8_t SYSEX_REBOOT_BOOTLOADER = 0x0B;
 
 #include <stdio.h>
 // Forward Declarations for Helper Functions within anonymous namespace
@@ -231,10 +231,10 @@ void midi_print_firmware_version() {
       SYSEX_DATO_ID,
       SYSEX_DRUM_ID,
       SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
-                     (uint8_t)(FIRMWARE_MAJOR & 0x7F),
-                     (uint8_t)(FIRMWARE_MINOR & 0x7F),
-                     (uint8_t)(FIRMWARE_PATCH & 0x7F),
-                     0xF7};
+      (uint8_t)(FIRMWARE_MAJOR & 0x7F),
+      (uint8_t)(FIRMWARE_MINOR & 0x7F),
+      (uint8_t)(FIRMWARE_PATCH & 0x7F),
+      0xF7};
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }

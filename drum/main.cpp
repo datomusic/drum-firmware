@@ -1,11 +1,11 @@
 #include "musin/hal/debug_utils.h"
+#include "musin/midi/midi_message_queue.h"
 #include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
-#include "musin/timing/midi_clock_processor.h"
 #include "musin/usb/usb.h"
-#include "musin/midi/midi_message_queue.h"
 
 #include "pico/stdio_usb.h"
 #include "pico/time.h"

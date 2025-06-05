@@ -208,7 +208,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     REQUIRE(enqueue_midi_message(note_on_msg));
     REQUIRE(enqueue_midi_message(cc_msg));
 
-    printf("Queue size after enqueue: %zu\n", midi_output_queue.size());
+    printf("Queue size after enqueue: %u\n", static_cast<unsigned>(midi_output_queue.size()));
 
     // First process - should send Note On
     process_midi_output_queue();

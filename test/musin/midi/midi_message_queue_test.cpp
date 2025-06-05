@@ -174,7 +174,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     }
 
     // Now queue should be empty - add our extra message
-    reset_mock_midi_calls();
+    MIDI::internal::reset_mock_midi_calls();
     REQUIRE(enqueue_midi_message(extra_msg));
     advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
     process_midi_output_queue();

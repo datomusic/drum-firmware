@@ -1,13 +1,13 @@
-#include "test_support.h" // Assumed to bring in Catch2
 #include "musin/midi/midi_message_queue.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal declarations and ::midi::MidiType
 #include "pico/time.h"               // For absolute_time_t definition from mock
+#include "test_support.h"            // Assumed to bring in Catch2
 
-#include <vector>
-#include <string>
-#include <cstdint>
 #include <algorithm> // For std::copy, std::equal
-#include <vector>    // Already included but good for clarity
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <vector> // Already included but good for clarity
 
 // Definition of the global mock time variable declared in mock pico/time.h
 absolute_time_t mock_current_time = 0;
@@ -157,7 +157,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
   SECTION("Queue Full Behavior") {
     reset_test_state();
-    
+
     // Fill queue completely with valid MIDI notes (0-127)
     const uint8_t first_note = 60;
     const uint8_t last_note = std::min<uint8_t>(127, first_note + MIDI_QUEUE_SIZE - 1);
@@ -181,7 +181,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     // Verify all initial messages were processed in order
     REQUIRE(MIDI::internal::mock_midi_calls.size() == (last_note - first_note + 1));
     for (size_t i = 0; i < MIDI::internal::mock_midi_calls.size(); ++i) {
-      REQUIRE(MIDI::internal::mock_midi_calls[i] == 
+      REQUIRE(MIDI::internal::mock_midi_calls[i] ==
               MIDI::internal::MockMidiCallRecord::NoteOn(1, first_note + i, 100));
     }
 
@@ -206,7 +206,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
   SECTION("FIFO Order") {
     reset_test_state();
-    
+
     // Time is now set by reset_test_state() to allow the first message to send.
     INFO("Initial time: " << get_mock_time_us());
 
@@ -222,13 +222,13 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     process_midi_output_queue();
     INFO("After first process - mock calls: " << MIDI::internal::mock_midi_calls.size());
     INFO("Current time: " << get_mock_time_us());
-    
+
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
     if (!MIDI::internal::mock_midi_calls.empty()) {
-      INFO("First call: " << MIDI::internal::mock_midi_calls[0].function_name << 
-           " ch=" << MIDI::internal::mock_midi_calls[0].channel <<
-           " p1=" << MIDI::internal::mock_midi_calls[0].p1 <<
-           " p2=" << MIDI::internal::mock_midi_calls[0].p2);
+      INFO("First call: " << MIDI::internal::mock_midi_calls[0].function_name
+                          << " ch=" << MIDI::internal::mock_midi_calls[0].channel
+                          << " p1=" << MIDI::internal::mock_midi_calls[0].p1
+                          << " p2=" << MIDI::internal::mock_midi_calls[0].p2);
     }
     REQUIRE(MIDI::internal::mock_midi_calls[0] ==
             MIDI::internal::MockMidiCallRecord::NoteOn(1, 60, 100));
@@ -236,16 +236,16 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     // Advance time and process CC
     advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
     INFO("Advanced time to: " << get_mock_time_us());
-    
+
     process_midi_output_queue();
     INFO("After second process - mock calls: " << MIDI::internal::mock_midi_calls.size());
-    
+
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 2);
     if (MIDI::internal::mock_midi_calls.size() > 1) {
-      INFO("Second call: " << MIDI::internal::mock_midi_calls[1].function_name <<
-           " ch=" << MIDI::internal::mock_midi_calls[1].channel <<
-           " p1=" << MIDI::internal::mock_midi_calls[1].p1 <<
-           " p2=" << MIDI::internal::mock_midi_calls[1].p2);
+      INFO("Second call: " << MIDI::internal::mock_midi_calls[1].function_name
+                           << " ch=" << MIDI::internal::mock_midi_calls[1].channel
+                           << " p1=" << MIDI::internal::mock_midi_calls[1].p1
+                           << " p2=" << MIDI::internal::mock_midi_calls[1].p2);
     }
     REQUIRE(MIDI::internal::mock_midi_calls[1] ==
             MIDI::internal::MockMidiCallRecord::ControlChange(1, 7, 127));
@@ -426,8 +426,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
       // Compare the truncated data
       REQUIRE(std::equal(MIDI::internal::mock_midi_calls[0].sysex_data.begin(),
                          MIDI::internal::mock_midi_calls[0].sysex_data.end(),
-                         long_payload_vec.begin(),
-                         long_payload_vec.begin() + MIDI::SysExMaxSize));
+                         long_payload_vec.begin(), long_payload_vec.begin() + MIDI::SysExMaxSize));
     }
 
     SECTION("SysEx with zero length but non-null pointer in constructor") {

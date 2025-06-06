@@ -37,11 +37,14 @@ static inline int64_t absolute_time_diff_us(absolute_time_t from, absolute_time_
     // The actual SDK might have specific behavior; for testing, returning 0 if 'from' is nil
     // is a simple approach, or one could try to mimic the SDK's large value if 'to' is far.
     // Given the queue logic, if last_non_realtime_send_time is nil, it implies a send is allowed.
-    return is_nil_time(to) ? 0 : static_cast<int64_t>(to); // Simplified: if from is nil, effectively infinite time has passed.
+    return is_nil_time(to)
+               ? 0
+               : static_cast<int64_t>(
+                     to); // Simplified: if from is nil, effectively infinite time has passed.
   }
   if (is_nil_time(to)) {
-      // If 'to' is nil and 'from' is not, this implies a negative duration.
-      return -static_cast<int64_t>(from);
+    // If 'to' is nil and 'from' is not, this implies a negative duration.
+    return -static_cast<int64_t>(from);
   }
   return static_cast<int64_t>(to) - static_cast<int64_t>(from);
 }

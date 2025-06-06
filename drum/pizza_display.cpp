@@ -75,12 +75,9 @@ PizzaDisplay::PizzaDisplay(
         &sequencer_controller_ref,
     musin::timing::TempoHandler &tempo_handler_ref)
     : _leds(PIN_LED_DATA, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS, DEFAULT_COLOR_CORRECTION),
-      note_colors({0xFF0000, 0xFF0020, 0xFF0040, 0xFF0060, 0xFF1010, 0xFF1020, 0xFF2040, 0xFF2060,
-                   0x0000FF, 0x0028FF, 0x0050FF, 0x0078FF, 0x1010FF, 0x1028FF, 0x2050FF, 0x3078FF,
-                   0x00FF00, 0x00FF1E, 0x00FF3C, 0x00FF5A, 0x10FF10, 0x10FF1E, 0x10FF3C, 0x20FF5A,
-                   0xFFFF00, 0xFFE100, 0xFFC300, 0xFFA500, 0xFFFF20, 0xFFE120, 0xFFC320, 0xFFA520}),
       _drumpad_fade_start_times{}, _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) {
+  // note_colors array initialization is removed
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
   }
@@ -125,17 +122,15 @@ void PizzaDisplay::draw_base_elements() {
   draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
 }
 
-std::optional<uint8_t> PizzaDisplay::get_color_index_for_note(uint8_t track_index,
-                                                              uint8_t note) const {
-  if (track_index < config::track_note_ranges.size()) {
-    const auto &note_list = config::track_note_ranges[track_index];
-    for (size_t i = 0; i < note_list.size(); ++i) {
-      if (note_list[i] == note) {
-        return static_cast<uint8_t>(i);
-      }
+// get_color_index_for_note is removed.
+
+std::optional<uint32_t> PizzaDisplay::get_color_for_midi_note(uint8_t midi_note_number) const {
+  for (const auto &note_def : config::global_note_definitions) {
+    if (note_def.midi_note_number == midi_note_number) {
+      return note_def.color;
     }
   }
-  return std::nullopt; // Note not found in the track's list
+  return std::nullopt; // MIDI note not found in global definitions
 }
 
 void PizzaDisplay::update_track_override_colors() {
@@ -144,15 +139,13 @@ void PizzaDisplay::update_track_override_colors() {
     if (_sequencer_controller_ref.is_pad_pressed(track_idx) ||
         _sequencer_controller_ref.get_retrigger_mode_for_track(track_idx) > 0) {
       uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(track_idx);
-      std::optional<uint8_t> color_map_index = get_color_index_for_note(track_idx, active_note);
-      uint8_t final_color_index;
-      if (color_map_index.has_value()) {
-        final_color_index = color_map_index.value();
+      std::optional<uint32_t> color_opt = get_color_for_midi_note(active_note);
+      if (color_opt.has_value()) {
+        _track_override_colors[track_idx] = color_opt.value();
       } else {
-        // Fallback: if active_note is not in its track's list, use direct modulo.
-        final_color_index = active_note % NUM_NOTE_COLORS;
+        // Fallback: if MIDI note not found in global definitions, use black.
+        _track_override_colors[track_idx] = 0x000000;
       }
-      _track_override_colors[track_idx] = get_note_color(final_color_index);
     } else {
       _track_override_colors[track_idx] = std::nullopt;
     }
@@ -209,12 +202,7 @@ void PizzaDisplay::set_play_button_led(uint32_t color) {
   _leds.set_pixel(LED_PLAY_BUTTON, color);
 }
 
-uint32_t PizzaDisplay::get_note_color(uint8_t note_index) const {
-  if (note_index < note_colors.size()) {
-    return note_colors[note_index];
-  }
-  return 0;
-}
+// get_note_color method is removed.
 
 void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) {
   std::optional<uint32_t> led_index_opt;
@@ -273,15 +261,13 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
 void PizzaDisplay::draw_animations(absolute_time_t now) {
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
-    std::optional<uint8_t> color_map_index = get_color_index_for_note(i, active_note);
-    uint8_t final_color_index;
-    if (color_map_index.has_value()) {
-      final_color_index = color_map_index.value();
-    } else {
-      // Fallback: if active_note is not in its track's list, use direct modulo.
-      final_color_index = active_note % NUM_NOTE_COLORS;
+    std::optional<uint32_t> base_color_opt = get_color_for_midi_note(active_note);
+
+    uint32_t base_color = 0x000000; // Default to black if MIDI note/color not found
+    if (base_color_opt.has_value()) {
+      base_color = base_color_opt.value();
     }
-    uint32_t base_color = get_note_color(final_color_index);
+
     uint32_t final_color = base_color;
     absolute_time_t fade_start_time = _drumpad_fade_start_times[i];
 

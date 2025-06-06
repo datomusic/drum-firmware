@@ -25,7 +25,7 @@ class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
-  static constexpr size_t NUM_NOTE_COLORS = 32;
+  // NUM_NOTE_COLORS is removed as colors are now globally defined in config::global_note_definitions
   static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
   static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
@@ -85,12 +85,7 @@ public:
    */
   void set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity);
 
-  /**
-   * @brief Get the base color associated with a note index.
-   * @param note_index Index of the note color (0-31).
-   * @return The 24-bit base color (0xRRGGBB) or 0 if index is invalid.
-   */
-  uint32_t get_note_color(uint8_t note_index) const;
+  // get_note_color is removed, color is fetched via get_color_for_midi_note using config::global_note_definitions
 
   /**
    * @brief Draws base LED elements like the play button and sequencer steps.
@@ -202,8 +197,10 @@ private:
    */
   uint32_t calculate_intensity_color(uint8_t intensity) const;
 
+  std::optional<uint32_t> get_color_for_midi_note(uint8_t midi_note_number) const;
+
   musin::drivers::WS2812_DMA<NUM_LEDS> _leds;
-  etl::array<uint32_t, NUM_NOTE_COLORS> note_colors;
+  // note_colors array is removed
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
 
@@ -215,7 +212,7 @@ private:
   uint32_t _clock_tick_counter = 0;
   float _stopped_highlight_factor = 0.0f;
 
-  std::optional<uint8_t> get_color_index_for_note(uint8_t track_index, uint8_t note) const;
+  // get_color_index_for_note is removed
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
   void update_track_override_colors();
 };
@@ -269,10 +266,15 @@ void PizzaDisplay::draw_sequencer_state(
 }
 
 inline uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) const {
-  uint32_t color = 0;
+  uint32_t color = 0; // Default to black if step disabled or note invalid
 
   if (step.enabled && step.note.has_value()) {
-    uint32_t base_color = get_note_color(step.note.value() % NUM_NOTE_COLORS);
+    std::optional<uint32_t> base_color_opt = get_color_for_midi_note(step.note.value());
+
+    if (!base_color_opt.has_value()) {
+      return 0; // MIDI note not found in global definitions, return black
+    }
+    uint32_t base_color = base_color_opt.value();
 
     uint8_t brightness = MAX_BRIGHTNESS;
     if (step.velocity.has_value()) {

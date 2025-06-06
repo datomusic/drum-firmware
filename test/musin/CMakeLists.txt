@@ -15,6 +15,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../lib/test/Catch2 ${CMAKE_CURRENT
 add_executable(${PROJECT_NAME}
   audio/pitch_shifter_test.cpp
   audio/memory_reader_test.cpp
+  midi/midi_message_queue_test.cpp
 )
 
 if(${STATIC_TESTS})
@@ -26,9 +27,12 @@ endif(${STATIC_TESTS})
 
 target_sources(${PROJECT_NAME} PRIVATE
   ${musin_audio_generic_sources}
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/midi/midi_message_queue.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}/include_overrides # For pico/time.h mock
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src # For midi_Defs.h
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
   ${CMAKE_CURRENT_LIST_DIR}/../..

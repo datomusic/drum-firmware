@@ -11,10 +11,9 @@ namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
-        &tempo_source_ref)
+    musin::timing::TempoHandler &tempo_handler_ref)
     : /* sequencer_ is default-initialized */ current_step_counter(0), last_played_note_per_track{},
-      _just_played_step_per_track{}, tempo_source(tempo_source_ref), _running(false),
+      _just_played_step_per_track{}, tempo_source(tempo_handler_ref), _running(false),
       swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
       next_trigger_tick_target_(0), _pad_pressed_state{}, _retrigger_mode_per_track{},
       _retrigger_progress_ticks_per_track{}, random_active_(false),
@@ -22,9 +21,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       random_track_offsets_{}, _active_note_per_track{} {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (track_idx < config::drumpad::track_note_ranges.size() &&
-        !config::drumpad::track_note_ranges[track_idx].empty()) {
-      _active_note_per_track[track_idx] = config::drumpad::track_note_ranges[track_idx][0];
+    if (track_idx < config::track_note_ranges.size() &&
+        !config::track_note_ranges[track_idx].empty()) {
+      _active_note_per_track[track_idx] = config::track_note_ranges[track_idx][0];
     }
   }
 
@@ -211,6 +210,7 @@ void SequencerController<NumTracks, NumSteps>::start() {
   if (_running) {
     return;
   }
+  tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
   tempo_source.add_observer(*this);
   _running = true;
 }
@@ -219,6 +219,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
   if (!_running) {
     return;
   }
+  tempo_source.set_playback_state(musin::timing::PlaybackState::STOPPED);
   tempo_source.remove_observer(*this);
   _running = false;
 
@@ -373,6 +374,11 @@ void SequencerController<NumTracks, NumSteps>::deactivate_random() {
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool SequencerController<NumTracks, NumSteps>::is_random_active() const {
   return random_active_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_random_probability(uint8_t percent) {
+  random_probability_ = std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
 }
 
 template <size_t NumTracks, size_t NumSteps>

@@ -1,5 +1,6 @@
-#include "midi_wrapper.h"
+#include "musin/midi/midi_wrapper.h"
 #include "../pico_uart.h"
+#include "musin/midi/midi_message_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
 
@@ -93,26 +94,63 @@ void MIDI::read() {
   ALL_TRANSPORTS(read());
 }
 
+// --- Public Send Functions (Enqueue Messages) ---
+
 void MIDI::sendRealTime(const midi::MidiType message) {
-  ALL_TRANSPORTS(sendRealTime(message));
+  musin::midi::OutgoingMidiMessage msg(message);
+  musin::midi::enqueue_midi_message(msg);
 }
 
 void MIDI::sendControlChange(const byte cc, const byte value, const byte channel) {
-  ALL_TRANSPORTS(sendControlChange(cc, value, channel));
+  musin::midi::OutgoingMidiMessage msg(channel, cc, value);
+  musin::midi::enqueue_midi_message(msg);
 }
 
 void MIDI::sendNoteOn(const byte note, const byte velocity, const byte channel) {
-  ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
+  musin::midi::OutgoingMidiMessage msg(channel, note, velocity, true);
+  bool enqueued = musin::midi::enqueue_midi_message(msg);
+  if (!enqueued) {
+  }
 }
 
 void MIDI::sendNoteOff(const byte note, const byte velocity, const byte channel) {
-  ALL_TRANSPORTS(sendNoteOff(note, velocity, channel));
+  musin::midi::OutgoingMidiMessage msg(channel, note, velocity, false);
+  musin::midi::enqueue_midi_message(msg);
 }
 
 void MIDI::sendPitchBend(const int bend, const byte channel) {
-  ALL_TRANSPORTS(sendPitchBend(bend, channel));
+  musin::midi::OutgoingMidiMessage msg(channel, bend);
+  musin::midi::enqueue_midi_message(msg);
 }
 
 void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
+  musin::midi::OutgoingMidiMessage msg(bytes, length);
+  musin::midi::enqueue_midi_message(msg);
+}
+
+// --- Internal Actual Send Functions (Called by Queue Processor) ---
+
+void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
+  ALL_TRANSPORTS(sendRealTime(message));
+}
+
+void MIDI::internal::_sendControlChange_actual(const byte channel, const byte controller,
+                                               const byte value) {
+  ALL_TRANSPORTS(sendControlChange(controller, value, channel));
+}
+
+void MIDI::internal::_sendNoteOn_actual(const byte channel, const byte note, const byte velocity) {
+  ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
+}
+
+void MIDI::internal::_sendNoteOff_actual(const byte channel, const byte note, const byte velocity) {
+  ALL_TRANSPORTS(sendNoteOff(note, velocity, channel));
+}
+
+void MIDI::internal::_sendPitchBend_actual(const byte channel, const int bend) {
+  ALL_TRANSPORTS(sendPitchBend(bend, channel));
+}
+
+void MIDI::internal::_sendSysEx_actual(const unsigned length, const byte *bytes) {
   ALL_TRANSPORTS(sendSysEx(length, bytes));
 }

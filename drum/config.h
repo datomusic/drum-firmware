@@ -73,20 +73,42 @@ struct NoteDefinition {
   uint32_t color; // 0xRRGGBB
 };
 
-constexpr etl::array<NoteDefinition, 32> global_note_definitions = {{
-    // Track 0 (Kick/Bass)
-    {35, 0xFF0000}, {36, 0xFF0020}, {37, 0xFF0040}, {41, 0xFF0060},
-    {43, 0xFF1010}, {47, 0xFF1020}, {48, 0xFF2040}, {50, 0xFF2060},
-    // Track 1 (Snare)
-    {38, 0x0000FF}, {40, 0x0028FF}, {39, 0x0050FF}, {54, 0x0078FF},
-    {56, 0x1010FF}, {75, 0x1028FF}, {76, 0x2050FF}, {77, 0x3078FF},
-    // Track 2 (Percussion)
-    {45, 0x00FF00}, {58, 0x00FF1E}, {59, 0x00FF3C}, {60, 0x00FF5A},
-    {61, 0x10FF10}, {62, 0x10FF1E}, {63, 0x10FF3C}, {64, 0x20FF5A},
-    // Track 3 (Hi-Hats/Cymbals)
-    {42, 0xFFFF00}, {44, 0xFFE100}, {46, 0xFFC300}, {49, 0xFFA500},
-    {51, 0xFFFF20}, {52, 0xFFE120}, {53, 0xFFC320}, {57, 0xFFA520}
-}};
+constexpr etl::array<NoteDefinition, 32> global_note_definitions = {{// Track 0 (Kick/Bass)
+                                                                     {35, 0xFF0000},
+                                                                     {36, 0xFF0020},
+                                                                     {37, 0xFF0040},
+                                                                     {41, 0xFF0060},
+                                                                     {43, 0xFF1010},
+                                                                     {47, 0xFF1020},
+                                                                     {48, 0xFF2040},
+                                                                     {50, 0xFF2060},
+                                                                     // Track 1 (Snare)
+                                                                     {38, 0x0000FF},
+                                                                     {40, 0x0028FF},
+                                                                     {39, 0x0050FF},
+                                                                     {54, 0x0078FF},
+                                                                     {56, 0x1010FF},
+                                                                     {75, 0x1028FF},
+                                                                     {76, 0x2050FF},
+                                                                     {77, 0x3078FF},
+                                                                     // Track 2 (Percussion)
+                                                                     {45, 0x00FF00},
+                                                                     {58, 0x00FF1E},
+                                                                     {59, 0x00FF3C},
+                                                                     {60, 0x00FF5A},
+                                                                     {61, 0x10FF10},
+                                                                     {62, 0x10FF1E},
+                                                                     {63, 0x10FF3C},
+                                                                     {64, 0x20FF5A},
+                                                                     // Track 3 (Hi-Hats/Cymbals)
+                                                                     {42, 0xFFFF00},
+                                                                     {44, 0xFFE100},
+                                                                     {46, 0xFFC300},
+                                                                     {49, 0xFFA500},
+                                                                     {51, 0xFFFF20},
+                                                                     {52, 0xFFE120},
+                                                                     {53, 0xFFC320},
+                                                                     {57, 0xFFA520}}};
 
 // Analog Control Component Configuration
 namespace analog_controls {

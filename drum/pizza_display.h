@@ -25,7 +25,8 @@ class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
-  // NUM_NOTE_COLORS is removed as colors are now globally defined in config::global_note_definitions
+  // NUM_NOTE_COLORS is removed as colors are now globally defined in
+  // config::global_note_definitions
   static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
   static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
@@ -85,7 +86,8 @@ public:
    */
   void set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity);
 
-  // get_note_color is removed, color is fetched via get_color_for_midi_note using config::global_note_definitions
+  // get_note_color is removed, color is fetched via get_color_for_midi_note using
+  // config::global_note_definitions
 
   /**
    * @brief Draws base LED elements like the play button and sequencer steps.

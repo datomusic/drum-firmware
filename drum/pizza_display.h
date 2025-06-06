@@ -215,6 +215,7 @@ private:
   uint32_t _clock_tick_counter = 0;
   float _stopped_highlight_factor = 0.0f;
 
+  std::optional<uint8_t> get_color_index_for_note(uint8_t track_index, uint8_t note) const;
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
   void update_track_override_colors();
 };

@@ -252,7 +252,15 @@ absolute_time_t PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) con
 void PizzaDisplay::draw_animations(absolute_time_t now) {
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
-    uint32_t base_color = get_note_color(active_note % NUM_NOTE_COLORS);
+    std::optional<uint8_t> color_map_index = get_color_index_for_note(i, active_note);
+    uint8_t final_color_index;
+    if (color_map_index.has_value()) {
+      final_color_index = color_map_index.value();
+    } else {
+      // Fallback: if active_note is not in its track's list, use direct modulo.
+      final_color_index = active_note % NUM_NOTE_COLORS;
+    }
+    uint32_t base_color = get_note_color(final_color_index);
     uint32_t final_color = base_color;
     absolute_time_t fade_start_time = _drumpad_fade_start_times[i];
 

@@ -125,13 +125,34 @@ void PizzaDisplay::draw_base_elements() {
   draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
 }
 
+std::optional<uint8_t> PizzaDisplay::get_color_index_for_note(uint8_t track_index,
+                                                              uint8_t note) const {
+  if (track_index < config::track_note_ranges.size()) {
+    const auto &note_list = config::track_note_ranges[track_index];
+    for (size_t i = 0; i < note_list.size(); ++i) {
+      if (note_list[i] == note) {
+        return static_cast<uint8_t>(i);
+      }
+    }
+  }
+  return std::nullopt; // Note not found in the track's list
+}
+
 void PizzaDisplay::update_track_override_colors() {
   for (uint8_t track_idx = 0; track_idx < SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
     // Check if either the pad is pressed or retrigger mode is active
     if (_sequencer_controller_ref.is_pad_pressed(track_idx) ||
         _sequencer_controller_ref.get_retrigger_mode_for_track(track_idx) > 0) {
       uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(track_idx);
-      _track_override_colors[track_idx] = get_note_color(active_note % NUM_NOTE_COLORS);
+      std::optional<uint8_t> color_map_index = get_color_index_for_note(track_idx, active_note);
+      uint8_t final_color_index;
+      if (color_map_index.has_value()) {
+        final_color_index = color_map_index.value();
+      } else {
+        // Fallback: if active_note is not in its track's list, use direct modulo.
+        final_color_index = active_note % NUM_NOTE_COLORS;
+      }
+      _track_override_colors[track_idx] = get_note_color(final_color_index);
     } else {
       _track_override_colors[track_idx] = std::nullopt;
     }

@@ -157,8 +157,7 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
       // typical "amount". To make higher CC value = more crush, we pass (1.0f - value) to
       // set_crush_depth.
       _audio_engine.set_crush_depth(1.0f - value);
-      // Optionally, also control crush_rate with the same value or a fixed one.
-      // _audio_engine.set_crush_rate(1.0f - value); // Example if rate is also controlled
+      _audio_engine.set_crush_rate(value);
       break;
     }
     case Parameter::SWING:

@@ -77,7 +77,6 @@ PizzaDisplay::PizzaDisplay(
     : _leds(PIN_LED_DATA, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS, DEFAULT_COLOR_CORRECTION),
       _drumpad_fade_start_times{}, _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) {
-  // note_colors array initialization is removed
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
   }
@@ -86,7 +85,7 @@ PizzaDisplay::PizzaDisplay(
   }
 }
 
-void PizzaDisplay::notification(musin::timing::TempoEvent /* event */) {
+void PizzaDisplay::notification(musin::timing::TempoEvent) {
   if (!_sequencer_controller_ref.is_running()) {
     _clock_tick_counter++;
   } else {
@@ -121,8 +120,6 @@ void PizzaDisplay::draw_base_elements() {
   update_track_override_colors();
   draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
 }
-
-// get_color_index_for_note is removed.
 
 std::optional<uint32_t> PizzaDisplay::get_color_for_midi_note(uint8_t midi_note_number) const {
   for (const auto &note_def : config::global_note_definitions) {
@@ -201,8 +198,6 @@ void PizzaDisplay::set_led(uint32_t index, uint32_t color) {
 void PizzaDisplay::set_play_button_led(uint32_t color) {
   _leds.set_pixel(LED_PLAY_BUTTON, color);
 }
-
-// get_note_color method is removed.
 
 void PizzaDisplay::_set_physical_drumpad_led(uint8_t pad_index, uint32_t color) {
   std::optional<uint32_t> led_index_opt;

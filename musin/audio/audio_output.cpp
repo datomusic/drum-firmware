@@ -34,8 +34,8 @@ bool AudioOutput::init() {
   // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
   printf("Initializing AIC3204 codec\n");
   if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U)) {
-    printf("Failed to initialize AIC3204 codec\n");
-    return false;
+    panic("Failed to initialize AIC3204 codec\n");
+    // return false; // Unreachable after panic
   }
   // Set initial volume to 0dB (max)
   aic3204_dac_set_volume(0);

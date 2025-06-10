@@ -44,7 +44,7 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
   gpio_pull_up(_sda_pin);
   gpio_pull_up(_scl_pin);
 
-  sleep_ms(10);
+  sleep_ms(1);
 
   if (_reset_pin != 0xFF) {
     gpio_put(_reset_pin, 1); // Set HIGH

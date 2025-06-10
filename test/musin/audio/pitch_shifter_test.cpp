@@ -12,6 +12,18 @@ template <int SAMPLE_COUNT, int CHUNK_SIZE> struct DummyBufferReader : SampleRea
     return active;
   }
 
+  constexpr bool read_next(int16_t &out) override {
+    if (!active || read_counter >= samples.size()) {
+      active = false;
+      return false;
+    }
+    out = samples[read_counter++];
+    if (read_counter >= samples.size()) {
+      active = false;
+    }
+    return true;
+  }
+
   constexpr uint32_t read_samples(AudioBlock &block) override {
     uint32_t consumed = 0;
     uint32_t samples_written = 0;

@@ -128,23 +128,23 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
     // REQUIRE(reader.read_counter == 16); // Verify we consumed all input
     REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
-    // First samples don't show proper interpolated values
-    // because we prefill the buffer with 4 samples
-    // TODO: fix the implementation so that this doesn't happen
-    REQUIRE(block[0] == 1000); // Initial clamped value
-    REQUIRE(block[1] == 1000);
-    REQUIRE(block[2] == 1000);
-    REQUIRE(block[3] == 1000);
-    REQUIRE(block[4] == 1000);
-    REQUIRE(block[5] == 875);
-    REQUIRE(block[6] == 1000);
-    REQUIRE(block[7] == 1375); // First interpolated value
-    REQUIRE(block[8] == 2000);
-    REQUIRE(block[9] == 2500);
-    REQUIRE(block[10] == 3000);
-    REQUIRE(block[11] == 3500);
-    REQUIRE(block[12] == 4000);
-    REQUIRE(block[13] == 4500);
+    // The initial samples are based on the Catmull-Rom interpolation of the
+    // source data. The first sample is the same as the source's first sample
+    // because the interpolation position has a fractional part of 0.
+    REQUIRE(block[0] == 1000);
+    REQUIRE(block[1] == 1437);
+    REQUIRE(block[2] == 2000);
+    REQUIRE(block[3] == 2500);
+    REQUIRE(block[4] == 3000);
+    REQUIRE(block[5] == 3500);
+    REQUIRE(block[6] == 4000);
+    REQUIRE(block[7] == 4500);
+    REQUIRE(block[8] == 5000);
+    REQUIRE(block[9] == 5500);
+    REQUIRE(block[10] == 6000);
+    REQUIRE(block[11] == 6500);
+    REQUIRE(block[12] == 7000);
+    REQUIRE(block[13] == 7500);
   }));
 }
 

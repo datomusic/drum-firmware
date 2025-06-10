@@ -2,6 +2,7 @@
 #define CHUNK_READER_H_FBMGJA3O
 
 #include "etl/array.h"
+#include "musin/audio/cpu_copier.h"
 #include "sample_reader.h" // Includes block.h for AudioBlock and AUDIO_BLOCK_SAMPLES
 #include <algorithm>       // For std::copy
 #include <stdint.h>
@@ -14,7 +15,9 @@ namespace musin {
 // E.g., 2 slots * 4 blocks/slot * 128 samples/block * 2 bytes/sample = 2048 bytes.
 constexpr size_t DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT = 1;
 
-template <size_t NumBlocksPerSlot = DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT> struct BufferedReader {
+template <size_t NumBlocksPerSlot = DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT,
+          typename CopierPolicy = CpuCopier>
+struct BufferedReader {
   static_assert(NumBlocksPerSlot > 0, "Number of RAM blocks per slot must be greater than 0");
   static constexpr size_t SAMPLES_PER_SLOT = NumBlocksPerSlot * AUDIO_BLOCK_SAMPLES;
 
@@ -54,9 +57,8 @@ private:
       }
 
       int16_t *destination_start_ptr = slot_to_fill.begin() + out_samples_filled;
-      std::copy(temp_block_for_source_read.begin(),
-                temp_block_for_source_read.begin() + samples_fetched_this_iteration,
-                destination_start_ptr);
+      copier_instance_.copy(destination_start_ptr, temp_block_for_source_read.begin(),
+                            samples_fetched_this_iteration);
       out_samples_filled += samples_fetched_this_iteration;
     }
   }
@@ -133,6 +135,8 @@ private:
 
   uint32_t samples_in_active_buffer;
   uint32_t current_read_position_in_active_buffer;
+
+  CopierPolicy copier_instance_;
 };
 
 } // namespace musin

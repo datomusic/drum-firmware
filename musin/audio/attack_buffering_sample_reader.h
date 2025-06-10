@@ -4,6 +4,7 @@
 #include "musin/audio/buffered_reader.h" // Added include
 #include "musin/audio/memory_reader.h"   // Added include
 #include "musin/audio/sample_data.h"
+#include "musin/hal/pico_dma_copier.h"
 #include "musin/audio/sample_reader.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
 #include "port/section_macros.h"
@@ -128,7 +129,8 @@ private:
 
   // Internal readers for handling the flash data portion with double buffering
   musin::MemorySampleReader flash_data_memory_reader_;
-  musin::BufferedReader<NumFlashBufferBlocks> flash_data_buffered_reader_;
+  musin::BufferedReader<NumFlashBufferBlocks, musin::hal::PicoDmaCopier>
+      flash_data_buffered_reader_;
 };
 
 } // namespace musin

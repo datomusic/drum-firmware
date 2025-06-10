@@ -12,11 +12,15 @@
 #include "musin/hal/debug_utils.h" // For underrun counter
 #include "sample_reader.h"         // Includes block.h for AudioBlock
 
+extern "C" {
+#include "hardware/interp.h"
+}
+
 // Interpolator strategies
 struct CubicInterpolator {
-  constexpr static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                             const int16_t y2, const int16_t y3,
-                                                             const float mu) {
+  static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                                   const int16_t y2, const int16_t y3,
+                                                   const float mu) {
     const float mu2 = mu * mu;
     const float mu3 = mu2 * mu;
 
@@ -36,9 +40,9 @@ struct CubicInterpolator {
 };
 
 struct NearestNeighborInterpolator {
-  constexpr static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
-                                                             const int16_t y2, const int16_t /*y3*/,
-                                                             const float mu) {
+  static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
+                                                   const int16_t y2, const int16_t /*y3*/,
+                                                   const float mu) {
     // y0 and y3 are not used for nearest neighbor interpolation focusing on y1 and y2.
     // mu is the fractional position between y1 and y2.
     if (mu < 0.5f) {
@@ -46,6 +50,49 @@ struct NearestNeighborInterpolator {
     } else {
       return y2;
     }
+  }
+};
+
+struct HardwareLinearInterpolator {
+  static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
+                                                   const int16_t y2, const int16_t /*y3*/,
+                                                   const float mu) {
+    // Ensure the hardware is initialized. This will only run the setup code once.
+    initialize_hardware();
+
+    // Convert float fraction (0.0 to 1.0) to 8-bit integer (0 to 255)
+    const uint32_t fraction = static_cast<uint32_t>(mu * 255.0f);
+
+    // Load the two samples to interpolate between into BASE0 and BASE1
+    interp0->base[0] = y1;
+    interp0->base[1] = y2;
+
+    // Load the fraction into ACCUM1. The LSBs are used by the interpolator.
+    interp0->accum[1] = fraction;
+
+    // Read the linearly interpolated result from PEEK1
+    return static_cast<int16_t>(interp0->peek[1]);
+  }
+
+private:
+  static void initialize_hardware() {
+    // This static local variable ensures the lambda is only executed once.
+    static const bool initialized = []() {
+      // Configure Lane 0 for blend mode (linear interpolation)
+      interp_config cfg = interp_default_config();
+      interp_config_set_blend(&cfg, true);
+      interp_set_config(interp0, 0, &cfg);
+
+      // Configure Lane 1 for signed values, which is needed for signed audio samples
+      cfg = interp_default_config();
+      interp_config_set_signed(&cfg, true);
+      interp_set_config(interp0, 1, &cfg);
+
+      return true;
+    }();
+    // The 'initialized' variable is not used, but its initialization
+    // triggers the one-time setup code.
+    (void)initialized;
   }
 };
 

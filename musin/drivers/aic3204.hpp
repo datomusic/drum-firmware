@@ -50,10 +50,10 @@ public:
   ~Aic3204();
 
   // Prevent copying/moving to ensure single ownership of the hardware.
-  Aic3204(const Aic3204&) = delete;
-  Aic3204& operator=(const Aic3204&) = delete;
-  Aic3204(Aic3204&&) = delete;
-  Aic3204& operator=(Aic3204&&) = delete;
+  Aic3204(const Aic3204 &) = delete;
+  Aic3204 &operator=(const Aic3204 &) = delete;
+  Aic3204(Aic3204 &&) = delete;
+  Aic3204 &operator=(Aic3204 &&) = delete;
 
   /**
    * @brief Checks if the codec was successfully initialized.
@@ -63,7 +63,7 @@ public:
 
   // --- Public API ---
   Aic3204Status write_register(uint8_t page, uint8_t reg_addr, uint8_t value);
-  Aic3204Status read_register(uint8_t page, uint8_t reg_addr, uint8_t& read_value);
+  Aic3204Status read_register(uint8_t page, uint8_t reg_addr, uint8_t &read_value);
   Aic3204Status set_amp_enabled(bool enable);
   Aic3204Status set_dac_volume(int8_t volume);
   Aic3204Status route_in_to_headphone(bool enable);
@@ -77,14 +77,14 @@ private:
   // --- Private Helper Methods ---
   Aic3204Status select_page(uint8_t page);
   Aic3204Status i2c_write(uint8_t reg_addr, uint8_t value);
-  Aic3204Status i2c_read(uint8_t reg_addr, uint8_t& value);
+  Aic3204Status i2c_read(uint8_t reg_addr, uint8_t &value);
   bool is_soft_stepping();
   Aic3204Status wait_for_soft_stepping();
-  i2c_inst_t* get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin);
+  i2c_inst_t *get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin);
   bool device_present(uint8_t addr);
 
   // --- Member Variables ---
-  i2c_inst_t* _i2c_inst = nullptr;
+  i2c_inst_t *_i2c_inst = nullptr;
   uint8_t _sda_pin;
   uint8_t _scl_pin;
   bool _is_initialized = false;

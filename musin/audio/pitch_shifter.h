@@ -152,9 +152,11 @@ private:
       int new_buffer_position = static_cast<int>(std::floor(current_position));
       float mu = current_position - static_cast<float>(new_buffer_position);
 
-      // Ensure we have enough samples in the buffer for interpolation
+      // Ensure we have enough samples in the buffer for interpolation.
+      // For Catmull-Rom, we need samples at n-1, n, n+1, and n+2 to interpolate
+      // at position n. So we need to have read up to sample n+2.
       bool has_more_data = true;
-      while (source_index <= static_cast<uint32_t>(new_buffer_position + 3) && has_more_data) {
+      while (source_index <= static_cast<uint32_t>(new_buffer_position + 2) && has_more_data) {
         has_more_data = sample_reader.read_next(sample);
         if (!has_more_data) {
           // Reached the end of input data
@@ -171,15 +173,15 @@ private:
       // Calculate interpolated value even if we've reached the end of the source data
       // This allows us to use the remaining samples in the interpolation buffer
 
-      // Get interpolation buffer indices relative to our current position
-      // Ensure we're using the correct indices from our circular buffer
-      int idx_offset = new_buffer_position - (source_index - 4);
-
-      // Safely access the circular buffer
-      const int16_t y0 = interpolation_samples[(0 + idx_offset) & 3];
-      const int16_t y1 = interpolation_samples[(1 + idx_offset) & 3];
-      const int16_t y2 = interpolation_samples[(2 + idx_offset) & 3];
-      const int16_t y3 = interpolation_samples[(3 + idx_offset) & 3];
+      // The interpolation buffer acts as a shift register. The while loop above
+      // ensures it holds the four samples needed for interpolation around the
+      // current position.
+      // y0, y1, y2, y3 correspond to samples at indices n-1, n, n+1, and n+2,
+      // where n is the integer part of the current sample position.
+      const int16_t y0 = interpolation_samples[0];
+      const int16_t y1 = interpolation_samples[1];
+      const int16_t y2 = interpolation_samples[2];
+      const int16_t y3 = interpolation_samples[3];
 
       // Calculate interpolated value
       const int16_t interpolated_value = InterpolatorStrategy::interpolate(y0, y1, y2, y3, mu);
@@ -224,7 +226,7 @@ private:
   }
 
   constexpr void __time_critical_func(shift_interpolation_samples)(const int16_t sample) {
-    // Shift samples in the interpolation buffer using a circular buffer approach
+    // Shift samples in the interpolation buffer. This acts as a shift register.
     interpolation_samples[0] = interpolation_samples[1];
     interpolation_samples[1] = interpolation_samples[2];
     interpolation_samples[2] = interpolation_samples[3];

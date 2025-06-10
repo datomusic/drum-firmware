@@ -151,3 +151,65 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if
 // attempting to read a sample count which is not a multiple of the underlying
 // reader chunk size. This should fail, and be fixed by introducing ChunkReader.
+
+TEST_CASE("PitchShifter with HardwareLinearInterpolator works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<HardwareLinearInterpolator> shifter =
+        PitchShifter<HardwareLinearInterpolator>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // With linear interpolation at speed 0.5, we expect averages of adjacent samples.
+    REQUIRE(block[0] == 1000);
+    REQUIRE(block[1] == 1500);
+    REQUIRE(block[2] == 2000);
+    REQUIRE(block[3] == 2500);
+    REQUIRE(block[4] == 3000);
+    REQUIRE(block[5] == 3500);
+    REQUIRE(block[6] == 4000);
+    REQUIRE(block[7] == 4500);
+    REQUIRE(block[8] == 5000);
+    REQUIRE(block[9] == 5500);
+    REQUIRE(block[10] == 6000);
+    REQUIRE(block[11] == 6500);
+    REQUIRE(block[12] == 7000);
+    REQUIRE(block[13] == 7500);
+  }));
+}
+
+TEST_CASE("PitchShifter with NearestNeighborInterpolator works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<NearestNeighborInterpolator> shifter =
+        PitchShifter<NearestNeighborInterpolator>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // With nearest neighbor, mu < 0.5 rounds down (y1), mu >= 0.5 rounds up (y2).
+    REQUIRE(block[0] == 1000); // mu = 0.0
+    REQUIRE(block[1] == 2000); // mu = 0.5
+    REQUIRE(block[2] == 2000); // mu = 0.0
+    REQUIRE(block[3] == 3000); // mu = 0.5
+    REQUIRE(block[4] == 3000); // mu = 0.0
+    REQUIRE(block[5] == 4000); // mu = 0.5
+    REQUIRE(block[6] == 4000); // mu = 0.0
+    REQUIRE(block[7] == 5000); // mu = 0.5
+  }));
+}

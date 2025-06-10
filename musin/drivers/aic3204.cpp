@@ -14,9 +14,17 @@ namespace musin::drivers {
 
 // --- Constructor / Destructor ---
 
-Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate)
-    : _sda_pin(sda_pin), _scl_pin(scl_pin) {
-  printf("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...\n", _sda_pin, _scl_pin);
+Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t reset_pin)
+    : _sda_pin(sda_pin), _scl_pin(scl_pin), _reset_pin(reset_pin) {
+  if (_reset_pin != 0xFF) {
+    printf("Initializing AIC3204 on SDA=GP%u, SCL=GP%u, RST=GP%u...\n", _sda_pin, _scl_pin,
+           _reset_pin);
+    gpio_init(_reset_pin);
+    gpio_set_dir(_reset_pin, GPIO_OUT);
+    gpio_put(_reset_pin, 0); // Set LOW
+  } else {
+    printf("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...\n", _sda_pin, _scl_pin);
+  }
 
   _i2c_inst = get_i2c_instance(_sda_pin, _scl_pin);
   if (!_i2c_inst) {
@@ -37,6 +45,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate)
   gpio_pull_up(_scl_pin);
 
   sleep_ms(10);
+
+  if (_reset_pin != 0xFF) {
+    gpio_put(_reset_pin, 1); // Set HIGH
+    sleep_ms(1);             // Give codec time to wake up after reset
+  }
 
   printf("Scanning for AIC3204 at address 0x%02X...\n", I2C_ADDR);
   if (!device_present(I2C_ADDR)) {
@@ -205,6 +218,12 @@ Aic3204::~Aic3204() {
     gpio_disable_pulls(_sda_pin);
     gpio_disable_pulls(_scl_pin);
     printf("AIC3204 De-initialized.\n");
+  }
+
+  if (_reset_pin != 0xFF) {
+    gpio_put(_reset_pin, 0); // Set LOW
+    gpio_set_function(_reset_pin, GPIO_FUNC_NULL);
+    gpio_disable_pulls(_reset_pin);
   }
 }
 

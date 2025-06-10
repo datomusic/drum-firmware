@@ -41,8 +41,9 @@ public:
    * @param sda_pin The GPIO pin number for I2C SDA.
    * @param scl_pin The GPIO pin number for I2C SCL.
    * @param baudrate The I2C communication speed in Hz.
+   * @param reset_pin Optional GPIO pin for hardware reset.
    */
-  Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate);
+  Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t reset_pin = 0xFF);
 
   /**
    * @brief Destructor. De-initializes the I2C peripheral and GPIO pins.
@@ -87,6 +88,7 @@ private:
   i2c_inst_t *_i2c_inst = nullptr;
   uint8_t _sda_pin;
   uint8_t _scl_pin;
+  uint8_t _reset_pin;
   bool _is_initialized = false;
   uint8_t _current_page = 0xFF;
   int8_t _current_dac_volume = 0;

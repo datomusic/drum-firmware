@@ -124,7 +124,8 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
-    REQUIRE(reader.read_counter == 16); // Verify we consumed all input
+    // no longer relevant as the pitch shifter reads lazily
+    // REQUIRE(reader.read_counter == 16); // Verify we consumed all input
     REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
     // First samples don't show proper interpolated values

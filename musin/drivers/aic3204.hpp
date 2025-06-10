@@ -80,7 +80,7 @@ private:
   Aic3204Status i2c_read(uint8_t reg_addr, uint8_t& value);
   bool is_soft_stepping();
   Aic3204Status wait_for_soft_stepping();
-  i2c_inst_t* get_i2c_instance(uint sda_pin, uint scl_pin);
+  i2c_inst_t* get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin);
   bool device_present(uint8_t addr);
 
   // --- Member Variables ---

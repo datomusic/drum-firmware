@@ -272,7 +272,7 @@ Aic3204Status Aic3204::route_in_to_headphone(bool enable) {
 
 // --- Private Helper Methods ---
 
-i2c_inst_t *Aic3204::get_i2c_instance(uint sda_pin, uint scl_pin) {
+i2c_inst_t *Aic3204::get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin) {
   bool sda_is_i2c0 = (sda_pin % 4 == 0 && sda_pin <= 20);
   bool scl_is_i2c0 = (scl_pin % 4 == 1 && scl_pin <= 21);
   if (sda_is_i2c0 && scl_is_i2c0)

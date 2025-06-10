@@ -14,6 +14,10 @@ typedef struct {
   bool is_signed;
 } interp_config;
 
+// Global state for testing configuration calls
+static interp_config mock_interp0_lane0_cfg;
+static interp_config mock_interp0_lane1_cfg;
+
 // Mock for interp_default_config()
 static inline interp_config interp_default_config() {
   return interp_config{false, false};
@@ -31,15 +35,18 @@ static inline void interp_config_set_signed(interp_config *cfg, bool is_signed) 
 
 // Forward declaration
 struct interp_hw_t;
+extern interp_hw_t mock_interp0_hw;
 
 // Mock for interp_set_config()
 static inline void interp_set_config(struct interp_hw_t *hw, uint32_t lane,
                                      const interp_config *cfg) {
-  // In this mock, we don't need to do anything with the config
-  // as the peek logic is hardcoded for linear interpolation.
-  (void)hw;
-  (void)lane;
-  (void)cfg;
+  if (hw == &mock_interp0_hw) {
+    if (lane == 0) {
+      mock_interp0_lane0_cfg = *cfg;
+    } else if (lane == 1) {
+      mock_interp0_lane1_cfg = *cfg;
+    }
+  }
 }
 
 // Mock hardware interpolator state
@@ -79,5 +86,12 @@ struct interp_hw_t {
 // Global mock instance and pointer, mimicking the SDK's hardware registers
 static interp_hw_t mock_interp0_hw;
 static interp_hw_t *const interp0 = &mock_interp0_hw;
+
+// Resets the state of the mock interpolator for clean test runs.
+static inline void reset_mock_interp_state() {
+  mock_interp0_lane0_cfg = {false, false};
+  mock_interp0_lane1_cfg = {false, false};
+  mock_interp0_hw = interp_hw_t(); // Re-construct to reset state
+}
 
 #endif // MOCK_HARDWARE_INTERP_H_

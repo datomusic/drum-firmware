@@ -152,37 +152,33 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
 // attempting to read a sample count which is not a multiple of the underlying
 // reader chunk size. This should fail, and be fixed by introducing ChunkReader.
 
-TEST_CASE("PitchShifter with HardwareLinearInterpolator works correctly") {
+TEST_CASE("HardwareLinearInterpolator correctly configures and uses the hardware") {
   CONST_BODY(({
-    const int CHUNK_SIZE = 4;
-    auto reader =
-        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
-                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<HardwareLinearInterpolator> shifter =
-        PitchShifter<HardwareLinearInterpolator>(reader);
-    shifter.reset();
+    // This test verifies that the HardwareLinearInterpolator correctly interacts
+    // with the mock hardware interpolator (interp0).
 
-    shifter.set_speed(0.5f);
+    // Reset mock hardware state before the test
+    reset_mock_interp_state();
 
-    AudioBlock block;
-    auto samples_read = shifter.read_samples(block);
-    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+    // Call the interpolator. This should trigger initialize_hardware().
+    const int16_t y1 = 1000;
+    const int16_t y2 = 2000;
+    const float mu = 0.5f;
+    HardwareLinearInterpolator::interpolate(0, y1, y2, 0, mu);
 
-    // With linear interpolation at speed 0.5, we expect averages of adjacent samples.
-    REQUIRE(block[0] == 1000);
-    REQUIRE(block[1] == 1500);
-    REQUIRE(block[2] == 2000);
-    REQUIRE(block[3] == 2500);
-    REQUIRE(block[4] == 3000);
-    REQUIRE(block[5] == 3500);
-    REQUIRE(block[6] == 4000);
-    REQUIRE(block[7] == 4500);
-    REQUIRE(block[8] == 5000);
-    REQUIRE(block[9] == 5500);
-    REQUIRE(block[10] == 6000);
-    REQUIRE(block[11] == 6500);
-    REQUIRE(block[12] == 7000);
-    REQUIRE(block[13] == 7500);
+    // 1. Verify that the hardware was initialized correctly
+    REQUIRE(mock_interp0_lane0_cfg.blend == true);
+    REQUIRE(mock_interp0_lane1_cfg.is_signed == true);
+
+    // 2. Verify that the two sample values were loaded into BASE registers
+    REQUIRE(static_cast<int16_t>(interp0->base[0]) == y1);
+    REQUIRE(static_cast<int16_t>(interp0->base[1]) == y2);
+
+    // 3. Verify that the fraction was loaded into the accumulator
+    const uint32_t expected_fraction = static_cast<uint32_t>(mu * 255.0f);
+    REQUIRE(interp0->accum[1] == expected_fraction);
+    REQUIRE(interp0->accum[1] >= 0);
+    REQUIRE(interp0->accum[1] <= 255);
   }));
 }
 

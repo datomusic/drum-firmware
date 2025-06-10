@@ -81,7 +81,7 @@ macro(musin_init_audio TARGET)
   target_sources(${TARGET} PRIVATE
     ${musin_audio_generic_sources}
     ${MUSIN_AUDIO}/audio_output.cpp
-    ${MUSIN_DRIVERS}/aic3204.c # Codec-specific driver, but the only audio codec we are using currently.
+    ${MUSIN_DRIVERS}/aic3204.cpp
   )
 
   target_compile_definitions(${TARGET} PRIVATE

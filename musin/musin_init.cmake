@@ -95,6 +95,7 @@ macro(musin_init_audio TARGET)
     hardware_i2c
     hardware_irq
     pico_audio_i2s
+    hardware_interp
   )
 endmacro()
 

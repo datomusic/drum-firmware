@@ -22,7 +22,7 @@ struct Sound : BufferSource {
     }
   }
 
-  PitchShifter<CubicInterpolator> pitch_shifter;
+  PitchShifter<HardwareLinearInterpolator> pitch_shifter;
 };
 
 #endif /* end of include guard: SOUND_H_2P4SDIWG */

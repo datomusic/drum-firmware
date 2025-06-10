@@ -76,16 +76,6 @@ struct HardwareLinearInterpolator {
 
 private:
   static void initialize_hardware() {
-#if defined(UNIT_TEST)
-    // For testing, we want to be able to re-initialize the mock hardware state.
-    interp_config cfg = interp_default_config();
-    interp_config_set_blend(&cfg, true);
-    interp_set_config(interp0, 0, &cfg);
-
-    cfg = interp_default_config();
-    interp_config_set_signed(&cfg, true);
-    interp_set_config(interp0, 1, &cfg);
-#else
     // This static local variable ensures the lambda is only executed once.
     static const bool initialized = []() {
       // Configure Lane 0 for blend mode (linear interpolation)
@@ -103,7 +93,6 @@ private:
     // The 'initialized' variable is not used, but its initialization
     // triggers the one-time setup code.
     (void)initialized;
-#endif
   }
 };
 

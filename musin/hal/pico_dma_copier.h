@@ -1,5 +1,6 @@
 #pragma once
 #include "hardware/dma.h"
+#include <algorithm> // For std::copy
 
 namespace musin::hal {
 
@@ -19,9 +20,13 @@ struct PicoDmaCopier {
 
   // copy is now a non-static member function.
   void copy(int16_t *dest, const int16_t *src, size_t count) const {
-    if (dma_channel_ < 0 || count == 0) {
-      // Fallback or error: if no channel was claimed, we can't use DMA.
-      // For simplicity, we do nothing, but a CPU copy fallback could be added here.
+    if (count == 0) {
+      return;
+    }
+
+    if (dma_channel_ < 0) {
+      // Fallback to CPU copy if no DMA channel is available.
+      std::copy(src, src + count, dest);
       return;
     }
 

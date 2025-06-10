@@ -23,7 +23,7 @@ PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
     : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
       keypad_component(this), drumpad_component(this), analog_component(this),
-      _profiler(config::PROFILER_REPORT_INTERVAL_MS), playbutton_component(this) {
+      playbutton_component(this) {
 }
 
 void PizzaControls::init() {
@@ -31,35 +31,13 @@ void PizzaControls::init() {
   drumpad_component.init();
   analog_component.init();
   playbutton_component.init();
-
-  _profiler.add_section("Keypad Update");
-  _profiler.add_section("Drumpad Update");
-  _profiler.add_section("Analog Update");
-  _profiler.add_section("Playbutton Update");
 }
 
 void PizzaControls::update() {
-  {
-    musin::hal::DebugUtils::ScopedProfile p(_profiler,
-                                            static_cast<size_t>(ProfileSection::KEYPAD_UPDATE));
-    keypad_component.update();
-  }
-  {
-    musin::hal::DebugUtils::ScopedProfile p(_profiler,
-                                            static_cast<size_t>(ProfileSection::DRUMPAD_UPDATE));
-    drumpad_component.update();
-  }
-  {
-    musin::hal::DebugUtils::ScopedProfile p(_profiler,
-                                            static_cast<size_t>(ProfileSection::ANALOG_UPDATE));
-    analog_component.update();
-  }
-  {
-    musin::hal::DebugUtils::ScopedProfile p(_profiler,
-                                            static_cast<size_t>(ProfileSection::PLAYBUTTON_UPDATE));
-    playbutton_component.update(); // Updates the *input* state of the button
-  }
-  _profiler.check_and_print_report();
+  keypad_component.update();
+  drumpad_component.update();
+  analog_component.update();
+  playbutton_component.update(); // Updates the *input* state of the button
 }
 
 bool PizzaControls::is_running() const {

@@ -46,7 +46,7 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 int main() {
   stdio_usb_init();
 
-  musin::usb::init();
+  musin::usb::init(true);
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor);
 

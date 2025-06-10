@@ -6,8 +6,11 @@
 #include "pico/audio_i2s.h"
 #include "pico/stdlib.h"
 
+#include <optional>
+
 #ifdef DATO_SUBMARINE
-#include "musin/drivers/aic3204.h"
+#include "musin/drivers/aic3204.hpp"
+static std::optional<musin::drivers::Aic3204> codec;
 #endif
 
 static audio_buffer_pool_t *producer_pool;
@@ -31,14 +34,14 @@ struct audio_i2s_config i2s_config = {
 
 bool AudioOutput::init() {
 #ifdef DATO_SUBMARINE
-  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 400kHz
-  printf("Initializing AIC3204 codec\n");
-  if (!aic3204_init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U)) {
-    printf("Failed to initialize AIC3204 codec\n");
-    return false;
+  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 100kHz
+  codec.emplace(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U);
+  if (!codec || !codec->is_initialized()) {
+    panic("Failed to initialize AIC3204 codec\n");
+    // return false; // Unreachable after panic
   }
   // Set initial volume to 0dB (max)
-  aic3204_dac_set_volume(0);
+  codec->set_dac_volume(0);
 #endif
 
   audio_format.sample_freq = SAMPLE_FREQUENCY;
@@ -70,6 +73,11 @@ bool AudioOutput::init() {
 }
 
 void AudioOutput::deinit() {
+#ifdef DATO_SUBMARINE
+  if (codec) {
+    codec.reset();
+  }
+#endif
   running = false;
 
   audio_i2s_set_enabled(false);
@@ -90,6 +98,9 @@ void AudioOutput::deinit() {
 
 bool AudioOutput::volume(float volume) {
 #ifdef DATO_SUBMARINE
+  if (!codec) {
+    return false;
+  }
   // Map [0.0, ~1.378] to the AIC3204 range [-127, 48]
   // 0.0f -> -127 (-63.5 dB)
   // 1.0f -> 0 (0 dB)
@@ -106,8 +117,8 @@ bool AudioOutput::volume(float volume) {
   // Round to the nearest integer for the register value
   int8_t codec_register_value = static_cast<int8_t>(std::round(mapped_value));
 
-  // Call the underlying C driver function
-  return aic3204_dac_set_volume(codec_register_value);
+  // Call the C++ driver method
+  return codec->set_dac_volume(codec_register_value) == musin::drivers::Aic3204Status::OK;
 #else
   // No codec defined, maybe control digital volume?
   // For now, just return true as there's nothing to set.
@@ -118,7 +129,10 @@ bool AudioOutput::volume(float volume) {
 
 bool AudioOutput::route_line_in_to_headphone(bool enable) {
 #ifdef DATO_SUBMARINE
-  return aic3204_route_in_to_headphone(enable);
+  if (!codec) {
+    return false;
+  }
+  return codec->route_in_to_headphone(enable) == musin::drivers::Aic3204Status::OK;
 #else
   (void)enable;
   printf("AudioOutput Warning: Line-in routing unavailable (requires DATO_SUBMARINE build).\n");

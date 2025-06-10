@@ -1,5 +1,7 @@
 #include "musin/hal/debug_utils.h"
+#include "musin/midi/midi_message_queue.h"
 #include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
@@ -18,13 +20,16 @@
 
 // Model
 static drum::AudioEngine audio_engine;
-static drum::SoundRouter sound_router(audio_engine);
 static musin::timing::InternalClock internal_clock(120.0f);
-static musin::timing::TempoHandler tempo_handler(internal_clock,
+static musin::timing::MidiClockProcessor midi_clock_processor;
+static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
                                                  musin::timing::ClockSource::INTERNAL);
 
+// SequencerController needs to be declared before SoundRouter if SoundRouter depends on it.
 drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
+
+static drum::SoundRouter sound_router(audio_engine, sequencer_controller);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
@@ -36,28 +41,25 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequence
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
-// TODO: Instantiate MIDIClock, ExternalSyncClock when available
-
 static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
 int main() {
   stdio_usb_init();
 
-  musin::usb::init();
+  musin::usb::init(true);
 
-  midi_init();
+  midi_init(sound_router, sequencer_controller, midi_clock_processor);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
   }
-  // TODO: Set initial SoundRouter output mode if needed (defaults to BOTH)
-  // sound_router.set_output_mode(drum::OutputMode::AUDIO);
+  sound_router.set_output_mode(drum::OutputMode::BOTH);
 
   pizza_display.init();
   pizza_controls.init();
 
   // --- Initialize Clocking System ---
-  internal_clock.add_observer(tempo_handler);
+  // TempoHandler's constructor calls set_clock_source, which handles initial observation.
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
@@ -65,13 +67,19 @@ int main() {
   sequencer_controller.add_observer(sound_router);
   sequencer_controller.add_observer(pizza_display);
 
+  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from SoundRouter
+  sound_router.add_observer(pizza_display);
+  sound_router.add_observer(audio_engine);
+
   sync_out.enable();
 
-  if (tempo_handler.get_clock_source() == musin::timing::ClockSource::INTERNAL) {
-    internal_clock.start();
-  }
-  // TODO: Add logic to register TempoHandler with other clocks
-  // TODO: Add logic to start/stop clocks based on TempoHandler source selection
+  // Initial clock source (INTERNAL by default) is started by TempoHandler's constructor.
+
+  // TODO: Add logic to register TempoHandler with other clocks (e.g. ExternalSyncClock)
+  //       and update TempoHandler to manage them if necessary.
+  // TODO: The TempoHandler::set_clock_source method now manages starting/stopping
+  //       the internal clock. Similar logic would be needed for other clock types
+  //       if they require explicit start/stop from TempoHandler.
 
   while (true) {
     pizza_controls.update();
@@ -83,8 +91,10 @@ int main() {
     pizza_display.show();
 
     musin::usb::background_update();
-    midi_read();
-    sleep_us(100);
+    midi_read();                              // TODO: turn this into a musin input queue
+    tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
+    musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
+
     loop_timer.record_iteration_end();
   }
 

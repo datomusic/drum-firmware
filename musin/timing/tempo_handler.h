@@ -11,6 +11,17 @@
 
 namespace musin::timing {
 
+// Forward declaration for MidiClockProcessor
+class MidiClockProcessor;
+
+/**
+ * @brief Defines the playback state of the sequencer.
+ */
+enum class PlaybackState : uint8_t {
+  STOPPED,
+  PLAYING
+};
+
 // Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
 
@@ -29,9 +40,11 @@ public:
   /**
    * @brief Constructor.
    * @param internal_clock_ref Reference to the InternalClock instance.
+   * @param midi_clock_processor_ref Reference to the MidiClockProcessor instance.
    * @param initial_source The clock source to use initially.
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
+                        MidiClockProcessor &midi_clock_processor_ref,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
   // Prevent copying and assignment
@@ -63,9 +76,24 @@ public:
    */
   void set_bpm(float bpm);
 
+  /**
+   * @brief Set the current playback state.
+   * @param new_state The new playback state.
+   */
+  void set_playback_state(PlaybackState new_state);
+
+  /**
+   * @brief Periodically called to update internal state, like auto-switching clock source.
+   * Should be called from the main application loop.
+   */
+  void update();
+
 private:
   InternalClock &_internal_clock_ref;
+  MidiClockProcessor &_midi_clock_processor_ref;
   ClockSource current_source_;
+  PlaybackState _playback_state;
+  bool _send_this_internal_tick_as_midi_clock;
 
   // Pointers or references to actual clock instances might be needed here
   // if TempoHandler needs to interact with them directly (e.g., enable/disable).

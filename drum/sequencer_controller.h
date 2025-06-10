@@ -43,8 +43,7 @@ public:
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
    * @param sound_router_ref A reference to the SoundRouter instance.
    */
-  SequencerController(etl::observable<etl::observer<musin::timing::TempoEvent>,
-                                      musin::timing::MAX_TEMPO_OBSERVERS> &tempo_source_ref);
+  SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -138,10 +137,7 @@ public:
    */
   void deactivate_random();
 
-  void set_random_probability(uint8_t percent) {
-    random_probability_ = std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
-    printf("Probability set to %d\n", random_probability_);
-  }
+  void set_random_probability(uint8_t percent);
 
   [[nodiscard]] bool is_random_active() const;
 
@@ -201,8 +197,7 @@ private:
   uint32_t current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
-  etl::observable<etl::observer<musin::timing::TempoEvent>, musin::timing::MAX_TEMPO_OBSERVERS>
-      &tempo_source;
+  musin::timing::TempoHandler &tempo_source;
   bool _running = false;
 
   uint8_t swing_percent_ = 50;

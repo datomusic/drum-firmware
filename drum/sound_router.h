@@ -2,6 +2,7 @@
 #define SB25_DRUM_SOUND_ROUTER_H_
 
 #include "audio_engine.h"
+#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially sound_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
@@ -9,6 +10,9 @@
 #include <optional>
 
 namespace drum {
+
+// Forward declaration
+template <size_t NumTracks, size_t NumSteps> class SequencerController;
 
 /**
  * @brief Defines the possible output destinations for sound events.
@@ -20,37 +24,49 @@ enum class OutputMode : uint8_t {
 };
 
 /**
+ * @brief Defines whether panel controls directly affect parameters or if MIDI has control.
+ */
+enum class LocalControlMode : uint8_t {
+  ON, // Panel controls affect parameters; MIDI CCs for these parameters might be ignored or have
+      // different behavior.
+  OFF // Panel controls might only send MIDI; MIDI CCs primarily control parameters.
+};
+
+/**
  * @brief Defines logical identifiers for controllable parameters/effects.
  * These abstract away the specific MIDI CC numbers or internal audio engine parameters.
  */
 enum class Parameter : uint8_t {
-  // Per Voice/Track Parameters (Mapped from DRUM 1-4, PITCH 1-4 knobs)
-  DRUM_PRESSURE_1, // Example: Decay, Tone, etc. for Track 1
-  DRUM_PRESSURE_2, // Example: Decay, Tone, etc. for Track 2
-  DRUM_PRESSURE_3, // Example: Decay, Tone, etc. for Track 3
-  DRUM_PRESSURE_4, // Example: Decay, Tone, etc. for Track 4
-  PITCH,           // Pitch control for a specific track
+  // Per-Track Parameters
+  PITCH, // Pitch control for a specific track (CC 21-24)
 
-  // Global Parameters (Mapped from other knobs)
-  FILTER_FREQUENCY,
-  FILTER_RESONANCE,
-  VOLUME,
-  CRUSH_RATE,
-  CRUSH_DEPTH,
-  // Note: RANDOM, SWING, REPEAT, SPEED are handled directly by SequencerController/InternalClock
+  // Global Parameters
+  VOLUME,           // CC 7
+  SWING,            // CC 9
+  CRUSH_EFFECT,     // CC 12
+  TEMPO,            // CC 15
+  RANDOM_EFFECT,    // CC 16
+  REPEAT_EFFECT,    // CC 17
+  FILTER_FREQUENCY, // CC 74
+  FILTER_RESONANCE, // CC 75
 };
 
 /*
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class SoundRouter : public etl::observer<drum::Events::NoteEvent> {
+class SoundRouter : public etl::observer<drum::Events::NoteEvent>,
+                    public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                           drum::config::sound_router::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
    * @param audio_engine Reference to the audio engine instance.
+   * @param sequencer_controller Reference to the sequencer controller instance.
    */
-  explicit SoundRouter(AudioEngine &audio_engine);
+  explicit SoundRouter(
+      AudioEngine &audio_engine,
+      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller);
 
   // Delete copy and move operations
   SoundRouter(const SoundRouter &) = delete;
@@ -70,6 +86,17 @@ public:
    */
   [[nodiscard]] OutputMode get_output_mode() const;
 
+  /**
+   * @brief Sets the local control mode.
+   * @param mode The desired local control mode.
+   */
+  void set_local_control_mode(LocalControlMode mode);
+
+  /**
+   * @brief Gets the current local control mode.
+   * @return The current LocalControlMode.
+   */
+  [[nodiscard]] LocalControlMode get_local_control_mode() const;
   /**
    * @brief Triggers a sound event (note on/off) for a specific track.
    * Routes the event based on the current output mode.
@@ -96,9 +123,23 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
+  /**
+   * @brief Handles an incoming MIDI Note On/Off message.
+   * If the note corresponds to a configured track:
+   * - For Note On (velocity > 0): Plays the sound on the audio engine and sets the active note
+   *   for that track in the sequencer controller.
+   * - For Note Off (velocity == 0): Plays the sound on the audio engine (which should handle
+   *   velocity 0 as silence or note off).
+   * @param note The MIDI note number.
+   * @param velocity The MIDI velocity (0 for Note Off).
+   */
+  void handle_incoming_midi_note(uint8_t note, uint8_t velocity);
+
 private:
   AudioEngine &_audio_engine;
+  SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;
+  LocalControlMode _local_control_mode;
 };
 
 } // namespace drum

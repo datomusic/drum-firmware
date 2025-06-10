@@ -1,15 +1,15 @@
 // --- aic3204.c ---
 #include "aic3204.h"
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h> // For printf debugging
-#include <limits.h> // For INT8_MIN
-#include "pico/time.h" // For sleep_ms, get_absolute_time, time_reached
 #include "hardware/gpio.h" // For pin validation
 #include "hardware/i2c.h"
+#include "pico/time.h" // For sleep_ms, get_absolute_time, time_reached
+#include <limits.h>    // For INT8_MIN
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h> // For printf debugging
 
 // --- Static Variables ---
-static i2c_inst_t* _i2c_inst = NULL; // Pointer to the I2C instance used
+static i2c_inst_t *_i2c_inst = NULL; // Pointer to the I2C instance used
 static uint8_t _current_page = 0xFF; // Cache the current page, 0xFF indicates unknown/uninitialized
 static int8_t _current_dac_volume = 0; // Cache the last successfully set DAC volume (0dB default)
 
@@ -19,108 +19,117 @@ static int8_t _current_dac_volume = 0; // Cache the last successfully set DAC vo
  * @brief Checks if a device exists at the specified I2C address.
  */
 static bool _aic3204_device_present(i2c_inst_t *i2c, uint8_t addr) {
-    if (!i2c) return false;
-    uint8_t rxdata;
-    // Use a short timeout to avoid blocking forever if the bus is stuck
-    int ret = i2c_read_timeout_us(i2c, addr, &rxdata, 1, false, 5000); // 5ms timeout
-    return (ret == 1); // Success if 1 byte read
+  if (!i2c)
+    return false;
+  uint8_t rxdata;
+  // Use a short timeout to avoid blocking forever if the bus is stuck
+  int ret = i2c_read_timeout_us(i2c, addr, &rxdata, 1, false, 5000); // 5ms timeout
+  return (ret == 1);                                                 // Success if 1 byte read
 }
 
 /**
  * @brief Low-level I2C write function for the AIC3204.
  */
 static bool _aic3204_i2c_write(uint8_t reg_addr, uint8_t value) {
-    if (!_i2c_inst) return false;
-    uint8_t data[2] = {reg_addr, value};
-    // Use timeout version for robustness
-    int ret = i2c_write_timeout_us(_i2c_inst, AIC3204_I2C_ADDR, data, 2, true, 10000); // 10ms timeout
-    if (ret != 2) {
-        // printf("AIC3204 Error: I2C write failed for reg 0x%02X (ret %d)\n", reg_addr, ret);
-        return false;
-    }
-    return true;
+  if (!_i2c_inst)
+    return false;
+  uint8_t data[2] = {reg_addr, value};
+  // Use timeout version for robustness
+  int ret = i2c_write_timeout_us(_i2c_inst, AIC3204_I2C_ADDR, data, 2, true, 10000); // 10ms timeout
+  if (ret != 2) {
+    // printf("AIC3204 Error: I2C write failed for reg 0x%02X (ret %d)\n", reg_addr, ret);
+    return false;
+  }
+  return true;
 }
 
 /**
  * @brief Low-level I2C read function for the AIC3204.
  */
 static bool _aic3204_i2c_read(uint8_t reg_addr, uint8_t *value) {
-    if (!_i2c_inst || !value) return false;
-    // Write the register address we want to read from (with NO_STOP)
-    int ret_w = i2c_write_timeout_us(_i2c_inst, AIC3204_I2C_ADDR, &reg_addr, 1, true, 5000); // 5ms timeout, send STOP after address
-    if (ret_w != 1) {
-        // printf("AIC3204 Error: I2C read failed (write addr phase) for reg 0x%02X (ret %d)\n", reg_addr, ret_w);
-        return false;
-    }
-    // Read the data byte
-    int ret_r = i2c_read_timeout_us(_i2c_inst, AIC3204_I2C_ADDR, value, 1, false, 5000); // 5ms timeout
-    if (ret_r != 1) {
-        // printf("AIC3204 Error: I2C read failed (read data phase) for reg 0x%02X (ret %d)\n", reg_addr, ret_r);
-        return false;
-    }
-    return true;
+  if (!_i2c_inst || !value)
+    return false;
+  // Write the register address we want to read from (with NO_STOP)
+  int ret_w = i2c_write_timeout_us(_i2c_inst, AIC3204_I2C_ADDR, &reg_addr, 1, true,
+                                   5000); // 5ms timeout, send STOP after address
+  if (ret_w != 1) {
+    // printf("AIC3204 Error: I2C read failed (write addr phase) for reg 0x%02X (ret %d)\n",
+    // reg_addr, ret_w);
+    return false;
+  }
+  // Read the data byte
+  int ret_r =
+      i2c_read_timeout_us(_i2c_inst, AIC3204_I2C_ADDR, value, 1, false, 5000); // 5ms timeout
+  if (ret_r != 1) {
+    // printf("AIC3204 Error: I2C read failed (read data phase) for reg 0x%02X (ret %d)\n",
+    // reg_addr, ret_r);
+    return false;
+  }
+  return true;
 }
-
 
 /**
  * @brief Determines the I2C instance based on SDA/SCL pins.
  */
-static i2c_inst_t* _get_i2c_instance(uint sda_pin, uint scl_pin) {
-    // Check i2c0 pins
-    bool sda_is_i2c0 = (sda_pin % 4 == 0 && sda_pin <= 20);
-    bool scl_is_i2c0 = (scl_pin % 4 == 1 && scl_pin <= 21);
-    if (sda_is_i2c0 && scl_is_i2c0) return i2c0;
+static i2c_inst_t *_get_i2c_instance(uint sda_pin, uint scl_pin) {
+  // Check i2c0 pins
+  bool sda_is_i2c0 = (sda_pin % 4 == 0 && sda_pin <= 20);
+  bool scl_is_i2c0 = (scl_pin % 4 == 1 && scl_pin <= 21);
+  if (sda_is_i2c0 && scl_is_i2c0)
+    return i2c0;
 
-    // Check i2c1 pins
-    bool sda_is_i2c1 = ((sda_pin % 4 == 2 && sda_pin <= 18) || sda_pin == 26);
-    bool scl_is_i2c1 = ((scl_pin % 4 == 3 && scl_pin <= 19) || scl_pin == 27);
-    if (sda_is_i2c1 && scl_is_i2c1) return i2c1;
+  // Check i2c1 pins
+  bool sda_is_i2c1 = ((sda_pin % 4 == 2 && sda_pin <= 18) || sda_pin == 26);
+  bool scl_is_i2c1 = ((scl_pin % 4 == 3 && scl_pin <= 19) || scl_pin == 27);
+  if (sda_is_i2c1 && scl_is_i2c1)
+    return i2c1;
 
-    return NULL; // Invalid pin combination
+  return NULL; // Invalid pin combination
 }
 
 /**
  * @brief Selects the target page if it's not the current one. Internal use.
  */
 static bool _aic3204_select_page(uint8_t page) {
-    if (!_i2c_inst) return false; // Must be initialized
+  if (!_i2c_inst)
+    return false; // Must be initialized
 
-    if (page != _current_page) {
-        if (!_aic3204_i2c_write(0x00, page)) {
-            printf("AIC3204 Error: Failed to select page %d\n", page);
-            _current_page = 0xFF; // Mark page as unknown on error
-            return false;
-        }
-        _current_page = page;
-        // Datasheet doesn't specify delay, but a tiny one might not hurt
-        // sleep_us(50);
+  if (page != _current_page) {
+    if (!_aic3204_i2c_write(0x00, page)) {
+      printf("AIC3204 Error: Failed to select page %d\n", page);
+      _current_page = 0xFF; // Mark page as unknown on error
+      return false;
     }
-    return true;
+    _current_page = page;
+    // Datasheet doesn't specify delay, but a tiny one might not hurt
+    // sleep_us(50);
+  }
+  return true;
 }
 
 /**
  * @brief Checks if the AIC3204 is currently performing soft-stepping.
  * Reads Page 1, Register 63 (0x3F) and checks bits 7:6.
  *
- * @return true if soft-stepping is active (bits 7:6 are not both 1), false otherwise or on read error.
+ * @return true if soft-stepping is active (bits 7:6 are not both 1), false otherwise or on read
+ * error.
  */
 static bool _aic3204_is_soft_stepping(void) {
-    uint8_t status_reg = 0;
-    const uint8_t SOFT_STEPPING_PAGE = 1;
-    const uint8_t SOFT_STEPPING_REG = 0x3F; // Reg 63 decimal
-    const uint8_t SOFT_STEPPING_COMPLETE_MASK = 0xC0; // Bits 7:6
+  uint8_t status_reg = 0;
+  const uint8_t SOFT_STEPPING_PAGE = 1;
+  const uint8_t SOFT_STEPPING_REG = 0x3F;           // Reg 63 decimal
+  const uint8_t SOFT_STEPPING_COMPLETE_MASK = 0xC0; // Bits 7:6
 
-    if (aic3204_read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, &status_reg)) {
-        // Soft stepping is active if the completion bits are NOT set
-        return (status_reg & SOFT_STEPPING_COMPLETE_MASK) != SOFT_STEPPING_COMPLETE_MASK;
-    } else {
-        // Read failed, assume stepping might be active or state is unknown.
-        // Returning true prevents potentially harmful writes during unknown state.
-        printf("AIC3204 Warning: Failed to read soft-stepping status register. Assuming active.\n");
-        return true;
-    }
+  if (aic3204_read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, &status_reg)) {
+    // Soft stepping is active if the completion bits are NOT set
+    return (status_reg & SOFT_STEPPING_COMPLETE_MASK) != SOFT_STEPPING_COMPLETE_MASK;
+  } else {
+    // Read failed, assume stepping might be active or state is unknown.
+    // Returning true prevents potentially harmful writes during unknown state.
+    printf("AIC3204 Warning: Failed to read soft-stepping status register. Assuming active.\n");
+    return true;
+  }
 }
-
 
 /**
  * @brief Waits for the AIC3204's internal soft-stepping procedures to complete.
@@ -130,359 +139,357 @@ static bool _aic3204_is_soft_stepping(void) {
  * @return true if soft-stepping completed within the timeout, false otherwise.
  */
 static bool _aic3204_wait_for_soft_stepping(void) {
-    printf("Waiting for codec soft-stepping completion (max %d ms)...\n", AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-    absolute_time_t start_time = get_absolute_time();
-    absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
-    bool stepping_active = true;
+  printf("Waiting for codec soft-stepping completion (max %d ms)...\n",
+         AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+  absolute_time_t start_time = get_absolute_time();
+  absolute_time_t timeout_time = make_timeout_time_ms(AIC3204_SOFT_STEPPING_TIMEOUT_MS);
+  bool stepping_active = true;
 
-    while (stepping_active && !time_reached(timeout_time)) {
-        stepping_active = _aic3204_is_soft_stepping();
-        if (!stepping_active) {
-            // Stepping finished (or read failed and we assume finished for the wait)
-            break;
-        }
-        // Wait a bit before polling again
-        sleep_ms(10);
+  while (stepping_active && !time_reached(timeout_time)) {
+    stepping_active = _aic3204_is_soft_stepping();
+    if (!stepping_active) {
+      // Stepping finished (or read failed and we assume finished for the wait)
+      break;
     }
+    // Wait a bit before polling again
+    sleep_ms(10);
+  }
 
-    if (stepping_active) { // Still active after timeout
-        printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
-        // Do not mark initialization as failed. There might be a slight pop
-        return false; // Indicate timeout
-    } else {
-        absolute_time_t end_time = get_absolute_time();
-        int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
-        // We don't have the final status_reg value here easily without another read,
-        // so the log message is slightly less informative.
-        printf("Soft-stepping complete (or read failed) after %lld ms.\n", elapsed_us / 1000);
-        return true; // Indicate completion (or assumed completion on read fail)
-    }
+  if (stepping_active) { // Still active after timeout
+    printf("AIC3204 Warning: Timeout waiting for soft-stepping completion.\n");
+    // Do not mark initialization as failed. There might be a slight pop
+    return false; // Indicate timeout
+  } else {
+    absolute_time_t end_time = get_absolute_time();
+    int64_t elapsed_us = absolute_time_diff_us(start_time, end_time);
+    // We don't have the final status_reg value here easily without another read,
+    // so the log message is slightly less informative.
+    printf("Soft-stepping complete (or read failed) after %lld ms.\n", elapsed_us / 1000);
+    return true; // Indicate completion (or assumed completion on read fail)
+  }
 }
-
 
 // --- Public API Functions ---
 
 bool aic3204_write_register(uint8_t page, uint8_t reg_addr, uint8_t value) {
-    if (!_i2c_inst) {
-         printf("AIC3204 Error: Attempted write before successful initialization.\n");
-         return false;
-    }
+  if (!_i2c_inst) {
+    printf("AIC3204 Error: Attempted write before successful initialization.\n");
+    return false;
+  }
 
-    // Select the page (handles _current_page update)
-    // Skip page select if writing to Page Select Register itself
-    if (!(page == 0 && reg_addr == 0)) {
-        if (!_aic3204_select_page(page)) {
-            return false; // Page selection failed
-        }
-    } else {
-        // If writing to page select register, update cache *after* write
+  // Select the page (handles _current_page update)
+  // Skip page select if writing to Page Select Register itself
+  if (!(page == 0 && reg_addr == 0)) {
+    if (!_aic3204_select_page(page)) {
+      return false; // Page selection failed
     }
+  } else {
+    // If writing to page select register, update cache *after* write
+  }
 
-    // Write the actual register data
-    if (!_aic3204_i2c_write(reg_addr, value)) {
-        printf("AIC3204 Error: Failed writing value 0x%02X to Page %d, Reg 0x%02X\n", value, _current_page, reg_addr);
-        return false;
-    }
+  // Write the actual register data
+  if (!_aic3204_i2c_write(reg_addr, value)) {
+    printf("AIC3204 Error: Failed writing value 0x%02X to Page %d, Reg 0x%02X\n", value,
+           _current_page, reg_addr);
+    return false;
+  }
 
-    // Update cached page if we just wrote to the page select register
-    if (page == 0 && reg_addr == 0) {
-         _current_page = value;
-    }
+  // Update cached page if we just wrote to the page select register
+  if (page == 0 && reg_addr == 0) {
+    _current_page = value;
+  }
 
-    return true;
+  return true;
 }
 
 bool aic3204_read_register(uint8_t page, uint8_t reg_addr, uint8_t *read_value) {
-     if (!_i2c_inst) {
-         printf("AIC3204 Error: Attempted read before successful initialization.\n");
-         return false;
-     }
-     if (!read_value) {
-         printf("AIC3204 Error: NULL pointer provided for read_value.\n");
-         return false;
-     }
+  if (!_i2c_inst) {
+    printf("AIC3204 Error: Attempted read before successful initialization.\n");
+    return false;
+  }
+  if (!read_value) {
+    printf("AIC3204 Error: NULL pointer provided for read_value.\n");
+    return false;
+  }
 
-    // Select the page (handles _current_page update)
-    // Cannot read page select register 0x00,0x00 itself meaningfully this way
-    if (page == 0 && reg_addr == 0) {
-        printf("AIC3204 Warning: Reading Page 0, Reg 0 (Page Select) might not be meaningful.\n");
-        // We can return the cached value, but it's better to just read another register on the target page.
-        // *read_value = _current_page;
-        // return true;
-        // Let's proceed with the read, it might return something, likely 0xFF if nothing written recently.
-    }
+  // Select the page (handles _current_page update)
+  // Cannot read page select register 0x00,0x00 itself meaningfully this way
+  if (page == 0 && reg_addr == 0) {
+    printf("AIC3204 Warning: Reading Page 0, Reg 0 (Page Select) might not be meaningful.\n");
+    // We can return the cached value, but it's better to just read another register on the target
+    // page. *read_value = _current_page; return true; Let's proceed with the read, it might return
+    // something, likely 0xFF if nothing written recently.
+  }
 
-    if (!_aic3204_select_page(page)) {
-        return false; // Page selection failed
-    }
+  if (!_aic3204_select_page(page)) {
+    return false; // Page selection failed
+  }
 
-    // Read the register value
-    if (!_aic3204_i2c_read(reg_addr, read_value)) {
-        printf("AIC3204 Error: Failed reading from Page %d, Reg 0x%02X\n", _current_page, reg_addr);
-        return false;
-    }
+  // Read the register value
+  if (!_aic3204_i2c_read(reg_addr, read_value)) {
+    printf("AIC3204 Error: Failed reading from Page %d, Reg 0x%02X\n", _current_page, reg_addr);
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
-
 bool aic3204_init(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate) {
-    printf("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...\n", sda_pin, scl_pin);
+  printf("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...\n", sda_pin, scl_pin);
 
-    // Determine I2C instance based on pins
-    _i2c_inst = _get_i2c_instance(sda_pin, scl_pin);
+  // Determine I2C instance based on pins
+  _i2c_inst = _get_i2c_instance(sda_pin, scl_pin);
 
-    if (!_i2c_inst) {
-        printf("AIC3204 Error: Invalid I2C pin combination (SDA=GP%u, SCL=GP%u).\n", sda_pin, scl_pin);
-        printf("Valid pairs: i2c0 (SDA:0,4,8,12,16,20 | SCL:1,5,9,13,17,21), i2c1 (SDA:2,6,10,14,18,26 | SCL:3,7,11,15,19,27)\n");
-        return false;
+  if (!_i2c_inst) {
+    printf("AIC3204 Error: Invalid I2C pin combination (SDA=GP%u, SCL=GP%u).\n", sda_pin, scl_pin);
+    printf("Valid pairs: i2c0 (SDA:0,4,8,12,16,20 | SCL:1,5,9,13,17,21), i2c1 (SDA:2,6,10,14,18,26 "
+           "| SCL:3,7,11,15,19,27)\n");
+    return false;
+  }
+  printf("Using I2C instance: %s\n", (_i2c_inst == i2c0) ? "i2c0" : "i2c1");
+
+  // Initialize I2C
+  uint actual_baudrate = i2c_init(_i2c_inst, baudrate);
+  printf("I2C Initialized at %u Hz\n", actual_baudrate);
+
+  // Setup GPIO pins
+  gpio_set_function(sda_pin, GPIO_FUNC_I2C);
+  gpio_set_function(scl_pin, GPIO_FUNC_I2C);
+  gpio_pull_up(sda_pin);
+  gpio_pull_up(scl_pin);
+
+  // Give I2C bus/pins time to settle
+  sleep_ms(10);
+
+  // Scan for the device
+  printf("Scanning for AIC3204 at address 0x%02X...\n", AIC3204_I2C_ADDR);
+  if (!_aic3204_device_present(_i2c_inst, AIC3204_I2C_ADDR)) {
+    printf("AIC3204 Error: Device not found at address 0x%02X\n", AIC3204_I2C_ADDR);
+    i2c_deinit(_i2c_inst);
+    gpio_set_function(sda_pin, GPIO_FUNC_NULL);
+    gpio_set_function(scl_pin, GPIO_FUNC_NULL);
+    gpio_disable_pulls(sda_pin);
+    gpio_disable_pulls(scl_pin);
+    _i2c_inst = NULL;
+    return false;
+  }
+  printf("AIC3204 Found!\n");
+
+  // --- Start Initialization Sequence ---
+  printf("Initializing AIC3204 codec registers...\n");
+  bool success = true;
+  _current_page = 0xFF; // Force page selection on first write
+
+  // Initialize to Page 0 & Software reset
+  success &= aic3204_write_register(0x00, 0x00, 0x00);
+  success &= aic3204_write_register(0x00, 0x01, 0x01);
+  sleep_ms(5); // Wait for reset
+
+  // Disable the external amp initially
+  success &= aic3204_write_register(0x00, 0x37, 0x00); // MFP4 as GPIO Output, LOW
+
+  // PLL and Clock Configuration (Page 0)
+  success &= aic3204_write_register(0x00, 0x04, 0x07);
+  success &= aic3204_write_register(0x00, 0x05, 0x93); // PLL ON, P=1, R=3
+  success &= aic3204_write_register(0x00, 0x06, 0x14); // J=20
+  success &= aic3204_write_register(0x00, 0x07, 0x00); // D=0 MSB
+  success &= aic3204_write_register(0x00, 0x08, 0x00); // D=0 LSB
+  success &= aic3204_write_register(0x00, 0x0B, 0x85); // NDAC = 5, ON
+  success &= aic3204_write_register(0x00, 0x0C, 0x83); // MDAC = 3, ON
+  success &= aic3204_write_register(0x00, 0x0D, 0x00); // DOSR = 128 MSB
+  success &= aic3204_write_register(0x00, 0x0E, 0x80); // DOSR = 128 LSB
+
+  // Audio Interface Settings (Page 0)
+  success &= aic3204_write_register(0x00, 0x1B, 0x00); // I2S, 16 bit
+  success &= aic3204_write_register(0x00, 0x19, 0x00); // BCLK/WCLK inputs
+
+  // DAC Processing Block (Page 0)
+  success &= aic3204_write_register(0x00, 0x3C, 0x08); // DAC PRB_P8
+
+  // --- Power and Analog Configuration (Page 1) ---
+  // No need to write page 1 select here, write_register handles it
+  // success &= aic3204_write_register(0x00, 0x00, 0x01);
+
+  // Power Settings
+  success &= aic3204_write_register(0x01, 0x01, 0x08); // Disable Crude AVdd
+  success &= aic3204_write_register(0x01, 0x02, 0x00); // Analog Blocks OFF
+  success &= aic3204_write_register(0x01, 0x02, 0x01); // Master Analog ON, AVDD LDO ON
+  success &= aic3204_write_register(0x01, 0x0A, 0x33); // HP CM=1.65V, Lineout CM=0.9V, LDO=1.72V
+
+  // DAC/ADC PTM modes (Page 1)
+  success &= aic3204_write_register(0x01, 0x03, 0x00); // DAC PTM = P3/4
+  success &= aic3204_write_register(0x01, 0x04, 0x00); // ADC PTM = R4
+
+  // Power-up Timing (Page 1)
+  success &= aic3204_write_register(0x01, 0x47, 0x32); // Input power-up time 3.1ms
+  success &= aic3204_write_register(0x01, 0x7B, 0x01); // REF charging time 40ms
+
+  // --- Output Driver Configuration (Page 1) ---
+  // Headphone Routing & Gain (0dB)
+  success &= aic3204_write_register(0x01, 0x14, 0x05); // Slowly ramp up HP drivers
+  success &= aic3204_write_register(0x01, 0x0C, 0x08); // DAC_L -> HPL
+  success &= aic3204_write_register(0x01, 0x0D, 0x08); // DAC_R -> HPR
+  success &= aic3204_write_register(0x01, 0x10, 0x00); // HPL Gain 0dB
+  success &= aic3204_write_register(0x01, 0x11, 0x00); // HPR Gain 0dB
+
+  // Line Output Routing & Gain (Python's differential config, 0dB Gain)
+  success &= aic3204_write_register(0x01, 0x0E, 0x01); // LOL Diff Config
+  success &= aic3204_write_register(0x01, 0x0F, 0x08); // LOR Diff Config
+  success &= aic3204_write_register(0x01, 0x12, 0x00); // LOL Gain 0dB
+  success &= aic3204_write_register(0x01, 0x13, 0x00); // LOR Gain 0dB
+
+  // Power up Output Drivers (Page 1) - This starts soft-stepping
+  success &= aic3204_write_register(0x01, 0x09, 0x3C); // Power up HPL, HPR, LOL, LOR
+
+  // --- Wait for soft-stepping completion ---
+  if (success) {
+    // Call the helper function to wait for soft-stepping
+    // The helper function already prints messages on success/timeout
+    _aic3204_wait_for_soft_stepping();
+    // Note: We don't change 'success' based on soft-stepping timeout,
+    // as per the original logic (just print a warning).
+  }
+
+  // --- Final DAC Setup (Page 0) ---
+  if (success) {
+    success &= aic3204_write_register(0x00, 0x00, 0x00); // Select Page 0
+    success &= aic3204_write_register(0x00, 0x3F, 0xD6); // Power up L&R DAC Channels (Digital)
+    success &= aic3204_write_register(0x00, 0x40, 0x00); // Unmute DAC digital volume, 0dB gain
+  }
+
+  // --- Final Check and Cleanup ---
+  if (!success) {
+    printf("AIC3204 Error: Initialization failed at some step.\n");
+    if (_i2c_inst) { // Check if I2C was even initialized
+      i2c_deinit(_i2c_inst);
+      gpio_set_function(sda_pin, GPIO_FUNC_NULL);
+      gpio_set_function(scl_pin, GPIO_FUNC_NULL);
+      gpio_disable_pulls(sda_pin);
+      gpio_disable_pulls(scl_pin);
     }
-    printf("Using I2C instance: %s\n", (_i2c_inst == i2c0) ? "i2c0" : "i2c1");
+    _i2c_inst = NULL;
+    _current_page = 0xFF;
+    return false;
+  }
 
-    // Initialize I2C
-    uint actual_baudrate = i2c_init(_i2c_inst, baudrate);
-    printf("I2C Initialized at %u Hz\n", actual_baudrate);
+  printf("AIC3204 register initialization complete.\n");
 
-    // Setup GPIO pins
-    gpio_set_function(sda_pin, GPIO_FUNC_I2C);
-    gpio_set_function(scl_pin, GPIO_FUNC_I2C);
-    gpio_pull_up(sda_pin);
-    gpio_pull_up(scl_pin);
+  aic3204_amp_set_enabled(true);
 
-    // Give I2C bus/pins time to settle
-    sleep_ms(10);
-
-    // Scan for the device
-    printf("Scanning for AIC3204 at address 0x%02X...\n", AIC3204_I2C_ADDR);
-    if (!_aic3204_device_present(_i2c_inst, AIC3204_I2C_ADDR)) {
-        printf("AIC3204 Error: Device not found at address 0x%02X\n", AIC3204_I2C_ADDR);
-        i2c_deinit(_i2c_inst);
-        gpio_set_function(sda_pin, GPIO_FUNC_NULL);
-        gpio_set_function(scl_pin, GPIO_FUNC_NULL);
-        gpio_disable_pulls(sda_pin);
-        gpio_disable_pulls(scl_pin);
-        _i2c_inst = NULL;
-        return false;
-    }
-    printf("AIC3204 Found!\n");
-
-    // --- Start Initialization Sequence ---
-    printf("Initializing AIC3204 codec registers...\n");
-    bool success = true;
-    _current_page = 0xFF; // Force page selection on first write
-
-    // Initialize to Page 0 & Software reset
-    success &= aic3204_write_register(0x00, 0x00, 0x00);
-    success &= aic3204_write_register(0x00, 0x01, 0x01);
-    sleep_ms(5); // Wait for reset
-
-    // Disable the external amp initially
-    success &= aic3204_write_register(0x00, 0x37, 0x00); // MFP4 as GPIO Output, LOW
-
-    // PLL and Clock Configuration (Page 0)
-    success &= aic3204_write_register(0x00, 0x04, 0x07);
-    success &= aic3204_write_register(0x00, 0x05, 0x93); // PLL ON, P=1, R=3
-    success &= aic3204_write_register(0x00, 0x06, 0x14); // J=20
-    success &= aic3204_write_register(0x00, 0x07, 0x00); // D=0 MSB
-    success &= aic3204_write_register(0x00, 0x08, 0x00); // D=0 LSB
-    success &= aic3204_write_register(0x00, 0x0B, 0x85); // NDAC = 5, ON
-    success &= aic3204_write_register(0x00, 0x0C, 0x83); // MDAC = 3, ON
-    success &= aic3204_write_register(0x00, 0x0D, 0x00); // DOSR = 128 MSB
-    success &= aic3204_write_register(0x00, 0x0E, 0x80); // DOSR = 128 LSB
-
-    // Audio Interface Settings (Page 0)
-    success &= aic3204_write_register(0x00, 0x1B, 0x00); // I2S, 16 bit
-    success &= aic3204_write_register(0x00, 0x19, 0x00); // BCLK/WCLK inputs
-
-    // DAC Processing Block (Page 0)
-    success &= aic3204_write_register(0x00, 0x3C, 0x08); // DAC PRB_P8
-
-    // --- Power and Analog Configuration (Page 1) ---
-    // No need to write page 1 select here, write_register handles it
-    // success &= aic3204_write_register(0x00, 0x00, 0x01);
-
-    // Power Settings
-    success &= aic3204_write_register(0x01, 0x01, 0x08); // Disable Crude AVdd
-    success &= aic3204_write_register(0x01, 0x02, 0x00); // Analog Blocks OFF
-    success &= aic3204_write_register(0x01, 0x02, 0x01); // Master Analog ON, AVDD LDO ON
-    success &= aic3204_write_register(0x01, 0x0A, 0x33); // HP CM=1.65V, Lineout CM=0.9V, LDO=1.72V
-
-    // DAC/ADC PTM modes (Page 1)
-    success &= aic3204_write_register(0x01, 0x03, 0x00); // DAC PTM = P3/4
-    success &= aic3204_write_register(0x01, 0x04, 0x00); // ADC PTM = R4
-
-    // Power-up Timing (Page 1)
-    success &= aic3204_write_register(0x01, 0x47, 0x32); // Input power-up time 3.1ms
-    success &= aic3204_write_register(0x01, 0x7B, 0x01); // REF charging time 40ms
-
-    // --- Output Driver Configuration (Page 1) ---
-    // Headphone Routing & Gain (0dB)
-    success &= aic3204_write_register(0x01, 0x14, 0x05); // Slowly ramp up HP drivers
-    success &= aic3204_write_register(0x01, 0x0C, 0x08); // DAC_L -> HPL
-    success &= aic3204_write_register(0x01, 0x0D, 0x08); // DAC_R -> HPR
-    success &= aic3204_write_register(0x01, 0x10, 0x00); // HPL Gain 0dB
-    success &= aic3204_write_register(0x01, 0x11, 0x00); // HPR Gain 0dB
-
-    // Line Output Routing & Gain (Python's differential config, 0dB Gain)
-    success &= aic3204_write_register(0x01, 0x0E, 0x01); // LOL Diff Config
-    success &= aic3204_write_register(0x01, 0x0F, 0x08); // LOR Diff Config
-    success &= aic3204_write_register(0x01, 0x12, 0x00); // LOL Gain 0dB
-    success &= aic3204_write_register(0x01, 0x13, 0x00); // LOR Gain 0dB
-
-    // Power up Output Drivers (Page 1) - This starts soft-stepping
-    success &= aic3204_write_register(0x01, 0x09, 0x3C); // Power up HPL, HPR, LOL, LOR
-
-    // --- Wait for soft-stepping completion ---
-    if (success) {
-        // Call the helper function to wait for soft-stepping
-        // The helper function already prints messages on success/timeout
-        _aic3204_wait_for_soft_stepping();
-        // Note: We don't change 'success' based on soft-stepping timeout,
-        // as per the original logic (just print a warning).
-    }
-
-    // --- Final DAC Setup (Page 0) ---
-    if (success) {
-        success &= aic3204_write_register(0x00, 0x00, 0x00); // Select Page 0
-        success &= aic3204_write_register(0x00, 0x3F, 0xD6); // Power up L&R DAC Channels (Digital)
-        success &= aic3204_write_register(0x00, 0x40, 0x00); // Unmute DAC digital volume, 0dB gain
-    }
-
-    // --- Final Check and Cleanup ---
-    if (!success) {
-        printf("AIC3204 Error: Initialization failed at some step.\n");
-        if (_i2c_inst) { // Check if I2C was even initialized
-            i2c_deinit(_i2c_inst);
-            gpio_set_function(sda_pin, GPIO_FUNC_NULL);
-            gpio_set_function(scl_pin, GPIO_FUNC_NULL);
-            gpio_disable_pulls(sda_pin);
-            gpio_disable_pulls(scl_pin);
-        }
-        _i2c_inst = NULL;
-        _current_page = 0xFF;
-        return false;
-    }
-
-    printf("AIC3204 register initialization complete.\n");
-
-    aic3204_amp_set_enabled(true);
-    
-    return true; // Initialization successful
+  return true; // Initialization successful
 }
 
 bool aic3204_amp_set_enabled(bool enable) {
 #if AIC3204_AMP_ENABLE_THROUGH_CODEC == 1
-    printf("%s external AMP via Codec GPIO MFP4 (%s)...\n", 
-           enable ? "Enabling" : "Disabling", 
-           enable ? "HIGH" : "LOW");
-    uint8_t value = enable ? 0x05 : 0x00;
-    bool amp_success = aic3204_write_register(0x00, 0x37, value);
-    if (!amp_success) {
-        printf("AIC3204 Warning: Failed to set MFP4 %s to %s amp.\n", 
-               enable ? "HIGH" : "LOW", 
-               enable ? "enable" : "disable");
-    }
-    sleep_ms(10); // Small delay after changing amp state
-    return amp_success;
+  printf("%s external AMP via Codec GPIO MFP4 (%s)...\n", enable ? "Enabling" : "Disabling",
+         enable ? "HIGH" : "LOW");
+  uint8_t value = enable ? 0x05 : 0x00;
+  bool amp_success = aic3204_write_register(0x00, 0x37, value);
+  if (!amp_success) {
+    printf("AIC3204 Warning: Failed to set MFP4 %s to %s amp.\n", enable ? "HIGH" : "LOW",
+           enable ? "enable" : "disable");
+  }
+  sleep_ms(10); // Small delay after changing amp state
+  return amp_success;
 #endif
-    printf("AIC3204 Warning: External AMP is not managed through the codec.");
-    return false;
+  printf("AIC3204 Warning: External AMP is not managed through the codec.");
+  return false;
 }
 
 bool aic3204_dac_set_volume(int8_t volume) {
-    if (volume < -127 || volume > 48) {
-        printf("AIC3204 Error: DAC volume %d invalid. Valid range: -127 to +48\n", volume);
-        return false;
-    }
+  if (volume < -127 || volume > 48) {
+    printf("AIC3204 Error: DAC volume %d invalid. Valid range: -127 to +48\n", volume);
+    return false;
+  }
 
-    // Check if the volume is already set to the requested value
-    if (volume == _current_dac_volume) {
-        printf("AIC3204: DAC volume already set to %+d (%.1fdB). No change.\n", volume, volume * 0.5f);
-        return true; // No need to write
-    }
+  // Check if the volume is already set to the requested value
+  if (volume == _current_dac_volume) {
+    printf("AIC3204: DAC volume already set to %+d (%.1fdB). No change.\n", volume, volume * 0.5f);
+    return true; // No need to write
+  }
 
-    // Check if the codec is currently soft-stepping
-    if (_aic3204_is_soft_stepping()) {
-        printf("AIC3204 Warning: Cannot set DAC volume while soft-stepping is active.\n");
-        return false; // Indicate failure due to soft-stepping
-    }
+  // Check if the codec is currently soft-stepping
+  if (_aic3204_is_soft_stepping()) {
+    printf("AIC3204 Warning: Cannot set DAC volume while soft-stepping is active.\n");
+    return false; // Indicate failure due to soft-stepping
+  }
 
-    // Convert to unsigned register value (two's complement preserved)
-    uint8_t reg_value = (uint8_t)volume;
+  // Convert to unsigned register value (two's complement preserved)
+  uint8_t reg_value = (uint8_t)volume;
 
-    // Set both channel volumes
-    bool success = true;
-    success &= aic3204_write_register(0x00, 0x41, reg_value); // Left DAC
-    success &= aic3204_write_register(0x00, 0x42, reg_value); // Right DAC
+  // Set both channel volumes
+  bool success = true;
+  success &= aic3204_write_register(0x00, 0x41, reg_value); // Left DAC
+  success &= aic3204_write_register(0x00, 0x42, reg_value); // Right DAC
 
-    if (success) {
-        printf("AIC3204: DAC volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
-        _current_dac_volume = volume; // Update cached volume on successful write
-    } else {
-        printf("AIC3204 Error: Failed to write DAC volume registers\n");
-        // Invalidate cached volume on failure, forcing a rewrite next time
-        _current_dac_volume = INT8_MIN; // Use a value outside the valid range (-127 to +48)
-    }
-    
-    return success;
+  if (success) {
+    printf("AIC3204: DAC volume set to %+d (%.1fdB)\n", volume, volume * 0.5f);
+    _current_dac_volume = volume; // Update cached volume on successful write
+  } else {
+    printf("AIC3204 Error: Failed to write DAC volume registers\n");
+    // Invalidate cached volume on failure, forcing a rewrite next time
+    _current_dac_volume = INT8_MIN; // Use a value outside the valid range (-127 to +48)
+  }
+
+  return success;
 }
 
 bool aic3204_route_in_to_headphone(bool enable) {
-    const uint8_t PAGE = 1;
-    const uint8_t HPL_REG = 0x0C;
-    const uint8_t HPR_REG = 0x0D;
-    const uint8_t IN1_TO_HP_MASK = (1 << 2); // Bit 2 controls IN1_L/R to HPL/R Mux
+  const uint8_t PAGE = 1;
+  const uint8_t HPL_REG = 0x0C;
+  const uint8_t HPR_REG = 0x0D;
+  const uint8_t IN1_TO_HP_MASK = (1 << 2); // Bit 2 controls IN1_L/R to HPL/R Mux
 
-    uint8_t current_hpl_val = 0;
-    uint8_t current_hpr_val = 0;
-    bool success = true;
+  uint8_t current_hpl_val = 0;
+  uint8_t current_hpr_val = 0;
+  bool success = true;
 
-    printf("AIC3204: %s routing IN1 to Headphone Output.\n", enable ? "Enabling" : "Disabling");
+  printf("AIC3204: %s routing IN1 to Headphone Output.\n", enable ? "Enabling" : "Disabling");
 
-    // --- Modify HPL Routing (Register 0x0C) ---
-    success &= aic3204_read_register(PAGE, HPL_REG, &current_hpl_val);
-    if (success) {
-        uint8_t new_hpl_val;
-        if (enable) {
-            new_hpl_val = current_hpl_val | IN1_TO_HP_MASK; // Set bit 2
-        } else {
-            new_hpl_val = current_hpl_val & ~IN1_TO_HP_MASK; // Clear bit 2
-        }
-
-        // Only write if the value actually changed
-        if (new_hpl_val != current_hpl_val) {
-            success &= aic3204_write_register(PAGE, HPL_REG, new_hpl_val);
-            if (!success) {
-                printf("AIC3204 Error: Failed to write HPL routing register (0x%02X).\n", HPL_REG);
-            }
-        }
+  // --- Modify HPL Routing (Register 0x0C) ---
+  success &= aic3204_read_register(PAGE, HPL_REG, &current_hpl_val);
+  if (success) {
+    uint8_t new_hpl_val;
+    if (enable) {
+      new_hpl_val = current_hpl_val | IN1_TO_HP_MASK; // Set bit 2
     } else {
-        printf("AIC3204 Error: Failed to read HPL routing register (0x%02X).\n", HPL_REG);
+      new_hpl_val = current_hpl_val & ~IN1_TO_HP_MASK; // Clear bit 2
     }
 
-    // --- Modify HPR Routing (Register 0x0D) ---
-    // Proceed only if the previous steps were successful
+    // Only write if the value actually changed
+    if (new_hpl_val != current_hpl_val) {
+      success &= aic3204_write_register(PAGE, HPL_REG, new_hpl_val);
+      if (!success) {
+        printf("AIC3204 Error: Failed to write HPL routing register (0x%02X).\n", HPL_REG);
+      }
+    }
+  } else {
+    printf("AIC3204 Error: Failed to read HPL routing register (0x%02X).\n", HPL_REG);
+  }
+
+  // --- Modify HPR Routing (Register 0x0D) ---
+  // Proceed only if the previous steps were successful
+  if (success) {
+    success &= aic3204_read_register(PAGE, HPR_REG, &current_hpr_val);
     if (success) {
-        success &= aic3204_read_register(PAGE, HPR_REG, &current_hpr_val);
-        if (success) {
-            uint8_t new_hpr_val;
-            if (enable) {
-                new_hpr_val = current_hpr_val | IN1_TO_HP_MASK; // Set bit 2
-            } else {
-                new_hpr_val = current_hpr_val & ~IN1_TO_HP_MASK; // Clear bit 2
-            }
+      uint8_t new_hpr_val;
+      if (enable) {
+        new_hpr_val = current_hpr_val | IN1_TO_HP_MASK; // Set bit 2
+      } else {
+        new_hpr_val = current_hpr_val & ~IN1_TO_HP_MASK; // Clear bit 2
+      }
 
-            // Only write if the value actually changed
-            if (new_hpr_val != current_hpr_val) {
-                success &= aic3204_write_register(PAGE, HPR_REG, new_hpr_val);
-                 if (!success) {
-                    printf("AIC3204 Error: Failed to write HPR routing register (0x%02X).\n", HPR_REG);
-                }
-            }
-        } else {
-            printf("AIC3204 Error: Failed to read HPR routing register (0x%02X).\n", HPR_REG);
+      // Only write if the value actually changed
+      if (new_hpr_val != current_hpr_val) {
+        success &= aic3204_write_register(PAGE, HPR_REG, new_hpr_val);
+        if (!success) {
+          printf("AIC3204 Error: Failed to write HPR routing register (0x%02X).\n", HPR_REG);
         }
+      }
+    } else {
+      printf("AIC3204 Error: Failed to read HPR routing register (0x%02X).\n", HPR_REG);
     }
+  }
 
-    return success;
+  return success;
 }

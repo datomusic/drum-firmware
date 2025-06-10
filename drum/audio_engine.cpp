@@ -147,4 +147,10 @@ void AudioEngine::set_crush_depth(float normalized_value) {
 void AudioEngine::set_decay(uint8_t voice_index, float value) {
   // TODO: Implement decay setting for the specified voice
 }
+
+void AudioEngine::notification(drum::Events::NoteEvent event) {
+  // The event.note is used as the sample_index, consistent with the
+  // previous direct call from SoundRouter.
+  play_on_voice(event.track_index, event.note, event.velocity);
+}
 } // namespace drum

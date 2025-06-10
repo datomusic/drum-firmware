@@ -31,16 +31,6 @@ void PizzaControls::init() {
   drumpad_component.init();
   analog_component.init();
   playbutton_component.init();
-
-  // Initialize active notes in SequencerController based on DrumpadComponent's defaults
-  for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    if (!config::drumpad::track_note_ranges[i].empty()) {
-      _sequencer_controller_ref.set_active_note_for_track(i,
-                                                          config::drumpad::track_note_ranges[i][0]);
-    }
-    // If a range is empty, SequencerController will retain its constructor-initialized default for
-    // this track.
-  }
 }
 
 void PizzaControls::update() {
@@ -58,7 +48,7 @@ PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
       keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS,
              config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
-      keypad_observer(this, keypad_cc_map, config::keypad::MIDI_CHANNEL) {
+      keypad_observer(this, keypad_cc_map, config::keypad::_CHANNEL) {
 }
 
 void PizzaControls::KeypadComponent::init() {
@@ -233,11 +223,11 @@ void PizzaControls::DrumpadComponent::update_drumpads() {
 }
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index, int8_t offset) {
-  if (pad_index >= config::drumpad::track_note_ranges.size()) {
+  if (pad_index >= config::track_note_ranges.size()) {
     return;
   }
 
-  const auto &notes_for_pad = config::drumpad::track_note_ranges[pad_index];
+  const auto &notes_for_pad = config::track_note_ranges[pad_index];
   if (notes_for_pad.empty()) {
     return;
   }
@@ -350,7 +340,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   const uint8_t mux_channel = event.control_id >> 8;
 
   // Note: RANDOM, SWING, REPEAT, SPEED are handled differently (affect sequencer/clock directly)
-  //       and do not go through the SoundRouter's parameter setting.
+  //       and only go through the SoundRouter's parameter setting to send CC's.
 
   switch (mux_channel) {
   case FILTER:
@@ -369,6 +359,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
       controls->_sequencer_controller_ref.deactivate_random();
     }
     controls->_sequencer_controller_ref.set_random_probability(event.value * 33);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::RANDOM_EFFECT,
+                                                             event.value, 0);
   } break;
   case VOLUME:
     parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
@@ -386,12 +378,12 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
 
     controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::SWING, event.value,
+                                                             0);
     break;
   }
   case CRUSH:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_RATE,
-                                                             event.value);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_DEPTH,
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_EFFECT,
                                                              event.value);
     break;
   case REPEAT: {
@@ -405,6 +397,8 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::REPEAT_EFFECT,
+                                                             event.value);
     break;
   }
   case PITCH1:
@@ -428,6 +422,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
                 event.value * (config::analog_controls::MAX_BPM_ADJUST -
                                config::analog_controls::MIN_BPM_ADJUST);
     controls->_tempo_handler_ref.set_bpm(bpm);
+    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::TEMPO, event.value);
     break;
   }
   }

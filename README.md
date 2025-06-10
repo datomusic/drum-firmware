@@ -15,4 +15,18 @@ This repository contains the firmware and related code for the DRUM project.
 - `experiments/`: Standalone code experiments and tests.
 - `test/`: Unit and integration tests for `musin` and `drum` code.
 - `tools/`: Utility scripts and tools for development/deployment.
-- `lib/`: External libraries (may be deprecated or integrated elsewhere).
+- `lib/`: External libraries. 
+
+## Building the Firmware
+
+The main firmware for the DRUM project is located in the `drum/` directory. To build the firmware, navigate to the `drum/` directory and run the following commands:
+
+```bash
+cd drum && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+```
+
+## Running the Tests
+
+```bash
+cd test && ./run_all_tests.sh
+```

@@ -57,8 +57,8 @@ private:
       }
 
       int16_t *destination_start_ptr = slot_to_fill.begin() + out_samples_filled;
-      copier_instance_.copy(destination_start_ptr, temp_block_for_source_read.begin(),
-                            samples_fetched_this_iteration);
+      CopierPolicy::copy(destination_start_ptr, temp_block_for_source_read.begin(),
+                         samples_fetched_this_iteration);
       out_samples_filled += samples_fetched_this_iteration;
     }
   }
@@ -135,8 +135,6 @@ private:
 
   uint32_t samples_in_active_buffer;
   uint32_t current_read_position_in_active_buffer;
-
-  CopierPolicy copier_instance_;
 };
 
 } // namespace musin

@@ -5,11 +5,16 @@
 namespace musin {
 
 struct CpuCopier {
-  // copy is a non-static member function that uses std::copy.
-  void copy(int16_t *dest, const int16_t *src, size_t count) const {
+  // init and deinit do nothing for the CPU implementation.
+  static void init() {
+  }
+  static void deinit() {
+  }
+
+  // copy is now a static member function that uses std::copy.
+  static void copy(int16_t *dest, const int16_t *src, size_t count) {
     std::copy(src, src + count, dest);
   }
-  // Constructor and destructor are empty and will be optimized away.
 };
 
 } // namespace musin

@@ -153,33 +153,34 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
 // reader chunk size. This should fail, and be fixed by introducing ChunkReader.
 
 TEST_CASE("HardwareLinearInterpolator correctly configures and uses the hardware") {
-  CONST_BODY(({
-    // This test verifies that the HardwareLinearInterpolator correctly interacts
-    // with the mock hardware interpolator (interp0).
+  // This test verifies runtime hardware interaction (via mocks) and is not
+  // constexpr-compatible.
 
-    // Reset mock hardware state before the test
-    reset_mock_interp_state();
+  // This test verifies that the HardwareLinearInterpolator correctly interacts
+  // with the mock hardware interpolator (interp0).
 
-    // Call the interpolator. This should trigger initialize_hardware().
-    const int16_t y1 = 1000;
-    const int16_t y2 = 2000;
-    const float mu = 0.5f;
-    HardwareLinearInterpolator::interpolate(0, y1, y2, 0, mu);
+  // Reset mock hardware state before the test
+  reset_mock_interp_state();
 
-    // 1. Verify that the hardware was initialized correctly
-    REQUIRE(mock_interp0_lane0_cfg.blend == true);
-    REQUIRE(mock_interp0_lane1_cfg.is_signed == true);
+  // Call the interpolator. This should trigger initialize_hardware().
+  const int16_t y1 = 1000;
+  const int16_t y2 = 2000;
+  const float mu = 0.5f;
+  HardwareLinearInterpolator::interpolate(0, y1, y2, 0, mu);
 
-    // 2. Verify that the two sample values were loaded into BASE registers
-    REQUIRE(static_cast<int16_t>(interp0->base[0]) == y1);
-    REQUIRE(static_cast<int16_t>(interp0->base[1]) == y2);
+  // 1. Verify that the hardware was initialized correctly
+  REQUIRE(mock_interp0_lane0_cfg.blend == true);
+  REQUIRE(mock_interp0_lane1_cfg.is_signed == true);
 
-    // 3. Verify that the fraction was loaded into the accumulator
-    const uint32_t expected_fraction = static_cast<uint32_t>(mu * 255.0f);
-    REQUIRE(interp0->accum[1] == expected_fraction);
-    REQUIRE(interp0->accum[1] >= 0);
-    REQUIRE(interp0->accum[1] <= 255);
-  }));
+  // 2. Verify that the two sample values were loaded into BASE registers
+  REQUIRE(static_cast<int16_t>(interp0->base[0]) == y1);
+  REQUIRE(static_cast<int16_t>(interp0->base[1]) == y2);
+
+  // 3. Verify that the fraction was loaded into the accumulator
+  const uint32_t expected_fraction = static_cast<uint32_t>(mu * 255.0f);
+  REQUIRE(interp0->accum[1] == expected_fraction);
+  REQUIRE(interp0->accum[1] >= 0);
+  REQUIRE(interp0->accum[1] <= 255);
 }
 
 TEST_CASE("PitchShifter with NearestNeighborInterpolator works correctly") {

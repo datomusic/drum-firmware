@@ -8,12 +8,13 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "musin/audio/attack_buffering_sample_reader.h" // Changed include
 #include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
-#include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
+#include "musin/hal/debug_utils.h"
 
 namespace drum {
 
@@ -28,7 +29,7 @@ private:
    * @brief Internal structure representing a single audio voice.
    */
   struct Voice {
-    etl::optional<musin::MemorySampleReader> reader;
+    etl::optional<musin::AttackBufferingSampleReader<>> reader; // Use default template arg
     Sound sound;
     float current_pitch = 1.0f;
 
@@ -131,6 +132,12 @@ private:
   Crusher crusher_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
+
+  // profiler_ member is removed, ProfileSection enum remains for use with the global profiler
+  enum class ProfileSection {
+    AUDIO_PROCESS_UPDATE,
+    PLAY_ON_VOICE_UPDATE
+  };
 
   bool is_initialized_ = false;
 };

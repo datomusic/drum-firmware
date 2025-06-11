@@ -1,6 +1,8 @@
 #include "sb25_samples.h"
 #include "generated/samples/sample_data.h"
 
+using musin::SampleData;
+
 const etl::array<SampleData, 32> all_samples = {
     SampleData{samples_Kick_C78__pcm.begin(), samples_Kick_C78__pcm.size()},
     SampleData{samples_skkick__pcm.begin(), samples_skkick__pcm.size()},

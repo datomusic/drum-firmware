@@ -12,6 +12,18 @@ template <int SAMPLE_COUNT, int CHUNK_SIZE> struct DummyBufferReader : SampleRea
     return active;
   }
 
+  constexpr bool read_next(int16_t &out) override {
+    if (!active || read_counter >= samples.size()) {
+      active = false;
+      return false;
+    }
+    out = samples[read_counter++];
+    if (read_counter >= samples.size()) {
+      active = false;
+    }
+    return true;
+  }
+
   constexpr uint32_t read_samples(AudioBlock &block) override {
     uint32_t consumed = 0;
     uint32_t samples_written = 0;
@@ -62,7 +74,7 @@ TEST_CASE("PitchShifter reads samples") {
     }
 
     auto reader = DummyBufferReader<100, 4>(samples);
-    auto shifter = PitchShifter(reader);
+    auto shifter = PitchShifter<CubicInterpolator>(reader);
     shifter.reset();
 
     shifter.set_speed(1);
@@ -105,36 +117,96 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter shifter = PitchShifter(reader);
+    PitchShifter<CubicInterpolator> shifter = PitchShifter<CubicInterpolator>(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
-    REQUIRE(reader.read_counter == 16); // Verify we consumed all input
+    // no longer relevant as the pitch shifter reads lazily
+    // REQUIRE(reader.read_counter == 16); // Verify we consumed all input
     REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
 
-    // First samples don't show proper interpolated values
-    // because we prefill the buffer with 4 samples
-    // TODO: fix the implementation so that this doesn't happen
-    REQUIRE(block[0] == 1000); // Initial clamped value
-    REQUIRE(block[1] == 1000);
-    REQUIRE(block[2] == 1000);
-    REQUIRE(block[3] == 1000);
-    REQUIRE(block[4] == 1000);
-    REQUIRE(block[5] == 875);
-    REQUIRE(block[6] == 1000);
-    REQUIRE(block[7] == 1375); // First interpolated value
-    REQUIRE(block[8] == 2000);
-    REQUIRE(block[9] == 2500);
-    REQUIRE(block[10] == 3000);
-    REQUIRE(block[11] == 3500);
-    REQUIRE(block[12] == 4000);
-    REQUIRE(block[13] == 4500);
+    // The initial samples are based on the Catmull-Rom interpolation of the
+    // source data. The first sample is the same as the source's first sample
+    // because the interpolation position has a fractional part of 0.
+    REQUIRE(block[0] == 1000);
+    REQUIRE(block[1] == 1437);
+    REQUIRE(block[2] == 2000);
+    REQUIRE(block[3] == 2500);
+    REQUIRE(block[4] == 3000);
+    REQUIRE(block[5] == 3500);
+    REQUIRE(block[6] == 4000);
+    REQUIRE(block[7] == 4500);
+    REQUIRE(block[8] == 5000);
+    REQUIRE(block[9] == 5500);
+    REQUIRE(block[10] == 6000);
+    REQUIRE(block[11] == 6500);
+    REQUIRE(block[12] == 7000);
+    REQUIRE(block[13] == 7500);
   }));
 }
 
 // TODO: Test that PitchShifter does not fill pad buffer with zeroes, if
 // attempting to read a sample count which is not a multiple of the underlying
 // reader chunk size. This should fail, and be fixed by introducing ChunkReader.
+
+TEST_CASE("HardwareLinearInterpolator correctly configures and uses the hardware") {
+  // This test verifies runtime hardware interaction (via mocks) and is not
+  // constexpr-compatible.
+
+  // This test verifies that the HardwareLinearInterpolator correctly interacts
+  // with the mock hardware interpolator (interp0).
+
+  // Reset mock hardware state before the test
+  reset_mock_interp_state();
+
+  // Call the interpolator. This should trigger initialize_hardware().
+  const int16_t y1 = 1000;
+  const int16_t y2 = 2000;
+  const float mu = 0.5f;
+  HardwareLinearInterpolator::interpolate(0, y1, y2, 0, mu);
+
+  // 1. Verify that the hardware was initialized correctly
+  REQUIRE(mock_interp0_lane0_cfg.blend == true);
+  REQUIRE(mock_interp0_lane1_cfg.is_signed == true);
+
+  // 2. Verify that the two sample values were loaded into BASE registers
+  REQUIRE(static_cast<int16_t>(interp0->base[0]) == y1);
+  REQUIRE(static_cast<int16_t>(interp0->base[1]) == y2);
+
+  // 3. Verify that the fraction was loaded into the accumulator
+  const uint32_t expected_fraction = static_cast<uint32_t>(mu * 255.0f);
+  REQUIRE(interp0->accum[1] == expected_fraction);
+  REQUIRE(interp0->accum[1] >= 0);
+  REQUIRE(interp0->accum[1] <= 255);
+}
+
+TEST_CASE("PitchShifter with NearestNeighborInterpolator works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<NearestNeighborInterpolator> shifter =
+        PitchShifter<NearestNeighborInterpolator>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // With nearest neighbor, mu < 0.5 rounds down (y1), mu >= 0.5 rounds up (y2).
+    REQUIRE(block[0] == 1000); // mu = 0.0
+    REQUIRE(block[1] == 2000); // mu = 0.5
+    REQUIRE(block[2] == 2000); // mu = 0.0
+    REQUIRE(block[3] == 3000); // mu = 0.5
+    REQUIRE(block[4] == 3000); // mu = 0.0
+    REQUIRE(block[5] == 4000); // mu = 0.5
+    REQUIRE(block[6] == 4000); // mu = 0.0
+    REQUIRE(block[7] == 5000); // mu = 0.5
+  }));
+}

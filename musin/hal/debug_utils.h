@@ -2,8 +2,8 @@
 #define MUSIN_HAL_DEBUG_UTILS_H_
 
 extern "C" {
-#include "pico/time.h"
 #include "pico/malloc.h"
+#include "pico/time.h"
 }
 #include "etl/array.h"
 #include "etl/string.h"
@@ -16,10 +16,10 @@ extern "C" {
 
 // Linker script symbols for memory regions
 extern "C" {
-  extern char __end__[];
-  extern char __HeapLimit[]; // End of the heap
-  extern char __StackLimit[];
-  extern char __StackTop[];
+extern char __end__[];
+extern char __HeapLimit[]; // End of the heap
+extern char __StackLimit[];
+extern char __StackTop[];
 }
 
 namespace musin::hal {
@@ -33,9 +33,9 @@ inline std::atomic<uint32_t> g_pitch_shifter_underruns{0};
 #ifdef ENABLE_PROFILING
 
 // Helper to get current stack pointer
-static inline void* get_current_sp() {
-  void* sp;
-  asm volatile ("mov %0, sp" : "=r" (sp));
+static inline void *get_current_sp() {
+  void *sp;
+  asm volatile("mov %0, sp" : "=r"(sp));
   return sp;
 }
 
@@ -50,10 +50,9 @@ static inline void* get_current_sp() {
  *
  * @tparam MaxSections The maximum number of code sections that can be profiled.
  */
-template <size_t MaxSections>
-class SectionProfiler {
+template <size_t MaxSections> class SectionProfiler {
   struct ProfiledSection {
-    const char* name = nullptr;
+    const char *name = nullptr;
     uint64_t accumulated_time_us = 0;
     uint32_t call_count = 0;
   };
@@ -65,7 +64,7 @@ public:
     _last_print_time = get_absolute_time();
   }
 
-  size_t add_section(const char* name) {
+  size_t add_section(const char *name) {
     if (_current_section_count < MaxSections) {
       _sections[_current_section_count].name = name;
       _sections[_current_section_count].accumulated_time_us = 0;
@@ -113,15 +112,15 @@ private:
     printf("--- Memory Report ---\n");
 
     // Heap statistics
-    char* heap_start_addr = __end__;
-    char* heap_limit_addr = __HeapLimit; // Use the provided __HeapLimit
+    char *heap_start_addr = __end__;
+    char *heap_limit_addr = __HeapLimit; // Use the provided __HeapLimit
     size_t total_heap_size = static_cast<size_t>(heap_limit_addr - heap_start_addr);
-    
-    char* current_break = static_cast<char*>(sbrk(0));
+
+    char *current_break = static_cast<char *>(sbrk(0));
     size_t used_heap_size = 0;
     if (current_break >= heap_start_addr && current_break <= heap_limit_addr) {
       used_heap_size = static_cast<size_t>(current_break - heap_start_addr);
-    } else if (current_break == (char*)-1) { 
+    } else if (current_break == (char *)-1) {
       // sbrk error or heap not used/available via sbrk.
       // This might happen if the heap is not managed in a way sbrk can track,
       // or if sbrk is not implemented/supported fully for the target.
@@ -130,26 +129,24 @@ private:
     }
     // Ensure used_heap_size does not exceed total_heap_size in case of sbrk anomalies
     if (used_heap_size > total_heap_size) {
-        used_heap_size = total_heap_size; 
+      used_heap_size = total_heap_size;
     }
 
-    printf("Heap: Total %u B, Used %u B, Free %u B\n",
-           static_cast<unsigned int>(total_heap_size),
+    printf("Heap: Total %u B, Used %u B, Free %u B\n", static_cast<unsigned int>(total_heap_size),
            static_cast<unsigned int>(used_heap_size),
            static_cast<unsigned int>(total_heap_size - used_heap_size));
 
     // Stack statistics
-    char* stack_limit = __StackLimit;
-    char* stack_top = __StackTop; // Typically highest address, stack grows down
+    char *stack_limit = __StackLimit;
+    char *stack_top = __StackTop; // Typically highest address, stack grows down
     size_t total_stack_size = static_cast<size_t>(stack_top - stack_limit);
-    char* current_stack_pointer = static_cast<char*>(get_current_sp());
+    char *current_stack_pointer = static_cast<char *>(get_current_sp());
     size_t used_stack_size = 0;
     if (current_stack_pointer >= stack_limit && current_stack_pointer <= stack_top) {
-       used_stack_size = static_cast<size_t>(stack_top - current_stack_pointer);
+      used_stack_size = static_cast<size_t>(stack_top - current_stack_pointer);
     }
 
-    printf("Stack: Total %u B, Used %u B, Free %u B\n",
-           static_cast<unsigned int>(total_stack_size),
+    printf("Stack: Total %u B, Used %u B, Free %u B\n", static_cast<unsigned int>(total_stack_size),
            static_cast<unsigned int>(used_stack_size),
            static_cast<unsigned int>(total_stack_size - used_stack_size));
     printf("------------------------\n");
@@ -185,10 +182,9 @@ private:
  *
  * @tparam MaxSections The maximum number of sections supported by the associated SectionProfiler.
  */
-template <size_t MaxSections>
-class ScopedProfile {
+template <size_t MaxSections> class ScopedProfile {
 public:
-  ScopedProfile(SectionProfiler<MaxSections>& profiler, size_t section_index)
+  ScopedProfile(SectionProfiler<MaxSections> &profiler, size_t section_index)
       : _profiler(profiler), _section_index(section_index) {
     _start_time = get_absolute_time();
   }
@@ -199,11 +195,11 @@ public:
     _profiler.record_duration(_section_index, duration_us);
   }
 
-  ScopedProfile(const ScopedProfile&) = delete;
-  ScopedProfile& operator=(const ScopedProfile&) = delete;
+  ScopedProfile(const ScopedProfile &) = delete;
+  ScopedProfile &operator=(const ScopedProfile &) = delete;
 
 private:
-  SectionProfiler<MaxSections>& _profiler;
+  SectionProfiler<MaxSections> &_profiler;
   size_t _section_index;
   absolute_time_t _start_time;
 };
@@ -215,22 +211,26 @@ inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
 #else // ENABLE_PROFILING not defined
 
 // Stub for SectionProfiler class
-template <size_t MaxSections>
-class SectionProfiler {
+template <size_t MaxSections> class SectionProfiler {
 public:
-  explicit SectionProfiler(uint32_t /*print_interval_ms*/ = 2000) {}
-  size_t add_section(const char* /*name*/) { return 0; }
-  void record_duration(size_t /*index*/, uint64_t /*duration_us*/) {}
-  void check_and_print_report() {}
+  explicit SectionProfiler(uint32_t /*print_interval_ms*/ = 2000) {
+  }
+  size_t add_section(const char * /*name*/) {
+    return 0;
+  }
+  void record_duration(size_t /*index*/, uint64_t /*duration_us*/) {
+  }
+  void check_and_print_report() {
+  }
 };
 
 // Stub for ScopedProfile class
-template <size_t MaxSections>
-class ScopedProfile {
+template <size_t MaxSections> class ScopedProfile {
 public:
-  ScopedProfile(SectionProfiler<MaxSections>& /*profiler*/, size_t /*section_index*/) {}
-  ScopedProfile(const ScopedProfile&) = delete;
-  ScopedProfile& operator=(const ScopedProfile&) = delete;
+  ScopedProfile(SectionProfiler<MaxSections> & /*profiler*/, size_t /*section_index*/) {
+  }
+  ScopedProfile(const ScopedProfile &) = delete;
+  ScopedProfile &operator=(const ScopedProfile &) = delete;
 };
 
 // Define the number of sections for the global profiler (must match ENABLE_PROFILING case)

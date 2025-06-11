@@ -4,9 +4,9 @@
 #include "musin/audio/buffered_reader.h" // Added include
 #include "musin/audio/memory_reader.h"   // Added include
 #include "musin/audio/sample_data.h"
-#include "musin/hal/pico_dma_copier.h"
 #include "musin/audio/sample_reader.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
+#include "musin/hal/pico_dma_copier.h"
 #include "port/section_macros.h"
 #include <algorithm> // For std::copy, std::min, std::fill
 #include <cstdint>

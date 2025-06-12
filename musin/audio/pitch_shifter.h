@@ -17,7 +17,7 @@ extern "C" {
 
 // Interpolator strategies
 struct CubicInterpolator {
-  static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
                                                    const int16_t y2, const int16_t y3,
                                                    const float mu) {
     const float mu2 = mu * mu;

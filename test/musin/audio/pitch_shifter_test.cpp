@@ -210,3 +210,54 @@ TEST_CASE("PitchShifter with NearestNeighborInterpolator works correctly") {
     REQUIRE(block[7] == 5000); // mu = 0.5
   }));
 }
+
+TEST_CASE("PitchShifter with QuadraticInterpolator works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<QuadraticInterpolator> shifter = PitchShifter<QuadraticInterpolator>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // Check interpolated values
+    REQUIRE(block[0] == 1000); // mu=0.0
+    REQUIRE(block[1] == 1375); // mu=0.5, y0=1000, y1=1000, y2=2000
+    REQUIRE(block[2] == 2000); // mu=0.0
+    REQUIRE(block[3] == 2500); // mu=0.5, y0=1000, y1=2000, y2=3000 (linear)
+    REQUIRE(block[4] == 3000); // mu=0.0
+    REQUIRE(block[5] == 3500); // mu=0.5, y0=2000, y1=3000, y2=4000 (linear)
+  }));
+}
+
+TEST_CASE("PitchShifter with QuadraticInterpolatorInt works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<QuadraticInterpolatorInt> shifter =
+        PitchShifter<QuadraticInterpolatorInt>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // The integer version should produce identical results for this input
+    REQUIRE(block[0] == 1000);
+    REQUIRE(block[1] == 1375);
+    REQUIRE(block[2] == 2000);
+    REQUIRE(block[3] == 2500);
+    REQUIRE(block[4] == 3000);
+    REQUIRE(block[5] == 3500);
+  }));
+}

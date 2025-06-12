@@ -39,6 +39,50 @@ struct CubicInterpolator {
   }
 };
 
+struct QuadraticInterpolator {
+  static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                                   const int16_t y2, const int16_t /*y3*/,
+                                                   const float mu) {
+    // Quadratic interpolation using y0, y1, y2. y3 is not used.
+    const float mu2 = mu * mu;
+
+    // Coefficients for P(mu) = a*mu^2 + b*mu + c
+    const float a = 0.5f * (y2 + y0) - y1;
+    const float b = 0.5f * (y2 - y0);
+    const float c = y1;
+
+    float result = a * mu2 + b * mu + c;
+
+    // Clamp to int16_t range
+    result = std::clamp(result, -32768.0f, 32767.0f);
+
+    return static_cast<int16_t>(result);
+  }
+};
+
+struct QuadraticInterpolatorInt {
+  static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                                   const int16_t y2, const int16_t /*y3*/,
+                                                   const float mu) {
+    // Fixed-point quadratic interpolation. Uses 7 fractional bits for mu
+    // to keep intermediate products within 32-bit integers.
+    const int32_t N = 7;
+    const int32_t mu_fp = static_cast<int32_t>(mu * (1 << N)); // 0 to 127
+
+    const int32_t a = static_cast<int32_t>(y0) + y2 - (2 * static_cast<int32_t>(y1));
+    const int32_t b = static_cast<int32_t>(y2) - y0;
+
+    const int32_t mu_fp_sq = mu_fp * mu_fp;
+    const int32_t term1 = mu_fp_sq * a;
+    const int32_t term2 = (mu_fp << N) * b;
+
+    const int32_t interpolated_part = (term1 + term2) >> (2 * N + 1);
+    const int32_t result = static_cast<int32_t>(y1) + interpolated_part;
+
+    return saturate16(result);
+  }
+};
+
 struct NearestNeighborInterpolator {
   static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
                                                    const int16_t y2, const int16_t /*y3*/,

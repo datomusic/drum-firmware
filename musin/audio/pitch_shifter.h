@@ -7,10 +7,10 @@
 
 #include "port/section_macros.h"
 
-// Removed #include "buffered_reader.h"
 #include "dspinst.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
-#include "sample_reader.h"         // Includes block.h for AudioBlock
+#include "sample_reader.h"
+#include "block.h"
 
 extern "C" {
 #include "hardware/interp.h"

@@ -261,3 +261,55 @@ TEST_CASE("PitchShifter with QuadraticInterpolatorInt works correctly") {
     REQUIRE(block[5] == 3500);
   }));
 }
+
+TEST_CASE("PitchShifter with CubicInterpolatorOptimized works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<CubicInterpolatorOptimized> shifter =
+        PitchShifter<CubicInterpolatorOptimized>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // The optimized version should produce identical results to the original.
+    REQUIRE(block[0] == 1000);
+    REQUIRE(block[1] == 1437);
+    REQUIRE(block[2] == 2000);
+    REQUIRE(block[3] == 2500);
+    REQUIRE(block[4] == 3000);
+    REQUIRE(block[5] == 3500);
+  }));
+}
+
+TEST_CASE("PitchShifter with CubicInterpolatorInt works correctly") {
+  CONST_BODY(({
+    const int CHUNK_SIZE = 4;
+    auto reader =
+        DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+                                           10000, 11000, 12000, 13000, 14000, 15000, 16000});
+    PitchShifter<CubicInterpolatorInt> shifter = PitchShifter<CubicInterpolatorInt>(reader);
+    shifter.reset();
+
+    shifter.set_speed(0.5f);
+
+    AudioBlock block;
+    auto samples_read = shifter.read_samples(block);
+    REQUIRE(samples_read == AUDIO_BLOCK_SAMPLES);
+
+    // The integer version should produce nearly identical results.
+    // For this input, the results are identical.
+    REQUIRE(block[0] == 1000);
+    REQUIRE(block[1] == 1437);
+    REQUIRE(block[2] == 2000);
+    REQUIRE(block[3] == 2500);
+    REQUIRE(block[4] == 3000);
+    REQUIRE(block[5] == 3500);
+  }));
+}

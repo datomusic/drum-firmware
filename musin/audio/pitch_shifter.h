@@ -39,6 +39,49 @@ struct CubicInterpolator {
   }
 };
 
+struct CubicInterpolatorOptimized {
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                                             const int16_t y2, const int16_t y3,
+                                                             const float mu) {
+    // Optimized Catmull-Rom using Horner's method to reduce multiplications.
+    const float c0 = y1;
+    const float c1 = 0.5f * (y2 - y0);
+    const float c2 = y0 - 2.5f * y1 + 2.0f * y2 - 0.5f * y3;
+    const float c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
+
+    float result = ((c3 * mu + c2) * mu + c1) * mu + c0;
+
+    // Clamp to int16_t range
+    result = std::clamp(result, -32768.0f, 32767.0f);
+
+    return static_cast<int16_t>(result);
+  }
+};
+
+struct CubicInterpolatorInt {
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                                             const int16_t y2, const int16_t y3,
+                                                             const float mu) {
+    // Fixed-point cubic interpolation. Uses 8 fractional bits for mu.
+    const int32_t N = 8;
+    const int32_t mu_fp = static_cast<int32_t>(mu * (1 << N)); // 0 to 255
+
+    // Pre-calculate coefficients as 32-bit integers
+    const int32_t c0 = y1;
+    const int32_t c1 = (y2 - y0) / 2;
+    const int32_t c2 = y0 - (5 * y1) / 2 + 2 * y2 - y3 / 2;
+    const int32_t c3 = (y3 - y0) / 2 + (3 * (y1 - y2)) / 2;
+
+    // Evaluate using Horner's method with fixed-point arithmetic
+    int32_t result = (mu_fp * c3) >> N;
+    result = (mu_fp * (c2 + result)) >> N;
+    result = (mu_fp * (c1 + result)) >> N;
+    result += c0;
+
+    return saturate16(result);
+  }
+};
+
 struct QuadraticInterpolator {
   static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
                                                    const int16_t y2, const int16_t /*y3*/,

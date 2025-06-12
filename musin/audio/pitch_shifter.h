@@ -6,10 +6,10 @@
 
 #include "port/section_macros.h"
 
+#include "block.h"
 #include "dspinst.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
 #include "sample_reader.h"
-#include "block.h"
 
 extern "C" {
 #include "hardware/interp.h"
@@ -18,8 +18,8 @@ extern "C" {
 // Interpolator strategies
 struct CubicInterpolator {
   static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                   const int16_t y2, const int16_t y3,
-                                                   const float mu) {
+                                                             const int16_t y2, const int16_t y3,
+                                                             const float mu) {
     const float mu2 = mu * mu;
     const float mu3 = mu2 * mu;
 
@@ -83,8 +83,8 @@ struct CubicInterpolatorInt {
 
 struct QuadraticInterpolator {
   static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                   const int16_t y2, const int16_t /*y3*/,
-                                                   const float mu) {
+                                                             const int16_t y2, const int16_t /*y3*/,
+                                                             const float mu) {
     // Quadratic interpolation using y0, y1, y2. y3 is not used.
     const float mu2 = mu * mu;
 
@@ -104,8 +104,8 @@ struct QuadraticInterpolator {
 
 struct QuadraticInterpolatorInt {
   static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                   const int16_t y2, const int16_t /*y3*/,
-                                                   const float mu) {
+                                                             const int16_t y2, const int16_t /*y3*/,
+                                                             const float mu) {
     // Fixed-point quadratic interpolation. Uses 7 fractional bits for mu
     // to keep intermediate products within 32-bit integers.
     const int32_t N = 7;
@@ -127,8 +127,8 @@ struct QuadraticInterpolatorInt {
 
 struct NearestNeighborInterpolator {
   static constexpr int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
-                                                   const int16_t y2, const int16_t /*y3*/,
-                                                   const float mu) {
+                                                             const int16_t y2, const int16_t /*y3*/,
+                                                             const float mu) {
     // y0 and y3 are not used for nearest neighbor interpolation focusing on y1 and y2.
     // mu is the fractional position between y1 and y2.
     if (mu < 0.5f) {

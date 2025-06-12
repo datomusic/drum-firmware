@@ -40,7 +40,7 @@ struct CubicInterpolator {
 };
 
 struct QuadraticInterpolator {
-  static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
                                                    const int16_t y2, const int16_t /*y3*/,
                                                    const float mu) {
     // Quadratic interpolation using y0, y1, y2. y3 is not used.
@@ -61,7 +61,7 @@ struct QuadraticInterpolator {
 };
 
 struct QuadraticInterpolatorInt {
-  static int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
                                                    const int16_t y2, const int16_t /*y3*/,
                                                    const float mu) {
     // Fixed-point quadratic interpolation. Uses 7 fractional bits for mu
@@ -84,7 +84,7 @@ struct QuadraticInterpolatorInt {
 };
 
 struct NearestNeighborInterpolator {
-  static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
                                                    const int16_t y2, const int16_t /*y3*/,
                                                    const float mu) {
     // y0 and y3 are not used for nearest neighbor interpolation focusing on y1 and y2.

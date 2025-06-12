@@ -2,7 +2,6 @@
 #define PITCH_SHIFTER_H_0GR8ZAHC
 
 #include <algorithm>
-#include <cmath> // Added for floor()
 #include <cstdint>
 
 #include "port/section_macros.h"
@@ -283,7 +282,7 @@ private:
     // Process each output sample
     for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
       // Get the integer and fractional parts of the current position
-      int new_buffer_position = static_cast<int>(std::floor(current_position));
+      int new_buffer_position = static_cast<int>(current_position);
       float mu = current_position - static_cast<float>(new_buffer_position);
 
       // Ensure we have enough samples in the buffer for interpolation.
@@ -354,7 +353,7 @@ private:
 
     // Save position for next call
     position = current_position;
-    buffer_position = static_cast<int>(std::floor(position));
+    buffer_position = static_cast<int>(position);
 
     return samples_generated;
   }

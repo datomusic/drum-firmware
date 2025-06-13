@@ -277,7 +277,7 @@ struct PitchShifter : SampleReader {
     }
 
     if (this->speed < 1.0f) {
-      m_interpolate_fn = &CubicInterpolatorOptimized::interpolate;
+      m_interpolate_fn = &QuadraticInterpolator::interpolate;
     } else {
       m_interpolate_fn = &QuadraticInterpolator::interpolate;
     }

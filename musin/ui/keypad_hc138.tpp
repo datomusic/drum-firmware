@@ -182,7 +182,6 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
       if (absolute_time_diff_us(key.transition_time, now) >= _debounce_time_us) {
         // Debounce confirmed, transition to PRESSED
         KeyState next_state = KeyState::PRESSED;
-        key.transition_time = now;                    // Record press time for hold check
         key.press_event_time = now;                   // Record press time for tap check
         key.just_pressed = true;                      // Set event flag
         notify_event(r, c, KeypadEvent::Type::Press); // Notify observers

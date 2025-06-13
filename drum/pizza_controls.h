@@ -71,6 +71,10 @@ public:
           : parent(p), cc_map(map), midi_channel(channel) {
       }
       void notification(musin::ui::KeypadEvent event) override;
+
+    private:
+      void handle_sample_select(musin::ui::KeypadEvent event);
+      void handle_sequencer_step(musin::ui::KeypadEvent event);
     };
 
     PizzaControls *parent_controls;

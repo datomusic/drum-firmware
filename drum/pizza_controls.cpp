@@ -60,61 +60,59 @@ void PizzaControls::KeypadComponent::update() {
   keypad.scan();
 }
 
-void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
+void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sample_select(
     musin::ui::KeypadEvent event) {
   PizzaControls *controls = parent->parent_controls;
 
-  // Sample Select (Column 4)
-  if (event.col >= config::keypad::SAMPLE_SELECT_START_COLUMN) {
-    if (event.type == musin::ui::KeypadEvent::Type::Press) {
-      uint8_t pad_index = 0;
-      int8_t offset = 0;
-      switch (event.row) {
-      case 0:
-        pad_index = 3;
-        offset = -1;
-        break;
-      case 1:
-        pad_index = 3;
-        offset = 1;
-        break;
-      case 2:
-        pad_index = 2;
-        offset = -1;
-        break;
-      case 3:
-        pad_index = 2;
-        offset = 1;
-        break;
-      case 4:
-        pad_index = 1;
-        offset = -1;
-        break;
-      case 5:
-        pad_index = 1;
-        offset = 1;
-        break;
-      case 6:
-        pad_index = 0;
-        offset = -1;
-        break;
-      case 7:
-        pad_index = 0;
-        offset = 1;
-        break;
-      }
-      controls->drumpad_component.select_note_for_pad(pad_index, offset);
-      if (!controls->is_running()) {
-        uint8_t note_to_play = controls->drumpad_component.get_note_for_pad(pad_index);
-        drum::Events::NoteEvent note_event{.track_index = pad_index,
-                                           .note = note_to_play,
-                                           .velocity = config::keypad::PREVIEW_NOTE_VELOCITY};
-        controls->_sequencer_controller_ref.trigger_note_on(pad_index, note_to_play,
-                                                            config::keypad::PREVIEW_NOTE_VELOCITY);
-      }
+  if (event.type == musin::ui::KeypadEvent::Type::Press) {
+    uint8_t pad_index = 0;
+    int8_t offset = 0;
+    switch (event.row) {
+    case 0:
+      pad_index = 3;
+      offset = -1;
+      break;
+    case 1:
+      pad_index = 3;
+      offset = 1;
+      break;
+    case 2:
+      pad_index = 2;
+      offset = -1;
+      break;
+    case 3:
+      pad_index = 2;
+      offset = 1;
+      break;
+    case 4:
+      pad_index = 1;
+      offset = -1;
+      break;
+    case 5:
+      pad_index = 1;
+      offset = 1;
+      break;
+    case 6:
+      pad_index = 0;
+      offset = -1;
+      break;
+    case 7:
+      pad_index = 0;
+      offset = 1;
+      break;
     }
-    return;
+    controls->drumpad_component.select_note_for_pad(pad_index, offset);
+    if (!controls->is_running()) {
+      uint8_t note_to_play = controls->drumpad_component.get_note_for_pad(pad_index);
+      controls->_sequencer_controller_ref.trigger_note_on(pad_index, note_to_play,
+                                                          config::keypad::PREVIEW_NOTE_VELOCITY);
+    }
   }
+}
+
+void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
+    musin::ui::KeypadEvent event) {
+  PizzaControls *controls = parent->parent_controls;
 
   // Map physical column to logical track (0->3, 1->2, 2->1, 3->0)
   uint8_t track_idx = (drum::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
@@ -152,6 +150,16 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
         controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
       }
     }
+  }
+}
+
+void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
+    musin::ui::KeypadEvent event) {
+  // Sample Select (Column 4)
+  if (event.col >= config::keypad::SAMPLE_SELECT_START_COLUMN) {
+    handle_sample_select(event);
+  } else {
+    handle_sequencer_step(event);
   }
 }
 

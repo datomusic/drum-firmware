@@ -18,8 +18,6 @@
 
 #include "config.h"
 
-#include "config.h"
-
 #include "musin/timing/internal_clock.h"
 
 #include "musin/timing/step_sequencer.h"

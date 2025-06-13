@@ -280,6 +280,10 @@ struct PitchShifter : SampleReader {
     }
   }
 
+  constexpr void set_interpolator(InterpolateFn fn) {
+    m_interpolate_fn = fn;
+  }
+
 private:
   bool __time_critical_func(get_next_source_sample)(int16_t &out_sample) {
     // If our local source buffer is exhausted, refill it by reading a full block.

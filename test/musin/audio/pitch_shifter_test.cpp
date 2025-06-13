@@ -74,10 +74,11 @@ TEST_CASE("PitchShifter reads samples") {
     }
 
     auto reader = DummyBufferReader<100, 4>(samples);
-    auto shifter = PitchShifter<CubicInterpolator>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(1);
+    shifter.set_interpolator(&CubicInterpolator::interpolate);
 
     size_t total_samples_read = 0;
     size_t loop_counter = 0;
@@ -117,10 +118,11 @@ TEST_CASE("PitchShifter fills buffer when speed is less than 1 and requested sam
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<CubicInterpolator> shifter = PitchShifter<CubicInterpolator>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
+    shifter.set_interpolator(&CubicInterpolator::interpolate);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
@@ -189,11 +191,11 @@ TEST_CASE("PitchShifter with NearestNeighborInterpolator works correctly") {
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<NearestNeighborInterpolator> shifter =
-        PitchShifter<NearestNeighborInterpolator>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
+    shifter.set_interpolator(&NearestNeighborInterpolator::interpolate);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
@@ -217,10 +219,11 @@ TEST_CASE("PitchShifter with QuadraticInterpolator works correctly") {
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<QuadraticInterpolator> shifter = PitchShifter<QuadraticInterpolator>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
+    shifter.set_interpolator(&QuadraticInterpolator::interpolate);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
@@ -242,10 +245,11 @@ TEST_CASE("PitchShifter with QuadraticInterpolatorInt works correctly") {
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<QuadraticInterpolatorInt> shifter = PitchShifter<QuadraticInterpolatorInt>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
+    shifter.set_interpolator(&QuadraticInterpolatorInt::interpolate);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
@@ -267,11 +271,11 @@ TEST_CASE("PitchShifter with CubicInterpolatorOptimized works correctly") {
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<CubicInterpolatorOptimized> shifter =
-        PitchShifter<CubicInterpolatorOptimized>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
+    shifter.set_interpolator(&CubicInterpolatorOptimized::interpolate);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);
@@ -293,10 +297,11 @@ TEST_CASE("PitchShifter with CubicInterpolatorInt works correctly") {
     auto reader =
         DummyBufferReader<16, CHUNK_SIZE>({1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
                                            10000, 11000, 12000, 13000, 14000, 15000, 16000});
-    PitchShifter<CubicInterpolatorInt> shifter = PitchShifter<CubicInterpolatorInt>(reader);
+    auto shifter = PitchShifter(reader);
     shifter.reset();
 
     shifter.set_speed(0.5f);
+    shifter.set_interpolator(&CubicInterpolatorInt::interpolate);
 
     AudioBlock block;
     auto samples_read = shifter.read_samples(block);

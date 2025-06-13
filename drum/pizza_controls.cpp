@@ -123,28 +123,34 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   // Get a reference to the track to modify it
   auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(track_idx);
 
-  uint8_t step_velocity;
-  bool now_enabled;
+  if (event.type == musin::ui::KeypadEvent::Type::Press ||
+      event.type == musin::ui::KeypadEvent::Type::Tap) {
+    const bool now_enabled = track.toggle_step_enabled(step_idx);
 
-  if (event.type == musin::ui::KeypadEvent::Type::Press) {
-    now_enabled = track.toggle_step_enabled(step_idx);
-    step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
+    if (now_enabled) {
+      const uint8_t step_velocity = (event.type == musin::ui::KeypadEvent::Type::Tap)
+                                        ? config::keypad::STEP_VELOCITY_ON_TAP
+                                        : config::keypad::DEFAULT_STEP_VELOCITY;
+
+      // Get the current note assigned to the corresponding drumpad
+      uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
+      track.set_step_note(step_idx, note);
+      track.set_step_velocity(step_idx, step_velocity);
+
+      if (!controls->is_running()) {
+        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+      }
+    }
   } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    step_velocity = config::keypad::MAX_STEP_VELOCITY_ON_HOLD;
-  } else if (event.type == musin::ui::KeypadEvent::Type::Tap) {
-    now_enabled = track.toggle_step_enabled(step_idx);
-    step_velocity = config::keypad::STEP_VELOCITY_ON_TAP;
-  }
+    // On hold, we only update the velocity of an already active step.
+    if (track.get_step(step_idx).enabled) {
+      const uint8_t step_velocity = config::keypad::MAX_STEP_VELOCITY_ON_HOLD;
+      track.set_step_velocity(step_idx, step_velocity);
 
-  if (now_enabled) {
-    // Get the current note assigned to the corresponding drumpad
-    uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
-    track.set_step_note(step_idx, note);
-
-    track.set_step_velocity(step_idx, step_velocity);
-
-    if (!controls->is_running()) {
-      controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+      if (!controls->is_running()) {
+        uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
+        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+      }
     }
   }
 }

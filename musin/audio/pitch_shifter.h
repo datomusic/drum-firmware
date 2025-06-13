@@ -186,7 +186,7 @@ struct PitchShifter : SampleReader {
   using InterpolateFn = int16_t (*)(const int16_t, const int16_t, const int16_t, const int16_t,
                                     const float);
 
-  constexpr PitchShifter(SampleReader &reader)
+  PitchShifter(SampleReader &reader)
       : speed(1.0f), sample_reader(reader), m_internal_buffer_read_idx(0),
         m_internal_buffer_valid_samples(0), has_reached_end(false),
         m_interpolate_fn(&QuadraticInterpolator::interpolate) {

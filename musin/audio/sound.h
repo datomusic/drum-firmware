@@ -6,7 +6,7 @@
 #include <pico/stdlib.h>
 
 struct Sound : BufferSource {
-  constexpr Sound(SampleReader &reader) : pitch_shifter(reader) {
+  Sound(SampleReader &reader) : pitch_shifter(reader) {
   }
 
   void play(const double speed) {

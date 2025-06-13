@@ -182,16 +182,20 @@ private:
   }
 };
 
-template <typename InterpolatorStrategy> struct PitchShifter : SampleReader {
+struct PitchShifter : SampleReader {
+  using InterpolateFn = int16_t (*)(const int16_t, const int16_t, const int16_t, const int16_t,
+                                    const float);
+
   constexpr PitchShifter(SampleReader &reader)
       : speed(1.0f), sample_reader(reader), m_internal_buffer_read_idx(0),
-        m_internal_buffer_valid_samples(0), has_reached_end(false) {
+        m_internal_buffer_valid_samples(0), has_reached_end(false),
+        m_interpolate_fn(&QuadraticInterpolator::interpolate) {
     // Initialize interpolation buffer to avoid clicks/pops
     reset();
   }
 
   // Reader interface
-  constexpr void reset() override {
+  void reset() override {
     // Pre-fill interpolation buffer with first sample or zeros
     // This helps prevent clicks/pops at the beginning
     int16_t first_sample = 0;
@@ -217,7 +221,7 @@ template <typename InterpolatorStrategy> struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  constexpr bool has_data() override {
+  bool has_data() override {
     if (this->speed > 0.99f && this->speed < 1.01f) {
       return sample_reader.has_data();
     } else {
@@ -229,7 +233,7 @@ template <typename InterpolatorStrategy> struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  constexpr bool read_next(int16_t &out) override {
+  bool read_next(int16_t &out) override {
     if (this->speed > 0.99f && this->speed < 1.01f) {
       // Passthrough directly from the source reader
       return sample_reader.read_next(out);
@@ -253,7 +257,7 @@ template <typename InterpolatorStrategy> struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  constexpr uint32_t read_samples(AudioBlock &out) override {
+  uint32_t read_samples(AudioBlock &out) override {
     // Fast path for essentially unmodified speed
     if (this->speed > 0.99f && this->speed < 1.01f) {
       return sample_reader.read_samples(out);
@@ -271,10 +275,16 @@ template <typename InterpolatorStrategy> struct PitchShifter : SampleReader {
     } else {
       this->speed = new_speed;
     }
+
+    if (this->speed < 1.0f) {
+      m_interpolate_fn = &CubicInterpolatorOptimized::interpolate;
+    } else {
+      m_interpolate_fn = &QuadraticInterpolator::interpolate;
+    }
   }
 
 private:
-  constexpr uint32_t __time_critical_func(read_resampled)(AudioBlock &out) {
+  uint32_t __time_critical_func(read_resampled)(AudioBlock &out) {
     int16_t sample = 0;
     uint32_t samples_generated = 0;
     float current_position = position;
@@ -317,7 +327,7 @@ private:
       const int16_t y3 = interpolation_samples[3];
 
       // Calculate interpolated value
-      const int16_t interpolated_value = InterpolatorStrategy::interpolate(y0, y1, y2, y3, mu);
+      const int16_t interpolated_value = m_interpolate_fn(y0, y1, y2, y3, mu);
 
       // Write the interpolated sample to output
       out[out_sample_index] = interpolated_value;
@@ -358,7 +368,7 @@ private:
     return samples_generated;
   }
 
-  constexpr void __time_critical_func(shift_interpolation_samples)(const int16_t sample) {
+  void __time_critical_func(shift_interpolation_samples)(const int16_t sample) {
     // Shift samples in the interpolation buffer. This acts as a shift register.
     interpolation_samples[0] = interpolation_samples[1];
     interpolation_samples[1] = interpolation_samples[2];
@@ -375,6 +385,7 @@ private:
   uint32_t m_internal_buffer_read_idx;
   uint32_t m_internal_buffer_valid_samples;
   bool has_reached_end; // Tracks if we've reached the end of source data
+  InterpolateFn m_interpolate_fn;
 
   // Other members (initialized in reset() or by default constructor)
   // Align interpolation buffer to word boundary for better memory access

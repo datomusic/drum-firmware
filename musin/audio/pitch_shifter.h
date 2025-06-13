@@ -196,18 +196,11 @@ struct PitchShifter : SampleReader {
 
   // Reader interface
   void reset() override {
-    // Pre-fill interpolation buffer with first sample or zeros
-    // This helps prevent clicks/pops at the beginning
-    int16_t first_sample = 0;
-    // Try to get the first sample if available
     sample_reader.reset();
-    if (sample_reader.has_data()) {
-      sample_reader.read_next(first_sample);
-      sample_reader.reset(); // Reset again after reading the first sample
-    }
 
+    // Zero out the interpolation buffer to prevent clicks from stale data.
     for (int i = 0; i < 4; i++) {
-      interpolation_samples[i] = first_sample;
+      interpolation_samples[i] = 0;
     }
 
     position = 0.0f;
@@ -218,6 +211,10 @@ struct PitchShifter : SampleReader {
     // Reset internal buffer for read_next when resampling
     m_internal_buffer_read_idx = 0;
     m_internal_buffer_valid_samples = 0;
+
+    // Reset the source buffer state
+    m_source_buffer_read_idx = 0;
+    m_source_buffer_valid_samples = 0;
   }
 
   // Reader interface
@@ -284,6 +281,23 @@ struct PitchShifter : SampleReader {
   }
 
 private:
+  bool __time_critical_func(get_next_source_sample)(int16_t &out_sample) {
+    // If our local source buffer is exhausted, refill it by reading a full block.
+    if (m_source_buffer_read_idx >= m_source_buffer_valid_samples) {
+      m_source_buffer_valid_samples = sample_reader.read_samples(m_source_buffer);
+      m_source_buffer_read_idx = 0;
+
+      if (m_source_buffer_valid_samples == 0) {
+        // The underlying reader has no more data.
+        return false;
+      }
+    }
+
+    // Serve the next sample from our local buffer.
+    out_sample = m_source_buffer[m_source_buffer_read_idx++];
+    return true;
+  }
+
   uint32_t __time_critical_func(read_resampled)(AudioBlock &out) {
     int16_t sample = 0;
     uint32_t samples_generated = 0;
@@ -300,7 +314,7 @@ private:
       // at position n. So we need to have read up to sample n+2.
       bool has_more_data = true;
       while (source_index <= static_cast<uint32_t>(new_buffer_position + 2) && has_more_data) {
-        has_more_data = sample_reader.read_next(sample);
+        has_more_data = get_next_source_sample(sample);
         if (!has_more_data) {
           // Reached the end of input data
           has_reached_end = true;
@@ -395,6 +409,11 @@ private:
   int buffer_position;
   // Internal buffer for read_next when resampling
   AudioBlock m_internal_buffer;
+
+  // Buffer for reading blocks from the source reader
+  AudioBlock m_source_buffer;
+  uint32_t m_source_buffer_read_idx = 0;
+  uint32_t m_source_buffer_valid_samples = 0;
 };
 
 #endif /* end of include guard: PITCH_SHIFTER_H_0GR8ZAHC */

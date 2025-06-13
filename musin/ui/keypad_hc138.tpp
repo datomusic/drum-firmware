@@ -172,14 +172,15 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
     if (raw_key_pressed) {
       // Potential press detected, start debounce timer
       key.state = KeyState::DEBOUNCING_PRESS;
-      key.transition_time = now;
+      key.press_start_time = now;
+      key.state_change_time = now;
     }
     break;
 
   case KeyState::DEBOUNCING_PRESS:
     if (raw_key_pressed) {
       // Still pressed, check if debounce time has passed
-      if (absolute_time_diff_us(key.transition_time, now) >= _debounce_time_us) {
+      if (absolute_time_diff_us(key.state_change_time, now) >= _debounce_time_us) {
         // Debounce confirmed, transition to PRESSED
         KeyState next_state = KeyState::PRESSED;
         key.press_event_time = now;                   // Record press time for tap check
@@ -188,7 +189,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
 
         // Check immediately if hold time is zero or very small
         if (_hold_time_us == 0 ||
-            absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
+            absolute_time_diff_us(key.press_start_time, now) >= _hold_time_us) {
           next_state = KeyState::HOLDING;
           notify_event(r, c, KeypadEvent::Type::Hold); // Notify observers about hold
         }
@@ -198,23 +199,24 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
     } else {
       // Key released during debounce, return to IDLE
       key.state = KeyState::IDLE;
-      key.transition_time = nil_time;
+      key.press_start_time = nil_time;
+      key.state_change_time = nil_time;
     }
     break;
 
   case KeyState::PRESSED:
     if (raw_key_pressed) {
       // Still pressed, check if hold time has passed
-      if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
+      if (absolute_time_diff_us(key.press_start_time, now) >= _hold_time_us) {
         key.state = KeyState::HOLDING;
         notify_event(r, c, KeypadEvent::Type::Hold); // Notify observers about hold
-        // Note: transition_time remains the original press time
+        // Note: press_start_time remains the original press time
       }
       // else: Hold time not yet elapsed, remain in PRESSED
     } else {
       // Potential release detected, start debounce timer
       key.state = KeyState::DEBOUNCING_RELEASE;
-      key.transition_time = now; // Record time release *started*
+      key.state_change_time = now; // Record time release *started*
     }
     break;
 
@@ -222,7 +224,7 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
     if (!raw_key_pressed) {
       // Potential release detected (from Hold state), start debounce timer
       key.state = KeyState::DEBOUNCING_RELEASE;
-      key.transition_time = now; // Record time release *started*
+      key.state_change_time = now; // Record time release *started*
     }
     // else: Still Hold, remain in HOLDING state
     break;
@@ -230,10 +232,9 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
   case KeyState::DEBOUNCING_RELEASE:
     if (!raw_key_pressed) {
       // Still released, check if debounce time has passed
-      if (absolute_time_diff_us(key.transition_time, now) >= _debounce_time_us) {
+      if (absolute_time_diff_us(key.state_change_time, now) >= _debounce_time_us) {
         // Debounce confirmed, transition to IDLE
         key.state = KeyState::IDLE;
-        // key.transition_time is already set from when release debounce started
         key.just_released = true;                       // Set event flag
         notify_event(r, c, KeypadEvent::Type::Release); // Notify observers
 
@@ -243,26 +244,16 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
             notify_event(r, c, KeypadEvent::Type::Tap);
           }
         }
-        key.press_event_time = nil_time; // Reset for next press cycle
-        key.transition_time = nil_time;  // Reset for next state change
+        key.press_event_time = nil_time;  // Reset for next press cycle
+        key.press_start_time = nil_time;  // Reset for next state change
+        key.state_change_time = nil_time; // Reset for next state change
       }
       // else: Debounce time not yet elapsed, remain in DEBOUNCING_RELEASE
     } else {
-      // Key pressed again during release debounce
-      // Decide whether to go back to PRESSED or HOLDING based on original press time
-      // Going back to PRESSED is simpler and often sufficient.
+      // Key pressed again during release debounce. Go back to PRESSED.
+      // The original press_start_time is still valid for hold calculations.
       key.state = KeyState::PRESSED;
-      // Re-check hold condition immediately in case it was bouncing near hold threshold
-      // Need to access the original transition time stored in the key data itself
-      if (absolute_time_diff_us(key.transition_time, now) >= _hold_time_us) {
-        key.state = KeyState::HOLDING;
-        // Don't notify hold again if it bounced back quickly? Or should we?
-        // For simplicity, let's assume going back to PRESSED is enough.
-        // If HOLDING is re-entered from PRESSED state, it will be notified there.
-      }
-
-      // Do NOT reset transition_time, keep the original press time for hold calculation.
-      // Do NOT set just_pressed flag here.
+      key.state_change_time = now; // Reset debounce timer to avoid immediate release.
     }
     break;
   } // end switch

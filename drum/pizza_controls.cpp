@@ -46,8 +46,8 @@ bool PizzaControls::is_running() const {
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
-      keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS,
-             config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
+      keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::POLL_INTERVAL_MS,
+             config::keypad::DEBOUNCE_TIME_MS, config::keypad::HOLD_TIME_MS),
       keypad_observer(this, keypad_cc_map, config::keypad::_CHANNEL) {
 }
 

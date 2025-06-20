@@ -152,8 +152,8 @@ static inline uint32_t get_q_psr(void) {
 static inline void clr_q_psr(void) __attribute__((always_inline, unused));
 static inline void clr_q_psr(void) {
   uint32_t t;
-  asm("mov %[t],#0\n"
-      "msr APSR_nzcvq,%0\n"
+  asm("mov %w[t],#0\n"
+      "msr APSR_nzcvq,%w0\n"
       : [t] "=&r"(t)::"cc");
 }
 

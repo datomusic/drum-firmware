@@ -35,8 +35,9 @@ struct audio_i2s_config i2s_config = {
 
 bool AudioOutput::init() {
 #ifdef DATO_SUBMARINE
-  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 100kHz
-  codec.emplace(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U);
+  // Initialize AIC3204 codec
+  codec.emplace(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
+                DATO_SUBMARINE_CODEC_RESET_PIN);
   if (!codec || !codec->is_initialized()) {
     panic("Failed to initialize AIC3204 codec\n");
     // return false; // Unreachable after panic

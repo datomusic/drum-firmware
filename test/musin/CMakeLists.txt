@@ -21,7 +21,7 @@ add_executable(${PROJECT_NAME}
 if(${STATIC_TESTS})
   message("CMake: Building static tests")
   target_compile_definitions(${PROJECT_NAME} PRIVATE
-    STATIC_TESTS=1
+    STATIC_TESTS=0
   )
 endif(${STATIC_TESTS})
 

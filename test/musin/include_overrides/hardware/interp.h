@@ -87,7 +87,11 @@ static inline void interp_set_config(struct interp_hw_t *hw, uint32_t lane,
 static inline void reset_mock_interp_state() {
   mock_interp0_lane0_cfg = {false, false};
   mock_interp0_lane1_cfg = {false, false};
-  mock_interp0_hw = interp_hw_t(); // Re-construct to reset state
+  mock_interp0_hw.accum[0] = 0;
+  mock_interp0_hw.accum[1] = 0;
+  mock_interp0_hw.base[0] = 0;
+  mock_interp0_hw.base[1] = 0;
+  mock_interp0_hw.base[2] = 0;
 }
 
 #endif // MOCK_HARDWARE_INTERP_H_

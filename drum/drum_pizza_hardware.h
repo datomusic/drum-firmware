@@ -1,29 +1,13 @@
 #ifndef DRUM_PIZZA_HARDWARE_H
 #define DRUM_PIZZA_HARDWARE_H
 
+#include "musin/boards/dato_submarine.h"
 #include <array>
 #include <cstddef> // For size_t
 #include <cstdint>
 
-// Address pins for the multiplexer and decoder
-constexpr uint32_t PIN_ADDR_0 = 6;
-constexpr uint32_t PIN_ADDR_1 = 7;
-constexpr uint32_t PIN_ADDR_2 = 8;
-constexpr uint32_t PIN_ADDR_3 = 9;
-
-// Common pin for multiplexer output
-constexpr uint32_t PIN_ADC = 26;
-
-// RING_1 through RING_4 are the sequencer track buttons
-constexpr uint32_t PIN_RING_1 = 14;
-constexpr uint32_t PIN_RING_2 = 13;
-constexpr uint32_t PIN_RING_3 = 12;
-constexpr uint32_t PIN_RING_4 = 11;
-// RING_5 holds the sample switch buttons
-constexpr uint32_t PIN_RING_5 = 10;
-
-constexpr uint32_t PIN_LED_ENABLE = 17;
-constexpr uint32_t PIN_LED_DATA = 16;
+// Application-specific logical names for Mux, LEDs, etc.
+// Physical pin definitions are now in musin/boards/dato_submarine.h
 
 constexpr uint32_t LED_PLAY_BUTTON = 0;
 
@@ -77,13 +61,17 @@ enum {
 };
 
 // Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
-                                                     PIN_ADDR_3};
+const std::array<uint32_t, 4> analog_address_pins = {
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
+    DATO_SUBMARINE_MUX_ADDR3_PIN};
 // Static array for keypad column pins
-const std::array<uint32_t, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
-                                                     PIN_RING_5};
+const std::array<uint32_t, 5> keypad_columns_pins = {
+    DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
+    DATO_SUBMARINE_KEYPAD_COL4_PIN, DATO_SUBMARINE_KEYPAD_COL5_PIN};
 // Static array for keypad decoder address pins (uses first 3)
-const std::array<uint32_t, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+const std::array<uint32_t, 3> keypad_decoder_pins = {DATO_SUBMARINE_MUX_ADDR0_PIN,
+                                                     DATO_SUBMARINE_MUX_ADDR1_PIN,
+                                                     DATO_SUBMARINE_MUX_ADDR2_PIN};
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8;

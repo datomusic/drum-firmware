@@ -12,6 +12,10 @@
 // The single ADC pin connected to the output of all multiplexers
 constexpr uint32_t PIZZA_MUX_ADC_PIN = DATO_SUBMARINE_ADC_PIN;
 
+// Logical names for LED driver pins
+constexpr uint32_t PIZZA_LED_DATA_PIN = PICO_DEFAULT_WS2812_PIN;
+constexpr uint32_t PIZZA_LED_ENABLE_PIN = DATO_SUBMARINE_LED_ENABLE_PIN;
+
 constexpr uint32_t LED_PLAY_BUTTON = 0;
 
 constexpr uint32_t LED_DRUMPAD_1 = 5;

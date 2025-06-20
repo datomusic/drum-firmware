@@ -9,6 +9,9 @@
 // Application-specific logical names for Mux, LEDs, etc.
 // Physical pin definitions are now in musin/boards/dato_submarine.h
 
+// The single ADC pin connected to the output of all multiplexers
+constexpr uint32_t PIZZA_MUX_ADC_PIN = DATO_SUBMARINE_ADC_PIN;
+
 constexpr uint32_t LED_PLAY_BUTTON = 0;
 
 constexpr uint32_t LED_DRUMPAD_1 = 5;

@@ -6,23 +6,23 @@
 #include <cstdint>
 
 // Address pins for the multiplexer and decoder
-constexpr uint32_t PIN_ADDR_0 = 29;
-constexpr uint32_t PIN_ADDR_1 = 6;
-constexpr uint32_t PIN_ADDR_2 = 7;
+constexpr uint32_t PIN_ADDR_0 = 6;
+constexpr uint32_t PIN_ADDR_1 = 7;
+constexpr uint32_t PIN_ADDR_2 = 8;
 constexpr uint32_t PIN_ADDR_3 = 9;
 
 // Common pin for multiplexer output
-constexpr uint32_t PIN_ADC = 28;
+constexpr uint32_t PIN_ADC = 26;
 
 // RING_1 through RING_4 are the sequencer track buttons
-constexpr uint32_t PIN_RING_1 = 15;
-constexpr uint32_t PIN_RING_2 = 14;
-constexpr uint32_t PIN_RING_3 = 13;
+constexpr uint32_t PIN_RING_1 = 14;
+constexpr uint32_t PIN_RING_2 = 13;
+constexpr uint32_t PIN_RING_3 = 12;
 constexpr uint32_t PIN_RING_4 = 11;
 // RING_5 holds the sample switch buttons
 constexpr uint32_t PIN_RING_5 = 10;
 
-constexpr uint32_t PIN_LED_ENABLE = 20;
+constexpr uint32_t PIN_LED_ENABLE = 17;
 constexpr uint32_t PIN_LED_DATA = 16;
 
 constexpr uint32_t LED_PLAY_BUTTON = 0;

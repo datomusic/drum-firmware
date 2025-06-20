@@ -318,16 +318,25 @@ private:
       // at position n. So we need to have read up to sample n+2.
       bool has_more_data = true;
       while (source_index <= static_cast<uint32_t>(new_buffer_position + 2) && has_more_data) {
+        bool is_first_sample_ever = (source_index == 0);
         has_more_data = get_next_source_sample(sample);
-        if (!has_more_data) {
-          // Reached the end of input data
-          has_reached_end = true;
-          // Don't immediately exit - we can still use the samples in the buffer
-          // Just pad with zeros if needed
-          sample = 0;
-        }
 
-        shift_interpolation_samples(sample);
+        if (is_first_sample_ever && has_more_data) {
+          // This is the first sample. Prime the entire interpolation buffer with it
+          // to provide a stable history for interpolation at the very beginning.
+          for (int i = 0; i < 4; i++) {
+            interpolation_samples[i] = sample;
+          }
+        } else {
+          if (!has_more_data) {
+            // Reached the end of input data
+            has_reached_end = true;
+            // Don't immediately exit - we can still use the samples in the buffer
+            // Just pad with zeros if needed
+            sample = 0;
+          }
+          shift_interpolation_samples(sample);
+        }
         source_index++;
       }
 

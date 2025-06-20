@@ -144,7 +144,7 @@ static inline uint32_t pack_16b_16b(int32_t a, int32_t b) {
 static inline uint32_t get_q_psr(void) __attribute__((always_inline, unused));
 static inline uint32_t get_q_psr(void) {
   uint32_t out;
-  asm("mrs %0, APSR" : "=r"(out));
+  asm("mrs %w0, APSR" : "=r"(out));
   return (out & 0x8000000) >> 27;
 }
 

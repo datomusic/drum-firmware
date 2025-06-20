@@ -52,7 +52,8 @@ enum class KeyState : std::uint8_t {
  */
 struct KeyData {
   KeyState state = KeyState::IDLE;            ///< Current debounced and hold state.
-  absolute_time_t transition_time = nil_time; ///< Time of the last relevant state change start.
+  absolute_time_t press_start_time = nil_time; ///< Time of the initial press for hold detection.
+  absolute_time_t state_change_time = nil_time; ///< Time of the last state change for debouncing.
   absolute_time_t press_event_time =
       nil_time;              ///< Time of the confirmed press event for tap detection.
   bool just_pressed = false; ///< Flag indicating a transition to PRESSED occurred in the last scan.

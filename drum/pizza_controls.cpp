@@ -46,8 +46,8 @@ bool PizzaControls::is_running() const {
 
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
-      keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::DEBOUNCE_TIME_MS,
-             config::keypad::POLL_INTERVAL_MS, config::keypad::HOLD_TIME_MS),
+      keypad(keypad_decoder_pins, keypad_columns_pins, config::keypad::POLL_INTERVAL_MS,
+             config::keypad::DEBOUNCE_TIME_MS, config::keypad::HOLD_TIME_MS),
       keypad_observer(this, keypad_cc_map, config::keypad::_CHANNEL) {
 }
 
@@ -60,61 +60,59 @@ void PizzaControls::KeypadComponent::update() {
   keypad.scan();
 }
 
-void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
+void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sample_select(
     musin::ui::KeypadEvent event) {
   PizzaControls *controls = parent->parent_controls;
 
-  // Sample Select (Column 4)
-  if (event.col >= config::keypad::SAMPLE_SELECT_START_COLUMN) {
-    if (event.type == musin::ui::KeypadEvent::Type::Press) {
-      uint8_t pad_index = 0;
-      int8_t offset = 0;
-      switch (event.row) {
-      case 0:
-        pad_index = 3;
-        offset = -1;
-        break;
-      case 1:
-        pad_index = 3;
-        offset = 1;
-        break;
-      case 2:
-        pad_index = 2;
-        offset = -1;
-        break;
-      case 3:
-        pad_index = 2;
-        offset = 1;
-        break;
-      case 4:
-        pad_index = 1;
-        offset = -1;
-        break;
-      case 5:
-        pad_index = 1;
-        offset = 1;
-        break;
-      case 6:
-        pad_index = 0;
-        offset = -1;
-        break;
-      case 7:
-        pad_index = 0;
-        offset = 1;
-        break;
-      }
-      controls->drumpad_component.select_note_for_pad(pad_index, offset);
-      if (!controls->is_running()) {
-        uint8_t note_to_play = controls->drumpad_component.get_note_for_pad(pad_index);
-        drum::Events::NoteEvent note_event{.track_index = pad_index,
-                                           .note = note_to_play,
-                                           .velocity = config::keypad::PREVIEW_NOTE_VELOCITY};
-        controls->_sequencer_controller_ref.trigger_note_on(pad_index, note_to_play,
-                                                            config::keypad::PREVIEW_NOTE_VELOCITY);
-      }
+  if (event.type == musin::ui::KeypadEvent::Type::Press) {
+    uint8_t pad_index = 0;
+    int8_t offset = 0;
+    switch (event.row) {
+    case 0:
+      pad_index = 3;
+      offset = -1;
+      break;
+    case 1:
+      pad_index = 3;
+      offset = 1;
+      break;
+    case 2:
+      pad_index = 2;
+      offset = -1;
+      break;
+    case 3:
+      pad_index = 2;
+      offset = 1;
+      break;
+    case 4:
+      pad_index = 1;
+      offset = -1;
+      break;
+    case 5:
+      pad_index = 1;
+      offset = 1;
+      break;
+    case 6:
+      pad_index = 0;
+      offset = -1;
+      break;
+    case 7:
+      pad_index = 0;
+      offset = 1;
+      break;
     }
-    return;
+    controls->drumpad_component.select_note_for_pad(pad_index, offset);
+    if (!controls->is_running()) {
+      uint8_t note_to_play = controls->drumpad_component.get_note_for_pad(pad_index);
+      controls->_sequencer_controller_ref.trigger_note_on(pad_index, note_to_play,
+                                                          config::keypad::PREVIEW_NOTE_VELOCITY);
+    }
   }
+}
+
+void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
+    musin::ui::KeypadEvent event) {
+  PizzaControls *controls = parent->parent_controls;
 
   // Map physical column to logical track (0->3, 1->2, 2->1, 3->0)
   uint8_t track_idx = (drum::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
@@ -123,29 +121,45 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
   // Get a reference to the track to modify it
   auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(track_idx);
 
-  uint8_t step_velocity;
-  bool now_enabled;
+  if (event.type == musin::ui::KeypadEvent::Type::Press ||
+      event.type == musin::ui::KeypadEvent::Type::Tap) {
+    const bool now_enabled = track.toggle_step_enabled(step_idx);
 
-  if (event.type == musin::ui::KeypadEvent::Type::Press) {
-    now_enabled = track.toggle_step_enabled(step_idx);
-    step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
-  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    step_velocity = config::keypad::MAX_STEP_VELOCITY_ON_HOLD;
-  } else if (event.type == musin::ui::KeypadEvent::Type::Tap) {
-    now_enabled = track.toggle_step_enabled(step_idx);
-    step_velocity = config::keypad::STEP_VELOCITY_ON_TAP;
-  }
+    if (now_enabled) {
+      const uint8_t step_velocity = (event.type == musin::ui::KeypadEvent::Type::Tap)
+                                        ? config::keypad::STEP_VELOCITY_ON_TAP
+                                        : config::keypad::DEFAULT_STEP_VELOCITY;
 
-  if (now_enabled) {
-    // Get the current note assigned to the corresponding drumpad
-    uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
-    track.set_step_note(step_idx, note);
+      // Get the current note assigned to the corresponding drumpad
+      uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
+      track.set_step_note(step_idx, note);
+      track.set_step_velocity(step_idx, step_velocity);
 
-    track.set_step_velocity(step_idx, step_velocity);
-
-    if (!controls->is_running()) {
-      controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+      if (!controls->is_running()) {
+        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+      }
     }
+  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
+    // On hold, we only update the velocity of an already active step.
+    if (track.get_step(step_idx).enabled) {
+      const uint8_t step_velocity = config::keypad::MAX_STEP_VELOCITY_ON_HOLD;
+      track.set_step_velocity(step_idx, step_velocity);
+
+      if (!controls->is_running()) {
+        uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
+        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note, step_velocity);
+      }
+    }
+  }
+}
+
+void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
+    musin::ui::KeypadEvent event) {
+  // Sample Select (Column 4)
+  if (event.col >= config::keypad::SAMPLE_SELECT_START_COLUMN) {
+    handle_sample_select(event);
+  } else {
+    handle_sequencer_step(event);
   }
 }
 

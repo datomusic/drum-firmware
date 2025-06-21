@@ -97,4 +97,9 @@
 #define DATO_SUBMARINE_LED_ENABLE_PIN 17
 #endif
 
+// The GPIO Pin used to read VBUS to determine if the device is battery powered.
+#ifndef PICO_VBUS_PIN
+#define PICO_VBUS_PIN 29
+#endif
+
 #endif

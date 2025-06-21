@@ -76,9 +76,8 @@ const std::array<uint32_t, 5> keypad_columns_pins = {
     DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
     DATO_SUBMARINE_KEYPAD_COL4_PIN, DATO_SUBMARINE_KEYPAD_COL5_PIN};
 // Static array for keypad decoder address pins (uses first 3)
-const std::array<uint32_t, 3> keypad_decoder_pins = {DATO_SUBMARINE_MUX_ADDR0_PIN,
-                                                     DATO_SUBMARINE_MUX_ADDR1_PIN,
-                                                     DATO_SUBMARINE_MUX_ADDR2_PIN};
+const std::array<uint32_t, 3> keypad_decoder_pins = {
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8;

@@ -27,6 +27,7 @@ constexpr uint8_t _CHANNEL = 0;
 constexpr uint32_t DEBOUNCE_TIME_MS = 10;
 constexpr uint32_t POLL_INTERVAL_MS = 5;
 constexpr uint32_t HOLD_TIME_MS = 1000;
+constexpr uint32_t TAP_TIME_MS = 200;
 constexpr uint8_t MAX_CC_MAPPED_VALUE = 119;
 constexpr uint8_t DEFAULT_CC_UNMAPPED_VALUE = 0;
 constexpr uint8_t SAMPLE_SELECT_START_COLUMN = 4;

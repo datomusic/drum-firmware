@@ -127,8 +127,8 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
   }
 
   // Configure headphone jack detection
-  if (write_register(0x00, 0x43, 0x97) != Aic3204Status::OK) {
-    return; // HP detect Enable + 512ms debounce
+  if (write_register(0x00, 0x43, 0x93) != Aic3204Status::OK) {
+    return; // HP detect Enable + 256ms debounce
   }
 
   if (select_page(1) != Aic3204Status::OK) {

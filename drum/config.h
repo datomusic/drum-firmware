@@ -27,12 +27,13 @@ constexpr uint8_t _CHANNEL = 0;
 constexpr uint32_t DEBOUNCE_TIME_MS = 10;
 constexpr uint32_t POLL_INTERVAL_MS = 5;
 constexpr uint32_t HOLD_TIME_MS = 1000;
+constexpr uint32_t TAP_TIME_MS = 200;
 constexpr uint8_t MAX_CC_MAPPED_VALUE = 119;
 constexpr uint8_t DEFAULT_CC_UNMAPPED_VALUE = 0;
 constexpr uint8_t SAMPLE_SELECT_START_COLUMN = 4;
 constexpr uint8_t PREVIEW_NOTE_VELOCITY = 100;
 constexpr uint8_t DEFAULT_STEP_VELOCITY = 100;
-constexpr uint8_t MAX_STEP_VELOCITY_ON_HOLD = 127;
+constexpr uint8_t STEP_VELOCITY_ON_HOLD = 127;
 constexpr uint8_t STEP_VELOCITY_ON_TAP = 30;
 } // namespace keypad
 

@@ -7,6 +7,7 @@
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
+#include "musin/drivers/aic3204.hpp"
 
 #include "sb25_samples.h"
 
@@ -57,12 +58,12 @@ AudioEngine::AudioEngine()
   }
 }
 
-bool AudioEngine::init() {
+bool AudioEngine::init(musin::drivers::Aic3204 &codec) {
   if (is_initialized_) {
     return true;
   }
 
-  if (!AudioOutput::init()) {
+  if (!AudioOutput::init(codec)) {
     return false;
   }
   AudioOutput::route_line_in_to_headphone(true);

@@ -11,7 +11,7 @@
 
 #ifdef DATO_SUBMARINE
 #include "musin/drivers/aic3204.hpp"
-static std::optional<musin::drivers::Aic3204> codec;
+static musin::drivers::Aic3204 *codec_ptr = nullptr;
 #endif
 
 static audio_buffer_pool_t *producer_pool;
@@ -33,16 +33,11 @@ struct audio_i2s_config i2s_config = {
     .pio_sm = 0,
 };
 
-bool AudioOutput::init() {
+bool AudioOutput::init(musin::drivers::Aic3204 &codec) {
 #ifdef DATO_SUBMARINE
-  // Initialize AIC3204 codec with I2C0 pins (GP0=SDA, GP1=SCL) at 100kHz
-  codec.emplace(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U);
-  if (!codec || !codec->is_initialized()) {
-    panic("Failed to initialize AIC3204 codec\n");
-    // return false; // Unreachable after panic
-  }
+  codec_ptr = &codec;
   // Set initial volume to 0dB (max)
-  codec->set_dac_volume(0);
+  codec_ptr->set_dac_volume(0);
 #endif
 
   audio_format.sample_freq = SAMPLE_FREQUENCY;
@@ -75,9 +70,7 @@ bool AudioOutput::init() {
 
 void AudioOutput::deinit() {
 #ifdef DATO_SUBMARINE
-  if (codec) {
-    codec.reset();
-  }
+  codec_ptr = nullptr;
 #endif
   running = false;
 
@@ -99,7 +92,7 @@ void AudioOutput::deinit() {
 
 bool AudioOutput::volume(float volume) {
 #ifdef DATO_SUBMARINE
-  if (!codec) {
+  if (!codec_ptr) {
     return false;
   }
   // Map [0.0, ~1.378] to the AIC3204 range [-127, 48]
@@ -119,7 +112,7 @@ bool AudioOutput::volume(float volume) {
   int8_t codec_register_value = static_cast<int8_t>(std::round(mapped_value));
 
   // Call the C++ driver method
-  return codec->set_dac_volume(codec_register_value) == musin::drivers::Aic3204Status::OK;
+  return codec_ptr->set_dac_volume(codec_register_value) == musin::drivers::Aic3204Status::OK;
 #else
   // No codec defined, maybe control digital volume?
   // For now, just return true as there's nothing to set.
@@ -130,10 +123,10 @@ bool AudioOutput::volume(float volume) {
 
 bool AudioOutput::route_line_in_to_headphone(bool enable) {
 #ifdef DATO_SUBMARINE
-  if (!codec) {
+  if (!codec_ptr) {
     return false;
   }
-  return codec->route_in_to_headphone(enable) == musin::drivers::Aic3204Status::OK;
+  return codec_ptr->route_in_to_headphone(enable) == musin::drivers::Aic3204Status::OK;
 #else
   (void)enable;
   printf("AudioOutput Warning: Line-in routing unavailable (requires DATO_SUBMARINE build).\n");

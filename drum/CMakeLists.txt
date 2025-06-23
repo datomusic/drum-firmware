@@ -126,5 +126,5 @@ pico_add_extra_outputs(${EXECUTABLE_NAME})
 
 
 ### Rompler application
-add_subdirectory(applications/rompler)
+# add_subdirectory(applications/rompler)
 

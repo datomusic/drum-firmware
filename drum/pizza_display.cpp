@@ -74,7 +74,8 @@ PizzaDisplay::PizzaDisplay(
     drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
         &sequencer_controller_ref,
     musin::timing::TempoHandler &tempo_handler_ref)
-    : _leds(PIN_LED_DATA, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS, DEFAULT_COLOR_CORRECTION),
+    : _leds(PIZZA_LED_DATA_PIN, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS,
+            DEFAULT_COLOR_CORRECTION),
       _drumpad_fade_start_times{}, _sequencer_controller_ref(sequencer_controller_ref),
       _tempo_handler_ref(tempo_handler_ref) {
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
@@ -158,7 +159,7 @@ void PizzaDisplay::notification(drum::Events::NoteEvent event) {
 }
 
 bool PizzaDisplay::init() {
-  ExternalPinState led_pin_state = check_external_pin_state(PIN_LED_DATA, "LED_DATA");
+  ExternalPinState led_pin_state = check_external_pin_state(PIZZA_LED_DATA_PIN, "LED_DATA");
   uint8_t initial_brightness =
       (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
   _leds.set_brightness(initial_brightness);
@@ -167,9 +168,9 @@ bool PizzaDisplay::init() {
     return false;
   }
 
-  gpio_init(PIN_LED_ENABLE);
-  gpio_set_dir(PIN_LED_ENABLE, GPIO_OUT);
-  gpio_put(PIN_LED_ENABLE, 1);
+  gpio_init(PIZZA_LED_ENABLE_PIN);
+  gpio_set_dir(PIZZA_LED_ENABLE_PIN, GPIO_OUT);
+  gpio_put(PIZZA_LED_ENABLE_PIN, 1);
   clear();
   show();
   return true;

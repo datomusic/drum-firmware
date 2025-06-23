@@ -165,10 +165,10 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
-      drumpad_readers{AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_1},
-                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_2},
-                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_3},
-                      AnalogInMux16{PIN_ADC, analog_address_pins, DRUMPAD_ADDRESS_4}},
+      drumpad_readers{AnalogInMux16{PIZZA_MUX_ADC_PIN, analog_address_pins, DRUMPAD_ADDRESS_1},
+                      AnalogInMux16{PIZZA_MUX_ADC_PIN, analog_address_pins, DRUMPAD_ADDRESS_2},
+                      AnalogInMux16{PIZZA_MUX_ADC_PIN, analog_address_pins, DRUMPAD_ADDRESS_3},
+                      AnalogInMux16{PIZZA_MUX_ADC_PIN, analog_address_pins, DRUMPAD_ADDRESS_4}},
       drumpads{Drumpad<AnalogInMux16>{
                    drumpad_readers[0], 0, config::drumpad::DEBOUNCE_PRESS_MS,
                    config::drumpad::DEBOUNCE_RELEASE_MS, config::drumpad::HOLD_THRESHOLD_MS,
@@ -313,17 +313,17 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
 
 PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
-      mux_controls{AnalogControl{PIN_ADC, analog_address_pins, FILTER, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH1, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH2, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, RANDOM, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, VOLUME},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH3, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, SWING, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, CRUSH, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, REPEAT, true},
-                   AnalogControl{PIN_ADC, analog_address_pins, SPEED, false},
-                   AnalogControl{PIN_ADC, analog_address_pins, PITCH4, true}},
+      mux_controls{AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, FILTER, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, PITCH1, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, PITCH2, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, RANDOM, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, VOLUME},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, PITCH3, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, SWING, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, CRUSH, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, REPEAT, true},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, SPEED, false},
+                   AnalogControl{PIZZA_MUX_ADC_PIN, analog_address_pins, PITCH4, true}},
       control_observers{
           AnalogControlEventHandler{this, FILTER}, AnalogControlEventHandler{this, PITCH1},
           AnalogControlEventHandler{this, PITCH2}, AnalogControlEventHandler{this, RANDOM},
@@ -444,7 +444,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
-      playbutton_reader{AnalogInMux16{PIN_ADC, analog_address_pins, PLAYBUTTON}},
+      playbutton_reader{AnalogInMux16{PIZZA_MUX_ADC_PIN, analog_address_pins, PLAYBUTTON}},
       playbutton{playbutton_reader,
                  0, // id for the Drumpad instance
                  config::drumpad::DEBOUNCE_PRESS_MS,

@@ -1,29 +1,20 @@
 #ifndef DRUM_PIZZA_HARDWARE_H
 #define DRUM_PIZZA_HARDWARE_H
 
+#include "musin/boards/dato_submarine.h"
 #include <array>
 #include <cstddef> // For size_t
 #include <cstdint>
 
-// Address pins for the multiplexer and decoder
-constexpr uint32_t PIN_ADDR_0 = 29;
-constexpr uint32_t PIN_ADDR_1 = 6;
-constexpr uint32_t PIN_ADDR_2 = 7;
-constexpr uint32_t PIN_ADDR_3 = 9;
+// Application-specific logical names for Mux, LEDs, etc.
+// Physical pin definitions are now in musin/boards/dato_submarine.h
 
-// Common pin for multiplexer output
-constexpr uint32_t PIN_ADC = 28;
+// The single ADC pin connected to the output of all multiplexers
+constexpr uint32_t PIZZA_MUX_ADC_PIN = DATO_SUBMARINE_ADC_PIN;
 
-// RING_1 through RING_4 are the sequencer track buttons
-constexpr uint32_t PIN_RING_1 = 15;
-constexpr uint32_t PIN_RING_2 = 14;
-constexpr uint32_t PIN_RING_3 = 13;
-constexpr uint32_t PIN_RING_4 = 11;
-// RING_5 holds the sample switch buttons
-constexpr uint32_t PIN_RING_5 = 10;
-
-constexpr uint32_t PIN_LED_ENABLE = 20;
-constexpr uint32_t PIN_LED_DATA = 16;
+// Logical names for LED driver pins
+constexpr uint32_t PIZZA_LED_DATA_PIN = PICO_DEFAULT_WS2812_PIN;
+constexpr uint32_t PIZZA_LED_ENABLE_PIN = DATO_SUBMARINE_LED_ENABLE_PIN;
 
 constexpr uint32_t LED_PLAY_BUTTON = 0;
 
@@ -77,13 +68,16 @@ enum {
 };
 
 // Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<uint32_t, 4> analog_address_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2,
-                                                     PIN_ADDR_3};
+const std::array<uint32_t, 4> analog_address_pins = {
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
+    DATO_SUBMARINE_MUX_ADDR3_PIN};
 // Static array for keypad column pins
-const std::array<uint32_t, 5> keypad_columns_pins = {PIN_RING_1, PIN_RING_2, PIN_RING_3, PIN_RING_4,
-                                                     PIN_RING_5};
+const std::array<uint32_t, 5> keypad_columns_pins = {
+    DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
+    DATO_SUBMARINE_KEYPAD_COL4_PIN, DATO_SUBMARINE_KEYPAD_COL5_PIN};
 // Static array for keypad decoder address pins (uses first 3)
-const std::array<uint32_t, 3> keypad_decoder_pins = {PIN_ADDR_0, PIN_ADDR_1, PIN_ADDR_2};
+const std::array<uint32_t, 3> keypad_decoder_pins = {
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8;

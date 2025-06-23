@@ -73,6 +73,17 @@ public:
   }
 
   /**
+   * @brief Sets the enabled state for a specific step.
+   * @param step_idx The index of the step (0 to NumSteps-1).
+   * @param enabled The new enabled state.
+   */
+  constexpr void set_step_enabled(size_t step_idx, bool enabled) {
+    ETL_ASSERT(step_idx < NumSteps,
+               etl::range_error("Track::set_step_enabled: index out of bounds"));
+    steps[step_idx].enabled = enabled;
+  }
+
+  /**
    * @brief Sets the note for a specific step.
    * @param step_idx The index of the step (0 to NumSteps-1).
    * @param note The MIDI note number (0-127) or std::nullopt.

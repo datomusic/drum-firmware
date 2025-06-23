@@ -138,7 +138,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
       }
     }
   } else if (event.type == musin::ui::KeypadEvent::Type::Tap) {
-        // On hold, we only update the velocity of an already active step.
+    // On hold, we only update the velocity of an already active step.
     if (track.get_step(step_idx).enabled) {
       track.set_step_velocity(step_idx, config::keypad::STEP_VELOCITY_ON_TAP);
     }

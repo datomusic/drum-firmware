@@ -2,6 +2,7 @@
 #define MUSIN_DRIVERS_AIC3204_HPP
 
 #include <cstdint>
+#include <optional>
 
 // Forward declare I2C instance type to avoid including hardware headers here
 struct i2c_inst;
@@ -68,7 +69,7 @@ public:
   Aic3204Status set_amp_enabled(bool enable);
   Aic3204Status set_dac_volume(int8_t volume);
   Aic3204Status route_in_to_headphone(bool enable);
-  Aic3204Status is_headphone_inserted(bool &inserted);
+  std::optional<bool> is_headphone_inserted();
   Aic3204Status mute_line_outputs(bool mute);
   Aic3204Status update_headphone_detection();
 
@@ -100,18 +101,18 @@ private:
 };
 
 inline Aic3204Status Aic3204::update_headphone_detection() {
-  bool is_inserted = false;
-  Aic3204Status status = is_headphone_inserted(is_inserted);
-  if (status != Aic3204Status::OK) {
-    return status;
+  if (auto inserted_opt = is_headphone_inserted()) {
+    // We successfully read the status
+    bool is_inserted = inserted_opt.value();
+    if (is_inserted != _headphone_inserted_state) {
+      _headphone_inserted_state = is_inserted;
+      return mute_line_outputs(_headphone_inserted_state);
+    }
+    return Aic3204Status::OK;
+  } else {
+    // Failed to read status, return an error
+    return Aic3204Status::ERROR_I2C_READ_FAILED;
   }
-
-  if (is_inserted != _headphone_inserted_state) {
-    _headphone_inserted_state = is_inserted;
-    return mute_line_outputs(_headphone_inserted_state);
-  }
-
-  return Aic3204Status::OK;
 }
 
 } // namespace musin::drivers

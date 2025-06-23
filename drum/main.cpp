@@ -118,7 +118,6 @@ int main() {
     if (time_reached(last_headphone_check)) {
       last_headphone_check = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
       codec.update_headphone_detection();
-      printf("Checking for headphone...\n");
     }
 
     loop_timer.record_iteration_end();

@@ -3,14 +3,19 @@
 
 #include "buffer_source.h"
 
+namespace musin::drivers {
+class Aic3204;
+}
+
 namespace AudioOutput {
 static const int SAMPLE_FREQUENCY = 44100;
 
 /**
  * @brief Initializes the audio output system (I2S and Codec).
+ * @param codec A reference to an initialized AIC3204 codec driver.
  * @return true on success, false on failure.
  */
-bool init();
+bool init(musin::drivers::Aic3204 &codec);
 
 /**
  * @brief Fetches a block of audio from the source and sends it to the output.

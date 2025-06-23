@@ -16,6 +16,10 @@
 #include "musin/audio/sound.h"
 #include "musin/hal/debug_utils.h"
 
+namespace musin::drivers {
+class Aic3204;
+} // namespace musin::drivers
+
 namespace drum {
 
 constexpr size_t NUM_VOICES = 4;
@@ -49,9 +53,10 @@ public:
   /**
    * @brief Initializes the audio engine and hardware.
    * Must be called before any other methods.
+   * @param codec A reference to the AIC3204 codec driver.
    * @return true on success, false otherwise.
    */
-  bool init();
+  bool init(musin::drivers::Aic3204 &codec);
 
   /**
    * @brief Periodically updates the audio output buffer.

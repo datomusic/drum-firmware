@@ -70,7 +70,6 @@ public:
   Aic3204Status set_dac_volume(int8_t volume);
   Aic3204Status route_in_to_headphone(bool enable);
   std::optional<bool> is_headphone_inserted();
-  Aic3204Status mute_line_outputs(bool mute);
   bool update_headphone_detection();
 
 private:

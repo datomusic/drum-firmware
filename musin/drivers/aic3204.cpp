@@ -4,7 +4,7 @@
 #include <cstdio>  // For printf
 
 // --- Logging Configuration ---
-#define AIC3204_ENABLE_LOGGING 1 // Set to 0 to disable all logging
+#define AIC3204_ENABLE_LOGGING 0 // Set to 0 to disable all logging
 
 #if AIC3204_ENABLE_LOGGING
 #define AIC_LOG(format, ...) printf("AIC3204: " format "\n", ##__VA_ARGS__)
@@ -27,7 +27,7 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
     : _sda_pin(sda_pin), _scl_pin(scl_pin), _reset_pin(reset_pin) {
   if (_reset_pin != 0xFF) {
     AIC_LOG("Initializing AIC3204 on SDA=GP%u, SCL=GP%u, RST=GP%u...", _sda_pin, _scl_pin,
-           _reset_pin);
+            _reset_pin);
     gpio_init(_reset_pin);
     gpio_set_dir(_reset_pin, GPIO_OUT);
     gpio_put(_reset_pin, 0); // Set LOW
@@ -37,10 +37,9 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
 
   _i2c_inst = get_i2c_instance(_sda_pin, _scl_pin);
   if (!_i2c_inst) {
-    AIC_LOG("AIC3204 Error: Invalid I2C pin combination (SDA=GP%u, SCL=GP%u).", _sda_pin,
-           _scl_pin);
+    AIC_LOG("AIC3204 Error: Invalid I2C pin combination (SDA=GP%u, SCL=GP%u).", _sda_pin, _scl_pin);
     AIC_LOG("Valid pairs: i2c0 (SDA:0,4,8,12,16,20 | SCL:1,5,9,13,17,21), i2c1 "
-           "(SDA:2,6,10,14,18,26 | SCL:3,7,11,15,19,27)");
+            "(SDA:2,6,10,14,18,26 | SCL:3,7,11,15,19,27)");
     return; // _is_initialized remains false
   }
   AIC_LOG("Using I2C instance: %s", (_i2c_inst == i2c0) ? "i2c0" : "i2c1");
@@ -128,11 +127,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
   }
 
   // Configure headphone jack detection
-  if (write_register(0x00, 0x43, 0x16) != Aic3204Status::OK) {
+  if (write_register(0x00, 0x43, 0x97) != Aic3204Status::OK) {
     return; // HP detect Enable + 512ms debounce
   }
 
-  if(select_page(1) != Aic3204Status::OK) {
+  if (select_page(1) != Aic3204Status::OK) {
     return;
   }
   // --- Power and Analog Configuration (Page 1) ---
@@ -267,7 +266,7 @@ Aic3204Status Aic3204::write_register(uint8_t page, uint8_t reg_addr, uint8_t va
   Aic3204Status status = i2c_write(reg_addr, value);
   if (status != Aic3204Status::OK) {
     AIC_LOG("AIC3204 Error: Failed writing value 0x%02X to Page %d, Reg 0x%02X", value,
-           _current_page, reg_addr);
+            _current_page, reg_addr);
     return status;
   }
 
@@ -285,7 +284,7 @@ Aic3204Status Aic3204::read_register(uint8_t page, uint8_t reg_addr, uint8_t &re
 
   if (page == 0 && reg_addr == 0) {
     AIC_LOG("AIC3204 Warning: Reading Page 0, Reg 0 (Page Select) might not be "
-           "meaningful.");
+            "meaningful.");
   }
 
   Aic3204Status status = select_page(page);
@@ -308,12 +307,12 @@ Aic3204Status Aic3204::set_amp_enabled(bool enable) {
 
   if (AMP_ENABLE_THROUGH_CODEC) {
     AIC_LOG("%s external AMP via Codec GPIO MFP4 (%s)...", enable ? "Enabling" : "Disabling",
-           enable ? "HIGH" : "LOW");
+            enable ? "HIGH" : "LOW");
     uint8_t value = enable ? 0x05 : 0x00;
     Aic3204Status status = write_register(0x00, 0x37, value);
     if (status != Aic3204Status::OK) {
       AIC_LOG("AIC3204 Warning: Failed to set MFP4 %s to %s amp.", enable ? "HIGH" : "LOW",
-             enable ? "enable" : "disable");
+              enable ? "enable" : "disable");
     }
     sleep_ms(10);
     return status;
@@ -421,6 +420,7 @@ bool Aic3204::update_headphone_detection() {
     // We successfully read the status
     bool is_inserted = inserted_opt.value();
     if (is_inserted != _headphone_inserted_state) {
+      AIC_LOG("Toggling headphone detect state");
       _headphone_inserted_state = is_inserted;
       return set_amp_enabled(_headphone_inserted_state == false) == Aic3204Status::OK;
     }
@@ -504,7 +504,7 @@ bool Aic3204::is_soft_stepping() {
     return (status_reg & SOFT_STEPPING_COMPLETE_MASK) != SOFT_STEPPING_COMPLETE_MASK;
   } else {
     AIC_LOG("AIC3204 Warning: Failed to read soft-stepping status register. "
-           "Assuming active.");
+            "Assuming active.");
     return true; // Fail-safe
   }
 }

@@ -3,6 +3,15 @@
 #include <climits> // For INT8_MIN
 #include <cstdio>  // For printf
 
+// --- Logging Configuration ---
+#define AIC3204_ENABLE_LOGGING 1 // Set to 0 to disable all logging
+
+#if AIC3204_ENABLE_LOGGING
+#define AIC_LOG(format, ...) printf("AIC3204: " format "\n", ##__VA_ARGS__)
+#else
+#define AIC_LOG(format, ...) ((void)0)
+#endif
+
 // Wrap C SDK headers in extern "C"
 extern "C" {
 #include "hardware/gpio.h"

@@ -384,9 +384,9 @@ Aic3204Status Aic3204::route_in_to_headphone(bool enable) {
   return Aic3204Status::OK;
 }
 
-Aic3204Status Aic3204::is_headphone_inserted(bool &inserted) {
+std::optional<bool> Aic3204::is_headphone_inserted() {
   if (!is_initialized()) {
-    return Aic3204Status::ERROR_NOT_INITIALIZED;
+    return std::nullopt;
   }
 
   const uint8_t PAGE = 0;
@@ -397,11 +397,10 @@ Aic3204Status Aic3204::is_headphone_inserted(bool &inserted) {
   Aic3204Status status = read_register(PAGE, STATUS_REG, reg_val);
   if (status != Aic3204Status::OK) {
     printf("AIC3204 Error: Failed to read headphone jack status.\n");
-    return status;
+    return std::nullopt;
   }
 
-  inserted = (reg_val & INSERTION_MASK) != 0;
-  return Aic3204Status::OK;
+  return (reg_val & INSERTION_MASK) != 0;
 }
 
 Aic3204Status Aic3204::mute_line_outputs(bool mute) {

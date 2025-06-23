@@ -71,7 +71,7 @@ public:
   Aic3204Status route_in_to_headphone(bool enable);
   std::optional<bool> is_headphone_inserted();
   Aic3204Status mute_line_outputs(bool mute);
-  Aic3204Status update_headphone_detection();
+  bool update_headphone_detection();
 
 private:
   // --- Constants ---
@@ -100,18 +100,18 @@ private:
   bool _headphone_inserted_state = false;
 };
 
-inline Aic3204Status Aic3204::update_headphone_detection() {
+inline bool Aic3204::update_headphone_detection() {
   if (auto inserted_opt = is_headphone_inserted()) {
     // We successfully read the status
     bool is_inserted = inserted_opt.value();
     if (is_inserted != _headphone_inserted_state) {
       _headphone_inserted_state = is_inserted;
-      return mute_line_outputs(_headphone_inserted_state);
+      return mute_line_outputs(_headphone_inserted_state) == Aic3204Status::OK;
     }
-    return Aic3204Status::OK;
+    return true;
   } else {
     // Failed to read status, return an error
-    return Aic3204Status::ERROR_I2C_READ_FAILED;
+    return false;
   }
 }
 

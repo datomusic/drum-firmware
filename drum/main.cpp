@@ -28,7 +28,7 @@ static musin::drivers::Aic3204 codec(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_
 // Headphone jack detection state
 static bool headphone_inserted_state = false;
 static absolute_time_t last_headphone_check = nil_time;
-constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 250;
+constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 1000;
 
 // Model
 static drum::AudioEngine audio_engine;

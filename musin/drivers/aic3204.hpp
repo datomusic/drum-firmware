@@ -100,21 +100,6 @@ private:
   bool _headphone_inserted_state = false;
 };
 
-inline bool Aic3204::update_headphone_detection() {
-  if (auto inserted_opt = is_headphone_inserted()) {
-    // We successfully read the status
-    bool is_inserted = inserted_opt.value();
-    if (is_inserted != _headphone_inserted_state) {
-      _headphone_inserted_state = is_inserted;
-      return mute_line_outputs(_headphone_inserted_state) == Aic3204Status::OK;
-    }
-    return true;
-  } else {
-    // Failed to read status, return an error
-    return false;
-  }
-}
-
 } // namespace musin::drivers
 
 #endif // MUSIN_DRIVERS_AIC3204_HPP

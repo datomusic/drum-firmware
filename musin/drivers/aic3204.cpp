@@ -128,6 +128,12 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
   if (write_register(0x01, 0x02, 0x01) != Aic3204Status::OK) {
     return; // Master Analog ON, AVDD LDO ON
   }
+
+  // Configure headphone jack detection
+  if (configure_headphone_jack_detection() != Aic3204Status::OK) {
+    return; // Failed to configure, constructor will result in !is_initialized
+  }
+
   if (write_register(0x01, 0x0A, 0x33) != Aic3204Status::OK) {
     return; // HP CM=1.65V, Lineout CM=0.9V, LDO=1.72V
   }
@@ -378,7 +384,88 @@ Aic3204Status Aic3204::route_in_to_headphone(bool enable) {
   return Aic3204Status::OK;
 }
 
+Aic3204Status Aic3204::is_headphone_inserted(bool &inserted) {
+  if (!is_initialized()) {
+    return Aic3204Status::ERROR_NOT_INITIALIZED;
+  }
+
+  const uint8_t PAGE = 0;
+  const uint8_t STATUS_REG = 0x2E; // Register 46
+  const uint8_t INSERTION_MASK = (1 << 4);
+
+  uint8_t reg_val = 0;
+  Aic3204Status status = read_register(PAGE, STATUS_REG, reg_val);
+  if (status != Aic3204Status::OK) {
+    printf("AIC3204 Error: Failed to read headphone jack status.\n");
+    return status;
+  }
+
+  inserted = (reg_val & INSERTION_MASK) != 0;
+  return Aic3204Status::OK;
+}
+
+Aic3204Status Aic3204::mute_line_outputs(bool mute) {
+  if (!is_initialized()) {
+    return Aic3204Status::ERROR_NOT_INITIALIZED;
+  }
+
+  const uint8_t PAGE = 1;
+  const uint8_t LOL_MUTE_REG = 0x12; // Register 18
+  const uint8_t LOR_MUTE_REG = 0x13; // Register 19
+  const uint8_t MUTE_MASK = (1 << 6);
+
+  printf("AIC3204: %s Line Outputs.\n", mute ? "Muting" : "Unmuting");
+
+  // Mute LOL
+  uint8_t lol_val = 0;
+  Aic3204Status status = read_register(PAGE, LOL_MUTE_REG, lol_val);
+  if (status != Aic3204Status::OK) {
+    return status;
+  }
+
+  uint8_t new_lol_val = mute ? (lol_val | MUTE_MASK) : (lol_val & ~MUTE_MASK);
+  if (new_lol_val != lol_val) {
+    status = write_register(PAGE, LOL_MUTE_REG, new_lol_val);
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+  }
+
+  // Mute LOR
+  uint8_t lor_val = 0;
+  status = read_register(PAGE, LOR_MUTE_REG, lor_val);
+  if (status != Aic3204Status::OK) {
+    return status;
+  }
+
+  uint8_t new_lor_val = mute ? (lor_val | MUTE_MASK) : (lor_val & ~MUTE_MASK);
+  if (new_lor_val != lor_val) {
+    status = write_register(PAGE, LOR_MUTE_REG, new_lor_val);
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+  }
+
+  return Aic3204Status::OK;
+}
+
 // --- Private Helper Methods ---
+
+Aic3204Status Aic3204::configure_headphone_jack_detection() {
+  printf("Configuring headphone jack detection...\n");
+
+  // See hp-jack-detect.md for details.
+  // This enables headset detection with a 512ms debounce time.
+  const uint8_t PAGE = 0;
+  const uint8_t HSDET_REG = 0x43;   // Register 67
+  const uint8_t HSDET_VALUE = 0x16; // Enable + 512ms debounce
+
+  Aic3204Status status = write_register(PAGE, HSDET_REG, HSDET_VALUE);
+  if (status != Aic3204Status::OK) {
+    printf("AIC3204 Error: Failed to configure headphone jack detection.\n");
+  }
+  return status;
+}
 
 i2c_inst_t *Aic3204::get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin) {
   bool sda_is_i2c0 = (sda_pin % 4 == 0 && sda_pin <= 20);

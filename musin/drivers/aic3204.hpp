@@ -68,6 +68,8 @@ public:
   Aic3204Status set_amp_enabled(bool enable);
   Aic3204Status set_dac_volume(int8_t volume);
   Aic3204Status route_in_to_headphone(bool enable);
+  Aic3204Status is_headphone_inserted(bool &inserted);
+  Aic3204Status mute_line_outputs(bool mute);
 
 private:
   // --- Constants ---
@@ -81,6 +83,7 @@ private:
   Aic3204Status i2c_read(uint8_t reg_addr, uint8_t &value);
   bool is_soft_stepping();
   Aic3204Status wait_for_soft_stepping();
+  Aic3204Status configure_headphone_jack_detection();
   i2c_inst_t *get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin);
   bool device_present(uint8_t addr);
 

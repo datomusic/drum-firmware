@@ -27,13 +27,14 @@ bool update(BufferSource &source);
 /**
  * @brief Sets the master output volume of the audio codec.
  *
- * Maps the normalized float volume to the codec's hardware register range.
+ * Maps a normalized float volume [0.0, 1.0] to the codec's hardware register range
+ * using a fast quadratic approximation of a square root curve. This provides
+ * finer control at higher volume levels with good performance.
  * 0.0 corresponds to minimum volume (-63.5dB).
- * 1.0 corresponds to 0dB gain.
- * Values above 1.0 provide positive gain, up to the codec's maximum (+24dB).
- * Input values are clamped to the valid range representable by the codec.
+ * 1.0 corresponds to maximum volume (0dB gain).
+ * Input values are clamped to the [0.0, 1.0] range.
  *
- * @param volume The desired volume level (0.0 to ~1.378).
+ * @param volume The desired volume level (0.0 to 1.0).
  * @return true if the volume was set successfully, false otherwise (e.g., codec error).
  */
 bool volume(float volume);

@@ -95,18 +95,16 @@ bool AudioOutput::volume(float volume) {
   if (!codec_ptr) {
     return false;
   }
-  // Map [0.0, ~1.378] to the AIC3204 range [-127, 48]
-  // 0.0f -> -127 (-63.5 dB)
-  // 1.0f -> 0 (0 dB)
-  // ~1.378f -> 48 (+24 dB)
-  // Use a linear mapping based on the 0dB point (1.0f -> 0)
-  // Slope below 1.0 = 127 steps / 1.0f = 127
-  // Slope above 1.0 = 48 steps / (max_vol - 1.0f). Let's use the same slope for simplicity.
-  // So, mapped_value = (volume - 1.0f) * 127
-  float mapped_value = (volume - 1.0f) * 127.0f;
+  // Clamp the input volume to the normalized range [0.0, 1.0]
+  float clamped_volume = std::clamp(volume, 0.0f, 1.0f);
 
-  // Clamp to the codec's hardware limits [-127, 48]
-  mapped_value = std::clamp(mapped_value, -127.0f, 48.0f);
+  // Apply a fast quadratic approximation of a square root curve (2x - x^2)
+  // to provide more resolution at higher volumes without using sqrtf.
+  float curved_volume = (2.0f * clamped_volume) - (clamped_volume * clamped_volume);
+
+  // Map the curved value [0.0, 1.0] to the codec's dB range [-63.5dB, 0dB]
+  // which corresponds to register values [-127, 0].
+  float mapped_value = (curved_volume * 127.0f) - 127.0f;
 
   // Round to the nearest integer for the register value
   int8_t codec_register_value = static_cast<int8_t>(std::round(mapped_value));

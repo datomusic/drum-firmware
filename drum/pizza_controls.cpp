@@ -122,13 +122,9 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
   auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(track_idx);
 
   if (event.type == musin::ui::KeypadEvent::Type::Tap) {
-    const bool is_enabled = track.get_step(step_idx).enabled;
-    if (is_enabled) {
-      // If the step is on, a tap turns it off.
-      track.set_step_enabled(step_idx, false);
-    } else {
-      // If the step is off, a tap turns it on with low velocity.
-      track.set_step_enabled(step_idx, true);
+    const bool now_enabled = track.toggle_step_enabled(step_idx);
+    if (now_enabled) {
+      // If the step is now on, set its properties.
       const uint8_t step_velocity = config::keypad::STEP_VELOCITY_ON_TAP;
       uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
       track.set_step_note(step_idx, note);

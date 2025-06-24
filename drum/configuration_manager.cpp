@@ -1,5 +1,5 @@
 #include "drum/configuration_manager.h"
-#include "jsmn.h"
+#include "jsmn/jsmn.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -59,7 +59,7 @@ bool ConfigurationManager::load() {
   return true;
 }
 
-bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens, int count) {
+bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens, [[maybe_unused]] int count) {
   if (tokens->type != JSMN_ARRAY) {
     return false;
   }

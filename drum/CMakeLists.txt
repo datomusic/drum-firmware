@@ -58,6 +58,7 @@ add_executable(${EXECUTABLE_NAME}
   pizza_display.cpp
   ../musin/timing/tempo_handler.cpp
   sequencer_controller.cpp
+  configuration_manager.cpp
   sound_router.cpp
   audio_engine.cpp
   sample_repository.cpp
@@ -77,6 +78,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ../experiments/support # For sample_conversion.h and potentially other support files
     ${GENERATED_SAMPLES_OUTPUT_DIR} # For all_samples.h, sample_data.h etc.
     # Add other specific include paths here if needed
+    ../lib
 )
 
 musin_init(${EXECUTABLE_NAME})

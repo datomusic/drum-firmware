@@ -102,15 +102,21 @@ bool AudioOutput::volume(float volume) {
   // to provide more resolution at higher volumes without using sqrtf.
   float curved_volume = (2.0f * clamped_volume) - (clamped_volume * clamped_volume);
 
+  // --- DAC Volume (Output Stage) ---
   // Map the curved value [0.0, 1.0] to the codec's dB range [-63.5dB, 0dB]
   // which corresponds to register values [-127, 0].
-  float mapped_value = (curved_volume * 127.0f) - 127.0f;
+  float mapped_dac_value = (curved_volume * 127.0f) - 127.0f;
+  int8_t dac_register_value = static_cast<int8_t>(std::round(mapped_dac_value));
+  bool dac_ok = codec_ptr->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
 
-  // Round to the nearest integer for the register value
-  int8_t codec_register_value = static_cast<int8_t>(std::round(mapped_value));
+  // --- Mixer Volume (Input Stage) ---
+  // Map the linear value [0.0, 1.0] to the mixer's attenuation range [0, -40].
+  float mapped_mixer_value = (clamped_volume * 40.0f) - 40.0f;
+  int8_t mixer_register_value = static_cast<int8_t>(std::round(mapped_mixer_value));
+  bool mixer_ok =
+      codec_ptr->set_mixer_volume(mixer_register_value) == musin::drivers::Aic3204Status::OK;
 
-  // Call the C++ driver method
-  return codec_ptr->set_dac_volume(codec_register_value) == musin::drivers::Aic3204Status::OK;
+  return dac_ok && mixer_ok;
 #else
   // No codec defined, maybe control digital volume?
   // For now, just return true as there's nothing to set.

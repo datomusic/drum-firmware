@@ -288,4 +288,76 @@ void PizzaDisplay::draw_animations(absolute_time_t now) {
   }
 }
 
+uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) const {
+  uint32_t color = 0; // Default to black if step disabled or note invalid
+
+  if (step.enabled && step.note.has_value()) {
+    std::optional<uint32_t> base_color_opt = get_color_for_midi_note(step.note.value());
+
+    if (!base_color_opt.has_value()) {
+      return 0; // MIDI note not found in global definitions, return black
+    }
+    uint32_t base_color = base_color_opt.value();
+
+    uint8_t brightness = MAX_BRIGHTNESS;
+    if (step.velocity.has_value()) {
+      uint16_t calculated_brightness =
+          static_cast<uint16_t>(step.velocity.value()) * VELOCITY_TO_BRIGHTNESS_SCALE;
+      brightness = static_cast<uint8_t>(
+          std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+    }
+
+    color = _leds.adjust_color_brightness(base_color, brightness);
+  }
+  return color;
+}
+
+uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
+  uint8_t r = (color >> 16) & 0xFF;
+  uint8_t g = (color >> 8) & 0xFF;
+  uint8_t b = color & 0xFF;
+
+  r = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
+  g = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
+  b = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
+  return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+}
+
+uint32_t PizzaDisplay::apply_fading_highlight(uint32_t color, float highlight_factor) const {
+  uint8_t base_r = (color >> 16) & 0xFF;
+  uint8_t base_g = (color >> 8) & 0xFF;
+  uint8_t base_b = color & 0xFF;
+
+  // Target highlight color is white
+  constexpr uint8_t highlight_r = 0xFF;
+  constexpr uint8_t highlight_g = 0xFF;
+  constexpr uint8_t highlight_b = 0xFF;
+
+  // Scale factor for integer blending (0-255)
+  uint8_t blend_amount = static_cast<uint8_t>(std::clamp(highlight_factor * 255.0f, 0.0f, 255.0f));
+
+  // Linear interpolation using integer math (lerp)
+  uint8_t final_r = static_cast<uint8_t>((static_cast<uint32_t>(base_r) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_r) * blend_amount) /
+                                         255);
+  uint8_t final_g = static_cast<uint8_t>((static_cast<uint32_t>(base_g) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_g) * blend_amount) /
+                                         255);
+  uint8_t final_b = static_cast<uint8_t>((static_cast<uint32_t>(base_b) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_b) * blend_amount) /
+                                         255);
+
+  return (static_cast<uint32_t>(final_r) << 16) | (static_cast<uint32_t>(final_g) << 8) | final_b;
+}
+
+uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {
+  uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
+  uint8_t brightness_val =
+      static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+  return _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
+}
+
 } // namespace drum

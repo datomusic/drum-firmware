@@ -202,12 +202,11 @@ void SequencerController<NumTracks, NumSteps>::start() {
   if (_running) {
     return;
   }
+
+  _just_played_step_per_track.fill(std::nullopt);
+
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
-
-  for (size_t track_idx = 0; track_idx < last_played_note_per_track.size(); ++track_idx) {
-    last_played_note_per_track[track_idx] = std::nullopt;
-  }
 
   _running = true;
 }
@@ -226,7 +225,6 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
       this->notify_observers(note_off_event);
-      last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
   for (size_t i = 0; i < NumTracks; ++i) {

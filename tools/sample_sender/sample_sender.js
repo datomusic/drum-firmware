@@ -98,37 +98,37 @@ const sleepMs = (milliseconds) => new Promise(resolve => setTimeout(resolve, mil
 
 async function send_file_content(data) {
   console.log("send_file_content");
-  const ChunkSize = 50;
   console.log("File data length: ", data.length);
 
   var bytes = [];
-
   var chunk_counter = 0;
-  var i =0;
-  for (i=0;i<data.length;i+=2) {
+
+  for (var i = 0; i < data.length; i += 2) {
     // Pack two bytes into a 16bit value, and then into 3 sysex bytes.
-    const lower = data[i]
-    const upper = data[i+1]
+    const lower = data[i];
+    // If there's no upper byte (odd length file), use 0 as a placeholder.
+    const upper = (i + 1 < data.length) ? data[i + 1] : 0;
     bytes = bytes.concat(pack3_16((upper << 8) + lower));
 
-
-    // Stay below the max SysEx message length for DRUM, leaving space for header.
+    // Stay below the max SysEx message length, leaving space for header.
     if (bytes.length >= 100) {
-      console.log("Sending chunk "+chunk_counter);
+      console.log("Sending chunk " + chunk_counter);
       chunk_counter++;
-      send_drum_message(0x11, bytes)
+      send_drum_message(0x11, bytes);
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(5)
+      await sleepMs(5);
     }
   }
 
-  if (i != data.length) {
-    console.warn("Warning: Skipped last data byte");
+  // Send any remaining bytes that didn't fill a full chunk
+  if (bytes.length > 0) {
+    console.log("Sending final chunk");
+    send_drum_message(0x11, bytes);
   }
 
-  await sleepMs(100)
+  await sleepMs(100);
 }
 
 

@@ -220,7 +220,7 @@ private:
   const SampleData *sample_data_ptr_ = nullptr;
 
   // State for file-based sources
-  etl::array<int16_t, AUDIO_BLOCK_SAMPLES> attack_buffer_ram_;
+  AudioBlock attack_buffer_ram_;
   uint32_t attack_buffer_length_;
 
   enum class SourceType { NONE, FROM_SAMPLEDATA, FROM_FILE };

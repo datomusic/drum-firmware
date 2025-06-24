@@ -372,10 +372,9 @@ Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
   if (!is_initialized())
     return Aic3204Status::ERROR_NOT_INITIALIZED;
 
-  // Valid range for register value is 0 to 40 (0b101000).
-  // Values 41-63 are reserved.
-  if (volume < 0 || volume > 40) {
-    AIC_LOG("AIC3204 Error: Mixer volume %d invalid. Valid range: 0 to 40.", volume);
+  // The user provides a value from 0 (0dB) to -40 (Mute).
+  if (volume > 0 || volume < -40) {
+    AIC_LOG("AIC3204 Error: Mixer volume %d invalid. Valid range: 0 to -40.", volume);
     return Aic3204Status::ERROR_INVALID_ARG;
   }
 
@@ -388,13 +387,14 @@ Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
   const uint8_t LEFT_MIXER_REG = 0x18;
   const uint8_t RIGHT_MIXER_REG = 0x19;
 
-  uint8_t reg_value = static_cast<uint8_t>(volume);
+  // Convert the user-facing volume (0 to -40) to the register value (0 to 40).
+  uint8_t reg_value = static_cast<uint8_t>(-volume);
 
   Aic3204Status status_l = write_register(MIXER_PAGE, LEFT_MIXER_REG, reg_value);
   Aic3204Status status_r = write_register(MIXER_PAGE, RIGHT_MIXER_REG, reg_value);
 
   if (status_l == Aic3204Status::OK && status_r == Aic3204Status::OK) {
-    AIC_LOG("AIC3204: Mixer volume set to %d", volume);
+    AIC_LOG("AIC3204: Mixer volume set to attenuation step %d", volume);
     _current_mixer_volume = volume;
     return Aic3204Status::OK;
   } else {

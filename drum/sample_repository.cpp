@@ -12,6 +12,7 @@ void SampleRepository::load_from_manifest() {
     path_opt.reset();
   }
 
+  printf("Loading sample manifest from %s...\n", MANIFEST_PATH);
   FILE *manifest_file = fopen(MANIFEST_PATH, "r");
   if (!manifest_file) {
     printf("Could not open sample manifest: %s. No samples loaded.\n", MANIFEST_PATH);
@@ -59,6 +60,7 @@ void SampleRepository::load_from_manifest() {
     // Store the path if the string is not empty.
     if (strlen(path_start) > 0) {
       sample_paths_[index].emplace(path_start);
+      printf("  - Slot %d: %s\n", index, path_start);
     }
   }
 

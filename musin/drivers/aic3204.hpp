@@ -96,6 +96,7 @@ private:
   bool _is_initialized = false;
   uint8_t _current_page = 0xFF;
   int8_t _current_dac_volume = 0;
+  int8_t _current_mixer_volume = 0;
   bool _headphone_inserted_state = false;
 };
 

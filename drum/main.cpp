@@ -8,6 +8,7 @@
 #include "musin/usb/usb.h"
 
 #include "drum/applications/rompler/standard_file_ops.h"
+#include "drum/configuration_manager.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
 #include "sysex/protocol.h"

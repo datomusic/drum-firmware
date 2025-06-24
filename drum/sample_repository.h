@@ -19,7 +19,6 @@ class SampleRepository {
 public:
   static constexpr size_t MAX_SAMPLES = 32;
   static constexpr size_t MAX_PATH_LENGTH = 64;
-  static constexpr const char *MANIFEST_PATH = "/samples.txt";
 
   SampleRepository() = default;
 

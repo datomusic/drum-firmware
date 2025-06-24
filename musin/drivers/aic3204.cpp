@@ -4,7 +4,7 @@
 #include <cstdio>  // For printf
 
 // --- Logging Configuration ---
-#define AIC3204_ENABLE_LOGGING 1 // Set to 0 to disable all logging
+#define AIC3204_ENABLE_LOGGING 0 // Set to 0 to disable all logging
 
 #if AIC3204_ENABLE_LOGGING
 #define AIC_LOG(format, ...) printf("AIC3204: " format "\n", ##__VA_ARGS__)

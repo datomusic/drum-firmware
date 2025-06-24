@@ -40,12 +40,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   calculate_timing_params();
   srand(time_us_32());
 
-  // Initialize last played step to the final step index for initial highlight
-  if constexpr (NumSteps > 0) {
-    _just_played_step_per_track.fill(NumSteps - 1);
-  } else {
-    _just_played_step_per_track.fill(std::nullopt);
-  }
+  // Initialize last played step to nullopt, as no step has been played yet.
+  _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
 }
 
@@ -189,11 +185,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
 
-  if constexpr (NumSteps > 0) {
-    _just_played_step_per_track.fill(NumSteps - 1);
-  } else {
-    _just_played_step_per_track.fill(std::nullopt);
-  }
+  _just_played_step_per_track.fill(std::nullopt);
 
   deactivate_repeat();
   deactivate_random();
@@ -210,8 +202,12 @@ void SequencerController<NumTracks, NumSteps>::start() {
   if (_running) {
     return;
   }
-  tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
+
+  _just_played_step_per_track.fill(std::nullopt);
+
   tempo_source.add_observer(*this);
+  tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
+
   _running = true;
 }
 
@@ -229,7 +225,6 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
       this->notify_observers(note_off_event);
-      last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
   for (size_t i = 0; i < NumTracks; ++i) {
@@ -240,8 +235,9 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
     [[maybe_unused]] musin::timing::TempoEvent event) {
-  if (!_running)
+  if (!_running) {
     return;
+  }
 
   high_res_tick_counter_++;
 
@@ -311,7 +307,7 @@ template <size_t NumTracks, size_t NumSteps>
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] std::optional<size_t>
 SequencerController<NumTracks, NumSteps>::get_last_played_step_for_track(size_t track_idx) const {
-  if (track_idx < NumTracks) {
+  if ((track_idx < NumTracks)) {
     return _just_played_step_per_track[track_idx];
   }
   return std::nullopt;
@@ -501,7 +497,7 @@ void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(uint8
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uint8_t track_index) {
   if (track_index < NumTracks) {
-    _retrigger_mode_per_track[track_index] = 0; // 0 signifies off
+    _retrigger_mode_per_track[track_index] = 0;
     _retrigger_progress_ticks_per_track[track_index] = 0;
   }
 }

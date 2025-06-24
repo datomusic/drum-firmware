@@ -116,10 +116,53 @@ void PizzaDisplay::draw_base_elements() {
     set_play_button_led(pulse_color);
   }
 
-  // The template arguments are resolved because _sequencer_controller_ref
-  // is typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
   update_track_override_colors();
-  draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
+  draw_sequencer_state();
+}
+
+void PizzaDisplay::draw_sequencer_state() {
+  const auto &sequencer = _sequencer_controller_ref.get_sequencer();
+  const auto &controller = _sequencer_controller_ref;
+
+  bool is_running = controller.is_running();
+
+  for (size_t track_idx = 0; track_idx < config::NUM_TRACKS; ++track_idx) {
+    if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
+      continue;
+
+    const auto &track_data = sequencer.get_track(track_idx);
+
+    for (size_t step_idx = 0; step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
+      if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
+        continue;
+
+      const auto &step = track_data.get_step(step_idx);
+      uint32_t base_step_color = calculate_step_color(step);
+      uint32_t final_color = base_step_color;
+
+      // Apply track override color if active
+      if (track_idx < _track_override_colors.size() &&
+          _track_override_colors[track_idx].has_value()) {
+        final_color = _track_override_colors[track_idx].value();
+      }
+
+      // Apply highlighting for the currently playing step (on top of base or override color)
+      std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
+      if (is_running && just_played_step.has_value() && step_idx == just_played_step.value()) {
+        final_color = apply_highlight(final_color);
+      }
+
+      if (!is_running && step_idx == controller.get_current_step()) {
+        final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
+      }
+
+      std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
+
+      if (led_index_opt.has_value()) {
+        _leds.set_pixel(led_index_opt.value(), final_color);
+      }
+    }
+  }
 }
 
 std::optional<uint32_t> PizzaDisplay::get_color_for_midi_note(uint8_t midi_note_number) const {
@@ -286,6 +329,78 @@ void PizzaDisplay::draw_animations(absolute_time_t now) {
     }
     _set_physical_drumpad_led(i, final_color);
   }
+}
+
+uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) const {
+  uint32_t color = 0; // Default to black if step disabled or note invalid
+
+  if (step.enabled && step.note.has_value()) {
+    std::optional<uint32_t> base_color_opt = get_color_for_midi_note(step.note.value());
+
+    if (!base_color_opt.has_value()) {
+      return 0; // MIDI note not found in global definitions, return black
+    }
+    uint32_t base_color = base_color_opt.value();
+
+    uint8_t brightness = MAX_BRIGHTNESS;
+    if (step.velocity.has_value()) {
+      uint16_t calculated_brightness =
+          static_cast<uint16_t>(step.velocity.value()) * VELOCITY_TO_BRIGHTNESS_SCALE;
+      brightness = static_cast<uint8_t>(
+          std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+    }
+
+    color = _leds.adjust_color_brightness(base_color, brightness);
+  }
+  return color;
+}
+
+uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
+  uint8_t r = (color >> 16) & 0xFF;
+  uint8_t g = (color >> 8) & 0xFF;
+  uint8_t b = color & 0xFF;
+
+  r = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
+  g = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
+  b = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
+  return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+}
+
+uint32_t PizzaDisplay::apply_fading_highlight(uint32_t color, float highlight_factor) const {
+  uint8_t base_r = (color >> 16) & 0xFF;
+  uint8_t base_g = (color >> 8) & 0xFF;
+  uint8_t base_b = color & 0xFF;
+
+  // Target highlight color is white
+  constexpr uint8_t highlight_r = 0xFF;
+  constexpr uint8_t highlight_g = 0xFF;
+  constexpr uint8_t highlight_b = 0xFF;
+
+  // Scale factor for integer blending (0-255)
+  uint8_t blend_amount = static_cast<uint8_t>(std::clamp(highlight_factor * 255.0f, 0.0f, 255.0f));
+
+  // Linear interpolation using integer math (lerp)
+  uint8_t final_r = static_cast<uint8_t>((static_cast<uint32_t>(base_r) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_r) * blend_amount) /
+                                         255);
+  uint8_t final_g = static_cast<uint8_t>((static_cast<uint32_t>(base_g) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_g) * blend_amount) /
+                                         255);
+  uint8_t final_b = static_cast<uint8_t>((static_cast<uint32_t>(base_b) * (255 - blend_amount) +
+                                          static_cast<uint32_t>(highlight_b) * blend_amount) /
+                                         255);
+
+  return (static_cast<uint32_t>(final_r) << 16) | (static_cast<uint32_t>(final_g) << 8) | final_b;
+}
+
+uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {
+  uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
+  uint8_t brightness_val =
+      static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
+  return _leds.adjust_color_brightness(COLOR_WHITE, brightness_val);
 }
 
 } // namespace drum

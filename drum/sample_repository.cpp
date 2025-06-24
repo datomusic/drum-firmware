@@ -14,7 +14,7 @@ void SampleRepository::load_from_manifest() {
 
   FILE *manifest_file = fopen(MANIFEST_PATH, "r");
   if (!manifest_file) {
-    // printf("Could not open sample manifest: %s. No samples loaded.\n", MANIFEST_PATH);
+    printf("Could not open sample manifest: %s. No samples loaded.\n", MANIFEST_PATH);
     return;
   }
 

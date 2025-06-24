@@ -171,11 +171,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
   if (write_register(0x01, 0x14, 0x05) != Aic3204Status::OK) {
     return; // Slowly ramp up HP drivers
   }
-  if (write_register(0x01, 0x0C, 0x08) != Aic3204Status::OK) {
-    return; // DAC_L -> HPL
+  if (write_register(0x01, 0x0C, 0x0A) != Aic3204Status::OK) {
+    return; // DAC_L -> HPL, MAL -> HPL
   }
-  if (write_register(0x01, 0x0D, 0x08) != Aic3204Status::OK) {
-    return; // DAC_R -> HPR
+  if (write_register(0x01, 0x0D, 0x0A) != Aic3204Status::OK) {
+    return; // DAC_R -> HPR, MAR -> HPR
   }
   if (write_register(0x01, 0x10, 0x00) != Aic3204Status::OK) {
     return; // HPL Gain 0dB
@@ -184,9 +184,9 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
     return; // HPR Gain 0dB
   }
 
-  // Line Output Routing & Gain (Python's differential config, 0dB Gain)
-  if (write_register(0x01, 0x0E, 0x01) != Aic3204Status::OK) {
-    return; // LOL Diff Config
+  // Line Output Routing & Gain (0dB Gain)
+  if (write_register(0x01, 0x0E, 0x03) != Aic3204Status::OK) {
+    return; // LOL Diff Config, MAL to LOL
   }
   if (write_register(0x01, 0x0F, 0x08) != Aic3204Status::OK) {
     return; // LOR Diff Config
@@ -198,9 +198,23 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
     return; // LOR Gain 0dB
   }
 
+  // Route Line In to PGA's and then to MAL/MAR
+  if (write_register(0x01, 0x34, 0x40) != Aic3204Status::OK) {
+    return; // IN1L is routed to Left MICPGA with 10k resistance
+  }
+  if (write_register(0x01, 0x36, 0x40) != Aic3204Status::OK) {
+    return; // CM is routed to Left MICPGA via CM1L with 10k resistance
+  }
+  if (write_register(0x01, 0x37, 0x40) != Aic3204Status::OK) {
+    return; // IN1R is routed to Right MICPGA with 10k resistance
+  }
+  if (write_register(0x01, 0x39, 0x40) != Aic3204Status::OK) {
+    return; // CM is routed to Right MICPGA via CM1R with 10k resistance
+  }
+
   // Power up Output Drivers (Page 1) - This starts soft-stepping
-  if (write_register(0x01, 0x09, 0x3C) != Aic3204Status::OK) {
-    return; // Power up HPL, HPR, LOL, LOR
+  if (write_register(0x01, 0x09, 0x3F) != Aic3204Status::OK) {
+    return; // Power up HPL, HPR, LOL, LOR, MAL, MAR
   }
 
   // --- Wait for soft-stepping completion ---
@@ -352,48 +366,6 @@ Aic3204Status Aic3204::set_dac_volume(int8_t volume) {
     _current_dac_volume = INT8_MIN; // Invalidate cache
     return (status_l != Aic3204Status::OK) ? status_l : status_r;
   }
-}
-
-Aic3204Status Aic3204::route_in_to_headphone(bool enable) {
-  if (!is_initialized())
-    return Aic3204Status::ERROR_NOT_INITIALIZED;
-
-  const uint8_t PAGE = 1;
-  const uint8_t HPL_REG = 0x0C;
-  const uint8_t HPR_REG = 0x0D;
-  const uint8_t IN1_TO_HP_MASK = (1 << 2);
-
-  AIC_LOG("AIC3204: %s routing IN1 to Headphone Output.", enable ? "Enabling" : "Disabling");
-
-  uint8_t hpl_val = 0;
-  Aic3204Status status = read_register(PAGE, HPL_REG, hpl_val);
-  if (status != Aic3204Status::OK) {
-    return status;
-  }
-
-  uint8_t new_hpl_val = enable ? (hpl_val | IN1_TO_HP_MASK) : (hpl_val & ~IN1_TO_HP_MASK);
-  if (new_hpl_val != hpl_val) {
-    status = write_register(PAGE, HPL_REG, new_hpl_val);
-    if (status != Aic3204Status::OK) {
-      return status;
-    }
-  }
-
-  uint8_t hpr_val = 0;
-  status = read_register(PAGE, HPR_REG, hpr_val);
-  if (status != Aic3204Status::OK) {
-    return status;
-  }
-
-  uint8_t new_hpr_val = enable ? (hpr_val | IN1_TO_HP_MASK) : (hpr_val & ~IN1_TO_HP_MASK);
-  if (new_hpr_val != hpr_val) {
-    status = write_register(PAGE, HPR_REG, new_hpr_val);
-    if (status != Aic3204Status::OK) {
-      return status;
-    }
-  }
-
-  return Aic3204Status::OK;
 }
 
 std::optional<bool> Aic3204::is_headphone_inserted() {

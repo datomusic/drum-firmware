@@ -250,12 +250,12 @@ void PizzaDisplay::draw_sequencer_state(
 
       // Apply highlighting for the currently playing step (on top of base or override color)
       std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
-      if (just_played_step.has_value() && step_idx == just_played_step.value()) {
-        if (is_running) {
+      if (is_running && just_played_step.has_value() && step_idx == just_played_step.value()) {
           final_color = apply_highlight(final_color);
-        } else {
+      }
+
+      if (!is_running && step_idx == controller.get_current_step()) {
           final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
-        }
       }
 
       std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);

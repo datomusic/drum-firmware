@@ -311,7 +311,7 @@ template <size_t NumTracks, size_t NumSteps>
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] std::optional<size_t>
 SequencerController<NumTracks, NumSteps>::get_last_played_step_for_track(size_t track_idx) const {
-  if (track_idx < NumTracks) {
+  if ((track_idx < NumTracks) && _running) {
     return _just_played_step_per_track[track_idx];
   }
   return std::nullopt;

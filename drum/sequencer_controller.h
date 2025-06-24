@@ -5,16 +5,16 @@
 #include "etl/observer.h"
 #include "events.h"
 #include "musin/timing/step_sequencer.h"
-#include "musin/timing/tempo_event.h"   // Added
-#include "musin/timing/tempo_handler.h" // Added for MAX_TEMPO_OBSERVERS
+#include "musin/timing/tempo_event.h"
+#include "musin/timing/tempo_handler.h"
 #include "musin/timing/timing_constants.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
 
-#include "config.h" // For drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS
-#include <cstddef>  // For size_t
+#include "config.h"
+#include <cstddef>
 
 namespace drum {
 
@@ -55,7 +55,7 @@ public:
    * at the high resolution defined by CLOCK_PPQN.
    * @param event The received tempo event.
    */
-  void notification(musin::timing::TempoEvent event) override; // Changed Event Type
+  void notification(musin::timing::TempoEvent event) override;
 
   /**
    * @brief Triggers a note on event directly.

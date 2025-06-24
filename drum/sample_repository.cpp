@@ -24,6 +24,7 @@ void SampleRepository::load_from_manifest() {
   char line_buffer[MAX_PATH_LENGTH + 10];
 
   while (fgets(line_buffer, sizeof(line_buffer), manifest_file) != nullptr) {
+    printf("Read line: %s", line_buffer);
     // Find the colon separating the index from the path.
     char *colon_pos = strchr(line_buffer, ':');
     if (!colon_pos) {

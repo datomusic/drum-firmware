@@ -15,10 +15,10 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     : /* sequencer_ is default-initialized */ current_step_counter(0), last_played_note_per_track{},
       _just_played_step_per_track{}, tempo_source(tempo_handler_ref), _running(false),
       swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
-      next_trigger_tick_target_(0), _pad_pressed_state{}, _retrigger_mode_per_track{},
-      _retrigger_progress_ticks_per_track{}, random_active_(false),
+      next_trigger_tick_target_(0), random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
-      random_track_offsets_{}, _active_note_per_track{} {
+      random_track_offsets_{}, _active_note_per_track{}, _pad_pressed_state{},
+      _retrigger_mode_per_track{}, _retrigger_progress_ticks_per_track{} {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx < config::track_note_ranges.size() &&

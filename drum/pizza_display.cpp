@@ -116,10 +116,54 @@ void PizzaDisplay::draw_base_elements() {
     set_play_button_led(pulse_color);
   }
 
-  // The template arguments are resolved because _sequencer_controller_ref
-  // is typed with config::NUM_TRACKS and config::NUM_STEPS_PER_TRACK.
   update_track_override_colors();
-  draw_sequencer_state(_sequencer_controller_ref.get_sequencer(), _sequencer_controller_ref);
+  draw_sequencer_state();
+}
+
+void PizzaDisplay::draw_sequencer_state() {
+  const auto &sequencer = _sequencer_controller_ref.get_sequencer();
+  const auto &controller = _sequencer_controller_ref;
+
+  bool is_running = controller.is_running();
+
+  for (size_t track_idx = 0; track_idx < config::NUM_TRACKS; ++track_idx) {
+    if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
+      continue;
+
+    const auto &track_data = sequencer.get_track(track_idx);
+
+    for (size_t step_idx = 0; step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
+      if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
+        continue;
+
+      const auto &step = track_data.get_step(step_idx);
+      uint32_t base_step_color = calculate_step_color(step);
+      uint32_t final_color = base_step_color;
+
+      // Apply track override color if active
+      if (track_idx < _track_override_colors.size() &&
+          _track_override_colors[track_idx].has_value()) {
+        final_color = _track_override_colors[track_idx].value();
+      }
+
+      // Apply highlighting for the currently playing step (on top of base or override color)
+      std::optional<size_t> just_played_step =
+          controller.get_last_played_step_for_track(track_idx);
+      if (is_running && just_played_step.has_value() && step_idx == just_played_step.value()) {
+        final_color = apply_highlight(final_color);
+      }
+
+      if (!is_running && step_idx == controller.get_current_step()) {
+        final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
+      }
+
+      std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
+
+      if (led_index_opt.has_value()) {
+        _leds.set_pixel(led_index_opt.value(), final_color);
+      }
+    }
+  }
 }
 
 std::optional<uint32_t> PizzaDisplay::get_color_for_midi_note(uint8_t midi_note_number) const {

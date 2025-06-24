@@ -134,15 +134,9 @@ public:
   void draw_animations(absolute_time_t now);
 
   /**
-   * @brief Update the keypad LEDs to reflect the current state of the sequencer.
-   * @tparam NumTracks Number of tracks in the sequencer.
-   * @tparam NumSteps Number of steps per track in the sequencer.
-   * @param sequencer A const reference to the sequencer data object.
-   * @param controller A const reference to the sequencer controller object.
+   * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
    */
-  template <size_t NumTracks, size_t NumSteps>
-  void draw_sequencer_state(const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
-                            const drum::SequencerController<NumTracks, NumSteps> &controller);
+  void draw_sequencer_state();
 
   /**
    * @brief Get a const reference to the underlying WS2812 driver instance.
@@ -219,53 +213,6 @@ private:
   void update_track_override_colors();
 };
 
-// --- Template Implementation ---
-
-template <size_t NumTracks, size_t NumSteps>
-void PizzaDisplay::draw_sequencer_state(
-    const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
-    const drum::SequencerController<NumTracks, NumSteps> &controller) {
-
-  bool is_running = controller.is_running();
-
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
-      continue;
-
-    const auto &track_data = sequencer.get_track(track_idx);
-
-    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
-        continue;
-
-      const auto &step = track_data.get_step(step_idx);
-      uint32_t base_step_color = calculate_step_color(step);
-      uint32_t final_color = base_step_color;
-
-      // Apply track override color if active
-      if (track_idx < _track_override_colors.size() &&
-          _track_override_colors[track_idx].has_value()) {
-        final_color = _track_override_colors[track_idx].value();
-      }
-
-      // Apply highlighting for the currently playing step (on top of base or override color)
-      std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
-      if (is_running && just_played_step.has_value() && step_idx == just_played_step.value()) {
-          final_color = apply_highlight(final_color);
-      }
-
-      if (!is_running && step_idx == controller.get_current_step()) {
-          final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
-      }
-
-      std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
-
-      if (led_index_opt.has_value()) {
-        _leds.set_pixel(led_index_opt.value(), final_color);
-      }
-    }
-  }
-}
 
 
 inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,

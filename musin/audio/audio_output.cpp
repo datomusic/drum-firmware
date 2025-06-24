@@ -110,8 +110,8 @@ bool AudioOutput::volume(float volume) {
   bool dac_ok = codec_ptr->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
 
   // --- Mixer Volume (Input Stage) ---
-  // Map the linear value [0.0, 1.0] to the mixer's attenuation range [0, -40].
-  float mapped_mixer_value = (clamped_volume * 40.0f) - 40.0f;
+  // Map the linear value [0.0, 1.0] to the mixer's attenuation range [MUTED, -30dB, 0dB].
+  float mapped_mixer_value = (curved_volume * 40.0f) - 40.0f;
   int8_t mixer_register_value = static_cast<int8_t>(std::round(mapped_mixer_value));
   bool mixer_ok =
       codec_ptr->set_mixer_volume(mixer_register_value) == musin::drivers::Aic3204Status::OK;

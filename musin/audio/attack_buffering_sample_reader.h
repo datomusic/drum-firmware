@@ -144,7 +144,7 @@ public:
       attack_source_ptr = sample_data_ptr_->get_attack_buffer_ptr();
       attack_length = sample_data_ptr_->get_attack_buffer_length();
     } else if (source_type_ == SourceType::FROM_FILE) {
-      attack_source_ptr = attack_buffer_ram_.data();
+      attack_source_ptr = attack_buffer_ram_.begin();
       attack_length = attack_buffer_length_;
     }
 

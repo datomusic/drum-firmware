@@ -17,8 +17,12 @@ struct StandardFileOps {
         // TODO: Report some error. This should not happen;
       }
 
-      printf("Writing file: '%s'\n", path.data());
-      file_pointer = fopen(path.data(), "wb");
+      // Prepend "/" to the path to make it absolute for the VFS.
+      char absolute_path[256];
+      snprintf(absolute_path, sizeof(absolute_path), "/%s", path.data());
+
+      printf("Writing file: '%s'\n", absolute_path);
+      file_pointer = fopen(absolute_path, "wb");
       if (!file_pointer) {
         printf("ERROR: Failed opening file\n");
       }

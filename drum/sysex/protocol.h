@@ -196,13 +196,12 @@ private:
 
         // TODO: Convert bytes into ASCII string in nicer way.
         //       This is a workaround, since etl::string is not constexpr.
-        char path[MaxFilenameLength];
-        const auto path_length = std::min((size_t)MaxFilenameLength, bytes.size());
+        char path[MaxFilenameLength] = {0}; // Zero-initialize the buffer
+        const auto path_length = std::min((size_t)MaxFilenameLength - 1, bytes.size());
         for (unsigned i = 0; i < path_length; ++i) {
           path[i] = bytes[i];
         }
-
-        path[path_length - 1] = '\0';
+        // The path is already null-terminated due to zero-initialization.
 
         opened_file.emplace(file_ops, path);
         state = State::FileTransfer;

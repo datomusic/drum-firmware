@@ -25,8 +25,6 @@ class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
-  // NUM_NOTE_COLORS is removed as colors are now globally defined in
-  // config::global_note_definitions
   static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
   static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
@@ -196,11 +194,9 @@ private:
   std::optional<uint32_t> get_color_for_midi_note(uint8_t midi_note_number) const;
 
   musin::drivers::WS2812_DMA<NUM_LEDS> _leds;
-  // note_colors array is removed
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
   etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
 
-  // Model References
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
@@ -208,7 +204,6 @@ private:
   uint32_t _clock_tick_counter = 0;
   float _stopped_highlight_factor = 0.0f;
 
-  // get_color_index_for_note is removed
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
   void update_track_override_colors();
 };

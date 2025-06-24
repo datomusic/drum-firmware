@@ -40,12 +40,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   calculate_timing_params();
   srand(time_us_32());
 
-  // Initialize last played step to the final step index for initial highlight
-  if constexpr (NumSteps > 0) {
-    _just_played_step_per_track.fill(NumSteps - 1);
-  } else {
-    _just_played_step_per_track.fill(std::nullopt);
-  }
+  // Initialize last played step to nullopt, as no step has been played yet.
+  _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
 }
 
@@ -189,11 +185,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   current_step_counter = 0;
   high_res_tick_counter_ = 0;
 
-  if constexpr (NumSteps > 0) {
-    _just_played_step_per_track.fill(NumSteps - 1);
-  } else {
-    _just_played_step_per_track.fill(std::nullopt);
-  }
+  _just_played_step_per_track.fill(std::nullopt);
 
   deactivate_repeat();
   deactivate_random();

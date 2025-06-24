@@ -213,8 +213,6 @@ private:
   void update_track_override_colors();
 };
 
-
-
 inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,
                                                                      size_t step_idx) const {
   // Map logical track index to physical column index (0->3, 1->2, 2->1, 3->0)
@@ -242,7 +240,6 @@ inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, u
   }
   return std::nullopt;
 }
-
 
 } // namespace drum
 

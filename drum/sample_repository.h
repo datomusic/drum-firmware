@@ -5,8 +5,12 @@
 #include "etl/optional.h"
 #include "etl/string.h"
 #include "etl/string_view.h"
+#include "etl/vector.h"
 
 namespace drum {
+
+// Forward-declare the config struct to avoid a circular dependency
+struct SampleConfig;
 
 /**
  * @brief Manages sample metadata, mapping slot indices to file paths.
@@ -30,7 +34,7 @@ public:
    *
    * @param sample_configs A vector of SampleConfig structs.
    */
-  void load_from_config(const etl::ivector<struct SampleConfig> &sample_configs);
+  void load_from_config(const etl::ivector<SampleConfig> &sample_configs);
 
   /**
    * @brief Retrieves the file path for a given sample index.

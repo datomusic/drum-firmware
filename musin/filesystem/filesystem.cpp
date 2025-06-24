@@ -38,8 +38,8 @@ bool init(bool force_format) {
     printf("Attempting to mount filesystem\n");
     int err = fs_mount("/", lfs, flash);
     if (err == -1) {
-      printf("fs_mount error: %s\n", strerror(errno));
-      return false;
+      printf("Initial mount failed: %s. Attempting to format...\n", strerror(errno));
+      return format_filesystem(lfs, flash);
     }
     return true; // Mount successful
   }

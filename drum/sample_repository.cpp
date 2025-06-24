@@ -6,6 +6,21 @@
 
 namespace drum {
 
+/*
+ * The manifest file (`/samples.txt`) is a plain text file that maps sample
+ * slot indices to their corresponding file paths on the device's filesystem.
+ *
+ * Each line represents a single mapping and should have the following format:
+ *
+ * `index: /path/to/file.raw`
+ *
+ * - `index`: An integer from 0 to 31 specifying the sample slot.
+ * - `:`: A colon separator.
+ * - `path`: The absolute path to the raw PCM sample file.
+ *
+ * Lines that do not contain a colon, or where the index is out of range,
+ * are ignored. Whitespace after the colon and before the path is also ignored.
+ */
 void SampleRepository::load_from_manifest() {
   // Clear any existing paths before loading.
   for (auto &path_opt : sample_paths_) {

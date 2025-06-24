@@ -61,6 +61,8 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 int main() {
   stdio_usb_init();
 
+  musin::usb::init(true); // Wait for serial connection
+
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
@@ -68,8 +70,6 @@ int main() {
   } else {
     sample_repository.load_from_manifest();
   }
-
-  musin::usb::init(false); // Don't wait for serial connection
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor);
 

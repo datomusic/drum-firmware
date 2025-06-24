@@ -9,6 +9,8 @@
 
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
+#include "sysex/protocol.h"
+#include "drum/applications/rompler/standard_file_ops.h"
 
 #include "musin/boards/dato_submarine.h" // For pin definitions
 #include "musin/drivers/aic3204.hpp"     // For the codec driver
@@ -31,6 +33,11 @@ static musin::drivers::Aic3204 codec(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_
 // Headphone jack detection state
 static absolute_time_t last_headphone_check = nil_time;
 constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
+
+// SysEx File Transfer
+static StandardFileOps file_ops;
+static sysex::Protocol<StandardFileOps> syx_protocol(file_ops);
+static bool new_file_received = false;
 
 // Model
 static drum::SampleRepository sample_repository;
@@ -58,6 +65,10 @@ static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
 static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
+void on_file_received_callback() {
+  new_file_received = true;
+}
+
 int main() {
   stdio_usb_init();
 
@@ -71,7 +82,8 @@ int main() {
     sample_repository.load_from_manifest();
   }
 
-  midi_init(sound_router, sequencer_controller, midi_clock_processor);
+  midi_init(sound_router, sequencer_controller, midi_clock_processor, syx_protocol,
+            on_file_received_callback);
 
   if (!codec.is_initialized()) {
     // This is a critical hardware failure.
@@ -113,6 +125,16 @@ int main() {
   //       if they require explicit start/stop from TempoHandler.
 
   while (true) {
+    // --- SysEx State Check ---
+    if (syx_protocol.busy()) {
+      // The protocol is actively receiving a file.
+      // We could add visual feedback here, e.g., pulse a specific LED.
+    } else if (new_file_received) {
+      printf("Main loop: New file received, reloading sample manifest.\n");
+      sample_repository.load_from_manifest();
+      new_file_received = false; // Reset the flag
+    }
+
     pizza_controls.update();
     audio_engine.process();
 

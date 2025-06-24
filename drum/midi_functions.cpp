@@ -10,6 +10,7 @@ extern "C" {
 #include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
 #include "sequencer_controller.h"              // For SequencerController
+#include "sysex/protocol.h"                    // For SysEx protocol handler
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include <cassert>                             // For assert
 #include <optional>                            // For std::optional
@@ -20,6 +21,8 @@ static drum::SoundRouter *sound_router_ptr = nullptr;
 static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     *sequencer_controller_ptr = nullptr;
 static musin::timing::MidiClockProcessor *midi_clock_processor_ptr = nullptr;
+static sysex::Protocol<StandardFileOps> *sysex_protocol_ptr = nullptr;
+static void (*file_received_callback_ptr)() = nullptr;
 
 // --- Helper Functions (Internal Linkage) ---
 namespace { // Anonymous namespace for internal linkage
@@ -52,19 +55,18 @@ void midi_clock_input_callback();
 void handle_sysex(uint8_t *const data, const size_t length);
 
 void handle_sysex(uint8_t *const data, const size_t length) {
-  printf("HANDLE SYSEX\n");
-  // Check for Dato Manufacturer ID and DRUM Device ID
+  // Check for Dato Manufacturer ID and DRUM Device ID for custom commands
   if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DRUM_ID) {
     switch (data[3]) { // Check the command byte
     case SYSEX_REBOOT_BOOTLOADER:
       reset_usb_boot(0, 0);
-      break;
-    case SYSEX_FIRMWARE_VERSION: // Handle request for custom firmware version message
+      return; // Handled
+    case SYSEX_FIRMWARE_VERSION:
       midi_print_firmware_version();
-      break;
-    case SYSEX_SERIAL_NUMBER: // Handle request for custom serial number message
+      return; // Handled
+    case SYSEX_SERIAL_NUMBER:
       midi_print_serial_number();
-      break;
+      return; // Handled
     }
   }
   // Check for Universal Non-Realtime SysEx messages
@@ -74,8 +76,20 @@ void handle_sysex(uint8_t *const data, const size_t length) {
       // Check for General Information - Identity Request (06 01)
       if (data[3] == 0x06 && data[4] == 0x01) {
         midi_print_identity(); // Send the standard Identity Reply
+        return;                // Handled
       }
     }
+  }
+
+  // Fallback: If it's not a known command, pass it to the file transfer protocol handler.
+  assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
+  assert(file_received_callback_ptr != nullptr && "file_received_callback_ptr must be initialized");
+
+  sysex::Chunk chunk(data, length);
+  auto result = sysex_protocol_ptr->handle_chunk(chunk);
+
+  if (result == sysex::Protocol<StandardFileOps>::Result::FileWritten) {
+    file_received_callback_ptr(); // Notify the main loop that a file was received.
   }
 }
 
@@ -280,13 +294,18 @@ void midi_read() {
   MIDI::read();
 }
 
-void midi_init(drum::SoundRouter &sound_router,
-               drum::SequencerController<drum::config::NUM_TRACKS,
-                                         drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-               musin::timing::MidiClockProcessor &midi_clock_processor) {
+void midi_init(
+    drum::SoundRouter &sound_router,
+    drum::SequencerController<drum::config::NUM_TRACKS,
+                              drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+    musin::timing::MidiClockProcessor &midi_clock_processor,
+    sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)()) {
   sound_router_ptr = &sound_router;
   sequencer_controller_ptr = &sequencer_controller;
-  midi_clock_processor_ptr = &midi_clock_processor; // Store reference to MIDI clock processor
+  midi_clock_processor_ptr = &midi_clock_processor;
+  sysex_protocol_ptr = &sysex_protocol;
+  file_received_callback_ptr = file_received_cb;
+
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,
       .note_off = midi_note_off_callback,

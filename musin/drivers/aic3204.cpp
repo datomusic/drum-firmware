@@ -368,6 +368,12 @@ Aic3204Status Aic3204::set_dac_volume(int8_t volume) {
   }
 }
 
+Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
+  // TODO: Implement mixer volume control
+  (void)volume; // Mark as unused for now
+  return Aic3204Status::OK;
+}
+
 std::optional<bool> Aic3204::is_headphone_inserted() {
   if (!is_initialized()) {
     return std::nullopt;

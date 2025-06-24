@@ -226,7 +226,7 @@ void PizzaDisplay::draw_sequencer_state(
     const musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
     const drum::SequencerController<NumTracks, NumSteps> &controller) {
 
-  bool is_running = _sequencer_controller_ref.is_running();
+  bool is_running = controller.is_running();
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)

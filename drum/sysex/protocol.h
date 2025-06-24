@@ -5,6 +5,8 @@
 #include "etl/span.h"
 #include "etl/string_view.h"
 
+#include "musin/midi/midi_wrapper.h" // For midi::SystemExclusive
+
 #include "./chunk.h"
 #include "./codec.h"
 

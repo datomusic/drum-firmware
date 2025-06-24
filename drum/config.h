@@ -33,8 +33,8 @@ constexpr uint8_t DEFAULT_CC_UNMAPPED_VALUE = 0;
 constexpr uint8_t SAMPLE_SELECT_START_COLUMN = 4;
 constexpr uint8_t PREVIEW_NOTE_VELOCITY = 100;
 constexpr uint8_t DEFAULT_STEP_VELOCITY = 100;
-constexpr uint8_t STEP_VELOCITY_ON_HOLD = 127;
-constexpr uint8_t STEP_VELOCITY_ON_TAP = 30;
+constexpr uint8_t STEP_VELOCITY_ON_HOLD = 27;
+constexpr uint8_t STEP_VELOCITY_ON_TAP = 100;
 } // namespace keypad
 
 // Drumpad Component Configuration

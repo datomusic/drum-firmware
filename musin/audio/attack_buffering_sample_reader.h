@@ -1,12 +1,12 @@
 #ifndef MUSIN_AUDIO_ATTACK_BUFFERING_SAMPLE_READER_H_
 #define MUSIN_AUDIO_ATTACK_BUFFERING_SAMPLE_READER_H_
 
+#include "etl/string_view.h"
 #include "musin/audio/buffered_reader.h"
 #include "musin/audio/memory_reader.h"
 #include "musin/audio/sample_data.h"
 #include "musin/audio/sample_reader.h"
 #include "musin/audio/unbuffered_file_sample_reader.h"
-#include "etl/string_view.h"
 #include "musin/hal/debug_utils.h" // For underrun counter
 #include "musin/hal/pico_dma_copier.h"
 #include "port/section_macros.h"
@@ -21,13 +21,17 @@ private:
   // A private proxy class to abstract the sustain data source (memory vs file)
   class SustainReader : public SampleReader {
   public:
-    void set_active_reader(SampleReader *reader) { active_reader_ = reader; }
+    void set_active_reader(SampleReader *reader) {
+      active_reader_ = reader;
+    }
 
     void reset() override {
       if (active_reader_)
         active_reader_->reset();
     }
-    bool has_data() override { return active_reader_ ? active_reader_->has_data() : false; }
+    bool has_data() override {
+      return active_reader_ ? active_reader_->has_data() : false;
+    }
     uint32_t read_samples(AudioBlock &out) override {
       if (active_reader_) {
         return active_reader_->read_samples(out);
@@ -223,7 +227,11 @@ private:
   AudioBlock attack_buffer_ram_;
   uint32_t attack_buffer_length_;
 
-  enum class SourceType { NONE, FROM_SAMPLEDATA, FROM_FILE };
+  enum class SourceType {
+    NONE,
+    FROM_SAMPLEDATA,
+    FROM_FILE
+  };
   SourceType source_type_;
 
   // Internal readers for handling the sustain data portion with double buffering

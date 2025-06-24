@@ -42,7 +42,7 @@ struct BufferedReader {
 
 private:
   void fill_buffer_slot(etl::array<int16_t, SAMPLES_PER_SLOT> &slot_to_fill,
-                                  uint32_t &out_samples_filled) {
+                        uint32_t &out_samples_filled) {
     out_samples_filled = 0;
     for (size_t block_fill_idx = 0; block_fill_idx < NumBlocksPerSlot; ++block_fill_idx) {
       if (!reader.has_data()) {

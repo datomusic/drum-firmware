@@ -1,7 +1,7 @@
 #include "musin/audio/unbuffered_file_sample_reader.h"
 
 #include "musin/audio/block.h" // For AudioBlock
-#include <algorithm> // For std::fill
+#include <algorithm>           // For std::fill
 
 namespace musin {
 
@@ -11,7 +11,7 @@ UnbufferedFileSampleReader::~UnbufferedFileSampleReader() {
   close();
 }
 
-bool UnbufferedFileSampleReader::open(const etl::string_view& path) {
+bool UnbufferedFileSampleReader::open(const etl::string_view &path) {
   close(); // Ensure any previously opened file is closed.
 
   file_handle_ = fopen(path.data(), "rb");
@@ -44,7 +44,7 @@ bool UnbufferedFileSampleReader::has_data() {
   return !feof(file_handle_) && !ferror(file_handle_);
 }
 
-uint32_t UnbufferedFileSampleReader::read_samples(AudioBlock& out) {
+uint32_t UnbufferedFileSampleReader::read_samples(AudioBlock &out) {
   if (!has_data()) {
     std::fill(out.begin(), out.end(), 0);
     return 0;
@@ -60,7 +60,7 @@ uint32_t UnbufferedFileSampleReader::read_samples(AudioBlock& out) {
   return samples_read;
 }
 
-bool UnbufferedFileSampleReader::read_next(int16_t& out) {
+bool UnbufferedFileSampleReader::read_next(int16_t &out) {
   if (!has_data()) {
     return false;
   }

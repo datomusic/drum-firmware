@@ -1,8 +1,8 @@
 #ifndef MUSIN_AUDIO_UNBUFFERED_FILE_SAMPLE_READER_H_
 #define MUSIN_AUDIO_UNBUFFERED_FILE_SAMPLE_READER_H_
 
-#include "musin/audio/sample_reader.h"
 #include "etl/string_view.h"
+#include "musin/audio/sample_reader.h"
 #include <stdio.h>
 
 namespace musin {
@@ -20,10 +20,10 @@ public:
   ~UnbufferedFileSampleReader();
 
   // Non-copyable and non-movable
-  UnbufferedFileSampleReader(const UnbufferedFileSampleReader&) = delete;
-  UnbufferedFileSampleReader& operator=(const UnbufferedFileSampleReader&) = delete;
-  UnbufferedFileSampleReader(UnbufferedFileSampleReader&&) = delete;
-  UnbufferedFileSampleReader& operator=(UnbufferedFileSampleReader&&) = delete;
+  UnbufferedFileSampleReader(const UnbufferedFileSampleReader &) = delete;
+  UnbufferedFileSampleReader &operator=(const UnbufferedFileSampleReader &) = delete;
+  UnbufferedFileSampleReader(UnbufferedFileSampleReader &&) = delete;
+  UnbufferedFileSampleReader &operator=(UnbufferedFileSampleReader &&) = delete;
 
   /**
    * @brief Opens a file for reading.
@@ -32,7 +32,7 @@ public:
    * @param path The path to the audio sample file.
    * @return true if the file was opened successfully, false otherwise.
    */
-  bool open(const etl::string_view& path);
+  bool open(const etl::string_view &path);
 
   /**
    * @brief Closes the currently open file, if any.
@@ -42,11 +42,11 @@ public:
   // --- SampleReader Interface ---
   void reset() override;
   bool has_data() override;
-  uint32_t read_samples(AudioBlock& out) override;
-  bool read_next(int16_t& out) override;
+  uint32_t read_samples(AudioBlock &out) override;
+  bool read_next(int16_t &out) override;
 
 private:
-  FILE* file_handle_ = nullptr;
+  FILE *file_handle_ = nullptr;
 };
 
 } // namespace musin

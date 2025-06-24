@@ -40,6 +40,7 @@ static sysex::Protocol<StandardFileOps> syx_protocol(file_ops);
 static bool new_file_received = false;
 
 // Model
+static drum::ConfigurationManager config_manager;
 static drum::SampleRepository sample_repository;
 static drum::AudioEngine audio_engine(sample_repository);
 static musin::timing::InternalClock internal_clock(120.0f);
@@ -79,7 +80,10 @@ int main() {
     // but we should log the failure.
     printf("WARNING: Failed to initialize filesystem.\n");
   } else {
-    sample_repository.load_from_manifest();
+    if (config_manager.load()) {
+      sample_repository.load_from_config(config_manager.get_sample_configs());
+    }
+    // If config fails to load, sample_repository will just be empty.
   }
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor, syx_protocol,
@@ -130,8 +134,10 @@ int main() {
       // The protocol is actively receiving a file.
       // We could add visual feedback here, e.g., pulse a specific LED.
     } else if (new_file_received) {
-      printf("Main loop: New file received, reloading sample manifest.\n");
-      sample_repository.load_from_manifest();
+      printf("Main loop: New file received, reloading configuration.\n");
+      if (config_manager.load()) {
+        sample_repository.load_from_config(config_manager.get_sample_configs());
+      }
       new_file_received = false; // Reset the flag
     }
 

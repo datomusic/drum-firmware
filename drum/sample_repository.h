@@ -24,13 +24,14 @@ public:
   SampleRepository() = default;
 
   /**
-   * @brief Loads sample mappings from the manifest file on the filesystem.
+   * @brief Populates sample paths from a configuration object.
    *
-   * Scans the manifest file (defined by MANIFEST_PATH) and populates the internal
-   * mapping of sample indices to file paths. It expects lines in the format:
-   * "index: /path/to/sample.raw"
+   * Clears existing paths and loads new ones based on the provided sample
+   * configurations.
+   *
+   * @param sample_configs A vector of SampleConfig structs.
    */
-  void load_from_manifest();
+  void load_from_config(const etl::ivector<struct SampleConfig> &sample_configs);
 
   /**
    * @brief Retrieves the file path for a given sample index.

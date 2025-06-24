@@ -12,7 +12,7 @@ namespace drum {
  *
  * Each line represents a single mapping and should have the following format:
  *
- * `index: /path/to/file.raw`
+ * `index: /file.raw`
  *
  * - `index`: An integer from 0 to 31 specifying the sample slot.
  * - `:`: A colon separator.
@@ -20,6 +20,7 @@ namespace drum {
  *
  * Lines that do not contain a colon, or where the index is out of range,
  * are ignored. Whitespace after the colon and before the path is also ignored.
+ * Currently, subdirectories are not supported so all files should be in the root
  */
 void SampleRepository::load_from_manifest() {
   // Clear any existing paths before loading.

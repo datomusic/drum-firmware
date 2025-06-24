@@ -294,12 +294,11 @@ void midi_read() {
   MIDI::read();
 }
 
-void midi_init(
-    drum::SoundRouter &sound_router,
-    drum::SequencerController<drum::config::NUM_TRACKS,
-                              drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-    musin::timing::MidiClockProcessor &midi_clock_processor,
-    sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)()) {
+void midi_init(drum::SoundRouter &sound_router,
+               drum::SequencerController<drum::config::NUM_TRACKS,
+                                         drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+               musin::timing::MidiClockProcessor &midi_clock_processor,
+               sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)()) {
   sound_router_ptr = &sound_router;
   sequencer_controller_ptr = &sequencer_controller;
   midi_clock_processor_ptr = &midi_clock_processor;

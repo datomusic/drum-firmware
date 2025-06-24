@@ -156,7 +156,7 @@ void AudioEngine::set_crush_depth(float normalized_value) {
   crusher_.bits(depth);
 }
 
-void AudioEngine::set_decay(uint8_t voice_index, float value) {
+void AudioEngine::set_decay([[maybe_unused]] uint8_t voice_index, [[maybe_unused]] float value) {
   // TODO: Implement decay setting for the specified voice
 }
 

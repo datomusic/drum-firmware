@@ -219,7 +219,9 @@ private:
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
   etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
 
-  etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() { return _pad_pressed_state; }
+  etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
+    return _pad_pressed_state;
+  }
 
 public:
   void activate_repeat(uint32_t length);

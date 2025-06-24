@@ -17,7 +17,7 @@ namespace musin {
 class UnbufferedFileSampleReader : public SampleReader {
 public:
   UnbufferedFileSampleReader();
-  ~UnbufferedFileSampleReader() override;
+  ~UnbufferedFileSampleReader();
 
   // Non-copyable and non-movable
   UnbufferedFileSampleReader(const UnbufferedFileSampleReader&) = delete;

@@ -26,7 +26,7 @@ enum class ExternalPinState {
   UNDETERMINED
 };
 
-ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) {
+ExternalPinState check_external_pin_state(std::uint32_t gpio, [[maybe_unused]] const char *name) {
   gpio_init(gpio);
   gpio_set_dir(gpio, GPIO_IN);
 
@@ -43,23 +43,17 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, const char *name) 
   bool pulldown_read = gpio_get(gpio);
 
   ExternalPinState determined_state;
-  const char *state_str;
 
   if (!initial_read && pullup_read && !pulldown_read) {
     determined_state = ExternalPinState::FLOATING;
-    state_str = "Floating";
   } else if (initial_read && pullup_read && !pulldown_read) {
     determined_state = ExternalPinState::FLOATING;
-    state_str = "Floating";
   } else if (!initial_read && !pullup_read) {
     determined_state = ExternalPinState::PULL_DOWN;
-    state_str = "External Pull-down";
   } else if (initial_read && pulldown_read) {
     determined_state = ExternalPinState::PULL_UP;
-    state_str = "External Pull-up";
   } else {
     determined_state = ExternalPinState::UNDETERMINED;
-    state_str = "Undetermined / Inconsistent Reads";
   }
 
   gpio_disable_pulls(gpio);

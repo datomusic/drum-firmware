@@ -60,7 +60,7 @@ add_executable(${EXECUTABLE_NAME}
   sequencer_controller.cpp
   sound_router.cpp
   audio_engine.cpp
-  sb25_samples.cpp
+  sample_repository.cpp
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -85,6 +85,7 @@ musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
+musin_init_filesystem(${PROJECT_NAME})
 
 # Add sample generation dependency after executable is defined
 if(TARGET generate_samples)

@@ -66,7 +66,6 @@ bool AudioEngine::init(musin::drivers::Aic3204 &codec) {
   if (!AudioOutput::init(codec)) {
     return false;
   }
-  AudioOutput::route_line_in_to_headphone(true);
   is_initialized_ = true;
   return true;
 }

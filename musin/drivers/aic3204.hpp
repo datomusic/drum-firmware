@@ -68,7 +68,7 @@ public:
   Aic3204Status read_register(uint8_t page, uint8_t reg_addr, uint8_t &read_value);
   Aic3204Status set_amp_enabled(bool enable);
   Aic3204Status set_dac_volume(int8_t volume);
-  Aic3204Status route_in_to_headphone(bool enable);
+  Aic3204Status set_mixer_volume(int8_t volume);
   std::optional<bool> is_headphone_inserted();
   bool update_headphone_detection();
 
@@ -96,6 +96,7 @@ private:
   bool _is_initialized = false;
   uint8_t _current_page = 0xFF;
   int8_t _current_dac_volume = 0;
+  int8_t _current_mixer_volume = 0;
   bool _headphone_inserted_state = false;
 };
 

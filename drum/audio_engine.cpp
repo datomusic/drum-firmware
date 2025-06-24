@@ -9,7 +9,7 @@
 #include "musin/audio/sound.h"
 #include "musin/drivers/aic3204.hpp"
 
-#include "sb25_samples.h"
+#include "sample_repository.h"
 
 #include <algorithm>
 #include <cmath>
@@ -43,8 +43,9 @@ float map_value_filter_fast(float normalized_value) {
 AudioEngine::Voice::Voice() : sound(reader.emplace()) { // reader is default constructed here
 }
 
-AudioEngine::AudioEngine()
-    : voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
+AudioEngine::AudioEngine(const SampleRepository &repository)
+    : sample_repository_(repository),
+      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_), highpass_(lowpass_) {
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
@@ -83,12 +84,23 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
     return;
   }
 
-  sample_index = sample_index % 32;
-
   Voice &voice = voices_[voice_index];
 
-  const musin::SampleData &current_sample_data = all_samples[sample_index];
-  voice.reader->set_source(current_sample_data); // Pass the musin::SampleData object directly
+  // Get the file path from the repository for the given sample index.
+  auto path_opt = sample_repository_.get_path(sample_index);
+  if (!path_opt.has_value()) {
+    // No sample is mapped to this index, so we play silence by not loading anything.
+    // We could optionally stop the voice if it was playing something else.
+    // stop_voice(voice_index);
+    return;
+  }
+
+  // Load the sample from the file path.
+  if (!voice.reader->load(*path_opt)) {
+    // Failed to load the file (e.g., file not found, corrupted).
+    // The reader is now in a safe state (SourceType::NONE).
+    return;
+  }
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);

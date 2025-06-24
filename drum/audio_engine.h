@@ -22,6 +22,8 @@ class Aic3204;
 
 namespace drum {
 
+class SampleRepository; // Forward declaration
+
 constexpr size_t NUM_VOICES = 4;
 
 /**
@@ -41,7 +43,7 @@ private:
   };
 
 public:
-  AudioEngine();
+  explicit AudioEngine(const SampleRepository &repository);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -130,6 +132,7 @@ public:
   void notification(drum::Events::NoteEvent event) override;
 
 private:
+  const SampleRepository &sample_repository_;
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 

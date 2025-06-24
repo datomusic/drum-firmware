@@ -7,6 +7,9 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
+#include "musin/filesystem/filesystem.h"
+#include "sample_repository.h"
+
 #include "musin/boards/dato_submarine.h" // For pin definitions
 #include "musin/drivers/aic3204.hpp"     // For the codec driver
 
@@ -30,7 +33,8 @@ static absolute_time_t last_headphone_check = nil_time;
 constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
 
 // Model
-static drum::AudioEngine audio_engine;
+static drum::SampleRepository sample_repository;
+static drum::AudioEngine audio_engine(sample_repository);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
@@ -56,6 +60,14 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
 
 int main() {
   stdio_usb_init();
+
+  if (!musin::filesystem::init(false)) {
+    // Filesystem is not critical for basic operation if no samples are present,
+    // but we should log the failure.
+    printf("WARNING: Failed to initialize filesystem.\n");
+  } else {
+    sample_repository.load_from_manifest();
+  }
 
   musin::usb::init(false); // Don't wait for serial connection
 

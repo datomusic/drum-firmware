@@ -1,6 +1,7 @@
 #include "drum/sample_repository.h"
 #include "drum/configuration_manager.h" // For SampleConfig definition
 #include <cstdio>
+#include "etl/array.h"
 
 namespace drum {
 

@@ -17,10 +17,11 @@ class MidiClockProcessor;
 } // namespace timing
 } // namespace musin
 
+#include "drum/applications/rompler/standard_file_ops.h"
+
 namespace sysex {
 template <typename T> struct Protocol;
 }
-struct StandardFileOps;
 
 // Function declarations (prototypes) for functions defined in midi.cpp
 /**

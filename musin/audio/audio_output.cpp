@@ -95,24 +95,46 @@ bool AudioOutput::volume(float volume) {
   if (!codec_ptr) {
     return false;
   }
-  // Clamp the input volume to the normalized range [0.0, 1.0]
-  float clamped_volume = std::clamp(volume, 0.0f, 1.0f);
 
-  // Apply a fast quadratic approximation of a square root curve (2x - x^2)
-  // to provide more resolution at higher volumes without using sqrtf.
-  float curved_volume = (2.0f * clamped_volume) - (clamped_volume * clamped_volume);
+  // Scale float [0.0, 1.0] to integer [0, 1024] for high-precision fixed-point math
+  const int32_t input_volume = static_cast<int32_t>(std::clamp(volume, 0.0f, 1.0f) * 1024.0f);
+
+  // --- Piecewise Linear Curve ---
+  // All calculations are done in the [0, 1024] domain to avoid floats.
+  const int32_t threshold = 512;        // Breakpoint at 50% input (512/1024)
+  const int32_t threshold_output = 768; // At breakpoint, output is 75% (768/1024)
+
+  int32_t curved_volume;
+  if (input_volume <= threshold) {
+    // Section 1: Low volume (gentle slope)
+    // Maps input [0, 512] to output [0, 768]
+    curved_volume = (input_volume * threshold_output) / threshold;
+  } else {
+    // Section 2: High volume (steep slope)
+    // Maps input [512, 1024] to output [768, 1024]
+    const int32_t remaining_input = input_volume - threshold;
+    const int32_t remaining_output = 1024 - threshold_output;
+    const int32_t input_range = 1024 - threshold;
+    curved_volume = threshold_output + (remaining_input * remaining_output) / input_range;
+  }
 
   // --- DAC Volume (Output Stage) ---
-  // Map the curved value [0.0, 1.0] to the codec's dB range [-63.5dB, 0dB]
-  // which corresponds to register values [-127, 0].
-  float mapped_dac_value = (curved_volume * 127.0f) - 127.0f;
-  int8_t dac_register_value = static_cast<int8_t>(std::round(mapped_dac_value));
+  // Map curved volume [0, 1024] to DAC register value [-127, 0]
+  int8_t dac_register_value;
+  // If volume is below 3% (31/1024), mute it to prevent noise at the lowest levels.
+  if (curved_volume < 31) {
+    dac_register_value = -127;
+  } else {
+    // Maps [31, 1024] to DAC range [-63, 0]
+    int32_t mapped_dac_value = ((curved_volume - 31) * 63) / (1024 - 31);
+    dac_register_value = static_cast<int8_t>(mapped_dac_value - 63);
+  }
   bool dac_ok = codec_ptr->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
 
   // --- Mixer Volume (Input Stage) ---
-  // Map the linear value [0.0, 1.0] to the mixer's attenuation range [MUTED, -30dB, 0dB].
-  float mapped_mixer_value = (curved_volume * 40.0f) - 40.0f;
-  int8_t mixer_register_value = static_cast<int8_t>(std::round(mapped_mixer_value));
+  // Map curved volume [0, 1024] to Mixer register value [-40, 0]
+  int32_t mapped_mixer_value = (curved_volume * 40) / 1024;
+  int8_t mixer_register_value = static_cast<int8_t>(mapped_mixer_value - 40);
   bool mixer_ok =
       codec_ptr->set_mixer_volume(mixer_register_value) == musin::drivers::Aic3204Status::OK;
 

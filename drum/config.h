@@ -121,7 +121,7 @@ constexpr float REPEAT_MODE_1_THRESHOLD = 0.3f;
 constexpr float REPEAT_MODE_2_THRESHOLD = 0.7f;
 constexpr uint32_t REPEAT_LENGTH_MODE_1 = 3;
 constexpr uint32_t REPEAT_LENGTH_MODE_2 = 1;
-constexpr float MIN_BPM_ADJUST = 30.0f;
+constexpr float MIN_BPM_ADJUST = 60.0f;
 constexpr float MAX_BPM_ADJUST = 360.0f;
 } // namespace analog_controls
 

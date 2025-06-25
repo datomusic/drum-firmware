@@ -100,12 +100,32 @@ bool AudioOutput::volume(float volume) {
 
   // Apply a fast quadratic approximation of a square root curve (2x - x^2)
   // to provide more resolution at higher volumes without using sqrtf.
-  float curved_volume = (2.0f * clamped_volume) - (clamped_volume * clamped_volume);
+  // To this:
+  float curved_volume;
+  const float threshold = 0.5f;        // 75% of the input range is for low volume control
+  const float threshold_output = 0.75f; // At the threshold, output is 25% of max volume
+
+  if (clamped_volume <= threshold) {
+    // Section 1: Low volume (gentle slope)
+    // This line goes from (0, 0) to (threshold, threshold_output)
+    curved_volume = (clamped_volume / threshold) * threshold_output;
+  } else {
+    // Section 2: High volume (steep slope)
+    // This line goes from (threshold, threshold_output) to (1.0, 1.0)
+    float remaining_input = clamped_volume - threshold;
+    float remaining_output = 1.0f - threshold_output;
+    float input_range = 1.0f - threshold;
+    curved_volume = threshold_output + (remaining_input / input_range) * remaining_output;
+  }
 
   // --- DAC Volume (Output Stage) ---
   // Map the curved value [0.0, 1.0] to the codec's dB range [-63.5dB, 0dB]
   // which corresponds to register values [-127, 0].
-  float mapped_dac_value = (curved_volume * 127.0f) - 127.0f;
+  float mapped_dac_value = -127.0f;
+  if (curved_volume > 0.03f) {
+    // Scale to -31.5dB, 0dB
+    mapped_dac_value = (curved_volume * 63.0f) - 63.0f;
+  }
   int8_t dac_register_value = static_cast<int8_t>(std::round(mapped_dac_value));
   bool dac_ok = codec_ptr->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
 

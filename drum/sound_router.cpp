@@ -102,14 +102,21 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
   }
 
   if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
-    // TODO: Get the correct sample_id based on track_index (using _track_sample_map)
-    uint32_t sample_id = midi_note % 32; // Placeholder
+    const auto &defs = drum::config::global_note_definitions;
+    auto it =
+        std::find_if(defs.begin(), defs.end(), [midi_note](const auto &def) {
+          return def.midi_note_number == midi_note;
+        });
 
-    if (velocity > 0) {
-      _audio_engine.play_on_voice(track_index, sample_id, velocity);
-    } // else {
-    //   _audio_engine.stop_voice(track_index);
-    // }
+    if (it != defs.end()) {
+      uint32_t sample_id = std::distance(defs.begin(), it);
+
+      if (velocity > 0) {
+        _audio_engine.play_on_voice(track_index, sample_id, velocity);
+      } // else {
+      //   _audio_engine.stop_voice(track_index);
+      // }
+    }
   }
 }
 

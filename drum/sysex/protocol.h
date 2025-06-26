@@ -75,16 +75,12 @@ template <typename FileOperations> struct Protocol {
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
   template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
-    // 7 bytes minimum: SysEx start + 3-byte manufacturer ID + 3 bytes for one encoded 16bit value.
-    if (chunk.size() < 7) {
+    // 6 bytes minimum: 3-byte manufacturer ID + 3 bytes for one encoded 16bit value (the tag).
+    if (chunk.size() < 6) {
       return Result::ShortMessage;
     }
 
     Chunk::Data::const_iterator iterator = chunk.cbegin();
-    if ((*iterator++) != midi::SystemExclusive) {
-      // Not a sysex message
-      return Result::NotSysex;
-    }
 
     // Check 3-byte manufacturer ID
     if ((*iterator++) != 0 || (*iterator++) != DatoId || (*iterator++) != DrumId) {

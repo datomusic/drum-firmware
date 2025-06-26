@@ -91,7 +91,7 @@ void handle_sysex(uint8_t *const data, const size_t length) {
 
   // Define a sender lambda for ACK/NACK replies
   auto sender = [](sysex::Protocol<StandardFileOps>::Tag tag) {
-    uint8_t msg[] = {0xF0, SYSEX_DATO_ID, SYSEX_DRUM_ID,
+    uint8_t msg[] = {0xF0, 0, SYSEX_DATO_ID, SYSEX_DRUM_ID,
                      static_cast<uint8_t>(tag), // The reply tag (Ack/Nack)
                      0xF7};
     MIDI::sendSysEx(sizeof(msg), msg);
@@ -253,6 +253,7 @@ void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint
 void midi_print_firmware_version() {
   static constexpr uint8_t sysex[] = {
       0xF0,
+      0,
       SYSEX_DATO_ID,
       SYSEX_DRUM_ID,
       SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
@@ -271,20 +272,21 @@ void midi_print_serial_number() {
   // Encode the 8-byte ID into 9 SysEx data bytes (7-bit encoding).
   // Payload: [ID0&7F, ID1&7F, ..., ID7&7F, MSBs]
   // MSBs byte contains the MSB of each original ID byte.
-  uint8_t sysex[14]; // 1(F0) + 1(Manuf) + 1(Dev) + 1(Cmd) + 9(Data) + 1(F7) = 14 bytes
+  uint8_t sysex[15]; // 1(F0) + 3(ID) + 1(Cmd) + 9(Data) + 1(F7) = 15 bytes
 
   sysex[0] = 0xF0;
-  sysex[1] = SYSEX_DATO_ID;
-  sysex[2] = SYSEX_DRUM_ID;
-  sysex[3] = SYSEX_SERIAL_NUMBER; // Command byte
+  sysex[1] = 0;
+  sysex[2] = SYSEX_DATO_ID;
+  sysex[3] = SYSEX_DRUM_ID;
+  sysex[4] = SYSEX_SERIAL_NUMBER; // Command byte
 
   uint8_t msbs = 0;
   for (int i = 0; i < 8; ++i) {
-    sysex[4 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
+    sysex[5 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
     msbs |= ((id.id[i] >> 7) & 0x01) << i; // Store the MSB in the msbs byte
   }
-  sysex[12] = msbs; // Store the collected MSBs as the 9th data byte
-  sysex[13] = 0xF7;
+  sysex[13] = msbs; // Store the collected MSBs as the 9th data byte
+  sysex[14] = 0xF7;
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }

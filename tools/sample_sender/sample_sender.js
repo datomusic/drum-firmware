@@ -82,7 +82,7 @@ function begin_file_transfer(file_name) {
 }
 
 function end_file_transfer() {
-  console.log("end_file_transfer");
+  console.log("end_file_transfer\n");
   send_drum_message(0x12, []);
 }
 
@@ -118,7 +118,7 @@ async function send_file_content(data) {
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(5);
+      await sleepMs(2);
     }
   }
 

@@ -117,3 +117,45 @@
 - Sample-to-note mapping updates in real-time during sample selection
 - **MIDI Input:** Receiving a note plays that sound on the corresponding track AND sets that note as the active sample for that track
 - MIDI Clock input automatically detected and followed
+
+## System Exclusive (SysEx) Commands
+
+The DATO DRUM supports custom SysEx commands for advanced operations like file transfer and system management. All custom commands follow a specific format.
+
+### Message Format
+All custom SysEx messages share the following structure:
+`F0 <Manufacturer ID> <Device ID> <Encoded Command> <Encoded Payload> F7`
+- **F0**: Standard SysEx Start byte.
+- **Manufacturer ID**: `00 22 01` (Dato Musical Instruments).
+- **Device ID**: `65` (DRUM).
+- **Encoded Command**: A 16-bit command tag, encoded into three 7-bit bytes.
+- **Encoded Payload**: Command-specific data, with each pair of 8-bit bytes encoded into three 7-bit bytes.
+- **F7**: Standard SysEx End byte.
+
+A utility script, `tools/sample_sender/sample_sender.js`, is provided to handle the encoding and communication protocol.
+
+### General Commands
+| Command | Tag | Description |
+|---|---|---|
+| RequestFirmwareVersion | 0x01 | Requests the device's firmware version. The device replies with a SysEx message containing the version (e.g., v0.2.0). |
+| RequestSerialNumber | 0x02 | Requests the device's unique serial number. |
+| RebootBootloader | 0x0B | Reboots the device into its USB bootloader mode for firmware updates. |
+| FormatFilesystem | 0x15 | Erases and formats the internal filesystem. All stored samples and configuration will be lost. |
+
+### File Transfer Protocol
+Transferring files (like samples or `config.json`) to the device is a multi-step process managed by the `sample_sender.js` script.
+
+1.  **Begin Transfer:**
+    - **Command:** `BeginFileWrite` (0x10)
+    - **Payload:** The null-terminated filename (e.g., "kick.wav\0").
+    - The sender sends this command to tell the device to open a file for writing. The device replies with an `Ack` (0x13) on success or `Nack` (0x14) on failure.
+
+2.  **Send Data Chunks:**
+    - **Command:** `FileBytes` (0x11)
+    - **Payload:** A chunk of the file's binary data.
+    - The sender splits the file into chunks and sends each one with this command. The device writes the data and sends an `Ack` for each chunk it receives successfully.
+
+3.  **End Transfer:**
+    - **Command:** `EndFileTransfer` (0x12)
+    - **Payload:** None.
+    - After sending all data chunks, the sender sends this command. The device closes the file, finalizing the write, and sends a final `Ack`.

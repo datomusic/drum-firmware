@@ -16,7 +16,7 @@ bool ConfigurationManager::load() {
                              config_default_json_len);
   }
 
-  char buffer[MAX_CONFIG_FILE_SIZE];
+  static char buffer[MAX_CONFIG_FILE_SIZE];
   size_t file_size = fread(buffer, 1, sizeof(buffer) - 1, config_file);
   fclose(config_file);
 

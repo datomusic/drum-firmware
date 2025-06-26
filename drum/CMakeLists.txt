@@ -70,7 +70,7 @@ set(DEFAULT_CONFIG_HDR "${CMAKE_BINARY_DIR}/generated/config_default.h")
 
 add_custom_command(
     OUTPUT ${DEFAULT_CONFIG_HDR}
-    COMMAND bash -c "${XXD_PROGRAM} -i ${DEFAULT_CONFIG_SRC} > ${DEFAULT_CONFIG_HDR}"
+    COMMAND bash -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && ${XXD_PROGRAM} -i config.default.json > ${DEFAULT_CONFIG_HDR}"
     DEPENDS ${DEFAULT_CONFIG_SRC}
     COMMENT "Generating C header from default config"
     VERBATIM

@@ -58,6 +58,12 @@ template <typename FileOperations> struct Protocol {
   };
 
   enum Tag {
+    // Simple Commands (no data payload)
+    RequestFirmwareVersion = 0x01,
+    RequestSerialNumber = 0x02,
+    RebootBootloader = 0x0B,
+
+    // File Transfer Commands
     BeginFileWrite = 0x10,
     FileBytes = 0x11,
     EndFileTransfer = 0x12,
@@ -70,6 +76,9 @@ template <typename FileOperations> struct Protocol {
   enum class Result {
     OK,
     FileWritten,
+    Reboot,
+    PrintFirmwareVersion,
+    PrintSerialNumber,
     FileError,
     ShortMessage,
     NotSysex,
@@ -159,6 +168,19 @@ private:
   // Handle packets without body
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {
+    // Handle stateless commands that can be executed anytime.
+    switch (tag) {
+    case Tag::RebootBootloader:
+      return Result::Reboot;
+    case Tag::RequestFirmwareVersion:
+      return Result::PrintFirmwareVersion;
+    case Tag::RequestSerialNumber:
+      return Result::PrintSerialNumber;
+    default:
+      break; // Not a stateless command, continue to stateful logic.
+    }
+
+    // Handle stateful commands.
     switch (state) {
     case State::Idle:
       if (tag == Tag::FormatFilesystem) {

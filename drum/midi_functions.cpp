@@ -32,11 +32,7 @@ static constexpr uint8_t SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 static constexpr uint8_t SYSEX_UNIVERSAL_REALTIME_ID = 0x7F; // Unused
 static constexpr uint8_t SYSEX_ALL_ID = 0x7F;                // Target all devices
 
-// Command bytes for Dato/DRUM specific SysEx
-static constexpr uint8_t SYSEX_FIRMWARE_VERSION =
-    0x01; // Custom command to request firmware version
-static constexpr uint8_t SYSEX_SERIAL_NUMBER = 0x02;
-static constexpr uint8_t SYSEX_REBOOT_BOOTLOADER = 0x0B;
+// Command bytes for Dato/DRUM specific SysEx are now defined in sysex::Protocol::Tag
 
 #include <stdio.h>
 // Forward Declarations for Helper Functions within anonymous namespace
@@ -55,43 +51,28 @@ void handle_sysex(uint8_t *const data, const size_t length);
 void handle_sysex(uint8_t *const data, const size_t length) {
   printf("handle_sysex: received %u bytes\n", (unsigned)length);
 
-  // Check for our official 3-byte Manufacturer ID and 1-byte Device ID
-  if (length > 5 && data[1] == drum::config::sysex::MANUFACTURER_ID_0 &&
-      data[2] == drum::config::sysex::MANUFACTURER_ID_1 &&
-      data[3] == drum::config::sysex::MANUFACTURER_ID_2 &&
-      data[4] == drum::config::sysex::DEVICE_ID) {
-    switch (data[5]) { // Check the command byte
-    case SYSEX_REBOOT_BOOTLOADER:
-      reset_usb_boot(0, 0);
-      return; // Handled
-    case SYSEX_FIRMWARE_VERSION:
-      midi_print_firmware_version();
-      return; // Handled
-    case SYSEX_SERIAL_NUMBER:
-      midi_print_serial_number();
-      return; // Handled
-    }
-  }
-  // Check for Universal Non-Realtime SysEx messages
-  else if (length > 4 && data[1] == SYSEX_UNIVERSAL_NONREALTIME_ID) {
-    // Check if the message is targeted to DRUM or all devices
+  // Check for Universal Non-Realtime SysEx messages first.
+  if (length > 4 && data[1] == SYSEX_UNIVERSAL_NONREALTIME_ID) {
+    // Check if the message is targeted to DRUM or all devices.
     if (data[2] == drum::config::sysex::DEVICE_ID || data[2] == SYSEX_ALL_ID) {
-      // Check for General Information - Identity Request (06 01)
+      // Check for General Information - Identity Request (06 01).
       if (data[3] == 0x06 && data[4] == 0x01) {
-        midi_print_identity(); // Send the standard Identity Reply
-        return;                // Handled
+        midi_print_identity(); // Send the standard Identity Reply.
+        return;                // Handled.
       }
     }
+    // Other universal messages are ignored.
+    return;
   }
 
-  // Fallback: If it's not a known command, pass it to the file transfer protocol handler.
+  // All other messages are assumed to be for our custom protocol.
   assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
   assert(file_received_callback_ptr != nullptr && "file_received_callback_ptr must be initialized");
 
   // The sysex protocol handler expects the payload without the 0xF0/0xF7 framing bytes.
   sysex::Chunk chunk(data + 1, length - 2);
 
-  // Define a sender lambda for ACK/NACK replies
+  // Define a sender lambda for ACK/NACK replies.
   auto sender = [](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {0xF0,
                      drum::config::sysex::MANUFACTURER_ID_0,
@@ -105,8 +86,23 @@ void handle_sysex(uint8_t *const data, const size_t length) {
 
   auto result = sysex_protocol_ptr->handle_chunk(chunk, sender);
 
-  if (result == sysex::Protocol<StandardFileOps>::Result::FileWritten) {
-    file_received_callback_ptr(); // Notify the main loop that a file was received.
+  // Handle the result from the protocol handler.
+  switch (result) {
+  case sysex::Protocol<StandardFileOps>::Result::FileWritten:
+    file_received_callback_ptr();
+    break;
+  case sysex::Protocol<StandardFileOps>::Result::Reboot:
+    reset_usb_boot(0, 0);
+    break;
+  case sysex::Protocol<StandardFileOps>::Result::PrintFirmwareVersion:
+    midi_print_firmware_version();
+    break;
+  case sysex::Protocol<StandardFileOps>::Result::PrintSerialNumber:
+    midi_print_serial_number();
+    break;
+  // Other results like OK, FileError, etc. can be logged or ignored.
+  default:
+    break;
   }
 }
 

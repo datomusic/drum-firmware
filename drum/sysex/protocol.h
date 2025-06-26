@@ -301,8 +301,7 @@ private:
       switch (tag) {
       case BeginFileWrite: {
         char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
-        const auto path_length =
-            std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
+        const auto path_length = std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
         for (unsigned i = 0; i < path_length; ++i) {
           path[i] = bytes[i];
         }

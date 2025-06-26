@@ -2,12 +2,12 @@ extern "C" {
 #include "blockdevice/flash.h"
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h"
+#include <dirent.h>
 #include <errno.h>
 #include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <dirent.h>
 }
 
 namespace musin::filesystem {

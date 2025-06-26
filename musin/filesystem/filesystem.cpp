@@ -2,10 +2,12 @@ extern "C" {
 #include "blockdevice/flash.h"
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h"
+#include <errno.h>
 #include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/dirent.h>
 }
 
 namespace musin::filesystem {
@@ -29,18 +31,18 @@ bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash) {
 
 void list_files(const char *path) {
   printf("Listing files in '%s':\n", path);
-  fs_dir_t *dir = fs_opendir(path);
+  DIR *dir = opendir(path);
   if (!dir) {
     printf("  Error opening directory: %s\n", strerror(errno));
     return;
   }
 
-  fs_dirent_t *dirent;
-  while ((dirent = fs_readdir(dir)) != NULL) {
-    printf("  - %s\n", dirent->name);
+  struct dirent *dirent;
+  while ((dirent = readdir(dir)) != NULL) {
+    printf("  - %s\n", dirent->d_name);
   }
 
-  int err = fs_closedir(dir);
+  int err = closedir(dir);
   if (err != 0) {
     printf("  Error closing directory: %s\n", strerror(errno));
   }

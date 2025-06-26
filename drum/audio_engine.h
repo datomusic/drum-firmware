@@ -49,13 +49,9 @@ public:
   /**
    * @brief Initializes the audio engine and hardware.
    * Must be called before any other methods.
-   * @param sda_pin The GPIO pin for I2C SDA.
-   * @param scl_pin The GPIO pin for I2C SCL.
-   * @param i2c_frequency The I2C bus speed in Hz.
-   * @param reset_pin The GPIO pin for the codec's reset line.
    * @return true on success, false otherwise.
    */
-  bool init(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency, uint8_t reset_pin);
+  bool init();
 
   /**
    * @brief Periodically updates the audio output buffer.

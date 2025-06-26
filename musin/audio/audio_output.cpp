@@ -10,6 +10,7 @@
 #include <optional>
 
 #ifdef DATO_SUBMARINE
+#include "musin/boards/dato_submarine.h" // For DATO_SUBMARINE_CODEC_RESET_PIN
 #include "musin/drivers/aic3204.hpp"
 #include "pico/time.h"
 #include <etl/optional.h>
@@ -44,10 +45,10 @@ struct audio_i2s_config i2s_config = {
     .pio_sm = 0,
 };
 
-bool AudioOutput::init(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency,
-                       uint8_t reset_pin) {
+bool AudioOutput::init() {
 #ifdef DATO_SUBMARINE
-  codec.emplace(sda_pin, scl_pin, i2c_frequency, reset_pin);
+  codec.emplace(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
+                DATO_SUBMARINE_CODEC_RESET_PIN);
 
   if (!codec->is_initialized()) {
     return false; // Codec failed to initialize

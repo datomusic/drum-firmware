@@ -52,8 +52,7 @@ int main() {
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor);
 
-  if (!audio_engine.init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
-                          DATO_SUBMARINE_CODEC_RESET_PIN)) {
+  if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
     panic("Failed to initialize audio engine\n");
   }

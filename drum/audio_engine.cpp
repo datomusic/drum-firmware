@@ -57,13 +57,12 @@ AudioEngine::AudioEngine()
   }
 }
 
-bool AudioEngine::init(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency,
-                       uint8_t reset_pin) {
+bool AudioEngine::init() {
   if (is_initialized_) {
     return true;
   }
 
-  if (!AudioOutput::init(sda_pin, scl_pin, i2c_frequency, reset_pin)) {
+  if (!AudioOutput::init()) {
     return false;
   }
   is_initialized_ = true;

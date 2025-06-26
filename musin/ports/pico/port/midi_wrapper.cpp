@@ -152,5 +152,13 @@ void MIDI::internal::_sendPitchBend_actual(const byte channel, const int bend) {
 }
 
 void MIDI::internal::_sendSysEx_actual(const unsigned length, const byte *bytes) {
-  ALL_TRANSPORTS(sendSysEx(length, bytes));
+  // The underlying Arduino MIDI library adds the F0/F7 terminators itself.
+  // We must pass only the payload.
+  // This wrapper function will strip the terminators if they are present.
+  if (length >= 2 && bytes[0] == 0xF0 && bytes[length - 1] == 0xF7) {
+    ALL_TRANSPORTS(sendSysEx(length - 2, bytes + 1));
+  } else {
+    // If the message is not framed, send it as-is.
+    ALL_TRANSPORTS(sendSysEx(length, bytes));
+  }
 }

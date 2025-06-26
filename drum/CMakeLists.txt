@@ -64,6 +64,12 @@ add_executable(${EXECUTABLE_NAME}
   sample_repository.cpp
 )
 
+# Embed default configuration
+pico_add_binary_data(${EXECUTABLE_NAME}
+    FILES
+        config.default.json
+)
+
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
   USBD_MANUFACTURER="Dato"

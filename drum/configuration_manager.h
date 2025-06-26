@@ -54,6 +54,7 @@ public:
 private:
   bool json_string_equals(const char *json, const jsmntok *token, const char *str);
   bool parse_samples(const char *json, jsmntok *tokens, int count);
+  bool parse_json_buffer(const char *buffer, size_t size);
 
   etl::vector<SampleConfig, SampleRepository::MAX_SAMPLES> sample_configs_;
 };

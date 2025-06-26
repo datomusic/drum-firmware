@@ -4,32 +4,49 @@
 #include <cstdlib>
 #include <cstring>
 
+// Add extern declarations for the embedded data
+extern "C" {
+extern const char config_default_json[];
+extern const unsigned int config_default_json_len;
+}
+
 namespace drum {
 
 bool ConfigurationManager::load() {
   printf("Loading configuration from %s\n", CONFIG_PATH);
   FILE *config_file = fopen(CONFIG_PATH, "r");
   if (!config_file) {
-    printf("ERROR: Could not open %s. Loading default configuration.\n", CONFIG_PATH);
-    // In the future, we can load defaults here.
-    return false;
+    printf("INFO: Could not open %s. Loading embedded default configuration.\n", CONFIG_PATH);
+    return parse_json_buffer(config_default_json, config_default_json_len);
   }
 
   char buffer[MAX_CONFIG_FILE_SIZE];
   size_t file_size = fread(buffer, 1, sizeof(buffer) - 1, config_file);
-  buffer[file_size] = '\0'; // Null-terminate the buffer
   fclose(config_file);
 
   if (file_size == 0) {
-    printf("WARNING: %s is empty.\n", CONFIG_PATH);
-    return false;
+    printf("WARNING: %s is empty. Loading embedded default configuration.\n", CONFIG_PATH);
+    return parse_json_buffer(config_default_json, config_default_json_len);
+  }
+
+  buffer[file_size] = '\0'; // Null-terminate the buffer for safety
+
+  return parse_json_buffer(buffer, file_size);
+}
+
+bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
+  // Since the default config can be empty, handle that case gracefully.
+  if (size == 0) {
+    printf("INFO: Configuration buffer is empty. No settings loaded.\n");
+    sample_configs_.clear();
+    return true;
   }
 
   jsmn_parser parser;
   jsmntok_t tokens[MAX_JSON_TOKENS];
 
   jsmn_init(&parser);
-  int r = jsmn_parse(&parser, buffer, file_size, tokens, MAX_JSON_TOKENS);
+  int r = jsmn_parse(&parser, buffer, size, tokens, MAX_JSON_TOKENS);
 
   if (r < 0) {
     printf("ERROR: Failed to parse JSON: %d\n", r);

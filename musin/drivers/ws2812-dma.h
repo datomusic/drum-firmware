@@ -297,7 +297,7 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
 
 // --- Namespace-level Static Handler Implementations ---
 
-static int64_t reset_delay_complete(alarm_id_t id, void *user_data) {
+static int64_t reset_delay_complete(alarm_id_t id, [[maybe_unused]] void *user_data) {
   if (id == g_reset_delay_alarm_id) {
     g_reset_delay_alarm_id = 0;
     sem_release(&g_reset_delay_complete_sem);

@@ -115,20 +115,20 @@ void handle_sysex(uint8_t *const data, const size_t length) {
 void midi_print_identity() {
   static constexpr uint8_t sysex[] = {
       0xF0,
-      SYSEX_UNIVERSAL_NONREALTIME_ID,    // 0x7E
-      drum::config::sysex::DEVICE_ID,    // Target Device ID
-      0x06,                              // General Information (sub-ID#1)
-      0x02,                              // Identity Reply (sub-ID#2)
+      SYSEX_UNIVERSAL_NONREALTIME_ID,         // 0x7E
+      drum::config::sysex::DEVICE_ID,         // Target Device ID
+      0x06,                                   // General Information (sub-ID#1)
+      0x02,                                   // Identity Reply (sub-ID#2)
       drum::config::sysex::MANUFACTURER_ID_0, // Manufacturer's System Exclusive ID
       drum::config::sysex::MANUFACTURER_ID_1,
       drum::config::sysex::MANUFACTURER_ID_2,
-      0x00, // Device family code LSB (set to 0)
-      0x00, // Device family code MSB (set to 0)
-      0x00,                              // Device family member code LSB (set to 0)
-      0x00,                              // Device family member code MSB (set to 0)
-      (uint8_t)(FIRMWARE_MAJOR & 0x7F),   // Software revision level Byte 1 (Major)
-      (uint8_t)(FIRMWARE_MINOR & 0x7F),   // Software revision level Byte 2 (Minor)
-      (uint8_t)(FIRMWARE_PATCH & 0x7F),   // Software revision level Byte 3 (Patch)
+      0x00,                             // Device family code LSB (set to 0)
+      0x00,                             // Device family code MSB (set to 0)
+      0x00,                             // Device family member code LSB (set to 0)
+      0x00,                             // Device family member code MSB (set to 0)
+      (uint8_t)(FIRMWARE_MAJOR & 0x7F), // Software revision level Byte 1 (Major)
+      (uint8_t)(FIRMWARE_MINOR & 0x7F), // Software revision level Byte 2 (Minor)
+      (uint8_t)(FIRMWARE_PATCH & 0x7F), // Software revision level Byte 3 (Patch)
       (uint8_t)(FIRMWARE_COMMITS &
                 0x7F), // Software revision level Byte 4 (Commits since tag, capped at 127)
       0xF7};

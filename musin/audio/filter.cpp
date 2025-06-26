@@ -100,7 +100,7 @@ constexpr int32_t HIGH_FREQ_ACC_POST_LSHIFT = 1;
 // no audible difference.
 // #define IMPROVE_EXPONENTIAL_ACCURACY
 
-void __time_critical_func(Filter::update_fixed)(const AudioBlock &in, Filter::Outputs &outputs) {
+void __time_critical_func(Filter::update_fixed)(const ::AudioBlock &in, Filter::Outputs &outputs) {
   const int16_t *end = in.cend();
   const int16_t *input_iterator = in.cbegin();
 
@@ -144,7 +144,7 @@ void __time_critical_func(Filter::update_fixed)(const AudioBlock &in, Filter::Ou
   state_bandpass = bandpass;
 }
 
-void __time_critical_func(Filter::update_variable)(const AudioBlock &in, const AudioBlock &ctl,
+void __time_critical_func(Filter::update_variable)(const ::AudioBlock &in, const ::AudioBlock &ctl,
                                                    Filter::Outputs &outputs) {
   const int16_t *end = in.cend();
   const int16_t *input_iterator = in.cbegin();

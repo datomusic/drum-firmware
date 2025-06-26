@@ -16,10 +16,6 @@
 #include "musin/audio/sound.h"
 #include "musin/hal/debug_utils.h"
 
-namespace musin::drivers {
-class Aic3204;
-} // namespace musin::drivers
-
 namespace drum {
 
 constexpr size_t NUM_VOICES = 4;
@@ -53,10 +49,9 @@ public:
   /**
    * @brief Initializes the audio engine and hardware.
    * Must be called before any other methods.
-   * @param codec A reference to the AIC3204 codec driver.
    * @return true on success, false otherwise.
    */
-  bool init(musin::drivers::Aic3204 &codec);
+  bool init();
 
   /**
    * @brief Periodically updates the audio output buffer.
@@ -85,13 +80,6 @@ public:
    * @param value The pitch value, normalized (0.0f to 1.0f), mapped internally to a multiplier.
    */
   void set_pitch(uint8_t voice_index, float value);
-
-  /**
-   * @brief Sets the decay time for a specific voice/track for the *next* time it's triggered.
-   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
-   * @param value The decay value, normalized (0.0f to 1.0f).
-   */
-  void set_decay(uint8_t voice_index, float value);
 
   /**
    * @brief Sets the master output volume.
@@ -133,8 +121,8 @@ private:
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 
-  AudioMixer<NUM_VOICES> mixer_;
-  Crusher crusher_;
+  musin::audio::AudioMixer<NUM_VOICES> mixer_;
+  musin::audio::Crusher crusher_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
 

@@ -93,7 +93,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   // Forward TempoEvent if the event source matches the current handler source.
   // This ensures we only process ticks from the authoritative source.
   if (event.source == current_source_) {
-    musin::timing::TempoEvent tempo_tick_event;
+    musin::timing::TempoEvent tempo_tick_event{};
     // Populate TempoEvent with timestamp or other data if needed later
     etl::observable<etl::observer<musin::timing::TempoEvent>,
                     MAX_TEMPO_OBSERVERS>::notify_observers(tempo_tick_event);

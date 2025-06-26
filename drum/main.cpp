@@ -8,7 +8,6 @@
 #include "musin/usb/usb.h"
 
 #include "musin/boards/dato_submarine.h" // For pin definitions
-#include "musin/drivers/aic3204.hpp"     // For the codec driver
 
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
@@ -20,14 +19,6 @@
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
-
-// Hardware Drivers
-static musin::drivers::Aic3204 codec(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
-                                     DATO_SUBMARINE_CODEC_RESET_PIN);
-
-// Headphone jack detection state
-static absolute_time_t last_headphone_check = nil_time;
-constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
 
 // Model
 static drum::AudioEngine audio_engine;
@@ -61,14 +52,7 @@ int main() {
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor);
 
-  if (!codec.is_initialized()) {
-    // This is a critical hardware failure.
-    // In a real product, we might blink an LED error code.
-    // For development, panicking is the clearest way to signal the issue.
-    panic("Failed to initialize AIC3204 codec\n");
-  }
-
-  if (!audio_engine.init(codec)) {
+  if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
     panic("Failed to initialize audio engine\n");
   }
@@ -113,12 +97,6 @@ int main() {
     midi_read();                              // TODO: turn this into a musin input queue
     tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
     musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
-
-    // Poll for headphone jack status
-    if (time_reached(last_headphone_check)) {
-      last_headphone_check = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
-      codec.update_headphone_detection();
-    }
 
     loop_timer.record_iteration_end();
   }

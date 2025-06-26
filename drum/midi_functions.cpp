@@ -86,7 +86,19 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   assert(file_received_callback_ptr != nullptr && "file_received_callback_ptr must be initialized");
 
   sysex::Chunk chunk(data, length);
-  auto result = sysex_protocol_ptr->handle_chunk(chunk);
+
+  // Define a sender lambda for ACK/NACK replies
+  auto sender = [](sysex::Tag tag) {
+    uint8_t msg[] = {
+        0xF0,
+        SYSEX_DATO_ID,
+        SYSEX_DRUM_ID,
+        static_cast<uint8_t>(tag), // The reply tag (Ack/Nack)
+        0xF7};
+    MIDI::sendSysEx(sizeof(msg), msg);
+  };
+
+  auto result = sysex_protocol_ptr->handle_chunk(chunk, sender);
 
   if (result == sysex::Protocol<StandardFileOps>::Result::FileWritten) {
     file_received_callback_ptr(); // Notify the main loop that a file was received.

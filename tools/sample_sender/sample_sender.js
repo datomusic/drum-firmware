@@ -93,8 +93,6 @@ function pack3_16(value) {
   ];
 }
 
-const sleepMs = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
-
 async function send_file_content(data) {
   console.log("File data length: ", data.length);
 
@@ -112,11 +110,8 @@ async function send_file_content(data) {
     if (bytes.length >= 100) {
       process.stdout.write(`Sending chunk ${chunk_counter}\r`);
       chunk_counter++;
-      send_drum_message(0x11, bytes);
+      await send_drum_message_and_wait(0x11, bytes);
       bytes = [];
-
-      // Don't overload buffers of the DRUM
-      await sleepMs(4);
     }
   }
 
@@ -126,10 +121,8 @@ async function send_file_content(data) {
   // Send any remaining bytes that didn't fill a full chunk
   if (bytes.length > 0) {
     console.log("Sending final chunk");
-    send_drum_message(0x11, bytes);
+    await send_drum_message_and_wait(0x11, bytes);
   }
-
-  await sleepMs(100);
 }
 
 
@@ -157,12 +150,24 @@ if (!fs.existsSync(source_path)) {
   process.exit(1);
 }
 
-begin_file_transfer(source_path, sample_filename);
+async function main() {
+  try {
+    await begin_file_transfer(source_path, sample_filename);
 
-// const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
-const data = fs.readFileSync(source_path);
+    // const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
+    const data = fs.readFileSync(source_path);
 
-send_file_content(data).then( () => {
-  end_file_transfer();
-  activeMidiOutput.closePort();
-})
+    await send_file_content(data);
+    await end_file_transfer();
+    console.log("Successfully transferred file.");
+  } catch (e) {
+    // Error is already logged by the function that threw it.
+    // Just ensure we exit with an error code.
+    process.exitCode = 1;
+  } finally {
+    activeMidiOutput.closePort();
+    activeMidiInput.closePort();
+  }
+}
+
+main();

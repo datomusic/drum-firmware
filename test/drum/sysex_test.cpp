@@ -5,6 +5,7 @@
 
 #include "etl/array.h"
 #include "etl/span.h"
+#include "etl/vector.h"
 
 #include "drum/sysex/protocol.h"
 
@@ -46,14 +47,23 @@ struct TestFileOps {
 typedef sysex::Protocol<TestFileOps> Protocol;
 typedef Protocol::State State;
 
+struct MockSender {
+  etl::vector<Protocol::Tag, 10> sent_tags;
+  void operator()(Protocol::Tag tag) {
+    sent_tags.push_back(tag);
+  }
+};
+
 TEST_CASE("Protocol with empty bytes") {
   CONST_BODY(({
     TestFileOps file_ops;
     Protocol protocol(file_ops);
+    MockSender sender;
     const uint8_t data[0] = {};
     sysex::Chunk chunk(data, 0);
-    protocol.handle_chunk(chunk);
+    protocol.handle_chunk(chunk, sender);
     REQUIRE(protocol.__get_state() == State::Idle);
+    REQUIRE(sender.sent_tags.empty());
   }));
 }
 
@@ -62,30 +72,41 @@ TEST_CASE("Protocol receives file data") {
     TestFileOps file_ops;
     REQUIRE(file_ops.file_is_open == false);
     Protocol protocol(file_ops);
+    MockSender sender;
 
     // TODO: Simplify building of SysEx messages, so we don't have to repeat the header in each one
 
     const uint8_t begin_file_write[10] = {
         midi::SystemExclusive,    0, 0x7D, 0x65, 0, 0,
         Protocol::BeginFileWrite, 0, 0,    64}; // Represents a file-name with ASCII character '@'
-    protocol.handle_chunk(sysex::Chunk(begin_file_write, 10));
+    protocol.handle_chunk(sysex::Chunk(begin_file_write, 10), sender);
 
     REQUIRE(protocol.__get_state() == State::FileTransfer);
     REQUIRE(file_ops.file_is_open == true);
     REQUIRE(file_ops.byte_count == 0);
+    REQUIRE(sender.sent_tags.size() == 1);
+    REQUIRE(sender.sent_tags[0] == Protocol::Tag::Ack);
+
+    sender.sent_tags.clear();
 
     const uint8_t byte_transfer[10] = {midi::SystemExclusive, 0, 0x7D, 0x65, 0, 0,
                                        Protocol::FileBytes,   0, 0,    127};
-    protocol.handle_chunk(sysex::Chunk(byte_transfer, 10));
+    protocol.handle_chunk(sysex::Chunk(byte_transfer, 10), sender);
     REQUIRE(file_ops.byte_count == 2);
     REQUIRE(file_ops.content[0] == 127);
     REQUIRE(file_ops.content[1] == 0);
+    REQUIRE(sender.sent_tags.size() == 1);
+    REQUIRE(sender.sent_tags[0] == Protocol::Tag::Ack);
+
+    sender.sent_tags.clear();
 
     const uint8_t end_write[7] = {midi::SystemExclusive,    0, 0x7D, 0x65, 0, 0,
                                   Protocol::EndFileTransfer};
-    protocol.handle_chunk(sysex::Chunk(end_write, 7));
+    protocol.handle_chunk(sysex::Chunk(end_write, 7), sender);
     REQUIRE(protocol.__get_state() == State::Idle);
     REQUIRE(file_ops.file_is_open == false);
+    REQUIRE(sender.sent_tags.size() == 1);
+    REQUIRE(sender.sent_tags[0] == Protocol::Tag::Ack);
   }));
 }
 

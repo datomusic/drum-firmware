@@ -54,6 +54,8 @@ template <typename FileOperations> struct Protocol {
     BeginFileWrite = 0x10,
     FileBytes = 0x11,
     EndFileTransfer = 0x12,
+    Ack = 0x13,
+    Nack = 0x14,
   };
 
   // TODO: Clean up results to separate successes and errors.
@@ -72,7 +74,7 @@ template <typename FileOperations> struct Protocol {
 
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
-  constexpr Result handle_chunk(const Chunk &chunk) {
+  template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
     // 7 bytes minimum: SysEx start + 3-byte manufacturer ID + 3 bytes for one encoded 16bit value.
     if (chunk.size() < 7) {
       return Result::ShortMessage;
@@ -95,6 +97,7 @@ template <typename FileOperations> struct Protocol {
 
     // Check if we have at least one value for the tag
     if (value_count == 0) {
+      send_reply(Tag::Nack);
       return Result::InvalidContent;
     }
 
@@ -102,14 +105,15 @@ template <typename FileOperations> struct Protocol {
     Values::const_iterator values_end = value_iterator + value_count;
     const uint16_t tag = (*value_iterator++);
 
-    const auto maybe_result = handle_no_body(tag);
+    const auto maybe_result = handle_no_body(tag, send_reply);
     if (maybe_result.has_value()) {
       return *maybe_result;
     }
 
     if (value_iterator != values_end) {
-      handle_packet(tag, value_iterator, values_end);
+      handle_packet(tag, value_iterator, values_end, send_reply);
     } else {
+      send_reply(Tag::Nack);
       return Result::InvalidContent;
     }
 
@@ -140,12 +144,14 @@ private:
   static const uint8_t DrumId = 0x65; // Device ID for DRUM
 
   // Handle packets without body
-  constexpr etl::optional<Result> handle_no_body(const uint16_t tag) {
+  template <typename Sender>
+  constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {
     switch (state) {
     case State::FileTransfer: {
       if (tag == EndFileTransfer) {
         opened_file.reset();
         state = State::Idle;
+        send_reply(Tag::Ack);
         return Result::FileWritten;
       }
     } break;
@@ -156,8 +162,9 @@ private:
     return etl::nullopt;
   };
 
+  template <typename Sender>
   constexpr void handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
-                               const Values::const_iterator values_end) {
+                               const Values::const_iterator values_end, Sender send_reply) {
     etl::array<uint8_t, FileOperations::BlockSize> byte_array;
     auto byte_iterator = byte_array.begin();
     size_t byte_count = 0;
@@ -181,11 +188,14 @@ private:
           static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
 
           opened_file->write(bytes);
+          send_reply(Tag::Ack);
         } else {
           // TODO: Error: Expected file to be open.
+          send_reply(Tag::Nack);
         }
       } else {
         opened_file.reset();
+        send_reply(Tag::Nack);
         // TODO: Report error
       }
     } break;
@@ -205,11 +215,13 @@ private:
 
         opened_file.emplace(file_ops, path);
         state = State::FileTransfer;
+        send_reply(Tag::Ack);
       } break;
       case EndFileTransfer: {
         // Destroyng the file handle should close the file.
         opened_file.reset();
         state = State::Idle;
+        send_reply(Tag::Ack);
       } break;
       }
     }

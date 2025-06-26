@@ -88,7 +88,7 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   sysex::Chunk chunk(data, length);
 
   // Define a sender lambda for ACK/NACK replies
-  auto sender = [](sysex::Tag tag) {
+  auto sender = [](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {
         0xF0,
         SYSEX_DATO_ID,

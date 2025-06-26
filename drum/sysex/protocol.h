@@ -29,8 +29,6 @@ namespace sysex {
 // Wraps a file handle to ensure it gets closed through RAII.
 
 template <typename FileOperations> struct Protocol {
-  static const unsigned MaxFilenameLength = 256;
-
   constexpr Protocol(FileOperations &file_ops) : file_ops(file_ops) {
   }
 
@@ -302,8 +300,9 @@ private:
     default:
       switch (tag) {
       case BeginFileWrite: {
-        char path[MaxFilenameLength] = {0}; // Zero-initialize the buffer
-        const auto path_length = std::min((size_t)MaxFilenameLength - 1, bytes.size());
+        char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
+        const auto path_length =
+            std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
         for (unsigned i = 0; i < path_length; ++i) {
           path[i] = bytes[i];
         }

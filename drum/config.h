@@ -16,6 +16,7 @@ constexpr size_t NUM_DRUMPADS = 4;
 constexpr size_t NUM_ANALOG_MUX_CONTROLS = 11;
 constexpr uint32_t PROFILER_REPORT_INTERVAL_MS = 2000;
 constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
+constexpr size_t MAX_PATH_LENGTH = 64;
 
 // MIDI Configuration
 constexpr uint8_t FALLBACK_MIDI_CHANNEL = 10; // Default MIDI Channel (GM Percussion Standard)

@@ -137,9 +137,11 @@ template <typename FileOperations> struct Protocol {
     // Dispatch based on whether the command has a body or not.
     if (value_iterator != values_end) {
       // Command has a body.
+      printf("SysEx: Command has a body\n");
       return handle_packet(tag, value_iterator, values_end, send_reply);
     } else {
       // Command has no body.
+      printf("SysEx: Command has no body. Tag: %d\n", tag);
       const auto maybe_result = handle_no_body(tag, send_reply);
       if (maybe_result.has_value()) {
         return *maybe_result;
@@ -217,6 +219,7 @@ private:
   };
 
   void midi_print_firmware_version() {
+    printf("Version %d.%d.%d\n", FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH);
     static constexpr uint8_t sysex[] = {
         0xF0,
         drum::config::sysex::MANUFACTURER_ID_0,

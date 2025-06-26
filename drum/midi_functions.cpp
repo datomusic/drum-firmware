@@ -37,8 +37,6 @@ static constexpr uint8_t SYSEX_ALL_ID = 0x7F;                // Target all devic
 #include <stdio.h>
 // Forward Declarations for Helper Functions within anonymous namespace
 void midi_print_identity();
-void midi_print_firmware_version();
-void midi_print_serial_number();
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
 void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint8_t velocity);
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
@@ -49,8 +47,6 @@ void midi_clock_input_callback();
 void handle_sysex(uint8_t *const data, const size_t length);
 
 void handle_sysex(uint8_t *const data, const size_t length) {
-  printf("handle_sysex: received %u bytes\n", (unsigned)length);
-
   // Check for Universal Non-Realtime SysEx messages first.
   if (length > 4 && data[1] == SYSEX_UNIVERSAL_NONREALTIME_ID) {
     // Check if the message is targeted to DRUM or all devices.
@@ -66,6 +62,12 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   }
 
   // All other messages are assumed to be for our custom protocol.
+  printf("SysEx Custom: received %u bytes: ", (unsigned)length);
+  for (size_t i = 0; i < length; ++i) {
+    printf("%02X ", data[i]);
+  }
+  printf("\n");
+
   assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
   assert(file_received_callback_ptr != nullptr && "file_received_callback_ptr must be initialized");
 
@@ -94,13 +96,8 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   case sysex::Protocol<StandardFileOps>::Result::Reboot:
     reset_usb_boot(0, 0);
     break;
-  case sysex::Protocol<StandardFileOps>::Result::PrintFirmwareVersion:
-    midi_print_firmware_version();
-    break;
-  case sysex::Protocol<StandardFileOps>::Result::PrintSerialNumber:
-    midi_print_serial_number();
-    break;
-  // Other results like OK, FileError, etc. can be logged or ignored.
+  // Other results like OK, FileError, etc. are handled within the protocol
+  // and don't require action here.
   default:
     break;
   }
@@ -252,51 +249,6 @@ void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint
     assert(sound_router_ptr != nullptr && "sound_router_ptr must be initialized via midi_init()");
     sound_router_ptr->handle_incoming_midi_note(note, 0);
   }
-}
-
-void midi_print_firmware_version() {
-  static constexpr uint8_t sysex[] = {
-      0xF0,
-      drum::config::sysex::MANUFACTURER_ID_0,
-      drum::config::sysex::MANUFACTURER_ID_1,
-      drum::config::sysex::MANUFACTURER_ID_2,
-      drum::config::sysex::DEVICE_ID,
-      static_cast<uint8_t>(
-          sysex::Protocol<StandardFileOps>::Tag::RequestFirmwareVersion), // Command byte
-      (uint8_t)(FIRMWARE_MAJOR & 0x7F),
-      (uint8_t)(FIRMWARE_MINOR & 0x7F),
-      (uint8_t)(FIRMWARE_PATCH & 0x7F),
-      0xF7};
-
-  MIDI::sendSysEx(sizeof(sysex), sysex);
-}
-
-void midi_print_serial_number() {
-  pico_unique_board_id_t id;
-  pico_get_unique_board_id(&id); // Get the 64-bit (8-byte) unique ID
-
-  // Encode the 8-byte ID into 9 SysEx data bytes (7-bit encoding).
-  // Payload: [ID0&7F, ID1&7F, ..., ID7&7F, MSBs]
-  // MSBs byte contains the MSB of each original ID byte.
-  uint8_t sysex[16]; // 1(F0) + 3(Manuf) + 1(Dev) + 1(Cmd) + 9(Data) + 1(F7) = 16 bytes
-
-  sysex[0] = 0xF0;
-  sysex[1] = drum::config::sysex::MANUFACTURER_ID_0;
-  sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
-  sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
-  sysex[4] = drum::config::sysex::DEVICE_ID;
-  sysex[5] = static_cast<uint8_t>(
-      sysex::Protocol<StandardFileOps>::Tag::RequestSerialNumber); // Command byte
-
-  uint8_t msbs = 0;
-  for (int i = 0; i < 8; ++i) {
-    sysex[6 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
-    msbs |= ((id.id[i] >> 7) & 0x01) << i; // Store the MSB in the msbs byte
-  }
-  sysex[14] = msbs; // Store the collected MSBs as the 9th data byte
-  sysex[15] = 0xF7;
-
-  MIDI::sendSysEx(sizeof(sysex), sysex);
 }
 
 } // anonymous namespace

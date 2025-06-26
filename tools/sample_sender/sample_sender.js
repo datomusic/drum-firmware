@@ -144,7 +144,7 @@ function waitForReply(timeout = 2000) {
 async function send_drum_message_and_wait(tag, body) {
   // The payload consists of the command tag followed by the body,
   // with the tag encoded as a 16-bit value into three 7-bit bytes.
-  const payload = [0, 0, tag].concat(body);
+  const payload = pack3_16(tag).concat(body);
 
   const message = [0xF0].concat(
     SYSEX_MANUFACTURER_ID,
@@ -196,7 +196,7 @@ async function get_firmware_version() {
   const message = [0xF0].concat(
     SYSEX_MANUFACTURER_ID,
     [SYSEX_DEVICE_ID],
-    [0, 0, tag], // Encoded tag
+    pack3_16(tag), // Encoded tag
     [0xF7]
   );
   try {

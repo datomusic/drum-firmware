@@ -21,8 +21,7 @@
 #include "sound_router.h"
 
 // Model
-static drum::AudioEngine audio_engine(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
-                                      DATO_SUBMARINE_CODEC_RESET_PIN);
+static drum::AudioEngine audio_engine;
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
@@ -53,7 +52,8 @@ int main() {
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor);
 
-  if (!audio_engine.init()) {
+  if (!audio_engine.init(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
+                          DATO_SUBMARINE_CODEC_RESET_PIN)) {
     // Potentially halt or enter a safe state
     panic("Failed to initialize audio engine\n");
   }
@@ -99,7 +99,6 @@ int main() {
     tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
     musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
 
-    audio_engine.update_headphone_detection();
     loop_timer.record_iteration_end();
   }
 

@@ -56,7 +56,7 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequence
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
-static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
+static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 
 void on_file_received_callback() {
   new_file_received = true;
@@ -65,7 +65,7 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
-  musin::usb::init(true); // Wait for serial connection
+  musin::usb::init(false); // Wait for serial connection
 
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,

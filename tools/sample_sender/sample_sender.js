@@ -1,8 +1,7 @@
+#!/usr/bin/env node
 const midi = require('midi');
 const fs = require('fs');
 const wavefile = require('wavefile');
-
-
 
 function find_dato_drum(){
   const output = new midi.Output();
@@ -117,7 +116,7 @@ async function send_file_content(data) {
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(2);
+      await sleepMs(3);
     }
   }
 

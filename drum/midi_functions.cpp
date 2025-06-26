@@ -154,7 +154,7 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
     float normalized_value = static_cast<float>(value) / 127.0f;
 
     // Process CCs on the configured default MIDI channel
-    if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
+    if (channel == drum::config::FALLBACK_MIDI_CHANNEL) {
       std::optional<drum::Parameter> param_id_opt = std::nullopt;
       std::optional<uint8_t> resolved_track_index = std::nullopt;
 
@@ -222,7 +222,7 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
 
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
   // Process note events only on the configured default MIDI channel
-  if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
+  if (channel == drum::config::FALLBACK_MIDI_CHANNEL) {
     assert(sound_router_ptr != nullptr && "sound_router_ptr must be initialized via midi_init()");
     sound_router_ptr->handle_incoming_midi_note(note, velocity);
   }
@@ -230,7 +230,7 @@ void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
 
 void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint8_t velocity) {
   // Process note events only on the configured default MIDI channel
-  if (channel == drum::config::DEFAULT_MIDI_CHANNEL) {
+  if (channel == drum::config::FALLBACK_MIDI_CHANNEL) {
     // MIDI Note Off can be represented as Note On with velocity 0,
     // or by a distinct Note Off message.
     // Pass 0 velocity to handle_incoming_midi_note to signify note off.

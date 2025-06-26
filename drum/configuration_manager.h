@@ -33,8 +33,8 @@ struct SampleConfig {
 class ConfigurationManager {
 public:
   static constexpr const char *CONFIG_PATH = "/config.json";
-  static constexpr size_t MAX_CONFIG_FILE_SIZE = 4096;
-  static constexpr size_t MAX_JSON_TOKENS = 256;
+  static constexpr size_t MAX_CONFIG_FILE_SIZE = 8192;
+  static constexpr size_t MAX_JSON_TOKENS = 512;
 
   ConfigurationManager() = default;
 

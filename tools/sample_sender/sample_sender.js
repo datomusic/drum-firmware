@@ -154,6 +154,11 @@ if (!sample_filename || !source_path) {
   process.exit(1);
 }
 
+if (!fs.existsSync(source_path)) {
+  console.error(`Error: Source file not found at '${source_path}'`);
+  process.exit(1);
+}
+
 begin_file_transfer(sample_filename);
 
 // const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')

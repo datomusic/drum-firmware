@@ -63,6 +63,8 @@ bool AudioEngine::init(musin::drivers::Aic3204 &codec) {
     return true;
   }
 
+  codec_ = &codec;
+
   if (!AudioOutput::init(codec)) {
     return false;
   }
@@ -152,5 +154,14 @@ void AudioEngine::notification(drum::Events::NoteEvent event) {
   // The event.note is used as the sample_index, consistent with the
   // previous direct call from SoundRouter.
   play_on_voice(event.track_index, event.note, event.velocity);
+}
+
+void AudioEngine::update_headphone_detection() {
+  if (time_reached(last_headphone_check_)) {
+    last_headphone_check_ = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
+    if (codec_) {
+      codec_->update_headphone_detection();
+    }
+  }
 }
 } // namespace drum

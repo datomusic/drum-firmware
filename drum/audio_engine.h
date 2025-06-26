@@ -129,7 +129,17 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
+  /**
+   * @brief Periodically checks for headphone jack status changes.
+   */
+  void update_headphone_detection();
+
 private:
+  // Headphone jack detection state
+  static constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
+  absolute_time_t last_headphone_check_ = nil_time;
+
+  musin::drivers::Aic3204 *codec_ = nullptr;
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 

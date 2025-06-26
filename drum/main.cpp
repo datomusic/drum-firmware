@@ -25,10 +25,6 @@
 static musin::drivers::Aic3204 codec(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, 100'000U,
                                      DATO_SUBMARINE_CODEC_RESET_PIN);
 
-// Headphone jack detection state
-static absolute_time_t last_headphone_check = nil_time;
-constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
-
 // Model
 static drum::AudioEngine audio_engine;
 static musin::timing::InternalClock internal_clock(120.0f);
@@ -114,12 +110,7 @@ int main() {
     tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
     musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
 
-    // Poll for headphone jack status
-    if (time_reached(last_headphone_check)) {
-      last_headphone_check = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
-      codec.update_headphone_detection();
-    }
-
+    audio_engine.update_headphone_detection();
     loop_timer.record_iteration_end();
   }
 

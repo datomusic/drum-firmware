@@ -91,6 +91,7 @@ let ackPromise = {};
 let replyPromise = {};
 
 activeMidiInput.on('message', (deltaTime, message) => {
+  console.log('Received raw MIDI message:', message);   
   // SysEx message: F0 ... F7
   if (message[0] === 0xF0 && message[message.length - 1] === 0xF7) {
     // Check for our manufacturer ID and device ID

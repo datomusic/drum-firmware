@@ -53,9 +53,9 @@ public:
   static constexpr float OCTAVE_CONTROL_INT_SCALE = 4096.0f; // For Q12 representation
 
   struct Outputs {
-    AudioBlock lowpass;
-    AudioBlock bandpass;
-    AudioBlock highpass;
+    ::AudioBlock lowpass;
+    ::AudioBlock bandpass;
+    ::AudioBlock highpass;
   };
 
   Filter() {
@@ -102,9 +102,9 @@ public:
     setting_octavemult = n * OCTAVE_CONTROL_INT_SCALE; // Q12
   }
 
-  void update_variable(const AudioBlock &input_samples, const AudioBlock &control,
+  void update_variable(const ::AudioBlock &input_samples, const ::AudioBlock &control,
                        Outputs &outputs);
-  void update_fixed(const AudioBlock &input_samples, Outputs &outputs);
+  void update_fixed(const ::AudioBlock &input_samples, Outputs &outputs);
 
   /**
    * @brief Sets the filter cutoff/center frequency using a normalized value.
@@ -153,11 +153,11 @@ private:
   int32_t state_bandpass;
 };
 
-struct Lowpass : BufferSource {
-  Lowpass(BufferSource &from) : from(from) {
+struct Lowpass : ::BufferSource {
+  Lowpass(::BufferSource &from) : from(from) {
   }
 
-  void fill_buffer(AudioBlock &out_samples) {
+  void fill_buffer(::AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
     etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(), out_samples.begin());
@@ -177,16 +177,16 @@ struct Lowpass : BufferSource {
     filter.resonance_normalized(res_normalized);
   }
 
-  BufferSource &from;
+  ::BufferSource &from;
   Filter::Outputs outputs;
   Filter filter;
 };
 
-struct Highpass : BufferSource {
-  Highpass(BufferSource &from) : from(from) {
+struct Highpass : ::BufferSource {
+  Highpass(::BufferSource &from) : from(from) {
   }
 
-  void fill_buffer(AudioBlock &out_samples) {
+  void fill_buffer(::AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
     etl::copy(outputs.highpass.cbegin(), outputs.highpass.cend(), out_samples.begin());
@@ -206,7 +206,7 @@ struct Highpass : BufferSource {
     filter.resonance_normalized(res_normalized);
   }
 
-  BufferSource &from;
+  ::BufferSource &from;
   Filter::Outputs outputs;
   Filter filter;
 };

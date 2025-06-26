@@ -7,7 +7,6 @@
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
-#include "musin/drivers/aic3204.hpp"
 
 #include "sb25_samples.h"
 

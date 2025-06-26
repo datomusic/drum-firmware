@@ -1,6 +1,7 @@
 #ifndef SYSEX_PROTOCOL_H_O6CX5YEN
 #define SYSEX_PROTOCOL_H_O6CX5YEN
 
+#include "drum/config.h"
 #include "etl/optional.h"
 #include "etl/span.h"
 #include "etl/string_view.h"
@@ -90,16 +91,20 @@ template <typename FileOperations> struct Protocol {
 
     Chunk::Data::const_iterator iterator = chunk.cbegin();
 
-    // Check 3-byte manufacturer ID, allowing for stripped leading zero from some MIDI drivers.
-    if (chunk.size() >= 3 && (*iterator) == 0 && (*(iterator + 1)) == DatoId &&
-        (*(iterator + 2)) == DrumId) {
-      iterator += 3;
-    } else if (chunk.size() >= 2 && (*iterator) == DatoId && (*(iterator + 1)) == DrumId) {
-      iterator += 2;
-      printf("SysEx: Warning: Stripped leading zero detected in manufacturer ID\n");
+    // Check for a recognized Manufacturer/Device ID pattern.
+    // The chunk passed here has the 0xF0 and 0xF7 bytes stripped.
+    if (chunk.size() >= 4 && (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
+        (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
+        (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&
+        (*(iterator + 3)) == drum::config::sysex::DEVICE_ID) {
+      iterator += 4; // Official 3-byte ID + 1-byte Device ID
+    } else if (chunk.size() >= 3 && (*iterator) == 0 && (*(iterator + 1)) == 0x7D &&
+               (*(iterator + 2)) == 0x65) {
+      iterator += 3; // Old non-standard 3-byte ID
+    } else if (chunk.size() >= 2 && (*iterator) == 0x7D && (*(iterator + 1)) == 0x65) {
+      iterator += 2; // Old non-standard 2-byte ID
     } else {
-      // Not for us
-      printf("SysEx: Error: Invalid manufacturer ID\n");
+      printf("SysEx: Error: Invalid manufacturer or device ID\n");
       return Result::InvalidManufacturer;
     }
 
@@ -150,10 +155,6 @@ private:
   FileOperations &file_ops;
   State state = State::Idle;
   etl::optional<File> opened_file;
-
-  // TODO: Make externally configurable
-  static const uint8_t DatoId = 0x7D; // Manufacturer ID for Dato
-  static const uint8_t DrumId = 0x65; // Device ID for DRUM
 
   // Handle packets without body
   template <typename Sender>

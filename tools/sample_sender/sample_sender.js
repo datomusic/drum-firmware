@@ -79,6 +79,10 @@ if (!midi_ports) {
 
 const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
 
+// --- SysEx Configuration ---
+const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
+const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
+
 // --- ACK/NACK Handling ---
 const ACK = 0x13;
 const NACK = 0x14;
@@ -88,8 +92,12 @@ activeMidiInput.on('message', (deltaTime, message) => {
   // SysEx message: F0 ... F7
   if (message[0] === 0xF0 && message[message.length - 1] === 0xF7) {
     // Check for our manufacturer ID and device ID
-    if (message[1] === 0 && message[2] === 0x7D && message[3] === 0x65) {
-      const tag = message[4];
+    const isOurManufacturer = message[1] === SYSEX_MANUFACTURER_ID[0] &&
+                            message[2] === SYSEX_MANUFACTURER_ID[1] &&
+                            message[3] === SYSEX_MANUFACTURER_ID[2];
+
+    if (isOurManufacturer && message[4] === SYSEX_DEVICE_ID) {
+      const tag = message[5];
       if (tag === ACK) {
         if (ackPromise.resolve) ackPromise.resolve();
         ackPromise = {};
@@ -114,10 +122,14 @@ function waitForAck(timeout = 2000) {
 }
 
 async function send_drum_message_and_wait(tag, body) {
+  // The payload consists of the command tag followed by the body,
+  // with the tag encoded as a 16-bit value into three 7-bit bytes.
+  const payload = [0, 0, tag].concat(body);
+
   const message = [0xF0].concat(
-    [0, 0x7D, 0x65], // Manufacturer ID
-    [0, 0, tag],
-    body,
+    SYSEX_MANUFACTURER_ID,
+    [SYSEX_DEVICE_ID],
+    payload,
     [0xF7]
   );
   try {

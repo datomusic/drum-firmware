@@ -21,6 +21,14 @@ constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
 constexpr uint8_t FALLBACK_MIDI_CHANNEL = 10; // Default MIDI Channel (GM Percussion Standard)
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = false;
 
+// SysEx Manufacturer and Device IDs
+namespace sysex {
+constexpr uint8_t MANUFACTURER_ID_0 = 0x00;
+constexpr uint8_t MANUFACTURER_ID_1 = 0x22;
+constexpr uint8_t MANUFACTURER_ID_2 = 0x01;
+constexpr uint8_t DEVICE_ID = 0x65; // DRUM device ID
+} // namespace sysex
+
 // Keypad Component Configuration
 namespace keypad {
 constexpr uint8_t _CHANNEL = 0;

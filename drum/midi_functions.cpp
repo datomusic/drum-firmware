@@ -28,10 +28,8 @@ static void (*file_received_callback_ptr)() = nullptr;
 namespace { // Anonymous namespace for internal linkage
 
 // --- Constants ---
-static constexpr uint8_t SYSEX_DATO_ID = 0x7D; // Manufacturer ID for Dato
 static constexpr uint8_t SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 static constexpr uint8_t SYSEX_UNIVERSAL_REALTIME_ID = 0x7F; // Unused
-static constexpr uint8_t SYSEX_DRUM_ID = 0x65;               // Device ID for DRUM
 static constexpr uint8_t SYSEX_ALL_ID = 0x7F;                // Target all devices
 
 // Command bytes for Dato/DRUM specific SysEx
@@ -56,9 +54,13 @@ void handle_sysex(uint8_t *const data, const size_t length);
 
 void handle_sysex(uint8_t *const data, const size_t length) {
   printf("handle_sysex: received %u bytes\n", (unsigned)length);
-  // Check for Dato Manufacturer ID and DRUM Device ID for custom commands
-  if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DRUM_ID) {
-    switch (data[3]) { // Check the command byte
+
+  // Check for our official 3-byte Manufacturer ID and 1-byte Device ID
+  if (length > 5 && data[1] == drum::config::sysex::MANUFACTURER_ID_0 &&
+      data[2] == drum::config::sysex::MANUFACTURER_ID_1 &&
+      data[3] == drum::config::sysex::MANUFACTURER_ID_2 &&
+      data[4] == drum::config::sysex::DEVICE_ID) {
+    switch (data[5]) { // Check the command byte
     case SYSEX_REBOOT_BOOTLOADER:
       reset_usb_boot(0, 0);
       return; // Handled
@@ -73,7 +75,7 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   // Check for Universal Non-Realtime SysEx messages
   else if (length > 4 && data[1] == SYSEX_UNIVERSAL_NONREALTIME_ID) {
     // Check if the message is targeted to DRUM or all devices
-    if (data[2] == SYSEX_DRUM_ID || data[2] == SYSEX_ALL_ID) {
+    if (data[2] == drum::config::sysex::DEVICE_ID || data[2] == SYSEX_ALL_ID) {
       // Check for General Information - Identity Request (06 01)
       if (data[3] == 0x06 && data[4] == 0x01) {
         midi_print_identity(); // Send the standard Identity Reply
@@ -91,7 +93,11 @@ void handle_sysex(uint8_t *const data, const size_t length) {
 
   // Define a sender lambda for ACK/NACK replies
   auto sender = [](sysex::Protocol<StandardFileOps>::Tag tag) {
-    uint8_t msg[] = {0xF0, 0, SYSEX_DATO_ID, SYSEX_DRUM_ID,
+    uint8_t msg[] = {0xF0,
+                     drum::config::sysex::MANUFACTURER_ID_0,
+                     drum::config::sysex::MANUFACTURER_ID_1,
+                     drum::config::sysex::MANUFACTURER_ID_2,
+                     drum::config::sysex::DEVICE_ID,
                      static_cast<uint8_t>(tag), // The reply tag (Ack/Nack)
                      0xF7};
     MIDI::sendSysEx(sizeof(msg), msg);
@@ -109,18 +115,20 @@ void handle_sysex(uint8_t *const data, const size_t length) {
 void midi_print_identity() {
   static constexpr uint8_t sysex[] = {
       0xF0,
-      SYSEX_UNIVERSAL_NONREALTIME_ID, // 0x7E
-      SYSEX_DRUM_ID,                  // Target Device ID
-      0x06,                           // General Information (sub-ID#1)
-      0x02,                           // Identity Reply (sub-ID#2)
-      SYSEX_DATO_ID, // Manufacturer's System Exclusive ID code (using single byte ID)
-      0x00,          // Device family code LSB (set to 0)
-      0x00,          // Device family code MSB (set to 0)
-      0x00,          // Device family member code LSB (set to 0)
-      0x00,          // Device family member code MSB (set to 0)
-      (uint8_t)(FIRMWARE_MAJOR & 0x7F), // Software revision level Byte 1 (Major)
-      (uint8_t)(FIRMWARE_MINOR & 0x7F), // Software revision level Byte 2 (Minor)
-      (uint8_t)(FIRMWARE_PATCH & 0x7F), // Software revision level Byte 3 (Patch)
+      SYSEX_UNIVERSAL_NONREALTIME_ID,    // 0x7E
+      drum::config::sysex::DEVICE_ID,    // Target Device ID
+      0x06,                              // General Information (sub-ID#1)
+      0x02,                              // Identity Reply (sub-ID#2)
+      drum::config::sysex::MANUFACTURER_ID_0, // Manufacturer's System Exclusive ID
+      drum::config::sysex::MANUFACTURER_ID_1,
+      drum::config::sysex::MANUFACTURER_ID_2,
+      0x00, // Device family code LSB (set to 0)
+      0x00, // Device family code MSB (set to 0)
+      0x00,                              // Device family member code LSB (set to 0)
+      0x00,                              // Device family member code MSB (set to 0)
+      (uint8_t)(FIRMWARE_MAJOR & 0x7F),   // Software revision level Byte 1 (Major)
+      (uint8_t)(FIRMWARE_MINOR & 0x7F),   // Software revision level Byte 2 (Minor)
+      (uint8_t)(FIRMWARE_PATCH & 0x7F),   // Software revision level Byte 3 (Patch)
       (uint8_t)(FIRMWARE_COMMITS &
                 0x7F), // Software revision level Byte 4 (Commits since tag, capped at 127)
       0xF7};
@@ -253,9 +261,10 @@ void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint
 void midi_print_firmware_version() {
   static constexpr uint8_t sysex[] = {
       0xF0,
-      0,
-      SYSEX_DATO_ID,
-      SYSEX_DRUM_ID,
+      drum::config::sysex::MANUFACTURER_ID_0,
+      drum::config::sysex::MANUFACTURER_ID_1,
+      drum::config::sysex::MANUFACTURER_ID_2,
+      drum::config::sysex::DEVICE_ID,
       SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
       (uint8_t)(FIRMWARE_MAJOR & 0x7F),
       (uint8_t)(FIRMWARE_MINOR & 0x7F),
@@ -272,21 +281,22 @@ void midi_print_serial_number() {
   // Encode the 8-byte ID into 9 SysEx data bytes (7-bit encoding).
   // Payload: [ID0&7F, ID1&7F, ..., ID7&7F, MSBs]
   // MSBs byte contains the MSB of each original ID byte.
-  uint8_t sysex[15]; // 1(F0) + 3(ID) + 1(Cmd) + 9(Data) + 1(F7) = 15 bytes
+  uint8_t sysex[16]; // 1(F0) + 3(Manuf) + 1(Dev) + 1(Cmd) + 9(Data) + 1(F7) = 16 bytes
 
   sysex[0] = 0xF0;
-  sysex[1] = 0;
-  sysex[2] = SYSEX_DATO_ID;
-  sysex[3] = SYSEX_DRUM_ID;
-  sysex[4] = SYSEX_SERIAL_NUMBER; // Command byte
+  sysex[1] = drum::config::sysex::MANUFACTURER_ID_0;
+  sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
+  sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
+  sysex[4] = drum::config::sysex::DEVICE_ID;
+  sysex[5] = SYSEX_SERIAL_NUMBER; // Command byte
 
   uint8_t msbs = 0;
   for (int i = 0; i < 8; ++i) {
-    sysex[5 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
+    sysex[6 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
     msbs |= ((id.id[i] >> 7) & 0x01) << i; // Store the MSB in the msbs byte
   }
-  sysex[13] = msbs; // Store the collected MSBs as the 9th data byte
-  sysex[14] = 0xF7;
+  sysex[14] = msbs; // Store the collected MSBs as the 9th data byte
+  sysex[15] = 0xF7;
 
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }

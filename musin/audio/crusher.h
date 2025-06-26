@@ -54,9 +54,8 @@ struct Crusher : ::BufferSource {
 
   void sampleRate(const float hz) {
     // Clamp frequency to valid range before calculating step
-    float clamped_hz =
-        etl::clamp(hz, static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) / 64.0f,
-                   static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY));
+    float clamped_hz = etl::clamp(hz, static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) / 64.0f,
+                                  static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY));
     int n = static_cast<int>(std::round(static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) /
                                         clamped_hz)); // Use std::round
     // Clamp step to [1, 64]

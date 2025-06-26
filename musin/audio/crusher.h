@@ -33,11 +33,13 @@
 #include "buffer_source.h"
 #include <cmath> // Include for std::round
 
-struct Crusher : BufferSource {
-  Crusher(BufferSource &source) : source(source) {
+namespace musin::audio {
+
+struct Crusher : ::BufferSource {
+  Crusher(::BufferSource &source) : source(source) {
   }
 
-  void fill_buffer(AudioBlock &out_samples) {
+  void fill_buffer(::AudioBlock &out_samples) {
     source.fill_buffer(out_samples);
     crush(out_samples);
   }
@@ -52,9 +54,10 @@ struct Crusher : BufferSource {
 
   void sampleRate(const float hz) {
     // Clamp frequency to valid range before calculating step
-    float clamped_hz = etl::clamp(hz, static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f,
-                                  static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
-    int n = static_cast<int>(std::round(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) /
+    float clamped_hz =
+        etl::clamp(hz, static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) / 64.0f,
+                   static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY));
+    int n = static_cast<int>(std::round(static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) /
                                         clamped_hz)); // Use std::round
     // Clamp step to [1, 64]
     sampleStep = etl::clamp(n, 1, 64);
@@ -82,8 +85,8 @@ struct Crusher : BufferSource {
   void squeeze(float squeeze_normalized) {
     float clamped_squeeze = etl::clamp(squeeze_normalized, 0.0f, 1.0f);
     // Logarithmic mapping: 0.0 -> SAMPLE_FREQ, 1.0 -> SAMPLE_FREQ/64
-    const float min_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / 64.0f;
-    const float max_rate = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
+    const float min_rate = static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) / 64.0f;
+    const float max_rate = static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY);
     const float log_min = std::log(min_rate); // Use std::log
     const float log_max = std::log(max_rate); // Use std::log
     // Inverse mapping: squeeze=0 -> log_max, squeeze=1 -> log_min
@@ -93,12 +96,14 @@ struct Crusher : BufferSource {
   }
 
 private:
-  void crush(AudioBlock &samples);
+  void crush(::AudioBlock &samples);
 
-  BufferSource &source;
+  ::BufferSource &source;
   uint8_t crushBits = 16; // 16 = off
   uint8_t sampleStep = 1; // the number of samples to double up. This simple
                           // technique only allows a few stepped positions.
 };
+
+} // namespace musin::audio
 
 #endif /* end of include guard: CRUSHER_H_4BACOXIO */

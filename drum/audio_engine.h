@@ -128,7 +128,7 @@ private:
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 
-  AudioMixer<NUM_VOICES> mixer_;
+  musin::audio::AudioMixer<NUM_VOICES> mixer_;
   musin::audio::Crusher crusher_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;

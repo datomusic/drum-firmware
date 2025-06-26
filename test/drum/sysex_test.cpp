@@ -77,8 +77,8 @@ TEST_CASE("Protocol receives file data") {
     // TODO: Simplify building of SysEx messages, so we don't have to repeat the header in each one
 
     const uint8_t begin_file_write[] = {
-        0, 0x7D, 0x65, 0, 0,
-        Protocol::BeginFileWrite, 0, 0,    64}; // Represents a file-name with ASCII character '@'
+        0, 0x7D, 0x65, 0, 0, Protocol::BeginFileWrite,
+        0, 0,    64}; // Represents a file-name with ASCII character '@'
     protocol.handle_chunk(sysex::Chunk(begin_file_write, sizeof(begin_file_write)), sender);
 
     REQUIRE(protocol.__get_state() == State::FileTransfer);
@@ -89,8 +89,7 @@ TEST_CASE("Protocol receives file data") {
 
     sender.sent_tags.clear();
 
-    const uint8_t byte_transfer[] = {0, 0x7D, 0x65, 0, 0,
-                                       Protocol::FileBytes,   0, 0,    127};
+    const uint8_t byte_transfer[] = {0, 0x7D, 0x65, 0, 0, Protocol::FileBytes, 0, 0, 127};
     protocol.handle_chunk(sysex::Chunk(byte_transfer, sizeof(byte_transfer)), sender);
     REQUIRE(file_ops.byte_count == 2);
     REQUIRE(file_ops.content[0] == 127);
@@ -100,8 +99,7 @@ TEST_CASE("Protocol receives file data") {
 
     sender.sent_tags.clear();
 
-    const uint8_t end_write[] = {0, 0x7D, 0x65, 0, 0,
-                                  Protocol::EndFileTransfer};
+    const uint8_t end_write[] = {0, 0x7D, 0x65, 0, 0, Protocol::EndFileTransfer};
     protocol.handle_chunk(sysex::Chunk(end_write, sizeof(end_write)), sender);
     REQUIRE(protocol.__get_state() == State::Idle);
     REQUIRE(file_ops.file_is_open == false);

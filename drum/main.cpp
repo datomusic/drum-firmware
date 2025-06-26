@@ -72,6 +72,24 @@ int main() {
     // but we should log the failure.
     printf("WARNING: Failed to initialize filesystem.\n");
   } else {
+    musin::filesystem::list_files("/"); // List files in the root directory
+
+    // Print config.json contents for debugging
+    printf("\n--- Contents of /config.json ---\n");
+    FILE *configFile = fopen("/config.json", "r");
+    if (configFile) {
+      char read_buffer[129];
+      size_t bytes_read;
+      while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1, configFile)) > 0) {
+        read_buffer[bytes_read] = '\0';
+        printf("%s", read_buffer);
+      }
+      fclose(configFile);
+      printf("\n--- End of /config.json ---\n\n");
+    } else {
+      printf("Could not open /config.json to display.\n\n");
+    }
+
     if (config_manager.load()) {
       sample_repository.load_from_config(config_manager.get_sample_configs());
     }

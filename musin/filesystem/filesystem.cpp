@@ -27,6 +27,26 @@ bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash) {
   return true;
 }
 
+void list_files(const char *path) {
+  printf("Listing files in '%s':\n", path);
+  fs_dir_t *dir = fs_opendir(path);
+  if (!dir) {
+    printf("  Error opening directory: %s\n", strerror(errno));
+    return;
+  }
+
+  fs_dirent_t *dirent;
+  while ((dirent = fs_readdir(dir)) != NULL) {
+    printf("  - %s\n", dirent->name);
+  }
+
+  int err = fs_closedir(dir);
+  if (err != 0) {
+    printf("  Error closing directory: %s\n", strerror(errno));
+  }
+  printf("\n"); // Add a newline for better log separation
+}
+
 bool init(bool force_format) {
   printf("init_filesystem, force_format: %d\n", force_format);
   blockdevice_t *flash = blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);

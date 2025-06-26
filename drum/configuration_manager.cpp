@@ -76,7 +76,8 @@ bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
   return true;
 }
 
-bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens, [[maybe_unused]] int count) {
+bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
+                                         [[maybe_unused]] int count) {
   if (tokens->type != JSMN_ARRAY) {
     return false;
   }

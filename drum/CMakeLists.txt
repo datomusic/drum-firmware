@@ -64,11 +64,19 @@ add_executable(${EXECUTABLE_NAME}
   sample_repository.cpp
 )
 
-# Embed default configuration
-pico_add_binary_data(${EXECUTABLE_NAME}
-    FILES
-        config.default.json
+# Generate C header from default config JSON
+set(DEFAULT_CONFIG_SRC "${CMAKE_CURRENT_SOURCE_DIR}/config.default.json")
+set(DEFAULT_CONFIG_HDR "${CMAKE_BINARY_DIR}/generated/config_default.h")
+
+add_custom_command(
+    OUTPUT ${DEFAULT_CONFIG_HDR}
+    COMMAND bash -c "${XXD_PROGRAM} -i ${DEFAULT_CONFIG_SRC} > ${DEFAULT_CONFIG_HDR}"
+    DEPENDS ${DEFAULT_CONFIG_SRC}
+    COMMENT "Generating C header from default config"
+    VERBATIM
 )
+
+add_custom_target(generate_default_config DEPENDS ${DEFAULT_CONFIG_HDR})
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
@@ -99,6 +107,7 @@ musin_init_filesystem(${PROJECT_NAME})
 if(TARGET generate_samples)
   add_dependencies(${EXECUTABLE_NAME} generate_samples)
 endif()
+add_dependencies(${EXECUTABLE_NAME} generate_default_config)
 
 
 # Explicitly find the size utility, hinting at the Pico toolchain path

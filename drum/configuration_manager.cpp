@@ -1,14 +1,9 @@
 #include "drum/configuration_manager.h"
+#include "config_default.h"
 #include "jsmn/jsmn.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
-// Add extern declarations for the embedded data
-extern "C" {
-extern const char config_default_json[];
-extern const unsigned int config_default_json_len;
-}
 
 namespace drum {
 
@@ -17,7 +12,8 @@ bool ConfigurationManager::load() {
   FILE *config_file = fopen(CONFIG_PATH, "r");
   if (!config_file) {
     printf("INFO: Could not open %s. Loading embedded default configuration.\n", CONFIG_PATH);
-    return parse_json_buffer(config_default_json, config_default_json_len);
+    return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
+                               config_default_json_len);
   }
 
   char buffer[MAX_CONFIG_FILE_SIZE];
@@ -26,7 +22,8 @@ bool ConfigurationManager::load() {
 
   if (file_size == 0) {
     printf("WARNING: %s is empty. Loading embedded default configuration.\n", CONFIG_PATH);
-    return parse_json_buffer(config_default_json, config_default_json_len);
+    return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
+                               config_default_json_len);
   }
 
   buffer[file_size] = '\0'; // Null-terminate the buffer for safety

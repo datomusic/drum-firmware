@@ -77,16 +77,22 @@ template <typename FileOperations> struct Protocol {
   // TODO: Return informative error on failure.
   // Current return value indicates if the message was accepted at all.
   template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
-    // 6 bytes minimum: 3-byte manufacturer ID + 3 bytes for one encoded 16bit value (the tag).
-    if (chunk.size() < 6) {
+    // 5 bytes minimum: 2-byte manufacturer ID (if zero stripped) + 3 bytes for tag.
+    if (chunk.size() < 5) {
       printf("SysEx: Error: Short message, size %u\n", (unsigned)chunk.size());
       return Result::ShortMessage;
     }
 
     Chunk::Data::const_iterator iterator = chunk.cbegin();
 
-    // Check 3-byte manufacturer ID
-    if ((*iterator++) != 0 || (*iterator++) != DatoId || (*iterator++) != DrumId) {
+    // Check 3-byte manufacturer ID, allowing for stripped leading zero from some MIDI drivers.
+    if (chunk.size() >= 3 && (*iterator) == 0 && (*(iterator + 1)) == DatoId &&
+        (*(iterator + 2)) == DrumId) {
+      iterator += 3;
+    } else if (chunk.size() >= 2 && (*iterator) == DatoId && (*(iterator + 1)) == DrumId) {
+      iterator += 2;
+      printf("SysEx: Warning: Stripped leading zero detected in manufacturer ID\n");
+    } else {
       // Not for us
       printf("SysEx: Error: Invalid manufacturer ID\n");
       return Result::InvalidManufacturer;

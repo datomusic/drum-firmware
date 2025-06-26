@@ -133,19 +133,17 @@ async function send_drum_message_and_wait(tag, body) {
 async function begin_file_transfer(source_path, file_name) {
   console.log(`Copying ${source_path} to ${file_name}`);
   const encoded = new TextEncoder().encode(file_name);
+  const encoded_with_null = new Uint8Array(encoded.length + 1);
+  encoded_with_null.set(encoded);
+  encoded_with_null[encoded.length] = 0; // Null terminator
 
   var bytes = [];
 
-  var i = 0;
-  for (i=0;i<encoded.length;i+=2) {
+  for (let i = 0; i < encoded_with_null.length; i += 2) {
     // Pack two bytes into a 16bit value, and then into 3 sysex bytes.
-    const lower = encoded[i]
-    const upper = encoded[i+1]
-    bytes = bytes.concat(pack3_16((upper << 8) + lower));
-  }
-
-  if (encoded.length % 2 == 0) {
-    bytes = bytes.concat(pack3_16(encoded[encoded.length - 1] << 8));
+    const lower = encoded_with_null[i];
+    const upper = (i + 1 < encoded_with_null.length) ? encoded_with_null[i + 1] : 0;
+    bytes = bytes.concat(pack3_16((upper << 8) | lower));
   }
 
   await send_drum_message_and_wait(0x10, bytes);

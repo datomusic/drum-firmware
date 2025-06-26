@@ -91,8 +91,11 @@ let ackPromise = {};
 let replyPromise = {};
 
 activeMidiInput.on('message', (deltaTime, message) => {
-  const hexMessage = Array.from(message).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-  console.log('Received raw MIDI message:', hexMessage);
+  if (message[0] != 0xB9) {
+    // ignore control change messages
+    const hexMessage = Array.from(message).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    console.log('Received raw MIDI message:', hexMessage);
+  }
   // SysEx message: F0 ... F7
   if (message[0] === 0xF0 && message[message.length - 1] === 0xF7) {
     // Check for our manufacturer ID and device ID

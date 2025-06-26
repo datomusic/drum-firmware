@@ -33,6 +33,10 @@ template <typename FileOperations> struct Protocol {
         : handle(file_ops.open(path)) {
     }
 
+    constexpr bool is_valid() const {
+      return handle.has_value();
+    }
+
     constexpr size_t write(const etl::span<const uint8_t> &bytes) {
       if (handle.has_value()) {
         return handle->write(bytes);
@@ -226,9 +230,16 @@ private:
 
         printf("SysEx: BeginFileWrite received for path: %s\n", path);
         opened_file.emplace(file_ops, path);
-        state = State::FileTransfer;
-        printf("SysEx: Sending Ack for BeginFileWrite\n");
-        send_reply(Tag::Ack);
+        if (opened_file.has_value() && opened_file->is_valid()) {
+          state = State::FileTransfer;
+          printf("SysEx: Sending Ack for BeginFileWrite\n");
+          send_reply(Tag::Ack);
+        } else {
+          opened_file.reset();
+          state = State::Idle;
+          printf("SysEx: Error: Failed to open file for writing\n");
+          send_reply(Tag::Nack);
+        }
       } break;
       case EndFileTransfer: {
         // Destroyng the file handle should close the file.

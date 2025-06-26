@@ -261,7 +261,8 @@ void midi_print_firmware_version() {
       drum::config::sysex::MANUFACTURER_ID_1,
       drum::config::sysex::MANUFACTURER_ID_2,
       drum::config::sysex::DEVICE_ID,
-      SYSEX_FIRMWARE_VERSION, // Command byte indicating firmware version reply
+      static_cast<uint8_t>(
+          sysex::Protocol<StandardFileOps>::Tag::RequestFirmwareVersion), // Command byte
       (uint8_t)(FIRMWARE_MAJOR & 0x7F),
       (uint8_t)(FIRMWARE_MINOR & 0x7F),
       (uint8_t)(FIRMWARE_PATCH & 0x7F),
@@ -284,7 +285,8 @@ void midi_print_serial_number() {
   sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
   sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
   sysex[4] = drum::config::sysex::DEVICE_ID;
-  sysex[5] = SYSEX_SERIAL_NUMBER; // Command byte
+  sysex[5] =
+      static_cast<uint8_t>(sysex::Protocol<StandardFileOps>::Tag::RequestSerialNumber); // Command byte
 
   uint8_t msbs = 0;
   for (int i = 0; i < 8; ++i) {

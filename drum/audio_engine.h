@@ -14,11 +14,8 @@
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
+#include "musin/drivers/aic3204.hpp"
 #include "musin/hal/debug_utils.h"
-
-namespace musin::drivers {
-class Aic3204;
-} // namespace musin::drivers
 
 namespace drum {
 
@@ -41,7 +38,8 @@ private:
   };
 
 public:
-  AudioEngine();
+  explicit AudioEngine(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency,
+                       uint8_t reset_pin);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -53,10 +51,9 @@ public:
   /**
    * @brief Initializes the audio engine and hardware.
    * Must be called before any other methods.
-   * @param codec A reference to the AIC3204 codec driver.
    * @return true on success, false otherwise.
    */
-  bool init(musin::drivers::Aic3204 &codec);
+  bool init();
 
   /**
    * @brief Periodically updates the audio output buffer.
@@ -139,7 +136,7 @@ private:
   static constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
   absolute_time_t last_headphone_check_ = nil_time;
 
-  musin::drivers::Aic3204 *codec_ = nullptr;
+  musin::drivers::Aic3204 codec_;
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 

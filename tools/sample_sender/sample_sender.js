@@ -104,20 +104,37 @@ activeMidiInput.on('message', (deltaTime, message) => {
                             message[3] === SYSEX_MANUFACTURER_ID[2];
 
     if (isOurManufacturer && message[4] === SYSEX_DEVICE_ID) {
+      // Ensure message is long enough to have a tag
+      if (message.length < 6) {
+        console.log("Parsed our device ID, but message is too short for a tag.");
+        return;
+      }
       const tag = message[5];
+      console.log(`Parsed SysEx message with tag: ${tag}`);
+
       if (tag === ACK) {
-        if (ackPromise.resolve) ackPromise.resolve();
-        ackPromise = {};
+        console.log("Received ACK.");
+        if (ackPromise.resolve) {
+          ackPromise.resolve();
+          ackPromise = {};
+        }
       } else if (tag === NACK) {
-        if (ackPromise.reject) ackPromise.reject(new Error('Received NACK from device.'));
-        ackPromise = {};
+        console.log("Received NACK.");
+        if (ackPromise.reject) {
+          ackPromise.reject(new Error('Received NACK from device.'));
+          ackPromise = {};
+        }
       } else {
-        // This is a data reply, not an ACK/NACK
+        console.log("Received data reply.");
         if (replyPromise.resolve) {
           replyPromise.resolve(message); // Resolve with the full message
           replyPromise = {};
+        } else {
+          console.log("No reply promise was waiting for this data message.");
         }
       }
+    } else {
+      console.log("Received SysEx message, but not for our device.");
     }
   }
 });

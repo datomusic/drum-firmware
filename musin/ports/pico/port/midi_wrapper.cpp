@@ -3,6 +3,7 @@
 #include "musin/midi/midi_message_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
+#include <stdio.h> // For printf
 
 struct MIDISettings {
   /*! Running status enables short messages when sending multiple values
@@ -124,6 +125,11 @@ void MIDI::sendPitchBend(const int bend, const byte channel) {
 }
 
 void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
+  printf("Enqueuing SysEx message (%u bytes): ", length);
+  for (unsigned i = 0; i < length; ++i) {
+    printf("%02X ", bytes[i]);
+  }
+  printf("\n");
   musin::midi::OutgoingMidiMessage msg(bytes, length);
   musin::midi::enqueue_midi_message(msg);
 }

@@ -13,7 +13,7 @@ bool ConfigurationManager::load() {
   if (!config_file) {
     printf("INFO: Could not open %s. Loading embedded default configuration.\n", CONFIG_PATH);
     return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
-                               config_default_json_len);
+                             config_default_json_len);
   }
 
   char buffer[MAX_CONFIG_FILE_SIZE];
@@ -23,7 +23,7 @@ bool ConfigurationManager::load() {
   if (file_size == 0) {
     printf("WARNING: %s is empty. Loading embedded default configuration.\n", CONFIG_PATH);
     return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
-                               config_default_json_len);
+                             config_default_json_len);
   }
 
   buffer[file_size] = '\0'; // Null-terminate the buffer for safety

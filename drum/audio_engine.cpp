@@ -7,7 +7,6 @@
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
-#include "musin/drivers/aic3204.hpp"
 
 #include "sample_repository.h"
 
@@ -59,12 +58,12 @@ AudioEngine::AudioEngine(const SampleRepository &repository)
   }
 }
 
-bool AudioEngine::init(musin::drivers::Aic3204 &codec) {
+bool AudioEngine::init() {
   if (is_initialized_) {
     return true;
   }
 
-  if (!AudioOutput::init(codec)) {
+  if (!AudioOutput::init()) {
     return false;
   }
   is_initialized_ = true;
@@ -72,7 +71,6 @@ bool AudioEngine::init(musin::drivers::Aic3204 &codec) {
 }
 
 void AudioEngine::process() {
-
   AudioOutput::update(highpass_);
 }
 
@@ -156,13 +154,10 @@ void AudioEngine::set_crush_depth(float normalized_value) {
   crusher_.bits(depth);
 }
 
-void AudioEngine::set_decay([[maybe_unused]] uint8_t voice_index, [[maybe_unused]] float value) {
-  // TODO: Implement decay setting for the specified voice
-}
-
 void AudioEngine::notification(drum::Events::NoteEvent event) {
   // The event.note is used as the sample_index, consistent with the
   // previous direct call from SoundRouter.
   play_on_voice(event.track_index, event.note, event.velocity);
 }
+
 } // namespace drum

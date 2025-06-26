@@ -39,6 +39,8 @@
 #include <cstddef> // For size_t
 #include <stdint.h>
 
+namespace musin::audio {
+
 /**
  * @brief Mixes multiple audio sources into a single output buffer.
  *
@@ -48,16 +50,16 @@
  *
  * @tparam N The number of input channels (must be between 2 and 8).
  */
-template <size_t N> struct AudioMixer : BufferSource {
+template <size_t N> struct AudioMixer : ::BufferSource {
   static_assert(N >= 2 && N <= 8, "AudioMixer supports 2 to 8 channels");
 
   /**
    * @brief Constructs an AudioMixer from an existing array of sources.
-   * @param initial_sources An array of pointers to the BufferSource objects to mix.
+   * @param initial_sources An array of pointers to the ::BufferSource objects to mix.
    *                        The mixer copies this array but does not take ownership of the pointers.
    *                        Initial gain for all channels is set to 1.0 (256 in Q8.8 format).
    */
-  AudioMixer(const etl::array<BufferSource *, N> &initial_sources) : sources(initial_sources) {
+  AudioMixer(const etl::array<::BufferSource *, N> &initial_sources) : sources(initial_sources) {
     for (size_t i = 0; i < N; i++) {
       multipliers[i] = 256; // Default gain = 1.0 (Q8.8)
     }
@@ -65,8 +67,8 @@ template <size_t N> struct AudioMixer : BufferSource {
 
   /**
    * @brief Constructs an AudioMixer from individual source pointers.
-   * @tparam SourcePtrs The types of the source pointers (must be convertible to BufferSource*).
-   * @param source_ptrs A parameter pack of pointers to the BufferSource objects to mix.
+   * @tparam SourcePtrs The types of the source pointers (must be convertible to ::BufferSource*).
+   * @param source_ptrs A parameter pack of pointers to the ::BufferSource objects to mix.
    *                    The number of arguments must exactly match the template parameter N.
    *                    The mixer copies these pointers but does not take ownership.
    *                    Initial gain for all channels is set to 1.0 (256 in Q8.8 format).
@@ -75,7 +77,7 @@ template <size_t N> struct AudioMixer : BufferSource {
   AudioMixer(SourcePtrs... source_ptrs) : sources{source_ptrs...} {
     static_assert(sizeof...(SourcePtrs) == N,
                   "Number of sources provided must match template parameter N");
-    // Ensure all provided types are convertible to BufferSource* (compiler implicitly checks this
+    // Ensure all provided types are convertible to ::BufferSource* (compiler implicitly checks this
     // during array initialization)
     for (size_t i = 0; i < N; i++) {
       multipliers[i] = 256; // Default gain = 1.0 (Q8.8)
@@ -91,9 +93,9 @@ template <size_t N> struct AudioMixer : BufferSource {
    *
    * @param out_samples The AudioBlock to fill with the mixed audio data.
    */
-  void fill_buffer(AudioBlock &out_samples) override {
+  void fill_buffer(::AudioBlock &out_samples) override {
     // Declare a temporary buffer locally within the function scope.
-    AudioBlock temp_buffer;
+    ::AudioBlock temp_buffer;
 
     // Zero out the output buffer first
     for (size_t sample_index = 0; sample_index < out_samples.size(); ++sample_index) {
@@ -140,8 +142,10 @@ template <size_t N> struct AudioMixer : BufferSource {
   }
 
 private:
-  etl::array<BufferSource *, N> sources;
+  etl::array<::BufferSource *, N> sources;
   etl::array<int16_t, N> multipliers;
 };
+
+} // namespace musin::audio
 
 #endif

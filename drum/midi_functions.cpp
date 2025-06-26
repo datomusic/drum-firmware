@@ -62,11 +62,11 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   }
 
   // All other messages are assumed to be for our custom protocol.
-  printf("SysEx Custom: received %u bytes: ", (unsigned)length);
-  for (size_t i = 0; i < length; ++i) {
-    printf("%02X ", data[i]);
-  }
-  printf("\n");
+  // printf("SysEx Custom: received %u bytes: ", (unsigned)length);
+  // for (size_t i = 0; i < length; ++i) {
+  //   printf("%02X ", data[i]);
+  // }
+  // printf("\n");
 
   assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
   assert(file_received_callback_ptr != nullptr && "file_received_callback_ptr must be initialized");

@@ -107,22 +107,22 @@ activeMidiInput.on('message', (deltaTime, message) => {
         return;
       }
       const tag = message[5];
-      console.log(`Parsed SysEx message with tag: ${tag}`);
+      // console.log(`Parsed SysEx message with tag: ${tag}`);
 
       if (tag === ACK) {
-        console.log("Received ACK.");
+        // console.log("Received ACK.");
         if (ackPromise.resolve) {
           ackPromise.resolve();
           ackPromise = {};
         }
       } else if (tag === NACK) {
-        console.log("Received NACK.");
+        // console.log("Received NACK.");
         if (ackPromise.reject) {
           ackPromise.reject(new Error('Received NACK from device.'));
           ackPromise = {};
         }
       } else {
-        console.log("Received data reply.");
+        // console.log("Received data reply.");
         if (replyPromise.resolve) {
           replyPromise.resolve(message); // Resolve with the full message
           replyPromise = {};

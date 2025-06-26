@@ -125,11 +125,11 @@ void MIDI::sendPitchBend(const int bend, const byte channel) {
 }
 
 void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
-  printf("Enqueuing SysEx message (%u bytes): ", length);
-  for (unsigned i = 0; i < length; ++i) {
-    printf("%02X ", bytes[i]);
-  }
-  printf("\n");
+  // printf("Enqueuing SysEx message (%u bytes): ", length);
+  // for (unsigned i = 0; i < length; ++i) {
+  //   printf("%02X ", bytes[i]);
+  // }
+  // printf("\n");
   musin::midi::OutgoingMidiMessage msg(bytes, length);
   musin::midi::enqueue_midi_message(msg);
 }

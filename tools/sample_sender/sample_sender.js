@@ -116,7 +116,7 @@ async function send_file_content(data) {
       bytes = [];
 
       // Don't overload buffers of the DRUM
-      await sleepMs(3);
+      await sleepMs(4);
     }
   }
 

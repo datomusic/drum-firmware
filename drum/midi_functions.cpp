@@ -55,6 +55,7 @@ void midi_clock_input_callback();
 void handle_sysex(uint8_t *const data, const size_t length);
 
 void handle_sysex(uint8_t *const data, const size_t length) {
+  printf("handle_sysex: received %u bytes\n", (unsigned)length);
   // Check for Dato Manufacturer ID and DRUM Device ID for custom commands
   if (length > 3 && data[1] == SYSEX_DATO_ID && data[2] == SYSEX_DRUM_ID) {
     switch (data[3]) { // Check the command byte

@@ -10,6 +10,8 @@
 #include "./chunk.h"
 #include "./codec.h"
 
+#include <stdio.h>
+
 // TODO: Currently handles file streaming/writing, as well as sysex decoding.
 //       Processing of the byte stream can be offloaded to something external,
 //       which keeps this focused on the sysex transport layer, while dealing with
@@ -77,6 +79,7 @@ template <typename FileOperations> struct Protocol {
   template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
     // 6 bytes minimum: 3-byte manufacturer ID + 3 bytes for one encoded 16bit value (the tag).
     if (chunk.size() < 6) {
+      printf("SysEx: Error: Short message, size %u\n", (unsigned)chunk.size());
       return Result::ShortMessage;
     }
 
@@ -85,6 +88,7 @@ template <typename FileOperations> struct Protocol {
     // Check 3-byte manufacturer ID
     if ((*iterator++) != 0 || (*iterator++) != DatoId || (*iterator++) != DrumId) {
       // Not for us
+      printf("SysEx: Error: Invalid manufacturer ID\n");
       return Result::InvalidManufacturer;
     }
 
@@ -93,6 +97,7 @@ template <typename FileOperations> struct Protocol {
 
     // Check if we have at least one value for the tag
     if (value_count == 0) {
+      printf("SysEx: Error: No values decoded from message\n");
       send_reply(Tag::Nack);
       return Result::InvalidContent;
     }
@@ -145,8 +150,10 @@ private:
     switch (state) {
     case State::FileTransfer: {
       if (tag == EndFileTransfer) {
+        printf("SysEx: EndFileTransfer received\n");
         opened_file.reset();
         state = State::Idle;
+        printf("SysEx: Sending Ack for EndFileTransfer\n");
         send_reply(Tag::Ack);
         return Result::FileWritten;
       }
@@ -187,10 +194,12 @@ private:
           send_reply(Tag::Ack);
         } else {
           // TODO: Error: Expected file to be open.
+          printf("SysEx: Error: FileBytes received but no file open\n");
           send_reply(Tag::Nack);
         }
       } else {
         opened_file.reset();
+        printf("SysEx: Error: Unexpected tag %u in FileTransfer state\n", tag);
         send_reply(Tag::Nack);
         // TODO: Report error
       }
@@ -209,8 +218,10 @@ private:
         }
         // The path is already null-terminated due to zero-initialization.
 
+        printf("SysEx: BeginFileWrite received for path: %s\n", path);
         opened_file.emplace(file_ops, path);
         state = State::FileTransfer;
+        printf("SysEx: Sending Ack for BeginFileWrite\n");
         send_reply(Tag::Ack);
       } break;
       case EndFileTransfer: {

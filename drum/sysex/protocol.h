@@ -134,19 +134,21 @@ template <typename FileOperations> struct Protocol {
     Values::const_iterator values_end = value_iterator + value_count;
     const uint16_t tag = (*value_iterator++);
 
-    const auto maybe_result = handle_no_body(tag, send_reply);
-    if (maybe_result.has_value()) {
-      return *maybe_result;
-    }
-
+    // Dispatch based on whether the command has a body or not.
     if (value_iterator != values_end) {
-      handle_packet(tag, value_iterator, values_end, send_reply);
+      // Command has a body.
+      return handle_packet(tag, value_iterator, values_end, send_reply);
     } else {
-      send_reply(Tag::Nack);
-      return Result::InvalidContent;
+      // Command has no body.
+      const auto maybe_result = handle_no_body(tag, send_reply);
+      if (maybe_result.has_value()) {
+        return *maybe_result;
+      } else {
+        printf("SysEx: Error: Unknown command with no body. Tag: %u\n", tag);
+        send_reply(Tag::Nack);
+        return Result::InvalidContent;
+      }
     }
-
-    return Result::OK;
   }
 
   constexpr bool busy() {
@@ -255,8 +257,8 @@ private:
   }
 
   template <typename Sender>
-  constexpr void handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
-                               const Values::const_iterator values_end, Sender send_reply) {
+  constexpr Result handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
+                                 const Values::const_iterator values_end, Sender send_reply) {
     etl::array<uint8_t, FileOperations::BlockSize> byte_array;
     auto byte_iterator = byte_array.begin();
     size_t byte_count = 0;
@@ -281,31 +283,27 @@ private:
 
           opened_file->write(bytes);
           send_reply(Tag::Ack);
+          return Result::OK;
         } else {
-          // TODO: Error: Expected file to be open.
           printf("SysEx: Error: FileBytes received but no file open\n");
           send_reply(Tag::Nack);
+          return Result::FileError;
         }
       } else {
         opened_file.reset();
         printf("SysEx: Error: Unexpected tag %u in FileTransfer state\n", tag);
         send_reply(Tag::Nack);
-        // TODO: Report error
+        return Result::InvalidContent;
       }
     } break;
     default:
       switch (tag) {
       case BeginFileWrite: {
-        // TODO: Error if file is already open, maybe?
-
-        // TODO: Convert bytes into ASCII string in nicer way.
-        //       This is a workaround, since etl::string is not constexpr.
         char path[MaxFilenameLength] = {0}; // Zero-initialize the buffer
         const auto path_length = std::min((size_t)MaxFilenameLength - 1, bytes.size());
         for (unsigned i = 0; i < path_length; ++i) {
           path[i] = bytes[i];
         }
-        // The path is already null-terminated due to zero-initialization.
 
         printf("SysEx: BeginFileWrite received for path: %s\n", path);
         opened_file.emplace(file_ops, path);
@@ -313,19 +311,19 @@ private:
           state = State::FileTransfer;
           printf("SysEx: Sending Ack for BeginFileWrite\n");
           send_reply(Tag::Ack);
+          return Result::OK;
         } else {
           opened_file.reset();
           state = State::Idle;
           printf("SysEx: Error: Failed to open file for writing\n");
           send_reply(Tag::Nack);
+          return Result::FileError;
         }
       } break;
-      case EndFileTransfer: {
-        // Destroyng the file handle should close the file.
-        opened_file.reset();
-        state = State::Idle;
-        send_reply(Tag::Ack);
-      } break;
+      default:
+        printf("SysEx: Error: Unknown tag %u with body in Idle state\n", tag);
+        send_reply(Tag::Nack);
+        return Result::InvalidContent;
       }
     }
   };

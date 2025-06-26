@@ -26,6 +26,11 @@
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
+// SysEx File Transfer
+static StandardFileOps file_ops;
+static sysex::Protocol<StandardFileOps> syx_protocol(file_ops);
+static bool new_file_received = false;
+
 // Model
 static drum::ConfigurationManager config_manager;
 static drum::SampleRepository sample_repository;

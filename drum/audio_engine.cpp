@@ -96,6 +96,7 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
   // Load the sample from the file path.
   if (!voice.reader->load(*path_opt)) {
     // Failed to load the file (e.g., file not found, corrupted).
+    printf("ERROR: Failed to load sample from %s\n", path_opt->data());
     // The reader is now in a safe state (SourceType::NONE).
     return;
   }

@@ -29,7 +29,7 @@ private:
    * @brief Internal structure representing a single audio voice.
    */
   struct Voice {
-    etl::optional<musin::AttackBufferingSampleReader<>> reader; // Use default template arg
+    etl::optional<musin::audio::AttackBufferingSampleReader<>> reader; // Use default template arg
     Sound sound;
     float current_pitch = 1.0f;
 
@@ -128,10 +128,10 @@ private:
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 
-  AudioMixer<NUM_VOICES> mixer_;
-  Crusher crusher_;
+  musin::audio::AudioMixer<NUM_VOICES> mixer_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
+  musin::audio::Crusher crusher_;
 
   // profiler_ member is removed, ProfileSection enum remains for use with the global profiler
   enum class ProfileSection {

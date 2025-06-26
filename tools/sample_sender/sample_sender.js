@@ -60,8 +60,8 @@ function send_drum_message(tag, body) {
   }
 }
 
-function begin_file_transfer(file_name) {
-  console.log("begin_file_transfer");
+function begin_file_transfer(source_path, file_name) {
+  console.log(`Copying ${source_path} to ${file_name}`);
   const encoded = new TextEncoder().encode(file_name);
 
   var bytes = [];
@@ -158,7 +158,7 @@ if (!fs.existsSync(source_path)) {
   process.exit(1);
 }
 
-begin_file_transfer(sample_filename);
+begin_file_transfer(source_path, sample_filename);
 
 // const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
 const data = fs.readFileSync(source_path);

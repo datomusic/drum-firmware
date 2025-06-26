@@ -153,6 +153,11 @@ async function end_file_transfer() {
   await send_drum_message_and_wait(0x12, []);
 }
 
+async function format_filesystem() {
+  console.log("Sending command to format filesystem...");
+  await send_drum_message_and_wait(0x15, []);
+}
+
 function pack3_16(value) {
   return [
       (value >> 14) & 0x7F,
@@ -207,32 +212,43 @@ function pcm_from_wav(path) {
 }
 
 
-const source_path = process.argv[2]
-const sample_filename = process.argv[3]
+const command = process.argv[2];
+const source_path = process.argv[3];
+const sample_filename = process.argv[4];
 
-if (!sample_filename) {
-}
-
-if (!sample_filename || !source_path) {
-  console.log("Error: Supply source file path as first argument and target on-device filename as second argument.");
-  process.exit(1);
-}
-
-if (!fs.existsSync(source_path)) {
-  console.error(`Error: Source file not found at '${source_path}'`);
+if (!command) {
+  console.log("Error: Please specify a command: 'send' or 'format'.");
+  console.log("Usage:");
+  console.log("  tools/sample_sender/sample_sender.js send <source_path> <target_filename>");
+  console.log("  tools/sample_sender/sample_sender.js format");
   process.exit(1);
 }
 
 async function main() {
   try {
-    await begin_file_transfer(source_path, sample_filename);
+    if (command === 'format') {
+      await format_filesystem();
+      console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
+    } else if (command === 'send') {
+      if (!sample_filename || !source_path) {
+        console.log("Error: 'send' command requires a source path and target filename.");
+        console.log("Usage: tools/sample_sender/sample_sender.js send <source_path> <target_filename>");
+        process.exit(1);
+      }
+      if (!fs.existsSync(source_path)) {
+        console.error(`Error: Source file not found at '${source_path}'`);
+        process.exit(1);
+      }
 
-    // const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
-    const data = fs.readFileSync(source_path);
-
-    await send_file_content(data);
-    await end_file_transfer();
-    console.log("Successfully transferred file.");
+      await begin_file_transfer(source_path, sample_filename);
+      const data = fs.readFileSync(source_path);
+      await send_file_content(data);
+      await end_file_transfer();
+      console.log("Successfully transferred file.");
+    } else {
+      console.log(`Error: Unknown command '${command}'. Use 'send' or 'format'.`);
+      process.exit(1);
+    }
   } catch (e) {
     // Error is already logged by the function that threw it.
     // Just ensure we exit with an error code.

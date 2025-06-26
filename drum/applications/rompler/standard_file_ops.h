@@ -5,6 +5,7 @@
 
 #include "etl/span.h"
 #include "etl/string_view.h"
+#include "musin/filesystem/filesystem.h"
 
 struct StandardFileOps {
   static const unsigned BlockSize = 256;
@@ -60,6 +61,18 @@ struct StandardFileOps {
     // const char *path = "/tmp_sample";
     printf("Opening new file: %s\n", path.data());
     return Handle(path);
+  }
+
+  bool format() {
+    printf("Formatting filesystem...\n");
+    // This will re-initialize the filesystem, which includes formatting if the flag is true.
+    bool success = musin::filesystem::init(true);
+    if (success) {
+      printf("Filesystem formatted successfully.\n");
+    } else {
+      printf("ERROR: Filesystem formatting failed.\n");
+    }
+    return success;
   }
 };
 

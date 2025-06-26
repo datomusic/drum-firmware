@@ -62,6 +62,7 @@ template <typename FileOperations> struct Protocol {
     EndFileTransfer = 0x12,
     Ack = 0x13,
     Nack = 0x14,
+    FormatFilesystem = 0x15,
   };
 
   // TODO: Clean up results to separate successes and errors.
@@ -158,6 +159,16 @@ private:
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {
     switch (state) {
+    case State::Idle:
+      if (tag == Tag::FormatFilesystem) {
+        if (file_ops.format()) {
+          send_reply(Tag::Ack);
+        } else {
+          send_reply(Tag::Nack);
+        }
+        return Result::OK;
+      }
+      break;
     case State::FileTransfer: {
       if (tag == EndFileTransfer) {
         printf("SysEx: EndFileTransfer received\n");

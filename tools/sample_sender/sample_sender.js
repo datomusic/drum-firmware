@@ -82,7 +82,7 @@ function begin_file_transfer(file_name) {
 }
 
 function end_file_transfer() {
-  console.log("end_file_transfer\n");
+  console.log("File transfer complete\n");
   send_drum_message(0x12, []);
 }
 
@@ -97,7 +97,6 @@ function pack3_16(value) {
 const sleepMs = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 async function send_file_content(data) {
-  console.log("send_file_content");
   console.log("File data length: ", data.length);
 
   var bytes = [];

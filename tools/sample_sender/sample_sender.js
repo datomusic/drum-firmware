@@ -3,63 +3,134 @@ const midi = require('midi');
 const fs = require('fs');
 const wavefile = require('wavefile');
 
-function find_dato_drum(){
+function find_dato_drum() {
   const output = new midi.Output();
-  const count = output.getPortCount();
+  const input = new midi.Input();
+  const outPortCount = output.getPortCount();
+  const inPortCount = input.getPortCount();
   const validPortNames = ["Pico", "DRUM"]; // Array of valid port name substrings
 
-  for (var i=0;i<count;++i) {
-    const portName = output.getPortName(i);
-    for (const validName of validPortNames) {
-      if (portName.includes(validName)) {
-        try {
-          output.openPort(i);
-          console.log(`Opened MIDI port: ${portName}`);
-        return output;
-      } catch (e) {
-        console.error(`Error opening MIDI port ${output.getPortName(i)}: ${e.message}`);
-        // Continue searching for other ports
-      }
-    } // Closes: if (portName.includes(validName))
-  } // Closes: for (const validName of validPortNames)
-} // Closes: for (var i=0;i<count;++i)
+  let outPort = -1;
+  let inPort = -1;
+  let portName = "";
 
-  console.error(`No suitable MIDI output port found containing any of: ${validPortNames.join(", ")}.`);
-  if (count > 0) {
-    console.log("Available MIDI output ports:");
-    for (var i = 0; i < count; ++i) {
-      console.log(`  ${i}: ${output.getPortName(i)}`);
+  // Find the first available output port that matches our device names
+  for (let i = 0; i < outPortCount; i++) {
+    const currentPortName = output.getPortName(i);
+    if (validPortNames.some(name => currentPortName.includes(name))) {
+      outPort = i;
+      portName = currentPortName;
+      break;
     }
-  } else {
-    console.log("No MIDI output ports found.");
   }
-  console.error("Please ensure your Dato DRUM device is connected and not in use by another application.");
-  return null;
+
+  if (outPort === -1) {
+    console.error(`No suitable MIDI output port found containing any of: ${validPortNames.join(", ")}.`);
+    if (outPortCount > 0) {
+      console.log("Available MIDI output ports:");
+      for (let i = 0; i < outPortCount; ++i) {
+        console.log(`  ${i}: ${output.getPortName(i)}`);
+      }
+    } else {
+      console.log("No MIDI output ports found.");
+    }
+    console.error("Please ensure your Dato DRUM device is connected and not in use by another application.");
+    return null;
+  }
+
+  // Find the matching input port
+  for (let i = 0; i < inPortCount; i++) {
+    if (input.getPortName(i).includes(portName)) {
+      inPort = i;
+      break;
+    }
+  }
+
+  if (inPort === -1) {
+    console.error(`Found MIDI output "${portName}", but no matching input port could be found.`);
+    if (inPortCount > 0) {
+      console.log("Available MIDI input ports:");
+      for (let i = 0; i < inPortCount; ++i) {
+        console.log(`  ${i}: ${input.getPortName(i)}`);
+      }
+    } else {
+      console.log("No MIDI input ports found.");
+    }
+    return null;
+  }
+
+  try {
+    output.openPort(outPort);
+    input.openPort(inPort);
+    console.log(`Opened MIDI ports: ${portName}`);
+    return { output, input };
+  } catch (e) {
+    console.error(`Error opening MIDI ports for ${portName}: ${e.message}`);
+    return null;
+  }
 }
 
+const midi_ports = find_dato_drum();
 
-const activeMidiOutput = find_dato_drum();
-
-if (!activeMidiOutput) {
-  console.error("Failed to initialize MIDI output. Exiting.");
+if (!midi_ports) {
+  console.error("Failed to initialize MIDI. Exiting.");
   process.exit(1);
 }
 
+const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
 
-function send_drum_message(tag, body) {
+// --- ACK/NACK Handling ---
+const ACK = 0x13;
+const NACK = 0x14;
+let ackPromise = {};
+
+activeMidiInput.on('message', (deltaTime, message) => {
+  // SysEx message: F0 ... F7
+  if (message[0] === 0xF0 && message[message.length - 1] === 0xF7) {
+    // Check for our manufacturer ID and device ID
+    if (message[1] === 0 && message[2] === 0x7D && message[3] === 0x65) {
+      const tag = message[4];
+      if (tag === ACK) {
+        if (ackPromise.resolve) ackPromise.resolve();
+        ackPromise = {};
+      } else if (tag === NACK) {
+        if (ackPromise.reject) ackPromise.reject(new Error('Received NACK from device.'));
+        ackPromise = {};
+      }
+    }
+  }
+});
+
+function waitForAck(timeout = 2000) {
+  return new Promise((resolve, reject) => {
+    ackPromise = { resolve, reject };
+    setTimeout(() => {
+      if (ackPromise.reject) {
+        ackPromise.reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
+        ackPromise = {};
+      }
+    }, timeout);
+  });
+}
+
+async function send_drum_message_and_wait(tag, body) {
+  const message = [0xF0].concat(
+    [0, 0x7D, 0x65], // Manufacturer ID
+    [0, 0, tag],
+    body,
+    [0xF7]
+  );
   try {
-    activeMidiOutput.sendMessage([0xF0].concat(
-      [0, 0x7D, 0x65], // Manufacturer ID
-      [0, 0, tag],
-      body,
-      [0xF7]));
+    activeMidiOutput.sendMessage(message);
+    await waitForAck();
   } catch (e) {
-    console.error(`Error sending MIDI message: ${e.message}`);
-    // Depending on the severity, you might want to re-throw or exit
+    console.error(`Error sending MIDI message or waiting for ACK: ${e.message}`);
+    // Re-throw to be caught by the main execution block
+    throw e;
   }
 }
 
-function begin_file_transfer(source_path, file_name) {
+async function begin_file_transfer(source_path, file_name) {
   console.log(`Copying ${source_path} to ${file_name}`);
   const encoded = new TextEncoder().encode(file_name);
 
@@ -77,12 +148,12 @@ function begin_file_transfer(source_path, file_name) {
     bytes = bytes.concat(pack3_16(encoded[encoded.length - 1] << 8));
   }
 
-  send_drum_message(0x10, bytes);
+  await send_drum_message_and_wait(0x10, bytes);
 }
 
-function end_file_transfer() {
+async function end_file_transfer() {
   console.log("File transfer complete\n");
-  send_drum_message(0x12, []);
+  await send_drum_message_and_wait(0x12, []);
 }
 
 function pack3_16(value) {

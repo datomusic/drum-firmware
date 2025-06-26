@@ -112,7 +112,7 @@ async function send_file_content(data) {
 
     // Stay below the max SysEx message length, leaving space for header.
     if (bytes.length >= 100) {
-      console.log("Sending chunk " + chunk_counter);
+      process.stdout.write(`Sending chunk ${chunk_counter}\r`);
       chunk_counter++;
       send_drum_message(0x11, bytes);
       bytes = [];
@@ -121,6 +121,9 @@ async function send_file_content(data) {
       await sleepMs(5);
     }
   }
+
+  // Print a final newline to move off the counter line
+  process.stdout.write('\n');
 
   // Send any remaining bytes that didn't fill a full chunk
   if (bytes.length > 0) {

@@ -62,6 +62,8 @@ function find_dato_drum() {
   try {
     output.openPort(outPort);
     input.openPort(inPort);
+    // Do not ignore sysex, timing, or active sensing messages.
+    input.ignoreTypes(false, false, false);
     console.log(`Opened MIDI ports: ${portName}`);
     return { output, input };
   } catch (e) {

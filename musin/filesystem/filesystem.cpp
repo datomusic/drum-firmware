@@ -7,7 +7,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/dirent.h>
+#include <dirent.h>
 }
 
 namespace musin::filesystem {

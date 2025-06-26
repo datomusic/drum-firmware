@@ -20,6 +20,7 @@ struct SampleConfig {
   etl::string<SampleRepository::MAX_PATH_LENGTH> path;
   uint8_t note;
   uint8_t track;
+  uint32_t color;
 };
 
 /**

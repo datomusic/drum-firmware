@@ -5,193 +5,225 @@
       "slot": 0,
       "path": "/Kick_C78.pcm",
       "note": 35,
-      "track": 0
+      "track": 0,
+      "color": 16711680
     },
     {
       "slot": 1,
       "path": "/skkick.pcm",
       "note": 36,
-      "track": 0
+      "track": 0,
+      "color": 16711712
     },
     {
       "slot": 2,
       "path": "/JR_SDD_KICK_1_1.pcm",
       "note": 37,
-      "track": 0
+      "track": 0,
+      "color": 16711744
     },
     {
       "slot": 3,
       "path": "/nes_13_01.pcm",
       "note": 41,
-      "track": 0
+      "track": 0,
+      "color": 16711776
     },
     {
       "slot": 4,
       "path": "/26887__vexst__kick_3_1.pcm",
       "note": 43,
-      "track": 0
+      "track": 0,
+      "color": 16715792
     },
     {
       "slot": 5,
       "path": "/006.pcm",
       "note": 47,
-      "track": 0
+      "track": 0,
+      "color": 16715808
     },
     {
       "slot": 6,
       "path": "/duo_kick_01.pcm",
       "note": 48,
-      "track": 0
+      "track": 0,
+      "color": 16719936
     },
     {
       "slot": 7,
       "path": "/Kick_909_23.pcm",
       "note": 50,
-      "track": 0
+      "track": 0,
+      "color": 16720096
     },
     {
       "slot": 8,
       "path": "/JR_SDD_SNARE_10.pcm",
       "note": 38,
-      "track": 1
+      "track": 1,
+      "color": 255
     },
     {
       "slot": 9,
       "path": "/sksnare.pcm",
       "note": 40,
-      "track": 1
+      "track": 1,
+      "color": 10495
     },
     {
       "slot": 10,
       "path": "/Snare_C78_with_silence.pcm",
       "note": 39,
-      "track": 1
+      "track": 1,
+      "color": 20735
     },
     {
       "slot": 11,
       "path": "/nes_09_01.pcm",
       "note": 54,
-      "track": 1
+      "track": 1,
+      "color": 30975
     },
     {
       "slot": 12,
       "path": "/26901__vexst__snare_2_1.pcm",
       "note": 56,
-      "track": 1
+      "track": 1,
+      "color": 1052927
     },
     {
       "slot": 13,
       "path": "/015.pcm",
       "note": 75,
-      "track": 1
+      "track": 1,
+      "color": 1059071
     },
     {
       "slot": 14,
       "path": "/FR_BB_Sarik_Snare_004_1.pcm",
       "note": 76,
-      "track": 1
+      "track": 1,
+      "color": 2117887
     },
     {
       "slot": 15,
       "path": "/Snare_909_3.pcm",
       "note": 77,
-      "track": 1
+      "track": 1,
+      "color": 3176695
     },
     {
       "slot": 16,
       "path": "/DR110_clap.pcm",
       "note": 45,
-      "track": 2
+      "track": 2,
+      "color": 65280
     },
     {
       "slot": 17,
       "path": "/cowbell_hi.pcm",
       "note": 58,
-      "track": 2
+      "track": 2,
+      "color": 65310
     },
     {
       "slot": 18,
       "path": "/JR_SDD_SNARE_RIM_1.pcm",
       "note": 59,
-      "track": 2
+      "track": 2,
+      "color": 65340
     },
     {
       "slot": 19,
       "path": "/DR55RIM.pcm",
       "note": 60,
-      "track": 2
+      "track": 2,
+      "color": 65370
     },
     {
       "slot": 20,
       "path": "/Zap_2.pcm",
       "note": 61,
-      "track": 2
+      "track": 2,
+      "color": 1113872
     },
     {
       "slot": 21,
       "path": "/Finger_Snap.pcm",
       "note": 62,
-      "track": 2
+      "track": 2,
+      "color": 1113886
     },
     {
       "slot": 22,
       "path": "/44_Analog_Cowbell.pcm",
       "note": 63,
-      "track": 2
+      "track": 2,
+      "color": 1113916
     },
     {
       "slot": 23,
       "path": "/vocal_3.pcm",
       "note": 64,
-      "track": 2
+      "track": 2,
+      "color": 2162522
     },
     {
       "slot": 24,
       "path": "/JR_SDD_HAT_A1_mono.pcm",
       "note": 42,
-      "track": 3
+      "track": 3,
+      "color": 16776960
     },
     {
       "slot": 25,
       "path": "/skclhat.pcm",
       "note": 44,
-      "track": 3
+      "track": 3,
+      "color": 16769280
     },
     {
       "slot": 26,
       "path": "/DR55HAT.pcm",
       "note": 46,
-      "track": 3
+      "track": 3,
+      "color": 16761600
     },
     {
       "slot": 27,
       "path": "/nes_09_01.pcm",
       "note": 49,
-      "track": 3
+      "track": 3,
+      "color": 16753920
     },
     {
       "slot": 28,
       "path": "/26880__vexst__closed_hi_hat_2_1.pcm",
       "note": 51,
-      "track": 3
+      "track": 3,
+      "color": 16777008
     },
     {
       "slot": 29,
       "path": "/duo_hat_01.pcm",
       "note": 52,
-      "track": 3
+      "track": 3,
+      "color": 16769312
     },
     {
       "slot": 30,
       "path": "/FR_BB_Sarik_HHat_010_1.pcm",
       "note": 53,
-      "track": 3
+      "track": 3,
+      "color": 16761632
     },
     {
       "slot": 31,
       "path": "/ClosedHH_909X_2.pcm",
       "note": 57,
-      "track": 3
+      "track": 3,
+      "color": 16753952
     }
   ]
 }

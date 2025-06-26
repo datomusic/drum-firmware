@@ -109,6 +109,8 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
         current_config.note = atoi(json + val->start);
       } else if (json_string_equals(json, key, "track")) {
         current_config.track = atoi(json + val->start);
+      } else if (json_string_equals(json, key, "color")) {
+        current_config.color = strtol(json + val->start, nullptr, 10);
       }
       token_idx += 2; // Move to next key-value pair
     }
@@ -116,8 +118,9 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
     if (slot_found) {
       if (!sample_configs_.full()) {
         sample_configs_.push_back(current_config);
-        printf("  - Parsed sample: slot=%d, path=%s, note=%d, track=%d\n", current_config.slot,
-               current_config.path.c_str(), current_config.note, current_config.track);
+        printf("  - Parsed sample: slot=%d, path=%s, note=%d, track=%d, color=%lu\n",
+               current_config.slot, current_config.path.c_str(), current_config.note,
+               current_config.track, current_config.color);
       } else {
         printf("WARNING: Max samples reached, skipping remaining entries.\n");
         break;

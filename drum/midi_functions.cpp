@@ -86,7 +86,8 @@ void handle_sysex(uint8_t *const data, const size_t length) {
   assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
   assert(file_received_callback_ptr != nullptr && "file_received_callback_ptr must be initialized");
 
-  sysex::Chunk chunk(data, length);
+  // The sysex protocol handler expects the payload without the 0xF0/0xF7 framing bytes.
+  sysex::Chunk chunk(data + 1, length - 2);
 
   // Define a sender lambda for ACK/NACK replies
   auto sender = [](sysex::Protocol<StandardFileOps>::Tag tag) {

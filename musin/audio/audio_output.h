@@ -12,10 +12,17 @@ static const int SAMPLE_FREQUENCY = 44100;
 
 /**
  * @brief Initializes the audio output system (I2S and Codec).
- * @param codec A reference to an initialized AIC3204 codec driver.
+ *
+ * This function must be called before any other audio functions. It configures the
+ * I2S interface and initializes the AIC3204 audio codec.
+ *
+ * @param sda_pin The GPIO pin for I2C SDA.
+ * @param scl_pin The GPIO pin for I2C SCL.
+ * @param i2c_frequency The I2C bus speed in Hz.
+ * @param reset_pin The GPIO pin for the codec's reset line.
  * @return true on success, false on failure.
  */
-bool init(musin::drivers::Aic3204 &codec);
+bool init(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency, uint8_t reset_pin);
 
 /**
  * @brief Fetches a block of audio from the source and sends it to the output.

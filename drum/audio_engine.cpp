@@ -43,10 +43,8 @@ float map_value_filter_fast(float normalized_value) {
 AudioEngine::Voice::Voice() : sound(reader.emplace()) { // reader is default constructed here
 }
 
-AudioEngine::AudioEngine(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency,
-                         uint8_t reset_pin)
-    : codec_(sda_pin, scl_pin, i2c_frequency, reset_pin),
-      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
+AudioEngine::AudioEngine()
+    : voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_), highpass_(lowpass_) {
   lowpass_.filter.frequency(20000.0f);
   lowpass_.filter.resonance(1.0f);
@@ -60,16 +58,13 @@ AudioEngine::AudioEngine(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequenc
   }
 }
 
-bool AudioEngine::init() {
+bool AudioEngine::init(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency,
+                       uint8_t reset_pin) {
   if (is_initialized_) {
     return true;
   }
 
-  if (!codec_.is_initialized()) {
-    return false;
-  }
-
-  if (!AudioOutput::init(codec_)) {
+  if (!AudioOutput::init(sda_pin, scl_pin, i2c_frequency, reset_pin)) {
     return false;
   }
   is_initialized_ = true;
@@ -77,7 +72,6 @@ bool AudioEngine::init() {
 }
 
 void AudioEngine::process() {
-
   AudioOutput::update(highpass_);
 }
 
@@ -160,10 +154,4 @@ void AudioEngine::notification(drum::Events::NoteEvent event) {
   play_on_voice(event.track_index, event.note, event.velocity);
 }
 
-void AudioEngine::update_headphone_detection() {
-  if (time_reached(last_headphone_check_)) {
-    last_headphone_check_ = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
-    codec_.update_headphone_detection();
-  }
-}
 } // namespace drum

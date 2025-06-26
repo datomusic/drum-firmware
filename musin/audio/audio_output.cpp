@@ -11,7 +11,18 @@
 
 #ifdef DATO_SUBMARINE
 #include "musin/drivers/aic3204.hpp"
-static musin::drivers::Aic3204 *codec_ptr = nullptr;
+#include "pico/time.h"
+#include <etl/optional.h>
+
+namespace {
+// Encapsulate codec within this translation unit
+etl::optional<musin::drivers::Aic3204> codec;
+
+// Headphone jack detection state
+constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
+absolute_time_t last_headphone_check = nil_time;
+
+} // namespace
 #endif
 
 static audio_buffer_pool_t *producer_pool;
@@ -33,11 +44,17 @@ struct audio_i2s_config i2s_config = {
     .pio_sm = 0,
 };
 
-bool AudioOutput::init(musin::drivers::Aic3204 &codec) {
+bool AudioOutput::init(uint8_t sda_pin, uint8_t scl_pin, uint32_t i2c_frequency,
+                       uint8_t reset_pin) {
 #ifdef DATO_SUBMARINE
-  codec_ptr = &codec;
+  codec.emplace(sda_pin, scl_pin, i2c_frequency, reset_pin);
+
+  if (!codec->is_initialized()) {
+    return false; // Codec failed to initialize
+  }
+
   // Set initial volume to 0dB (max)
-  codec_ptr->set_dac_volume(0);
+  codec->set_dac_volume(0);
 #endif
 
   audio_format.sample_freq = SAMPLE_FREQUENCY;
@@ -70,7 +87,9 @@ bool AudioOutput::init(musin::drivers::Aic3204 &codec) {
 
 void AudioOutput::deinit() {
 #ifdef DATO_SUBMARINE
-  codec_ptr = nullptr;
+  if (codec) {
+    codec.reset();
+  }
 #endif
   running = false;
 
@@ -92,7 +111,7 @@ void AudioOutput::deinit() {
 
 bool AudioOutput::volume(float volume) {
 #ifdef DATO_SUBMARINE
-  if (!codec_ptr) {
+  if (!codec) {
     return false;
   }
 
@@ -129,14 +148,14 @@ bool AudioOutput::volume(float volume) {
     int32_t mapped_dac_value = ((curved_volume - 31) * 63) / (1024 - 31);
     dac_register_value = static_cast<int8_t>(mapped_dac_value - 63);
   }
-  bool dac_ok = codec_ptr->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
+  bool dac_ok = codec->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
 
   // --- Mixer Volume (Input Stage) ---
   // Map curved volume [0, 1024] to Mixer register value [-40, 0]
   int32_t mapped_mixer_value = (curved_volume * 40) / 1024;
   int8_t mixer_register_value = static_cast<int8_t>(mapped_mixer_value - 40);
   bool mixer_ok =
-      codec_ptr->set_mixer_volume(mixer_register_value) == musin::drivers::Aic3204Status::OK;
+      codec->set_mixer_volume(mixer_register_value) == musin::drivers::Aic3204Status::OK;
 
   return dac_ok && mixer_ok;
 #else
@@ -148,6 +167,13 @@ bool AudioOutput::volume(float volume) {
 }
 
 bool AudioOutput::update(BufferSource &source) {
+#ifdef DATO_SUBMARINE
+  if (codec && time_reached(last_headphone_check)) {
+    last_headphone_check = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
+    codec->update_headphone_detection();
+  }
+#endif
+
   if (running) {
     audio_buffer_t *buffer = take_audio_buffer(producer_pool, false);
     if (buffer != nullptr) {

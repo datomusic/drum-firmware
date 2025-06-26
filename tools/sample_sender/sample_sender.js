@@ -84,9 +84,11 @@ const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
 const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
 
 // --- ACK/NACK Handling ---
+const REQUEST_FIRMWARE_VERSION = 0x01;
 const ACK = 0x13;
 const NACK = 0x14;
 let ackPromise = {};
+let replyPromise = {};
 
 activeMidiInput.on('message', (deltaTime, message) => {
   // SysEx message: F0 ... F7
@@ -104,6 +106,12 @@ activeMidiInput.on('message', (deltaTime, message) => {
       } else if (tag === NACK) {
         if (ackPromise.reject) ackPromise.reject(new Error('Received NACK from device.'));
         ackPromise = {};
+      } else {
+        // This is a data reply, not an ACK/NACK
+        if (replyPromise.resolve) {
+          replyPromise.resolve(message); // Resolve with the full message
+          replyPromise = {};
+        }
       }
     }
   }
@@ -116,6 +124,18 @@ function waitForAck(timeout = 2000) {
       if (ackPromise.reject) {
         ackPromise.reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
         ackPromise = {};
+      }
+    }, timeout);
+  });
+}
+
+function waitForReply(timeout = 2000) {
+  return new Promise((resolve, reject) => {
+    replyPromise = { resolve, reject };
+    setTimeout(() => {
+      if (replyPromise.reject) {
+        replyPromise.reject(new Error(`Timeout waiting for reply after ${timeout}ms.`));
+        replyPromise = {};
       }
     }, timeout);
   });
@@ -168,6 +188,34 @@ async function end_file_transfer() {
 async function format_filesystem() {
   console.log("Sending command to format filesystem...");
   await send_drum_message_and_wait(0x15, []);
+}
+
+async function get_firmware_version() {
+  console.log("Querying device firmware version...");
+  const tag = REQUEST_FIRMWARE_VERSION;
+  const message = [0xF0].concat(
+    SYSEX_MANUFACTURER_ID,
+    [SYSEX_DEVICE_ID],
+    [0, 0, tag], // Encoded tag
+    [0xF7]
+  );
+  try {
+    activeMidiOutput.sendMessage(message);
+    const reply = await waitForReply();
+    // The reply for a version request has the version tag and data
+    if (reply[5] === REQUEST_FIRMWARE_VERSION) {
+      const major = reply[6];
+      const minor = reply[7];
+      const patch = reply[8];
+      console.log(`Device firmware version: v${major}.${minor}.${patch}`);
+    } else {
+      // Unexpected reply
+      throw new Error(`Unexpected reply received. Tag: ${reply[5]}`);
+    }
+  } catch (e) {
+    console.error(`Error requesting firmware version: ${e.message}`);
+    throw e;
+  }
 }
 
 function pack3_16(value) {
@@ -238,6 +286,8 @@ if (!command) {
 
 async function main() {
   try {
+    await get_firmware_version();
+
     if (command === 'format') {
       await format_filesystem();
       console.log("Successfully sent format command. The device will now re-initialize its filesystem.");

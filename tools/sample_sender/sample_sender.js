@@ -152,7 +152,6 @@ async function begin_file_transfer(source_path, file_name) {
 }
 
 async function end_file_transfer() {
-  console.log("File transfer complete\n");
   await send_drum_message_and_wait(0x12, []);
 }
 
@@ -168,7 +167,7 @@ async function send_file_content(data) {
   console.log("File data length: ", data.length);
 
   var bytes = [];
-  var chunk_counter = 0;
+  const total_bytes = data.length;
 
   for (var i = 0; i < data.length; i += 2) {
     // Pack two bytes into a 16bit value, and then into 3 sysex bytes.
@@ -179,21 +178,26 @@ async function send_file_content(data) {
 
     // Stay below the max SysEx message length, leaving space for header.
     if (bytes.length >= 100) {
-      process.stdout.write(`Sending chunk ${chunk_counter}\r`);
-      chunk_counter++;
+      const percentage = Math.round(((i + 2) / total_bytes) * 100);
+      const bar_length = 40;
+      const filled_length = Math.round(bar_length * (percentage / 100));
+      const bar = '█'.repeat(filled_length) + '░'.repeat(bar_length - filled_length);
+      process.stdout.write(`Sending: ${percentage}% |${bar}| \r`);
+
       await send_drum_message_and_wait(0x11, bytes);
       bytes = [];
     }
   }
 
-  // Print a final newline to move off the counter line
-  process.stdout.write('\n');
-
   // Send any remaining bytes that didn't fill a full chunk
   if (bytes.length > 0) {
-    console.log("Sending final chunk");
     await send_drum_message_and_wait(0x11, bytes);
   }
+
+  // Finalize progress bar at 100%
+  const bar_length = 40;
+  const bar = '█'.repeat(bar_length);
+  process.stdout.write(`Sending: 100% |${bar}| \n`);
 }
 
 

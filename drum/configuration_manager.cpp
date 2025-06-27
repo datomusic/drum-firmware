@@ -61,9 +61,9 @@ bool ConfigurationManager::parse_json_buffer(etl::string_view buffer) {
   // Find the 'samples' key
   for (int i = 1; i < r; i++) {
     if (tokens[i].type == JSMN_STRING &&
-        json_string_equals({buffer.data() + tokens[i].start,
-                            static_cast<size_t>(tokens[i].end - tokens[i].start)},
-                           "samples")) {
+        json_string_equals(
+            {buffer.data() + tokens[i].start, static_cast<size_t>(tokens[i].end - tokens[i].start)},
+            "samples")) {
       if (tokens[i + 1].type == JSMN_ARRAY) {
         if (!parse_samples(buffer, &tokens[i + 1], r - (i + 1))) {
           return false; // Error parsing samples array

@@ -178,7 +178,11 @@ private:
   State state = State::Idle;
   etl::optional<File> opened_file;
 
-  enum class SanitizeResult { Success, PathTooLong, InvalidCharacter };
+  enum class SanitizeResult {
+    Success,
+    PathTooLong,
+    InvalidCharacter
+  };
 
   static constexpr SanitizeResult sanitize_path(const etl::span<const uint8_t> &raw_path,
                                                 char (&out_path)[drum::config::MAX_PATH_LENGTH]);
@@ -262,8 +266,7 @@ private:
   constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
                                            Sender send_reply) {
     if (state != State::Idle) {
-      printf(
-          "SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
+      printf("SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
@@ -353,9 +356,8 @@ private:
     }
   }
 
-  static constexpr SanitizeResult
-  sanitize_path(const etl::span<const uint8_t> &raw_path,
-                char (&out_path)[drum::config::MAX_PATH_LENGTH]) {
+  static constexpr SanitizeResult sanitize_path(const etl::span<const uint8_t> &raw_path,
+                                                char (&out_path)[drum::config::MAX_PATH_LENGTH]) {
     // Zero-initialize the buffer.
     for (size_t i = 0; i < drum::config::MAX_PATH_LENGTH; ++i) {
       out_path[i] = 0;

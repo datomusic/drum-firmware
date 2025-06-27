@@ -2,9 +2,11 @@
 #include "drum/configuration_manager.h" // For SampleConfig definition
 #include "drum/sample_repository.h"
 #include "etl/array.h"
-#include <cstdio>
 
 namespace drum {
+
+SampleRepository::SampleRepository(musin::Logger &logger) : logger_(logger) {
+}
 
 void SampleRepository::load_from_config(const etl::ivector<SampleConfig> &sample_configs) {
   // Clear any existing paths before loading.
@@ -12,14 +14,15 @@ void SampleRepository::load_from_config(const etl::ivector<SampleConfig> &sample
     path_opt.reset();
   }
 
-  printf("Loading sample paths from configuration...\n");
+  logger_.info("Loading sample paths from configuration...");
 
   for (const auto &config : sample_configs) {
     if (config.slot < MAX_SAMPLES) {
       sample_paths_[config.slot].emplace(config.path);
-      printf("  - Slot %d: %s\n", config.slot, config.path.c_str());
+      logger_.info("  - Slot", config.slot);
+      logger_.info(config.path.c_str());
     } else {
-      printf("WARNING: Ignoring sample with out-of-bounds slot: %d\n", config.slot);
+      logger_.warn("Ignoring sample with out-of-bounds slot", config.slot);
     }
   }
 }

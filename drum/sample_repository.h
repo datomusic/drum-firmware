@@ -7,6 +7,8 @@
 #include "etl/string_view.h"
 #include "etl/vector.h"
 
+#include "musin/hal/logger.h"
+
 namespace drum {
 
 // Forward-declare the config struct to avoid a circular dependency
@@ -24,7 +26,7 @@ public:
   static constexpr size_t MAX_SAMPLES = 32;
   static constexpr size_t MAX_PATH_LENGTH = 64;
 
-  SampleRepository() = default;
+  explicit SampleRepository(musin::Logger &logger);
 
   /**
    * @brief Populates sample paths from a configuration object.
@@ -46,6 +48,8 @@ public:
   etl::optional<etl::string_view> get_path(size_t index) const;
 
 private:
+  musin::Logger &logger_;
+
   // Using etl::string with a fixed capacity for embedded systems.
   using PathString = etl::string<MAX_PATH_LENGTH>;
 

@@ -184,12 +184,6 @@ private:
     InvalidCharacter
   };
 
-  static constexpr SanitizeResult sanitize_path(const etl::span<const uint8_t> &raw_path,
-                                                char (&out_path)[drum::config::MAX_PATH_LENGTH]);
-
-  constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
-                                                   const size_t chunk_size) const;
-
   // Handle packets without body
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {

@@ -136,7 +136,7 @@ activeMidiInput.on('message', (deltaTime, message) => {
   }
 });
 
-function waitForAck(timeout = 20000) {
+function waitForAck(timeout = 2000) {
   let timer;
   return new Promise((resolve, reject) => {
     ackPromise = {
@@ -158,7 +158,7 @@ function waitForAck(timeout = 20000) {
   });
 }
 
-function waitForReply(timeout = 20000) {
+function waitForReply(timeout = 2000) {
   let timer;
   return new Promise((resolve, reject) => {
     replyPromise = {
@@ -230,7 +230,6 @@ async function format_filesystem() {
 }
 
 async function get_firmware_version() {
-  console.log("Querying device firmware version...");
   const tag = REQUEST_FIRMWARE_VERSION;
   const message = [0xF0].concat(
     SYSEX_MANUFACTURER_ID,
@@ -334,10 +333,12 @@ async function main() {
       if (!sample_filename || !source_path) {
         console.log("Error: 'send' command requires a source path and target filename.");
         console.log("Usage: tools/sample_sender/sample_sender.js send <source_path> <target_filename>");
+        console.log();
         process.exit(1);
       }
       if (!fs.existsSync(source_path)) {
         console.error(`Error: Source file not found at '${source_path}'`);
+        console.log();
         process.exit(1);
       }
 
@@ -348,6 +349,7 @@ async function main() {
       console.log("Successfully transferred file.");
     } else {
       console.log(`Error: Unknown command '${command}'. Use 'send' or 'format'.`);
+      console.log();
       process.exit(1);
     }
   } catch (e) {
@@ -358,6 +360,8 @@ async function main() {
     activeMidiOutput.closePort();
     activeMidiInput.closePort();
   }
+  // Let's print an empty line
+  console.log();
 }
 
 main();

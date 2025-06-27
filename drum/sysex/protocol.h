@@ -257,8 +257,7 @@ private:
   constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
                                            Sender send_reply) {
     if (state != State::Idle) {
-      printf(
-          "SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
+      printf("SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
@@ -312,9 +311,8 @@ private:
     }
   }
 
-  constexpr bool
-  check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
-                                    const size_t chunk_size) const {
+  constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
+                                                   const size_t chunk_size) const {
     // Check for a recognized Manufacturer/Device ID pattern.
     // The chunk passed here has the 0xF0 and 0xF7 bytes stripped.
     if (chunk_size >= 4 && (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&

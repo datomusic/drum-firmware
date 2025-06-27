@@ -178,6 +178,11 @@ private:
   State state = State::Idle;
   etl::optional<File> opened_file;
 
+  enum class SanitizeResult { Success, PathTooLong, InvalidCharacter };
+
+  static constexpr SanitizeResult sanitize_path(const etl::span<const uint8_t> &raw_path,
+                                                char (&out_path)[drum::config::MAX_PATH_LENGTH]);
+
   constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
                                                    const size_t chunk_size) const;
 
@@ -257,15 +262,29 @@ private:
   constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
                                            Sender send_reply) {
     if (state != State::Idle) {
-      printf("SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
+      printf(
+          "SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
 
-    char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
-    const auto path_length = std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
-    for (unsigned i = 0; i < path_length; ++i) {
-      path[i] = bytes[i];
+    char path[drum::config::MAX_PATH_LENGTH];
+    const auto sanitize_result = sanitize_path(bytes, path);
+
+    if (sanitize_result != SanitizeResult::Success) {
+      switch (sanitize_result) {
+      case SanitizeResult::PathTooLong:
+        printf("SysEx: Error: Path is too long.\n");
+        break;
+      case SanitizeResult::InvalidCharacter:
+        printf("SysEx: Error: Invalid character in path.\n");
+        break;
+      default:
+        printf("SysEx: Error: Unknown path sanitization error.\n");
+        break;
+      }
+      send_reply(Tag::Nack);
+      return Result::FileError;
     }
 
     printf("SysEx: BeginFileWrite received for path: %s\n", path);
@@ -332,6 +351,41 @@ private:
       printf("SysEx: Error: Invalid manufacturer or device ID\n");
       return false;
     }
+  }
+
+  static constexpr SanitizeResult
+  sanitize_path(const etl::span<const uint8_t> &raw_path,
+                char (&out_path)[drum::config::MAX_PATH_LENGTH]) {
+    // Zero-initialize the buffer.
+    for (size_t i = 0; i < drum::config::MAX_PATH_LENGTH; ++i) {
+      out_path[i] = 0;
+    }
+
+    size_t out_pos = 0;
+    // Ensure the path is absolute.
+    out_path[out_pos++] = '/';
+
+    // Determine where to start reading from the raw path.
+    size_t in_pos = 0;
+    if (!raw_path.empty() && raw_path[0] == '/') {
+      in_pos = 1; // Skip leading '/' from input if present.
+    }
+
+    for (; in_pos < raw_path.size() && raw_path[in_pos] != '\0'; ++in_pos) {
+      if (out_pos >= drum::config::MAX_PATH_LENGTH - 1) {
+        return SanitizeResult::PathTooLong;
+      }
+
+      const char c = static_cast<char>(raw_path[in_pos]);
+
+      // Reject directory separators and non-printable ASCII characters.
+      // This implicitly handles ".." by disallowing the '/' needed to use it for traversal.
+      if (c == '/' || c < ' ' || c > '~') {
+        return SanitizeResult::InvalidCharacter;
+      }
+      out_path[out_pos++] = c;
+    }
+    return SanitizeResult::Success;
   }
 };
 } // namespace sysex

@@ -97,7 +97,7 @@ constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
 
 // --- Hardware Utilities ---
 
-constexpr auto PULL_CHECK_DELAY_US = 10;
+constexpr auto PULL_CHECK_DELAY_US = 100;
 
 enum class ExternalPinState {
   FLOATING,

@@ -19,9 +19,9 @@
 #include <cstdio>
 
 #include "audio_engine.h"
+#include "drum/ui/pizza_display.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
-#include "drum/ui/pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 

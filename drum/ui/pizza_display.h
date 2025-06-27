@@ -1,8 +1,8 @@
 #ifndef PIZZA_DISPLAY_H
 #define PIZZA_DISPLAY_H
 
-#include "drum/ui/color.h"
 #include "drum/drum_pizza_hardware.h"
+#include "drum/ui/color.h"
 #include "etl/array.h"
 #include "musin/drivers/ws2812-dma.h"
 #include "pico/time.h"
@@ -12,12 +12,12 @@
 #include <optional>
 
 #include "drum/config.h"
-#include "etl/observer.h"
 #include "drum/events.h"
+#include "drum/sequencer_controller.h"
+#include "etl/observer.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "drum/sequencer_controller.h"
 
 namespace drum {
 

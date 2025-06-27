@@ -253,9 +253,9 @@ private:
   constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
                                            Sender send_reply) {
     if (state != State::Idle) {
-      printf("SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
-      send_reply(Tag::Nack);
-      return Result::FileError;
+      printf("SysEx: Warning: BeginFileWrite received while another file transfer is in progress. "
+             "Canceling previous transfer.\n");
+      opened_file.reset();
     }
 
     char path[drum::config::MAX_PATH_LENGTH];
@@ -286,7 +286,7 @@ private:
       return Result::OK;
     } else {
       opened_file.reset();
-      // state is already Idle
+      state = State::Idle; // Explicitly set state to Idle on failure.
       printf("SysEx: Error: Failed to open file for writing\n");
       send_reply(Tag::Nack);
       return Result::FileError;

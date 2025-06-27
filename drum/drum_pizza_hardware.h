@@ -136,16 +136,17 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
   bool pulldown_read = gpio_get(gpio);
 
   ExternalPinState determined_state;
-  logger.info("Checking pin ", gpio);
 
-  if (!initial_read && pullup_read && !pulldown_read) {
+  // The logic for determining the state is based on how the pin behaves with different pulls.
+  // - A floating pin will be pulled HIGH by a pull-up and LOW by a pull-down.
+  // - A pin with an external pull-up will read HIGH, even with an internal pull-down.
+  // - A pin with an external pull-down will read LOW, even with an internal pull-up.
+  if (pullup_read && !pulldown_read) {
     determined_state = ExternalPinState::FLOATING;
-  } else if (initial_read && pullup_read && !pulldown_read) {
-    determined_state = ExternalPinState::FLOATING;
-  } else if (!initial_read && !pullup_read) {
-    determined_state = ExternalPinState::PULL_DOWN;
-  } else if (initial_read && pulldown_read) {
+  } else if (initial_read && pullup_read && pulldown_read) {
     determined_state = ExternalPinState::PULL_UP;
+  } else if (!initial_read && !pullup_read && !pulldown_read) {
+    determined_state = ExternalPinState::PULL_DOWN;
   } else {
     determined_state = ExternalPinState::UNDETERMINED;
   }
@@ -165,8 +166,13 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
     state_str = "UNDETERMINED";
     break;
   }
-  
-  logger.info(state_str);
+
+  char buffer[128];
+  snprintf(buffer, sizeof(buffer),
+           "Pin check GPIO %2lu -> %-12s (initial=%d, pullup=%d, pulldown=%d)",
+           static_cast<unsigned long>(gpio), state_str, initial_read, pullup_read, pulldown_read);
+  logger.debug(buffer);
+
   gpio_disable_pulls(gpio);
   sleep_us(PULL_CHECK_DELAY_US);
 

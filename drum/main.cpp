@@ -26,7 +26,7 @@
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
-static musin::PicoLogger logger(musin::LogLevel::INFO);
+static musin::PicoLogger logger(musin::LogLevel::DEBUG);
 
 // SysEx File Transfer
 static StandardFileOps file_ops(logger);

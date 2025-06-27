@@ -1,7 +1,8 @@
 #ifndef PIZZA_DISPLAY_H
 #define PIZZA_DISPLAY_H
 
-#include "drum_pizza_hardware.h"
+#include "drum/drum_pizza_hardware.h"
+#include "drum/ui/color.h"
 #include "etl/array.h"
 #include "musin/drivers/ws2812-dma.h"
 #include "pico/time.h"
@@ -10,13 +11,13 @@
 #include <cstdint>
 #include <optional>
 
-#include "config.h"
+#include "drum/config.h"
+#include "drum/events.h"
+#include "drum/sequencer_controller.h"
 #include "etl/observer.h"
-#include "events.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "sequencer_controller.h"
 
 namespace drum {
 
@@ -29,7 +30,7 @@ public:
   static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t HIGHLIGHT_BLEND_AMOUNT = 100;
-  static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;
+  static constexpr Color COLOR_WHITE = Color(0xFFFFFF);
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
@@ -48,9 +49,11 @@ public:
   bool init();
 
   /**
-   * @brief Send the current LED buffer data to the physical strip.
+   * @brief Updates the entire display by drawing all elements and sending to hardware.
+   * This should be the primary method called from the main loop.
+   * @param now The current absolute time, used for animations.
    */
-  void show();
+  void update(absolute_time_t now);
 
   /**
    * @brief Set the global brightness level.
@@ -66,15 +69,15 @@ public:
   /**
    * @brief Set a specific LED by its raw index. Does not call show().
    * @param index The 0-based index of the LED.
-   * @param color The 24-bit color (e.g., 0xRRGGBB).
+   * @param color The color to set.
    */
-  void set_led(uint32_t index, uint32_t color);
+  void set_led(uint32_t index, Color color);
 
   /**
    * @brief Set the color of the Play button LED. Does not call show().
-   * @param color The 24-bit color.
+   * @param color The color to set.
    */
-  void set_play_button_led(uint32_t color);
+  void set_play_button_led(Color color);
 
   /**
    * @brief Set the color of a keypad LED based on intensity. Does not call show().
@@ -86,13 +89,6 @@ public:
 
   // get_note_color is removed, color is fetched via get_color_for_midi_note using
   // config::global_note_definitions
-
-  /**
-   * @brief Draws base LED elements like the play button and sequencer steps.
-   * This method should be called regularly in the main loop before show().
-   * It reflects the direct state of the model without animations.
-   */
-  void draw_base_elements();
 
   /**
    * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).
@@ -125,6 +121,23 @@ public:
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
+   * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
+   */
+  void draw_sequencer_state();
+
+private:
+  /**
+   * @brief Send the current LED buffer data to the physical strip.
+   */
+  void show();
+
+  /**
+   * @brief Draws base LED elements like the play button and sequencer steps.
+   * It reflects the direct state of the model without animations.
+   */
+  void draw_base_elements();
+
+  /**
    * @brief Updates time-based animations, such as drumpad LED fades.
    * This should be called once per update cycle.
    * @param now The current absolute time.
@@ -132,41 +145,23 @@ public:
   void draw_animations(absolute_time_t now);
 
   /**
-   * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
+   * @brief Updates the internal state of the highlight pulse based on tempo ticks.
    */
-  void draw_sequencer_state();
+  void update_highlight_state();
 
-  /**
-   * @brief Get a const reference to the underlying WS2812 driver instance.
-   * Allows access to driver methods like adjust_color_brightness.
-   * @return const musin::drivers::WS2812<NUM_LEDS>&
-   */
-  const musin::drivers::WS2812_DMA<NUM_LEDS> &leds() const {
-    return _leds;
-  }
-
-private:
   /**
    * @brief Calculate the LED color for a sequencer step based on note and velocity.
    * @param step The sequencer step data.
-   * @return uint32_t The calculated color (0xRRGGBB), or 0 if step is disabled/invalid.
+   * @return Color The calculated color, or black if step is disabled/invalid.
    */
-  uint32_t calculate_step_color(const musin::timing::Step &step) const;
+  Color calculate_step_color(const musin::timing::Step &step) const;
 
   /**
-   * @brief Apply a highlight effect (blend with white) to a color.
-   * @param color The base color.
-   * @return uint32_t The highlighted color (fixed blend).
+   * @brief Apply a pulsing highlight effect to a color based on the current pulse state.
+   * @param base_color The base color.
+   * @return Color The highlighted color.
    */
-  uint32_t apply_highlight(uint32_t color) const;
-
-  /**
-   * @brief Apply a fading highlight effect (blend with white) based on a factor.
-   * @param color The base color.
-   * @param highlight_factor The intensity of the highlight (0.0 = none, 1.0 = full white blend).
-   * @return uint32_t The highlighted color.
-   */
-  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const;
+  Color apply_pulsing_highlight(Color base_color) const;
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and step.
@@ -187,24 +182,25 @@ private:
   /**
    * @brief Calculate a white color scaled by an intensity value.
    * @param intensity The intensity (0-127).
-   * @return uint32_t The calculated color (0xRRGGBB).
+   * @return Color The calculated color.
    */
-  uint32_t calculate_intensity_color(uint8_t intensity) const;
+  Color calculate_intensity_color(uint8_t intensity) const;
 
-  std::optional<uint32_t> get_color_for_midi_note(uint8_t midi_note_number) const;
+  std::optional<Color> get_color_for_midi_note(uint8_t midi_note_number) const;
 
   musin::drivers::WS2812_DMA<NUM_LEDS> _leds;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
-  etl::array<std::optional<uint32_t>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
+  etl::array<std::optional<Color>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
 
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
 
   uint32_t _clock_tick_counter = 0;
-  float _stopped_highlight_factor = 0.0f;
+  uint32_t _last_tick_count_for_highlight = 0;
+  bool _highlight_is_bright = true;
 
-  void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
+  void _set_physical_drumpad_led(uint8_t pad_index, Color color);
   void update_track_override_colors();
 };
 

@@ -19,9 +19,9 @@
 #include <cstdio>
 
 #include "audio_engine.h"
+#include "drum/ui/pizza_display.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
-#include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
@@ -142,21 +142,18 @@ int main() {
       if (config_manager.load()) {
         sample_repository.load_from_config(config_manager.get_sample_configs());
       }
-      new_file_received = false; // Reset the flag
+      new_file_received = false;
     }
 
     pizza_controls.update();
     audio_engine.process();
 
-    // Update time-based animations (e.g., drumpad fades)
-    pizza_display.draw_animations(get_absolute_time());
-    pizza_display.draw_base_elements();
-    pizza_display.show();
+    pizza_display.update(get_absolute_time());
 
     musin::usb::background_update();
-    midi_read();                              // TODO: turn this into a musin input queue
-    tempo_handler.update();                   // Call TempoHandler update for auto-switching logic
-    musin::midi::process_midi_output_queue(); // Process the outgoing MIDI queue
+    midi_read(); // TODO: turn this into a musin input queue
+    tempo_handler.update();
+    musin::midi::process_midi_output_queue();
 
     loop_timer.record_iteration_end();
   }

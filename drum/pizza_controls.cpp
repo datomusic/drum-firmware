@@ -1,8 +1,8 @@
 #include "pizza_controls.h"
+#include "drum/ui/pizza_display.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
-#include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 #include <algorithm>

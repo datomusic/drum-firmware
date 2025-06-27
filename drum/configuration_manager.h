@@ -2,9 +2,9 @@
 #define DRUM_CONFIGURATION_MANAGER_H_
 
 #include "config.h"
+#include "etl/string_view.h"
 #include "etl/vector.h"
 #include <cstdint>
-#include <cstring>
 
 #include "drum/sample_repository.h"
 #include "musin/hal/logger.h"
@@ -56,9 +56,9 @@ public:
 
 private:
   musin::Logger &logger_;
-  bool json_string_equals(const char *json, const jsmntok *token, const char *str);
-  bool parse_samples(const char *json, jsmntok *tokens, int count);
-  bool parse_json_buffer(const char *buffer, size_t size);
+  bool json_string_equals(etl::string_view json_token, etl::string_view str) const;
+  bool parse_samples(etl::string_view json, jsmntok *tokens, int count);
+  bool parse_json_buffer(etl::string_view buffer);
 
   etl::vector<SampleConfig, SampleRepository::MAX_SAMPLES> sample_configs_;
 };

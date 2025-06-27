@@ -109,7 +109,8 @@ int main() {
 
   // Check if the control panel is connected by checking for floating MUX address pins.
   if (is_control_panel_disconnected()) {
-    logger.warn("Control panel appears disconnected (address pins floating). Disabling local control.");
+    logger.warn(
+        "Control panel appears disconnected (address pins floating). Disabling local control.");
     sound_router.set_local_control_mode(drum::LocalControlMode::OFF);
   } else {
     logger.info("Control panel detected. Local control enabled.");

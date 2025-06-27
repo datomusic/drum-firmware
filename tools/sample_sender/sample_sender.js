@@ -137,9 +137,19 @@ activeMidiInput.on('message', (deltaTime, message) => {
 });
 
 function waitForAck(timeout = 20000) {
+  let timer;
   return new Promise((resolve, reject) => {
-    ackPromise = { resolve, reject };
-    setTimeout(() => {
+    ackPromise = {
+      resolve: () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      reject: (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    };
+    timer = setTimeout(() => {
       if (ackPromise.reject) {
         ackPromise.reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
         ackPromise = {};
@@ -149,9 +159,19 @@ function waitForAck(timeout = 20000) {
 }
 
 function waitForReply(timeout = 20000) {
+  let timer;
   return new Promise((resolve, reject) => {
-    replyPromise = { resolve, reject };
-    setTimeout(() => {
+    replyPromise = {
+      resolve: (msg) => {
+        clearTimeout(timer);
+        resolve(msg);
+      },
+      reject: (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    };
+    timer = setTimeout(() => {
       if (replyPromise.reject) {
         replyPromise.reject(new Error(`Timeout waiting for reply after ${timeout}ms.`));
         replyPromise = {};

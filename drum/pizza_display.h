@@ -6,6 +6,7 @@
 #include "musin/drivers/ws2812-dma.h"
 #include "pico/time.h"
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -210,8 +211,8 @@ private:
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
 
-  uint32_t _clock_tick_counter = 0;
-  bool _highlight_pulse_state = true;
+  std::atomic<uint32_t> _clock_tick_counter{0};
+  std::atomic<bool> _highlight_pulse_state{true};
 
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
   void update_track_override_colors();

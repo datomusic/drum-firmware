@@ -190,13 +190,6 @@ private:
   constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
                                                    const size_t chunk_size) const;
 
-  template <typename Sender>
-  constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
-                                           Sender send_reply);
-
-  template <typename Sender>
-  constexpr Result handle_file_bytes(const etl::span<const uint8_t> &bytes, Sender send_reply);
-
   // Handle packets without body
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {

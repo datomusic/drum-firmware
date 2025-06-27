@@ -30,6 +30,7 @@ public:
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_HIGHLIGHT_BLEND_AMOUNT = 100;
   static constexpr uint8_t MIN_HIGHLIGHT_BLEND_AMOUNT = 40;
+  static constexpr uint8_t PULSE_DIM_BRIGHTNESS = 128;
   static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
@@ -147,6 +148,14 @@ public:
   }
 
 private:
+  /**
+   * @brief Apply an additive highlight effect to a color.
+   * @param color The base color.
+   * @param amount The amount to add to each color channel.
+   * @return uint32_t The highlighted color.
+   */
+  uint32_t apply_additive_highlight(uint32_t color, uint8_t amount) const;
+
   /**
    * @brief Calculate the LED color for a sequencer step based on note and velocity.
    * @param step The sequencer step data.

@@ -62,6 +62,12 @@ ExternalPinState check_external_pin_state(std::uint32_t gpio, [[maybe_unused]] c
   return determined_state;
 }
 
+bool is_cursor_step(size_t step_idx, size_t current_sequencer_step,
+                    std::optional<size_t> last_played_step, bool is_running) {
+  return (is_running && last_played_step.has_value() && step_idx == last_played_step.value()) ||
+         (!is_running && step_idx == current_sequencer_step);
+}
+
 } // anonymous namespace
 
 PizzaDisplay::PizzaDisplay(
@@ -100,7 +106,7 @@ void PizzaDisplay::draw_base_elements() {
       pulse_color = base_color;
     } else {
       // Dim brightness for play button pulse
-      pulse_color = _leds.adjust_color_brightness(base_color, 128);
+      pulse_color = _leds.adjust_color_brightness(base_color, PULSE_DIM_BRIGHTNESS);
     }
     set_play_button_led(pulse_color);
   }
@@ -113,13 +119,16 @@ void PizzaDisplay::draw_sequencer_state() {
   const auto &sequencer = _sequencer_controller_ref.get_sequencer();
   const auto &controller = _sequencer_controller_ref;
 
-  bool is_running = controller.is_running();
+  const bool is_running = controller.is_running();
+  const size_t current_step = controller.get_current_step();
 
   for (size_t track_idx = 0; track_idx < config::NUM_TRACKS; ++track_idx) {
     if (track_idx >= SEQUENCER_TRACKS_DISPLAYED)
       continue;
 
     const auto &track_data = sequencer.get_track(track_idx);
+    const std::optional<size_t> last_played_step =
+        controller.get_last_played_step_for_track(track_idx);
 
     for (size_t step_idx = 0; step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
       if (step_idx >= SEQUENCER_STEPS_DISPLAYED)
@@ -136,12 +145,7 @@ void PizzaDisplay::draw_sequencer_state() {
       }
 
       // Apply tempo-synced highlight to the cursor step
-      std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
-      const bool is_cursor_step =
-          (is_running && just_played_step.has_value() && step_idx == just_played_step.value()) ||
-          (!is_running && step_idx == controller.get_current_step());
-
-      if (is_cursor_step) {
+      if (is_cursor_step(step_idx, current_step, last_played_step, is_running)) {
         if (_highlight_pulse_state) {
           final_color = apply_highlight(final_color);
         } else {
@@ -348,32 +352,23 @@ uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) con
   return color;
 }
 
-uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
+uint32_t PizzaDisplay::apply_additive_highlight(uint32_t color, uint8_t amount) const {
   uint8_t r = (color >> 16) & 0xFF;
   uint8_t g = (color >> 8) & 0xFF;
   uint8_t b = color & 0xFF;
 
-  r = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + MAX_HIGHLIGHT_BLEND_AMOUNT));
-  g = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + MAX_HIGHLIGHT_BLEND_AMOUNT));
-  b = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + MAX_HIGHLIGHT_BLEND_AMOUNT));
+  r = static_cast<uint8_t>(std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + amount));
+  g = static_cast<uint8_t>(std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + amount));
+  b = static_cast<uint8_t>(std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + amount));
   return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
 }
 
-uint32_t PizzaDisplay::apply_min_highlight(uint32_t color) const {
-  uint8_t r = (color >> 16) & 0xFF;
-  uint8_t g = (color >> 8) & 0xFF;
-  uint8_t b = color & 0xFF;
+uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
+  return apply_additive_highlight(color, MAX_HIGHLIGHT_BLEND_AMOUNT);
+}
 
-  r = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + MIN_HIGHLIGHT_BLEND_AMOUNT));
-  g = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + MIN_HIGHLIGHT_BLEND_AMOUNT));
-  b = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + MIN_HIGHLIGHT_BLEND_AMOUNT));
-  return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+uint32_t PizzaDisplay::apply_min_highlight(uint32_t color) const {
+  return apply_additive_highlight(color, MIN_HIGHLIGHT_BLEND_AMOUNT);
 }
 
 uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {

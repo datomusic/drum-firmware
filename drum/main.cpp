@@ -7,6 +7,12 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
+#include "drum/applications/rompler/standard_file_ops.h"
+#include "drum/configuration_manager.h"
+#include "musin/filesystem/filesystem.h"
+#include "sample_repository.h"
+#include "sysex/protocol.h"
+
 #include "musin/boards/dato_submarine.h" // For pin definitions
 
 #include "pico/stdio_usb.h"
@@ -20,8 +26,15 @@
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
+// SysEx File Transfer
+static StandardFileOps file_ops;
+static sysex::Protocol<StandardFileOps> syx_protocol(file_ops);
+static bool new_file_received = false;
+
 // Model
-static drum::AudioEngine audio_engine;
+static drum::ConfigurationManager config_manager;
+static drum::SampleRepository sample_repository;
+static drum::AudioEngine audio_engine(sample_repository);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
@@ -43,14 +56,48 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequence
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 
-static musin::hal::DebugUtils::LoopTimer loop_timer(1000);
+static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
+
+void on_file_received_callback() {
+  new_file_received = true;
+}
 
 int main() {
   stdio_usb_init();
 
-  musin::usb::init(false); // Don't wait for serial connection
+  musin::usb::init(false); // Wait for serial connection
 
-  midi_init(sound_router, sequencer_controller, midi_clock_processor);
+  if (!musin::filesystem::init(false)) {
+    // Filesystem is not critical for basic operation if no samples are present,
+    // but we should log the failure.
+    printf("WARNING: Failed to initialize filesystem.\n");
+  } else {
+    musin::filesystem::list_files("/"); // List files in the root directory
+
+    // Print config.json contents for debugging
+    printf("\n--- Contents of /config.json ---\n");
+    FILE *configFile = fopen("/config.json", "r");
+    if (configFile) {
+      char read_buffer[129];
+      size_t bytes_read;
+      while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1, configFile)) > 0) {
+        read_buffer[bytes_read] = '\0';
+        printf("%s", read_buffer);
+      }
+      fclose(configFile);
+      printf("\n--- End of /config.json ---\n\n");
+    } else {
+      printf("Could not open /config.json to display.\n\n");
+    }
+
+    if (config_manager.load()) {
+      sample_repository.load_from_config(config_manager.get_sample_configs());
+    }
+    // If config fails to load, sample_repository will just be empty.
+  }
+
+  midi_init(sound_router, sequencer_controller, midi_clock_processor, syx_protocol,
+            on_file_received_callback);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
@@ -85,6 +132,18 @@ int main() {
   //       if they require explicit start/stop from TempoHandler.
 
   while (true) {
+    // --- SysEx State Check ---
+    if (syx_protocol.busy()) {
+      // The protocol is actively receiving a file.
+      // We could add visual feedback here, e.g., pulse a specific LED.
+    } else if (new_file_received) {
+      printf("Main loop: New file received, reloading configuration.\n");
+      if (config_manager.load()) {
+        sample_repository.load_from_config(config_manager.get_sample_configs());
+      }
+      new_file_received = false; // Reset the flag
+    }
+
     pizza_controls.update();
     audio_engine.process();
 

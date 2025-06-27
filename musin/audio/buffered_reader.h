@@ -21,12 +21,12 @@ struct BufferedReader {
   static_assert(NumBlocksPerSlot > 0, "Number of RAM blocks per slot must be greater than 0");
   static constexpr size_t SAMPLES_PER_SLOT = NumBlocksPerSlot * AUDIO_BLOCK_SAMPLES;
 
-  constexpr BufferedReader(SampleReader &reader)
+  BufferedReader(SampleReader &reader)
       : reader(reader), active_buffer_ptr(&buffer_a), inactive_buffer_ptr(&buffer_b),
         samples_in_active_buffer(0), current_read_position_in_active_buffer(0) {
   }
 
-  constexpr void reset() {
+  void reset() {
     reader.reset();
     active_buffer_ptr = &buffer_a;
     inactive_buffer_ptr = &buffer_b;
@@ -36,13 +36,13 @@ struct BufferedReader {
     // For simplicity, let read_next handle the initial fill.
   }
 
-  constexpr bool has_data() const {
+  bool has_data() const {
     return (current_read_position_in_active_buffer < samples_in_active_buffer) || reader.has_data();
   }
 
 private:
-  constexpr void fill_buffer_slot(etl::array<int16_t, SAMPLES_PER_SLOT> &slot_to_fill,
-                                  uint32_t &out_samples_filled) {
+  void fill_buffer_slot(etl::array<int16_t, SAMPLES_PER_SLOT> &slot_to_fill,
+                        uint32_t &out_samples_filled) {
     out_samples_filled = 0;
     for (size_t block_fill_idx = 0; block_fill_idx < NumBlocksPerSlot; ++block_fill_idx) {
       if (!reader.has_data()) {
@@ -66,7 +66,7 @@ private:
 public:
   // Reads a chunk of samples into the provided destination buffer.
   // Returns the number of samples actually read.
-  constexpr uint32_t read_buffered_chunk(int16_t *dest_buffer, uint32_t samples_requested) {
+  uint32_t read_buffered_chunk(int16_t *dest_buffer, uint32_t samples_requested) {
     uint32_t samples_copied_total = 0;
 
     while (samples_copied_total < samples_requested) {
@@ -102,7 +102,7 @@ public:
     return samples_copied_total;
   }
 
-  constexpr bool read_next(int16_t &out) {
+  bool read_next(int16_t &out) {
     if (current_read_position_in_active_buffer >= samples_in_active_buffer) {
       // Active buffer is exhausted, switch and attempt to fill the new active one.
       etl::array<int16_t, SAMPLES_PER_SLOT> *temp_ptr = active_buffer_ptr;

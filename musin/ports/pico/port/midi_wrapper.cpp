@@ -3,6 +3,7 @@
 #include "musin/midi/midi_message_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
+#include <stdio.h> // For printf
 
 struct MIDISettings {
   /*! Running status enables short messages when sending multiple values
@@ -124,6 +125,11 @@ void MIDI::sendPitchBend(const int bend, const byte channel) {
 }
 
 void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
+  // printf("Enqueuing SysEx message (%u bytes): ", length);
+  // for (unsigned i = 0; i < length; ++i) {
+  //   printf("%02X ", bytes[i]);
+  // }
+  // printf("\n");
   musin::midi::OutgoingMidiMessage msg(bytes, length);
   musin::midi::enqueue_midi_message(msg);
 }
@@ -152,5 +158,13 @@ void MIDI::internal::_sendPitchBend_actual(const byte channel, const int bend) {
 }
 
 void MIDI::internal::_sendSysEx_actual(const unsigned length, const byte *bytes) {
-  ALL_TRANSPORTS(sendSysEx(length, bytes));
+  // The underlying Arduino MIDI library adds the F0/F7 terminators itself.
+  // We must pass only the payload.
+  // This wrapper function will strip the terminators if they are present.
+  if (length >= 2 && bytes[0] == 0xF0 && bytes[length - 1] == 0xF7) {
+    ALL_TRANSPORTS(sendSysEx(length - 2, bytes + 1));
+  } else {
+    // If the message is not framed, send it as-is.
+    ALL_TRANSPORTS(sendSysEx(length, bytes));
+  }
 }

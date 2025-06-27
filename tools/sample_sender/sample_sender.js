@@ -1,89 +1,259 @@
+#!/usr/bin/env node
 const midi = require('midi');
 const fs = require('fs');
 const wavefile = require('wavefile');
 
-
-
-function find_dato_drum(){
+function find_dato_drum() {
   const output = new midi.Output();
-  const count = output.getPortCount();
+  const input = new midi.Input();
+  const outPortCount = output.getPortCount();
+  const inPortCount = input.getPortCount();
   const validPortNames = ["Pico", "DRUM"]; // Array of valid port name substrings
 
-  for (var i=0;i<count;++i) {
-    const portName = output.getPortName(i);
-    for (const validName of validPortNames) {
-      if (portName.includes(validName)) {
-        try {
-          output.openPort(i);
-          console.log(`Opened MIDI port: ${portName}`);
-        return output;
-      } catch (e) {
-        console.error(`Error opening MIDI port ${output.getPortName(i)}: ${e.message}`);
-        // Continue searching for other ports
-      }
-    } // Closes: if (portName.includes(validName))
-  } // Closes: for (const validName of validPortNames)
-} // Closes: for (var i=0;i<count;++i)
+  let outPort = -1;
+  let inPort = -1;
+  let portName = "";
 
-  console.error(`No suitable MIDI output port found containing any of: ${validPortNames.join(", ")}.`);
-  if (count > 0) {
-    console.log("Available MIDI output ports:");
-    for (var i = 0; i < count; ++i) {
-      console.log(`  ${i}: ${output.getPortName(i)}`);
+  // Find the first available output port that matches our device names
+  for (let i = 0; i < outPortCount; i++) {
+    const currentPortName = output.getPortName(i);
+    if (validPortNames.some(name => currentPortName.includes(name))) {
+      outPort = i;
+      portName = currentPortName;
+      break;
     }
-  } else {
-    console.log("No MIDI output ports found.");
   }
-  console.error("Please ensure your Dato DRUM device is connected and not in use by another application.");
-  return null;
+
+  if (outPort === -1) {
+    console.error(`No suitable MIDI output port found containing any of: ${validPortNames.join(", ")}.`);
+    if (outPortCount > 0) {
+      console.log("Available MIDI output ports:");
+      for (let i = 0; i < outPortCount; ++i) {
+        console.log(`  ${i}: ${output.getPortName(i)}`);
+      }
+    } else {
+      console.log("No MIDI output ports found.");
+    }
+    console.error("Please ensure your Dato DRUM device is connected and not in use by another application.");
+    return null;
+  }
+
+  // Find the matching input port
+  for (let i = 0; i < inPortCount; i++) {
+    if (input.getPortName(i).includes(portName)) {
+      inPort = i;
+      break;
+    }
+  }
+
+  if (inPort === -1) {
+    console.error(`Found MIDI output "${portName}", but no matching input port could be found.`);
+    if (inPortCount > 0) {
+      console.log("Available MIDI input ports:");
+      for (let i = 0; i < inPortCount; ++i) {
+        console.log(`  ${i}: ${input.getPortName(i)}`);
+      }
+    } else {
+      console.log("No MIDI input ports found.");
+    }
+    return null;
+  }
+
+  try {
+    output.openPort(outPort);
+    input.openPort(inPort);
+    // Do not ignore sysex, timing, or active sensing messages.
+    input.ignoreTypes(false, false, false);
+    console.log(`Opened MIDI ports: ${portName}`);
+    return { output, input };
+  } catch (e) {
+    console.error(`Error opening MIDI ports for ${portName}: ${e.message}`);
+    return null;
+  }
 }
 
+const midi_ports = find_dato_drum();
 
-const activeMidiOutput = find_dato_drum();
-
-if (!activeMidiOutput) {
-  console.error("Failed to initialize MIDI output. Exiting.");
+if (!midi_ports) {
+  console.error("Failed to initialize MIDI. Exiting.");
   process.exit(1);
 }
 
+const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
 
-function send_drum_message(tag, body) {
+// --- SysEx Configuration ---
+const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
+const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
+
+// --- ACK/NACK Handling ---
+const REQUEST_FIRMWARE_VERSION = 0x01;
+const ACK = 0x13;
+const NACK = 0x14;
+let ackPromise = {};
+let replyPromise = {};
+
+activeMidiInput.on('message', (deltaTime, message) => {
+  // SysEx message: F0 ... F7
+  if (message[0] === 0xF0 && message[message.length - 1] === 0xF7) {
+    // Check for our manufacturer ID and device ID
+    const isOurManufacturer = message[1] === SYSEX_MANUFACTURER_ID[0] &&
+                            message[2] === SYSEX_MANUFACTURER_ID[1] &&
+                            message[3] === SYSEX_MANUFACTURER_ID[2];
+
+    if (isOurManufacturer && message[4] === SYSEX_DEVICE_ID) {
+      // Ensure message is long enough to have a tag
+      if (message.length < 6) {
+        console.log("Parsed our device ID, but message is too short for a tag.");
+        return;
+      }
+      const tag = message[5];
+      // console.log(`Parsed SysEx message with tag: ${tag}`);
+
+      if (tag === ACK) {
+        // console.log("Received ACK.");
+        if (ackPromise.resolve) {
+          ackPromise.resolve();
+          ackPromise = {};
+        }
+      } else if (tag === NACK) {
+        // console.log("Received NACK.");
+        if (ackPromise.reject) {
+          ackPromise.reject(new Error('Received NACK from device.'));
+          ackPromise = {};
+        }
+      } else {
+        // console.log("Received data reply.");
+        if (replyPromise.resolve) {
+          replyPromise.resolve(message); // Resolve with the full message
+          replyPromise = {};
+        } else {
+          console.log("No reply promise was waiting for this data message.");
+        }
+      }
+    } else {
+      console.log("Received SysEx message, but not for our device.");
+    }
+  }
+});
+
+function waitForAck(timeout = 2000) {
+  let timer;
+  return new Promise((resolve, reject) => {
+    ackPromise = {
+      resolve: () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      reject: (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    };
+    timer = setTimeout(() => {
+      if (ackPromise.reject) {
+        ackPromise.reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
+        ackPromise = {};
+      }
+    }, timeout);
+  });
+}
+
+function waitForReply(timeout = 2000) {
+  let timer;
+  return new Promise((resolve, reject) => {
+    replyPromise = {
+      resolve: (msg) => {
+        clearTimeout(timer);
+        resolve(msg);
+      },
+      reject: (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    };
+    timer = setTimeout(() => {
+      if (replyPromise.reject) {
+        replyPromise.reject(new Error(`Timeout waiting for reply after ${timeout}ms.`));
+        replyPromise = {};
+      }
+    }, timeout);
+  });
+}
+
+async function send_drum_message_and_wait(tag, body) {
+  // The payload consists of the command tag followed by the body,
+  // with the tag encoded as a 16-bit value into three 7-bit bytes.
+  const payload = pack3_16(tag).concat(body);
+
+  const message = [0xF0].concat(
+    SYSEX_MANUFACTURER_ID,
+    [SYSEX_DEVICE_ID],
+    payload,
+    [0xF7]
+  );
   try {
-    activeMidiOutput.sendMessage([0xF0].concat(
-      [0, 0x7D, 0x65], // Manufacturer ID
-      [0, 0, tag],
-      body,
-      [0xF7]));
+    activeMidiOutput.sendMessage(message);
+    await waitForAck();
   } catch (e) {
-    console.error(`Error sending MIDI message: ${e.message}`);
-    // Depending on the severity, you might want to re-throw or exit
+    console.error(`Error sending MIDI message or waiting for ACK: ${e.message}`);
+    // Re-throw to be caught by the main execution block
+    throw e;
   }
 }
 
-function begin_file_transfer(file_name) {
-  console.log("begin_file_transfer");
+async function begin_file_transfer(source_path, file_name) {
+  console.log(`Copying ${source_path} to ${file_name}`);
   const encoded = new TextEncoder().encode(file_name);
+  const encoded_with_null = new Uint8Array(encoded.length + 1);
+  encoded_with_null.set(encoded);
+  encoded_with_null[encoded.length] = 0; // Null terminator
 
   var bytes = [];
 
-  var i = 0;
-  for (i=0;i<encoded.length;i+=2) {
+  for (let i = 0; i < encoded_with_null.length; i += 2) {
     // Pack two bytes into a 16bit value, and then into 3 sysex bytes.
-    const lower = encoded[i]
-    const upper = encoded[i+1]
-    bytes = bytes.concat(pack3_16((upper << 8) + lower));
+    const lower = encoded_with_null[i];
+    const upper = (i + 1 < encoded_with_null.length) ? encoded_with_null[i + 1] : 0;
+    bytes = bytes.concat(pack3_16((upper << 8) | lower));
   }
 
-  if (encoded.length % 2 == 0) {
-    bytes = bytes.concat(pack3_16(encoded[encoded.length - 1] << 8));
-  }
-
-  send_drum_message(0x10, bytes);
+  await send_drum_message_and_wait(0x10, bytes);
 }
 
-function end_file_transfer() {
-  console.log("end_file_transfer");
-  send_drum_message(0x12, []);
+async function end_file_transfer() {
+  await send_drum_message_and_wait(0x12, []);
+}
+
+async function format_filesystem() {
+  console.log("Sending command to format filesystem...");
+  await send_drum_message_and_wait(0x15, []);
+}
+
+async function get_firmware_version() {
+  const tag = REQUEST_FIRMWARE_VERSION;
+  const message = [0xF0].concat(
+    SYSEX_MANUFACTURER_ID,
+    [SYSEX_DEVICE_ID],
+    pack3_16(tag), // Encoded tag
+    [0xF7]
+  );
+  try {
+    activeMidiOutput.sendMessage(message);
+    const reply = await waitForReply();
+    // The reply for a version request has the version tag and data
+    if (reply[5] === REQUEST_FIRMWARE_VERSION) {
+      const major = reply[6];
+      const minor = reply[7];
+      const patch = reply[8];
+      console.log(`Device firmware version: v${major}.${minor}.${patch}`);
+    } else {
+      // Unexpected reply
+      throw new Error(`Unexpected reply received. Tag: ${reply[5]}`);
+    }
+  } catch (e) {
+    console.error(`Error requesting firmware version: ${e.message}`);
+    throw e;
+  }
 }
 
 function pack3_16(value) {
@@ -94,41 +264,43 @@ function pack3_16(value) {
   ];
 }
 
-const sleepMs = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
-
 async function send_file_content(data) {
-  console.log("send_file_content");
-  const ChunkSize = 50;
   console.log("File data length: ", data.length);
 
   var bytes = [];
+  const total_bytes = data.length;
 
-  var chunk_counter = 0;
-  var i =0;
-  for (i=0;i<data.length;i+=2) {
+  for (var i = 0; i < data.length; i += 2) {
     // Pack two bytes into a 16bit value, and then into 3 sysex bytes.
-    const lower = data[i]
-    const upper = data[i+1]
+    const lower = data[i];
+    // If there's no upper byte (odd length file), use 0 as a placeholder.
+    const upper = (i + 1 < data.length) ? data[i + 1] : 0;
     bytes = bytes.concat(pack3_16((upper << 8) + lower));
 
+    // Stay below the max SysEx message length, leaving space for header.
+    // The firmware limit is 128 bytes for the payload. We reserve 7 bytes for
+    // the ID and tag, leaving 121 for data. We use 120 as a safe multiple of 3.
+    if (bytes.length >= 120) {
+      const percentage = Math.round(((i + 2) / total_bytes) * 100);
+      const bar_length = 40;
+      const filled_length = Math.round(bar_length * (percentage / 100));
+      const bar = '█'.repeat(filled_length) + '░'.repeat(bar_length - filled_length);
+      process.stdout.write(`Sending: ${percentage}% |${bar}| \r`);
 
-    // Stay below the max SysEx message length for DRUM, leaving space for header.
-    if (bytes.length >= 100) {
-      console.log("Sending chunk "+chunk_counter);
-      chunk_counter++;
-      send_drum_message(0x11, bytes)
+      await send_drum_message_and_wait(0x11, bytes);
       bytes = [];
-
-      // Don't overload buffers of the DRUM
-      await sleepMs(5)
     }
   }
 
-  if (i != data.length) {
-    console.warn("Warning: Skipped last data byte");
+  // Send any remaining bytes that didn't fill a full chunk
+  if (bytes.length > 0) {
+    await send_drum_message_and_wait(0x11, bytes);
   }
 
-  await sleepMs(100)
+  // Finalize progress bar at 100%
+  const bar_length = 40;
+  const bar = '█'.repeat(bar_length);
+  process.stdout.write(`Sending: 100% |${bar}| \n`);
 }
 
 
@@ -140,23 +312,58 @@ function pcm_from_wav(path) {
 }
 
 
-const source_path = process.argv[2]
-const sample_filename = process.argv[3]
+const command = process.argv[2];
+const source_path = process.argv[3];
+const sample_filename = process.argv[4];
 
-if (!sample_filename) {
-}
-
-if (!sample_filename || !source_path) {
-  console.log("Error: Supply source file path as first argument and target on-device filename as second argument.");
+if (!command) {
+  console.log("Error: Please specify a command: 'send' or 'format'.");
+  console.log("Usage:");
+  console.log("  tools/sample_sender/sample_sender.js send <source_path> <target_filename>");
+  console.log("  tools/sample_sender/sample_sender.js format");
   process.exit(1);
 }
 
-begin_file_transfer(sample_filename);
+async function main() {
+  try {
+    await get_firmware_version();
 
-// const data = pcm_from_wav('../../experiments/support/samples/Zap_2.wav')
-const data = fs.readFileSync(source_path);
+    if (command === 'format') {
+      await format_filesystem();
+      console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
+    } else if (command === 'send') {
+      if (!sample_filename || !source_path) {
+        console.log("Error: 'send' command requires a source path and target filename.");
+        console.log("Usage: tools/sample_sender/sample_sender.js send <source_path> <target_filename>");
+        console.log();
+        process.exit(1);
+      }
+      if (!fs.existsSync(source_path)) {
+        console.error(`Error: Source file not found at '${source_path}'`);
+        console.log();
+        process.exit(1);
+      }
 
-send_file_content(data).then( () => {
-  end_file_transfer();
-  activeMidiOutput.closePort();
-})
+      await begin_file_transfer(source_path, sample_filename);
+      const data = fs.readFileSync(source_path);
+      await send_file_content(data);
+      await end_file_transfer();
+      console.log("Successfully transferred file.");
+    } else {
+      console.log(`Error: Unknown command '${command}'. Use 'send' or 'format'.`);
+      console.log();
+      process.exit(1);
+    }
+  } catch (e) {
+    // Error is already logged by the function that threw it.
+    // Just ensure we exit with an error code.
+    process.exitCode = 1;
+  } finally {
+    activeMidiOutput.closePort();
+    activeMidiInput.closePort();
+  }
+  // Let's print an empty line
+  console.log();
+}
+
+main();

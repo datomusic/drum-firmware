@@ -13,7 +13,7 @@ struct Chunk {
   typedef etl::array<uint8_t, MIDI::SysExMaxSize> Data;
 
   // Copy bytes to make sure we have ownership.
-  constexpr Chunk(const uint8_t *bytes, const uint8_t count)
+  constexpr Chunk(const uint8_t *bytes, const size_t count)
       : data(copy_bytes(bytes, count)), count(count) {
   }
 

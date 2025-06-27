@@ -81,6 +81,7 @@ macro(musin_init_audio TARGET)
   target_sources(${TARGET} PRIVATE
     ${musin_audio_generic_sources}
     ${MUSIN_AUDIO}/audio_output.cpp
+    ${MUSIN_AUDIO}/unbuffered_file_sample_reader.cpp
     ${MUSIN_DRIVERS}/aic3204.cpp
   )
 

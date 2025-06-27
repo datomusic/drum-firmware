@@ -31,6 +31,13 @@ bool init(bool force_format);
  */
 bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash);
 
+/**
+ * @brief Lists all files and directories at the given path.
+ *
+ * @param path The directory path to list (e.g., "/").
+ */
+void list_files(const char *path);
+
 } // namespace musin::filesystem
 
 #endif /* end of include guard: FILESYSTEM_H_A1PWKQIM */

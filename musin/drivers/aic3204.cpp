@@ -44,7 +44,7 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t re
   }
   AIC_LOG("Using I2C instance: %s", (_i2c_inst == i2c0) ? "i2c0" : "i2c1");
 
-  uint actual_baudrate = i2c_init(_i2c_inst, baudrate);
+  [[maybe_unused]] uint actual_baudrate = i2c_init(_i2c_inst, baudrate);
   AIC_LOG("I2C Initialized at %u Hz", actual_baudrate);
 
   gpio_set_function(_sda_pin, GPIO_FUNC_I2C);

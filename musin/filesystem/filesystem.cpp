@@ -2,6 +2,8 @@ extern "C" {
 #include "blockdevice/flash.h"
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h"
+#include <dirent.h>
+#include <errno.h>
 #include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -27,6 +29,26 @@ bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash) {
   return true;
 }
 
+void list_files(const char *path) {
+  printf("Listing files in '%s':\n", path);
+  DIR *dir = opendir(path);
+  if (!dir) {
+    printf("  Error opening directory: %s\n", strerror(errno));
+    return;
+  }
+
+  struct dirent *dirent;
+  while ((dirent = readdir(dir)) != NULL) {
+    printf("  - %s\n", dirent->d_name);
+  }
+
+  int err = closedir(dir);
+  if (err != 0) {
+    printf("  Error closing directory: %s\n", strerror(errno));
+  }
+  printf("\n"); // Add a newline for better log separation
+}
+
 bool init(bool force_format) {
   printf("init_filesystem, force_format: %d\n", force_format);
   blockdevice_t *flash = blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
@@ -38,8 +60,8 @@ bool init(bool force_format) {
     printf("Attempting to mount filesystem\n");
     int err = fs_mount("/", lfs, flash);
     if (err == -1) {
-      printf("fs_mount error: %s\n", strerror(errno));
-      return false;
+      printf("Initial mount failed: %s. Attempting to format...\n", strerror(errno));
+      return format_filesystem(lfs, flash);
     }
     return true; // Mount successful
   }

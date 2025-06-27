@@ -58,10 +58,25 @@ add_executable(${EXECUTABLE_NAME}
   pizza_display.cpp
   ../musin/timing/tempo_handler.cpp
   sequencer_controller.cpp
+  configuration_manager.cpp
   sound_router.cpp
   audio_engine.cpp
-  sb25_samples.cpp
+  sample_repository.cpp
 )
+
+# Generate C header from default config JSON
+set(DEFAULT_CONFIG_SRC "${CMAKE_CURRENT_SOURCE_DIR}/config.default.json")
+set(DEFAULT_CONFIG_HDR "${CMAKE_BINARY_DIR}/generated/config_default.h")
+
+add_custom_command(
+    OUTPUT ${DEFAULT_CONFIG_HDR}
+    COMMAND bash -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && ${XXD_PROGRAM} -i config.default.json > ${DEFAULT_CONFIG_HDR}"
+    DEPENDS ${DEFAULT_CONFIG_SRC}
+    COMMENT "Generating C header from default config"
+    VERBATIM
+)
+
+add_custom_target(generate_default_config DEPENDS ${DEFAULT_CONFIG_HDR})
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
@@ -77,6 +92,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ../experiments/support # For sample_conversion.h and potentially other support files
     ${GENERATED_SAMPLES_OUTPUT_DIR} # For all_samples.h, sample_data.h etc.
     # Add other specific include paths here if needed
+    ../lib
 )
 
 musin_init(${EXECUTABLE_NAME})
@@ -85,11 +101,13 @@ musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
+musin_init_filesystem(${PROJECT_NAME})
 
 # Add sample generation dependency after executable is defined
 if(TARGET generate_samples)
   add_dependencies(${EXECUTABLE_NAME} generate_samples)
 endif()
+add_dependencies(${EXECUTABLE_NAME} generate_default_config)
 
 
 # Explicitly find the size utility, hinting at the Pico toolchain path

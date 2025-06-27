@@ -211,14 +211,17 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
-
   bool random_active_ = false;
   uint8_t random_probability_ = drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
-  etl::array<bool, NumTracks> _pad_pressed_state;
+  etl::array<bool, NumTracks> _pad_pressed_state{};
+  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
+  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
+
+  etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
+    return _pad_pressed_state;
+  }
 
 public:
   void activate_repeat(uint32_t length);

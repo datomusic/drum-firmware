@@ -65,7 +65,7 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
-  musin::usb::init(false); // Wait for serial connection
+  musin::usb::init(true); // Wait for serial connection
 
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,

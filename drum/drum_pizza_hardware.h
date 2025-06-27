@@ -99,7 +99,7 @@ constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
 
 // --- Hardware Utilities ---
 
-constexpr auto PULL_CHECK_DELAY_US = 100;
+constexpr auto PULL_CHECK_DELAY_US = 1000;
 
 enum class ExternalPinState {
   FLOATING,
@@ -136,6 +136,7 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
   bool pulldown_read = gpio_get(gpio);
 
   ExternalPinState determined_state;
+  logger.info("Checking pin ", gpio);
 
   if (!initial_read && pullup_read && !pulldown_read) {
     determined_state = ExternalPinState::FLOATING;
@@ -164,12 +165,8 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
     state_str = "UNDETERMINED";
     break;
   }
-
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "Pin check GPIO %lu state: %s", static_cast<unsigned long>(gpio),
-           state_str);
-  logger.debug(buffer);
-
+  
+  logger.info(state_str);
   gpio_disable_pulls(gpio);
   sleep_us(PULL_CHECK_DELAY_US);
 

@@ -15,8 +15,8 @@ bool ConfigurationManager::load() {
   FILE *config_file = fopen(CONFIG_PATH, "r");
   if (!config_file) {
     logger_.info("Could not open /config.json. Loading embedded default configuration.");
-    return parse_json_buffer({reinterpret_cast<const char *>(config_default_json),
-                              config_default_json_len});
+    return parse_json_buffer(
+        {reinterpret_cast<const char *>(config_default_json), config_default_json_len});
   }
 
   static char buffer[MAX_CONFIG_FILE_SIZE];
@@ -25,8 +25,8 @@ bool ConfigurationManager::load() {
 
   if (file_size == 0) {
     logger_.warn("/config.json is empty. Loading embedded default configuration.");
-    return parse_json_buffer({reinterpret_cast<const char *>(config_default_json),
-                              config_default_json_len});
+    return parse_json_buffer(
+        {reinterpret_cast<const char *>(config_default_json), config_default_json_len});
   }
 
   buffer[file_size] = '\0'; // Null-terminate the buffer for safety

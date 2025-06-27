@@ -28,7 +28,8 @@ public:
   static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
   static constexpr uint32_t FADE_DURATION_MS = 150;
   static constexpr uint16_t VELOCITY_TO_BRIGHTNESS_SCALE = 2;
-  static constexpr uint8_t HIGHLIGHT_BLEND_AMOUNT = 100;
+  static constexpr uint8_t MAX_HIGHLIGHT_BLEND_AMOUNT = 100;
+  static constexpr uint8_t MIN_HIGHLIGHT_BLEND_AMOUNT = 40;
   static constexpr uint32_t COLOR_WHITE = 0xFFFFFF;
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
@@ -161,12 +162,11 @@ private:
   uint32_t apply_highlight(uint32_t color) const;
 
   /**
-   * @brief Apply a fading highlight effect (blend with white) based on a factor.
+   * @brief Apply a subtle highlight effect (blend with white) to a color.
    * @param color The base color.
-   * @param highlight_factor The intensity of the highlight (0.0 = none, 1.0 = full white blend).
-   * @return uint32_t The highlighted color.
+   * @return uint32_t The highlighted color (fixed blend).
    */
-  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const;
+  uint32_t apply_min_highlight(uint32_t color) const;
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and step.
@@ -202,7 +202,7 @@ private:
   musin::timing::TempoHandler &_tempo_handler_ref;
 
   uint32_t _clock_tick_counter = 0;
-  float _stopped_highlight_factor = 0.0f;
+  bool _highlight_pulse_state = true;
 
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
   void update_track_override_colors();

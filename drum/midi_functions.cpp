@@ -6,7 +6,7 @@ extern "C" {
 #include "pico/unique_id.h" // For pico_get_unique_board_id
 }
 
-#include "config.h"                            // For drum::config::NUM_TRACKS
+#include "config.h" // For drum::config::NUM_TRACKS
 #include "musin/hal/logger.h"
 #include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor

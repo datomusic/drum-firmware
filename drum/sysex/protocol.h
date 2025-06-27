@@ -80,6 +80,8 @@ template <typename FileOperations> struct Protocol {
     OK,
     FileWritten,
     Reboot,
+    PrintFirmwareVersion,
+    PrintSerialNumber,
     FileError,
     ShortMessage,
     NotSysex,
@@ -178,11 +180,9 @@ private:
     case Tag::RebootBootloader:
       return Result::Reboot; // Action handled by caller
     case Tag::RequestFirmwareVersion:
-      midi_print_firmware_version();
-      return Result::OK;
+      return Result::PrintFirmwareVersion;
     case Tag::RequestSerialNumber:
-      midi_print_serial_number();
-      return Result::OK;
+      return Result::PrintSerialNumber;
     default:
       break; // Not a stateless command, continue to stateful logic.
     }
@@ -215,47 +215,6 @@ private:
 
     return etl::nullopt;
   };
-
-  void midi_print_firmware_version() {
-    printf("Version %d.%d.%d\n", FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH);
-    static constexpr uint8_t sysex[] = {
-        0xF0,
-        drum::config::sysex::MANUFACTURER_ID_0,
-        drum::config::sysex::MANUFACTURER_ID_1,
-        drum::config::sysex::MANUFACTURER_ID_2,
-        drum::config::sysex::DEVICE_ID,
-        static_cast<uint8_t>(Tag::RequestFirmwareVersion), // Command byte
-        (uint8_t)(FIRMWARE_MAJOR & 0x7F),
-        (uint8_t)(FIRMWARE_MINOR & 0x7F),
-        (uint8_t)(FIRMWARE_PATCH & 0x7F),
-        0xF7};
-
-    MIDI::sendSysEx(sizeof(sysex), sysex);
-  }
-
-  void midi_print_serial_number() {
-    pico_unique_board_id_t id;
-    pico_get_unique_board_id(&id); // Get the 64-bit (8-byte) unique ID
-
-    uint8_t sysex[16]; // 1(F0) + 3(Manuf) + 1(Dev) + 1(Cmd) + 9(Data) + 1(F7) = 16 bytes
-
-    sysex[0] = 0xF0;
-    sysex[1] = drum::config::sysex::MANUFACTURER_ID_0;
-    sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
-    sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
-    sysex[4] = drum::config::sysex::DEVICE_ID;
-    sysex[5] = static_cast<uint8_t>(Tag::RequestSerialNumber); // Command byte
-
-    uint8_t msbs = 0;
-    for (int i = 0; i < 8; ++i) {
-      sysex[6 + i] = id.id[i] & 0x7F;        // Store the lower 7 bits
-      msbs |= ((id.id[i] >> 7) & 0x01) << i; // Store the MSB in the msbs byte
-    }
-    sysex[14] = msbs; // Store the collected MSBs as the 9th data byte
-    sysex[15] = 0xF7;
-
-    MIDI::sendSysEx(sizeof(sysex), sysex);
-  }
 
   template <typename Sender>
   constexpr Result handle_packet(const uint16_t tag, Values::const_iterator value_iterator,

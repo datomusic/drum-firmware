@@ -1,32 +1,36 @@
 #ifndef PRINTING_FILE_OPS_H_CVXHHJDO
 #define PRINTING_FILE_OPS_H_CVXHHJDO
 
-#include <stdio.h>
-
 #include "etl/span.h"
 #include "etl/string_view.h"
 #include "musin/filesystem/filesystem.h"
+#include "musin/hal/logger.h"
+
+#include <stdio.h>
 
 struct StandardFileOps {
+  explicit StandardFileOps(musin::Logger &logger) : logger(logger) {
+  }
   static const unsigned BlockSize = 256;
 
   struct Handle {
 
-    Handle(const etl::string_view &path) {
+    Handle(const etl::string_view &path, musin::Logger &logger) : logger(logger) {
       if (file_pointer) {
         fclose(file_pointer);
         // TODO: Report some error. This should not happen;
       }
 
-      printf("Writing file: '%s'\n", path.data());
+      logger.info("Writing file:");
+      logger.info(path);
       file_pointer = fopen(path.data(), "wb");
       if (!file_pointer) {
-        printf("ERROR: Failed opening file\n");
+        logger.error("Failed opening file");
       }
     }
 
     void close() {
-      printf("Closing file!\n");
+      logger.info("Closing file!");
       if (file_pointer) {
         fflush(file_pointer);
         fclose(file_pointer);
@@ -51,6 +55,7 @@ struct StandardFileOps {
     }
 
   private:
+    musin::Logger &logger;
     FILE *file_pointer = nullptr;
   };
 
@@ -59,21 +64,25 @@ struct StandardFileOps {
   Handle open(const etl::string_view &path) {
     // TODO: Use actual path
     // const char *path = "/tmp_sample";
-    printf("Opening new file: %s\n", path.data());
-    return Handle(path);
+    logger.info("Opening new file:");
+    logger.info(path);
+    return Handle(path, logger);
   }
 
   bool format() {
-    printf("Formatting filesystem...\n");
+    logger.info("Formatting filesystem...");
     // This will re-initialize the filesystem, which includes formatting if the flag is true.
     bool success = musin::filesystem::init(true);
     if (success) {
-      printf("Filesystem formatted successfully.\n");
+      logger.info("Filesystem formatted successfully.");
     } else {
-      printf("ERROR: Filesystem formatting failed.\n");
+      logger.error("Filesystem formatting failed.");
     }
     return success;
   }
+
+private:
+  musin::Logger &logger;
 };
 
 #endif /* end of include guard: PRINTING_FILE_OPS_H_CVXHHJDO */

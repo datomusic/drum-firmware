@@ -1,4 +1,5 @@
 #include "musin/hal/debug_utils.h"
+#include "musin/hal/logger.h"
 #include "musin/midi/midi_message_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
@@ -26,9 +27,11 @@
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
+static musin::PicoLogger logger(musin::LogLevel::INFO);
+
 // SysEx File Transfer
-static StandardFileOps file_ops;
-static sysex::Protocol<StandardFileOps> syx_protocol(file_ops);
+static StandardFileOps file_ops(logger);
+static sysex::Protocol<StandardFileOps> syx_protocol(file_ops, logger);
 static bool new_file_received = false;
 
 // Model
@@ -70,24 +73,24 @@ int main() {
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
-    printf("WARNING: Failed to initialize filesystem.\n");
+    logger.warn("Failed to initialize filesystem.");
   } else {
     musin::filesystem::list_files("/"); // List files in the root directory
 
     // Print config.json contents for debugging
-    printf("\n--- Contents of /config.json ---\n");
+    logger.info("\n--- Contents of /config.json ---");
     FILE *configFile = fopen("/config.json", "r");
     if (configFile) {
       char read_buffer[129];
       size_t bytes_read;
       while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1, configFile)) > 0) {
         read_buffer[bytes_read] = '\0';
-        printf("%s", read_buffer);
+        logger.info(read_buffer);
       }
       fclose(configFile);
-      printf("\n--- End of /config.json ---\n\n");
+      logger.info("\n--- End of /config.json ---");
     } else {
-      printf("Could not open /config.json to display.\n\n");
+      logger.warn("Could not open /config.json to display.");
     }
 
     if (config_manager.load()) {
@@ -137,7 +140,7 @@ int main() {
       // The protocol is actively receiving a file.
       // We could add visual feedback here, e.g., pulse a specific LED.
     } else if (new_file_received) {
-      printf("Main loop: New file received, reloading configuration.\n");
+      logger.info("Main loop: New file received, reloading configuration.");
       if (config_manager.load()) {
         sample_repository.load_from_config(config_manager.get_sample_configs());
       }

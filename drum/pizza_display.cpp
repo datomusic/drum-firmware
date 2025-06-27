@@ -308,23 +308,24 @@ uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) con
 }
 
 uint32_t PizzaDisplay::apply_pulsing_highlight(uint32_t base_color) const {
-  if (_highlight_is_bright) {
-    // Bright state: additively blend with white
-    uint8_t r = (base_color >> 16) & 0xFF;
-    uint8_t g = (base_color >> 8) & 0xFF;
-    uint8_t b = base_color & 0xFF;
+  // Bright state: additively blend with white
+  uint8_t r = (base_color >> 16) & 0xFF;
+  uint8_t g = (base_color >> 8) & 0xFF;
+  uint8_t b = base_color & 0xFF;
+  uint8_t amount;
 
-    r = static_cast<uint8_t>(
-        std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
-    g = static_cast<uint8_t>(
-        std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
-    b = static_cast<uint8_t>(
-        std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
-    return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+  if (_highlight_is_bright) {
+    amount = HIGHLIGHT_BLEND_AMOUNT;
   } else {
-    // Dim state: reduce brightness of the base color
-    return _leds.adjust_color_brightness(base_color, REDUCED_BRIGHTNESS);
+    amount = ((HIGHLIGHT_BLEND_AMOUNT * REDUCED_BRIGHTNESS) >> 8);
   }
+  r = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + amount));
+  g = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + amount));
+  b = static_cast<uint8_t>(
+      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + amount));
+  return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
 }
 
 uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {

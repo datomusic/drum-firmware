@@ -147,6 +147,10 @@ template <typename FileOperations> struct Protocol {
         return *maybe_result;
       } else {
         printf("SysEx: Error: Unknown command with no body. Tag: %u\n", tag);
+        if (state == State::FileTransfer) {
+          opened_file.reset();
+          state = State::Idle;
+        }
         send_reply(Tag::Nack);
         return Result::InvalidContent;
       }
@@ -291,6 +295,10 @@ private:
 
     default:
       printf("SysEx: Error: Unknown tag %u with body\n", tag);
+      if (state == State::FileTransfer) {
+        opened_file.reset();
+        state = State::Idle;
+      }
       send_reply(Tag::Nack);
       return Result::InvalidContent;
     }

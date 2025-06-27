@@ -213,6 +213,12 @@ bool PizzaDisplay::init() {
   return true;
 }
 
+void PizzaDisplay::update(absolute_time_t now) {
+  draw_base_elements();
+  draw_animations(now);
+  show();
+}
+
 void PizzaDisplay::show() {
   _leds.show();
 }

@@ -48,9 +48,11 @@ public:
   bool init();
 
   /**
-   * @brief Send the current LED buffer data to the physical strip.
+   * @brief Updates the entire display by drawing all elements and sending to hardware.
+   * This should be the primary method called from the main loop.
+   * @param now The current absolute time, used for animations.
    */
-  void show();
+  void update(absolute_time_t now);
 
   /**
    * @brief Set the global brightness level.
@@ -88,13 +90,6 @@ public:
   // config::global_note_definitions
 
   /**
-   * @brief Draws base LED elements like the play button and sequencer steps.
-   * This method should be called regularly in the main loop before show().
-   * It reflects the direct state of the model without animations.
-   */
-  void draw_base_elements();
-
-  /**
    * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).
    */
   void notification(musin::timing::TempoEvent event) override;
@@ -125,13 +120,6 @@ public:
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
-   * @brief Updates time-based animations, such as drumpad LED fades.
-   * This should be called once per update cycle.
-   * @param now The current absolute time.
-   */
-  void draw_animations(absolute_time_t now);
-
-  /**
    * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
    */
   void draw_sequencer_state();
@@ -146,6 +134,24 @@ public:
   }
 
 private:
+  /**
+   * @brief Send the current LED buffer data to the physical strip.
+   */
+  void show();
+
+  /**
+   * @brief Draws base LED elements like the play button and sequencer steps.
+   * It reflects the direct state of the model without animations.
+   */
+  void draw_base_elements();
+
+  /**
+   * @brief Updates time-based animations, such as drumpad LED fades.
+   * This should be called once per update cycle.
+   * @param now The current absolute time.
+   */
+  void draw_animations(absolute_time_t now);
+
   /**
    * @brief Calculate the LED color for a sequencer step based on note and velocity.
    * @param step The sequencer step data.

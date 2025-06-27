@@ -278,7 +278,9 @@ async function send_file_content(data) {
     bytes = bytes.concat(pack3_16((upper << 8) + lower));
 
     // Stay below the max SysEx message length, leaving space for header.
-    if (bytes.length >= 100) {
+    // The firmware limit is 128 bytes for the payload. We reserve 7 bytes for
+    // the ID and tag, leaving 121 for data. We use 120 as a safe multiple of 3.
+    if (bytes.length >= 120) {
       const percentage = Math.round(((i + 2) / total_bytes) * 100);
       const bar_length = 40;
       const filled_length = Math.round(bar_length * (percentage / 100));

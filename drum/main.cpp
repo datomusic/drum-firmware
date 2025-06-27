@@ -37,7 +37,7 @@ static bool new_file_received = false;
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
-static drum::AudioEngine audio_engine(sample_repository);
+static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,

@@ -1,9 +1,10 @@
 #include "drum/configuration_manager.h"
 #include "config_default.h"
-#include "etl/string.h"      // For etl::from_chars
+#include "etl/string.h"      // For std::from_chars
 #include "etl/string_view.h" // For etl::string_view
 #include "jsmn/jsmn.h"
 #include <cstdio>
+#include <cstring>
 
 namespace drum {
 
@@ -110,16 +111,16 @@ bool ConfigurationManager::parse_samples(etl::string_view json, jsmntok *tokens,
 
       if (key->type == JSMN_STRING) {
         if (key_sv == "slot") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.slot);
+          std::from_chars(val_sv.begin(), val_sv.end(), current_config.slot);
           slot_found = true;
         } else if (key_sv == "path") {
           current_config.path.assign(val_sv.begin(), val_sv.end());
         } else if (key_sv == "note") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.note);
+          std::from_chars(val_sv.begin(), val_sv.end(), current_config.note);
         } else if (key_sv == "track") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.track);
+          std::from_chars(val_sv.begin(), val_sv.end(), current_config.track);
         } else if (key_sv == "color") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.color);
+          std::from_chars(val_sv.begin(), val_sv.end(), current_config.color);
         }
       }
       token_idx += 2; // Move to next key-value pair

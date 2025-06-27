@@ -78,10 +78,6 @@ enum {
 const std::array<uint32_t, 4> analog_address_pins = {
     DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
     DATO_SUBMARINE_MUX_ADDR3_PIN};
-// Static array for multiplexer address pins that have pull-ups/downs for hardware detection.
-// The fourth address line (ADDR3) does not have external pull resistors.
-const std::array<uint32_t, 3> analog_address_pins_to_check = {
-    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
 // Static array for keypad column pins
 const std::array<uint32_t, 5> keypad_columns_pins = {
     DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
@@ -182,20 +178,26 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
 /**
  * @brief Checks if the control panel is disconnected by checking for floating pins.
  *
- * This is used to detect if the control panel is not properly connected. If any
- * analog multiplexer address pin is floating, it's assumed the panel is absent
- * or faulty, and local control should be disabled.
+ * This is used to detect if the control panel is not properly connected. If all
+ * of the first three analog multiplexer address pins are floating, it's assumed
+ * the panel is absent or faulty, and local control should be disabled.
  *
  * @param logger A logger instance for debug output.
- * @return true if any analog address pin is floating, false otherwise.
+ * @return true if all three checked pins are floating, false otherwise.
  */
 inline bool is_control_panel_disconnected(musin::Logger &logger) {
-  for (const auto &pin : analog_address_pins_to_check) {
-    if (check_external_pin_state(pin, logger) == ExternalPinState::FLOATING) {
-      return true;
-    }
+  // We check the first 3 address pins. If all are floating, we assume the panel is disconnected.
+  // The 4th pin is not checked as it lacks external pull resistors.
+  if (check_external_pin_state(analog_address_pins[0], logger) != ExternalPinState::FLOATING) {
+    return false;
   }
-  return false;
+  if (check_external_pin_state(analog_address_pins[1], logger) != ExternalPinState::FLOATING) {
+    return false;
+  }
+  if (check_external_pin_state(analog_address_pins[2], logger) != ExternalPinState::FLOATING) {
+    return false;
+  }
+  return true; // All three are floating
 }
 
 #endif // DRUM_PIZZA_HARDWARE_H

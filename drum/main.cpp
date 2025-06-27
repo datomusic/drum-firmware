@@ -21,7 +21,7 @@
 #include "audio_engine.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
-#include "pizza_display.h"
+#include "drum/ui/pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 

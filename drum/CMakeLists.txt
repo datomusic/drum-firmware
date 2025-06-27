@@ -55,7 +55,7 @@ add_executable(${EXECUTABLE_NAME}
   main.cpp
   midi_functions.cpp
   pizza_controls.cpp
-  pizza_display.cpp
+  ui/pizza_display.cpp
   ../musin/timing/tempo_handler.cpp
   sequencer_controller.cpp
   configuration_manager.cpp

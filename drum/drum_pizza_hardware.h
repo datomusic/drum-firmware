@@ -78,6 +78,10 @@ enum {
 const std::array<uint32_t, 4> analog_address_pins = {
     DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
     DATO_SUBMARINE_MUX_ADDR3_PIN};
+// Static array for multiplexer address pins that have pull-ups/downs for hardware detection.
+// The fourth address line (ADDR3) does not have external pull resistors.
+const std::array<uint32_t, 3> analog_address_pins_to_check = {
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
 // Static array for keypad column pins
 const std::array<uint32_t, 5> keypad_columns_pins = {
     DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
@@ -131,21 +135,18 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
   sleep_us(PULL_CHECK_DELAY_US);
   bool pullup_read = gpio_get(gpio);
 
-  gpio_pull_down(gpio);
-  sleep_us(PULL_CHECK_DELAY_US);
-  bool pulldown_read = gpio_get(gpio);
-
   ExternalPinState determined_state;
 
-  // The logic for determining the state is based on how the pin behaves with different pulls.
-  // - A floating pin will be pulled HIGH by a pull-up and LOW by a pull-down.
-  // - A pin with an external pull-up will read HIGH, even with an internal pull-down.
-  // - A pin with an external pull-down will read LOW, even with an internal pull-up.
-  if (pullup_read && !pulldown_read) {
+  // The logic for determining the state is based on how the pin behaves with an internal pull-up.
+  // This avoids using the internal pull-down, which is buggy on the RP2350.
+  // - A floating pin will read LOW without pull and HIGH with pull-up.
+  // - A pin with an external pull-up will read HIGH in both cases.
+  // - A pin with an external pull-down will read LOW in both cases.
+  if (!initial_read && pullup_read) {
     determined_state = ExternalPinState::FLOATING;
-  } else if (initial_read && pullup_read && pulldown_read) {
+  } else if (initial_read && pullup_read) {
     determined_state = ExternalPinState::PULL_UP;
-  } else if (!initial_read && !pullup_read && !pulldown_read) {
+  } else if (!initial_read && !pullup_read) {
     determined_state = ExternalPinState::PULL_DOWN;
   } else {
     determined_state = ExternalPinState::UNDETERMINED;
@@ -168,9 +169,8 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
   }
 
   char buffer[128];
-  snprintf(buffer, sizeof(buffer),
-           "Pin check GPIO %2lu -> %-12s (initial=%d, pullup=%d, pulldown=%d)",
-           static_cast<unsigned long>(gpio), state_str, initial_read, pullup_read, pulldown_read);
+  snprintf(buffer, sizeof(buffer), "Pin check GPIO %2lu -> %-12s (initial=%d, pullup=%d)",
+           static_cast<unsigned long>(gpio), state_str, initial_read, pullup_read);
   logger.debug(buffer);
 
   gpio_disable_pulls(gpio);
@@ -190,7 +190,7 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
  * @return true if any analog address pin is floating, false otherwise.
  */
 inline bool is_control_panel_disconnected(musin::Logger &logger) {
-  for (const auto &pin : analog_address_pins) {
+  for (const auto &pin : analog_address_pins_to_check) {
     if (check_external_pin_state(pin, logger) == ExternalPinState::FLOATING) {
       return true;
     }

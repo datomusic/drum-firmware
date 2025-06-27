@@ -11,8 +11,7 @@ namespace { // Anonymous namespace for internal linkage
 
 // A simple, lightweight parser for converting a string_view to an unsigned integer.
 // Returns 0 on failure or for empty strings. Does not handle negative numbers.
-template <typename T>
-T string_view_to_unsigned(etl::string_view sv) {
+template <typename T> T string_view_to_unsigned(etl::string_view sv) {
   T value = 0;
   if (sv.empty()) {
     return 0;

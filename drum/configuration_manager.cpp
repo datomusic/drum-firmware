@@ -1,10 +1,9 @@
 #include "drum/configuration_manager.h"
 #include "config_default.h"
-#include "etl/string.h"      // For std::from_chars
+#include "etl/string.h"      // For etl::from_chars
 #include "etl/string_view.h" // For etl::string_view
 #include "jsmn/jsmn.h"
 #include <cstdio>
-#include <cstring>
 
 namespace drum {
 
@@ -16,8 +15,8 @@ bool ConfigurationManager::load() {
   FILE *config_file = fopen(CONFIG_PATH, "r");
   if (!config_file) {
     logger_.info("Could not open /config.json. Loading embedded default configuration.");
-    return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
-                             config_default_json_len);
+    return parse_json_buffer({reinterpret_cast<const char *>(config_default_json),
+                              config_default_json_len});
   }
 
   static char buffer[MAX_CONFIG_FILE_SIZE];
@@ -26,8 +25,8 @@ bool ConfigurationManager::load() {
 
   if (file_size == 0) {
     logger_.warn("/config.json is empty. Loading embedded default configuration.");
-    return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
-                             config_default_json_len);
+    return parse_json_buffer({reinterpret_cast<const char *>(config_default_json),
+                              config_default_json_len});
   }
 
   buffer[file_size] = '\0'; // Null-terminate the buffer for safety
@@ -37,7 +36,7 @@ bool ConfigurationManager::load() {
 
 bool ConfigurationManager::parse_json_buffer(etl::string_view buffer) {
   // Since the default config can be empty, handle that case gracefully.
-  if (size == 0) {
+  if (buffer.empty()) {
     logger_.info("Configuration buffer is empty. No settings loaded.");
     sample_configs_.clear();
     return true;
@@ -111,16 +110,16 @@ bool ConfigurationManager::parse_samples(etl::string_view json, jsmntok *tokens,
 
       if (key->type == JSMN_STRING) {
         if (key_sv == "slot") {
-          std::from_chars(val_sv.begin(), val_sv.end(), current_config.slot);
+          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.slot);
           slot_found = true;
         } else if (key_sv == "path") {
           current_config.path.assign(val_sv.begin(), val_sv.end());
         } else if (key_sv == "note") {
-          std::from_chars(val_sv.begin(), val_sv.end(), current_config.note);
+          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.note);
         } else if (key_sv == "track") {
-          std::from_chars(val_sv.begin(), val_sv.end(), current_config.track);
+          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.track);
         } else if (key_sv == "color") {
-          std::from_chars(val_sv.begin(), val_sv.end(), current_config.color);
+          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.color);
         }
       }
       token_idx += 2; // Move to next key-value pair

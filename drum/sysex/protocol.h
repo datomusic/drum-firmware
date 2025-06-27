@@ -103,20 +103,7 @@ template <typename FileOperations> struct Protocol {
 
     Chunk::Data::const_iterator iterator = chunk.cbegin();
 
-    // Check for a recognized Manufacturer/Device ID pattern.
-    // The chunk passed here has the 0xF0 and 0xF7 bytes stripped.
-    if (chunk.size() >= 4 && (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
-        (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
-        (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&
-        (*(iterator + 3)) == drum::config::sysex::DEVICE_ID) {
-      iterator += 4; // Official 3-byte ID + 1-byte Device ID
-    } else if (chunk.size() >= 3 && (*iterator) == 0 && (*(iterator + 1)) == 0x7D &&
-               (*(iterator + 2)) == 0x65) {
-      iterator += 3; // Old non-standard 3-byte ID
-    } else if (chunk.size() >= 2 && (*iterator) == 0x7D && (*(iterator + 1)) == 0x65) {
-      iterator += 2; // Old non-standard 2-byte ID
-    } else {
-      printf("SysEx: Error: Invalid manufacturer or device ID\n");
+    if (!check_and_advance_manufacturer_id(iterator, chunk.size())) {
       return Result::InvalidManufacturer;
     }
 
@@ -191,6 +178,16 @@ private:
   State state = State::Idle;
   etl::optional<File> opened_file;
 
+  constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
+                                                   const size_t chunk_size) const;
+
+  template <typename Sender>
+  constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
+                                           Sender send_reply);
+
+  template <typename Sender>
+  constexpr Result handle_file_bytes(const etl::span<const uint8_t> &bytes, Sender send_reply);
+
   // Handle packets without body
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {
@@ -241,62 +238,10 @@ private:
     const auto bytes = etl::span{byte_array.cbegin(), byte_count};
 
     switch (tag) {
-    case BeginFileWrite: {
-      if (state != State::Idle) {
-        printf(
-            "SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
-        send_reply(Tag::Nack);
-        return Result::FileError;
-      }
-
-      char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
-      const auto path_length = std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
-      for (unsigned i = 0; i < path_length; ++i) {
-        path[i] = bytes[i];
-      }
-
-      printf("SysEx: BeginFileWrite received for path: %s\n", path);
-      opened_file.emplace(file_ops, path);
-      if (opened_file.has_value() && opened_file->is_valid()) {
-        state = State::FileTransfer;
-        printf("SysEx: Sending Ack for BeginFileWrite\n");
-        send_reply(Tag::Ack);
-        return Result::OK;
-      } else {
-        opened_file.reset();
-        // state is already Idle
-        printf("SysEx: Error: Failed to open file for writing\n");
-        send_reply(Tag::Nack);
-        return Result::FileError;
-      }
-    } break;
-
-    case FileBytes: {
-      if (state != State::FileTransfer) {
-        printf("SysEx: Error: FileBytes received while not in a file transfer state.\n");
-        send_reply(Tag::Nack);
-        return Result::FileError;
-      }
-
-      if (opened_file.has_value()) {
-        // We want to write all the 16bit values in one go.
-        // If we, for some reason, must support different combinations of sysex size and block
-        // size, this code becomes more complicated.
-        static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
-
-        opened_file->write(bytes);
-        send_reply(Tag::Ack);
-        return Result::OK;
-      } else {
-        // This case should be theoretically unreachable if state is FileTransfer,
-        // but as a safeguard:
-        printf("SysEx: Error: FileBytes received but no file open\n");
-        send_reply(Tag::Nack);
-        state = State::Idle; // Reset state
-        return Result::FileError;
-      }
-    } break;
-
+    case BeginFileWrite:
+      return handle_begin_file_write(bytes, send_reply);
+    case FileBytes:
+      return handle_file_bytes(bytes, send_reply);
     default:
       printf("SysEx: Error: Unknown tag %u with body\n", tag);
       if (state == State::FileTransfer) {
@@ -305,6 +250,89 @@ private:
       }
       send_reply(Tag::Nack);
       return Result::InvalidContent;
+    }
+  }
+
+  template <typename Sender>
+  constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
+                                           Sender send_reply) {
+    if (state != State::Idle) {
+      printf(
+          "SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+
+    char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
+    const auto path_length = std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
+    for (unsigned i = 0; i < path_length; ++i) {
+      path[i] = bytes[i];
+    }
+
+    printf("SysEx: BeginFileWrite received for path: %s\n", path);
+    opened_file.emplace(file_ops, path);
+    if (opened_file.has_value() && opened_file->is_valid()) {
+      state = State::FileTransfer;
+      printf("SysEx: Sending Ack for BeginFileWrite\n");
+      send_reply(Tag::Ack);
+      return Result::OK;
+    } else {
+      opened_file.reset();
+      // state is already Idle
+      printf("SysEx: Error: Failed to open file for writing\n");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+  }
+
+  template <typename Sender>
+  constexpr Result handle_file_bytes(const etl::span<const uint8_t> &bytes, Sender send_reply) {
+    if (state != State::FileTransfer) {
+      printf("SysEx: Error: FileBytes received while not in a file transfer state.\n");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+
+    if (opened_file.has_value()) {
+      // We want to write all the 16bit values in one go.
+      // If we, for some reason, must support different combinations of sysex size and block
+      // size, this code becomes more complicated.
+      static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
+
+      opened_file->write(bytes);
+      send_reply(Tag::Ack);
+      return Result::OK;
+    } else {
+      // This case should be theoretically unreachable if state is FileTransfer,
+      // but as a safeguard:
+      printf("SysEx: Error: FileBytes received but no file open\n");
+      send_reply(Tag::Nack);
+      state = State::Idle; // Reset state
+      return Result::FileError;
+    }
+  }
+
+  constexpr bool
+  check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
+                                    const size_t chunk_size) const {
+    // Check for a recognized Manufacturer/Device ID pattern.
+    // The chunk passed here has the 0xF0 and 0xF7 bytes stripped.
+    if (chunk_size >= 4 && (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
+        (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
+        (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&
+        (*(iterator + 3)) == drum::config::sysex::DEVICE_ID) {
+      iterator += 4; // Official 3-byte ID + 1-byte Device ID
+      return true;
+    } else if (chunk_size >= 3 && (*iterator) == 0 && (*(iterator + 1)) == 0x7D &&
+               (*(iterator + 2)) == 0x65) {
+      iterator += 3; // Old non-standard 3-byte ID
+      return true;
+    } else if (chunk_size >= 2 && (*iterator) == 0x7D && (*(iterator + 1)) == 0x65) {
+      iterator += 2; // Old non-standard 2-byte ID
+      return true;
+    } else {
+      printf("SysEx: Error: Invalid manufacturer or device ID\n");
+      return false;
     }
   }
 };

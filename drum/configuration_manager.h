@@ -2,6 +2,7 @@
 #define DRUM_CONFIGURATION_MANAGER_H_
 
 #include "config.h"
+#include "etl/string.h"
 #include "etl/string_view.h"
 #include "etl/vector.h"
 #include <cstdint>

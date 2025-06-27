@@ -1,11 +1,38 @@
 #include "drum/configuration_manager.h"
 #include "config_default.h"
-#include "etl/string.h"      // For etl::from_chars
 #include "etl/string_view.h" // For etl::string_view
 #include "jsmn/jsmn.h"
 #include <cstdio>
+#include <limits>
 
 namespace drum {
+
+namespace { // Anonymous namespace for internal linkage
+
+// A simple, lightweight parser for converting a string_view to an unsigned integer.
+// Returns 0 on failure or for empty strings. Does not handle negative numbers.
+template <typename T>
+T string_view_to_unsigned(etl::string_view sv) {
+  T value = 0;
+  if (sv.empty()) {
+    return 0;
+  }
+
+  for (char c : sv) {
+    if (c >= '0' && c <= '9') {
+      // Basic overflow check
+      if (value > (std::numeric_limits<T>::max() - (c - '0')) / 10) {
+        return 0; // Overflow, return 0 as error indicator
+      }
+      value = value * 10 + (c - '0');
+    } else {
+      return 0; // Invalid character
+    }
+  }
+  return value;
+}
+
+} // namespace
 
 ConfigurationManager::ConfigurationManager(musin::Logger &logger) : logger_(logger) {
 }
@@ -110,16 +137,16 @@ bool ConfigurationManager::parse_samples(etl::string_view json, jsmntok *tokens,
 
       if (key->type == JSMN_STRING) {
         if (key_sv == "slot") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.slot);
+          current_config.slot = string_view_to_unsigned<uint8_t>(val_sv);
           slot_found = true;
         } else if (key_sv == "path") {
           current_config.path.assign(val_sv.begin(), val_sv.end());
         } else if (key_sv == "note") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.note);
+          current_config.note = string_view_to_unsigned<uint8_t>(val_sv);
         } else if (key_sv == "track") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.track);
+          current_config.track = string_view_to_unsigned<uint8_t>(val_sv);
         } else if (key_sv == "color") {
-          etl::from_chars(val_sv.begin(), val_sv.end(), current_config.color);
+          current_config.color = string_view_to_unsigned<uint32_t>(val_sv);
         }
       }
       token_idx += 2; // Move to next key-value pair

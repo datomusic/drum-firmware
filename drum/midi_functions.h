@@ -12,6 +12,7 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 } // namespace drum
 
 namespace musin {
+class Logger;
 namespace timing {
 class MidiClockProcessor;
 } // namespace timing
@@ -36,7 +37,8 @@ void midi_init(drum::SoundRouter &sound_router,
                drum::SequencerController<drum::config::NUM_TRACKS,
                                          drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
                musin::timing::MidiClockProcessor &midi_clock_processor,
-               sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)());
+               sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)(),
+               musin::Logger &logger);
 
 /**
  * @brief Process incoming MIDI messages. Should be called periodically.

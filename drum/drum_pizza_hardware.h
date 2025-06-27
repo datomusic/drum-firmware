@@ -154,4 +154,22 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
   return determined_state;
 }
 
+/**
+ * @brief Checks if all analog multiplexer address pins are floating.
+ *
+ * This is used to detect if the control panel is connected. If all pins
+ * are floating, it's assumed the panel is absent, and local control should
+ * be disabled.
+ *
+ * @return true if all analog address pins are floating, false otherwise.
+ */
+inline bool are_analog_address_pins_floating() {
+  for (const auto &pin : analog_address_pins) {
+    if (check_external_pin_state(pin, "analog_addr") != ExternalPinState::FLOATING) {
+      return false;
+    }
+  }
+  return true;
+}
+
 #endif // DRUM_PIZZA_HARDWARE_H

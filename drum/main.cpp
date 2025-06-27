@@ -20,6 +20,7 @@
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
+#include "drum_pizza_hardware.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
@@ -105,6 +106,14 @@ int main() {
     panic("Failed to initialize audio engine\n");
   }
   sound_router.set_output_mode(drum::OutputMode::BOTH);
+
+  // Check if the control panel is connected by checking MUX address pins.
+  if (are_analog_address_pins_floating()) {
+    logger.info("Analog address pins floating. Disabling local control.");
+    sound_router.set_local_control_mode(drum::LocalControlMode::OFF);
+  } else {
+    logger.info("Analog address pins detected. Local control enabled.");
+  }
 
   pizza_display.init();
   pizza_controls.init();

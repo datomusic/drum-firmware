@@ -142,18 +142,33 @@ template <typename FileOperations> struct Protocol {
     } else {
       // Command has no body.
       // printf("SysEx: Command has no body. Tag: %d\n", tag);
+
+      // Handle stateful commands with no body.
+      if (state == State::FileTransfer) {
+        if (tag == EndFileTransfer) {
+          printf("SysEx: EndFileTransfer received\n");
+          opened_file.reset();
+          state = State::Idle;
+          printf("SysEx: Sending Ack for EndFileTransfer\n");
+          send_reply(Tag::Ack);
+          return Result::FileWritten;
+        }
+      }
+
+      // Handle stateless commands with no body.
       const auto maybe_result = handle_no_body(tag, send_reply);
       if (maybe_result.has_value()) {
         return *maybe_result;
-      } else {
-        printf("SysEx: Error: Unknown command with no body. Tag: %u\n", tag);
-        if (state == State::FileTransfer) {
-          opened_file.reset();
-          state = State::Idle;
-        }
-        send_reply(Tag::Nack);
-        return Result::InvalidContent;
       }
+
+      // If we reach here, it's an unknown command.
+      printf("SysEx: Error: Unknown command with no body. Tag: %u\n", tag);
+      if (state == State::FileTransfer) {
+        opened_file.reset();
+        state = State::Idle;
+      }
+      send_reply(Tag::Nack);
+      return Result::InvalidContent;
     }
   }
 
@@ -191,30 +206,19 @@ private:
       break; // Not a stateless command, continue to stateful logic.
     }
 
-    // Handle stateful commands.
-    switch (state) {
-    case State::Idle:
-      if (tag == Tag::FormatFilesystem) {
-        if (file_ops.format()) {
-          send_reply(Tag::Ack);
-        } else {
-          send_reply(Tag::Nack);
-        }
-        return Result::OK;
+    // Handle stateful commands that are only valid in Idle state.
+    if (tag == Tag::FormatFilesystem) {
+      if (state != State::Idle) {
+        printf("SysEx: Error: Format command received while not in Idle state.\n");
+        send_reply(Tag::Nack);
+        return Result::FileError;
       }
-      break;
-    case State::FileTransfer: {
-      if (tag == EndFileTransfer) {
-        printf("SysEx: EndFileTransfer received\n");
-        opened_file.reset();
-        state = State::Idle;
-        printf("SysEx: Sending Ack for EndFileTransfer\n");
+      if (file_ops.format()) {
         send_reply(Tag::Ack);
-        return Result::FileWritten;
+      } else {
+        send_reply(Tag::Nack);
       }
-    } break;
-    default:
-      break;
+      return Result::OK;
     }
 
     return etl::nullopt;

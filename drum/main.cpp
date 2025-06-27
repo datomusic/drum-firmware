@@ -108,7 +108,7 @@ int main() {
   sound_router.set_output_mode(drum::OutputMode::BOTH);
 
   // Check if the control panel is connected by checking for floating MUX address pins.
-  if (is_control_panel_disconnected()) {
+  if (is_control_panel_disconnected(logger)) {
     logger.warn(
         "Control panel appears disconnected (address pins floating). Disabling local control.");
     sound_router.set_local_control_mode(drum::LocalControlMode::OFF);

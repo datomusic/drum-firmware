@@ -2,9 +2,11 @@
 #define DRUM_PIZZA_HARDWARE_H
 
 #include "musin/boards/dato_submarine.h"
+#include "musin/hal/logger.h"
 #include <array>
 #include <cstddef> // For size_t
 #include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include "hardware/gpio.h"
@@ -114,11 +116,10 @@ enum class ExternalPinState {
  * pull state to disabled before returning.
  *
  * @param gpio The GPIO pin number to check.
- * @param name An optional name for the pin, for debugging (currently unused).
+ * @param logger A logger instance for debug output.
  * @return The determined state of the pin (FLOATING, PULL_UP, PULL_DOWN, or UNDETERMINED).
  */
-inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
-                                                 [[maybe_unused]] const char *name) {
+inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logger &logger) {
   gpio_init(gpio);
   gpio_set_dir(gpio, GPIO_IN);
 
@@ -148,6 +149,27 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
     determined_state = ExternalPinState::UNDETERMINED;
   }
 
+  const char *state_str;
+  switch (determined_state) {
+  case ExternalPinState::FLOATING:
+    state_str = "FLOATING";
+    break;
+  case ExternalPinState::PULL_UP:
+    state_str = "PULL_UP";
+    break;
+  case ExternalPinState::PULL_DOWN:
+    state_str = "PULL_DOWN";
+    break;
+  default:
+    state_str = "UNDETERMINED";
+    break;
+  }
+
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "Pin check GPIO %lu state: %s",
+           static_cast<unsigned long>(gpio), state_str);
+  logger.debug(buffer);
+
   gpio_disable_pulls(gpio);
   sleep_us(PULL_CHECK_DELAY_US);
 
@@ -161,11 +183,12 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
  * analog multiplexer address pin is floating, it's assumed the panel is absent
  * or faulty, and local control should be disabled.
  *
+ * @param logger A logger instance for debug output.
  * @return true if any analog address pin is floating, false otherwise.
  */
-inline bool is_control_panel_disconnected() {
+inline bool is_control_panel_disconnected(musin::Logger &logger) {
   for (const auto &pin : analog_address_pins) {
-    if (check_external_pin_state(pin, "analog_addr") == ExternalPinState::FLOATING) {
+    if (check_external_pin_state(pin, logger) == ExternalPinState::FLOATING) {
       return true;
     }
   }

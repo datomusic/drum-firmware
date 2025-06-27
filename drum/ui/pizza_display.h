@@ -36,7 +36,8 @@ public:
 
   explicit PizzaDisplay(drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
                             &sequencer_controller_ref,
-                        musin::timing::TempoHandler &tempo_handler_ref);
+                        musin::timing::TempoHandler &tempo_handler_ref,
+                        musin::Logger &logger_ref);
 
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;
@@ -195,6 +196,7 @@ private:
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
+  musin::Logger &_logger_ref;
 
   uint32_t _clock_tick_counter = 0;
   uint32_t _last_tick_count_for_highlight = 0;

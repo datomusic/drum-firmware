@@ -49,7 +49,7 @@ drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_
 static drum::SoundRouter sound_router(audio_engine, sequencer_controller);
 
 // View
-static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
+static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,

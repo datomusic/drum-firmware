@@ -1,17 +1,19 @@
 #include "drum/configuration_manager.h"
 #include "config_default.h"
 #include "jsmn/jsmn.h"
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
 namespace drum {
 
+ConfigurationManager::ConfigurationManager(musin::Logger &logger) : logger_(logger) {
+}
+
 bool ConfigurationManager::load() {
-  printf("Loading configuration from %s\n", CONFIG_PATH);
+  logger_.info("Loading configuration from /config.json");
   FILE *config_file = fopen(CONFIG_PATH, "r");
   if (!config_file) {
-    printf("INFO: Could not open %s. Loading embedded default configuration.\n", CONFIG_PATH);
+    logger_.info("Could not open /config.json. Loading embedded default configuration.");
     return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
                              config_default_json_len);
   }
@@ -21,7 +23,7 @@ bool ConfigurationManager::load() {
   fclose(config_file);
 
   if (file_size == 0) {
-    printf("WARNING: %s is empty. Loading embedded default configuration.\n", CONFIG_PATH);
+    logger_.warn("/config.json is empty. Loading embedded default configuration.");
     return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
                              config_default_json_len);
   }
@@ -34,7 +36,7 @@ bool ConfigurationManager::load() {
 bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
   // Since the default config can be empty, handle that case gracefully.
   if (size == 0) {
-    printf("INFO: Configuration buffer is empty. No settings loaded.\n");
+    logger_.info("Configuration buffer is empty. No settings loaded.");
     sample_configs_.clear();
     return true;
   }
@@ -46,12 +48,12 @@ bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
   int r = jsmn_parse(&parser, buffer, size, tokens, MAX_JSON_TOKENS);
 
   if (r < 0) {
-    printf("ERROR: Failed to parse JSON: %d\n", r);
+    logger_.error("Failed to parse JSON", r);
     return false;
   }
 
   if (r < 1 || tokens[0].type != JSMN_OBJECT) {
-    printf("ERROR: JSON root is not an object.\n");
+    logger_.error("JSON root is not an object.");
     return false;
   }
 
@@ -64,7 +66,7 @@ bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
         }
         i += tokens[i + 1].size + 1; // Move to the next top-level key
       } else {
-        printf("WARNING: 'samples' key is not followed by an array.\n");
+        logger_.warn("'samples' key is not followed by an array.");
       }
     }
     // Future: Parse 'settings' here
@@ -85,7 +87,7 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
   for (int i = 0; i < tokens->size; ++i) { // For each object in the 'samples' array
     jsmntok *obj_tok = &tokens[token_idx];
     if (obj_tok->type != JSMN_OBJECT) {
-      printf("WARNING: Item in samples array is not an object.\n");
+      logger_.warn("Item in samples array is not an object.");
       token_idx += obj_tok->size + 1;
       continue;
     }
@@ -118,11 +120,13 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
     if (slot_found) {
       if (!sample_configs_.full()) {
         sample_configs_.push_back(current_config);
-        printf("  - Parsed sample: slot=%d, path=%s, note=%d, track=%d, color=%lu\n",
-               current_config.slot, current_config.path.c_str(), current_config.note,
-               current_config.track, current_config.color);
+        logger_.info("  - Parsed sample for slot", (int32_t)current_config.slot);
+        logger_.info(current_config.path);
+        logger_.info("    note", (int32_t)current_config.note);
+        logger_.info("    track", (int32_t)current_config.track);
+        logger_.info("    color", current_config.color);
       } else {
-        printf("WARNING: Max samples reached, skipping remaining entries.\n");
+        logger_.warn("Max samples reached, skipping remaining entries.");
         break;
       }
     }

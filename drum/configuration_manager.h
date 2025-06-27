@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "drum/sample_repository.h"
+#include "musin/hal/logger.h"
 
 // Forward declaration of jsmn token struct
 struct jsmntok;
@@ -37,7 +38,7 @@ public:
   static constexpr size_t MAX_CONFIG_FILE_SIZE = 8192;
   static constexpr size_t MAX_JSON_TOKENS = 512;
 
-  ConfigurationManager() = default;
+  explicit ConfigurationManager(musin::Logger &logger);
 
   /**
    * @brief Loads and parses the configuration file.
@@ -54,6 +55,7 @@ public:
   const etl::ivector<SampleConfig> &get_sample_configs() const;
 
 private:
+  musin::Logger &logger_;
   bool json_string_equals(const char *json, const jsmntok *token, const char *str);
   bool parse_samples(const char *json, jsmntok *tokens, int count);
   bool parse_json_buffer(const char *buffer, size_t size);

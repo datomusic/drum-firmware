@@ -35,7 +35,7 @@ static sysex::Protocol<StandardFileOps> syx_protocol(file_ops, logger);
 static bool new_file_received = false;
 
 // Model
-static drum::ConfigurationManager config_manager;
+static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static drum::AudioEngine audio_engine(sample_repository);
 static musin::timing::InternalClock internal_clock(120.0f);

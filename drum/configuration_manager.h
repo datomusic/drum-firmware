@@ -3,10 +3,12 @@
 
 #include "config.h"
 #include "etl/string.h"
+#include "etl/string_view.h"
 #include "etl/vector.h"
 #include <cstdint>
 
 #include "drum/sample_repository.h"
+#include "musin/hal/logger.h"
 
 // Forward declaration of jsmn token struct
 struct jsmntok;
@@ -37,7 +39,7 @@ public:
   static constexpr size_t MAX_CONFIG_FILE_SIZE = 8192;
   static constexpr size_t MAX_JSON_TOKENS = 512;
 
-  ConfigurationManager() = default;
+  explicit ConfigurationManager(musin::Logger &logger);
 
   /**
    * @brief Loads and parses the configuration file.
@@ -54,9 +56,10 @@ public:
   const etl::ivector<SampleConfig> &get_sample_configs() const;
 
 private:
-  bool json_string_equals(const char *json, const jsmntok *token, const char *str);
-  bool parse_samples(const char *json, jsmntok *tokens, int count);
-  bool parse_json_buffer(const char *buffer, size_t size);
+  musin::Logger &logger_;
+  bool json_string_equals(etl::string_view json_token, etl::string_view str) const;
+  bool parse_samples(etl::string_view json, jsmntok *tokens, int count);
+  bool parse_json_buffer(etl::string_view buffer);
 
   etl::vector<SampleConfig, SampleRepository::MAX_SAMPLES> sample_configs_;
 };

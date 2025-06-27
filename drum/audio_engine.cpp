@@ -1,13 +1,7 @@
 #include "audio_engine.h"
 
-#include "etl/array.h"
-
 #include "musin/audio/audio_output.h"
-#include "musin/audio/crusher.h"
-#include "musin/audio/filter.h"
-#include "musin/audio/mixer.h"
-#include "musin/audio/sound.h"
-
+#include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
 
 #include <algorithm>
@@ -42,8 +36,8 @@ float map_value_filter_fast(float normalized_value) {
 AudioEngine::Voice::Voice() : sound(reader.emplace()) { // reader is default constructed here
 }
 
-AudioEngine::AudioEngine(const SampleRepository &repository)
-    : sample_repository_(repository),
+AudioEngine::AudioEngine(const SampleRepository &repository, musin::Logger &logger)
+    : sample_repository_(repository), logger_(logger),
       voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_), highpass_(lowpass_) {
   lowpass_.filter.frequency(20000.0f);
@@ -96,7 +90,8 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
   // Load the sample from the file path.
   if (!voice.reader->load(*path_opt)) {
     // Failed to load the file (e.g., file not found, corrupted).
-    printf("ERROR: Failed to load sample from %s\n", path_opt->data());
+    logger_.error("Failed to load sample from");
+    logger_.error(*path_opt);
     // The reader is now in a safe state (SourceType::NONE).
     return;
   }

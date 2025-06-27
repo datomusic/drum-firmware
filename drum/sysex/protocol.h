@@ -6,13 +6,12 @@
 #include "etl/span.h"
 #include "etl/string_view.h"
 
+#include "musin/hal/logger.h"
 #include "musin/midi/midi_wrapper.h" // For midi::SystemExclusive
 
 #include "./chunk.h"
 #include "./codec.h"
 #include "version.h" // For FIRMWARE_MAJOR, etc.
-
-#include <stdio.h>
 
 extern "C" {
 #include "pico/unique_id.h" // For pico_get_unique_board_id
@@ -29,7 +28,8 @@ namespace sysex {
 // Wraps a file handle to ensure it gets closed through RAII.
 
 template <typename FileOperations> struct Protocol {
-  constexpr Protocol(FileOperations &file_ops) : file_ops(file_ops) {
+  constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
+      : file_ops(file_ops), logger(logger) {
   }
 
   struct File {
@@ -97,7 +97,7 @@ template <typename FileOperations> struct Protocol {
   template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
     // 5 bytes minimum: 2-byte manufacturer ID (if zero stripped) + 3 bytes for tag.
     if (chunk.size() < 5) {
-      printf("SysEx: Error: Short message, size %u\n", (unsigned)chunk.size());
+      logger.error("SysEx: Short message, size", static_cast<uint32_t>(chunk.size()));
       return Result::ShortMessage;
     }
 
@@ -112,7 +112,7 @@ template <typename FileOperations> struct Protocol {
 
     // Check if we have at least one value for the tag
     if (value_count == 0) {
-      printf("SysEx: Error: No values decoded from message\n");
+      logger.error("SysEx: No values decoded from message");
       send_reply(Tag::Nack);
       return Result::InvalidContent;
     }
@@ -133,10 +133,10 @@ template <typename FileOperations> struct Protocol {
       // Handle stateful commands with no body.
       if (state == State::FileTransfer) {
         if (tag == EndFileTransfer) {
-          printf("SysEx: EndFileTransfer received\n");
+          logger.info("SysEx: EndFileTransfer received");
           opened_file.reset();
           state = State::Idle;
-          printf("SysEx: Sending Ack for EndFileTransfer\n");
+          logger.info("SysEx: Sending Ack for EndFileTransfer");
           send_reply(Tag::Ack);
           return Result::FileWritten;
         }
@@ -149,7 +149,7 @@ template <typename FileOperations> struct Protocol {
       }
 
       // If we reach here, it's an unknown command.
-      printf("SysEx: Error: Unknown command with no body. Tag: %u\n", tag);
+      logger.error("SysEx: Unknown command with no body. Tag", tag);
       if (state == State::FileTransfer) {
         opened_file.reset();
         state = State::Idle;
@@ -175,6 +175,7 @@ template <typename FileOperations> struct Protocol {
 
 private:
   FileOperations &file_ops;
+  musin::Logger &logger;
   State state = State::Idle;
   etl::optional<File> opened_file;
 
@@ -202,7 +203,7 @@ private:
     // Handle stateful commands that are only valid in Idle state.
     if (tag == Tag::FormatFilesystem) {
       if (state != State::Idle) {
-        printf("SysEx: Error: Format command received while not in Idle state.\n");
+        logger.error("SysEx: Format command received while not in Idle state.");
         send_reply(Tag::Nack);
         return Result::FileError;
       }
@@ -239,7 +240,7 @@ private:
     case FileBytes:
       return handle_file_bytes(bytes, send_reply);
     default:
-      printf("SysEx: Error: Unknown tag %u with body\n", tag);
+      logger.error("SysEx: Unknown tag with body", tag);
       if (state == State::FileTransfer) {
         opened_file.reset();
         state = State::Idle;
@@ -253,8 +254,8 @@ private:
   constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
                                            Sender send_reply) {
     if (state != State::Idle) {
-      printf("SysEx: Warning: BeginFileWrite received while another file transfer is in progress. "
-             "Canceling previous transfer.\n");
+      logger.warn("SysEx: BeginFileWrite received while another file transfer is in progress. "
+                  "Canceling previous transfer.");
       opened_file.reset();
     }
 
@@ -264,30 +265,31 @@ private:
     if (sanitize_result != SanitizeResult::Success) {
       switch (sanitize_result) {
       case SanitizeResult::PathTooLong:
-        printf("SysEx: Error: Path is too long.\n");
+        logger.error("SysEx: Path is too long.");
         break;
       case SanitizeResult::InvalidCharacter:
-        printf("SysEx: Error: Invalid character in path.\n");
+        logger.error("SysEx: Invalid character in path.");
         break;
       default:
-        printf("SysEx: Error: Unknown path sanitization error.\n");
+        logger.error("SysEx: Unknown path sanitization error.");
         break;
       }
       send_reply(Tag::Nack);
       return Result::FileError;
     }
 
-    printf("SysEx: BeginFileWrite received for path: %s\n", path);
+    logger.info("SysEx: BeginFileWrite received for path:");
+    logger.info(path);
     opened_file.emplace(file_ops, path);
     if (opened_file.has_value() && opened_file->is_valid()) {
       state = State::FileTransfer;
-      printf("SysEx: Sending Ack for BeginFileWrite\n");
+      logger.info("SysEx: Sending Ack for BeginFileWrite");
       send_reply(Tag::Ack);
       return Result::OK;
     } else {
       opened_file.reset();
       state = State::Idle; // Explicitly set state to Idle on failure.
-      printf("SysEx: Error: Failed to open file for writing\n");
+      logger.error("SysEx: Failed to open file for writing");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
@@ -296,7 +298,7 @@ private:
   template <typename Sender>
   constexpr Result handle_file_bytes(const etl::span<const uint8_t> &bytes, Sender send_reply) {
     if (state != State::FileTransfer) {
-      printf("SysEx: Error: FileBytes received while not in a file transfer state.\n");
+      logger.error("SysEx: FileBytes received while not in a file transfer state.");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
@@ -313,7 +315,7 @@ private:
     } else {
       // This case should be theoretically unreachable if state is FileTransfer,
       // but as a safeguard:
-      printf("SysEx: Error: FileBytes received but no file open\n");
+      logger.error("SysEx: FileBytes received but no file open");
       send_reply(Tag::Nack);
       state = State::Idle; // Reset state
       return Result::FileError;
@@ -338,7 +340,7 @@ private:
       iterator += 2; // Old non-standard 2-byte ID
       return true;
     } else {
-      printf("SysEx: Error: Invalid manufacturer or device ID\n");
+      logger.error("SysEx: Invalid manufacturer or device ID");
       return false;
     }
   }

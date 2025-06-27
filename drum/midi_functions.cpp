@@ -6,7 +6,8 @@ extern "C" {
 #include "pico/unique_id.h" // For pico_get_unique_board_id
 }
 
-#include "config.h"                            // For drum::config::NUM_TRACKS
+#include "config.h" // For drum::config::NUM_TRACKS
+#include "musin/hal/logger.h"
 #include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
 #include "sequencer_controller.h"              // For SequencerController
@@ -23,6 +24,7 @@ static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STE
 static musin::timing::MidiClockProcessor *midi_clock_processor_ptr = nullptr;
 static sysex::Protocol<StandardFileOps> *sysex_protocol_ptr = nullptr;
 static void (*file_received_callback_ptr)() = nullptr;
+static musin::Logger *logger_ptr = nullptr;
 
 // --- Helper Functions (Internal Linkage) ---
 namespace { // Anonymous namespace for internal linkage
@@ -34,7 +36,6 @@ static constexpr uint8_t SYSEX_ALL_ID = 0x7F;                // Target all devic
 
 // Command bytes for Dato/DRUM specific SysEx are now defined in sysex::Protocol::Tag
 
-#include <stdio.h>
 // Forward Declarations for Helper Functions within anonymous namespace
 void midi_print_identity();
 void midi_print_firmware_version();
@@ -260,7 +261,8 @@ void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint
 }
 
 void midi_print_firmware_version() {
-  printf("Version %d.%d.%d\n", FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH);
+  assert(logger_ptr != nullptr && "logger_ptr must be initialized");
+  logger_ptr->info("Sending firmware version via SysEx");
   static constexpr uint8_t sysex[] = {
       0xF0,
       drum::config::sysex::MANUFACTURER_ID_0,
@@ -322,12 +324,14 @@ void midi_init(drum::SoundRouter &sound_router,
                drum::SequencerController<drum::config::NUM_TRACKS,
                                          drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
                musin::timing::MidiClockProcessor &midi_clock_processor,
-               sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)()) {
+               sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)(),
+               musin::Logger &logger) {
   sound_router_ptr = &sound_router;
   sequencer_controller_ptr = &sequencer_controller;
   midi_clock_processor_ptr = &midi_clock_processor;
   sysex_protocol_ptr = &sysex_protocol;
   file_received_callback_ptr = file_received_cb;
+  logger_ptr = &logger;
 
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,

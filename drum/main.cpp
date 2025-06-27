@@ -1,8 +1,8 @@
 #include "musin/hal/debug_utils.h"
+#include "musin/hal/logger.h"
 #include "musin/midi/midi_message_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
-#include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
@@ -13,28 +13,29 @@
 #include "sample_repository.h"
 #include "sysex/protocol.h"
 
-#include "musin/boards/dato_submarine.h" // For pin definitions
-
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
 
+#include <cstdio>
+
 #include "audio_engine.h"
-#include "config.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
+static musin::PicoLogger logger(musin::LogLevel::INFO);
+
 // SysEx File Transfer
-static StandardFileOps file_ops;
-static sysex::Protocol<StandardFileOps> syx_protocol(file_ops);
+static StandardFileOps file_ops(logger);
+static sysex::Protocol<StandardFileOps> syx_protocol(file_ops, logger);
 static bool new_file_received = false;
 
 // Model
-static drum::ConfigurationManager config_manager;
-static drum::SampleRepository sample_repository;
-static drum::AudioEngine audio_engine(sample_repository);
+static drum::ConfigurationManager config_manager(logger);
+static drum::SampleRepository sample_repository(logger);
+static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
@@ -65,29 +66,29 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
-  musin::usb::init(false); // Wait for serial connection
+  musin::usb::init(true); // Wait for serial connection
 
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
-    printf("WARNING: Failed to initialize filesystem.\n");
+    logger.warn("Failed to initialize filesystem.");
   } else {
     musin::filesystem::list_files("/"); // List files in the root directory
 
     // Print config.json contents for debugging
-    printf("\n--- Contents of /config.json ---\n");
+    logger.info("\n--- Contents of /config.json ---");
     FILE *configFile = fopen("/config.json", "r");
     if (configFile) {
       char read_buffer[129];
       size_t bytes_read;
       while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1, configFile)) > 0) {
         read_buffer[bytes_read] = '\0';
-        printf("%s", read_buffer);
+        logger.info(read_buffer);
       }
       fclose(configFile);
-      printf("\n--- End of /config.json ---\n\n");
+      logger.info("\n--- End of /config.json ---");
     } else {
-      printf("Could not open /config.json to display.\n\n");
+      logger.warn("Could not open /config.json to display.");
     }
 
     if (config_manager.load()) {
@@ -97,7 +98,7 @@ int main() {
   }
 
   midi_init(sound_router, sequencer_controller, midi_clock_processor, syx_protocol,
-            on_file_received_callback);
+            on_file_received_callback, logger);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
@@ -137,7 +138,7 @@ int main() {
       // The protocol is actively receiving a file.
       // We could add visual feedback here, e.g., pulse a specific LED.
     } else if (new_file_received) {
-      printf("Main loop: New file received, reloading configuration.\n");
+      logger.info("Main loop: New file received, reloading configuration.");
       if (config_manager.load()) {
         sample_repository.load_from_config(config_manager.get_sample_configs());
       }

@@ -14,7 +14,7 @@
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
-#include "musin/hal/debug_utils.h"
+#include "musin/hal/logger.h"
 
 namespace drum {
 
@@ -39,7 +39,7 @@ private:
   };
 
 public:
-  explicit AudioEngine(const SampleRepository &repository);
+  explicit AudioEngine(const SampleRepository &repository, musin::Logger &logger);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -121,6 +121,7 @@ public:
 
 private:
   const SampleRepository &sample_repository_;
+  musin::Logger &logger_;
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 

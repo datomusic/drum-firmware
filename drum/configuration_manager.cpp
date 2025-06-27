@@ -1,19 +1,48 @@
 #include "drum/configuration_manager.h"
 #include "config_default.h"
+#include "etl/string_view.h" // For etl::string_view
 #include "jsmn/jsmn.h"
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <limits>
 
 namespace drum {
 
+namespace { // Anonymous namespace for internal linkage
+
+// A simple, lightweight parser for converting a string_view to an unsigned integer.
+// Returns 0 on failure or for empty strings. Does not handle negative numbers.
+template <typename T> T string_view_to_unsigned(etl::string_view sv) {
+  T value = 0;
+  if (sv.empty()) {
+    return 0;
+  }
+
+  for (char c : sv) {
+    if (c >= '0' && c <= '9') {
+      // Basic overflow check
+      if (value > (std::numeric_limits<T>::max() - (c - '0')) / 10) {
+        return 0; // Overflow, return 0 as error indicator
+      }
+      value = value * 10 + (c - '0');
+    } else {
+      return 0; // Invalid character
+    }
+  }
+  return value;
+}
+
+} // namespace
+
+ConfigurationManager::ConfigurationManager(musin::Logger &logger) : logger_(logger) {
+}
+
 bool ConfigurationManager::load() {
-  printf("Loading configuration from %s\n", CONFIG_PATH);
+  logger_.info("Loading configuration from /config.json");
   FILE *config_file = fopen(CONFIG_PATH, "r");
   if (!config_file) {
-    printf("INFO: Could not open %s. Loading embedded default configuration.\n", CONFIG_PATH);
-    return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
-                             config_default_json_len);
+    logger_.info("Could not open /config.json. Loading embedded default configuration.");
+    return parse_json_buffer(
+        {reinterpret_cast<const char *>(config_default_json), config_default_json_len});
   }
 
   static char buffer[MAX_CONFIG_FILE_SIZE];
@@ -21,20 +50,20 @@ bool ConfigurationManager::load() {
   fclose(config_file);
 
   if (file_size == 0) {
-    printf("WARNING: %s is empty. Loading embedded default configuration.\n", CONFIG_PATH);
-    return parse_json_buffer(reinterpret_cast<const char *>(config_default_json),
-                             config_default_json_len);
+    logger_.warn("/config.json is empty. Loading embedded default configuration.");
+    return parse_json_buffer(
+        {reinterpret_cast<const char *>(config_default_json), config_default_json_len});
   }
 
   buffer[file_size] = '\0'; // Null-terminate the buffer for safety
 
-  return parse_json_buffer(buffer, file_size);
+  return parse_json_buffer({buffer, file_size});
 }
 
-bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
+bool ConfigurationManager::parse_json_buffer(etl::string_view buffer) {
   // Since the default config can be empty, handle that case gracefully.
-  if (size == 0) {
-    printf("INFO: Configuration buffer is empty. No settings loaded.\n");
+  if (buffer.empty()) {
+    logger_.info("Configuration buffer is empty. No settings loaded.");
     sample_configs_.clear();
     return true;
   }
@@ -43,28 +72,31 @@ bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
   jsmntok_t tokens[MAX_JSON_TOKENS];
 
   jsmn_init(&parser);
-  int r = jsmn_parse(&parser, buffer, size, tokens, MAX_JSON_TOKENS);
+  int r = jsmn_parse(&parser, buffer.data(), buffer.size(), tokens, MAX_JSON_TOKENS);
 
   if (r < 0) {
-    printf("ERROR: Failed to parse JSON: %d\n", r);
+    logger_.error("Failed to parse JSON", r);
     return false;
   }
 
   if (r < 1 || tokens[0].type != JSMN_OBJECT) {
-    printf("ERROR: JSON root is not an object.\n");
+    logger_.error("JSON root is not an object.");
     return false;
   }
 
   // Find the 'samples' key
   for (int i = 1; i < r; i++) {
-    if (json_string_equals(buffer, &tokens[i], "samples")) {
+    if (tokens[i].type == JSMN_STRING &&
+        json_string_equals(
+            {buffer.data() + tokens[i].start, static_cast<size_t>(tokens[i].end - tokens[i].start)},
+            "samples")) {
       if (tokens[i + 1].type == JSMN_ARRAY) {
         if (!parse_samples(buffer, &tokens[i + 1], r - (i + 1))) {
           return false; // Error parsing samples array
         }
         i += tokens[i + 1].size + 1; // Move to the next top-level key
       } else {
-        printf("WARNING: 'samples' key is not followed by an array.\n");
+        logger_.warn("'samples' key is not followed by an array.");
       }
     }
     // Future: Parse 'settings' here
@@ -73,7 +105,7 @@ bool ConfigurationManager::parse_json_buffer(const char *buffer, size_t size) {
   return true;
 }
 
-bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
+bool ConfigurationManager::parse_samples(etl::string_view json, jsmntok *tokens,
                                          [[maybe_unused]] int count) {
   if (tokens->type != JSMN_ARRAY) {
     return false;
@@ -85,7 +117,7 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
   for (int i = 0; i < tokens->size; ++i) { // For each object in the 'samples' array
     jsmntok *obj_tok = &tokens[token_idx];
     if (obj_tok->type != JSMN_OBJECT) {
-      printf("WARNING: Item in samples array is not an object.\n");
+      logger_.warn("Item in samples array is not an object.");
       token_idx += obj_tok->size + 1;
       continue;
     }
@@ -99,18 +131,22 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
     for (int j = 0; j < props_in_obj; j++) {
       jsmntok *key = &tokens[token_idx];
       jsmntok *val = &tokens[token_idx + 1];
+      etl::string_view key_sv(json.data() + key->start, key->end - key->start);
+      etl::string_view val_sv(json.data() + val->start, val->end - val->start);
 
-      if (json_string_equals(json, key, "slot")) {
-        current_config.slot = atoi(json + val->start);
-        slot_found = true;
-      } else if (json_string_equals(json, key, "path")) {
-        current_config.path.assign(json + val->start, val->end - val->start);
-      } else if (json_string_equals(json, key, "note")) {
-        current_config.note = atoi(json + val->start);
-      } else if (json_string_equals(json, key, "track")) {
-        current_config.track = atoi(json + val->start);
-      } else if (json_string_equals(json, key, "color")) {
-        current_config.color = strtol(json + val->start, nullptr, 10);
+      if (key->type == JSMN_STRING) {
+        if (key_sv == "slot") {
+          current_config.slot = string_view_to_unsigned<uint8_t>(val_sv);
+          slot_found = true;
+        } else if (key_sv == "path") {
+          current_config.path.assign(val_sv.begin(), val_sv.end());
+        } else if (key_sv == "note") {
+          current_config.note = string_view_to_unsigned<uint8_t>(val_sv);
+        } else if (key_sv == "track") {
+          current_config.track = string_view_to_unsigned<uint8_t>(val_sv);
+        } else if (key_sv == "color") {
+          current_config.color = string_view_to_unsigned<uint32_t>(val_sv);
+        }
       }
       token_idx += 2; // Move to next key-value pair
     }
@@ -118,11 +154,13 @@ bool ConfigurationManager::parse_samples(const char *json, jsmntok *tokens,
     if (slot_found) {
       if (!sample_configs_.full()) {
         sample_configs_.push_back(current_config);
-        printf("  - Parsed sample: slot=%d, path=%s, note=%d, track=%d, color=%lu\n",
-               current_config.slot, current_config.path.c_str(), current_config.note,
-               current_config.track, current_config.color);
+        logger_.info("  - Parsed sample for slot", (int32_t)current_config.slot);
+        logger_.info(current_config.path);
+        logger_.info("    note", (int32_t)current_config.note);
+        logger_.info("    track", (int32_t)current_config.track);
+        logger_.info("    color", current_config.color);
       } else {
-        printf("WARNING: Max samples reached, skipping remaining entries.\n");
+        logger_.warn("Max samples reached, skipping remaining entries.");
         break;
       }
     }
@@ -135,10 +173,9 @@ const etl::ivector<SampleConfig> &ConfigurationManager::get_sample_configs() con
 }
 
 // Helper to compare a jsmn string token with a C-string.
-bool ConfigurationManager::json_string_equals(const char *json, const jsmntok *token,
-                                              const char *str) {
-  return token->type == JSMN_STRING && (int)strlen(str) == token->end - token->start &&
-         strncmp(json + token->start, str, token->end - token->start) == 0;
+bool ConfigurationManager::json_string_equals(etl::string_view json_token,
+                                              etl::string_view str) const {
+  return json_token == str;
 }
 
 } // namespace drum

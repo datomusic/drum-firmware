@@ -136,7 +136,7 @@ activeMidiInput.on('message', (deltaTime, message) => {
   }
 });
 
-function waitForAck(timeout = 2000) {
+function waitForAck(timeout = 20000) {
   return new Promise((resolve, reject) => {
     ackPromise = { resolve, reject };
     setTimeout(() => {
@@ -148,7 +148,7 @@ function waitForAck(timeout = 2000) {
   });
 }
 
-function waitForReply(timeout = 2000) {
+function waitForReply(timeout = 20000) {
   return new Promise((resolve, reject) => {
     replyPromise = { resolve, reject };
     setTimeout(() => {

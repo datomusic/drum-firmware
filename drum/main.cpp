@@ -107,12 +107,12 @@ int main() {
   }
   sound_router.set_output_mode(drum::OutputMode::BOTH);
 
-  // Check if the control panel is connected by checking MUX address pins.
-  if (are_analog_address_pins_floating()) {
-    logger.info("Analog address pins floating. Disabling local control.");
+  // Check if the control panel is connected by checking for floating MUX address pins.
+  if (is_control_panel_disconnected()) {
+    logger.warn("Control panel appears disconnected (address pins floating). Disabling local control.");
     sound_router.set_local_control_mode(drum::LocalControlMode::OFF);
   } else {
-    logger.info("Analog address pins detected. Local control enabled.");
+    logger.info("Control panel detected. Local control enabled.");
   }
 
   pizza_display.init();

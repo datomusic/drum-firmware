@@ -36,8 +36,7 @@ public:
 
   explicit PizzaDisplay(drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
                             &sequencer_controller_ref,
-                        musin::timing::TempoHandler &tempo_handler_ref,
-                        musin::Logger &logger_ref);
+                        musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger_ref);
 
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;

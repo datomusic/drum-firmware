@@ -3,7 +3,6 @@
 #include "musin/midi/midi_message_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
-#include "musin/timing/step_sequencer.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
@@ -14,13 +13,12 @@
 #include "sample_repository.h"
 #include "sysex/protocol.h"
 
-#include "musin/boards/dato_submarine.h" // For pin definitions
-
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
 
+#include <cstdio>
+
 #include "audio_engine.h"
-#include "config.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "pizza_display.h"

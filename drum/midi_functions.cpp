@@ -36,7 +36,6 @@ static constexpr uint8_t SYSEX_ALL_ID = 0x7F;                // Target all devic
 
 // Command bytes for Dato/DRUM specific SysEx are now defined in sysex::Protocol::Tag
 
-#include <stdio.h>
 // Forward Declarations for Helper Functions within anonymous namespace
 void midi_print_identity();
 void midi_print_firmware_version();

@@ -14,7 +14,6 @@
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
-#include "musin/hal/debug_utils.h"
 #include "musin/hal/logger.h"
 
 namespace drum {

@@ -1,13 +1,7 @@
 #include "audio_engine.h"
 
-#include "etl/array.h"
-
 #include "musin/audio/audio_output.h"
-#include "musin/audio/crusher.h"
-#include "musin/audio/filter.h"
-#include "musin/audio/mixer.h"
-#include "musin/audio/sound.h"
-
+#include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
 
 #include <algorithm>

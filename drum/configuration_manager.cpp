@@ -1,6 +1,7 @@
 #include "drum/configuration_manager.h"
 #include "config_default.h"
 #include "jsmn/jsmn.h"
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 

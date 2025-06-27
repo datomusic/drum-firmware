@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "etl/string_view.h"
-#include <optional>
 
 extern "C" {
 #include "pico/stdlib.h"

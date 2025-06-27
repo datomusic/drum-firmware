@@ -232,61 +232,69 @@ private:
 
     const auto bytes = etl::span{byte_array.cbegin(), byte_count};
 
-    switch (state) {
-    case State::FileTransfer: {
-      if (tag == FileBytes) {
-        if (opened_file.has_value()) {
-          // We want to write all the 16bit values in one go.
-          // If we, for some reason, must support different combinations of sysex size and block
-          // size, this code becomes more complicated.
-          static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
+    switch (tag) {
+    case BeginFileWrite: {
+      if (state != State::Idle) {
+        printf(
+            "SysEx: Error: BeginFileWrite received while another file transfer is in progress.\n");
+        send_reply(Tag::Nack);
+        return Result::FileError;
+      }
 
-          opened_file->write(bytes);
-          send_reply(Tag::Ack);
-          return Result::OK;
-        } else {
-          printf("SysEx: Error: FileBytes received but no file open\n");
-          send_reply(Tag::Nack);
-          return Result::FileError;
-        }
+      char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
+      const auto path_length = std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
+      for (unsigned i = 0; i < path_length; ++i) {
+        path[i] = bytes[i];
+      }
+
+      printf("SysEx: BeginFileWrite received for path: %s\n", path);
+      opened_file.emplace(file_ops, path);
+      if (opened_file.has_value() && opened_file->is_valid()) {
+        state = State::FileTransfer;
+        printf("SysEx: Sending Ack for BeginFileWrite\n");
+        send_reply(Tag::Ack);
+        return Result::OK;
       } else {
         opened_file.reset();
-        printf("SysEx: Error: Unexpected tag %u in FileTransfer state\n", tag);
+        // state is already Idle
+        printf("SysEx: Error: Failed to open file for writing\n");
         send_reply(Tag::Nack);
-        return Result::InvalidContent;
+        return Result::FileError;
       }
     } break;
-    default:
-      switch (tag) {
-      case BeginFileWrite: {
-        char path[drum::config::MAX_PATH_LENGTH] = {0}; // Zero-initialize the buffer
-        const auto path_length = std::min((size_t)drum::config::MAX_PATH_LENGTH - 1, bytes.size());
-        for (unsigned i = 0; i < path_length; ++i) {
-          path[i] = bytes[i];
-        }
 
-        printf("SysEx: BeginFileWrite received for path: %s\n", path);
-        opened_file.emplace(file_ops, path);
-        if (opened_file.has_value() && opened_file->is_valid()) {
-          state = State::FileTransfer;
-          printf("SysEx: Sending Ack for BeginFileWrite\n");
-          send_reply(Tag::Ack);
-          return Result::OK;
-        } else {
-          opened_file.reset();
-          state = State::Idle;
-          printf("SysEx: Error: Failed to open file for writing\n");
-          send_reply(Tag::Nack);
-          return Result::FileError;
-        }
-      } break;
-      default:
-        printf("SysEx: Error: Unknown tag %u with body in Idle state\n", tag);
+    case FileBytes: {
+      if (state != State::FileTransfer) {
+        printf("SysEx: Error: FileBytes received while not in a file transfer state.\n");
         send_reply(Tag::Nack);
-        return Result::InvalidContent;
+        return Result::FileError;
       }
+
+      if (opened_file.has_value()) {
+        // We want to write all the 16bit values in one go.
+        // If we, for some reason, must support different combinations of sysex size and block
+        // size, this code becomes more complicated.
+        static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
+
+        opened_file->write(bytes);
+        send_reply(Tag::Ack);
+        return Result::OK;
+      } else {
+        // This case should be theoretically unreachable if state is FileTransfer,
+        // but as a safeguard:
+        printf("SysEx: Error: FileBytes received but no file open\n");
+        send_reply(Tag::Nack);
+        state = State::Idle; // Reset state
+        return Result::FileError;
+      }
+    } break;
+
+    default:
+      printf("SysEx: Error: Unknown tag %u with body\n", tag);
+      send_reply(Tag::Nack);
+      return Result::InvalidContent;
     }
-  };
+  }
 };
 } // namespace sysex
 

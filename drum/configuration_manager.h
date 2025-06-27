@@ -2,9 +2,9 @@
 #define DRUM_CONFIGURATION_MANAGER_H_
 
 #include "config.h"
-#include "etl/string.h"
 #include "etl/vector.h"
 #include <cstdint>
+#include <cstring>
 
 #include "drum/sample_repository.h"
 #include "musin/hal/logger.h"

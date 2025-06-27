@@ -9,9 +9,11 @@ namespace drum {
 class Color {
 public:
   // Default to black
-  constexpr Color() : value(0) {}
+  constexpr Color() : value(0) {
+  }
   // Construct from a 24-bit RGB value
-  constexpr explicit Color(uint32_t rgb) : value(rgb) {}
+  constexpr explicit Color(uint32_t rgb) : value(rgb) {
+  }
 
   // Allow explicit conversion back to uint32_t for driver calls
   constexpr explicit operator uint32_t() const {

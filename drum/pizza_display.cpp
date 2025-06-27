@@ -40,11 +40,10 @@ void PizzaDisplay::draw_base_elements() {
   } else {
     // When stopped, pulse the play button in sync with the step highlight
     Color base_color = drum::PizzaDisplay::COLOR_WHITE;
-    Color pulse_color =
-        _highlight_is_bright
-            ? base_color
-            : Color(_leds.adjust_color_brightness(static_cast<uint32_t>(base_color),
-                                                  REDUCED_BRIGHTNESS));
+    Color pulse_color = _highlight_is_bright
+                            ? base_color
+                            : Color(_leds.adjust_color_brightness(static_cast<uint32_t>(base_color),
+                                                                  REDUCED_BRIGHTNESS));
     set_play_button_led(pulse_color);
   }
 
@@ -276,8 +275,8 @@ void PizzaDisplay::draw_animations(absolute_time_t now) {
         uint8_t brightness_value = static_cast<uint8_t>(
             std::clamp(current_brightness_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE, 0.0f,
                        config::DISPLAY_BRIGHTNESS_MAX_VALUE));
-        final_color = Color(_leds.adjust_color_brightness(static_cast<uint32_t>(base_color),
-                                                          brightness_value));
+        final_color = Color(
+            _leds.adjust_color_brightness(static_cast<uint32_t>(base_color), brightness_value));
       } else {
         _drumpad_fade_start_times[i] = nil_time;
       }
@@ -325,8 +324,7 @@ Color PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {
   uint16_t calculated_brightness = static_cast<uint16_t>(intensity) * INTENSITY_TO_BRIGHTNESS_SCALE;
   uint8_t brightness_val =
       static_cast<uint8_t>(std::min(calculated_brightness, static_cast<uint16_t>(MAX_BRIGHTNESS)));
-  return Color(
-      _leds.adjust_color_brightness(static_cast<uint32_t>(COLOR_WHITE), brightness_val));
+  return Color(_leds.adjust_color_brightness(static_cast<uint32_t>(COLOR_WHITE), brightness_val));
 }
 
 } // namespace drum

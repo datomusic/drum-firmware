@@ -166,8 +166,8 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
   }
 
   char buffer[64];
-  snprintf(buffer, sizeof(buffer), "Pin check GPIO %lu state: %s",
-           static_cast<unsigned long>(gpio), state_str);
+  snprintf(buffer, sizeof(buffer), "Pin check GPIO %lu state: %s", static_cast<unsigned long>(gpio),
+           state_str);
   logger.debug(buffer);
 
   gpio_disable_pulls(gpio);

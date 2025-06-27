@@ -5,62 +5,12 @@
 #include <array>
 #include <cstddef>
 
-extern "C" {
-#include "hardware/gpio.h"
-#include "pico/time.h"
-#include <stdio.h>
-}
-
 namespace drum {
 
 namespace {
 
-constexpr auto PULL_CHECK_DELAY_US = 10;
 constexpr uint8_t REDUCED_BRIGHTNESS = 100;
 constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
-
-enum class ExternalPinState {
-  FLOATING,
-  PULL_UP,
-  PULL_DOWN,
-  UNDETERMINED
-};
-
-ExternalPinState check_external_pin_state(std::uint32_t gpio, [[maybe_unused]] const char *name) {
-  gpio_init(gpio);
-  gpio_set_dir(gpio, GPIO_IN);
-
-  gpio_disable_pulls(gpio);
-  sleep_us(PULL_CHECK_DELAY_US);
-  bool initial_read = gpio_get(gpio);
-
-  gpio_pull_up(gpio);
-  sleep_us(PULL_CHECK_DELAY_US);
-  bool pullup_read = gpio_get(gpio);
-
-  gpio_pull_down(gpio);
-  sleep_us(PULL_CHECK_DELAY_US);
-  bool pulldown_read = gpio_get(gpio);
-
-  ExternalPinState determined_state;
-
-  if (!initial_read && pullup_read && !pulldown_read) {
-    determined_state = ExternalPinState::FLOATING;
-  } else if (initial_read && pullup_read && !pulldown_read) {
-    determined_state = ExternalPinState::FLOATING;
-  } else if (!initial_read && !pullup_read) {
-    determined_state = ExternalPinState::PULL_DOWN;
-  } else if (initial_read && pulldown_read) {
-    determined_state = ExternalPinState::PULL_UP;
-  } else {
-    determined_state = ExternalPinState::UNDETERMINED;
-  }
-
-  gpio_disable_pulls(gpio);
-  sleep_us(PULL_CHECK_DELAY_US);
-
-  return determined_state;
-}
 
 } // anonymous namespace
 

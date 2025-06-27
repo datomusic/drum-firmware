@@ -6,6 +6,11 @@
 #include <cstddef> // For size_t
 #include <cstdint>
 
+extern "C" {
+#include "hardware/gpio.h"
+#include "pico/time.h"
+}
+
 // Application-specific logical names for Mux, LEDs, etc.
 // Physical pin definitions are now in musin/boards/dato_submarine.h
 
@@ -89,5 +94,64 @@ constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
 constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
 constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
 constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
+
+// --- Hardware Utilities ---
+
+constexpr auto PULL_CHECK_DELAY_US = 10;
+
+enum class ExternalPinState {
+  FLOATING,
+  PULL_UP,
+  PULL_DOWN,
+  UNDETERMINED
+};
+
+/**
+ * @brief Checks the external pull-up/pull-down state of a GPIO pin.
+ *
+ * This function temporarily configures a GPIO pin to determine if it is
+ * floating, pulled up, or pulled down externally. It restores the pin's
+ * pull state to disabled before returning.
+ *
+ * @param gpio The GPIO pin number to check.
+ * @param name An optional name for the pin, for debugging (currently unused).
+ * @return The determined state of the pin (FLOATING, PULL_UP, PULL_DOWN, or UNDETERMINED).
+ */
+inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
+                                                 [[maybe_unused]] const char *name) {
+  gpio_init(gpio);
+  gpio_set_dir(gpio, GPIO_IN);
+
+  gpio_disable_pulls(gpio);
+  sleep_us(PULL_CHECK_DELAY_US);
+  bool initial_read = gpio_get(gpio);
+
+  gpio_pull_up(gpio);
+  sleep_us(PULL_CHECK_DELAY_US);
+  bool pullup_read = gpio_get(gpio);
+
+  gpio_pull_down(gpio);
+  sleep_us(PULL_CHECK_DELAY_US);
+  bool pulldown_read = gpio_get(gpio);
+
+  ExternalPinState determined_state;
+
+  if (!initial_read && pullup_read && !pulldown_read) {
+    determined_state = ExternalPinState::FLOATING;
+  } else if (initial_read && pullup_read && !pulldown_read) {
+    determined_state = ExternalPinState::FLOATING;
+  } else if (!initial_read && !pullup_read) {
+    determined_state = ExternalPinState::PULL_DOWN;
+  } else if (initial_read && pulldown_read) {
+    determined_state = ExternalPinState::PULL_UP;
+  } else {
+    determined_state = ExternalPinState::UNDETERMINED;
+  }
+
+  gpio_disable_pulls(gpio);
+  sleep_us(PULL_CHECK_DELAY_US);
+
+  return determined_state;
+}
 
 #endif // DRUM_PIZZA_HARDWARE_H

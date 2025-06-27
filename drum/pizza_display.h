@@ -153,6 +153,11 @@ private:
   void draw_animations(absolute_time_t now);
 
   /**
+   * @brief Updates the internal state of the highlight pulse based on tempo ticks.
+   */
+  void update_highlight_state();
+
+  /**
    * @brief Calculate the LED color for a sequencer step based on note and velocity.
    * @param step The sequencer step data.
    * @return uint32_t The calculated color (0xRRGGBB), or 0 if step is disabled/invalid.
@@ -160,19 +165,11 @@ private:
   uint32_t calculate_step_color(const musin::timing::Step &step) const;
 
   /**
-   * @brief Apply a highlight effect (blend with white) to a color.
-   * @param color The base color.
-   * @return uint32_t The highlighted color (fixed blend).
-   */
-  uint32_t apply_highlight(uint32_t color) const;
-
-  /**
-   * @brief Apply a fading highlight effect (blend with white) based on a factor.
-   * @param color The base color.
-   * @param highlight_factor The intensity of the highlight (0.0 = none, 1.0 = full white blend).
+   * @brief Apply a pulsing highlight effect to a color based on the current pulse state.
+   * @param base_color The base color.
    * @return uint32_t The highlighted color.
    */
-  uint32_t apply_fading_highlight(uint32_t color, float highlight_factor) const;
+  uint32_t apply_pulsing_highlight(uint32_t base_color) const;
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and step.
@@ -208,7 +205,8 @@ private:
   musin::timing::TempoHandler &_tempo_handler_ref;
 
   uint32_t _clock_tick_counter = 0;
-  float _stopped_highlight_factor = 0.0f;
+  uint32_t _last_tick_count_for_highlight = 0;
+  bool _highlight_is_bright = true;
 
   void _set_physical_drumpad_led(uint8_t pad_index, uint32_t color);
   void update_track_override_colors();

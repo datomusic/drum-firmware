@@ -31,32 +31,18 @@ PizzaDisplay::PizzaDisplay(
 }
 
 void PizzaDisplay::notification(musin::timing::TempoEvent) {
-  if (!_sequencer_controller_ref.is_running()) {
-    _clock_tick_counter++;
-  } else {
-    _clock_tick_counter = 0;
-  }
+  _clock_tick_counter++;
 }
 
 void PizzaDisplay::draw_base_elements() {
   if (_sequencer_controller_ref.is_running()) {
     set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
   } else {
-    uint32_t ticks_per_beat = _sequencer_controller_ref.get_ticks_per_musical_step();
-    uint32_t phase_ticks = 0;
-    if (ticks_per_beat > 0) {
-      phase_ticks = _clock_tick_counter % ticks_per_beat;
-    }
-    float brightness_factor = 0.0f;
-    if (ticks_per_beat > 0) {
-      brightness_factor =
-          1.0f - (static_cast<float>(phase_ticks) / static_cast<float>(ticks_per_beat));
-    }
-    _stopped_highlight_factor = std::clamp(brightness_factor, 0.0f, 1.0f);
-    uint8_t brightness =
-        static_cast<uint8_t>(_stopped_highlight_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE);
+    // When stopped, pulse the play button in sync with the step highlight
     uint32_t base_color = drum::PizzaDisplay::COLOR_WHITE;
-    uint32_t pulse_color = _leds.adjust_color_brightness(base_color, brightness);
+    uint32_t pulse_color = _highlight_is_bright
+                               ? base_color
+                               : _leds.adjust_color_brightness(base_color, REDUCED_BRIGHTNESS);
     set_play_button_led(pulse_color);
   }
 
@@ -90,14 +76,16 @@ void PizzaDisplay::draw_sequencer_state() {
         final_color = _track_override_colors[track_idx].value();
       }
 
-      // Apply highlighting for the currently playing step (on top of base or override color)
-      std::optional<size_t> just_played_step = controller.get_last_played_step_for_track(track_idx);
-      if (is_running && just_played_step.has_value() && step_idx == just_played_step.value()) {
-        final_color = apply_highlight(final_color);
-      }
+      // Apply a pulsing highlight to the "cursor" step.
+      // When running, this is the step that just played.
+      // When stopped, this is the currently selected step.
+      bool is_cursor_step =
+          (is_running && controller.get_last_played_step_for_track(track_idx).has_value() &&
+           step_idx == controller.get_last_played_step_for_track(track_idx).value()) ||
+          (!is_running && step_idx == controller.get_current_step());
 
-      if (!is_running && step_idx == controller.get_current_step()) {
-        final_color = apply_fading_highlight(final_color, _stopped_highlight_factor);
+      if (is_cursor_step) {
+        final_color = apply_pulsing_highlight(final_color);
       }
 
       std::optional<uint32_t> led_index_opt = get_sequencer_led_index(track_idx, step_idx);
@@ -163,7 +151,21 @@ bool PizzaDisplay::init() {
   return true;
 }
 
+void PizzaDisplay::update_highlight_state() {
+  uint32_t ticks_per_step = _sequencer_controller_ref.get_ticks_per_musical_step();
+  if (ticks_per_step == 0) {
+    return; // Avoid division by zero if clock is not configured
+  }
+
+  // Check if enough ticks have passed to flip the highlight state
+  if (_clock_tick_counter - _last_tick_count_for_highlight >= ticks_per_step) {
+    _highlight_is_bright = !_highlight_is_bright;
+    _last_tick_count_for_highlight = _clock_tick_counter;
+  }
+}
+
 void PizzaDisplay::update(absolute_time_t now) {
+  update_highlight_state();
   draw_base_elements();
   draw_animations(now);
   show();
@@ -305,45 +307,24 @@ uint32_t PizzaDisplay::calculate_step_color(const musin::timing::Step &step) con
   return color;
 }
 
-uint32_t PizzaDisplay::apply_highlight(uint32_t color) const {
-  uint8_t r = (color >> 16) & 0xFF;
-  uint8_t g = (color >> 8) & 0xFF;
-  uint8_t b = color & 0xFF;
+uint32_t PizzaDisplay::apply_pulsing_highlight(uint32_t base_color) const {
+  if (_highlight_is_bright) {
+    // Bright state: additively blend with white
+    uint8_t r = (base_color >> 16) & 0xFF;
+    uint8_t g = (base_color >> 8) & 0xFF;
+    uint8_t b = base_color & 0xFF;
 
-  r = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
-  g = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
-  b = static_cast<uint8_t>(
-      std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
-  return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
-}
-
-uint32_t PizzaDisplay::apply_fading_highlight(uint32_t color, float highlight_factor) const {
-  uint8_t base_r = (color >> 16) & 0xFF;
-  uint8_t base_g = (color >> 8) & 0xFF;
-  uint8_t base_b = color & 0xFF;
-
-  // Target highlight color is white
-  constexpr uint8_t highlight_r = 0xFF;
-  constexpr uint8_t highlight_g = 0xFF;
-  constexpr uint8_t highlight_b = 0xFF;
-
-  // Scale factor for integer blending (0-255)
-  uint8_t blend_amount = static_cast<uint8_t>(std::clamp(highlight_factor * 255.0f, 0.0f, 255.0f));
-
-  // Linear interpolation using integer math (lerp)
-  uint8_t final_r = static_cast<uint8_t>((static_cast<uint32_t>(base_r) * (255 - blend_amount) +
-                                          static_cast<uint32_t>(highlight_r) * blend_amount) /
-                                         255);
-  uint8_t final_g = static_cast<uint8_t>((static_cast<uint32_t>(base_g) * (255 - blend_amount) +
-                                          static_cast<uint32_t>(highlight_g) * blend_amount) /
-                                         255);
-  uint8_t final_b = static_cast<uint8_t>((static_cast<uint32_t>(base_b) * (255 - blend_amount) +
-                                          static_cast<uint32_t>(highlight_b) * blend_amount) /
-                                         255);
-
-  return (static_cast<uint32_t>(final_r) << 16) | (static_cast<uint32_t>(final_g) << 8) | final_b;
+    r = static_cast<uint8_t>(
+        std::min<int>(MAX_BRIGHTNESS, static_cast<int>(r) + HIGHLIGHT_BLEND_AMOUNT));
+    g = static_cast<uint8_t>(
+        std::min<int>(MAX_BRIGHTNESS, static_cast<int>(g) + HIGHLIGHT_BLEND_AMOUNT));
+    b = static_cast<uint8_t>(
+        std::min<int>(MAX_BRIGHTNESS, static_cast<int>(b) + HIGHLIGHT_BLEND_AMOUNT));
+    return (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+  } else {
+    // Dim state: reduce brightness of the base color
+    return _leds.adjust_color_brightness(base_color, REDUCED_BRIGHTNESS);
+  }
 }
 
 uint32_t PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {

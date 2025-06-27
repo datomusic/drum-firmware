@@ -174,8 +174,8 @@ template <typename FileOperations> struct Protocol {
   }
 
 private:
-  musin::Logger &logger;
   FileOperations &file_ops;
+  musin::Logger &logger;
   State state = State::Idle;
   etl::optional<File> opened_file;
 

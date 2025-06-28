@@ -164,6 +164,11 @@ int main() {
     musin::midi::process_midi_output_queue();
 
     loop_timer.record_iteration_end();
+
+#ifdef NDEBUG
+    // Watchdog update for Release builds
+    watchdog_update();
+#endif
   }
 
   return 0;

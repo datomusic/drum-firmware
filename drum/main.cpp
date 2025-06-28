@@ -26,7 +26,7 @@
 #include "sound_router.h"
 
 #ifdef NDEBUG
-static musin::PicoLogger logger(musin::LogLevel::INFO);
+static musin::NullLogger logger;
 #else
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);
 #endif

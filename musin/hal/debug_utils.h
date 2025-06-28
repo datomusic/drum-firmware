@@ -246,11 +246,38 @@ inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
  * This utility helps monitor the performance of a main loop or other recurring
  * task by periodically printing the average time taken per iteration.
  */
+#ifndef NDEBUG
 class LoopTimer {
 public:
-  explicit LoopTimer(uint32_t print_interval_ms = 1000);
+  explicit LoopTimer(uint32_t print_interval_ms = 1000)
+      : _accumulated_loop_time_us(0), _loop_count(0),
+        _print_interval_us(static_cast<uint64_t>(print_interval_ms) * 1000) {
+    _last_print_time = get_absolute_time();
+    _last_loop_end_time = _last_print_time;
+  }
 
-  void record_iteration_end();
+  void record_iteration_end() {
+    absolute_time_t current_time = get_absolute_time();
+
+    uint64_t loop_duration_us = absolute_time_diff_us(_last_loop_end_time, current_time);
+    _last_loop_end_time = current_time;
+
+    _accumulated_loop_time_us += loop_duration_us;
+    _loop_count++;
+
+    // Cast the result of absolute_time_diff_us to uint64_t to match _print_interval_us type
+    if (static_cast<uint64_t>(absolute_time_diff_us(_last_print_time, current_time)) >=
+        _print_interval_us) {
+      if (_loop_count > 0) {
+        uint64_t average_loop_time_us = _accumulated_loop_time_us / _loop_count;
+        printf("Avg loop time: %llu us (%lu loops)\n", average_loop_time_us, _loop_count);
+      }
+
+      _last_print_time = current_time;
+      _accumulated_loop_time_us = 0;
+      _loop_count = 0;
+    }
+  }
 
 private:
   absolute_time_t _last_print_time;
@@ -259,6 +286,15 @@ private:
   uint32_t _loop_count;
   uint64_t _print_interval_us;
 };
+#else  // NDEBUG is defined
+class LoopTimer {
+public:
+  explicit LoopTimer(uint32_t /*print_interval_ms*/ = 1000) {
+  }
+  void record_iteration_end() {
+  }
+};
+#endif // NDEBUG
 
 } // namespace DebugUtils
 } // namespace musin::hal

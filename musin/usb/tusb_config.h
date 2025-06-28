@@ -30,7 +30,10 @@
 extern "C" {
 #endif
 
+#include "pico/stdio.h"
+#if PICO_STDIO_USB
 #include "pico/stdio_usb.h"
+#endif
 
 //--------------------------------------------------------------------
 // COMMON CONFIGURATION

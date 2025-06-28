@@ -14,7 +14,10 @@
 #include "sysex/protocol.h"
 
 extern "C" {
+#include "pico/stdio.h"
+#if PICO_STDIO_USB
   #include "pico/stdio_usb.h"
+#endif
   #include "pico/time.h"
 }
 
@@ -74,7 +77,9 @@ void on_file_received_callback() {
 }
 
 int main() {
+#if PICO_STDIO_USB
   stdio_usb_init();
+#endif
 
 #ifndef NDEBUG
   musin::usb::init(true); // Wait for serial connection in debug builds

@@ -95,6 +95,11 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ../lib
 )
 
+# Enable stdio_usb for all build types. The application code in main.cpp
+# handles waiting for a connection in debug builds. We pass 0 here to prevent
+# the SDK from adding its own redundant wait loop.
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
+
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})
@@ -138,11 +143,6 @@ if(SWAP_AUDIO_CLOCK)
     PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
   )
 endif(SWAP_AUDIO_CLOCK)
-
-# Enable stdio_usb for all build types. The application code in main.cpp
-# handles waiting for a connection in debug builds. We pass 0 here to prevent
-# the SDK from adding its own redundant wait loop.
-pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 

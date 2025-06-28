@@ -139,9 +139,7 @@ if(SWAP_AUDIO_CLOCK)
   )
 endif(SWAP_AUDIO_CLOCK)
 
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-  pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
-endif()
+pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 

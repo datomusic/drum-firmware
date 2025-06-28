@@ -77,9 +77,9 @@ int main() {
   stdio_usb_init();
 
 #ifndef NDEBUG
-  musin::usb::init(true); // Wait for serial connection
-#else
   musin::usb::init(false);
+#else
+  musin::usb::init(true); // Wait for serial connection
 #endif
 
   if (!musin::filesystem::init(false)) {

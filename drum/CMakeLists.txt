@@ -143,7 +143,5 @@ pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 
-
 ### Rompler application
 # add_subdirectory(applications/rompler)
-

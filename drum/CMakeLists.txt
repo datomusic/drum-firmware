@@ -139,7 +139,12 @@ if(SWAP_AUDIO_CLOCK)
   )
 endif(SWAP_AUDIO_CLOCK)
 
-pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+# Only wait for USB connection in Debug builds. In release, the application starts immediately.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+else()
+  pico_enable_stdio_usb(${EXECUTABLE_NAME} 0)
+endif()
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 

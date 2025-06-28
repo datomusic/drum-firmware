@@ -77,9 +77,9 @@ int main() {
   stdio_usb_init();
 
 #ifndef NDEBUG
-  musin::usb::init(false);
+  musin::usb::init(true); // Wait for serial connection in debug builds
 #else
-  musin::usb::init(true); // Wait for serial connection
+  musin::usb::init(false); // Do not wait in release builds
 #endif
 
   if (!musin::filesystem::init(false)) {

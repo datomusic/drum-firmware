@@ -25,7 +25,11 @@
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
+#ifdef NDEBUG
 static musin::PicoLogger logger(musin::LogLevel::INFO);
+#else
+static musin::PicoLogger logger(musin::LogLevel::DEBUG);
+#endif
 
 // SysEx File Transfer
 static StandardFileOps file_ops(logger);
@@ -66,7 +70,11 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
+#ifndef NDEBUG
   musin::usb::init(true); // Wait for serial connection
+#else
+  musin::usb::init(false);
+#endif
 
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,

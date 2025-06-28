@@ -13,8 +13,14 @@
 #include "sample_repository.h"
 #include "sysex/protocol.h"
 
-#include "pico/stdio_usb.h"
-#include "pico/time.h"
+extern "C" {
+  #include "pico/stdio_usb.h"
+  #include "pico/time.h"
+}
+
+#ifdef NDEBUG
+#include "hardware/watchdog.h"
+#endif
 
 #include <cstdio>
 

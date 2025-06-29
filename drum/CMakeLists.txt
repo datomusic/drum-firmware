@@ -113,7 +113,10 @@ musin_init_ui(${EXECUTABLE_NAME})
 musin_init_hal(${EXECUTABLE_NAME})
 musin_init_usb_midi(${EXECUTABLE_NAME})
 musin_init_audio(${EXECUTABLE_NAME})
-musin_init_filesystem(${PROJECT_NAME})
+
+# Link against the filesystem library and enable it for the pico
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::filesystem)
+pico_enable_filesystem(${EXECUTABLE_NAME})
 
 # Add sample generation dependency after executable is defined
 if(TARGET generate_samples)

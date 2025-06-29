@@ -176,11 +176,18 @@ macro(musin_init_hal TARGET)
   )
 endmacro()
 
-macro(musin_init_drivers TARGET)
-    pico_generate_pio_header(${TARGET} ${MUSIN_DRIVERS}/ws2812.pio)
+macro(musin_setup_drivers_target)
+    # Private implementation library for musin drivers, primarily for PIO header generation
+    add_library(musin_drivers_impl STATIC "")
 
-    target_link_libraries(${TARGET} PRIVATE
-      hardware_pio
-      hardware_dma
+    pico_generate_pio_header(musin_drivers_impl ${MUSIN_DRIVERS}/ws2812.pio)
+
+    # Public interface library for drivers
+    add_library(musin_drivers INTERFACE)
+    target_link_libraries(musin_drivers INTERFACE
+        musin_drivers_impl
+        hardware_pio
+        hardware_dma
     )
+    add_library(musin::drivers ALIAS musin_drivers)
 endmacro()

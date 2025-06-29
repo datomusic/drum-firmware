@@ -116,10 +116,10 @@ endif()
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 
-musin_setup_hal_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::hal)
 musin_setup_core_target()
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::core)
+musin_setup_hal_target()
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::hal)
 musin_setup_drivers_target()
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::drivers)
 musin_setup_ui_target()

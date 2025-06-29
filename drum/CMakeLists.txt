@@ -95,6 +95,12 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ../lib
 )
 
+option(ENABLE_VERBOSE_LOGGING "Enable verbose logging" OFF)
+
+if(ENABLE_VERBOSE_LOGGING)
+  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE VERBOSE)
+endif()
+
 musin_init(${EXECUTABLE_NAME})
 musin_init_drivers(${EXECUTABLE_NAME})
 musin_init_ui(${EXECUTABLE_NAME})
@@ -140,6 +146,8 @@ if(SWAP_AUDIO_CLOCK)
 endif(SWAP_AUDIO_CLOCK)
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
+
+# pico_set_program_url("https://dato.mu/drum")
 
 ### Rompler application
 # add_subdirectory(applications/rompler)

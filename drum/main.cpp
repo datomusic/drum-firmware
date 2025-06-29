@@ -19,7 +19,7 @@ extern "C" {
   #include "pico/time.h"
 }
 
-#ifdef NDEBUG
+#ifndef VERBOSE
 #include "hardware/watchdog.h"
 #endif
 
@@ -32,10 +32,10 @@ extern "C" {
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
-#ifdef NDEBUG
-static musin::NullLogger logger;
-#else
+#ifdef VERBOSE
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);
+#else
+static musin::NullLogger logger;
 #endif
 
 // SysEx File Transfer
@@ -77,7 +77,7 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
-#ifndef NDEBUG
+#ifdef VERBOSE
   musin::usb::init(true); // Wait for serial connection in debug builds
 #else
   musin::usb::init(false); // Do not wait in release builds
@@ -172,7 +172,7 @@ int main() {
 
     loop_timer.record_iteration_end();
 
-#ifdef NDEBUG
+#ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();
 #endif

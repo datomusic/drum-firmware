@@ -16,8 +16,7 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            bool send_midi_clock_when_stopped, ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref), _midi_clock_processor_ref(midi_clock_processor_ref),
       current_source_(initial_source), // Initialize current_source_ directly with initial_source
-      _playback_state(PlaybackState::STOPPED),
-      _send_this_internal_tick_as_midi_clock(true),
+      _playback_state(PlaybackState::STOPPED), _send_this_internal_tick_as_midi_clock(true),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
 
   // Directly set up the initial source

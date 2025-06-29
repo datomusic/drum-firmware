@@ -118,27 +118,56 @@ macro(musin_setup_usb_midi_target)
     add_library(musin::usb_midi ALIAS musin_usb_midi)
 endmacro()
 
-macro(musin_init_audio TARGET)
-  target_sources(${TARGET} PRIVATE
-    ${musin_audio_generic_sources}
-    ${MUSIN_AUDIO}/audio_output.cpp
-    ${MUSIN_AUDIO}/unbuffered_file_sample_reader.cpp
-    ${MUSIN_DRIVERS}/aic3204.cpp
-  )
+macro(musin_setup_audio_target)
+    # Private implementation library for musin audio
+    add_library(musin_audio_impl STATIC
+        ${musin_audio_generic_sources}
+        ${MUSIN_AUDIO}/audio_output.cpp
+        ${MUSIN_AUDIO}/unbuffered_file_sample_reader.cpp
+        ${MUSIN_DRIVERS}/aic3204.cpp
+    )
 
-  target_compile_definitions(${TARGET} PRIVATE
-    PICO_AUDIO_I2S_MONO_INPUT=1
-    USE_AUDIO_I2S=1
-  )
+    # Implementation needs include paths to find its own headers and dependencies
+    target_include_directories(musin_audio_impl PRIVATE
+        ${MUSIN_ROOT}/..
+    )
 
-  target_link_libraries(${TARGET} PRIVATE
-    hardware_dma
-    hardware_pio
-    hardware_i2c
-    hardware_irq
-    pico_audio_i2s
-    hardware_interp
-  )
+    target_compile_definitions(musin_audio_impl PRIVATE
+        AUDIO_BLOCK_SAMPLES=128
+    )
+
+    # Implementation needs to link against its dependencies to compile
+    target_link_libraries(musin_audio_impl PRIVATE
+        pico_stdlib
+        etl::etl
+        hardware_dma
+        hardware_pio
+        hardware_i2c
+        hardware_irq
+        pico_audio_i2s
+        hardware_interp
+    )
+
+    # Public interface library for audio
+    add_library(musin_audio INTERFACE)
+    target_link_libraries(musin_audio INTERFACE
+        musin_audio_impl
+        etl::etl # for AudioBlock and other headers using etl
+        hardware_dma
+        hardware_pio
+        hardware_i2c
+        hardware_irq
+        pico_audio_i2s
+        hardware_interp
+    )
+
+    target_compile_definitions(musin_audio INTERFACE
+        PICO_AUDIO_I2S_MONO_INPUT=1
+        USE_AUDIO_I2S=1
+        AUDIO_BLOCK_SAMPLES=128
+    )
+
+    add_library(musin::audio ALIAS musin_audio)
 endmacro()
 
 # --- Filesystem ---

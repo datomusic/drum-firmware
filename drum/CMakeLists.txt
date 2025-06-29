@@ -57,7 +57,6 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   USBD_PRODUCT="DRUM"
   PICO_PROGRAM_DESCRIPTION="DRUM"
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
-  AUDIO_BLOCK_SAMPLES=128
   SWAP_AUDIO_CLOCK=1
 )
 
@@ -96,7 +95,8 @@ musin_setup_ui_target()
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::ui)
 musin_setup_usb_midi_target()
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::usb_midi)
-musin_init_audio(${EXECUTABLE_NAME})
+musin_setup_audio_target()
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::audio)
 
 # Setup and link against the filesystem library and enable it for the pico
 musin_setup_filesystem_target()

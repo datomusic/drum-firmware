@@ -165,6 +165,7 @@ macro(musin_setup_audio_target)
         PICO_AUDIO_I2S_MONO_INPUT=1
         USE_AUDIO_I2S=1
         AUDIO_BLOCK_SAMPLES=128
+        PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
     )
 
     add_library(musin::audio ALIAS musin_audio)

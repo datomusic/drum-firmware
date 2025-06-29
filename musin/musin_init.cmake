@@ -72,7 +72,14 @@ macro(musin_setup_usb_midi_target)
     # Implementation needs pico stdlib and etl
     target_link_libraries(musin_usb_midi_impl PRIVATE
         pico_stdlib
+        pico_stdio_usb
+        tinyusb_device
+        tinyusb_board
         etl::etl
+    )
+
+    target_compile_definitions(musin_usb_midi_impl PRIVATE
+        PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
     )
 
     # Public interface library for usb_midi

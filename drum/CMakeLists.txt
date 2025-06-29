@@ -137,8 +137,3 @@ if(SIZE_UTIL_PATH)
 endif()
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
-
-# pico_set_program_url("https://dato.mu/drum")
-
-### Rompler application
-# add_subdirectory(applications/rompler)

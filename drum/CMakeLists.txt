@@ -16,8 +16,6 @@ set(EXECUTABLE_NAME ${EXECUTABLE_NAME_BASE}-${VERSION_FILENAME})
 # Generate version header file
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
-# Add the generated directory to include paths
-include_directories(${CMAKE_BINARY_DIR}/generated) # For version.h
 
 project(${EXECUTABLE_NAME})
 
@@ -71,6 +69,7 @@ endif(SWAP_AUDIO_CLOCK)
 
 # Add include directories for the target
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
+    ${CMAKE_BINARY_DIR}/generated # For version.h and config_default.h
     # Add other specific include paths here if needed
     ../lib
 )

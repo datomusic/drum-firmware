@@ -29,6 +29,7 @@ add_executable(${EXECUTABLE_NAME}
   sound_router.cpp
   audio_engine.cpp
   sample_repository.cpp
+  usb_descriptors.c
 )
 
 # Generate C header from default config JSON

@@ -70,7 +70,6 @@ macro(musin_setup_usb_midi_target)
     add_library(musin_usb_midi_impl STATIC
         ${MUSIN_ROOT}/pico_uart.cpp
         ${MUSIN_USB}/usb.cpp
-        ${MUSIN_USB}/usb_descriptors.c
         ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
         ${MUSIN_ROOT}/ports/pico/port/midi_wrapper.cpp
         ${MUSIN_ROOT}/midi/midi_message_queue.cpp

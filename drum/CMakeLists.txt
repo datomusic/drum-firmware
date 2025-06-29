@@ -51,7 +51,6 @@ add_custom_command(
 add_custom_target(generate_default_config DEPENDS ${DEFAULT_CONFIG_HDR})
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
-  PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
   USBD_MANUFACTURER="Dato"
   USBD_PRODUCT="DRUM"
   PICO_PROGRAM_DESCRIPTION="DRUM"

@@ -178,7 +178,8 @@ endmacro()
 
 macro(musin_setup_drivers_target)
     # Private implementation library for musin drivers, primarily for PIO header generation
-    add_library(musin_drivers_impl STATIC "")
+    file(WRITE ${CMAKE_BINARY_DIR}/musin_drivers_dummy.cpp "")
+    add_library(musin_drivers_impl STATIC ${CMAKE_BINARY_DIR}/musin_drivers_dummy.cpp)
 
     pico_generate_pio_header(musin_drivers_impl ${MUSIN_DRIVERS}/ws2812.pio)
 

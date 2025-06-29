@@ -38,9 +38,14 @@ add_executable(${EXECUTABLE_NAME}
 set(DEFAULT_CONFIG_SRC "${CMAKE_CURRENT_SOURCE_DIR}/config.default.json")
 set(DEFAULT_CONFIG_HDR "${CMAKE_BINARY_DIR}/generated/config_default.h")
 
+find_program(XXD_PROGRAM xxd)
+if(NOT XXD_PROGRAM)
+    message(FATAL_ERROR "xxd not found! It is required to generate the default config header. Install it via system package manager (e.g., brew install xxd, or it may be part of vim-common).")
+endif()
+
 add_custom_command(
     OUTPUT ${DEFAULT_CONFIG_HDR}
-    COMMAND bash -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && ${XXD_PROGRAM} -i config.default.json > ${DEFAULT_CONFIG_HDR}"
+    COMMAND bash -c "${XXD_PROGRAM} -i ${DEFAULT_CONFIG_SRC} > ${DEFAULT_CONFIG_HDR}"
     DEPENDS ${DEFAULT_CONFIG_SRC}
     COMMENT "Generating C header from default config"
     VERBATIM

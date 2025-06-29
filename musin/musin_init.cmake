@@ -31,6 +31,7 @@ macro(musin_setup_core_target)
     add_library(musin_core_impl STATIC
         ${MUSIN_ROOT}/timing/internal_clock.cpp
         ${MUSIN_ROOT}/timing/sync_out.cpp
+        ${MUSIN_ROOT}/timing/tempo_handler.cpp
     )
 
     # Implementation needs access to its own headers
@@ -44,6 +45,7 @@ macro(musin_setup_core_target)
         pico_stdlib
         etl::etl
         musin::hal # For sync_out.cpp
+        musin::usb_midi
     )
 
     # Public interface library for core
@@ -57,6 +59,7 @@ macro(musin_setup_core_target)
         pico_stdlib
         etl::etl
         musin::hal
+        musin::usb_midi
     )
     target_compile_options(musin_core INTERFACE -Wall -Wextra)
     add_library(musin::core ALIAS musin_core)

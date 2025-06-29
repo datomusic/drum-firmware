@@ -49,8 +49,10 @@ static drum::SampleRepository sample_repository(logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
-static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
-                                                 musin::timing::ClockSource::INTERNAL);
+static musin::timing::TempoHandler
+    tempo_handler(internal_clock, midi_clock_processor,
+                  drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
+                  musin::timing::ClockSource::INTERNAL);
 
 // SequencerController needs to be declared before SoundRouter if SoundRouter depends on it.
 drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>

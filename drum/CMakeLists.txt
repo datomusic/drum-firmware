@@ -24,7 +24,6 @@ add_executable(${EXECUTABLE_NAME}
   midi_functions.cpp
   pizza_controls.cpp
   ui/pizza_display.cpp
-  ../musin/timing/tempo_handler.cpp
   sequencer_controller.cpp
   configuration_manager.cpp
   sound_router.cpp
@@ -85,22 +84,30 @@ endif()
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
 
-musin_setup_core_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::core)
+# --- Setup musin INTERFACE libraries ---
+# Order matters: setup libraries with fewer dependencies first.
 musin_setup_hal_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::hal)
 musin_setup_drivers_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::drivers)
 musin_setup_ui_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::ui)
 musin_setup_usb_midi_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::usb_midi)
 musin_setup_audio_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::audio)
-
-# Setup and link against the filesystem library and enable it for the pico
 musin_setup_filesystem_target()
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::filesystem)
+
+# Core depends on hal and usb_midi, so it must be last.
+musin_setup_core_target()
+
+# --- Link application against musin libraries ---
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE
+    musin::core
+    musin::hal
+    musin::drivers
+    musin::ui
+    musin::usb_midi
+    musin::audio
+    musin::filesystem
+)
+
+# Enable filesystem for the pico (must be done after linking)
 pico_enable_filesystem(${EXECUTABLE_NAME})
 
 add_dependencies(${EXECUTABLE_NAME} generate_default_config)

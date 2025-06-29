@@ -41,10 +41,12 @@ public:
    * @brief Constructor.
    * @param internal_clock_ref Reference to the InternalClock instance.
    * @param midi_clock_processor_ref Reference to the MidiClockProcessor instance.
+   * @param send_midi_clock_when_stopped If true, MIDI clock is sent even when stopped.
    * @param initial_source The clock source to use initially.
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         MidiClockProcessor &midi_clock_processor_ref,
+                        bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
   // Prevent copying and assignment
@@ -94,6 +96,7 @@ private:
   ClockSource current_source_;
   PlaybackState _playback_state;
   bool _send_this_internal_tick_as_midi_clock;
+  const bool _send_midi_clock_when_stopped;
 
   // Pointers or references to actual clock instances might be needed here
   // if TempoHandler needs to interact with them directly (e.g., enable/disable).

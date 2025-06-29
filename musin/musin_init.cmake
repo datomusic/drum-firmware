@@ -133,15 +133,32 @@ macro(musin_setup_filesystem_target)
     add_library(musin::filesystem ALIAS musin_filesystem)
 endmacro()
 
-macro(musin_init_ui TARGET)
-  target_sources(${TARGET} PRIVATE
-    ${MUSIN_UI}/analog_control.cpp
-    ${MUSIN_UI}/button.cpp
-  )
+macro(musin_setup_ui_target)
+    # Private implementation library for musin ui
+    add_library(musin_ui_impl STATIC
+        ${MUSIN_UI}/analog_control.cpp
+        ${MUSIN_UI}/button.cpp
+    )
 
-  target_link_libraries(${TARGET} PRIVATE
-    hardware_gpio
-  )
+    # Implementation needs include paths to find musin headers
+    target_include_directories(musin_ui_impl PRIVATE
+        ${MUSIN_ROOT}/..
+    )
+
+    # Implementation needs pico stdlib and etl
+    target_link_libraries(musin_ui_impl PRIVATE
+        pico_stdlib
+        etl::etl
+    )
+
+    # Public interface library for ui
+    add_library(musin_ui INTERFACE)
+    target_link_libraries(musin_ui INTERFACE
+        musin_ui_impl
+        hardware_gpio
+        etl::etl
+    )
+    add_library(musin::ui ALIAS musin_ui)
 endmacro()
 
 macro(musin_init_hal TARGET)

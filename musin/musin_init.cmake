@@ -161,19 +161,32 @@ macro(musin_setup_ui_target)
     add_library(musin::ui ALIAS musin_ui)
 endmacro()
 
-macro(musin_init_hal TARGET)
-  set(MUSIN_HAL ${MUSIN_ROOT}/hal)
+macro(musin_setup_hal_target)
+    # Private implementation library for musin hal
+    add_library(musin_hal_impl STATIC
+        ${MUSIN_ROOT}/hal/analog_in.cpp
+        ${MUSIN_ROOT}/hal/gpio.cpp
+    )
 
-  target_sources(${TARGET} PRIVATE
-    ${MUSIN_HAL}/analog_in.cpp
-    ${MUSIN_HAL}/gpio.cpp
-  )
+    # Implementation needs include paths to find musin headers
+    target_include_directories(musin_hal_impl PRIVATE
+        ${MUSIN_ROOT}/..
+    )
 
-  target_link_libraries(${TARGET} PRIVATE
-    hardware_pio
-    hardware_dma
-    hardware_adc
-  )
+    # Implementation needs pico stdlib for gpio/adc functionality
+    target_link_libraries(musin_hal_impl PRIVATE
+        pico_stdlib
+    )
+
+    # Public interface library for hal
+    add_library(musin_hal INTERFACE)
+    target_link_libraries(musin_hal INTERFACE
+        musin_hal_impl
+        hardware_pio
+        hardware_dma
+        hardware_adc
+    )
+    add_library(musin::hal ALIAS musin_hal)
 endmacro()
 
 macro(musin_setup_drivers_target)

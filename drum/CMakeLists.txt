@@ -87,7 +87,14 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_PROGRAM_DESCRIPTION="DRUM"
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
   AUDIO_BLOCK_SAMPLES=128
+  SWAP_AUDIO_CLOCK=1
 )
+
+if(SWAP_AUDIO_CLOCK)
+  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
+  )
+endif(SWAP_AUDIO_CLOCK)
 
 # Add include directories for the target
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
@@ -148,12 +155,6 @@ if(SIZE_UTIL_PATH)
         COMMENT "Concise size report:"
     )
 endif()
-
-if(SWAP_AUDIO_CLOCK)
-  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
-    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
-  )
-endif(SWAP_AUDIO_CLOCK)
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})
 

@@ -111,6 +111,7 @@ macro(musin_setup_usb_midi_target)
         musin_usb_midi_impl
         tinyusb_device
         tinyusb_board
+        pico_stdio_usb
         etl::etl # midi_clock_processor.h and others use etl
     )
 
@@ -133,6 +134,7 @@ macro(musin_setup_audio_target)
     # Implementation needs include paths to find its own headers and dependencies
     target_include_directories(musin_audio_impl PRIVATE
         ${MUSIN_ROOT}/..
+        ${MUSIN_ROOT}/ports/pico
     )
 
     target_compile_definitions(musin_audio_impl PRIVATE

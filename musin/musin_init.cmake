@@ -101,32 +101,34 @@ macro(musin_init_audio TARGET)
 endmacro()
 
 # --- Filesystem ---
-if(NOT TARGET filesystem_vfs)
-    add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
-endif()
+macro(musin_setup_filesystem_target)
+    if(NOT TARGET filesystem_vfs)
+        add_subdirectory(${MUSIN_ROOT}/ports/pico/libraries/pico-vfs vfs_build)
+    endif()
 
-# Private implementation library for musin filesystem
-add_library(musin_filesystem_impl STATIC
-    ${MUSIN_ROOT}/filesystem/filesystem.cpp
-)
+    # Private implementation library for musin filesystem
+    add_library(musin_filesystem_impl STATIC
+        ${MUSIN_ROOT}/filesystem/filesystem.cpp
+    )
 
-# Implementation needs include paths to find musin headers
-target_include_directories(musin_filesystem_impl PRIVATE
-    ${MUSIN_ROOT}/..
-)
+    # Implementation needs include paths to find musin headers
+    target_include_directories(musin_filesystem_impl PRIVATE
+        ${MUSIN_ROOT}/..
+    )
 
-# Implementation needs pico stdlib and the vfs library to compile
-target_link_libraries(musin_filesystem_impl PRIVATE
-    pico_stdlib
-    filesystem_vfs
-)
+    # Implementation needs pico stdlib and the vfs library to compile
+    target_link_libraries(musin_filesystem_impl PRIVATE
+        pico_stdlib
+        filesystem_vfs
+    )
 
-# Public interface library for filesystem
-add_library(musin::filesystem INTERFACE)
-target_link_libraries(musin::filesystem INTERFACE
-    musin_filesystem_impl
-    filesystem_vfs
-)
+    # Public interface library for filesystem
+    add_library(musin::filesystem INTERFACE)
+    target_link_libraries(musin::filesystem INTERFACE
+        musin_filesystem_impl
+        filesystem_vfs
+    )
+endmacro()
 
 macro(musin_init_ui TARGET)
   target_sources(${TARGET} PRIVATE

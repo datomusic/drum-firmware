@@ -123,11 +123,12 @@ macro(musin_setup_filesystem_target)
     )
 
     # Public interface library for filesystem
-    add_library(musin::filesystem INTERFACE)
-    target_link_libraries(musin::filesystem INTERFACE
+    add_library(musin_filesystem INTERFACE)
+    target_link_libraries(musin_filesystem INTERFACE
         musin_filesystem_impl
         filesystem_vfs
     )
+    add_library(musin::filesystem ALIAS musin_filesystem)
 endmacro()
 
 macro(musin_init_ui TARGET)

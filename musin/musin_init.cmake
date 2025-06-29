@@ -49,32 +49,46 @@ macro(musin_init TARGET)
 
 endmacro()
 
-macro(musin_init_usb_midi TARGET)
-  target_include_directories(${TARGET} PRIVATE
-    ${MUSIN_USB}
-    ${MUSIN_USB}/midi_usb_bridge
-    ${MUSIN_LIBRARIES}/arduino_midi_library/src
-    ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src
-  )
+macro(musin_setup_usb_midi_target)
+    # Private implementation library for musin usb_midi
+    add_library(musin_usb_midi_impl STATIC
+        ${MUSIN_USB}/usb.cpp
+        ${MUSIN_USB}/usb_descriptors.c
+        ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
+        ${MUSIN_ROOT}/ports/pico/port/midi_wrapper.cpp
+        ${MUSIN_ROOT}/midi/midi_message_queue.cpp
+        ${MUSIN_ROOT}/timing/midi_clock_processor.cpp
+    )
 
-  target_sources(${TARGET} PRIVATE
-    ${MUSIN_USB}/usb.cpp
-    ${MUSIN_USB}/usb_descriptors.c
-    ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
-    ${MUSIN_ROOT}/ports/pico/port/midi_wrapper.cpp
-    ${MUSIN_ROOT}/midi/midi_message_queue.cpp
-    ${MUSIN_ROOT}/timing/midi_clock_processor.cpp
-  )
+    # Implementation needs include paths to find its headers and dependencies
+    target_include_directories(musin_usb_midi_impl PRIVATE
+        ${MUSIN_ROOT}/..
+        ${MUSIN_USB}
+        ${MUSIN_USB}/midi_usb_bridge
+        ${MUSIN_LIBRARIES}/arduino_midi_library/src
+        ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src
+    )
 
-  target_compile_definitions(${TARGET} PRIVATE
-    PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
-  )
+    # Implementation needs pico stdlib and etl
+    target_link_libraries(musin_usb_midi_impl PRIVATE
+        pico_stdlib
+        etl::etl
+    )
 
-  target_link_libraries(${TARGET} PRIVATE
-    tinyusb_device
-    tinyusb_board
-  )
+    # Public interface library for usb_midi
+    add_library(musin_usb_midi INTERFACE)
+    target_link_libraries(musin_usb_midi INTERFACE
+        musin_usb_midi_impl
+        tinyusb_device
+        tinyusb_board
+        etl::etl # midi_clock_processor.h and others use etl
+    )
 
+    target_compile_definitions(musin_usb_midi INTERFACE
+        PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
+    )
+
+    add_library(musin::usb_midi ALIAS musin_usb_midi)
 endmacro()
 
 macro(musin_init_audio TARGET)

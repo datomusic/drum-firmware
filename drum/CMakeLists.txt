@@ -121,7 +121,8 @@ musin_setup_ui_target()
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::ui)
 musin_setup_hal_target()
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::hal)
-musin_init_usb_midi(${EXECUTABLE_NAME})
+musin_setup_usb_midi_target()
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE musin::usb_midi)
 musin_init_audio(${EXECUTABLE_NAME})
 
 # Setup and link against the filesystem library and enable it for the pico

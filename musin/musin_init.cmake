@@ -176,6 +176,8 @@ macro(musin_setup_hal_target)
     # Implementation needs pico stdlib for gpio/adc functionality
     target_link_libraries(musin_hal_impl PRIVATE
         pico_stdlib
+        hardware_adc
+        hardware_gpio
     )
 
     # Public interface library for hal

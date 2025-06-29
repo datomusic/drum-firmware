@@ -29,7 +29,6 @@ set_source_files_properties(${SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp P
 macro(musin_setup_core_target)
     # Private implementation library for musin core
     add_library(musin_core_impl STATIC
-        ${MUSIN_ROOT}/pico_uart.cpp
         ${MUSIN_ROOT}/timing/internal_clock.cpp
         ${MUSIN_ROOT}/timing/sync_out.cpp
     )
@@ -66,6 +65,7 @@ endmacro()
 macro(musin_setup_usb_midi_target)
     # Private implementation library for musin usb_midi
     add_library(musin_usb_midi_impl STATIC
+        ${MUSIN_ROOT}/pico_uart.cpp
         ${MUSIN_USB}/usb.cpp
         ${MUSIN_USB}/usb_descriptors.c
         ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp

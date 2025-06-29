@@ -97,9 +97,12 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ../lib
 )
 
+# To enable verbose logging, pass -DENABLE_VERBOSE_LOGGING=ON to the cmake command.
+# It defaults to OFF if not specified.
 option(ENABLE_VERBOSE_LOGGING "Enable verbose logging" OFF)
 
 if(ENABLE_VERBOSE_LOGGING)
+  message(STATUS "Verbose logging enabled.")
   target_compile_definitions(${EXECUTABLE_NAME} PRIVATE VERBOSE)
 endif()
 

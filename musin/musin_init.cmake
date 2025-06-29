@@ -22,31 +22,45 @@ endif()
 # this must be called after pico_sdk_init.cmake is included
 pico_sdk_init()
 
-macro(musin_init TARGET)
-  target_include_directories(${TARGET} PRIVATE
-    ${MUSIN_ROOT}/..
-    ${MUSIN_ROOT}/ports/pico
-  )
+# These properties seem to apply globally when using pico audio extras.
+set_source_files_properties(${SDK_EXTRAS_PATH}/src/rp2_common/pico_audio_i2s/audio_i2s.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
+set_source_files_properties(${SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)
 
-  target_sources(${TARGET} PRIVATE
-    ${MUSIN_ROOT}/pico_uart.cpp
-    ${MUSIN_ROOT}/timing/internal_clock.cpp
-    ${MUSIN_ROOT}/timing/sync_out.cpp
-  )
+macro(musin_setup_core_target)
+    # Private implementation library for musin core
+    add_library(musin_core_impl STATIC
+        ${MUSIN_ROOT}/pico_uart.cpp
+        ${MUSIN_ROOT}/timing/internal_clock.cpp
+        ${MUSIN_ROOT}/timing/sync_out.cpp
+    )
 
-  target_link_libraries(${TARGET} PRIVATE
-    pico_stdlib
-    etl::etl
-  )
-  # pico_enable_stdio_uart(${TARGET} 1)
-  pico_enable_stdio_usb(${TARGET} 1)
-  pico_add_extra_outputs(${TARGET})
+    # Implementation needs access to its own headers
+    target_include_directories(musin_core_impl PRIVATE
+        ${MUSIN_ROOT}/..
+        ${MUSIN_ROOT}/ports/pico
+    )
 
-  target_compile_options(${TARGET} PRIVATE -Wall -Wextra)
+    # Implementation needs to link against its dependencies to compile
+    target_link_libraries(musin_core_impl PRIVATE
+        pico_stdlib
+        etl::etl
+        musin::hal # For sync_out.cpp
+    )
 
-  set_source_files_properties(${SDK_EXTRAS_PATH}/src/rp2_common/pico_audio_i2s/audio_i2s.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
-  set_source_files_properties(${SDK_EXTRAS_PATH}/src/common/pico_audio/audio.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-field-initializers)
-
+    # Public interface library for core
+    add_library(musin_core INTERFACE)
+    target_include_directories(musin_core INTERFACE
+        ${MUSIN_ROOT}/..
+        ${MUSIN_ROOT}/ports/pico
+    )
+    target_link_libraries(musin_core INTERFACE
+        musin_core_impl
+        pico_stdlib
+        etl::etl
+        musin::hal
+    )
+    target_compile_options(musin_core INTERFACE -Wall -Wextra)
+    add_library(musin::core ALIAS musin_core)
 endmacro()
 
 macro(musin_setup_usb_midi_target)

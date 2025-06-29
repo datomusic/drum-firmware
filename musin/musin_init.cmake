@@ -114,6 +114,7 @@ macro(musin_setup_filesystem_target)
     # Implementation needs include paths to find musin headers
     target_include_directories(musin_filesystem_impl PRIVATE
         ${MUSIN_ROOT}/..
+        ${MUSIN_ROOT}/ports/pico/libraries/pico-vfs/littlefs
     )
 
     # Implementation needs pico stdlib and the vfs library to compile

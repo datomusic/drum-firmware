@@ -5,7 +5,7 @@ set(PICO_BOARD dato_submarine)
 
 set(EXECUTABLE_NAME_BASE drum)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin_init.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/version.cmake)
 
 # Configure version variables first

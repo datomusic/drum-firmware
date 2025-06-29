@@ -84,6 +84,12 @@ macro(musin_setup_usb_midi_target)
 
     # Public interface library for usb_midi
     add_library(musin_usb_midi INTERFACE)
+    target_include_directories(musin_usb_midi INTERFACE
+        ${MUSIN_USB}
+        ${MUSIN_USB}/midi_usb_bridge
+        ${MUSIN_LIBRARIES}/arduino_midi_library/src
+        ${MUSIN_LIBRARIES}/Arduino-USBMIDI/src
+    )
     target_link_libraries(musin_usb_midi INTERFACE
         musin_usb_midi_impl
         tinyusb_device

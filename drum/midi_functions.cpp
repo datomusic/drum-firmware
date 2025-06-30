@@ -51,7 +51,13 @@ void midi_continue_callback();
 void midi_stop_callback();
 
 void handle_sysex_callback(uint8_t *const data, unsigned length) {
-  sysex::Chunk chunk(data, length);
+  // The underlying MIDI library passes the full SysEx message, including the
+  // start (0xF0) and end (0xF7) bytes. We need to slice these off for the
+  // protocol handler.
+  if (length < 2) {
+    return; // Not a valid SysEx message.
+  }
+  sysex::Chunk chunk(data + 1, length - 2);
   musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(chunk));
 }
 

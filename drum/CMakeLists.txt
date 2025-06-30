@@ -30,6 +30,7 @@ add_executable(${EXECUTABLE_NAME}
   audio_engine.cpp
   sample_repository.cpp
   usb_descriptors.c
+  sysex_file_handler.cpp
 )
 
 # Generate C header from default config JSON

@@ -127,7 +127,7 @@ int main() {
   if (is_control_panel_disconnected(logger)) {
     logger.warn(
         "Control panel appears disconnected (address pins floating). Disabling local control.");
-    sound_router.set_local_control_mode(drum::LocalControlMode::OFF);
+    message_router.set_local_control_mode(drum::LocalControlMode::OFF);
   } else {
     logger.info("Control panel detected. Local control enabled.");
   }
@@ -170,8 +170,10 @@ int main() {
       }
       new_file_received = false;
     }
-
-    pizza_controls.update();
+    
+    if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
+      pizza_controls.update();
+    }
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());

@@ -159,7 +159,11 @@ private:
   etl::array<uint8_t, FileOperations::BlockSize> write_buffer;
   size_t write_buffer_pos = 0;
 
-  enum class SanitizeResult { Success, PathTooLong, InvalidCharacter };
+  enum class SanitizeResult {
+    Success,
+    PathTooLong,
+    InvalidCharacter
+  };
 
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {

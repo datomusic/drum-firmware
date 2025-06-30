@@ -33,10 +33,7 @@ template <typename T> struct Protocol;
  * @param sysex_protocol Reference to the SysEx protocol handler for file transfers.
  * @param file_received_cb Callback function to notify when a file has been received.
  */
-void midi_init(drum::SoundRouter &sound_router,
-               drum::SequencerController<drum::config::NUM_TRACKS,
-                                         drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-               musin::timing::MidiClockProcessor &midi_clock_processor,
+void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
                sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)(),
                musin::Logger &logger);
 

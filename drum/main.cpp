@@ -115,8 +115,7 @@ int main() {
     // If config fails to load, sample_repository will just be empty.
   }
 
-  midi_init(sound_router, sequencer_controller, midi_clock_processor, syx_protocol,
-            on_file_received_callback, logger);
+  midi_init(midi_clock_processor, syx_protocol, on_file_received_callback, logger);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state

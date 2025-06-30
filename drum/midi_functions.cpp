@@ -209,11 +209,7 @@ void process_midi_input() {
   }
 }
 
-void midi_init([[maybe_unused]] drum::SoundRouter &sound_router,
-               [[maybe_unused]] drum::SequencerController<drum::config::NUM_TRACKS,
-                                                          drum::config::NUM_STEPS_PER_TRACK>
-                   &sequencer_controller,
-               musin::timing::MidiClockProcessor &midi_clock_processor,
+void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
                sysex::Protocol<StandardFileOps> &sysex_protocol,
                FileReceivedCallback on_file_received, musin::Logger &logger) {
   logger_ptr = &logger;

@@ -46,6 +46,11 @@ void midi_init(drum::SoundRouter &sound_router,
 void midi_read();
 
 /**
+ * @brief Process queued incoming MIDI messages from the input buffer.
+ */
+void process_midi_input();
+
+/**
  * @brief Send a MIDI Start message.
  */
 void send_midi_start();

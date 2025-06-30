@@ -338,10 +338,24 @@ void PizzaControls::AnalogControlComponent::init() {
 }
 
 void PizzaControls::AnalogControlComponent::update() {
+  // Update one analog control per call to distribute processing load.
   if (!mux_controls.empty()) {
     mux_controls[_next_analog_control_to_update_idx].update();
     _next_analog_control_to_update_idx =
         (_next_analog_control_to_update_idx + 1) % mux_controls.size();
+  }
+
+  // Smooth the filter value towards its target.
+  // Check if the value is not already close to the target to avoid unnecessary updates.
+  if (std::fabs(filter_current_value_ - filter_target_value_) > 0.001f) {
+    filter_current_value_ =
+        std::lerp(filter_current_value_, filter_target_value_, FILTER_SMOOTHING_FACTOR);
+
+    // Send the smoothed value to the message router.
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
+                                                       filter_current_value_);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
+                                                       (1.0f - filter_current_value_));
   }
 }
 
@@ -355,10 +369,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case FILTER:
-    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
-                                                               event.value);
-    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
-                                                               (1.0f - event.value));
+    parent->filter_target_value_ = event.value;
     break;
   case RANDOM: {
     bool was_active = controls->_sequencer_controller_ref.is_random_active();

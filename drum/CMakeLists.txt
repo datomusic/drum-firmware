@@ -84,7 +84,6 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   USBD_PRODUCT="DRUM"
   PICO_PROGRAM_DESCRIPTION="DRUM"
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
-  AUDIO_BLOCK_SAMPLES=128
 )
 
 # Add include directories for the target

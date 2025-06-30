@@ -1,4 +1,4 @@
-#include "musin/midi/midi_message_queue.h"
+#include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal actual send functions
 #include "pico/time.h" // For RP2040 specific timing (get_absolute_time, absolute_time_diff_us, is_nil_time)
 #include <cstdio> // For printf

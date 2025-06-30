@@ -27,7 +27,7 @@ endif(${STATIC_TESTS})
 
 target_sources(${PROJECT_NAME} PRIVATE
   ${musin_audio_generic_sources}
-  ${CMAKE_CURRENT_LIST_DIR}/../../musin/midi/midi_message_queue.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/midi/midi_output_queue.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

@@ -3,9 +3,9 @@
 
 #include "etl/array.h"
 #include "etl/queue_spsc_atomic.h" // Using SPSC atomic queue
-#include "midi_Defs.h"             // For ::midi::MidiType
-#include "midi_wrapper.h"          // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
-#include <algorithm>               // For std::min, std::copy
+#include "midi_common.h"
+#include "midi_wrapper.h" // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
+#include <algorithm>      // For std::min, std::copy
 #include <cstdint>
 
 namespace musin::midi {
@@ -20,27 +20,6 @@ enum class MidiMessageType : uint8_t {
   PITCH_BEND,
   SYSTEM_REALTIME,
   SYSTEM_EXCLUSIVE
-};
-
-struct NoteMessageData {
-  uint8_t channel;
-  uint8_t note;
-  uint8_t velocity;
-};
-
-struct ControlChangeData {
-  uint8_t channel;
-  uint8_t controller;
-  uint8_t value;
-};
-
-struct PitchBendData {
-  uint8_t channel;
-  int bend_value;
-};
-
-struct SystemRealtimeData {
-  ::midi::MidiType type;
 };
 
 struct SystemExclusiveData {
@@ -108,33 +87,12 @@ struct OutgoingMidiMessage {
   }
 };
 
-// Declare the global MIDI output queue (defined in .cpp)
-// etl::queue_spsc_atomic is for a single producer and single consumer.
-// The `enqueue_midi_message` function acts as the single point of entry for pushing to the queue.
-// The `push` operation of etl::queue_spsc_atomic is ISR-safe if called from a single producer
-// context. If `enqueue_midi_message` is called from multiple ISRs or an ISR and the main loop
-// concurrently, external synchronization around the `midi_output_queue.push()` call within
-// `enqueue_midi_message` might be needed if those calls could interleave at the instruction level
-// for the push operation itself. However, the atomic nature of the queue's internal pointers should
-// handle most cases correctly as long as `enqueue_midi_message` itself is treated as the "producer"
-// action.
 extern etl::queue_spsc_atomic<OutgoingMidiMessage, MIDI_QUEUE_SIZE,
                               etl::memory_model::MEMORY_MODEL_SMALL>
     midi_output_queue;
 
-/**
- * @brief Enqueues a MIDI message to be sent.
- * This function is designed to be callable from various contexts.
- * @param message The MIDI message to enqueue.
- * @return True if the message was successfully enqueued, false if the queue was full.
- */
 bool enqueue_midi_message(const OutgoingMidiMessage &message);
 
-/**
- * @brief Processes the MIDI output queue.
- * This function should be called regularly from the main application loop (non-ISR context).
- * It dequeues messages and sends them, applying rate-limiting for non-real-time messages.
- */
 void process_midi_output_queue();
 
 } // namespace musin::midi

@@ -1,9 +1,7 @@
 #ifndef SYSEX_CODEC_H_JDGZXSHN
 #define SYSEX_CODEC_H_JDGZXSHN
 
-#include "etl/array.h"
 #include "etl/iterator.h"
-#include "etl/span.h"
 
 namespace sysex::codec {
 
@@ -11,20 +9,20 @@ namespace sysex::codec {
 template <typename InputIt, typename OutputIt>
 size_t decode_3_to_16bit(InputIt start, InputIt end, OutputIt out_start, OutputIt out_end) {
   size_t value_count = 0;
-  size_t syx_count = 0;
-  uint8_t tmp[2];
+  size_t sysex_count = 0;
+  uint8_t byte_buffer[2];
   auto out_it = out_start;
 
   while (start != end && out_it != out_end) {
     const uint8_t byte = (*start++);
 
-    if (syx_count == 2) {
-      syx_count = 0;
-      *out_it++ = (tmp[0] << 14) | (tmp[1] << 7) | byte;
+    if (sysex_count == 2) {
+      sysex_count = 0;
+      *out_it++ = (byte_buffer[0] << 14) | (byte_buffer[1] << 7) | byte;
       value_count++;
     } else {
-      tmp[syx_count] = byte;
-      syx_count++;
+      byte_buffer[sysex_count] = byte;
+      sysex_count++;
     }
   }
 

@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_SOUND_ROUTER_H_
-#define SB25_DRUM_SOUND_ROUTER_H_
+#ifndef SB25_DRUM_MESSAGE_ROUTER_H_
+#define SB25_DRUM_MESSAGE_ROUTER_H_
 
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially sound_router::MAX_NOTE_EVENT_OBSERVERS
@@ -55,24 +55,24 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class SoundRouter : public etl::observer<drum::Events::NoteEvent>,
-                    public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                           drum::config::sound_router::MAX_NOTE_EVENT_OBSERVERS> {
+class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
+                      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                             drum::config::message_router::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
    * @param audio_engine Reference to the audio engine instance.
    * @param sequencer_controller Reference to the sequencer controller instance.
    */
-  explicit SoundRouter(
+  explicit MessageRouter(
       AudioEngine &audio_engine,
       SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller);
 
   // Delete copy and move operations
-  SoundRouter(const SoundRouter &) = delete;
-  SoundRouter &operator=(const SoundRouter &) = delete;
-  SoundRouter(SoundRouter &&) = delete;
-  SoundRouter &operator=(SoundRouter &&) = delete;
+  MessageRouter(const MessageRouter &) = delete;
+  MessageRouter &operator=(const MessageRouter &) = delete;
+  MessageRouter(MessageRouter &&) = delete;
+  MessageRouter &operator=(MessageRouter &&) = delete;
 
   /**
    * @brief Sets the current output mode (MIDI, AUDIO, or BOTH).
@@ -144,4 +144,4 @@ private:
 
 } // namespace drum
 
-#endif // SB25_DRUM_SOUND_ROUTER_H_
+#endif // SB25_DRUM_MESSAGE_ROUTER_H_

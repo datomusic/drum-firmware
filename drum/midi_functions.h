@@ -7,7 +7,7 @@
 
 // Forward declarations
 namespace drum {
-class SoundRouter;
+class MessageRouter;
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 } // namespace drum
 

@@ -144,8 +144,8 @@ namespace sequencer_controller {
 constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 4;
 }
 
-// SoundRouter specific
-namespace sound_router {
+// MessageRouter specific
+namespace message_router {
 constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 2; // For PizzaDisplay and AudioEngine
 }
 

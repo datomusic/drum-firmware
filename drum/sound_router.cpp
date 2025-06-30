@@ -1,4 +1,4 @@
-#include "sound_router.h"
+#include "message_router.h"
 #include "config.h"                  // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
 #include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
@@ -64,9 +64,9 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
   return 0;
 }
 
-// --- SoundRouter Implementation ---
+// --- MessageRouter Implementation ---
 
-SoundRouter::SoundRouter(
+MessageRouter::MessageRouter(
     AudioEngine &audio_engine,
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller)
@@ -76,23 +76,23 @@ SoundRouter::SoundRouter(
   // TODO: Initialize _track_sample_map if added
 }
 
-void SoundRouter::set_output_mode(OutputMode mode) {
+void MessageRouter::set_output_mode(OutputMode mode) {
   _output_mode = mode;
 }
 
-OutputMode SoundRouter::get_output_mode() const {
+OutputMode MessageRouter::get_output_mode() const {
   return _output_mode;
 }
 
-void SoundRouter::set_local_control_mode(LocalControlMode mode) {
+void MessageRouter::set_local_control_mode(LocalControlMode mode) {
   _local_control_mode = mode;
 }
 
-LocalControlMode SoundRouter::get_local_control_mode() const {
+LocalControlMode MessageRouter::get_local_control_mode() const {
   return _local_control_mode;
 }
 
-void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t velocity) {
+void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t velocity) {
   if (track_index >= 4)
     return;
 
@@ -119,8 +119,8 @@ void SoundRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t 
   }
 }
 
-void SoundRouter::set_parameter(Parameter param_id, float value,
-                                std::optional<uint8_t> track_index) {
+void MessageRouter::set_parameter(Parameter param_id, float value,
+                                  std::optional<uint8_t> track_index) {
 
   if (param_id == Parameter::PITCH &&
       (!track_index.has_value() || track_index.value() >= config::NUM_TRACKS)) {
@@ -182,13 +182,13 @@ void SoundRouter::set_parameter(Parameter param_id, float value,
   }
 }
 
-// --- SoundRouter Notification Implementation ---
+// --- MessageRouter Notification Implementation ---
 
-void SoundRouter::notification(drum::Events::NoteEvent event) {
+void MessageRouter::notification(drum::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
 }
 
-void SoundRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
+void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
   for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size(); ++track_idx) {
     if (track_idx >= drum::config::NUM_TRACKS)
       break; // Ensure we don't go out of bounds if config sizes differ

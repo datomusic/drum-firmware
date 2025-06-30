@@ -31,7 +31,7 @@ extern "C" {
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
-#include "sound_router.h"
+#include "message_router.h"
 
 #ifdef VERBOSE
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);
@@ -59,14 +59,14 @@ static musin::timing::TempoHandler
 drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
-static drum::SoundRouter sound_router(audio_engine, sequencer_controller);
+static drum::MessageRouter message_router(audio_engine, sequencer_controller);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
-                                          sound_router);
+                                          message_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
@@ -121,7 +121,7 @@ int main() {
     // Potentially halt or enter a safe state
     panic("Failed to initialize audio engine\n");
   }
-  sound_router.set_output_mode(drum::OutputMode::BOTH);
+  message_router.set_output_mode(drum::OutputMode::BOTH);
 
   pizza_display.init();
   pizza_controls.init();
@@ -131,13 +131,13 @@ int main() {
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // Register SoundRouter and PizzaDisplay as observers of NoteEvents from SequencerController
-  sequencer_controller.add_observer(sound_router);
+  // Register MessageRouter and PizzaDisplay as observers of NoteEvents from SequencerController
+  sequencer_controller.add_observer(message_router);
   sequencer_controller.add_observer(pizza_display);
 
-  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from SoundRouter
-  sound_router.add_observer(pizza_display);
-  sound_router.add_observer(audio_engine);
+  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from MessageRouter
+  message_router.add_observer(pizza_display);
+  message_router.add_observer(audio_engine);
 
   sync_out.enable();
 

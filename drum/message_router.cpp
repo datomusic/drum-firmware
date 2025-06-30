@@ -140,7 +140,8 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
     }
   }
 
-  if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
+  if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
+      _local_control_mode == LocalControlMode::ON) {
     switch (param_id) {
     case Parameter::PITCH:
       _audio_engine.set_pitch(track_index.value(), value);

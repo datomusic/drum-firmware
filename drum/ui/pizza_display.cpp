@@ -17,11 +17,11 @@ constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
 PizzaDisplay::PizzaDisplay(
     drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
         &sequencer_controller_ref,
-    musin::timing::TempoHandler &tempo_handler_ref)
+    musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger_ref)
     : _leds(PIZZA_LED_DATA_PIN, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS,
             DEFAULT_COLOR_CORRECTION),
       _drumpad_fade_start_times{}, _sequencer_controller_ref(sequencer_controller_ref),
-      _tempo_handler_ref(tempo_handler_ref) {
+      _tempo_handler_ref(tempo_handler_ref), _logger_ref(logger_ref) {
   for (size_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     _drumpad_fade_start_times[i] = nil_time;
   }
@@ -135,7 +135,7 @@ void PizzaDisplay::notification(drum::Events::NoteEvent event) {
 }
 
 bool PizzaDisplay::init() {
-  ExternalPinState led_pin_state = check_external_pin_state(PIZZA_LED_DATA_PIN, "LED_DATA");
+  ExternalPinState led_pin_state = check_external_pin_state(PIZZA_LED_DATA_PIN, _logger_ref);
   uint8_t initial_brightness =
       (led_pin_state == ExternalPinState::PULL_UP) ? REDUCED_BRIGHTNESS : MAX_BRIGHTNESS;
   _leds.set_brightness(initial_brightness);

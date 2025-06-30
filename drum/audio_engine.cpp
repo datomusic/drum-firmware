@@ -40,13 +40,20 @@ AudioEngine::AudioEngine(const SampleRepository &repository, musin::Logger &logg
     : sample_repository_(repository), logger_(logger),
       voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_), highpass_(lowpass_) {
-  lowpass_.filter.frequency(20000.0f);
-  lowpass_.filter.resonance(1.0f);
-  highpass_.filter.frequency(100.0f);
-  lowpass_.filter.resonance(0.7f);
-  crusher_.sampleRate(static_cast<float>(AudioOutput::SAMPLE_FREQUENCY));
-  crusher_.bits(16);
+  // Initialize to a known, silent state.
+  set_volume(1.0f); // Set master volume to full.
 
+  // Set filters to neutral positions.
+  set_filter_frequency(20000.0f);   // Fully open.
+  set_filter_resonance(0.0f);       // No resonance.
+  highpass_.filter.frequency(0.0f); // Fully open.
+  highpass_.filter.resonance(0.7f); // Default resonance.
+
+  // Set crusher to be transparent.
+  set_crush_depth(1.0f); // Maximum bit depth (i.e., no crush).
+  set_crush_rate(1.0f);  // Maximum sample rate (i.e., no crush).
+
+  // Initialize all voice gains to zero to ensure silence.
   for (size_t i = 0; i < NUM_VOICES; ++i) {
     mixer_.gain(i, 0.25f);
   }

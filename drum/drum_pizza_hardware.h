@@ -2,9 +2,11 @@
 #define DRUM_PIZZA_HARDWARE_H
 
 #include "musin/boards/dato_submarine.h"
+#include "musin/hal/logger.h"
 #include <array>
 #include <cstddef> // For size_t
 #include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include "hardware/gpio.h"
@@ -97,7 +99,7 @@ constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
 
 // --- Hardware Utilities ---
 
-constexpr auto PULL_CHECK_DELAY_US = 10;
+constexpr auto PULL_CHECK_DELAY_US = 1000;
 
 enum class ExternalPinState {
   FLOATING,
@@ -114,11 +116,10 @@ enum class ExternalPinState {
  * pull state to disabled before returning.
  *
  * @param gpio The GPIO pin number to check.
- * @param name An optional name for the pin, for debugging (currently unused).
+ * @param logger A logger instance for debug output.
  * @return The determined state of the pin (FLOATING, PULL_UP, PULL_DOWN, or UNDETERMINED).
  */
-inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
-                                                 [[maybe_unused]] const char *name) {
+inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logger &logger) {
   gpio_init(gpio);
   gpio_set_dir(gpio, GPIO_IN);
 
@@ -130,28 +131,73 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
   sleep_us(PULL_CHECK_DELAY_US);
   bool pullup_read = gpio_get(gpio);
 
-  gpio_pull_down(gpio);
-  sleep_us(PULL_CHECK_DELAY_US);
-  bool pulldown_read = gpio_get(gpio);
-
   ExternalPinState determined_state;
 
-  if (!initial_read && pullup_read && !pulldown_read) {
+  // The logic for determining the state is based on how the pin behaves with an internal pull-up.
+  // This avoids using the internal pull-down, which is buggy on the RP2350.
+  // - A floating pin will read LOW without pull and HIGH with pull-up.
+  // - A pin with an external pull-up will read HIGH in both cases.
+  // - A pin with an external pull-down will read LOW in both cases.
+  if (!initial_read && pullup_read) {
     determined_state = ExternalPinState::FLOATING;
-  } else if (initial_read && pullup_read && !pulldown_read) {
-    determined_state = ExternalPinState::FLOATING;
+  } else if (initial_read && pullup_read) {
+    determined_state = ExternalPinState::PULL_UP;
   } else if (!initial_read && !pullup_read) {
     determined_state = ExternalPinState::PULL_DOWN;
-  } else if (initial_read && pulldown_read) {
-    determined_state = ExternalPinState::PULL_UP;
   } else {
     determined_state = ExternalPinState::UNDETERMINED;
   }
+
+  const char *state_str;
+  switch (determined_state) {
+  case ExternalPinState::FLOATING:
+    state_str = "FLOATING";
+    break;
+  case ExternalPinState::PULL_UP:
+    state_str = "PULL_UP";
+    break;
+  case ExternalPinState::PULL_DOWN:
+    state_str = "PULL_DOWN";
+    break;
+  default:
+    state_str = "UNDETERMINED";
+    break;
+  }
+
+  char buffer[128];
+  snprintf(buffer, sizeof(buffer), "Pin check GPIO %2lu -> %-12s (initial=%d, pullup=%d)",
+           static_cast<unsigned long>(gpio), state_str, initial_read, pullup_read);
+  logger.debug(buffer);
 
   gpio_disable_pulls(gpio);
   sleep_us(PULL_CHECK_DELAY_US);
 
   return determined_state;
+}
+
+/**
+ * @brief Checks if the control panel is disconnected by checking for floating pins.
+ *
+ * This is used to detect if the control panel is not properly connected. If all
+ * of the first three analog multiplexer address pins are floating, it's assumed
+ * the panel is absent or faulty, and local control should be disabled.
+ *
+ * @param logger A logger instance for debug output.
+ * @return true if all three checked pins are floating, false otherwise.
+ */
+inline bool is_control_panel_disconnected(musin::Logger &logger) {
+  // We check the first 3 address pins. If all are floating, we assume the panel is disconnected.
+  // The 4th pin is not checked as it lacks external pull resistors.
+  if (check_external_pin_state(analog_address_pins[0], logger) != ExternalPinState::FLOATING) {
+    return false;
+  }
+  if (check_external_pin_state(analog_address_pins[1], logger) != ExternalPinState::FLOATING) {
+    return false;
+  }
+  if (check_external_pin_state(analog_address_pins[2], logger) != ExternalPinState::FLOATING) {
+    return false;
+  }
+  return true; // All three are floating
 }
 
 #endif // DRUM_PIZZA_HARDWARE_H

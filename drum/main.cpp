@@ -62,7 +62,7 @@ drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_
 static drum::MessageRouter message_router(audio_engine, sequencer_controller);
 
 // View
-static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler);
+static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
@@ -123,6 +123,15 @@ int main() {
   }
   message_router.set_output_mode(drum::OutputMode::BOTH);
 
+  // Check if the control panel is connected by checking for floating MUX address pins.
+  if (is_control_panel_disconnected(logger)) {
+    logger.warn(
+        "Control panel appears disconnected (address pins floating). Disabling local control.");
+    message_router.set_local_control_mode(drum::LocalControlMode::OFF);
+  } else {
+    logger.info("Control panel detected. Local control enabled.");
+  }
+
   pizza_display.init();
   pizza_controls.init();
 
@@ -162,7 +171,9 @@ int main() {
       new_file_received = false;
     }
 
-    pizza_controls.update();
+    if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
+      pizza_controls.update();
+    }
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());

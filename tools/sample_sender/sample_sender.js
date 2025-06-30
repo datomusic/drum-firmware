@@ -310,11 +310,13 @@ async function main() {
         process.exit(1);
       }
 
+      const startTime = Date.now();
       await begin_file_transfer(source_path, sample_filename);
       const data = fs.readFileSync(source_path);
       await send_file_content(data);
       await end_file_transfer();
-      console.log("Successfully transferred file.");
+      const duration = Date.now() - startTime;
+      console.log(`Successfully transferred file in ${duration}ms.`);
     } else {
       console.log(`Error: Unknown command '${command}'. Use 'send' or 'format'.`);
       process.exit(1);

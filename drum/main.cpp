@@ -50,9 +50,7 @@ static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
-
-// SequencerController needs to be declared before MessageRouter if MessageRouter depends on it.
-drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
 static drum::MessageRouter message_router(audio_engine, sequencer_controller);
@@ -64,8 +62,7 @@ static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, log
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
                                           message_router);
 
-constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
-static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
+static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN, internal_clock);
 
 void on_file_received_callback() {
   sysex_file_handler.on_file_received();

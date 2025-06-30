@@ -13,8 +13,15 @@
 #include "sample_repository.h"
 #include "sysex/protocol.h"
 
+extern "C" {
+#include "pico/stdio.h"
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
+}
+
+#ifndef VERBOSE
+#include "hardware/watchdog.h"
+#endif
 
 #include <cstdio>
 
@@ -25,7 +32,11 @@
 #include "sequencer_controller.h"
 #include "sound_router.h"
 
-static musin::PicoLogger logger(musin::LogLevel::INFO);
+#ifdef VERBOSE
+static musin::PicoLogger logger(musin::LogLevel::DEBUG);
+#else
+static musin::NullLogger logger;
+#endif
 
 // SysEx File Transfer
 static StandardFileOps file_ops(logger);
@@ -38,8 +49,10 @@ static drum::SampleRepository sample_repository(logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
-static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
-                                                 musin::timing::ClockSource::INTERNAL);
+static musin::timing::TempoHandler
+    tempo_handler(internal_clock, midi_clock_processor,
+                  drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
+                  musin::timing::ClockSource::INTERNAL);
 
 // SequencerController needs to be declared before SoundRouter if SoundRouter depends on it.
 drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
@@ -66,7 +79,11 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
-  musin::usb::init(true); // Wait for serial connection
+#ifdef VERBOSE
+  musin::usb::init(true); // Wait for serial connection in debug builds
+#else
+  musin::usb::init(false); // Do not wait in release builds
+#endif
 
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,
@@ -156,6 +173,11 @@ int main() {
     musin::midi::process_midi_output_queue();
 
     loop_timer.record_iteration_end();
+
+#ifndef VERBOSE
+    // Watchdog update for Release builds
+    watchdog_update();
+#endif
   }
 
   return 0;

@@ -19,10 +19,16 @@ This repository contains the firmware and related code for the DRUM project.
 
 ## Building the Firmware
 
-The main firmware for the DRUM project is located in the `drum/` directory. To build the firmware, navigate to the `drum/` directory and run the following commands:
+The main firmware for the DRUM project is located in the `drum/` directory. To build the firmware, navigate to the `drum/` directory and run the following commands for a standard release build:
 
 ```bash
 cd drum && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+```
+
+For a development build with verbose logging enabled (which will output detailed logs over the serial USB connection), use the `ENABLE_VERBOSE_LOGGING` option and set the build type to `Debug`:
+
+```bash
+cd drum && cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_VERBOSE_LOGGING=ON && cmake --build build
 ```
 
 ## Running the Tests

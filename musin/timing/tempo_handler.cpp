@@ -1,5 +1,4 @@
 #include "musin/timing/tempo_handler.h"
-#include "drum/config.h"             // For drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER
 #include "midi_Defs.h"               // For midi::Clock
 #include "musin/midi/midi_wrapper.h" // For MIDI::sendRealTime
 #include "musin/timing/clock_event.h"
@@ -13,11 +12,12 @@
 namespace musin::timing {
 
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
-                           MidiClockProcessor &midi_clock_processor_ref, ClockSource initial_source)
+                           MidiClockProcessor &midi_clock_processor_ref,
+                           bool send_midi_clock_when_stopped, ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref), _midi_clock_processor_ref(midi_clock_processor_ref),
       current_source_(initial_source), // Initialize current_source_ directly with initial_source
-      _playback_state(PlaybackState::STOPPED),
-      _send_this_internal_tick_as_midi_clock(true) { // Initialize flag
+      _playback_state(PlaybackState::STOPPED), _send_this_internal_tick_as_midi_clock(true),
+      _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
 
   // Directly set up the initial source
   if (current_source_ == ClockSource::INTERNAL) {
@@ -77,8 +77,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   // Handle MIDI Clock output if internal source is master
   // This should only happen if the event is from InternalClock AND current_source_ is INTERNAL
   if (event.source == ClockSource::INTERNAL && current_source_ == ClockSource::INTERNAL) {
-    if (_playback_state == PlaybackState::PLAYING ||
-        drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER) {
+    if (_playback_state == PlaybackState::PLAYING || _send_midi_clock_when_stopped) {
       if (_send_this_internal_tick_as_midi_clock) {
         MIDI::sendRealTime(midi::Clock);
       }

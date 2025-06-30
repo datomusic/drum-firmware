@@ -34,6 +34,7 @@ extern "C" {
 
 #ifdef VERBOSE
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);
+static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
 #endif
@@ -65,8 +66,6 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequence
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
-
-static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 
 void on_file_received_callback() {
   sysex_file_handler.on_file_received();
@@ -114,10 +113,7 @@ int main() {
   midi_init(midi_clock_processor, sysex_file_handler.get_protocol(), on_file_received_callback,
             logger);
 
-  if (!audio_engine.init()) {
-    // Potentially halt or enter a safe state
-    panic("Failed to initialize audio engine\n");
-  }
+  audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
 
   // Check if the control panel is connected by checking for floating MUX address pins.
@@ -147,14 +143,6 @@ int main() {
 
   sync_out.enable();
 
-  // Initial clock source (INTERNAL by default) is started by TempoHandler's constructor.
-
-  // TODO: Add logic to register TempoHandler with other clocks (e.g. ExternalSyncClock)
-  //       and update TempoHandler to manage them if necessary.
-  // TODO: The TempoHandler::set_clock_source method now manages starting/stopping
-  //       the internal clock. Similar logic would be needed for other clock types
-  //       if they require explicit start/stop from TempoHandler.
-
   while (true) {
     sysex_file_handler.update();
 
@@ -168,11 +156,11 @@ int main() {
     tempo_handler.update();
     musin::midi::process_midi_output_queue();
 
-    loop_timer.record_iteration_end();
-
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();
+#else
+    loop_timer.record_iteration_end();
 #endif
   }
 

@@ -1,8 +1,8 @@
 #ifndef MUSIN_MIDI_MIDI_INPUT_QUEUE_H
 #define MUSIN_MIDI_MIDI_INPUT_QUEUE_H
 
-#include "etl/queue_spsc_atomic.h"
 #include "drum/sysex/chunk.h"
+#include "etl/queue_spsc_atomic.h"
 #include "midi_common.h"
 #include <cstdint>
 
@@ -26,16 +26,17 @@ struct IncomingMidiMessage {
     SystemRealtimeData system_realtime_message;
     sysex::Chunk system_exclusive_message;
 
-    MessageUnion() {}
-    ~MessageUnion() {} // Trivial destructor
+    MessageUnion() {
+    }
+    ~MessageUnion() {
+    } // Trivial destructor
   } data;
 
   IncomingMidiMessage() : type(IncomingMidiMessageType::SYSTEM_REALTIME) {
     data.system_realtime_message.type = ::midi::InvalidType;
   }
 
-  IncomingMidiMessage(::midi::MidiType rt_type)
-      : type(IncomingMidiMessageType::SYSTEM_REALTIME) {
+  IncomingMidiMessage(::midi::MidiType rt_type) : type(IncomingMidiMessageType::SYSTEM_REALTIME) {
     data.system_realtime_message.type = rt_type;
   }
 

@@ -8,6 +8,7 @@ extern "C" {
 }
 
 #include "config.h" // For drum::config::NUM_TRACKS
+#include "etl/delegate.h"
 #include "musin/hal/logger.h"
 #include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
@@ -15,8 +16,7 @@ extern "C" {
 #include "sysex/protocol.h"                    // For SysEx protocol handler
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include <cassert>                             // For assert
-#include "etl/delegate.h"
-#include <optional> // For std::optional
+#include <optional>                            // For std::optional
 
 typedef void (*FileReceivedCallback)();
 
@@ -79,8 +79,8 @@ void handle_sysex(const sysex::Chunk &chunk) {
     MIDI::sendSysEx(sizeof(msg), msg);
   };
 
-  auto result = midi_handlers.sysex.get_object()
-                    ->template handle_chunk<decltype(sender)>(chunk, sender);
+  auto result =
+      midi_handlers.sysex.get_object()->template handle_chunk<decltype(sender)>(chunk, sender);
 
   switch (result) {
   case sysex::Protocol<StandardFileOps>::Result::FileWritten:
@@ -149,8 +149,7 @@ void midi_print_serial_number() {
   sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
   sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
   sysex[4] = drum::config::sysex::DEVICE_ID;
-  sysex[5] = static_cast<uint8_t>(
-      sysex::Protocol<StandardFileOps>::Tag::RequestSerialNumber);
+  sysex[5] = static_cast<uint8_t>(sysex::Protocol<StandardFileOps>::Tag::RequestSerialNumber);
 
   uint8_t msbs = 0;
   for (int i = 0; i < 8; ++i) {
@@ -165,7 +164,9 @@ void midi_print_serial_number() {
 
 } // anonymous namespace
 
-void midi_read() { MIDI::read(); }
+void midi_read() {
+  MIDI::read();
+}
 
 void process_midi_input() {
   musin::midi::IncomingMidiMessage message;

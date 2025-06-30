@@ -164,8 +164,7 @@ int main() {
     pizza_display.update(get_absolute_time());
 
     musin::usb::background_update();
-    midi_read();
-    process_midi_input();
+    midi_process_input();
     tempo_handler.update();
     musin::midi::process_midi_output_queue();
 

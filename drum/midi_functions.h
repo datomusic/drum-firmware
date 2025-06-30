@@ -38,14 +38,9 @@ void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
                musin::Logger &logger);
 
 /**
- * @brief Process incoming MIDI messages. Should be called periodically.
+ * @brief Read and process incoming MIDI messages. Should be called periodically.
  */
-void midi_read();
-
-/**
- * @brief Process queued incoming MIDI messages from the input buffer.
- */
-void process_midi_input();
+void midi_process_input();
 
 /**
  * @brief Send a MIDI Start message.

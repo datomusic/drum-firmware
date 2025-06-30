@@ -184,13 +184,11 @@ void midi_print_serial_number() {
 
 } // anonymous namespace
 
-void midi_read() {
+void midi_process_input() {
   MIDI::read();
-}
 
-void process_midi_input() {
   musin::midi::IncomingMidiMessage message;
-  if (musin::midi::dequeue_incoming_midi_message(message)) {
+  while (musin::midi::dequeue_incoming_midi_message(message)) {
     switch (message.type) {
     case musin::midi::IncomingMidiMessageType::NOTE_ON:
       handle_note_on(message.data.note_message.channel, message.data.note_message.note,

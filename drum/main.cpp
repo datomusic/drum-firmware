@@ -170,7 +170,7 @@ int main() {
       }
       new_file_received = false;
     }
-    
+
     if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
       pizza_controls.update();
     }

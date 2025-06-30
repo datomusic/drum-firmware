@@ -44,14 +44,14 @@ AudioEngine::AudioEngine(const SampleRepository &repository, musin::Logger &logg
   set_volume(1.0f); // Set master volume to full.
 
   // Set filters to neutral positions.
-  set_filter_frequency(20000.0f); // Fully open.
-  set_filter_resonance(0.0f); // No resonance.
+  set_filter_frequency(20000.0f);   // Fully open.
+  set_filter_resonance(0.0f);       // No resonance.
   highpass_.filter.frequency(0.0f); // Fully open.
   highpass_.filter.resonance(0.7f); // Default resonance.
 
   // Set crusher to be transparent.
   set_crush_depth(1.0f); // Maximum bit depth (i.e., no crush).
-  set_crush_rate(1.0f); // Maximum sample rate (i.e., no crush).
+  set_crush_rate(1.0f);  // Maximum sample rate (i.e., no crush).
 
   // Initialize all voice gains to zero to ensure silence.
   for (size_t i = 0; i < NUM_VOICES; ++i) {

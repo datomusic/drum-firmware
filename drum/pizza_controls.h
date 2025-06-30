@@ -173,7 +173,7 @@ public:
     float filter_target_value_{1.0f};  // Target value from the physical knob
     float filter_current_value_{1.0f}; // Smoothed value sent to the engine
     static constexpr float FILTER_SMOOTHING_FACTOR =
-        0.015f; // Reaches ~95% of target in ~200ms if updated at 1kHz
+        0.001f;
   };
 
 private:

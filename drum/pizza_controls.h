@@ -49,7 +49,7 @@ public:
   PizzaControls &operator=(const PizzaControls &) = delete;
 
   void init();
-  void update();
+  void update(absolute_time_t now);
 
   class KeypadComponent {
   public:
@@ -151,7 +151,7 @@ public:
   public:
     explicit AnalogControlComponent(PizzaControls *parent_ptr);
     void init();
-    void update();
+    void update(absolute_time_t now);
 
   private:
     struct AnalogControlEventHandler : public etl::observer<musin::ui::AnalogControlEvent> {
@@ -172,8 +172,9 @@ public:
     // Smoothing for the filter knob
     float filter_target_value_{1.0f};  // Target value from the physical knob
     float filter_current_value_{1.0f}; // Smoothed value sent to the engine
-    static constexpr float FILTER_SMOOTHING_FACTOR =
-        0.001f;
+    static constexpr float FILTER_SMOOTHING_RATE =
+        4.0f; // Lower is slower, higher is faster
+    absolute_time_t last_smoothing_time_ = nil_time;
   };
 
 private:

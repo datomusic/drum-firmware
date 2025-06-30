@@ -173,7 +173,7 @@ int main() {
     }
 
     if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
-      pizza_controls.update();
+      pizza_controls.update(get_absolute_time());
     }
     audio_engine.process();
 

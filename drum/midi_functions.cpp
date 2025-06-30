@@ -15,7 +15,19 @@ extern "C" {
 #include "sysex/protocol.h"                    // For SysEx protocol handler
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include <cassert>                             // For assert
-#include <optional>                            // For std::optional
+#include "etl/delegate.h"
+#include <optional> // For std::optional
+
+typedef void (*FileReceivedCallback)();
+
+struct MidiHandlers {
+  etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_on;
+  etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_off;
+  etl::delegate<void(uint8_t, uint8_t, uint8_t)> control_change;
+  etl::delegate<void(const sysex::Chunk &)> sysex;
+  etl::delegate<void(::midi::MidiType)> realtime;
+  FileReceivedCallback file_received = nullptr;
+};
 
 MidiHandlers midi_handlers;
 

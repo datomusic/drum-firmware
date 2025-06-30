@@ -1,6 +1,7 @@
 #include "midi_functions.h"
 #include "message_router.h" // For drum::MessageRouter
 #include "musin/midi/midi_input_queue.h"
+#include "sysex_file_handler.h"
 
 extern "C" {
 #include "pico/bootrom.h"   // For reset_usb_boot
@@ -18,15 +19,13 @@ extern "C" {
 #include <cassert>                             // For assert
 #include <optional>                            // For std::optional
 
-typedef void (*FileReceivedCallback)();
-
 struct MidiHandlers {
   etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_on;
   etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_off;
   etl::delegate<void(uint8_t, uint8_t, uint8_t)> control_change;
   etl::delegate<void(const sysex::Chunk &)> sysex;
   etl::delegate<void(::midi::MidiType)> realtime;
-  FileReceivedCallback file_received = nullptr;
+  etl::delegate<void()> file_received;
 };
 
 MidiHandlers midi_handlers;
@@ -214,10 +213,9 @@ void midi_process_input() {
 }
 
 void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
-               sysex::Protocol<StandardFileOps> &sysex_protocol,
-               FileReceivedCallback on_file_received, musin::Logger &logger) {
+               drum::SysExFileHandler &sysex_file_handler, musin::Logger &logger) {
   logger_ptr = &logger;
-  sysex_protocol_ptr = &sysex_protocol;
+  sysex_protocol_ptr = &sysex_file_handler.get_protocol();
 
   midi_handlers.note_on.set<handle_note_on>();
   midi_handlers.note_off.set<handle_note_off>();
@@ -226,7 +224,8 @@ void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
   midi_handlers.realtime.set([&midi_clock_processor]([[maybe_unused]] ::midi::MidiType type) {
     midi_clock_processor.on_midi_clock_tick_received();
   });
-  midi_handlers.file_received = on_file_received;
+  midi_handlers.file_received.set<drum::SysExFileHandler, &drum::SysExFileHandler::on_file_received>(
+      sysex_file_handler);
 
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,

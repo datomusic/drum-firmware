@@ -64,10 +64,6 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequence
 
 static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN, internal_clock);
 
-void on_file_received_callback() {
-  sysex_file_handler.on_file_received();
-}
-
 int main() {
   stdio_usb_init();
 
@@ -107,8 +103,7 @@ int main() {
     // If config fails to load, sample_repository will just be empty.
   }
 
-  midi_init(midi_clock_processor, sysex_file_handler.get_protocol(), on_file_received_callback,
-            logger);
+  midi_init(midi_clock_processor, sysex_file_handler, logger);
 
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);

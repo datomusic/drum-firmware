@@ -44,8 +44,11 @@ void midi_print_serial_number();
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
 void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint8_t velocity);
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
-void midi_realtime_callback(uint8_t type);
 void handle_sysex_callback(uint8_t *const data, unsigned length);
+void midi_clock_callback();
+void midi_start_callback();
+void midi_continue_callback();
+void midi_stop_callback();
 
 void handle_sysex_callback(uint8_t *const data, unsigned length) {
   sysex::Chunk chunk(data, length);
@@ -116,9 +119,20 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
       musin::midi::IncomingMidiMessage(channel, controller, value));
 }
 
-void midi_realtime_callback(uint8_t type) {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::IncomingMidiMessage(static_cast<::midi::MidiType>(type)));
+void midi_clock_callback() {
+  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Clock));
+}
+
+void midi_start_callback() {
+  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Start));
+}
+
+void midi_continue_callback() {
+  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Continue));
+}
+
+void midi_stop_callback() {
+  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Stop));
 }
 
 void midi_print_firmware_version() {
@@ -217,10 +231,10 @@ void midi_init(drum::SoundRouter &sound_router,
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,
       .note_off = midi_note_off_callback,
-      .clock = midi_realtime_callback,
-      .start = midi_realtime_callback,
-      .cont = midi_realtime_callback,
-      .stop = midi_realtime_callback,
+      .clock = midi_clock_callback,
+      .start = midi_start_callback,
+      .cont = midi_continue_callback,
+      .stop = midi_stop_callback,
       .cc = midi_cc_callback,
       .pitch_bend = nullptr,
       .sysex = handle_sysex_callback,

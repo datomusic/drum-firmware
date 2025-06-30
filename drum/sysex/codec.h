@@ -56,4 +56,3 @@ size_t decode_8_to_7(InputIt start, InputIt end, OutputIt output_start, OutputIt
 } // namespace sysex::codec
 
 #endif /* end of include guard: SYSEX_CODEC_H_JDGZXSHN */
-

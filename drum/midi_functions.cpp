@@ -209,9 +209,10 @@ void midi_init(drum::SoundRouter &sound_router,
   midi_handlers.note_off.set<handle_note_off>();
   midi_handlers.control_change.set<handle_control_change>();
   midi_handlers.sysex.set<handle_sysex>();
-  midi_handlers.realtime.set<musin::timing::MidiClockProcessor,
-                             &musin::timing::MidiClockProcessor::on_midi_clock_tick_received>(
-      midi_clock_processor);
+  midi_handlers.realtime.set(
+      [&midi_clock_processor]([[maybe_unused]] ::midi::MidiType type) {
+        midi_clock_processor.on_midi_clock_tick_received();
+      });
   midi_handlers.file_received = on_file_received;
 
   MIDI::init(MIDI::Callbacks{

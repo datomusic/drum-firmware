@@ -33,6 +33,7 @@ MidiHandlers midi_handlers;
 
 // --- Static Variables ---
 static musin::Logger *logger_ptr = nullptr;
+static sysex::Protocol<StandardFileOps> *sysex_protocol_ptr = nullptr;
 
 // --- Helper Functions (Internal Linkage) ---
 namespace { // Anonymous namespace for internal linkage
@@ -44,10 +45,10 @@ void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
 void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint8_t velocity);
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
 void midi_realtime_callback(uint8_t type);
-void handle_sysex_callback(uint8_t *const data, const size_t length);
+void handle_sysex_callback(uint8_t *const data, unsigned length);
 
-void handle_sysex_callback(uint8_t *const data, const size_t length) {
-  sysex::Chunk chunk(data + 1, length - 2);
+void handle_sysex_callback(uint8_t *const data, unsigned length) {
+  sysex::Chunk chunk(data, length);
   musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(chunk));
 }
 
@@ -79,8 +80,9 @@ void handle_sysex(const sysex::Chunk &chunk) {
     MIDI::sendSysEx(sizeof(msg), msg);
   };
 
+  assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
   auto result =
-      midi_handlers.sysex.get_object()->template handle_chunk<decltype(sender)>(chunk, sender);
+      sysex_protocol_ptr->template handle_chunk<decltype(sender)>(chunk, sender);
 
   switch (result) {
   case sysex::Protocol<StandardFileOps>::Result::FileWritten:
@@ -202,6 +204,7 @@ void midi_init(drum::SoundRouter &sound_router,
                sysex::Protocol<StandardFileOps> &sysex_protocol,
                FileReceivedCallback on_file_received, musin::Logger &logger) {
   logger_ptr = &logger;
+  sysex_protocol_ptr = &sysex_protocol;
 
   midi_handlers.note_on.set<handle_note_on>();
   midi_handlers.note_off.set<handle_note_off>();

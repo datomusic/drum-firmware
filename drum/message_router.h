@@ -136,6 +136,14 @@ public:
    */
   void handle_incoming_midi_note(uint8_t note, uint8_t velocity);
 
+  /**
+   * @brief Handles an incoming MIDI Control Change message.
+   * This method will map the CC number to a `drum::Parameter` and apply the change.
+   * @param controller The MIDI CC number.
+   * @param value The MIDI CC value.
+   */
+  void handle_incoming_midi_cc(uint8_t controller, uint8_t value);
+
 private:
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;

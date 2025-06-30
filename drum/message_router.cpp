@@ -7,6 +7,8 @@
 #include <cmath>                  // For std::round
 #include <cstdint>                // For uint8_t
 
+namespace drum {
+
 namespace { // Anonymous namespace for internal linkage
 
 void send_midi_cc(const uint8_t channel, const uint8_t cc_number, const uint8_t value) {
@@ -54,8 +56,6 @@ std::optional<ParameterMapping> map_midi_cc_to_parameter(uint8_t cc_number) {
 }
 
 } // namespace
-
-namespace drum {
 
 // --- MIDI CC Mapping ---
 constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uint8_t> track_index) {

@@ -110,11 +110,13 @@ activeMidiInput.on('message', (deltaTime, message) => {
       if (tag === ACK) {
         const ackResolver = ackQueue.shift();
         if (ackResolver) {
+          clearTimeout(ackResolver.timer);
           ackResolver.resolve();
         }
       } else if (tag === NACK) {
         const ackResolver = ackQueue.shift();
         if (ackResolver) {
+          clearTimeout(ackResolver.timer);
           ackResolver.reject(new Error('Received NACK from device.'));
         }
       } else {
@@ -130,14 +132,21 @@ activeMidiInput.on('message', (deltaTime, message) => {
 function waitForAck(timeout = 2000) {
   let timer;
   const promise = new Promise((resolve, reject) => {
-    ackQueue.push({ resolve, reject });
+    const resolver = {
+      resolve: resolve,
+      reject: reject,
+      timer: null // Placeholder
+    };
     timer = setTimeout(() => {
-      const index = ackQueue.findIndex(p => p.resolve === resolve);
+      // On timeout, find and remove the resolver from the queue
+      const index = ackQueue.findIndex(p => p.timer === timer);
       if (index > -1) {
         ackQueue.splice(index, 1);
-        reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
       }
+      reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
     }, timeout);
+    resolver.timer = timer;
+    ackQueue.push(resolver);
   });
   return promise;
 }

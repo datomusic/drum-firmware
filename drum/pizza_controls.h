@@ -20,10 +20,10 @@
 
 #include "musin/timing/internal_clock.h"
 
+#include "message_router.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "sound_router.h"
 
 namespace drum {
 class PizzaDisplay; // Forward declaration
@@ -43,7 +43,7 @@ public:
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
                          musin::timing::TempoHandler &tempo_handler_ref,
                          drum::DefaultSequencerController &sequencer_controller_ref,
-                         drum::SoundRouter &sound_router_ref);
+                         drum::MessageRouter &message_router_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -175,7 +175,7 @@ private:
   drum::PizzaDisplay &display;
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
-  drum::SoundRouter &_sound_router_ref;
+  drum::MessageRouter &_message_router_ref;
 
 public:
   KeypadComponent keypad_component;

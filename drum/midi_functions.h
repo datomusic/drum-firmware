@@ -7,7 +7,7 @@
 
 // Forward declarations
 namespace drum {
-class SoundRouter;
+class MessageRouter;
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 } // namespace drum
 
@@ -27,16 +27,13 @@ template <typename T> struct Protocol;
 // Function declarations (prototypes) for functions defined in midi.cpp
 /**
  * @brief Initialize the MIDI system and callbacks.
- * @param sound_router Reference to the SoundRouter for handling MIDI note events.
+ * @param message_router Reference to the MessageRouter for handling MIDI note events.
  * @param sequencer_controller Reference to the SequencerController for transport control.
  * @param midi_clock_processor Reference to the MidiClockProcessor for handling MIDI clock input.
  * @param sysex_protocol Reference to the SysEx protocol handler for file transfers.
  * @param file_received_cb Callback function to notify when a file has been received.
  */
-void midi_init(drum::SoundRouter &sound_router,
-               drum::SequencerController<drum::config::NUM_TRACKS,
-                                         drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-               musin::timing::MidiClockProcessor &midi_clock_processor,
+void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
                sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)(),
                musin::Logger &logger);
 
@@ -44,6 +41,11 @@ void midi_init(drum::SoundRouter &sound_router,
  * @brief Process incoming MIDI messages. Should be called periodically.
  */
 void midi_read();
+
+/**
+ * @brief Process queued incoming MIDI messages from the input buffer.
+ */
+void process_midi_input();
 
 /**
  * @brief Send a MIDI Start message.

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <optional> // Required for std::optional
 
-// Forward declare Parameter enum to avoid circular dependency if Parameter is in sound_router.h
+// Forward declare Parameter enum to avoid circular dependency if Parameter is in message_router.h
 // Alternatively, Parameter could be moved to this file or a common types file.
 namespace drum {
 enum class Parameter : uint8_t;

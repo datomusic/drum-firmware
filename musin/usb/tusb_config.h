@@ -30,6 +30,7 @@
 extern "C" {
 #endif
 
+#include "pico/stdio.h"
 #include "pico/stdio_usb.h"
 
 //--------------------------------------------------------------------

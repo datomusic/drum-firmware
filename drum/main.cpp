@@ -1,6 +1,7 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/logger.h"
-#include "musin/midi/midi_message_queue.h"
+#include "musin/midi/midi_input_queue.h"
+#include "musin/midi/midi_output_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_out.h"
@@ -13,20 +14,30 @@
 #include "sample_repository.h"
 #include "sysex/protocol.h"
 
+extern "C" {
+#include "pico/stdio.h"
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
+}
+
+#ifndef VERBOSE
+#include "hardware/watchdog.h"
+#endif
 
 #include <cstdio>
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
-#include "drum_pizza_hardware.h"
+#include "message_router.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
-#include "sound_router.h"
 
+#ifdef VERBOSE
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);
+#else
+static musin::NullLogger logger;
+#endif
 
 // SysEx File Transfer
 static StandardFileOps file_ops(logger);
@@ -39,21 +50,23 @@ static drum::SampleRepository sample_repository(logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
-static musin::timing::TempoHandler tempo_handler(internal_clock, midi_clock_processor,
-                                                 musin::timing::ClockSource::INTERNAL);
+static musin::timing::TempoHandler
+    tempo_handler(internal_clock, midi_clock_processor,
+                  drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
+                  musin::timing::ClockSource::INTERNAL);
 
-// SequencerController needs to be declared before SoundRouter if SoundRouter depends on it.
+// SequencerController needs to be declared before MessageRouter if MessageRouter depends on it.
 drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
-static drum::SoundRouter sound_router(audio_engine, sequencer_controller);
+static drum::MessageRouter message_router(audio_engine, sequencer_controller);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
-                                          sound_router);
+                                          message_router);
 
 constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
 static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
@@ -67,7 +80,11 @@ void on_file_received_callback() {
 int main() {
   stdio_usb_init();
 
-  musin::usb::init(true); // Wait for serial connection
+#ifdef VERBOSE
+  musin::usb::init(true); // Wait for serial connection in debug builds
+#else
+  musin::usb::init(false); // Do not wait in release builds
+#endif
 
   if (!musin::filesystem::init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,
@@ -98,14 +115,13 @@ int main() {
     // If config fails to load, sample_repository will just be empty.
   }
 
-  midi_init(sound_router, sequencer_controller, midi_clock_processor, syx_protocol,
-            on_file_received_callback, logger);
+  midi_init(midi_clock_processor, syx_protocol, on_file_received_callback, logger);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
     panic("Failed to initialize audio engine\n");
   }
-  sound_router.set_output_mode(drum::OutputMode::BOTH);
+  message_router.set_output_mode(drum::OutputMode::BOTH);
 
   // Check if the control panel is connected by checking for floating MUX address pins.
   if (is_control_panel_disconnected(logger)) {
@@ -124,13 +140,13 @@ int main() {
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // Register SoundRouter and PizzaDisplay as observers of NoteEvents from SequencerController
-  sequencer_controller.add_observer(sound_router);
+  // Register MessageRouter and PizzaDisplay as observers of NoteEvents from SequencerController
+  sequencer_controller.add_observer(message_router);
   sequencer_controller.add_observer(pizza_display);
 
-  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from SoundRouter
-  sound_router.add_observer(pizza_display);
-  sound_router.add_observer(audio_engine);
+  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from MessageRouter
+  message_router.add_observer(pizza_display);
+  message_router.add_observer(audio_engine);
 
   sync_out.enable();
 
@@ -161,11 +177,17 @@ int main() {
     pizza_display.update(get_absolute_time());
 
     musin::usb::background_update();
-    midi_read(); // TODO: turn this into a musin input queue
+    midi_read();
+    process_midi_input();
     tempo_handler.update();
     musin::midi::process_midi_output_queue();
 
     loop_timer.record_iteration_end();
+
+#ifndef VERBOSE
+    // Watchdog update for Release builds
+    watchdog_update();
+#endif
   }
 
   return 0;

@@ -28,10 +28,10 @@ extern "C" {
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
+#include "message_router.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
-#include "message_router.h"
 
 #ifdef VERBOSE
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);

@@ -20,10 +20,10 @@
 
 #include "musin/timing/internal_clock.h"
 
+#include "message_router.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
-#include "message_router.h"
 
 namespace drum {
 class PizzaDisplay; // Forward declaration

@@ -1,6 +1,6 @@
 #include "midi_functions.h"
-#include "musin/midi/midi_input_queue.h"
 #include "message_router.h" // For drum::MessageRouter
+#include "musin/midi/midi_input_queue.h"
 
 extern "C" {
 #include "pico/bootrom.h"   // For reset_usb_boot

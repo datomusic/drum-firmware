@@ -4,7 +4,7 @@
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
 #include "sequencer_controller.h"
-#include "sound_router.h"
+#include "message_router.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -19,9 +19,9 @@ using musin::ui::Drumpad;
 PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
                              musin::timing::TempoHandler &tempo_handler_ref,
                              drum::DefaultSequencerController &sequencer_controller_ref,
-                             drum::SoundRouter &sound_router_ref)
+                             drum::MessageRouter &message_router_ref)
     : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
-      _sequencer_controller_ref(sequencer_controller_ref), _sound_router_ref(sound_router_ref),
+      _sequencer_controller_ref(sequencer_controller_ref), _message_router_ref(message_router_ref),
       keypad_component(this), drumpad_component(this), analog_component(this),
       playbutton_component(this) {
 }
@@ -351,13 +351,13 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   const uint8_t mux_channel = event.control_id >> 8;
 
   // Note: RANDOM, SWING, REPEAT, SPEED are handled differently (affect sequencer/clock directly)
-  //       and only go through the SoundRouter's parameter setting to send CC's.
+  //       and only go through the MessageRouter's parameter setting to send CC's.
 
   switch (mux_channel) {
   case FILTER:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
                                                              event.value);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
                                                              (1.0f - event.value));
     break;
   case RANDOM: {
@@ -370,11 +370,11 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
       controls->_sequencer_controller_ref.deactivate_random();
     }
     controls->_sequencer_controller_ref.set_random_probability(event.value * 33);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::RANDOM_EFFECT,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::RANDOM_EFFECT,
                                                              event.value, 0);
   } break;
   case VOLUME:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
     break;
   case SWING: {
     float distance_from_center =
@@ -389,12 +389,12 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
 
     controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::SWING, event.value,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::SWING, event.value,
                                                              0);
     break;
   }
   case CRUSH:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::CRUSH_EFFECT,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::CRUSH_EFFECT,
                                                              event.value);
     break;
   case REPEAT: {
@@ -408,24 +408,24 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::REPEAT_EFFECT,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::REPEAT_EFFECT,
                                                              event.value);
     break;
   }
   case PITCH1:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
                                                              0);
     break;
   case PITCH2:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
                                                              1);
     break;
   case PITCH3:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
                                                              2);
     break;
   case PITCH4:
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
                                                              3);
     break;
   case SPEED: {
@@ -433,7 +433,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
                 event.value * (config::analog_controls::MAX_BPM_ADJUST -
                                config::analog_controls::MIN_BPM_ADJUST);
     controls->_tempo_handler_ref.set_bpm(bpm);
-    parent->parent_controls->_sound_router_ref.set_parameter(drum::Parameter::TEMPO, event.value);
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::TEMPO, event.value);
     break;
   }
   }

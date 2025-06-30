@@ -41,7 +41,7 @@ public:
   /**
    * @brief Constructor.
    * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
-   * @param sound_router_ref A reference to the SoundRouter instance.
+   * @param message_router_ref A reference to the MessageRouter instance.
    */
   SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
   ~SequencerController();

@@ -27,7 +27,7 @@ template <typename T> struct Protocol;
 // Function declarations (prototypes) for functions defined in midi.cpp
 /**
  * @brief Initialize the MIDI system and callbacks.
- * @param sound_router Reference to the SoundRouter for handling MIDI note events.
+ * @param message_router Reference to the MessageRouter for handling MIDI note events.
  * @param sequencer_controller Reference to the SequencerController for transport control.
  * @param midi_clock_processor Reference to the MidiClockProcessor for handling MIDI clock input.
  * @param sysex_protocol Reference to the SysEx protocol handler for file transfers.

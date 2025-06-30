@@ -2,7 +2,7 @@
 #define SB25_DRUM_MESSAGE_ROUTER_H_
 
 #include "audio_engine.h"
-#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially sound_router::MAX_NOTE_EVENT_OBSERVERS
+#include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>

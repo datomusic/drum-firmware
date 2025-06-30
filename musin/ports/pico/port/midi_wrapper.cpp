@@ -1,6 +1,6 @@
 #include "musin/midi/midi_wrapper.h"
 #include "../pico_uart.h"
-#include "musin/midi/midi_message_queue.h" // For enqueuing messages
+#include "musin/midi/midi_output_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
 #include <stdio.h> // For printf

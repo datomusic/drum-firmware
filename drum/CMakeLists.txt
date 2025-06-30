@@ -26,7 +26,7 @@ add_executable(${EXECUTABLE_NAME}
   ui/pizza_display.cpp
   sequencer_controller.cpp
   configuration_manager.cpp
-  sound_router.cpp
+  message_router.cpp
   audio_engine.cpp
   sample_repository.cpp
   usb_descriptors.c

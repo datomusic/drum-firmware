@@ -224,8 +224,8 @@ void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
   midi_handlers.realtime.set([&midi_clock_processor]([[maybe_unused]] ::midi::MidiType type) {
     midi_clock_processor.on_midi_clock_tick_received();
   });
-  midi_handlers.file_received.set<drum::SysExFileHandler, &drum::SysExFileHandler::on_file_received>(
-      sysex_file_handler);
+  midi_handlers.file_received
+      .set<drum::SysExFileHandler, &drum::SysExFileHandler::on_file_received>(sysex_file_handler);
 
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,

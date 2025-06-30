@@ -1,10 +1,10 @@
 #include "pizza_controls.h"
 #include "drum/ui/pizza_display.h"
+#include "message_router.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
 #include "sequencer_controller.h"
-#include "message_router.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -356,9 +356,9 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
   switch (mux_channel) {
   case FILTER:
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
-                                                             event.value);
+                                                               event.value);
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
-                                                             (1.0f - event.value));
+                                                               (1.0f - event.value));
     break;
   case RANDOM: {
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
@@ -371,10 +371,11 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     }
     controls->_sequencer_controller_ref.set_random_probability(event.value * 33);
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::RANDOM_EFFECT,
-                                                             event.value, 0);
+                                                               event.value, 0);
   } break;
   case VOLUME:
-    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::VOLUME, event.value);
+    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::VOLUME,
+                                                               event.value);
     break;
   case SWING: {
     float distance_from_center =
@@ -390,12 +391,12 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
     controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::SWING, event.value,
-                                                             0);
+                                                               0);
     break;
   }
   case CRUSH:
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::CRUSH_EFFECT,
-                                                             event.value);
+                                                               event.value);
     break;
   case REPEAT: {
     // Determine the intended state based on the knob value
@@ -409,24 +410,24 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
     // Pass the intended state to the sequencer controller
     controls->_sequencer_controller_ref.set_intended_repeat_state(intended_length);
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::REPEAT_EFFECT,
-                                                             event.value);
+                                                               event.value);
     break;
   }
   case PITCH1:
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
-                                                             0);
+                                                               0);
     break;
   case PITCH2:
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
-                                                             1);
+                                                               1);
     break;
   case PITCH3:
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
-                                                             2);
+                                                               2);
     break;
   case PITCH4:
     parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH, event.value,
-                                                             3);
+                                                               3);
     break;
   case SPEED: {
     float bpm = config::analog_controls::MIN_BPM_ADJUST +

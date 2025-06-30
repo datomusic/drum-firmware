@@ -190,7 +190,7 @@ void midi_read() {
 
 void process_midi_input() {
   musin::midi::IncomingMidiMessage message;
-  while (musin::midi::dequeue_incoming_midi_message(message)) {
+  if (musin::midi::dequeue_incoming_midi_message(message)) {
     switch (message.type) {
     case musin::midi::IncomingMidiMessageType::NOTE_ON:
       handle_note_on(message.data.note_message.channel, message.data.note_message.note,

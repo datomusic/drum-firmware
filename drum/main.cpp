@@ -1,5 +1,6 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/logger.h"
+#include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_message_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
@@ -168,7 +169,8 @@ int main() {
     pizza_display.update(get_absolute_time());
 
     musin::usb::background_update();
-    midi_read(); // TODO: turn this into a musin input queue
+    midi_read();
+    process_midi_input();
     tempo_handler.update();
     musin::midi::process_midi_output_queue();
 

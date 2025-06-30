@@ -2,6 +2,7 @@
 #define SYSEX_PROTOCOL_H_O6CX5YEN
 
 #include "drum/config.h"
+#include "etl/array.h"
 #include "etl/optional.h"
 #include "etl/span.h"
 #include "etl/string_view.h"
@@ -17,15 +18,7 @@ extern "C" {
 #include "pico/unique_id.h" // For pico_get_unique_board_id
 }
 
-// TODO: Currently handles file streaming/writing, as well as sysex decoding.
-//       Processing of the byte stream can be offloaded to something external,
-//       which keeps this focused on the sysex transport layer, while dealing with
-//       the data happens elsewhere. That way, we could change transport later or support
-//       multiple transports, like WebSerial etc.
-
 namespace sysex {
-
-// Wraps a file handle to ensure it gets closed through RAII.
 
 template <typename FileOperations> struct Protocol {
   constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
@@ -75,7 +68,6 @@ template <typename FileOperations> struct Protocol {
     FormatFilesystem = 0x15,
   };
 
-  // TODO: Clean up results to separate successes and errors.
   enum class Result {
     OK,
     FileWritten,
@@ -87,15 +79,9 @@ template <typename FileOperations> struct Protocol {
     NotSysex,
     InvalidManufacturer,
     InvalidContent,
-    // UnknownTag,
   };
 
-  typedef etl::array<uint16_t, Chunk::Data::SIZE> Values;
-
-  // TODO: Return informative error on failure.
-  // Current return value indicates if the message was accepted at all.
   template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
-    // 5 bytes minimum: 2-byte manufacturer ID (if zero stripped) + 3 bytes for tag.
     if (chunk.size() < 5) {
       logger.error("SysEx: Short message, size", static_cast<uint32_t>(chunk.size()));
       return Result::ShortMessage;
@@ -107,33 +93,33 @@ template <typename FileOperations> struct Protocol {
       return Result::InvalidManufacturer;
     }
 
-    Values values{}; // Initialize the values array
-    const auto value_count = codec::decode<Chunk::Data::SIZE>(iterator, chunk.cend(), values);
+    const uint16_t tag = (*iterator++);
 
-    // Check if we have at least one value for the tag
-    if (value_count == 0) {
-      logger.error("SysEx: No values decoded from message");
+    if (tag == Tag::FileBytes) {
+      return handle_file_bytes_fast(iterator, chunk.cend(), send_reply);
+    }
+
+    const bool body_was_present = (iterator != chunk.cend());
+    etl::array<uint16_t, Chunk::Data::SIZE> values{};
+    const auto value_count =
+        codec::decode_3_to_16bit(iterator, chunk.cend(), values.begin(), values.end());
+
+    if (value_count == 0 && body_was_present) {
+      logger.error("SysEx: Present body could not be decoded.");
       send_reply(Tag::Nack);
       return Result::InvalidContent;
     }
 
     auto value_iterator = values.cbegin();
-    Values::const_iterator values_end = value_iterator + value_count;
-    const uint16_t tag = (*value_iterator++);
+    const auto values_end = value_iterator + value_count;
 
-    // Dispatch based on whether the command has a body or not.
     if (value_iterator != values_end) {
-      // Command has a body.
-      // printf("SysEx: Command has a body\n");
       return handle_packet(tag, value_iterator, values_end, send_reply);
     } else {
-      // Command has no body.
-      // printf("SysEx: Command has no body. Tag: %d\n", tag);
-
-      // Handle stateful commands with no body.
       if (state == State::FileTransfer) {
         if (tag == EndFileTransfer) {
           logger.info("SysEx: EndFileTransfer received");
+          flush_write_buffer();
           opened_file.reset();
           state = State::Idle;
           logger.info("SysEx: Sending Ack for EndFileTransfer");
@@ -142,13 +128,11 @@ template <typename FileOperations> struct Protocol {
         }
       }
 
-      // Handle stateless commands with no body.
       const auto maybe_result = handle_no_body(tag, send_reply);
       if (maybe_result.has_value()) {
         return *maybe_result;
       }
 
-      // If we reach here, it's an unknown command.
       logger.error("SysEx: Unknown command with no body. Tag", tag);
       if (state == State::FileTransfer) {
         opened_file.reset();
@@ -168,7 +152,6 @@ template <typename FileOperations> struct Protocol {
     FileTransfer,
   };
 
-  // Mainly here for testing. Don't rely on it for external functionality.
   constexpr State __get_state() {
     return state;
   }
@@ -179,28 +162,24 @@ private:
   State state = State::Idle;
   etl::optional<File> opened_file;
 
-  enum class SanitizeResult {
-    Success,
-    PathTooLong,
-    InvalidCharacter
-  };
+  etl::array<uint8_t, FileOperations::BlockSize> write_buffer;
+  size_t write_buffer_pos = 0;
 
-  // Handle packets without body
+  enum class SanitizeResult { Success, PathTooLong, InvalidCharacter };
+
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {
-    // Handle stateless commands that can be executed anytime.
     switch (tag) {
     case Tag::RebootBootloader:
-      return Result::Reboot; // Action handled by caller
+      return Result::Reboot;
     case Tag::RequestFirmwareVersion:
       return Result::PrintFirmwareVersion;
     case Tag::RequestSerialNumber:
       return Result::PrintSerialNumber;
     default:
-      break; // Not a stateless command, continue to stateful logic.
+      break;
     }
 
-    // Handle stateful commands that are only valid in Idle state.
     if (tag == Tag::FormatFilesystem) {
       if (state != State::Idle) {
         logger.error("SysEx: Format command received while not in Idle state.");
@@ -218,9 +197,9 @@ private:
     return etl::nullopt;
   };
 
-  template <typename Sender>
-  constexpr Result handle_packet(const uint16_t tag, Values::const_iterator value_iterator,
-                                 const Values::const_iterator values_end, Sender send_reply) {
+  template <typename Sender, typename ValueIt>
+  constexpr Result handle_packet(const uint16_t tag, ValueIt value_iterator,
+                                 const ValueIt values_end, Sender send_reply) {
     etl::array<uint8_t, FileOperations::BlockSize> byte_array;
     auto byte_iterator = byte_array.begin();
     size_t byte_count = 0;
@@ -237,8 +216,6 @@ private:
     switch (tag) {
     case BeginFileWrite:
       return handle_begin_file_write(bytes, send_reply);
-    case FileBytes:
-      return handle_file_bytes(bytes, send_reply);
     default:
       logger.error("SysEx: Unknown tag with body", tag);
       if (state == State::FileTransfer) {
@@ -256,6 +233,7 @@ private:
     if (state != State::Idle) {
       logger.warn("SysEx: BeginFileWrite received while another file transfer is in progress. "
                   "Canceling previous transfer.");
+      flush_write_buffer();
       opened_file.reset();
     }
 
@@ -263,17 +241,6 @@ private:
     const auto sanitize_result = sanitize_path(bytes, path);
 
     if (sanitize_result != SanitizeResult::Success) {
-      switch (sanitize_result) {
-      case SanitizeResult::PathTooLong:
-        logger.error("SysEx: Path is too long.");
-        break;
-      case SanitizeResult::InvalidCharacter:
-        logger.error("SysEx: Invalid character in path.");
-        break;
-      default:
-        logger.error("SysEx: Unknown path sanitization error.");
-        break;
-      }
       send_reply(Tag::Nack);
       return Result::FileError;
     }
@@ -283,20 +250,21 @@ private:
     opened_file.emplace(file_ops, path);
     if (opened_file.has_value() && opened_file->is_valid()) {
       state = State::FileTransfer;
+      write_buffer_pos = 0;
       logger.info("SysEx: Sending Ack for BeginFileWrite");
       send_reply(Tag::Ack);
       return Result::OK;
     } else {
       opened_file.reset();
-      state = State::Idle; // Explicitly set state to Idle on failure.
+      state = State::Idle;
       logger.error("SysEx: Failed to open file for writing");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
   }
 
-  template <typename Sender>
-  constexpr Result handle_file_bytes(const etl::span<const uint8_t> &bytes, Sender send_reply) {
+  template <typename Sender, typename InputIt>
+  constexpr Result handle_file_bytes_fast(InputIt start, InputIt end, Sender send_reply) {
     if (state != State::FileTransfer) {
       logger.error("SysEx: FileBytes received while not in a file transfer state.");
       send_reply(Tag::Nack);
@@ -304,62 +272,55 @@ private:
     }
 
     if (opened_file.has_value()) {
-      // We want to write all the 16bit values in one go.
-      // If we, for some reason, must support different combinations of sysex size and block
-      // size, this code becomes more complicated.
-      static_assert(Chunk::Data::SIZE * 2 == FileOperations::BlockSize);
+      const size_t bytes_decoded = codec::decode_8_to_7(
+          start, end, write_buffer.begin() + write_buffer_pos, write_buffer.end());
+      write_buffer_pos += bytes_decoded;
 
-      opened_file->write(bytes);
+      if (write_buffer_pos >= write_buffer.size()) {
+        flush_write_buffer();
+      }
       send_reply(Tag::Ack);
       return Result::OK;
     } else {
-      // This case should be theoretically unreachable if state is FileTransfer,
-      // but as a safeguard:
       logger.error("SysEx: FileBytes received but no file open");
       send_reply(Tag::Nack);
-      state = State::Idle; // Reset state
+      state = State::Idle;
       return Result::FileError;
+    }
+  }
+
+  constexpr void flush_write_buffer() {
+    if (opened_file.has_value() && write_buffer_pos > 0) {
+      opened_file->write(etl::span{write_buffer.cbegin(), write_buffer_pos});
+      write_buffer_pos = 0;
     }
   }
 
   constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
                                                    const size_t chunk_size) const {
-    // Check for a recognized Manufacturer/Device ID pattern.
-    // The chunk passed here has the 0xF0 and 0xF7 bytes stripped.
     if (chunk_size >= 4 && (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
         (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
         (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&
         (*(iterator + 3)) == drum::config::sysex::DEVICE_ID) {
-      iterator += 4; // Official 3-byte ID + 1-byte Device ID
+      iterator += 4;
       return true;
-    } else if (chunk_size >= 3 && (*iterator) == 0 && (*(iterator + 1)) == 0x7D &&
-               (*(iterator + 2)) == 0x65) {
-      iterator += 3; // Old non-standard 3-byte ID
-      return true;
-    } else if (chunk_size >= 2 && (*iterator) == 0x7D && (*(iterator + 1)) == 0x65) {
-      iterator += 2; // Old non-standard 2-byte ID
-      return true;
-    } else {
-      logger.error("SysEx: Invalid manufacturer or device ID");
-      return false;
     }
+    logger.error("SysEx: Invalid manufacturer or device ID");
+    return false;
   }
 
   static constexpr SanitizeResult sanitize_path(const etl::span<const uint8_t> &raw_path,
                                                 char (&out_path)[drum::config::MAX_PATH_LENGTH]) {
-    // Zero-initialize the buffer.
     for (size_t i = 0; i < drum::config::MAX_PATH_LENGTH; ++i) {
       out_path[i] = 0;
     }
 
     size_t out_pos = 0;
-    // Ensure the path is absolute.
     out_path[out_pos++] = '/';
 
-    // Determine where to start reading from the raw path.
     size_t in_pos = 0;
     if (!raw_path.empty() && raw_path[0] == '/') {
-      in_pos = 1; // Skip leading '/' from input if present.
+      in_pos = 1;
     }
 
     for (; in_pos < raw_path.size() && raw_path[in_pos] != '\0'; ++in_pos) {
@@ -369,8 +330,6 @@ private:
 
       const char c = static_cast<char>(raw_path[in_pos]);
 
-      // Reject directory separators and non-printable ASCII characters.
-      // This implicitly handles ".." by disallowing the '/' needed to use it for traversal.
       if (c == '/' || c < ' ' || c > '~') {
         return SanitizeResult::InvalidCharacter;
       }

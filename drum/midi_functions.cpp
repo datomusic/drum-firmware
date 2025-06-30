@@ -56,18 +56,17 @@ void handle_sysex_callback(uint8_t *const data, unsigned length) {
 }
 
 void handle_note_on([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t note,
-                      [[maybe_unused]] uint8_t velocity) {
+                    [[maybe_unused]] uint8_t velocity) {
   // TODO: Route MIDI note on events to the sound engine.
 }
 
 void handle_note_off([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t note,
-                       [[maybe_unused]] uint8_t velocity) {
+                     [[maybe_unused]] uint8_t velocity) {
   // TODO: Route MIDI note off events to the sound engine.
 }
 
-void handle_control_change([[maybe_unused]] uint8_t channel,
-                             [[maybe_unused]] uint8_t controller,
-                             [[maybe_unused]] uint8_t value) {
+void handle_control_change([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t controller,
+                           [[maybe_unused]] uint8_t value) {
   // TODO: Route MIDI CC events to the sound engine/parameter manager.
 }
 
@@ -211,8 +210,9 @@ void process_midi_input() {
 }
 
 void midi_init([[maybe_unused]] drum::SoundRouter &sound_router,
-               [[maybe_unused]] drum::SequencerController<
-                   drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+               [[maybe_unused]] drum::SequencerController<drum::config::NUM_TRACKS,
+                                                          drum::config::NUM_STEPS_PER_TRACK>
+                   &sequencer_controller,
                musin::timing::MidiClockProcessor &midi_clock_processor,
                sysex::Protocol<StandardFileOps> &sysex_protocol,
                FileReceivedCallback on_file_received, musin::Logger &logger) {

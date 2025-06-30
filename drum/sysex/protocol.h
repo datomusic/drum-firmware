@@ -8,15 +8,9 @@
 #include "etl/string_view.h"
 
 #include "musin/hal/logger.h"
-#include "musin/midi/midi_wrapper.h" // For midi::SystemExclusive
 
 #include "./chunk.h"
 #include "./codec.h"
-#include "version.h" // For FIRMWARE_MAJOR, etc.
-
-extern "C" {
-#include "pico/unique_id.h" // For pico_get_unique_board_id
-}
 
 namespace sysex {
 
@@ -152,7 +146,7 @@ template <typename FileOperations> struct Protocol {
     FileTransfer,
   };
 
-  constexpr State __get_state() {
+  constexpr State get_state() {
     return state;
   }
 
@@ -205,9 +199,9 @@ private:
     size_t byte_count = 0;
     while (value_iterator != values_end) {
       const uint16_t value = (*value_iterator++);
-      const auto tmp_bytes = std::bit_cast<etl::array<uint8_t, 2>>(value);
-      (*byte_iterator++) = tmp_bytes[0];
-      (*byte_iterator++) = tmp_bytes[1];
+      const auto value_bytes = std::bit_cast<etl::array<uint8_t, 2>>(value);
+      (*byte_iterator++) = value_bytes[0];
+      (*byte_iterator++) = value_bytes[1];
       byte_count += 2;
     }
 
@@ -328,12 +322,12 @@ private:
         return SanitizeResult::PathTooLong;
       }
 
-      const char c = static_cast<char>(raw_path[in_pos]);
+      const char character = static_cast<char>(raw_path[in_pos]);
 
-      if (c == '/' || c < ' ' || c > '~') {
+      if (character == '/' || character < ' ' || character > '~') {
         return SanitizeResult::InvalidCharacter;
       }
-      out_path[out_pos++] = c;
+      out_path[out_pos++] = character;
     }
     return SanitizeResult::Success;
   }

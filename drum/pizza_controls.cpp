@@ -34,10 +34,12 @@ void PizzaControls::init() {
 }
 
 void PizzaControls::update() {
-  keypad_component.update();
-  drumpad_component.update();
-  analog_component.update();
-  playbutton_component.update(); // Updates the *input* state of the button
+  if (_message_router_ref.get_local_control_mode() == drum::LocalControlMode::ON) {
+    keypad_component.update();
+    drumpad_component.update();
+    analog_component.update();
+    playbutton_component.update(); // Updates the *input* state of the button
+  }
 }
 
 bool PizzaControls::is_running() const {

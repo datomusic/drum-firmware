@@ -158,9 +158,7 @@ int main() {
   while (true) {
     sysex_file_handler.update();
 
-    if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
-      pizza_controls.update();
-    }
+    pizza_controls.update();
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());

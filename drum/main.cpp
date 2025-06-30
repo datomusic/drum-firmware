@@ -8,11 +8,10 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
-#include "drum/applications/rompler/standard_file_ops.h"
 #include "drum/configuration_manager.h"
+#include "drum/sysex_file_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
-#include "sysex/protocol.h"
 
 extern "C" {
 #include "pico/stdio.h"
@@ -39,14 +38,10 @@ static musin::PicoLogger logger(musin::LogLevel::DEBUG);
 static musin::NullLogger logger;
 #endif
 
-// SysEx File Transfer
-static StandardFileOps file_ops(logger);
-static sysex::Protocol<StandardFileOps> syx_protocol(file_ops, logger);
-static bool new_file_received = false;
-
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
+static drum::SysExFileHandler sysex_file_handler(config_manager, sample_repository, logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
@@ -74,7 +69,7 @@ static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
 static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 
 void on_file_received_callback() {
-  new_file_received = true;
+  sysex_file_handler.on_file_received();
 }
 
 int main() {
@@ -116,7 +111,8 @@ int main() {
     // If config fails to load, sample_repository will just be empty.
   }
 
-  midi_init(midi_clock_processor, syx_protocol, on_file_received_callback, logger);
+  midi_init(midi_clock_processor, sysex_file_handler.get_protocol(), on_file_received_callback,
+            logger);
 
   if (!audio_engine.init()) {
     // Potentially halt or enter a safe state
@@ -160,17 +156,7 @@ int main() {
   //       if they require explicit start/stop from TempoHandler.
 
   while (true) {
-    // --- SysEx State Check ---
-    if (syx_protocol.busy()) {
-      // The protocol is actively receiving a file.
-      // We could add visual feedback here, e.g., pulse a specific LED.
-    } else if (new_file_received) {
-      logger.info("Main loop: New file received, reloading configuration.");
-      if (config_manager.load()) {
-        sample_repository.load_from_config(config_manager.get_sample_configs());
-      }
-      new_file_received = false;
-    }
+    sysex_file_handler.update();
 
     if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
       pizza_controls.update();

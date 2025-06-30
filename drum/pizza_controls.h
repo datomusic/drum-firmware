@@ -43,7 +43,7 @@ public:
   explicit PizzaControls(drum::PizzaDisplay &display_ref,
                          musin::timing::TempoHandler &tempo_handler_ref,
                          drum::DefaultSequencerController &sequencer_controller_ref,
-                         drum::MessageRouter &message_router_ref);
+                         drum::MessageRouter &message_router_ref, musin::Logger &logger_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -176,6 +176,7 @@ private:
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::MessageRouter &_message_router_ref;
+  musin::Logger &_logger_ref;
 
 public:
   KeypadComponent keypad_component;

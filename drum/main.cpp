@@ -60,7 +60,7 @@ static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, log
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
-                                          message_router);
+                                          message_router, logger);
 
 static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN, internal_clock);
 
@@ -112,15 +112,6 @@ int main() {
 
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
-
-  // Check if the control panel is connected by checking for floating MUX address pins.
-  if (is_control_panel_disconnected(logger)) {
-    logger.warn(
-        "Control panel appears disconnected (address pins floating). Disabling local control.");
-    message_router.set_local_control_mode(drum::LocalControlMode::OFF);
-  } else {
-    logger.info("Control panel detected. Local control enabled.");
-  }
 
   pizza_display.init();
   pizza_controls.init();

@@ -81,8 +81,7 @@ void handle_sysex(const sysex::Chunk &chunk) {
   };
 
   assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
-  auto result =
-      sysex_protocol_ptr->template handle_chunk<decltype(sender)>(chunk, sender);
+  auto result = sysex_protocol_ptr->template handle_chunk<decltype(sender)>(chunk, sender);
 
   switch (result) {
   case sysex::Protocol<StandardFileOps>::Result::FileWritten:

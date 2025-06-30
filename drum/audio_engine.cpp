@@ -22,18 +22,21 @@ float map_value_pitch_fast(float normalized_value) {
 }
 
 float map_value_filter_fast(float normalized_value) {
-  // const float threshold = 0.5f;
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float inverted_normalized_value = 1.0f - normalized_value;
-  // const float min_freq = 400.0f;
-  // const float max_freq = 20000.0f;
 
-  if (inverted_normalized_value > 0.8f) {
-    return 20000.0f;
-  } else if (inverted_normalized_value > 0.5f) {
-    return 800.0f;
+  const float breakpoint_input = 0.5f;
+  const float min_freq = 400.0f;
+  const float breakpoint_freq = 800.0f;
+  const float max_freq = 20000.0f;
+
+  if (normalized_value <= breakpoint_input) {
+    // Scale from [0.0, 0.5] to [400, 800]
+    const float t = normalized_value / breakpoint_input;
+    return std::lerp(min_freq, breakpoint_freq, t);
   } else {
-    return 400.0f;
+    // Scale from (0.5, 1.0] to (800, 20000]
+    const float t = (normalized_value - breakpoint_input) / (1.0f - breakpoint_input);
+    return std::lerp(breakpoint_freq, max_freq, t);
   }
 }
 

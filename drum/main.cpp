@@ -84,6 +84,7 @@ int main() {
   musin::usb::init(true); // Wait for serial connection in debug builds
 #else
   musin::usb::init(false); // Do not wait in release builds
+  watchdog_enable(8192, false);
 #endif
 
   if (!musin::filesystem::init(false)) {

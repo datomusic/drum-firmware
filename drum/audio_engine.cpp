@@ -22,7 +22,7 @@ float map_value_pitch_fast(float normalized_value) {
 }
 
 float map_value_filter_fast(float normalized_value) {
-  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
+  normalized_value = (1.0f - std::clamp(normalized_value, 0.0f, 1.0f));
 
   const float breakpoint_input = 0.5f;
   const float min_freq = 400.0f;

@@ -1,5 +1,5 @@
 #!/bin/sh
-if cmake -B build -DPICO_COPY_TO_RAM=ON -DENABLE_VERBOSE_LOGGING=ON -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel 16; then
+if cmake -B build -DPICO_COPY_TO_RAM=ON -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel 16; then
   # Find the generated .uf2 file (the name is now versioned)
   UF2_FILE=$(find build -name "*.uf2" -print -quit)
 

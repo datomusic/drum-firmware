@@ -27,11 +27,10 @@ template <typename T> struct Protocol;
 // Function declarations (prototypes) for functions defined in midi.cpp
 /**
  * @brief Initialize the MIDI system and callbacks.
- * @param message_router Reference to the MessageRouter for handling MIDI note events.
- * @param sequencer_controller Reference to the SequencerController for transport control.
  * @param midi_clock_processor Reference to the MidiClockProcessor for handling MIDI clock input.
  * @param sysex_protocol Reference to the SysEx protocol handler for file transfers.
  * @param file_received_cb Callback function to notify when a file has been received.
+ * @param logger Reference to the system logger.
  */
 void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
                sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)(),

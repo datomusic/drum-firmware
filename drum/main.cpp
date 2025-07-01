@@ -27,6 +27,7 @@ extern "C" {
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
+#include "events.h"
 #include "message_router.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
@@ -38,6 +39,28 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
 #endif
+
+namespace {
+struct SysExStateObserver : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
+  drum::MessageRouter &router;
+  std::optional<drum::LocalControlMode> previous_mode;
+
+  explicit SysExStateObserver(drum::MessageRouter &r) : router(r), previous_mode(std::nullopt) {
+  }
+
+  void notification(const drum::Events::SysExTransferStateChangeEvent &event) override {
+    if (event.is_active) {
+      previous_mode = router.get_local_control_mode();
+      router.set_local_control_mode(drum::LocalControlMode::OFF);
+    } else {
+      if (previous_mode.has_value()) {
+        router.set_local_control_mode(previous_mode.value());
+        previous_mode.reset();
+      }
+    }
+  }
+};
+} // namespace
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
@@ -119,6 +142,11 @@ int main() {
   // Register MessageRouter and PizzaDisplay as observers of NoteEvents from SequencerController
   sequencer_controller.add_observer(message_router);
   sequencer_controller.add_observer(pizza_display);
+
+  // Register observers for SysEx state changes
+  SysExStateObserver sysex_state_observer(message_router);
+  sysex_file_handler.add_observer(sysex_state_observer);
+  sysex_file_handler.add_observer(sequencer_controller);
 
   // Register PizzaDisplay and AudioEngine as observers of NoteEvents from MessageRouter
   message_router.add_observer(pizza_display);

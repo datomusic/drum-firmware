@@ -32,6 +32,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
 template <size_t NumTracks, size_t NumSteps>
 class SequencerController
     : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::sequencer_controller::MAX_NOTE_EVENT_OBSERVERS> {
 public:
@@ -56,6 +57,12 @@ public:
    * @param event The received tempo event.
    */
   void notification(musin::timing::TempoEvent event) override;
+
+  /**
+   * @brief Notification handler for SysEx transfer state changes.
+   * @param event The event indicating the transfer state.
+   */
+  void notification(const drum::Events::SysExTransferStateChangeEvent &event) override;
 
   /**
    * @brief Triggers a note on event directly.

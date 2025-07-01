@@ -5,11 +5,15 @@
 #include "drum/configuration_manager.h"
 #include "drum/sample_repository.h"
 #include "drum/sysex/protocol.h"
+#include "etl/observable.h"
 #include "musin/hal/logger.h"
+
+#include "events.h"
 
 namespace drum {
 
-class SysExFileHandler {
+class SysExFileHandler
+    : public etl::observable<etl::observer<drum::Events::SysExTransferStateChangeEvent>, 2> {
 public:
   SysExFileHandler(ConfigurationManager &config_manager, SampleRepository &sample_repository,
                    musin::Logger &logger);
@@ -27,6 +31,7 @@ private:
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;
   bool new_file_received_ = false;
+  bool was_busy_ = false;
 };
 
 } // namespace drum

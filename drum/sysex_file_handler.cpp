@@ -1,4 +1,5 @@
 #include "drum/sysex_file_handler.h"
+#include "events.h"
 
 namespace drum {
 
@@ -9,9 +10,18 @@ SysExFileHandler::SysExFileHandler(ConfigurationManager &config_manager,
 }
 
 void SysExFileHandler::update() {
-  if (protocol_.busy()) {
-    // The protocol is actively receiving a file.
-    // We could add visual feedback here, e.g., pulse a specific LED.
+  bool is_busy = protocol_.busy();
+  if (is_busy != was_busy_) {
+    if (is_busy) {
+      logger_.info("SysEx file transfer started.");
+      drum::Events::SysExTransferStateChangeEvent event{.is_active = true};
+      this->notify_observers(event);
+    } else {
+      logger_.info("SysEx file transfer finished.");
+      drum::Events::SysExTransferStateChangeEvent event{.is_active = false};
+      this->notify_observers(event);
+    }
+    was_busy_ = is_busy;
   }
 
   if (new_file_received_) {

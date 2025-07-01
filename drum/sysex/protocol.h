@@ -218,8 +218,7 @@ private:
 
   template <typename Sender, typename ValueIt>
   constexpr Result handle_packet(const uint16_t tag, ValueIt value_iterator,
-                                 const ValueIt values_end, Sender send_reply,
-                                 absolute_time_t now) {
+                                 const ValueIt values_end, Sender send_reply, absolute_time_t now) {
     etl::array<uint8_t, FileOperations::BlockSize> byte_array;
     auto byte_iterator = byte_array.begin();
     size_t byte_count = 0;

@@ -11,6 +11,7 @@
 
 namespace drum {
 
+class NoteEventQueue;
 // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 
@@ -63,10 +64,12 @@ public:
    * @brief Constructor.
    * @param audio_engine Reference to the audio engine instance.
    * @param sequencer_controller Reference to the sequencer controller instance.
+   * @param note_event_queue Reference to the note event queue.
    */
   explicit MessageRouter(
       AudioEngine &audio_engine,
-      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller);
+      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+      NoteEventQueue &note_event_queue);
 
   // Delete copy and move operations
   MessageRouter(const MessageRouter &) = delete;
@@ -150,6 +153,7 @@ public:
   void handle_incoming_midi_cc(uint8_t controller, uint8_t value);
 
 private:
+  NoteEventQueue &_note_event_queue;
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;

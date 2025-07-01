@@ -12,9 +12,10 @@ namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    musin::timing::TempoHandler &tempo_handler_ref)
+    musin::timing::TempoHandler &tempo_handler_ref, NoteEventQueue &note_event_queue)
     : /* sequencer_ is default-initialized */ current_step_counter{0}, last_played_note_per_track{},
-      _just_played_step_per_track{}, tempo_source(tempo_handler_ref), _running(false),
+      _just_played_step_per_track{}, note_event_queue_(note_event_queue),
+      tempo_source(tempo_handler_ref), _running(false),
       _step_is_due{false}, swing_percent_(50), swing_delays_odd_steps_(false),
       high_res_tick_counter_{0}, next_trigger_tick_target_{0}, random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
@@ -79,7 +80,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_off_event{.track_index = track_index_u8,
                                            .note = last_played_note_per_track[track_idx].value(),
                                            .velocity = 0};
-    NoteEventQueue::push(note_off_event);
+    note_event_queue_.push(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
@@ -104,7 +105,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
                                           .velocity = step.velocity.value()};
-    NoteEventQueue::push(note_on_event);
+    note_event_queue_.push(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
   }
 }
@@ -179,7 +180,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      NoteEventQueue::push(note_off_event);
+      note_event_queue_.push(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -225,7 +226,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      NoteEventQueue::push(note_off_event);
+      note_event_queue_.push(note_off_event);
     }
   }
   for (size_t i = 0; i < NumTracks; ++i) {
@@ -398,13 +399,13 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_on(uint8_t track_ind
                                              .note =
                                                  last_played_note_per_track[track_index].value(),
                                              .velocity = 0};
-      NoteEventQueue::push(note_off_event);
+      note_event_queue_.push(note_off_event);
     }
   }
 
   drum::Events::NoteEvent note_on_event{
       .track_index = track_index, .note = note, .velocity = velocity};
-  NoteEventQueue::push(note_on_event);
+  note_event_queue_.push(note_on_event);
   last_played_note_per_track[track_index] = note;
 }
 
@@ -414,7 +415,7 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_off(uint8_t track_in
   if (last_played_note_per_track[track_index].has_value() &&
       last_played_note_per_track[track_index].value() == note) {
     drum::Events::NoteEvent note_off_event{.track_index = track_index, .note = note, .velocity = 0};
-    NoteEventQueue::push(note_off_event);
+    note_event_queue_.push(note_off_event);
     last_played_note_per_track[track_index] = std::nullopt;
   }
 }

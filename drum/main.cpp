@@ -42,6 +42,7 @@ static musin::NullLogger logger;
 #endif
 
 // Model
+static drum::NoteEventQueue note_event_queue;
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static drum::SysExFileHandler sysex_file_handler(config_manager, sample_repository, logger);
@@ -53,9 +54,9 @@ static musin::timing::TempoHandler
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
-    sequencer_controller(tempo_handler);
+    sequencer_controller(tempo_handler, note_event_queue);
 
-static drum::MessageRouter message_router(audio_engine, sequencer_controller);
+static drum::MessageRouter message_router(audio_engine, sequencer_controller, note_event_queue);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
@@ -106,7 +107,6 @@ int main() {
   }
 
   midi_init(midi_clock_processor, sysex_file_handler, logger);
-  drum::NoteEventQueue::init();
 
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);

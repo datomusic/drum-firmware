@@ -19,6 +19,7 @@
 
 namespace drum {
 
+class NoteEventQueue;
 // Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
@@ -39,10 +40,11 @@ public:
 
   /**
    * @brief Constructor.
-   * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
-   * @param message_router_ref A reference to the MessageRouter instance.
+   * @param tempo_handler_ref A reference to the tempo handler.
+   * @param note_event_queue A reference to the queue for note events.
    */
-  SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
+  SequencerController(musin::timing::TempoHandler &tempo_handler_ref,
+                      NoteEventQueue &note_event_queue);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -208,6 +210,7 @@ private:
   std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
+  NoteEventQueue &note_event_queue_;
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;

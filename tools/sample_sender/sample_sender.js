@@ -81,6 +81,8 @@ if (!midi_ports) {
 
 const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
 
+let transferInProgress = false;
+
 // --- SysEx Configuration ---
 const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
 const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
@@ -301,6 +303,19 @@ if (!command) {
   process.exit(1);
 }
 
+process.on('SIGINT', () => {
+  if (transferInProgress) {
+    console.log('\n\nInterrupted during file transfer. Sending end command to device...');
+    // Directly send the end transfer command without waiting for an ACK.
+    sendMessage([END_FILE_TRANSFER]);
+  }
+  // The finally block in main will not run, so we must clean up here.
+  console.log('Closing MIDI ports and exiting.');
+  activeMidiOutput.closePort();
+  activeMidiInput.closePort();
+  process.exit(0);
+});
+
 async function main() {
   try {
     await get_firmware_version();
@@ -319,11 +334,13 @@ async function main() {
         process.exit(1);
       }
 
+      transferInProgress = true;
       const startTime = Date.now();
       await begin_file_transfer(source_path, sample_filename);
       const data = fs.readFileSync(source_path);
       await send_file_content(data);
       await end_file_transfer();
+      transferInProgress = false;
       const duration = Date.now() - startTime;
       console.log(`Successfully transferred file in ${duration}ms.`);
     } else {

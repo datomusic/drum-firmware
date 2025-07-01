@@ -8,11 +8,10 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
-#include "drum/applications/rompler/standard_file_ops.h"
 #include "drum/configuration_manager.h"
+#include "drum/sysex_file_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
-#include "sysex/protocol.h"
 
 extern "C" {
 #include "pico/stdio.h"
@@ -28,6 +27,7 @@ extern "C" {
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
+#include "events.h"
 #include "message_router.h"
 #include "midi_functions.h"
 #include "pizza_controls.h"
@@ -35,18 +35,15 @@ extern "C" {
 
 #ifdef VERBOSE
 static musin::PicoLogger logger(musin::LogLevel::DEBUG);
+static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
 #endif
 
-// SysEx File Transfer
-static StandardFileOps file_ops(logger);
-static sysex::Protocol<StandardFileOps> syx_protocol(file_ops, logger);
-static bool new_file_received = false;
-
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
+static drum::SysExFileHandler sysex_file_handler(config_manager, sample_repository, logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
@@ -54,9 +51,7 @@ static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
-
-// SequencerController needs to be declared before MessageRouter if MessageRouter depends on it.
-drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
 static drum::MessageRouter message_router(audio_engine, sequencer_controller);
@@ -66,16 +61,9 @@ static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, log
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
-                                          message_router);
+                                          message_router, logger);
 
-constexpr std::uint32_t SYNC_OUT_GPIO_PIN = 3;
-static musin::timing::SyncOut sync_out(SYNC_OUT_GPIO_PIN, internal_clock);
-
-static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
-
-void on_file_received_callback() {
-  new_file_received = true;
-}
+static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN, internal_clock);
 
 int main() {
   stdio_usb_init();
@@ -84,6 +72,7 @@ int main() {
   musin::usb::init(true); // Wait for serial connection in debug builds
 #else
   musin::usb::init(false); // Do not wait in release builds
+  watchdog_enable(4000, false);
 #endif
 
   if (!musin::filesystem::init(false)) {
@@ -115,22 +104,10 @@ int main() {
     // If config fails to load, sample_repository will just be empty.
   }
 
-  midi_init(midi_clock_processor, syx_protocol, on_file_received_callback, logger);
+  midi_init(midi_clock_processor, sysex_file_handler, logger);
 
-  if (!audio_engine.init()) {
-    // Potentially halt or enter a safe state
-    panic("Failed to initialize audio engine\n");
-  }
+  audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
-
-  // Check if the control panel is connected by checking for floating MUX address pins.
-  if (is_control_panel_disconnected(logger)) {
-    logger.warn(
-        "Control panel appears disconnected (address pins floating). Disabling local control.");
-    message_router.set_local_control_mode(drum::LocalControlMode::OFF);
-  } else {
-    logger.info("Control panel detected. Local control enabled.");
-  }
 
   pizza_display.init();
   pizza_controls.init();
@@ -144,52 +121,39 @@ int main() {
   sequencer_controller.add_observer(message_router);
   sequencer_controller.add_observer(pizza_display);
 
+  // Register observers for SysEx state changes
+  sysex_file_handler.add_observer(message_router);
+  sysex_file_handler.add_observer(pizza_display);
+  sysex_file_handler.add_observer(sequencer_controller);
+
   // Register PizzaDisplay and AudioEngine as observers of NoteEvents from MessageRouter
   message_router.add_observer(pizza_display);
   message_router.add_observer(audio_engine);
 
   sync_out.enable();
 
-  // Initial clock source (INTERNAL by default) is started by TempoHandler's constructor.
-
-  // TODO: Add logic to register TempoHandler with other clocks (e.g. ExternalSyncClock)
-  //       and update TempoHandler to manage them if necessary.
-  // TODO: The TempoHandler::set_clock_source method now manages starting/stopping
-  //       the internal clock. Similar logic would be needed for other clock types
-  //       if they require explicit start/stop from TempoHandler.
-
   while (true) {
-    // --- SysEx State Check ---
-    if (syx_protocol.busy()) {
-      // The protocol is actively receiving a file.
-      // We could add visual feedback here, e.g., pulse a specific LED.
-    } else if (new_file_received) {
-      logger.info("Main loop: New file received, reloading configuration.");
-      if (config_manager.load()) {
-        sample_repository.load_from_config(config_manager.get_sample_configs());
-      }
-      new_file_received = false;
-    }
+    sysex_file_handler.update(get_absolute_time());
 
-    if (message_router.get_local_control_mode() == drum::LocalControlMode::ON) {
-      pizza_controls.update();
-    }
+    pizza_controls.update();
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());
 
     musin::usb::background_update();
-    midi_read();
-    process_midi_input();
+    midi_process_input();
     tempo_handler.update();
     musin::midi::process_midi_output_queue();
-
-    loop_timer.record_iteration_end();
 
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();
+#else
+    loop_timer.record_iteration_end();
 #endif
+
+    // yield some time
+    sleep_us(10);
   }
 
   return 0;

@@ -19,14 +19,23 @@ using musin::ui::Drumpad;
 PizzaControls::PizzaControls(drum::PizzaDisplay &display_ref,
                              musin::timing::TempoHandler &tempo_handler_ref,
                              drum::DefaultSequencerController &sequencer_controller_ref,
-                             drum::MessageRouter &message_router_ref)
+                             drum::MessageRouter &message_router_ref, musin::Logger &logger_ref)
     : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref), _message_router_ref(message_router_ref),
-      keypad_component(this), drumpad_component(this), analog_component(this),
-      playbutton_component(this) {
+      _logger_ref(logger_ref), keypad_component(this), drumpad_component(this),
+      analog_component(this), playbutton_component(this) {
 }
 
 void PizzaControls::init() {
+  // Check if the control panel is connected by checking for floating MUX address pins.
+  if (is_control_panel_disconnected(_logger_ref)) {
+    _logger_ref.warn(
+        "Control panel appears disconnected (address pins floating). Disabling local control.");
+    _message_router_ref.set_local_control_mode(drum::LocalControlMode::OFF);
+  } else {
+    _logger_ref.info("Control panel detected. Local control enabled.");
+  }
+
   keypad_component.init();
   drumpad_component.init();
   analog_component.init();
@@ -34,10 +43,12 @@ void PizzaControls::init() {
 }
 
 void PizzaControls::update() {
-  keypad_component.update();
-  drumpad_component.update();
-  analog_component.update();
-  playbutton_component.update(); // Updates the *input* state of the button
+  if (_message_router_ref.get_local_control_mode() == drum::LocalControlMode::ON) {
+    keypad_component.update();
+    drumpad_component.update();
+    analog_component.update();
+    playbutton_component.update(); // Updates the *input* state of the button
+  }
 }
 
 bool PizzaControls::is_running() const {

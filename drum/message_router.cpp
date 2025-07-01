@@ -7,6 +7,8 @@
 #include <cmath>                  // For std::round
 #include <cstdint>                // For uint8_t
 
+namespace drum {
+
 namespace { // Anonymous namespace for internal linkage
 
 void send_midi_cc(const uint8_t channel, const uint8_t cc_number, const uint8_t value) {
@@ -19,9 +21,41 @@ void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint
   MIDI::sendNoteOn(note_number, velocity, channel);
 }
 
-} // namespace
+struct ParameterMapping {
+  Parameter param_id;
+  std::optional<uint8_t> track_index;
+};
 
-namespace drum {
+std::optional<ParameterMapping> map_midi_cc_to_parameter(uint8_t cc_number) {
+  // Global Parameters
+  switch (cc_number) {
+  case 7:
+    return {{Parameter::VOLUME, std::nullopt}};
+  case 9:
+    return {{Parameter::SWING, std::nullopt}};
+  case 12:
+    return {{Parameter::CRUSH_EFFECT, std::nullopt}};
+  case 15:
+    return {{Parameter::TEMPO, std::nullopt}};
+  case 16:
+    return {{Parameter::RANDOM_EFFECT, std::nullopt}};
+  case 17:
+    return {{Parameter::REPEAT_EFFECT, std::nullopt}};
+  case 74:
+    return {{Parameter::FILTER_FREQUENCY, std::nullopt}};
+  case 75:
+    return {{Parameter::FILTER_RESONANCE, std::nullopt}};
+  }
+
+  // Per-track Parameters
+  if (cc_number >= 21 && cc_number <= 24) {
+    return {{Parameter::PITCH, static_cast<uint8_t>(cc_number - 21)}};
+  }
+
+  return std::nullopt;
+}
+
+} // namespace
 
 // --- MIDI CC Mapping ---
 constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uint8_t> track_index) {
@@ -71,8 +105,8 @@ MessageRouter::MessageRouter(
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller)
     : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
-      _output_mode(OutputMode::BOTH),
-      _local_control_mode(LocalControlMode::ON) { // Default local control to ON
+      _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
+      _previous_local_control_mode(std::nullopt) { // Default local control to ON
   // TODO: Initialize _track_sample_map if added
 }
 
@@ -189,6 +223,18 @@ void MessageRouter::notification(drum::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
 }
 
+void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {
+  if (event.is_active) {
+    _previous_local_control_mode = get_local_control_mode();
+    set_local_control_mode(LocalControlMode::OFF);
+  } else {
+    if (_previous_local_control_mode.has_value()) {
+      set_local_control_mode(_previous_local_control_mode.value());
+      _previous_local_control_mode.reset();
+    }
+  }
+}
+
 void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
   for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size(); ++track_idx) {
     if (track_idx >= drum::config::NUM_TRACKS)
@@ -214,6 +260,16 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
       }
       // Assuming a note belongs to only one track's list for this purpose, so we can stop.
       return;
+    }
+  }
+}
+
+void MessageRouter::handle_incoming_midi_cc(uint8_t controller, uint8_t value) {
+  if (_local_control_mode == LocalControlMode::OFF) {
+    auto mapping = map_midi_cc_to_parameter(controller);
+    if (mapping.has_value()) {
+      float normalized_value = static_cast<float>(value) / 127.0f;
+      set_parameter(mapping->param_id, normalized_value, mapping->track_index);
     }
   }
 }

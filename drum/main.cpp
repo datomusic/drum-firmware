@@ -2,6 +2,7 @@
 #include "musin/hal/logger.h"
 #include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_output_queue.h"
+#include "drum/note_event_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_out.h"
@@ -105,6 +106,7 @@ int main() {
   }
 
   midi_init(midi_clock_processor, sysex_file_handler, logger);
+  drum::NoteEventQueue::init();
 
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
@@ -117,9 +119,8 @@ int main() {
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // Register MessageRouter and PizzaDisplay as observers of NoteEvents from SequencerController
-  sequencer_controller.add_observer(message_router);
-  sequencer_controller.add_observer(pizza_display);
+  // NoteEvents are now sent from SequencerController to a queue, and processed by MessageRouter.
+  // The direct observer link is removed to break the synchronous chain.
 
   // Register observers for SysEx state changes
   sysex_file_handler.add_observer(message_router);
@@ -136,6 +137,8 @@ int main() {
     sysex_file_handler.update(get_absolute_time());
 
     pizza_controls.update();
+    sequencer_controller.update(); // Checks if a step is due and queues NoteEvents
+    message_router.update();       // Drains NoteEvent queue, sending to observers and MIDI
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());

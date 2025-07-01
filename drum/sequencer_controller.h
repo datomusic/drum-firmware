@@ -31,9 +31,7 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
 template <size_t NumTracks, size_t NumSteps>
 class SequencerController : public etl::observer<musin::timing::TempoEvent>,
-                            public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
-                            public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                                   drum::config::MAX_NOTE_EVENT_OBSERVERS> {
+                            public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
 public:
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
@@ -101,6 +99,12 @@ public:
    * Does not reset the step index.
    */
   void start();
+
+  /**
+   * @brief Checks for and processes a due sequencer step.
+   * This should be called frequently from the main loop.
+   */
+  void update();
 
   /**
    * @brief Stop the sequencer by disconnecting from the tempo source.
@@ -205,6 +209,7 @@ private:
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
+  bool _step_is_due = false;
 
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;

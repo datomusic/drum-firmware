@@ -1,5 +1,6 @@
 #include "sequencer_controller.h"
 #include "config.h"
+#include "drum/note_event_queue.h"
 #include "events.h"
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants
@@ -14,7 +15,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref)
     : /* sequencer_ is default-initialized */ current_step_counter(0), last_played_note_per_track{},
       _just_played_step_per_track{}, tempo_source(tempo_handler_ref), _running(false),
-      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
+      _step_is_due(false), swing_percent_(50), swing_delays_odd_steps_(false),
+      high_res_tick_counter_(0),
       next_trigger_tick_target_(0), random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
       random_track_offsets_{}, _active_note_per_track{}, _pad_pressed_state{},
@@ -78,7 +80,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_off_event{.track_index = track_index_u8,
                                            .note = last_played_note_per_track[track_idx].value(),
                                            .velocity = 0};
-    this->notify_observers(note_off_event);
+    NoteEventQueue::push(note_off_event);
     last_played_note_per_track[track_idx] = std::nullopt;
   }
 
@@ -103,7 +105,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(size_t track_i
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
                                           .velocity = step.velocity.value()};
-    this->notify_observers(note_on_event);
+    NoteEventQueue::push(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
   }
 }
@@ -178,7 +180,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      this->notify_observers(note_off_event);
+      NoteEventQueue::push(note_off_event);
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
@@ -224,7 +226,7 @@ template <size_t NumTracks, size_t NumSteps> void SequencerController<NumTracks,
       drum::Events::NoteEvent note_off_event{.track_index = static_cast<uint8_t>(track_idx),
                                              .note = last_played_note_per_track[track_idx].value(),
                                              .velocity = 0};
-      this->notify_observers(note_off_event);
+      NoteEventQueue::push(note_off_event);
     }
   }
   for (size_t i = 0; i < NumTracks; ++i) {
@@ -260,38 +262,9 @@ void SequencerController<NumTracks, NumSteps>::notification(
   }
 
   if (high_res_tick_counter_ >= next_trigger_tick_target_) {
-    _just_played_step_per_track.fill(std::nullopt);
-
-    size_t base_step_index = calculate_base_step_index();
-
-    size_t num_tracks = sequencer_.get_num_tracks();
-    size_t num_steps = sequencer_.get_num_steps();
-
-    for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-      size_t step_index_to_play_for_track = base_step_index;
-
-      if (random_active_ && num_steps > 0) {
-        int max_offset = num_steps / 2;
-        random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
-        step_index_to_play_for_track =
-            (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
-      }
-      _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
-      process_track_step(track_idx, step_index_to_play_for_track);
-
-      // Handle the first retrigger note for the main step event
-      if (_retrigger_mode_per_track[track_idx] > 0) {
-        uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
-        trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
-                        drum::config::drumpad::RETRIGGER_VELOCITY);
-      }
-      // Reset retrigger progress for this track as a new main step has occurred
-      _retrigger_progress_ticks_per_track[track_idx] = 0;
-    }
-
+    _step_is_due = true;
     uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
     next_trigger_tick_target_ += interval_to_next_trigger;
-
     current_step_counter++;
   }
 }
@@ -426,13 +399,13 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_on(uint8_t track_ind
                                              .note =
                                                  last_played_note_per_track[track_index].value(),
                                              .velocity = 0};
-      this->notify_observers(note_off_event);
+      NoteEventQueue::push(note_off_event);
     }
   }
 
   drum::Events::NoteEvent note_on_event{
       .track_index = track_index, .note = note, .velocity = velocity};
-  this->notify_observers(note_on_event);
+  NoteEventQueue::push(note_on_event);
   last_played_note_per_track[track_index] = note;
 }
 
@@ -442,7 +415,7 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_off(uint8_t track_in
   if (last_played_note_per_track[track_index].has_value() &&
       last_played_note_per_track[track_index].value() == note) {
     drum::Events::NoteEvent note_off_event{.track_index = track_index, .note = note, .velocity = 0};
-    this->notify_observers(note_off_event);
+    NoteEventQueue::push(note_off_event);
     last_played_note_per_track[track_index] = std::nullopt;
   }
 }
@@ -507,6 +480,43 @@ void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uin
   if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = 0;
     _retrigger_progress_ticks_per_track[track_index] = 0;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::update() {
+  if (!_step_is_due) {
+    return;
+  }
+  _step_is_due = false;
+
+  _just_played_step_per_track.fill(std::nullopt);
+
+  size_t base_step_index = calculate_base_step_index();
+
+  size_t num_tracks = sequencer_.get_num_tracks();
+  size_t num_steps = sequencer_.get_num_steps();
+
+  for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+    size_t step_index_to_play_for_track = base_step_index;
+
+    if (random_active_ && num_steps > 0) {
+      int max_offset = num_steps / 2;
+      random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
+      step_index_to_play_for_track =
+          (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
+    }
+    _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
+    process_track_step(track_idx, step_index_to_play_for_track);
+
+    // Handle the first retrigger note for the main step event
+    if (_retrigger_mode_per_track[track_idx] > 0) {
+      uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
+      trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
+                      drum::config::drumpad::RETRIGGER_VELOCITY);
+    }
+    // Reset retrigger progress for this track as a new main step has occurred
+    _retrigger_progress_ticks_per_track[track_idx] = 0;
   }
 }
 

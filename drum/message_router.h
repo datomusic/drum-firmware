@@ -55,8 +55,7 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
-                      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+class MessageRouter : public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
                       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                                              drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
@@ -119,10 +118,10 @@ public:
                      std::optional<uint8_t> track_index = std::nullopt);
 
   /**
-   * @brief Handles incoming NoteEvents.
-   * @param event The NoteEvent received.
+   * @brief Processes events from the note event queue.
+   * This should be called from the main loop.
    */
-  void notification(drum::Events::NoteEvent event);
+  void update();
 
   /**
    * @brief Notification handler for SysEx transfer state changes.

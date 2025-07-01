@@ -36,6 +36,9 @@ void PizzaDisplay::notification(musin::timing::TempoEvent) {
 
 void PizzaDisplay::notification(drum::Events::SysExTransferStateChangeEvent event) {
   _sysex_transfer_active = event.is_active;
+  if (event.is_active) {
+    _sequencer_controller_ref.stop();
+  }
 }
 
 void PizzaDisplay::draw_base_elements() {

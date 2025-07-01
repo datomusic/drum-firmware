@@ -123,7 +123,6 @@ int main() {
 
   // Register observers for SysEx state changes
   sysex_file_handler.add_observer(message_router);
-  sysex_file_handler.add_observer(sequencer_controller);
   sysex_file_handler.add_observer(pizza_display);
 
   // Register PizzaDisplay and AudioEngine as observers of NoteEvents from MessageRouter

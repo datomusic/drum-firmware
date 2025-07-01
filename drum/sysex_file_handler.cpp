@@ -9,7 +9,8 @@ SysExFileHandler::SysExFileHandler(ConfigurationManager &config_manager,
       file_ops_(logger), protocol_(file_ops_, logger) {
 }
 
-void SysExFileHandler::update() {
+void SysExFileHandler::update(absolute_time_t now) {
+  protocol_.check_timeout(now);
   bool is_busy = protocol_.busy();
   if (is_busy != was_busy_) {
     if (is_busy) {

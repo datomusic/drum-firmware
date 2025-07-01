@@ -8,6 +8,10 @@
 #include "etl/observer.h"
 #include "musin/hal/logger.h"
 
+extern "C" {
+#include "pico/time.h"
+}
+
 #include "events.h"
 
 namespace drum {
@@ -18,7 +22,7 @@ public:
   SysExFileHandler(ConfigurationManager &config_manager, SampleRepository &sample_repository,
                    musin::Logger &logger);
 
-  void update();
+  void update(absolute_time_t now);
 
   sysex::Protocol<StandardFileOps> &get_protocol();
   void on_file_received();

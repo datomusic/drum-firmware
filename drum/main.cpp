@@ -132,7 +132,7 @@ int main() {
   sync_out.enable();
 
   while (true) {
-    sysex_file_handler.update();
+    sysex_file_handler.update(get_absolute_time());
 
     pizza_controls.update();
     audio_engine.process();

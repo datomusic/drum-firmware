@@ -172,7 +172,6 @@ public:
     // Smoothing for the filter knob
     float filter_target_value_{1.0f};                    // Target value from the physical knob
     float filter_current_value_{1.0f};                   // Smoothed value sent to the engine
-    static constexpr float FILTER_SMOOTHING_RATE = .2f; // Lower is slower, higher is faster
     absolute_time_t last_smoothing_time_ = nil_time;
   };
 

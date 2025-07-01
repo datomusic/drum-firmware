@@ -370,7 +370,7 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
     if (std::fabs(filter_current_value_ - filter_target_value_) > 0.001f) {
       // Calculate a dynamic smoothing factor `alpha` based on delta-time.
       // This ensures the smoothing feels consistent regardless of update rate.
-      float alpha = 1.0f - std::exp(-FILTER_SMOOTHING_RATE * dt_s);
+      float alpha = 1.0f - std::exp(-config::analog_controls::FILTER_SMOOTHING_RATE * dt_s);
       filter_current_value_ = std::lerp(filter_current_value_, filter_target_value_, alpha);
 
       // Send the smoothed value to the message router.

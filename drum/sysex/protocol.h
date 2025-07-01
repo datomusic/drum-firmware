@@ -146,7 +146,7 @@ template <typename FileOperations> struct Protocol {
 
   constexpr bool check_timeout(absolute_time_t now) {
     if (state == State::FileTransfer) {
-      if (absolute_time_diff_us(last_activity_time_, now) > TIMEOUT_US) {
+      if (absolute_time_diff_us(last_activity_time_, now) > static_cast<int64_t>(TIMEOUT_US)) {
         logger.warn("SysEx: File transfer timed out.");
         flush_write_buffer();
         opened_file.reset();

@@ -23,7 +23,8 @@ namespace drum {
 
 class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
                      public etl::observer<drum::Events::NoteEvent>,
-                     public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
+                     public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+                     public etl::observer<drum::Events::ParameterChangeEvent> {
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -106,6 +107,11 @@ public:
    * @brief Handles SysExTransferStateChangeEvent notifications to show transfer status.
    */
   void notification(drum::Events::SysExTransferStateChangeEvent event);
+
+  /**
+   * @brief Handles ParameterChangeEvent notifications to update visual effects.
+   */
+  void notification(drum::Events::ParameterChangeEvent event);
 
   // --- Drumpad Fade ---
   /**
@@ -208,6 +214,8 @@ private:
   uint32_t _last_tick_count_for_highlight = 0;
   bool _highlight_is_bright = true;
   bool _sysex_transfer_active = false;
+  float _filter_value = 0.0f;
+  float _crush_value = 0.0f;
 
   void _set_physical_drumpad_led(uint8_t pad_index, Color color);
   void update_track_override_colors();

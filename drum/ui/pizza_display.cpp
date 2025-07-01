@@ -12,6 +12,42 @@ namespace {
 constexpr uint8_t REDUCED_BRIGHTNESS = 100;
 constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
 
+Color apply_visual_effects(Color color, float filter_val, float crush_val) {
+  if (filter_val < 0.01f && crush_val < 0.01f) {
+    return color;
+  }
+
+  uint32_t c = static_cast<uint32_t>(color);
+  float r = (c >> 16) & 0xFF;
+  float g = (c >> 8) & 0xFF;
+  float b = c & 0xFF;
+
+  // Desaturation for filter
+  if (filter_val > 0.01f) {
+    // Using Rec. 709 luma coefficients for grayscale conversion
+    float gray = r * 0.2126f + g * 0.7152f + b * 0.0722f;
+    r = std::lerp(r, gray, filter_val);
+    g = std::lerp(g, gray, filter_val);
+    b = std::lerp(b, gray, filter_val);
+  }
+
+  // Saturation for crush. Applied to the (potentially desaturated) color.
+  if (crush_val > 0.01f) {
+    // Using Rec. 709 luma coefficients for grayscale conversion
+    float gray = r * 0.2126f + g * 0.7152f + b * 0.0722f;
+    // Lerp away from gray. The amount for lerp is (1 + saturation_amount)
+    r = std::lerp(gray, r, 1.0f + crush_val);
+    g = std::lerp(gray, g, 1.0f + crush_val);
+    b = std::lerp(gray, b, 1.0f + crush_val);
+  }
+
+  uint8_t final_r = static_cast<uint8_t>(std::clamp(r, 0.0f, 255.0f));
+  uint8_t final_g = static_cast<uint8_t>(std::clamp(g, 0.0f, 255.0f));
+  uint8_t final_b = static_cast<uint8_t>(std::clamp(b, 0.0f, 255.0f));
+
+  return Color((final_r << 16) | (final_g << 8) | final_b);
+}
+
 } // anonymous namespace
 
 PizzaDisplay::PizzaDisplay(
@@ -36,6 +72,20 @@ void PizzaDisplay::notification(musin::timing::TempoEvent) {
 
 void PizzaDisplay::notification(drum::Events::SysExTransferStateChangeEvent event) {
   _sysex_transfer_active = event.is_active;
+}
+
+void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {
+  switch (event.param_id) {
+  case drum::Parameter::FILTER_FREQUENCY:
+    _filter_value = event.value;
+    break;
+  case drum::Parameter::CRUSH_EFFECT:
+    _crush_value = event.value;
+    break;
+  default:
+    // Ignore other parameters
+    break;
+  }
 }
 
 void PizzaDisplay::draw_base_elements() {
@@ -84,6 +134,9 @@ void PizzaDisplay::draw_sequencer_state() {
           _track_override_colors[track_idx].has_value()) {
         final_color = _track_override_colors[track_idx].value();
       }
+
+      // Apply visual effects for filter and crush
+      final_color = apply_visual_effects(final_color, _filter_value, _crush_value);
 
       // Apply a pulsing highlight to the "cursor" step.
       // When running, this is the step that just played.

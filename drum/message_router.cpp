@@ -163,6 +163,10 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 
   value = std::clamp(value, 0.0f, 1.0f);
 
+  // Notify observers about the parameter change.
+  drum::Events::ParameterChangeEvent event{param_id, value, track_index};
+  this->notify_observers(event);
+
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
     if (cc_number > 0) {

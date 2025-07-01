@@ -126,8 +126,11 @@ int main() {
   sysex_file_handler.add_observer(pizza_display);
   sysex_file_handler.add_observer(sequencer_controller);
 
-  // Register PizzaDisplay and AudioEngine as observers of NoteEvents from MessageRouter
-  message_router.add_observer(pizza_display);
+  // Register observers for events from MessageRouter
+  message_router.add_observer(
+      static_cast<etl::observer<drum::Events::NoteEvent> &>(pizza_display));
+  message_router.add_observer(
+      static_cast<etl::observer<drum::Events::ParameterChangeEvent> &>(pizza_display));
   message_router.add_observer(audio_engine);
 
   sync_out.enable();

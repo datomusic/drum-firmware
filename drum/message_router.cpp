@@ -136,8 +136,21 @@ void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_
     send_midi_note(drum::config::FALLBACK_MIDI_CHANNEL, midi_note, velocity);
   }
 
-  // The audio is triggered by AudioEngine as an observer of this MessageRouter.
-  // This keeps the data flow consistent for all event sources (sequencer, MIDI-in, etc.).
+  if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
+      _local_control_mode == LocalControlMode::ON) {
+    const auto &defs = drum::config::global_note_definitions;
+    auto it = std::find_if(defs.begin(), defs.end(),
+                           [midi_note](const auto &def) { return def.midi_note_number == midi_note; });
+
+    if (it != defs.end()) {
+      uint32_t sample_id = std::distance(defs.begin(), it);
+      if (velocity > 0) {
+        _audio_engine.play_on_voice(track_index, sample_id, velocity);
+      } else {
+        _audio_engine.stop_voice(track_index);
+      }
+    }
+  }
 }
 
 void MessageRouter::set_parameter(Parameter param_id, float value,

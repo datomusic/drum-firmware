@@ -10,6 +10,7 @@ extern "C" {
 
 #include "config.h" // For drum::config::NUM_TRACKS
 #include "etl/delegate.h"
+#include "etl/variant.h"
 #include "musin/hal/logger.h"
 #include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
@@ -18,7 +19,6 @@ extern "C" {
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include <cassert>                             // For assert
 #include <optional>                            // For std::optional
-#include "etl/variant.h"
 
 struct MidiHandlers {
   etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_on;
@@ -111,13 +111,11 @@ void handle_sysex(const sysex::Chunk &chunk) {
 }
 
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::NoteOnData{channel, note, velocity});
+  musin::midi::enqueue_incoming_midi_message(musin::midi::NoteOnData{channel, note, velocity});
 }
 
 void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::NoteOffData{channel, note, velocity});
+  musin::midi::enqueue_incoming_midi_message(musin::midi::NoteOffData{channel, note, velocity});
 }
 
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
@@ -126,23 +124,19 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
 }
 
 void midi_clock_callback() {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::SystemRealtimeData{::midi::Clock});
+  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Clock});
 }
 
 void midi_start_callback() {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::SystemRealtimeData{::midi::Start});
+  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Start});
 }
 
 void midi_continue_callback() {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::SystemRealtimeData{::midi::Continue});
+  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Continue});
 }
 
 void midi_stop_callback() {
-  musin::midi::enqueue_incoming_midi_message(
-      musin::midi::SystemRealtimeData{::midi::Stop});
+  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Stop});
 }
 
 void midi_print_firmware_version() {
@@ -195,8 +189,7 @@ void midi_process_input() {
   musin::midi::IncomingMidiMessage message;
   while (musin::midi::dequeue_incoming_midi_message(message)) {
     // Gate all non-SysEx messages during a file transfer to prevent conflicts.
-    if (sysex_protocol_ptr->busy() &&
-        !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
+    if (sysex_protocol_ptr->busy() && !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
       continue;
     }
 

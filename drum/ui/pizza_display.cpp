@@ -34,8 +34,16 @@ void PizzaDisplay::notification(musin::timing::TempoEvent) {
   _clock_tick_counter++;
 }
 
+void PizzaDisplay::notification(drum::Events::SysExTransferStateChangeEvent event) {
+  _sysex_transfer_active = event.is_active;
+}
+
 void PizzaDisplay::draw_base_elements() {
-  if (_sequencer_controller_ref.is_running()) {
+  if (_sysex_transfer_active) {
+    // When a SysEx transfer is active, flash the play button green
+    Color pulse_color = _highlight_is_bright ? drum::PizzaDisplay::COLOR_GREEN : Color(0);
+    set_play_button_led(pulse_color);
+  } else if (_sequencer_controller_ref.is_running()) {
     set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
   } else {
     // When stopped, pulse the play button in sync with the step highlight
@@ -85,7 +93,7 @@ void PizzaDisplay::draw_sequencer_state() {
            step_idx == controller.get_last_played_step_for_track(track_idx).value()) ||
           (!is_running && step_idx == controller.get_current_step());
 
-      if (is_cursor_step) {
+      if (is_cursor_step && !_sysex_transfer_active) {
         final_color = apply_pulsing_highlight(final_color);
       }
 

@@ -24,8 +24,8 @@ Color apply_visual_effects(Color color, float filter_val, float crush_val) {
 
   // Desaturation and brightness reduction for filter
   if (filter_val > 0.01f) {
-    // Using Rec. 709 luma coefficients for grayscale conversion
-    float gray = r * 0.2126f + g * 0.7152f + b * 0.0722f;
+    // Fast approximation for grayscale conversion by averaging RGB components.
+    float gray = (r + g + b) / 3.0f;
     r = std::lerp(r, gray, filter_val);
     g = std::lerp(g, gray, filter_val);
     b = std::lerp(b, gray, filter_val);

@@ -9,6 +9,7 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/timing_constants.h"
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
@@ -202,20 +203,20 @@ private:
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
-
+    
   musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
-  uint32_t current_step_counter;
+  std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
-  bool _step_is_due = false;
-
+  std::atomic<bool> _step_is_due = false;
+    
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;
-  uint64_t high_res_tick_counter_ = 0;
-  uint64_t next_trigger_tick_target_ = 0;
+  std::atomic<uint64_t> high_res_tick_counter_ = 0;
+  std::atomic<uint64_t> next_trigger_tick_target_ = 0;
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;

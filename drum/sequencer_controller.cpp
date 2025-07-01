@@ -1,6 +1,5 @@
 #include "sequencer_controller.h"
 #include "config.h"
-#include "drum/note_event_queue.h"
 #include "events.h"
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants

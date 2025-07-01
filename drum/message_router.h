@@ -4,6 +4,7 @@
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
+#include "etl/queue.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
 #include <cstdint>
@@ -11,7 +12,6 @@
 
 namespace drum {
 
-class NoteEventQueue;
 // Forward declaration
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 
@@ -56,7 +56,8 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class MessageRouter : public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
+                      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
                       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                                              drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
@@ -64,12 +65,10 @@ public:
    * @brief Constructor.
    * @param audio_engine Reference to the audio engine instance.
    * @param sequencer_controller Reference to the sequencer controller instance.
-   * @param note_event_queue Reference to the note event queue.
    */
   explicit MessageRouter(
       AudioEngine &audio_engine,
-      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-      NoteEventQueue &note_event_queue);
+      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller);
 
   // Delete copy and move operations
   MessageRouter(const MessageRouter &) = delete;
@@ -127,6 +126,12 @@ public:
   void update();
 
   /**
+   * @brief Handles incoming NoteEvents.
+   * @param event The NoteEvent received.
+   */
+  void notification(drum::Events::NoteEvent event);
+
+  /**
    * @brief Notification handler for SysEx transfer state changes.
    * @param event The event indicating the transfer state.
    */
@@ -153,7 +158,7 @@ public:
   void handle_incoming_midi_cc(uint8_t controller, uint8_t value);
 
 private:
-  NoteEventQueue &_note_event_queue;
+  etl::queue<drum::Events::NoteEvent, 32> note_event_queue_;
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;

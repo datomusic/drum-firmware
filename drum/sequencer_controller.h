@@ -223,7 +223,7 @@ private:
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
+  etl::array<std::optional<uint64_t>, NumTracks> _retrigger_target_tick_per_track{};
 
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;

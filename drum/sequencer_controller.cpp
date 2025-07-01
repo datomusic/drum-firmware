@@ -18,7 +18,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       next_trigger_tick_target_(0), random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
       random_track_offsets_{}, _active_note_per_track{}, _pad_pressed_state{},
-      _retrigger_mode_per_track{}, _retrigger_progress_ticks_per_track{} {
+      _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx < config::track_note_ranges.size() &&
@@ -241,21 +241,17 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   high_res_tick_counter_++;
 
-  // Process per-tick retrigger logic (e.g., for double mode's mid-step note)
+  // Process per-tick retrigger logic for swing-aware double mode
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (_retrigger_mode_per_track[track_idx] > 0) {
-      _retrigger_progress_ticks_per_track[track_idx]++;
+    if (_retrigger_target_tick_per_track[track_idx].has_value() &&
+        high_res_tick_counter_ >= _retrigger_target_tick_per_track[track_idx].value()) {
 
-      if (_retrigger_mode_per_track[track_idx] == 2 && // Double mode
-          high_res_ticks_per_step_ >=
-              drum::config::main_controls::RETRIGGER_DIVISOR_FOR_DOUBLE_MODE &&
-          _retrigger_progress_ticks_per_track[track_idx] ==
-              (high_res_ticks_per_step_ /
-               drum::config::main_controls::RETRIGGER_DIVISOR_FOR_DOUBLE_MODE)) {
-        uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
-        trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
-                        drum::config::drumpad::RETRIGGER_VELOCITY);
-      }
+      uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
+      trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
+                      drum::config::drumpad::RETRIGGER_VELOCITY);
+
+      // Invalidate the target to prevent re-firing
+      _retrigger_target_tick_per_track[track_idx] = std::nullopt;
     }
   }
 
@@ -285,11 +281,30 @@ void SequencerController<NumTracks, NumSteps>::notification(
         trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
                         drum::config::drumpad::RETRIGGER_VELOCITY);
       }
-      // Reset retrigger progress for this track as a new main step has occurred
-      _retrigger_progress_ticks_per_track[track_idx] = 0;
     }
 
     uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
+
+    // Set up swing-aware retrigger targets for the step that is about to start
+    for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+      // Retriggering only applies to "double" mode
+      if (_retrigger_mode_per_track[track_idx] == 2) {
+        // A "long" or on-beat step is one whose duration is not shortened by swing.
+        // We only add a retrigger to these steps.
+        bool is_eligible_for_retrigger = interval_to_next_trigger >= high_res_ticks_per_step_;
+        if (is_eligible_for_retrigger) {
+          uint64_t retrigger_offset = interval_to_next_trigger / 2;
+          _retrigger_target_tick_per_track[track_idx] = high_res_tick_counter_ + retrigger_offset;
+        } else {
+          // It's a short (swung) step, so no retrigger. Clear any previous target.
+          _retrigger_target_tick_per_track[track_idx] = std::nullopt;
+        }
+      } else {
+        // Mode is not double, so ensure no target is set
+        _retrigger_target_tick_per_track[track_idx] = std::nullopt;
+      }
+    }
+
     next_trigger_tick_target_ += interval_to_next_trigger;
 
     current_step_counter++;
@@ -498,7 +513,7 @@ void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(uint8
                                                                            uint8_t mode) {
   if (track_index < NumTracks && (mode == 1 || mode == 2)) {
     _retrigger_mode_per_track[track_index] = mode;
-    _retrigger_progress_ticks_per_track[track_index] = 0;
+    _retrigger_target_tick_per_track[track_index] = std::nullopt;
   }
 }
 
@@ -506,7 +521,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uint8_t track_index) {
   if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = 0;
-    _retrigger_progress_ticks_per_track[track_index] = 0;
+    _retrigger_target_tick_per_track[track_index] = std::nullopt;
   }
 }
 

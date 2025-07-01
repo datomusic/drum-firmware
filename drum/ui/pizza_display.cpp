@@ -22,13 +22,20 @@ Color apply_visual_effects(Color color, float filter_val, float crush_val) {
   float g = (c >> 8) & 0xFF;
   float b = c & 0xFF;
 
-  // Desaturation for filter
+  // Desaturation and brightness reduction for filter
   if (filter_val > 0.01f) {
     // Using Rec. 709 luma coefficients for grayscale conversion
     float gray = r * 0.2126f + g * 0.7152f + b * 0.0722f;
     r = std::lerp(r, gray, filter_val);
     g = std::lerp(g, gray, filter_val);
     b = std::lerp(b, gray, filter_val);
+
+    // Reduce brightness. Scales from 100% down to 20% as filter effect increases.
+    constexpr float MIN_FILTER_BRIGHTNESS = 0.2f;
+    float brightness_factor = std::lerp(1.0f, MIN_FILTER_BRIGHTNESS, filter_val);
+    r *= brightness_factor;
+    g *= brightness_factor;
+    b *= brightness_factor;
   }
 
   // Saturation for crush. Applied to the (potentially desaturated) color.

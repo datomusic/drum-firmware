@@ -139,8 +139,9 @@ void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_
   if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
       _local_control_mode == LocalControlMode::ON) {
     const auto &defs = drum::config::global_note_definitions;
-    auto it = std::find_if(defs.begin(), defs.end(),
-                           [midi_note](const auto &def) { return def.midi_note_number == midi_note; });
+    auto it = std::find_if(defs.begin(), defs.end(), [midi_note](const auto &def) {
+      return def.midi_note_number == midi_note;
+    });
 
     if (it != defs.end()) {
       uint32_t sample_id = std::distance(defs.begin(), it);

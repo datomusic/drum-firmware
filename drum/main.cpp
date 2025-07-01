@@ -78,6 +78,8 @@ static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STE
 
 static drum::MessageRouter message_router(audio_engine, sequencer_controller);
 
+static SysExStateObserver sysex_state_observer(message_router);
+
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
 
@@ -144,7 +146,6 @@ int main() {
   sequencer_controller.add_observer(pizza_display);
 
   // Register observers for SysEx state changes
-  SysExStateObserver sysex_state_observer(message_router);
   sysex_file_handler.add_observer(sysex_state_observer);
   sysex_file_handler.add_observer(sequencer_controller);
 

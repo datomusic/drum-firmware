@@ -120,9 +120,9 @@ public:
 
   /**
    * @brief Set the swing amount.
-   * @param percent Percentage (50-75) of the two-step duration allocated to the
-   *                first step of the pair determined by swing_delays_odd_steps_.
-   *                50 means no swing. Clamped internally.
+   * @param percent Percentage (50-67) of the two-step duration allocated to the
+   *                first step of the pair. 50 means no swing, while ~67 gives a
+   *                triplet feel. Clamped internally.
    */
   void set_swing_percent(uint8_t percent);
 

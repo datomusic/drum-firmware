@@ -163,7 +163,7 @@ void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_percent(uint8_t percent) {
-  swing_percent_ = std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(75));
+  swing_percent_ = std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(67));
 }
 
 template <size_t NumTracks, size_t NumSteps>

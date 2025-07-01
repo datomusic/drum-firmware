@@ -56,13 +56,13 @@ public:
    * at the high resolution defined by CLOCK_PPQN.
    * @param event The received tempo event.
    */
-  void notification(musin::timing::TempoEvent event) override;
+  void notification(musin::timing::TempoEvent event);
 
   /**
    * @brief Notification handler for SysEx transfer state changes.
    * @param event The event indicating the transfer state.
    */
-  void notification(const drum::Events::SysExTransferStateChangeEvent &event) override;
+  void notification(const drum::Events::SysExTransferStateChangeEvent &event);
 
   /**
    * @brief Triggers a note on event directly.

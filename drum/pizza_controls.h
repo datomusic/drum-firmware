@@ -68,7 +68,7 @@ public:
                                    uint8_t channel)
           : parent(p), cc_map(map), midi_channel(channel) {
       }
-      void notification(musin::ui::KeypadEvent event) override;
+      void notification(musin::ui::KeypadEvent event);
 
     private:
       void handle_sample_select(musin::ui::KeypadEvent event);
@@ -112,7 +112,7 @@ public:
       constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index)
           : parent(p), pad_index(index) {
       }
-      void notification(musin::ui::DrumpadEvent event) override;
+      void notification(musin::ui::DrumpadEvent event);
     };
 
     void update_drumpads();
@@ -137,7 +137,7 @@ public:
 
       constexpr PlaybuttonEventHandler(PlaybuttonComponent *p) : parent(p) {
       }
-      void notification(musin::ui::DrumpadEvent event) override;
+      void notification(musin::ui::DrumpadEvent event);
     };
 
     void update_playbutton();
@@ -161,7 +161,7 @@ public:
       constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
           : parent(p), control_id(id) {
       }
-      void notification(musin::ui::AnalogControlEvent event) override;
+      void notification(musin::ui::AnalogControlEvent event);
     };
 
     PizzaControls *parent_controls;

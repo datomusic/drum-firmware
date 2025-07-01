@@ -132,6 +132,22 @@ public:
    */
   void handle_incoming_midi_cc(uint8_t controller, uint8_t value);
 
+  /**
+   * @brief Adds an observer for NoteEvents, resolving ambiguity.
+   */
+  void add_note_event_observer(etl::observer<drum::Events::NoteEvent> &observer) {
+    etl::observable<etl::observer<drum::Events::NoteEvent>,
+                    drum::config::MAX_NOTE_EVENT_OBSERVERS>::add_observer(observer);
+  }
+
+  /**
+   * @brief Adds an observer for ParameterChangeEvents, resolving ambiguity.
+   */
+  void add_parameter_change_event_observer(
+      etl::observer<drum::Events::ParameterChangeEvent> &observer) {
+    etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::add_observer(observer);
+  }
+
 private:
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;

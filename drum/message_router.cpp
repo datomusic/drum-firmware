@@ -270,12 +270,10 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
 }
 
 void MessageRouter::handle_incoming_midi_cc(uint8_t controller, uint8_t value) {
-  if (_local_control_mode == LocalControlMode::OFF) {
-    auto mapping = map_midi_cc_to_parameter(controller);
-    if (mapping.has_value()) {
-      float normalized_value = static_cast<float>(value) / 127.0f;
-      set_parameter(mapping->param_id, normalized_value, mapping->track_index);
-    }
+  auto mapping = map_midi_cc_to_parameter(controller);
+  if (mapping.has_value()) {
+    float normalized_value = static_cast<float>(value) / 127.0f;
+    set_parameter(mapping->param_id, normalized_value, mapping->track_index);
   }
 }
 

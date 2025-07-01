@@ -7,6 +7,10 @@
 #include "etl/span.h"
 #include "etl/string_view.h"
 
+extern "C" {
+#include "pico/time.h"
+}
+
 #include "musin/hal/logger.h"
 
 #include "./chunk.h"
@@ -15,8 +19,10 @@
 namespace sysex {
 
 template <typename FileOperations> struct Protocol {
+  static constexpr uint64_t TIMEOUT_US = 5000000; // 5 seconds
+
   constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
-      : file_ops(file_ops), logger(logger) {
+      : file_ops(file_ops), logger(logger), last_activity_time_{} {
   }
 
   struct File {
@@ -75,7 +81,8 @@ template <typename FileOperations> struct Protocol {
     InvalidContent,
   };
 
-  template <typename Sender> constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply) {
+  template <typename Sender>
+  constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply, absolute_time_t now) {
     if (chunk.size() < 5) {
       logger.error("SysEx: Short message, size", static_cast<uint32_t>(chunk.size()));
       return Result::ShortMessage;
@@ -90,7 +97,7 @@ template <typename FileOperations> struct Protocol {
     const uint16_t tag = (*iterator++);
 
     if (tag == Tag::FileBytes) {
-      return handle_file_bytes_fast(iterator, chunk.cend(), send_reply);
+      return handle_file_bytes_fast(iterator, chunk.cend(), send_reply, now);
     }
 
     const bool body_was_present = (iterator != chunk.cend());
@@ -108,7 +115,7 @@ template <typename FileOperations> struct Protocol {
     const auto values_end = value_iterator + value_count;
 
     if (value_iterator != values_end) {
-      return handle_packet(tag, value_iterator, values_end, send_reply);
+      return handle_packet(tag, value_iterator, values_end, send_reply, now);
     } else {
       if (state == State::FileTransfer) {
         if (tag == EndFileTransfer) {
@@ -137,6 +144,19 @@ template <typename FileOperations> struct Protocol {
     }
   }
 
+  constexpr bool check_timeout(absolute_time_t now) {
+    if (state == State::FileTransfer) {
+      if (absolute_time_diff_us(last_activity_time_, now) > static_cast<int64_t>(TIMEOUT_US)) {
+        logger.warn("SysEx: File transfer timed out.");
+        flush_write_buffer();
+        opened_file.reset();
+        state = State::Idle;
+        return true;
+      }
+    }
+    return false;
+  }
+
   constexpr bool busy() {
     return state != State::Idle;
   }
@@ -155,6 +175,7 @@ private:
   musin::Logger &logger;
   State state = State::Idle;
   etl::optional<File> opened_file;
+  absolute_time_t last_activity_time_;
 
   etl::array<uint8_t, FileOperations::BlockSize> write_buffer;
   size_t write_buffer_pos = 0;
@@ -197,7 +218,7 @@ private:
 
   template <typename Sender, typename ValueIt>
   constexpr Result handle_packet(const uint16_t tag, ValueIt value_iterator,
-                                 const ValueIt values_end, Sender send_reply) {
+                                 const ValueIt values_end, Sender send_reply, absolute_time_t now) {
     etl::array<uint8_t, FileOperations::BlockSize> byte_array;
     auto byte_iterator = byte_array.begin();
     size_t byte_count = 0;
@@ -213,7 +234,7 @@ private:
 
     switch (tag) {
     case BeginFileWrite:
-      return handle_begin_file_write(bytes, send_reply);
+      return handle_begin_file_write(bytes, send_reply, now);
     default:
       logger.error("SysEx: Unknown tag with body", tag);
       if (state == State::FileTransfer) {
@@ -226,8 +247,8 @@ private:
   }
 
   template <typename Sender>
-  constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes,
-                                           Sender send_reply) {
+  constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes, Sender send_reply,
+                                           absolute_time_t now) {
     if (state != State::Idle) {
       logger.warn("SysEx: BeginFileWrite received while another file transfer is in progress. "
                   "Canceling previous transfer.");
@@ -249,6 +270,7 @@ private:
     if (opened_file.has_value() && opened_file->is_valid()) {
       state = State::FileTransfer;
       write_buffer_pos = 0;
+      last_activity_time_ = now;
       logger.info("SysEx: Sending Ack for BeginFileWrite");
       send_reply(Tag::Ack);
       return Result::OK;
@@ -262,7 +284,8 @@ private:
   }
 
   template <typename Sender, typename InputIt>
-  constexpr Result handle_file_bytes_fast(InputIt start, InputIt end, Sender send_reply) {
+  constexpr Result handle_file_bytes_fast(InputIt start, InputIt end, Sender send_reply,
+                                          absolute_time_t now) {
     if (state != State::FileTransfer) {
       logger.error("SysEx: FileBytes received while not in a file transfer state.");
       send_reply(Tag::Nack);
@@ -277,6 +300,7 @@ private:
       if (write_buffer_pos >= write_buffer.size()) {
         flush_write_buffer();
       }
+      last_activity_time_ = now;
       send_reply(Tag::Ack);
       return Result::OK;
     } else {

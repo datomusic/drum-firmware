@@ -408,6 +408,14 @@ void SequencerController<NumTracks, NumSteps>::toggle() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::notification(
+    drum::Events::SysExTransferStateChangeEvent event) {
+  if (event.is_active) {
+    stop();
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::trigger_note_on(uint8_t track_index, uint8_t note,
                                                                uint8_t velocity) {
   // Ensure any previously playing note on this track is turned off first

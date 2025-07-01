@@ -55,10 +55,10 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class MessageRouter
-    : public etl::observer<drum::Events::NoteEvent>,
-      public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                             drum::config::message_router::MAX_NOTE_EVENT_OBSERVERS> {
+class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
+                      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+                      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
@@ -122,7 +122,13 @@ public:
    * @brief Handles incoming NoteEvents.
    * @param event The NoteEvent received.
    */
-  void notification(drum::Events::NoteEvent event) override;
+  void notification(drum::Events::NoteEvent event);
+
+  /**
+   * @brief Notification handler for SysEx transfer state changes.
+   * @param event The event indicating the transfer state.
+   */
+  void notification(drum::Events::SysExTransferStateChangeEvent event);
 
   /**
    * @brief Handles an incoming MIDI Note On/Off message.
@@ -136,11 +142,20 @@ public:
    */
   void handle_incoming_midi_note(uint8_t note, uint8_t velocity);
 
+  /**
+   * @brief Handles an incoming MIDI Control Change message.
+   * This method will map the CC number to a `drum::Parameter` and apply the change.
+   * @param controller The MIDI CC number.
+   * @param value The MIDI CC value.
+   */
+  void handle_incoming_midi_cc(uint8_t controller, uint8_t value);
+
 private:
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;
   LocalControlMode _local_control_mode;
+  std::optional<LocalControlMode> _previous_local_control_mode;
 };
 
 } // namespace drum

@@ -9,6 +9,7 @@
 namespace drum {
 class MessageRouter;
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
+class SysExFileHandler;
 } // namespace drum
 
 namespace musin {
@@ -27,25 +28,17 @@ template <typename T> struct Protocol;
 // Function declarations (prototypes) for functions defined in midi.cpp
 /**
  * @brief Initialize the MIDI system and callbacks.
- * @param message_router Reference to the MessageRouter for handling MIDI note events.
- * @param sequencer_controller Reference to the SequencerController for transport control.
  * @param midi_clock_processor Reference to the MidiClockProcessor for handling MIDI clock input.
- * @param sysex_protocol Reference to the SysEx protocol handler for file transfers.
- * @param file_received_cb Callback function to notify when a file has been received.
+ * @param sysex_file_handler Reference to the SysExFileHandler.
+ * @param logger Reference to the system logger.
  */
 void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
-               sysex::Protocol<StandardFileOps> &sysex_protocol, void (*file_received_cb)(),
-               musin::Logger &logger);
+               drum::SysExFileHandler &sysex_file_handler, musin::Logger &logger);
 
 /**
- * @brief Process incoming MIDI messages. Should be called periodically.
+ * @brief Read and process incoming MIDI messages. Should be called periodically.
  */
-void midi_read();
-
-/**
- * @brief Process queued incoming MIDI messages from the input buffer.
- */
-void process_midi_input();
+void midi_process_input();
 
 /**
  * @brief Send a MIDI Start message.

@@ -1,5 +1,5 @@
 #!/bin/sh
-if cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_VERBOSE_LOGGING=1 && cmake --build build --parallel 16; then
+if cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_VERBOSE_LOGGING=ON && cmake --build build --parallel 16; then
   # Find the generated .uf2 file (the name is now versioned)
   UF2_FILE=$(find build -name "*.uf2" -print -quit)
 

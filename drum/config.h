@@ -139,15 +139,8 @@ namespace main_controls {
 constexpr uint8_t RETRIGGER_DIVISOR_FOR_DOUBLE_MODE = 2;
 }
 
-// SequencerController specific
-namespace sequencer_controller {
 constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 4;
-}
-
-// MessageRouter specific
-namespace message_router {
-constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 2; // For PizzaDisplay and AudioEngine
-}
+constexpr size_t MAX_SYSEX_EVENT_OBSERVERS = 4;
 
 } // namespace config
 } // namespace drum

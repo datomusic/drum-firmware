@@ -31,6 +31,13 @@ struct ParameterChangeEvent {
   std::optional<uint8_t> track_index; // Optional track index for per-track parameters
 };
 
+/**
+ * @brief Event structure for SysEx file transfer state changes.
+ */
+struct SysExTransferStateChangeEvent {
+  bool is_active; // true when transfer starts, false when it ends
+};
+
 } // namespace drum::Events
 
 #endif // SB25_DRUM_EVENTS__H_

@@ -17,10 +17,8 @@ template <typename T> bool enqueue_incoming_midi_message(const T &message_data) 
 // Explicit template instantiations
 template bool enqueue_incoming_midi_message<NoteOnData>(const NoteOnData &);
 template bool enqueue_incoming_midi_message<NoteOffData>(const NoteOffData &);
-template bool
-enqueue_incoming_midi_message<ControlChangeData>(const ControlChangeData &);
-template bool
-enqueue_incoming_midi_message<SystemRealtimeData>(const SystemRealtimeData &);
+template bool enqueue_incoming_midi_message<ControlChangeData>(const ControlChangeData &);
+template bool enqueue_incoming_midi_message<SystemRealtimeData>(const SystemRealtimeData &);
 template bool enqueue_incoming_midi_message<SysExRawData>(const SysExRawData &);
 
 bool dequeue_incoming_midi_message(IncomingMidiMessage &message) {

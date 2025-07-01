@@ -26,9 +26,9 @@ Color apply_visual_effects(Color color, float filter_val, float crush_val) {
   if (filter_val > 0.01f) {
     // Fast approximation for grayscale conversion by averaging RGB components.
     float gray = (r + g + b) / 3.0f;
-    r = std::lerp(r, gray, filter_val);
-    g = std::lerp(g, gray, filter_val);
-    b = std::lerp(b, gray, filter_val);
+    r = std::lerp(r, gray, (filter_val/2));
+    g = std::lerp(g, gray, (filter_val/2));
+    b = std::lerp(b, gray, (filter_val/2));
 
     // Reduce brightness. Scales from 100% down to 20% as filter effect increases.
     constexpr float MIN_FILTER_BRIGHTNESS = 0.2f;
@@ -41,7 +41,7 @@ Color apply_visual_effects(Color color, float filter_val, float crush_val) {
   // Saturation for crush. Applied to the (potentially desaturated) color.
   if (crush_val > 0.01f) {
     // Using Rec. 709 luma coefficients for grayscale conversion
-    float gray = r * 0.2126f + g * 0.7152f + b * 0.0722f;
+    float gray = (r + g + b) / 3.0f;
     // Lerp away from gray. The amount for lerp is (1 + saturation_amount)
     r = std::lerp(gray, r, 1.0f + crush_val);
     g = std::lerp(gray, g, 1.0f + crush_val);

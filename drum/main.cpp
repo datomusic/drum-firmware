@@ -145,6 +145,9 @@ int main() {
 #else
     loop_timer.record_iteration_end();
 #endif
+
+    // yield some time
+    sleep_us(10);
   }
 
   return 0;

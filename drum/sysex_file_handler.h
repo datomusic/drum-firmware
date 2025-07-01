@@ -5,7 +5,7 @@
 #include "drum/configuration_manager.h"
 #include "drum/sample_repository.h"
 #include "drum/sysex/protocol.h"
-#include "etl/observable.h"
+#include "etl/observer.h"
 #include "musin/hal/logger.h"
 
 #include "events.h"

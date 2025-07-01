@@ -59,7 +59,7 @@ class MessageRouter
     : public etl::observer<drum::Events::NoteEvent>,
       public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                             drum::config::message_router::MAX_NOTE_EVENT_OBSERVERS> {
+                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.

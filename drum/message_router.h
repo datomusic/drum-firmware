@@ -143,8 +143,8 @@ public:
   /**
    * @brief Adds an observer for ParameterChangeEvents, resolving ambiguity.
    */
-  void add_parameter_change_event_observer(
-      etl::observer<drum::Events::ParameterChangeEvent> &observer) {
+  void
+  add_parameter_change_event_observer(etl::observer<drum::Events::ParameterChangeEvent> &observer) {
     etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::add_observer(observer);
   }
 

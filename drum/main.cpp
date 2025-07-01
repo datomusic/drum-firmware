@@ -1,4 +1,3 @@
-#include "drum/note_event_queue.h"
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/logger.h"
 #include "musin/midi/midi_input_queue.h"
@@ -42,7 +41,6 @@ static musin::NullLogger logger;
 #endif
 
 // Model
-static drum::NoteEventQueue note_event_queue;
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static drum::SysExFileHandler sysex_file_handler(config_manager, sample_repository, logger);
@@ -54,9 +52,9 @@ static musin::timing::TempoHandler
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
-    sequencer_controller(tempo_handler, note_event_queue);
+    sequencer_controller(tempo_handler);
 
-static drum::MessageRouter message_router(audio_engine, sequencer_controller, note_event_queue);
+static drum::MessageRouter message_router(audio_engine, sequencer_controller);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
@@ -119,8 +117,8 @@ int main() {
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // NoteEvents are now sent from SequencerController to a queue, and processed by MessageRouter.
-  // The direct observer link is removed to break the synchronous chain.
+  // SequencerController notifies MessageRouter, which queues the events internally.
+  sequencer_controller.add_observer(message_router);
 
   // Register observers for SysEx state changes
   sysex_file_handler.add_observer(message_router);

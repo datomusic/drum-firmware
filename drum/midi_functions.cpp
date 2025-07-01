@@ -56,8 +56,9 @@ void handle_sysex_callback(uint8_t *const data, unsigned length) {
   if (length < 2) {
     return; // Not a valid SysEx message.
   }
-  sysex::Chunk chunk(data + 1, length - 2);
-  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(chunk));
+  // Create a non-owning view of the data. This is fast.
+  etl::span<const uint8_t> sysex_view(data + 1, length - 2);
+  musin::midi::enqueue_incoming_midi_message(musin::midi::SysExRawData{sysex_view});
 }
 
 void handle_note_on([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t note,
@@ -110,33 +111,37 @@ void handle_sysex(const sysex::Chunk &chunk) {
 
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
   musin::midi::enqueue_incoming_midi_message(
-      musin::midi::IncomingMidiMessage(channel, note, velocity, true));
+      musin::midi::NoteOnData{channel, note, velocity});
 }
 
 void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
   musin::midi::enqueue_incoming_midi_message(
-      musin::midi::IncomingMidiMessage(channel, note, velocity, false));
+      musin::midi::NoteOffData{channel, note, velocity});
 }
 
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
   musin::midi::enqueue_incoming_midi_message(
-      musin::midi::IncomingMidiMessage(channel, controller, value));
+      musin::midi::ControlChangeData{channel, controller, value});
 }
 
 void midi_clock_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Clock));
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Clock});
 }
 
 void midi_start_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Start));
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Start});
 }
 
 void midi_continue_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Continue));
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Continue});
 }
 
 void midi_stop_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::IncomingMidiMessage(::midi::Stop));
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Stop});
 }
 
 void midi_print_firmware_version() {
@@ -188,27 +193,23 @@ void midi_process_input() {
 
   musin::midi::IncomingMidiMessage message;
   while (musin::midi::dequeue_incoming_midi_message(message)) {
-    switch (message.type) {
-    case musin::midi::IncomingMidiMessageType::NOTE_ON:
-      handle_note_on(message.data.note_message.channel, message.data.note_message.note,
-                     message.data.note_message.velocity);
-      break;
-    case musin::midi::IncomingMidiMessageType::NOTE_OFF:
-      handle_note_off(message.data.note_message.channel, message.data.note_message.note,
-                      message.data.note_message.velocity);
-      break;
-    case musin::midi::IncomingMidiMessageType::CONTROL_CHANGE:
-      handle_control_change(message.data.control_change_message.channel,
-                            message.data.control_change_message.controller,
-                            message.data.control_change_message.value);
-      break;
-    case musin::midi::IncomingMidiMessageType::SYSTEM_REALTIME:
-      midi_handlers.realtime(message.data.system_realtime_message.type);
-      break;
-    case musin::midi::IncomingMidiMessageType::SYSTEM_EXCLUSIVE:
-      handle_sysex(message.data.system_exclusive_message);
-      break;
-    }
+    etl::visit(
+        [](auto &&arg) {
+          using T = typename std::decay<decltype(arg)>::type;
+          if constexpr (std::is_same_v<T, musin::midi::NoteOnData>) {
+            handle_note_on(arg.channel, arg.note, arg.velocity);
+          } else if constexpr (std::is_same_v<T, musin::midi::NoteOffData>) {
+            handle_note_off(arg.channel, arg.note, arg.velocity);
+          } else if constexpr (std::is_same_v<T, musin::midi::ControlChangeData>) {
+            handle_control_change(arg.channel, arg.controller, arg.value);
+          } else if constexpr (std::is_same_v<T, musin::midi::SystemRealtimeData>) {
+            midi_handlers.realtime(arg.type);
+          } else if constexpr (std::is_same_v<T, musin::midi::SysExRawData>) {
+            sysex::Chunk chunk(arg.data.data(), arg.data.size());
+            handle_sysex(chunk);
+          }
+        },
+        message);
   }
 }
 

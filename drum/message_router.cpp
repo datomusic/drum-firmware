@@ -165,7 +165,7 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 
   // Notify observers about the parameter change.
   drum::Events::ParameterChangeEvent event{param_id, value, track_index};
-  this->notify_observers(event);
+  etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::notify_observers(event);
 
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
@@ -255,7 +255,8 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
       // Notify observers (like PizzaDisplay) about this note event
       drum::Events::NoteEvent event{
           .track_index = static_cast<uint8_t>(track_idx), .note = note, .velocity = velocity};
-      this->notify_observers(event);
+      etl::observable<etl::observer<drum::Events::NoteEvent>,
+                      drum::config::MAX_NOTE_EVENT_OBSERVERS>::notify_observers(event);
 
       // Set the active note for that track in the sequencer controller,
       // only if it's a Note On (velocity > 0).

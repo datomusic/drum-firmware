@@ -32,25 +32,6 @@ enum class LocalControlMode : uint8_t {
   OFF // Panel controls might only send MIDI; MIDI CCs primarily control parameters.
 };
 
-/**
- * @brief Defines logical identifiers for controllable parameters/effects.
- * These abstract away the specific MIDI CC numbers or internal audio engine parameters.
- */
-enum class Parameter : uint8_t {
-  // Per-Track Parameters
-  PITCH, // Pitch control for a specific track (CC 21-24)
-
-  // Global Parameters
-  VOLUME,           // CC 7
-  SWING,            // CC 9
-  CRUSH_EFFECT,     // CC 12
-  TEMPO,            // CC 15
-  RANDOM_EFFECT,    // CC 16
-  REPEAT_EFFECT,    // CC 17
-  FILTER_FREQUENCY, // CC 74
-  FILTER_RESONANCE, // CC 75
-};
-
 /*
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.

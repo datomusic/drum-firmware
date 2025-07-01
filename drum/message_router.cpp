@@ -1,6 +1,5 @@
 #include "message_router.h"
 #include "config.h" // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
-#include "drum/note_event_queue.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
 #include "sequencer_controller.h" // For SequencerController
@@ -104,12 +103,11 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
 MessageRouter::MessageRouter(
     AudioEngine &audio_engine,
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
-        &sequencer_controller,
-    NoteEventQueue &note_event_queue)
-    : _note_event_queue(note_event_queue), _audio_engine(audio_engine),
-      _sequencer_controller(sequencer_controller), _output_mode(OutputMode::BOTH),
-      _local_control_mode(LocalControlMode::ON),
+        &sequencer_controller)
+    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
+      _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
       _previous_local_control_mode(std::nullopt) { // Default local control to ON
+  note_event_queue_.clear();
   // TODO: Initialize _track_sample_map if added
 }
 
@@ -222,7 +220,7 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 
 void MessageRouter::update() {
   drum::Events::NoteEvent event;
-  while (_note_event_queue.pop(event)) {
+  while (note_event_queue_.pop(event)) {
     // Send MIDI out if configured
     trigger_sound(event.track_index, event.note, event.velocity);
 
@@ -232,6 +230,12 @@ void MessageRouter::update() {
 }
 
 // --- MessageRouter Notification Implementation ---
+
+void MessageRouter::notification(drum::Events::NoteEvent event) {
+  if (!note_event_queue_.full()) {
+    note_event_queue_.push(event);
+  }
+}
 
 void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {
   if (event.is_active) {
@@ -262,7 +266,7 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
       // with events from the internal sequencer.
       drum::Events::NoteEvent event{
           .track_index = static_cast<uint8_t>(track_idx), .note = note, .velocity = velocity};
-      _note_event_queue.push(event);
+      notification(event);
 
       // Set the active note for that track in the sequencer controller,
       // only if it's a Note On (velocity > 0).

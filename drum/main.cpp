@@ -119,7 +119,6 @@ int main() {
 
   // SequencerController notifies MessageRouter, which queues the events internally.
   sequencer_controller.add_observer(message_router);
-  sequencer_controller.add_observer(pizza_display);
 
   // Register observers for SysEx state changes
   sysex_file_handler.add_observer(message_router);

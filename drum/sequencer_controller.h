@@ -19,7 +19,6 @@
 
 namespace drum {
 
-class NoteEventQueue;
 // Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
@@ -33,7 +32,9 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
 template <size_t NumTracks, size_t NumSteps>
 class SequencerController : public etl::observer<musin::timing::TempoEvent>,
-                            public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
+                            public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+                            public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                                   drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
@@ -41,10 +42,8 @@ public:
   /**
    * @brief Constructor.
    * @param tempo_handler_ref A reference to the tempo handler.
-   * @param note_event_queue A reference to the queue for note events.
    */
-  SequencerController(musin::timing::TempoHandler &tempo_handler_ref,
-                      NoteEventQueue &note_event_queue);
+  SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -210,7 +209,6 @@ private:
   std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
-  NoteEventQueue &note_event_queue_;
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;

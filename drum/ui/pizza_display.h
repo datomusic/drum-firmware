@@ -204,7 +204,7 @@ private:
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
   musin::Logger &_logger_ref;
-    
+
   std::atomic<uint32_t> _clock_tick_counter = 0;
   uint32_t _last_tick_count_for_highlight = 0;
   bool _highlight_is_bright = true;

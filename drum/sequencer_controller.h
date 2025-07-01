@@ -203,7 +203,7 @@ private:
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
-    
+
   musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
   std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
@@ -211,7 +211,7 @@ private:
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;
-    
+
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;

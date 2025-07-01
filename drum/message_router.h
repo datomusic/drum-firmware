@@ -57,6 +57,7 @@ enum class Parameter : uint8_t {
  */
 class MessageRouter
     : public etl::observer<drum::Events::NoteEvent>,
+      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::message_router::MAX_NOTE_EVENT_OBSERVERS> {
 public:
@@ -122,7 +123,13 @@ public:
    * @brief Handles incoming NoteEvents.
    * @param event The NoteEvent received.
    */
-  void notification(drum::Events::NoteEvent event) override;
+  void notification(drum::Events::NoteEvent event);
+
+  /**
+   * @brief Notification handler for SysEx transfer state changes.
+   * @param event The event indicating the transfer state.
+   */
+  void notification(drum::Events::SysExTransferStateChangeEvent event);
 
   /**
    * @brief Handles an incoming MIDI Note On/Off message.
@@ -149,6 +156,7 @@ private:
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;
   LocalControlMode _local_control_mode;
+  std::optional<LocalControlMode> _previous_local_control_mode;
 };
 
 } // namespace drum

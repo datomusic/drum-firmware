@@ -105,8 +105,8 @@ MessageRouter::MessageRouter(
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller)
     : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
-      _output_mode(OutputMode::BOTH),
-      _local_control_mode(LocalControlMode::ON) { // Default local control to ON
+      _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
+      _previous_local_control_mode(std::nullopt) { // Default local control to ON
   // TODO: Initialize _track_sample_map if added
 }
 
@@ -221,6 +221,18 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 
 void MessageRouter::notification(drum::Events::NoteEvent event) {
   trigger_sound(event.track_index, event.note, event.velocity);
+}
+
+void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {
+  if (event.is_active) {
+    _previous_local_control_mode = get_local_control_mode();
+    set_local_control_mode(LocalControlMode::OFF);
+  } else {
+    if (_previous_local_control_mode.has_value()) {
+      set_local_control_mode(_previous_local_control_mode.value());
+      _previous_local_control_mode.reset();
+    }
+  }
 }
 
 void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {

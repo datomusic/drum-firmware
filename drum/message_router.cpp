@@ -1,5 +1,5 @@
 #include "message_router.h"
-#include "config.h" // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
+#include "config.h"                  // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
 #include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
 #include "sequencer_controller.h" // For SequencerController

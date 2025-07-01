@@ -18,6 +18,7 @@ extern "C" {
 #include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
 #include <cassert>                             // For assert
 #include <optional>                            // For std::optional
+#include "etl/variant.h"
 
 struct MidiHandlers {
   etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_on;
@@ -193,6 +194,12 @@ void midi_process_input() {
 
   musin::midi::IncomingMidiMessage message;
   while (musin::midi::dequeue_incoming_midi_message(message)) {
+    // Gate all non-SysEx messages during a file transfer to prevent conflicts.
+    if (sysex_protocol_ptr->busy() &&
+        !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
+      continue;
+    }
+
     etl::visit(
         [](auto &&arg) {
           using T = typename std::decay<decltype(arg)>::type;

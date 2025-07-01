@@ -48,7 +48,7 @@ struct SysExStateObserver : public etl::observer<drum::Events::SysExTransferStat
   explicit SysExStateObserver(drum::MessageRouter &r) : router(r), previous_mode(std::nullopt) {
   }
 
-  void notification(const drum::Events::SysExTransferStateChangeEvent &event) {
+  void notification(drum::Events::SysExTransferStateChangeEvent event) {
     if (event.is_active) {
       previous_mode = router.get_local_control_mode();
       router.set_local_control_mode(drum::LocalControlMode::OFF);

@@ -409,7 +409,7 @@ void SequencerController<NumTracks, NumSteps>::toggle() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    const drum::Events::SysExTransferStateChangeEvent &event) {
+    drum::Events::SysExTransferStateChangeEvent event) {
   if (event.is_active) {
     stop();
   }

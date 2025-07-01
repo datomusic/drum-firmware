@@ -62,7 +62,7 @@ public:
    * @brief Notification handler for SysEx transfer state changes.
    * @param event The event indicating the transfer state.
    */
-  void notification(const drum::Events::SysExTransferStateChangeEvent &event);
+  void notification(drum::Events::SysExTransferStateChangeEvent event);
 
   /**
    * @brief Triggers a note on event directly.

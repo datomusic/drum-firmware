@@ -55,11 +55,10 @@ enum class Parameter : uint8_t {
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
  */
-class MessageRouter
-    : public etl::observer<drum::Events::NoteEvent>,
-      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
-      public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
+class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
+                      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+                      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   /**
    * @brief Constructor.

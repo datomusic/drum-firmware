@@ -12,13 +12,14 @@ extern "C" {
 #include "pico/time.h"
 }
 
-#include "events.h"
 #include "drum/config.h"
+#include "events.h"
 
 namespace drum {
 
 class SysExFileHandler
-    : public etl::observable<etl::observer<drum::Events::SysExTransferStateChangeEvent>, drum::config::MAX_SYSEX_EVENT_OBSERVERS> {
+    : public etl::observable<etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+                             drum::config::MAX_SYSEX_EVENT_OBSERVERS> {
 public:
   SysExFileHandler(ConfigurationManager &config_manager, SampleRepository &sample_repository,
                    musin::Logger &logger);

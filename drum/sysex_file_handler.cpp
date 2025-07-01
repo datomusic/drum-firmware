@@ -12,7 +12,9 @@ void SysExFileHandler::update() {
   if (protocol_.busy()) {
     // The protocol is actively receiving a file.
     // We could add visual feedback here, e.g., pulse a specific LED.
-  } else if (new_file_received_) {
+  }
+
+  if (new_file_received_) {
     logger_.info("SysExFileHandler: New file received, reloading configuration.");
     if (config_manager_.load()) {
       sample_repository_.load_from_config(config_manager_.get_sample_configs());

@@ -219,8 +219,10 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 }
 
 void MessageRouter::update() {
-  drum::Events::NoteEvent event;
-  while (note_event_queue_.pop(event)) {
+  while (!note_event_queue_.empty()) {
+    drum::Events::NoteEvent event = note_event_queue_.front();
+    note_event_queue_.pop();
+
     // Send MIDI out if configured
     trigger_sound(event.track_index, event.note, event.velocity);
 

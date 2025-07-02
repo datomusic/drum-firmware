@@ -10,9 +10,6 @@
 #include "drum/sample_repository.h"
 #include "musin/hal/logger.h"
 
-// Forward declaration of jsmn token struct
-struct jsmntok;
-
 namespace drum {
 
 /**
@@ -34,9 +31,9 @@ struct SampleConfig {
  */
 class ConfigurationManager {
 public:
-  static constexpr const char *CONFIG_PATH = "/config.json";
-  static constexpr size_t MAX_CONFIG_FILE_SIZE = 8192;
-  static constexpr size_t MAX_JSON_TOKENS = 512;
+  static constexpr const char *CONFIG_PATH = "/kit.bin";
+  static constexpr size_t MAX_SAMPLES = 32;
+
 
   explicit ConfigurationManager(musin::Logger &logger);
 
@@ -56,13 +53,12 @@ public:
 
 private:
   musin::Logger &logger_;
-  bool json_string_equals(etl::string_view json_token, etl::string_view str) const;
-  bool parse_samples(etl::string_view json, jsmntok *tokens, int count);
-  bool parse_json_buffer(etl::string_view buffer);
+  bool load_factory_kit();
 
-  etl::vector<SampleConfig, SampleRepository::MAX_SAMPLES> sample_configs_;
+  etl::vector<SampleConfig, MAX_SAMPLES> sample_configs_;
 };
 
 } // namespace drum
 
 #endif // DRUM_CONFIGURATION_MANAGER_H_
+

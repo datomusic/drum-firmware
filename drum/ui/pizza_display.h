@@ -7,6 +7,7 @@
 #include "musin/drivers/ws2812-dma.h"
 #include "pico/time.h"
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -210,7 +211,7 @@ private:
   musin::timing::TempoHandler &_tempo_handler_ref;
   musin::Logger &_logger_ref;
 
-  uint32_t _clock_tick_counter = 0;
+  std::atomic<uint32_t> _clock_tick_counter = 0;
   uint32_t _last_tick_count_for_highlight = 0;
   bool _highlight_is_bright = true;
   bool _sysex_transfer_active = false;

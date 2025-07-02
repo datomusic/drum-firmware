@@ -4,6 +4,7 @@
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
+#include "etl/queue.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
 #include <cstdint>
@@ -101,6 +102,12 @@ public:
                      std::optional<uint8_t> track_index = std::nullopt);
 
   /**
+   * @brief Processes events from the note event queue.
+   * This should be called from the main loop.
+   */
+  void update();
+
+  /**
    * @brief Handles incoming NoteEvents.
    * @param event The NoteEvent received.
    */
@@ -149,6 +156,7 @@ public:
   }
 
 private:
+  etl::queue<drum::Events::NoteEvent, 32> note_event_queue_;
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;

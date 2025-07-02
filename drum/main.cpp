@@ -117,16 +117,15 @@ int main() {
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // Register MessageRouter and PizzaDisplay as observers of NoteEvents from SequencerController
+  // SequencerController notifies MessageRouter, which queues the events internally.
   sequencer_controller.add_observer(message_router);
-  sequencer_controller.add_observer(pizza_display);
 
   // Register observers for SysEx state changes
   sysex_file_handler.add_observer(message_router);
   sysex_file_handler.add_observer(pizza_display);
   sysex_file_handler.add_observer(sequencer_controller);
 
-  // Register observers for events from MessageRouter
+// Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
   message_router.add_parameter_change_event_observer(pizza_display);
   message_router.add_note_event_observer(audio_engine);
@@ -137,6 +136,8 @@ int main() {
     sysex_file_handler.update(get_absolute_time());
 
     pizza_controls.update(get_absolute_time());
+    sequencer_controller.update(); // Checks if a step is due and queues NoteEvents
+    message_router.update();       // Drains NoteEvent queue, sending to observers and MIDI
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());

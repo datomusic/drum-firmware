@@ -126,9 +126,9 @@ public:
 
   /**
    * @brief Set the swing amount.
-   * @param percent Percentage (50-75) of the two-step duration allocated to the
-   *                first step of the pair determined by swing_delays_odd_steps_.
-   *                50 means no swing. Clamped internally.
+   * @param percent Percentage (50-67) of the two-step duration allocated to the
+   *                first step of the pair. 50 means no swing, while ~67 gives a
+   *                triplet feel. Clamped internally.
    */
   void set_swing_percent(uint8_t percent);
 
@@ -212,6 +212,7 @@ private:
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;
+  std::atomic<uint8_t> _retrigger_due_mask{0};
 
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;
@@ -230,7 +231,7 @@ private:
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-  etl::array<uint32_t, NumTracks> _retrigger_progress_ticks_per_track{};
+  etl::array<std::optional<uint64_t>, NumTracks> _retrigger_target_tick_per_track{};
 
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;

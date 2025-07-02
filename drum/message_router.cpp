@@ -107,6 +107,7 @@ MessageRouter::MessageRouter(
     : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
       _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
       _previous_local_control_mode(std::nullopt) { // Default local control to ON
+  note_event_queue_.clear();
   // TODO: Initialize _track_sample_map if added
 }
 
@@ -135,7 +136,8 @@ void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_
     send_midi_note(drum::config::FALLBACK_MIDI_CHANNEL, midi_note, velocity);
   }
 
-  if (_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) {
+  if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
+      _local_control_mode == LocalControlMode::ON) {
     const auto &defs = drum::config::global_note_definitions;
     auto it = std::find_if(defs.begin(), defs.end(), [midi_note](const auto &def) {
       return def.midi_note_number == midi_note;
@@ -143,12 +145,11 @@ void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_
 
     if (it != defs.end()) {
       uint32_t sample_id = std::distance(defs.begin(), it);
-
       if (velocity > 0) {
         _audio_engine.play_on_voice(track_index, sample_id, velocity);
-      } // else {
-      //   _audio_engine.stop_voice(track_index);
-      // }
+      } else {
+        _audio_engine.stop_voice(track_index);
+      }
     }
   }
 }
@@ -217,10 +218,25 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
   }
 }
 
+void MessageRouter::update() {
+  while (!note_event_queue_.empty()) {
+    drum::Events::NoteEvent event = note_event_queue_.front();
+    note_event_queue_.pop();
+
+    // Send MIDI out if configured
+    trigger_sound(event.track_index, event.note, event.velocity);
+
+    // Notify observers like AudioEngine and PizzaDisplay to handle the event locally
+    this->notify_observers(event);
+  }
+}
+
 // --- MessageRouter Notification Implementation ---
 
 void MessageRouter::notification(drum::Events::NoteEvent event) {
-  trigger_sound(event.track_index, event.note, event.velocity);
+  if (!note_event_queue_.full()) {
+    note_event_queue_.push(event);
+  }
 }
 
 void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {
@@ -248,10 +264,11 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
       // Play the sound on the audio engine for this track.
       // The AudioEngine::play_on_voice should handle velocity 0 as note off.
 
-      // Notify observers (like PizzaDisplay) about this note event
+      // Queue the event to be processed in the main loop, unifying the handling path
+      // with events from the internal sequencer.
       drum::Events::NoteEvent event{
           .track_index = static_cast<uint8_t>(track_idx), .note = note, .velocity = velocity};
-      this->notify_observers(event);
+      notification(event);
 
       // Set the active note for that track in the sequencer controller,
       // only if it's a Note On (velocity > 0).

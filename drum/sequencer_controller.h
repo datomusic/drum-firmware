@@ -9,6 +9,7 @@
 #include "musin/timing/tempo_handler.h"
 #include "musin/timing/timing_constants.h"
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
@@ -40,8 +41,7 @@ public:
 
   /**
    * @brief Constructor.
-   * @param tempo_source_ref A reference to the observable that emits SequencerTickEvents.
-   * @param message_router_ref A reference to the MessageRouter instance.
+   * @param tempo_handler_ref A reference to the tempo handler.
    */
   SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
   ~SequencerController();
@@ -101,6 +101,12 @@ public:
    * Does not reset the step index.
    */
   void start();
+
+  /**
+   * @brief Checks for and processes a due sequencer step.
+   * This should be called frequently from the main loop.
+   */
+  void update();
 
   /**
    * @brief Stop the sequencer by disconnecting from the tempo source.
@@ -200,17 +206,18 @@ private:
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
-  uint32_t current_step_counter;
+  std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
+  std::atomic<bool> _step_is_due = false;
 
   uint8_t swing_percent_ = 50;
   bool swing_delays_odd_steps_ = false;
   uint32_t high_res_ticks_per_step_ = 0;
-  uint64_t high_res_tick_counter_ = 0;
-  uint64_t next_trigger_tick_target_ = 0;
+  std::atomic<uint64_t> high_res_tick_counter_ = 0;
+  std::atomic<uint64_t> next_trigger_tick_target_ = 0;
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;

@@ -12,6 +12,51 @@ namespace {
 constexpr uint8_t REDUCED_BRIGHTNESS = 100;
 constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
 
+Color apply_visual_effects(Color color, float filter_val, float crush_val, absolute_time_t now) {
+  if (filter_val < 0.04f && crush_val < 0.04f) {
+    return color;
+  }
+
+  uint32_t c = static_cast<uint32_t>(color);
+  float r = (c >> 16) & 0xFF;
+  float g = (c >> 8) & 0xFF;
+  float b = c & 0xFF;
+
+  // Desaturation and brightness reduction for filter
+
+  // Fast approximation for grayscale conversion by averaging RGB components.
+  float gray = (r + g + b) / 3.0f;
+  r = std::lerp(r, gray, (filter_val / 2));
+  g = std::lerp(g, gray, (filter_val / 2));
+  b = std::lerp(b, gray, (filter_val / 2));
+
+  // Reduce brightness. Scales from 100% down to 20% as filter effect
+  // increases.
+  constexpr float MIN_FILTER_BRIGHTNESS = 0.2f;
+  float brightness_factor = std::lerp(1.0f, MIN_FILTER_BRIGHTNESS, filter_val);
+  r *= brightness_factor;
+  g *= brightness_factor;
+  b *= brightness_factor;
+
+  // Add a random offset to each color channel for the crush effect
+  uint32_t time_us = to_us_since_boot(now);
+  // A simple pseudo-random generator based on time.
+  // Using different prime multipliers for each channel to reduce correlation.
+  float r_offset = static_cast<float>((time_us * 13) % 200) * crush_val;
+  float g_offset = static_cast<float>((time_us * 17) % 200) * crush_val;
+  float b_offset = static_cast<float>((time_us * 19) % 200) * crush_val;
+
+  r -= r_offset;
+  g -= g_offset;
+  b -= b_offset;
+
+  uint8_t final_r = static_cast<uint8_t>(std::clamp(r, 0.0f, 255.0f));
+  uint8_t final_g = static_cast<uint8_t>(std::clamp(g, 0.0f, 255.0f));
+  uint8_t final_b = static_cast<uint8_t>(std::clamp(b, 0.0f, 255.0f));
+
+  return Color((final_r << 16) | (final_g << 8) | final_b);
+}
+
 } // anonymous namespace
 
 PizzaDisplay::PizzaDisplay(
@@ -38,7 +83,21 @@ void PizzaDisplay::notification(drum::Events::SysExTransferStateChangeEvent even
   _sysex_transfer_active = event.is_active;
 }
 
-void PizzaDisplay::draw_base_elements() {
+void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {
+  switch (event.param_id) {
+  case drum::Parameter::FILTER_FREQUENCY:
+    _filter_value = event.value;
+    break;
+  case drum::Parameter::CRUSH_EFFECT:
+    _crush_value = event.value;
+    break;
+  default:
+    // Ignore other parameters
+    break;
+  }
+}
+
+void PizzaDisplay::draw_base_elements(absolute_time_t now) {
   if (_sysex_transfer_active) {
     // When a SysEx transfer is active, flash the play button green
     Color pulse_color = _highlight_is_bright ? drum::PizzaDisplay::COLOR_GREEN : Color(0);
@@ -56,10 +115,10 @@ void PizzaDisplay::draw_base_elements() {
   }
 
   update_track_override_colors();
-  draw_sequencer_state();
+  draw_sequencer_state(now);
 }
 
-void PizzaDisplay::draw_sequencer_state() {
+void PizzaDisplay::draw_sequencer_state(absolute_time_t now) {
   const auto &sequencer = _sequencer_controller_ref.get_sequencer();
   const auto &controller = _sequencer_controller_ref;
 
@@ -84,6 +143,9 @@ void PizzaDisplay::draw_sequencer_state() {
           _track_override_colors[track_idx].has_value()) {
         final_color = _track_override_colors[track_idx].value();
       }
+
+      // Apply visual effects for filter and crush
+      final_color = apply_visual_effects(final_color, _filter_value, _crush_value, now);
 
       // Apply a pulsing highlight to the "cursor" step.
       // When running, this is the step that just played.
@@ -175,7 +237,7 @@ void PizzaDisplay::update_highlight_state() {
 
 void PizzaDisplay::update(absolute_time_t now) {
   update_highlight_state();
-  draw_base_elements();
+  draw_base_elements(now);
   draw_animations(now);
   show();
 }

@@ -4,12 +4,26 @@
 #include <cstdint>
 #include <optional> // Required for std::optional
 
-// Forward declare Parameter enum to avoid circular dependency if Parameter is in message_router.h
-// Alternatively, Parameter could be moved to this file or a common types file.
 namespace drum {
-enum class Parameter : uint8_t;
-}
-#include <optional> // Required for std::optional
+/**
+ * @brief Defines logical identifiers for controllable parameters/effects.
+ * These abstract away the specific MIDI CC numbers or internal audio engine parameters.
+ */
+enum class Parameter : uint8_t {
+  // Per-Track Parameters
+  PITCH, // Pitch control for a specific track (CC 21-24)
+
+  // Global Parameters
+  VOLUME,           // CC 7
+  SWING,            // CC 9
+  CRUSH_EFFECT,     // CC 12
+  TEMPO,            // CC 15
+  RANDOM_EFFECT,    // CC 16
+  REPEAT_EFFECT,    // CC 17
+  FILTER_FREQUENCY, // CC 74
+  FILTER_RESONANCE, // CC 75
+};
+} // namespace drum
 
 namespace drum::Events {
 

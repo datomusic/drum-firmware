@@ -12,10 +12,10 @@ namespace drum {
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref)
-    : /* sequencer_ is default-initialized */ current_step_counter(0), last_played_note_per_track{},
+    : /* sequencer_ is default-initialized */ current_step_counter{0}, last_played_note_per_track{},
       _just_played_step_per_track{}, tempo_source(tempo_handler_ref), _running(false),
-      swing_percent_(50), swing_delays_odd_steps_(false), high_res_tick_counter_(0),
-      next_trigger_tick_target_(0), random_active_(false),
+      _step_is_due{false}, swing_percent_(50), swing_delays_odd_steps_(false),
+      high_res_tick_counter_{0}, next_trigger_tick_target_{0}, random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
       random_track_offsets_{}, _active_note_per_track{}, _pad_pressed_state{},
       _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
@@ -246,9 +246,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
     if (_retrigger_target_tick_per_track[track_idx].has_value() &&
         high_res_tick_counter_ >= _retrigger_target_tick_per_track[track_idx].value()) {
 
-      uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
-      trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
-                      drum::config::drumpad::RETRIGGER_VELOCITY);
+      _retrigger_due_mask |= (1 << track_idx);
 
       // Invalidate the target to prevent re-firing
       _retrigger_target_tick_per_track[track_idx] = std::nullopt;
@@ -256,37 +254,11 @@ void SequencerController<NumTracks, NumSteps>::notification(
   }
 
   if (high_res_tick_counter_ >= next_trigger_tick_target_) {
-    _just_played_step_per_track.fill(std::nullopt);
-
-    size_t base_step_index = calculate_base_step_index();
-
-    size_t num_tracks = sequencer_.get_num_tracks();
-    size_t num_steps = sequencer_.get_num_steps();
-
-    for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-      size_t step_index_to_play_for_track = base_step_index;
-
-      if (random_active_ && num_steps > 0) {
-        int max_offset = num_steps / 2;
-        random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
-        step_index_to_play_for_track =
-            (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
-      }
-      _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
-      process_track_step(track_idx, step_index_to_play_for_track);
-
-      // Handle the first retrigger note for the main step event
-      if (_retrigger_mode_per_track[track_idx] > 0) {
-        uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
-        trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
-                        drum::config::drumpad::RETRIGGER_VELOCITY);
-      }
-    }
-
+    _step_is_due = true;
     uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
 
     // Set up swing-aware retrigger targets for the step that is about to start
-    for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
       // Retriggering only applies to "double" mode
       if (_retrigger_mode_per_track[track_idx] == 2) {
         // A "long" or on-beat step is one whose duration is not shortened by swing.
@@ -306,7 +278,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
     }
 
     next_trigger_tick_target_ += interval_to_next_trigger;
-
     current_step_counter++;
   }
 }
@@ -522,6 +493,52 @@ void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uin
   if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = 0;
     _retrigger_target_tick_per_track[track_index] = std::nullopt;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::update() {
+  if (_retrigger_due_mask > 0) {
+    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+      if ((_retrigger_due_mask >> track_idx) & 1) {
+        uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
+        trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
+                        drum::config::drumpad::RETRIGGER_VELOCITY);
+      }
+    }
+    _retrigger_due_mask = 0;
+  }
+
+  if (!_step_is_due) {
+    return;
+  }
+  _step_is_due = false;
+
+  _just_played_step_per_track.fill(std::nullopt);
+
+  size_t base_step_index = calculate_base_step_index();
+
+  size_t num_tracks = sequencer_.get_num_tracks();
+  size_t num_steps = sequencer_.get_num_steps();
+
+  for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+    size_t step_index_to_play_for_track = base_step_index;
+
+    if (random_active_ && num_steps > 0) {
+      int max_offset = num_steps / 2;
+      random_track_offsets_[track_idx] = (rand() % (max_offset * 2 + 1)) - max_offset;
+      step_index_to_play_for_track =
+          (base_step_index + random_track_offsets_[track_idx] + num_steps) % num_steps;
+    }
+    _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
+    process_track_step(track_idx, step_index_to_play_for_track);
+
+    // Handle the first retrigger note for the main step event
+    if (_retrigger_mode_per_track[track_idx] > 0) {
+      uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
+      trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
+                      drum::config::drumpad::RETRIGGER_VELOCITY);
+    }
   }
 }
 

@@ -4,6 +4,7 @@
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
 #include "etl/observer.h"
+#include "etl/queue.h"
 #include "events.h" // Include NoteEvent definition
 #include <array>
 #include <cstdint>
@@ -32,25 +33,6 @@ enum class LocalControlMode : uint8_t {
   OFF // Panel controls might only send MIDI; MIDI CCs primarily control parameters.
 };
 
-/**
- * @brief Defines logical identifiers for controllable parameters/effects.
- * These abstract away the specific MIDI CC numbers or internal audio engine parameters.
- */
-enum class Parameter : uint8_t {
-  // Per-Track Parameters
-  PITCH, // Pitch control for a specific track (CC 21-24)
-
-  // Global Parameters
-  VOLUME,           // CC 7
-  SWING,            // CC 9
-  CRUSH_EFFECT,     // CC 12
-  TEMPO,            // CC 15
-  RANDOM_EFFECT,    // CC 16
-  REPEAT_EFFECT,    // CC 17
-  FILTER_FREQUENCY, // CC 74
-  FILTER_RESONANCE, // CC 75
-};
-
 /*
  * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
  * both.
@@ -58,7 +40,8 @@ enum class Parameter : uint8_t {
 class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
                       public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
                       public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
+                                             drum::config::MAX_NOTE_EVENT_OBSERVERS>,
+                      public etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2> {
 public:
   /**
    * @brief Constructor.
@@ -119,6 +102,12 @@ public:
                      std::optional<uint8_t> track_index = std::nullopt);
 
   /**
+   * @brief Processes events from the note event queue.
+   * This should be called from the main loop.
+   */
+  void update();
+
+  /**
    * @brief Handles incoming NoteEvents.
    * @param event The NoteEvent received.
    */
@@ -150,7 +139,24 @@ public:
    */
   void handle_incoming_midi_cc(uint8_t controller, uint8_t value);
 
+  /**
+   * @brief Adds an observer for NoteEvents, resolving ambiguity.
+   */
+  void add_note_event_observer(etl::observer<drum::Events::NoteEvent> &observer) {
+    etl::observable<etl::observer<drum::Events::NoteEvent>,
+                    drum::config::MAX_NOTE_EVENT_OBSERVERS>::add_observer(observer);
+  }
+
+  /**
+   * @brief Adds an observer for ParameterChangeEvents, resolving ambiguity.
+   */
+  void
+  add_parameter_change_event_observer(etl::observer<drum::Events::ParameterChangeEvent> &observer) {
+    etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::add_observer(observer);
+  }
+
 private:
+  etl::queue<drum::Events::NoteEvent, 32> note_event_queue_;
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
   OutputMode _output_mode;

@@ -43,7 +43,7 @@ static musin::NullLogger logger;
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
-static drum::SysExFileHandler sysex_file_handler(config_manager, sample_repository, logger);
+static drum::SysExFileHandler sysex_file_handler(config_manager, logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;

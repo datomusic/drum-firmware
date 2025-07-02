@@ -122,7 +122,7 @@ constexpr etl::array<NoteDefinition, 32> global_note_definitions = {{// Track 0 
 
 // Analog Control Component Configuration
 namespace analog_controls {
-constexpr float FILTER_SMOOTHING_RATE = 2.0f; // Lower is slower, higher is faster
+constexpr float FILTER_SMOOTHING_RATE = 6.0f; // Lower is slower, higher is faster
 constexpr float RANDOM_ACTIVATION_THRESHOLD = 0.1f;
 constexpr float SWING_KNOB_CENTER_VALUE = 0.5f;
 constexpr uint8_t SWING_BASE_PERCENT = 50;

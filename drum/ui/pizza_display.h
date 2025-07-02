@@ -137,7 +137,7 @@ public:
   /**
    * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
    */
-  void draw_sequencer_state();
+  void draw_sequencer_state(absolute_time_t now);
 
 private:
   /**
@@ -149,7 +149,7 @@ private:
    * @brief Draws base LED elements like the play button and sequencer steps.
    * It reflects the direct state of the model without animations.
    */
-  void draw_base_elements();
+  void draw_base_elements(absolute_time_t now);
 
   /**
    * @brief Updates time-based animations, such as drumpad LED fades.

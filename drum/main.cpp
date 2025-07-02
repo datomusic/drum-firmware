@@ -125,7 +125,7 @@ int main() {
   sysex_file_handler.add_observer(pizza_display);
   sysex_file_handler.add_observer(sequencer_controller);
 
-// Register observers for events from MessageRouter
+  // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
   message_router.add_parameter_change_event_observer(pizza_display);
   message_router.add_note_event_observer(audio_engine);

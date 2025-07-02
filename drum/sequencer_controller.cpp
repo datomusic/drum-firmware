@@ -239,46 +239,18 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  high_res_tick_counter_++;
+  uint64_t current_tick = ++high_res_tick_counter_;
 
   // Process per-tick retrigger logic for swing-aware double mode
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (_retrigger_target_tick_per_track[track_idx].has_value() &&
-        high_res_tick_counter_ >= _retrigger_target_tick_per_track[track_idx].value()) {
-
+        current_tick >= _retrigger_target_tick_per_track[track_idx].value()) {
       _retrigger_due_mask |= (1 << track_idx);
-
-      // Invalidate the target to prevent re-firing
-      _retrigger_target_tick_per_track[track_idx] = std::nullopt;
     }
   }
 
-  if (high_res_tick_counter_ >= next_trigger_tick_target_) {
+  if (current_tick >= next_trigger_tick_target_) {
     _step_is_due = true;
-    uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
-
-    // Set up swing-aware retrigger targets for the step that is about to start
-    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-      // Retriggering only applies to "double" mode
-      if (_retrigger_mode_per_track[track_idx] == 2) {
-        // A "long" or on-beat step is one whose duration is not shortened by swing.
-        // We only add a retrigger to these steps.
-        bool is_eligible_for_retrigger = interval_to_next_trigger >= high_res_ticks_per_step_;
-        if (is_eligible_for_retrigger) {
-          uint64_t retrigger_offset = interval_to_next_trigger / 2;
-          _retrigger_target_tick_per_track[track_idx] = high_res_tick_counter_ + retrigger_offset;
-        } else {
-          // It's a short (swung) step, so no retrigger. Clear any previous target.
-          _retrigger_target_tick_per_track[track_idx] = std::nullopt;
-        }
-      } else {
-        // Mode is not double, so ensure no target is set
-        _retrigger_target_tick_per_track[track_idx] = std::nullopt;
-      }
-    }
-
-    next_trigger_tick_target_ += interval_to_next_trigger;
-    current_step_counter++;
   }
 }
 
@@ -498,15 +470,19 @@ void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(uin
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::update() {
-  if (_retrigger_due_mask > 0) {
+  uint8_t current_retrigger_mask = _retrigger_due_mask.load();
+  if (current_retrigger_mask > 0) {
+    uint8_t processed_mask = 0;
     for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-      if ((_retrigger_due_mask >> track_idx) & 1) {
+      if ((current_retrigger_mask >> track_idx) & 1) {
         uint8_t note_to_play = get_active_note_for_track(static_cast<uint8_t>(track_idx));
         trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
                         drum::config::drumpad::RETRIGGER_VELOCITY);
+        _retrigger_target_tick_per_track[track_idx] = std::nullopt;
+        processed_mask |= (1 << track_idx);
       }
     }
-    _retrigger_due_mask = 0;
+    _retrigger_due_mask.fetch_and(~processed_mask);
   }
 
   if (!_step_is_due) {
@@ -540,6 +516,28 @@ void SequencerController<NumTracks, NumSteps>::update() {
                       drum::config::drumpad::RETRIGGER_VELOCITY);
     }
   }
+
+  // --- Prepare for the next step ---
+  uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
+  uint64_t step_trigger_tick = next_trigger_tick_target_.load();
+
+  // Set up swing-aware retrigger targets for the next step interval
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    if (_retrigger_mode_per_track[track_idx] == 2) {
+      bool is_eligible_for_retrigger = interval_to_next_trigger >= high_res_ticks_per_step_;
+      if (is_eligible_for_retrigger) {
+        uint64_t retrigger_offset = interval_to_next_trigger / 2;
+        _retrigger_target_tick_per_track[track_idx] = step_trigger_tick + retrigger_offset;
+      } else {
+        _retrigger_target_tick_per_track[track_idx] = std::nullopt;
+      }
+    } else {
+      _retrigger_target_tick_per_track[track_idx] = std::nullopt;
+    }
+  }
+
+  next_trigger_tick_target_ += interval_to_next_trigger;
+  current_step_counter++;
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

@@ -138,8 +138,6 @@ bool ConfigurationManager::parse_samples(etl::string_view json, jsmntok *tokens,
         if (key_sv == "slot") {
           current_config.slot = string_view_to_unsigned<uint8_t>(val_sv);
           slot_found = true;
-        } else if (key_sv == "path") {
-          current_config.path.assign(val_sv.begin(), val_sv.end());
         } else if (key_sv == "note") {
           current_config.note = string_view_to_unsigned<uint8_t>(val_sv);
         } else if (key_sv == "track") {
@@ -155,7 +153,6 @@ bool ConfigurationManager::parse_samples(etl::string_view json, jsmntok *tokens,
       if (!sample_configs_.full()) {
         sample_configs_.push_back(current_config);
         logger_.info("  - Parsed sample for slot", (int32_t)current_config.slot);
-        logger_.info(current_config.path);
         logger_.info("    note", (int32_t)current_config.note);
         logger_.info("    track", (int32_t)current_config.track);
         logger_.info("    color", current_config.color);

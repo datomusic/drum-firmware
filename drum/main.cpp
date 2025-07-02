@@ -98,10 +98,7 @@ int main() {
       logger.warn("Could not open /config.json to display.");
     }
 
-    if (config_manager.load()) {
-      sample_repository.load_from_config(config_manager.get_sample_configs());
-    }
-    // If config fails to load, sample_repository will just be empty.
+    config_manager.load();
   }
 
   midi_init(midi_clock_processor, sysex_file_handler, logger);

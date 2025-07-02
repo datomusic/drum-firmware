@@ -20,7 +20,6 @@ namespace drum {
  */
 struct SampleConfig {
   uint8_t slot;
-  etl::string<config::MAX_PATH_LENGTH> path;
   uint8_t note;
   uint8_t track;
   uint32_t color;

@@ -24,7 +24,8 @@ namespace drum {
 
 class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
                      public etl::observer<drum::Events::NoteEvent>,
-                     public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
+                     public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+                     public etl::observer<drum::Events::ParameterChangeEvent> {
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -108,6 +109,11 @@ public:
    */
   void notification(drum::Events::SysExTransferStateChangeEvent event);
 
+  /**
+   * @brief Handles ParameterChangeEvent notifications to update visual effects.
+   */
+  void notification(drum::Events::ParameterChangeEvent event);
+
   // --- Drumpad Fade ---
   /**
    * @brief Initiates a fade effect on the specified drumpad LED.
@@ -131,7 +137,7 @@ public:
   /**
    * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
    */
-  void draw_sequencer_state();
+  void draw_sequencer_state(absolute_time_t now);
 
 private:
   /**
@@ -143,7 +149,7 @@ private:
    * @brief Draws base LED elements like the play button and sequencer steps.
    * It reflects the direct state of the model without animations.
    */
-  void draw_base_elements();
+  void draw_base_elements(absolute_time_t now);
 
   /**
    * @brief Updates time-based animations, such as drumpad LED fades.
@@ -209,6 +215,8 @@ private:
   uint32_t _last_tick_count_for_highlight = 0;
   bool _highlight_is_bright = true;
   bool _sysex_transfer_active = false;
+  float _filter_value = 0.0f;
+  float _crush_value = 0.0f;
 
   void _set_physical_drumpad_led(uint8_t pad_index, Color color);
   void update_track_override_colors();

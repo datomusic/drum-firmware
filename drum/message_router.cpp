@@ -164,6 +164,10 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 
   value = std::clamp(value, 0.0f, 1.0f);
 
+  // Notify observers about the parameter change.
+  drum::Events::ParameterChangeEvent event{param_id, value, track_index};
+  etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::notify_observers(event);
+
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
     if (cc_number > 0) {
@@ -227,7 +231,8 @@ void MessageRouter::update() {
     trigger_sound(event.track_index, event.note, event.velocity);
 
     // Notify observers like AudioEngine and PizzaDisplay to handle the event locally
-    this->notify_observers(event);
+    etl::observable<etl::observer<drum::Events::NoteEvent>,
+                    drum::config::MAX_NOTE_EVENT_OBSERVERS>::notify_observers(event);
   }
 }
 
@@ -282,12 +287,10 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
 }
 
 void MessageRouter::handle_incoming_midi_cc(uint8_t controller, uint8_t value) {
-  if (_local_control_mode == LocalControlMode::OFF) {
-    auto mapping = map_midi_cc_to_parameter(controller);
-    if (mapping.has_value()) {
-      float normalized_value = static_cast<float>(value) / 127.0f;
-      set_parameter(mapping->param_id, normalized_value, mapping->track_index);
-    }
+  auto mapping = map_midi_cc_to_parameter(controller);
+  if (mapping.has_value()) {
+    float normalized_value = static_cast<float>(value) / 127.0f;
+    set_parameter(mapping->param_id, normalized_value, mapping->track_index);
   }
 }
 

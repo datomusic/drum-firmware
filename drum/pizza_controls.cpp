@@ -42,11 +42,11 @@ void PizzaControls::init() {
   playbutton_component.init();
 }
 
-void PizzaControls::update() {
+void PizzaControls::update(absolute_time_t now) {
   if (_message_router_ref.get_local_control_mode() == drum::LocalControlMode::ON) {
     keypad_component.update();
     drumpad_component.update();
-    analog_component.update();
+    analog_component.update(now);
     playbutton_component.update(); // Updates the *input* state of the button
   }
 }
@@ -348,11 +348,37 @@ void PizzaControls::AnalogControlComponent::init() {
   }
 }
 
-void PizzaControls::AnalogControlComponent::update() {
+void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
+  // Update one analog control per call to distribute processing load.
   if (!mux_controls.empty()) {
     mux_controls[_next_analog_control_to_update_idx].update();
     _next_analog_control_to_update_idx =
         (_next_analog_control_to_update_idx + 1) % mux_controls.size();
+  }
+
+  // Time-delta based smoothing for the filter
+  if (is_nil_time(last_smoothing_time_)) {
+    last_smoothing_time_ = now;
+  }
+
+  int64_t dt_us = absolute_time_diff_us(last_smoothing_time_, now);
+  if (dt_us > 0) {
+    float dt_s = static_cast<float>(dt_us) / 1000000.0f;
+    last_smoothing_time_ = now;
+
+    // Check if the value is not already close to the target to avoid unnecessary updates.
+    if (std::fabs(filter_current_value_ - filter_target_value_) > 0.001f) {
+      // Calculate a dynamic smoothing factor `alpha` based on delta-time.
+      // This ensures the smoothing feels consistent regardless of update rate.
+      float alpha = 1.0f - std::exp(-config::analog_controls::FILTER_SMOOTHING_RATE * dt_s);
+      filter_current_value_ = std::lerp(filter_current_value_, filter_target_value_, alpha);
+
+      // Send the smoothed value to the message router.
+      parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
+                                                         filter_current_value_);
+      parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
+                                                         (1.0f - filter_current_value_));
+    }
   }
 }
 
@@ -366,10 +392,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 
   switch (mux_channel) {
   case FILTER:
-    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_FREQUENCY,
-                                                               event.value);
-    parent->parent_controls->_message_router_ref.set_parameter(drum::Parameter::FILTER_RESONANCE,
-                                                               (1.0f - event.value));
+    parent->filter_target_value_ = event.value;
     break;
   case RANDOM: {
     bool was_active = controls->_sequencer_controller_ref.is_random_active();

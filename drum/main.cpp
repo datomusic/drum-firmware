@@ -125,15 +125,17 @@ int main() {
   sysex_file_handler.add_observer(pizza_display);
   sysex_file_handler.add_observer(sequencer_controller);
 
-  // Register PizzaDisplay as an observer of NoteEvents from MessageRouter
-  message_router.add_observer(pizza_display);
+  // Register observers for events from MessageRouter
+  message_router.add_note_event_observer(pizza_display);
+  message_router.add_parameter_change_event_observer(pizza_display);
+  message_router.add_note_event_observer(audio_engine);
 
   sync_out.enable();
 
   while (true) {
     sysex_file_handler.update(get_absolute_time());
 
-    pizza_controls.update();
+    pizza_controls.update(get_absolute_time());
     sequencer_controller.update(); // Checks if a step is due and queues NoteEvents
     message_router.update();       // Drains NoteEvent queue, sending to observers and MIDI
     audio_engine.process();

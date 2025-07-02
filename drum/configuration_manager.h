@@ -34,7 +34,6 @@ public:
   static constexpr const char *CONFIG_PATH = "/kit.bin";
   static constexpr size_t MAX_SAMPLES = 32;
 
-
   explicit ConfigurationManager(musin::Logger &logger);
 
   /**
@@ -61,4 +60,3 @@ private:
 } // namespace drum
 
 #endif // DRUM_CONFIGURATION_MANAGER_H_
-

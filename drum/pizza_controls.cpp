@@ -5,6 +5,8 @@
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
 #include "sequencer_controller.h"
+#include "musin/hal/logger.h"
+#include "musin/hal/analog_mux_scanner.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -168,36 +170,14 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
       drumpads{
-          Drumpad{DRUMPAD_ADDRESS_1, config::drumpad::MIN_PRESSURE_VALUE,
-                  config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE,
-                  config::drumpad::MAX_VELOCITY_VALUE, musin::ui::Drumpad::DEFAULT_HOLD_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DEBOUNCE_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_HOLD_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD},
-          Drumpad{DRUMPAD_ADDRESS_2, config::drumpad::MIN_PRESSURE_VALUE,
-                  config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE,
-                  config::drumpad::MAX_VELOCITY_VALUE, musin::ui::Drumpad::DEFAULT_HOLD_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DEBOUNCE_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_HOLD_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD},
-          Drumpad{DRUMPAD_ADDRESS_3, config::drumpad::MIN_PRESSURE_VALUE,
-                  config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE,
-                  config::drumpad::MAX_VELOCITY_VALUE, musin::ui::Drumpad::DEFAULT_HOLD_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DEBOUNCE_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_HOLD_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD},
-          Drumpad{DRUMPAD_ADDRESS_4, config::drumpad::MIN_PRESSURE_VALUE,
-                  config::drumpad::MAX_PRESSURE_VALUE, config::drumpad::MIN_VELOCITY_VALUE,
-                  config::drumpad::MAX_VELOCITY_VALUE, musin::ui::Drumpad::DEFAULT_HOLD_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DEBOUNCE_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_HOLD_TIME_US,
-                  musin::ui::Drumpad::DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD,
-                  musin::ui::Drumpad::DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD}},
-      drumpad_observers{DrumpadEventHandler{this, 0}, DrumpadEventHandler{this, 1},
-                        DrumpadEventHandler{this, 2}, DrumpadEventHandler{this, 3}} {
+          Drumpad{DRUMPAD_ADDRESS_1},
+          Drumpad{DRUMPAD_ADDRESS_2},
+          Drumpad{DRUMPAD_ADDRESS_3},
+          Drumpad{DRUMPAD_ADDRESS_4}},
+      drumpad_observers{DrumpadEventHandler{this, 0, parent_ptr->_logger_ref},
+                        DrumpadEventHandler{this, 1, parent_ptr->_logger_ref},
+                        DrumpadEventHandler{this, 2, parent_ptr->_logger_ref},
+                        DrumpadEventHandler{this, 3, parent_ptr->_logger_ref}} {
 }
 
 void PizzaControls::DrumpadComponent::init() {
@@ -269,21 +249,31 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
+  logger.debug("Handler ", this->pad_index);
+  logger.debug("Drumpad ", event.pad_index);
   auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
+  if(event.velocity.has_value()) {
+    logger.debug("Velocity ", event.velocity.value());
+  }
   if (event.pad_index < config::NUM_DRUMPADS) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
-      seq_controller.set_pad_pressed_state(event.pad_index, true);
+      logger.debug("PRESSED ", event.pad_index);
+      seq_controller.set_pad_pressed_state(this->pad_index, true);
       if (event.velocity.has_value()) {
-        uint8_t note = parent->get_note_for_pad(event.pad_index);
+        uint8_t note = parent->get_note_for_pad(this->pad_index);
         uint8_t velocity = event.velocity.value();
-        seq_controller.trigger_note_on(event.pad_index, note, velocity);
+        seq_controller.trigger_note_on(this->pad_index, note, velocity);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
-      seq_controller.set_pad_pressed_state(event.pad_index, false);
-      uint8_t note = parent->get_note_for_pad(event.pad_index);
-      seq_controller.trigger_note_off(event.pad_index, note);
+      logger.debug("RELEASED ", this->pad_index);
+      seq_controller.set_pad_pressed_state(this->pad_index, false);
+      uint8_t note = parent->get_note_for_pad(this->pad_index);
+      seq_controller.trigger_note_off(this->pad_index, note);
+    } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
+      logger.debug("HELD ", event.pad_index);
     }
   }
+  logger.debug("Raw_value ", event.raw_value);
 }
 
 // --- AnalogControlComponent ---

@@ -4,7 +4,7 @@
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "etl/observer.h"
-#include "musin/hal/analog_mux_scanner.h" // New include
+#include "musin/hal/analog_mux_scanner.h"
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
@@ -106,9 +106,12 @@ public:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       DrumpadComponent *parent;
       const uint8_t pad_index;
+      musin::Logger &logger;
 
-      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index)
-          : parent(p), pad_index(index) {
+      const uint8_t physical_drumpad_id;
+
+      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index, uint8_t physical_id, musin::Logger &logger_ref)
+          : parent(p), pad_index(index), physical_drumpad_id(physical_id), logger(logger_ref) {
       }
       void notification(musin::ui::DrumpadEvent event);
     };

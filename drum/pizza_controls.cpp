@@ -1,12 +1,12 @@
 #include "pizza_controls.h"
 #include "drum/ui/pizza_display.h"
 #include "message_router.h"
+#include "musin/hal/analog_mux_scanner.h"
+#include "musin/hal/logger.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
 #include "sequencer_controller.h"
-#include "musin/hal/logger.h"
-#include "musin/hal/analog_mux_scanner.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -168,12 +168,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent ---
 PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr),
-      drumpads{
-          Drumpad{DRUMPAD_ADDRESS_1},
-          Drumpad{DRUMPAD_ADDRESS_2},
-          Drumpad{DRUMPAD_ADDRESS_3},
-          Drumpad{DRUMPAD_ADDRESS_4}},
+    : parent_controls(parent_ptr), drumpads{Drumpad{DRUMPAD_ADDRESS_1}, Drumpad{DRUMPAD_ADDRESS_2},
+                                            Drumpad{DRUMPAD_ADDRESS_3}, Drumpad{DRUMPAD_ADDRESS_4}},
       drumpad_observer{this, parent_ptr->_logger_ref} {
 }
 
@@ -248,7 +244,7 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
   logger.debug("Drumpad ", event.pad_index);
   auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
-  if(event.velocity.has_value()) {
+  if (event.velocity.has_value()) {
     logger.debug("Velocity ", event.velocity.value());
   }
   if (event.pad_index < config::NUM_DRUMPADS) {

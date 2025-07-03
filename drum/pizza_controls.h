@@ -4,11 +4,10 @@
 #include "drum_pizza_hardware.h"
 #include "etl/array.h"
 #include "etl/observer.h"
-#include "musin/hal/analog_in.h"
+#include "musin/hal/analog_mux_scanner.h" // New include
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -60,11 +59,11 @@ public:
   private:
     struct KeypadEventHandler : public etl::observer<musin::ui::KeypadEvent> {
       KeypadComponent *parent;
-      const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map;
+      const etl::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map;
       const uint8_t midi_channel;
 
       constexpr KeypadEventHandler(KeypadComponent *p,
-                                   const std::array<uint8_t, KEYPAD_TOTAL_KEYS> &map,
+                                   const etl::array<uint8_t, KEYPAD_TOTAL_KEYS> &map,
                                    uint8_t channel)
           : parent(p), cc_map(map), midi_channel(channel) {
       }
@@ -77,8 +76,8 @@ public:
 
     PizzaControls *parent_controls;
     musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
-    static constexpr std::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
-      std::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
+    static constexpr etl::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
+      etl::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {
         map[i] = (i <= config::keypad::MAX_CC_MAPPED_VALUE)
                      ? static_cast<uint8_t>(i)
@@ -88,6 +87,7 @@ public:
     }();
     KeypadEventHandler keypad_observer;
   };
+
   class DrumpadComponent {
   public:
     explicit DrumpadComponent(PizzaControls *parent_ptr);
@@ -98,9 +98,7 @@ public:
     [[nodiscard]] size_t get_num_drumpads() const {
       return config::NUM_DRUMPADS;
     }
-    // [[nodiscard]] bool is_pad_pressed(uint8_t pad_index) const; // Moved to SequencerController
-    [[nodiscard]] const musin::ui::Drumpad<musin::hal::AnalogInMux16> &
-    get_drumpad(size_t index) const {
+    [[nodiscard]] const musin::ui::Drumpad &get_drumpad(size_t index) const {
       return drumpads[index];
     }
 
@@ -118,9 +116,7 @@ public:
     void update_drumpads();
 
     PizzaControls *parent_controls;
-    etl::array<musin::hal::AnalogInMux16, config::NUM_DRUMPADS> drumpad_readers;
-    etl::array<musin::ui::Drumpad<musin::hal::AnalogInMux16>, config::NUM_DRUMPADS> drumpads;
-    // etl::array<bool, config::NUM_DRUMPADS> _pad_pressed_state{}; // Moved to SequencerController
+    etl::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
     etl::array<DrumpadEventHandler, config::NUM_DRUMPADS> drumpad_observers;
     etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };
@@ -142,8 +138,7 @@ public:
 
     void update_playbutton();
     PizzaControls *parent_controls;
-    musin::hal::AnalogInMux16 playbutton_reader;
-    musin::ui::Drumpad<musin::hal::AnalogInMux16> playbutton;
+    musin::ui::Drumpad playbutton;
     PlaybuttonEventHandler playbutton_observer;
   };
 
@@ -182,6 +177,9 @@ private:
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::MessageRouter &_message_router_ref;
   musin::Logger &_logger_ref;
+
+  // --- Owned Hardware Abstractions ---
+  musin::hal::AnalogMuxScanner _scanner;
 
 public:
   KeypadComponent keypad_component;

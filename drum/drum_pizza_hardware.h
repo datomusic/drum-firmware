@@ -18,6 +18,8 @@ extern "C" {
 
 // The single ADC pin connected to the output of all multiplexers
 constexpr uint32_t PIZZA_MUX_ADC_PIN = DATO_SUBMARINE_ADC_PIN;
+static_assert(PIZZA_MUX_ADC_PIN >= 26 && PIZZA_MUX_ADC_PIN <= 29,
+              "PIZZA_MUX_ADC_PIN must be a valid ADC pin (26-29)");
 
 // Logical names for LED driver pins
 constexpr uint32_t PIZZA_LED_DATA_PIN = PICO_DEFAULT_WS2812_PIN;
@@ -75,15 +77,15 @@ enum {
 };
 
 // Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<uint32_t, 4> analog_address_pins = {
+const etl::array<uint32_t, 4> analog_address_pins = {
     DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
     DATO_SUBMARINE_MUX_ADDR3_PIN};
 // Static array for keypad column pins
-const std::array<uint32_t, 5> keypad_columns_pins = {
+const etl::array<uint32_t, 5> keypad_columns_pins = {
     DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
     DATO_SUBMARINE_KEYPAD_COL4_PIN, DATO_SUBMARINE_KEYPAD_COL5_PIN};
 // Static array for keypad decoder address pins (uses first 3)
-const std::array<uint32_t, 3> keypad_decoder_pins = {
+const etl::array<uint32_t, 3> keypad_decoder_pins = {
     DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
 
 // --- Keypad Configuration ---

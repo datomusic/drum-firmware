@@ -3,10 +3,9 @@
 
 namespace drum {
 
-SysExFileHandler::SysExFileHandler(ConfigurationManager &config_manager,
-                                   SampleRepository &sample_repository, musin::Logger &logger)
-    : config_manager_(config_manager), sample_repository_(sample_repository), logger_(logger),
-      file_ops_(logger), protocol_(file_ops_, logger) {
+SysExFileHandler::SysExFileHandler(ConfigurationManager &config_manager, musin::Logger &logger)
+    : config_manager_(config_manager), logger_(logger), file_ops_(logger),
+      protocol_(file_ops_, logger) {
 }
 
 void SysExFileHandler::update(absolute_time_t now) {
@@ -27,9 +26,7 @@ void SysExFileHandler::update(absolute_time_t now) {
 
   if (new_file_received_) {
     logger_.info("SysExFileHandler: New file received, reloading configuration.");
-    if (config_manager_.load()) {
-      sample_repository_.load_from_config(config_manager_.get_sample_configs());
-    }
+    config_manager_.load();
     new_file_received_ = false;
   }
 }

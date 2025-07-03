@@ -11,32 +11,19 @@
 
 namespace drum {
 
-// Forward-declare the config struct to avoid a circular dependency
-struct SampleConfig;
-
 /**
- * @brief Manages sample metadata, mapping slot indices to file paths.
+ * @brief Generates file paths for sample slots based on a fixed naming convention.
  *
- * This class is responsible for loading a manifest file from the filesystem
- * that defines which sample file corresponds to each of the 32 sample slots.
- * It provides a central point for the AudioEngine to query for sample paths.
+ * This class provides a central point for the AudioEngine to query for sample
+ * paths. It dynamically constructs the path for a given slot index, e.g., slot
+ * 0 becomes "/00.pcm".
  */
 class SampleRepository {
 public:
   static constexpr size_t MAX_SAMPLES = 32;
-  static constexpr size_t MAX_PATH_LENGTH = 64;
+  static constexpr size_t MAX_PATH_LENGTH = 16; // "/NN.pcm" is small
 
   explicit SampleRepository(musin::Logger &logger);
-
-  /**
-   * @brief Populates sample paths from a configuration object.
-   *
-   * Clears existing paths and loads new ones based on the provided sample
-   * configurations.
-   *
-   * @param sample_configs A vector of SampleConfig structs.
-   */
-  void load_from_config(const etl::ivector<SampleConfig> &sample_configs);
 
   /**
    * @brief Retrieves the file path for a given sample index.
@@ -53,8 +40,8 @@ private:
   // Using etl::string with a fixed capacity for embedded systems.
   using PathString = etl::string<MAX_PATH_LENGTH>;
 
-  // An array of optional paths. If an index is empty, no sample is assigned.
-  etl::array<etl::optional<PathString>, MAX_SAMPLES> sample_paths_;
+  // A mutable string to hold the dynamically generated path.
+  mutable PathString generated_path_;
 };
 
 } // namespace drum

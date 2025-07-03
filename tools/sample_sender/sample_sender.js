@@ -268,8 +268,12 @@ async function send_file_content(data) {
     promises.push(waitForAck());
 
     if (promises.length >= PIPELINE_WINDOW) {
-      await Promise.all(promises);
+      const results = await Promise.allSettled(promises);
       promises = [];
+      const firstRejection = results.find(r => r.status === 'rejected');
+      if (firstRejection) {
+        throw new Error(`A transfer chunk failed. Reason: ${firstRejection.reason.message}`);
+      }
     }
 
     const percentage = (i + chunk.length) / total_bytes;
@@ -282,7 +286,11 @@ async function send_file_content(data) {
     process.stdout.write(`Sending: ${Math.round(percentage * 100)}% |${bar}|`);
   }
 
-  await Promise.all(promises); // Wait for remaining ACKs
+  const finalResults = await Promise.allSettled(promises); // Wait for remaining ACKs
+  const firstRejection = finalResults.find(r => r.status === 'rejected');
+  if (firstRejection) {
+    throw new Error(`A transfer chunk failed during final flush. Reason: ${firstRejection.reason.message}`);
+  }
 
   process.stdout.clearLine(0);
   process.stdout.cursorTo(0);
@@ -348,7 +356,14 @@ async function main() {
       process.exit(1);
     }
   } catch (e) {
-    console.error(`Error: ${e.message}`);
+    console.error(`
+
+Error: ${e.message}`);
+    if (transferInProgress) {
+      console.log('Aborting transfer on device...');
+      // Fire-and-forget end transfer command. Don't wait for ACK.
+      sendMessage([END_FILE_TRANSFER]);
+    }
     process.exitCode = 1;
   } finally {
     activeMidiOutput.closePort();

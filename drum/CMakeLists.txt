@@ -33,24 +33,37 @@ add_executable(${EXECUTABLE_NAME}
   sysex_file_handler.cpp
 )
 
-# Generate C header from default config JSON
-set(DEFAULT_CONFIG_SRC "${CMAKE_CURRENT_SOURCE_DIR}/config.default.json")
-set(DEFAULT_CONFIG_HDR "${CMAKE_BINARY_DIR}/generated/config_default.h")
+# --- Generate binary kit file from C++ source ---
+set(KIT_NAME factory_kit)
+set(KIT_SRC_CPP "${CMAKE_CURRENT_SOURCE_DIR}/${KIT_NAME}.cpp")
+set(KIT_BINARY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${KIT_NAME}.bin")
 
-find_program(XXD_PROGRAM xxd)
-if(NOT XXD_PROGRAM)
-    message(FATAL_ERROR "xxd not found! It is required to generate the default config header. Install it via system package manager (e.g., brew install xxd, or it may be part of vim-common).")
+# 1. Add a dummy library that ONLY contains our kit source file.
+# The pico toolchain setup will automatically apply the correct compiler flags.
+add_library(${KIT_NAME}_obj OBJECT ${KIT_SRC_CPP})
+target_link_libraries(${KIT_NAME}_obj PRIVATE etl::etl)
+
+# 2. Find objcopy
+find_program(OBJCOPY_PATH NAMES arm-none-eabi-objcopy HINTS ENV PICO_TOOLCHAIN_PATH)
+if(NOT OBJCOPY_PATH)
+    message(FATAL_ERROR "arm-none-eabi-objcopy not found. Make sure the PICO_TOOLCHAIN_PATH is set.")
 endif()
 
+# 3. Add a custom command to extract the data from the compiled object file.
+# The object file is found in a specific location within the build directory.
+set(KIT_OBJECT_FILE "$<TARGET_OBJECTS:${KIT_NAME}_obj>")
+
 add_custom_command(
-    OUTPUT ${DEFAULT_CONFIG_HDR}
-    COMMAND bash -c "cd ${CMAKE_CURRENT_SOURCE_DIR} && ${XXD_PROGRAM} -i config.default.json > ${DEFAULT_CONFIG_HDR}"
-    DEPENDS ${DEFAULT_CONFIG_SRC}
-    COMMENT "Generating C header from default config"
+    OUTPUT ${KIT_BINARY_FILE}
+    COMMAND ${OBJCOPY_PATH} -O binary -j .rodata ${KIT_OBJECT_FILE} ${KIT_BINARY_FILE}
+    DEPENDS ${KIT_NAME}_obj
+    COMMENT "Generating ${KIT_BINARY_FILE} from ${KIT_SRC_CPP}"
     VERBATIM
 )
 
-add_custom_target(generate_default_config DEPENDS ${DEFAULT_CONFIG_HDR})
+# 4. Add a target to drive the generation.
+add_custom_target(generate_kit_binaries DEPENDS ${KIT_BINARY_FILE})
+
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   USBD_MANUFACTURER="Dato"
@@ -69,6 +82,7 @@ endif(SWAP_AUDIO_CLOCK)
 # Add include directories for the target
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${CMAKE_BINARY_DIR}/generated # For version.h and config_default.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/config
     # Add other specific include paths here if needed
     ../lib
 )
@@ -111,7 +125,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
 # Enable filesystem for the pico (must be done after linking)
 pico_enable_filesystem(${EXECUTABLE_NAME})
 
-add_dependencies(${EXECUTABLE_NAME} generate_default_config)
+add_dependencies(${EXECUTABLE_NAME} generate_kit_binaries)
 
 
 # Explicitly find the size utility, hinting at the Pico toolchain path

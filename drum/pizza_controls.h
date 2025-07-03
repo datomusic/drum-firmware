@@ -113,8 +113,6 @@ public:
       void notification(musin::ui::DrumpadEvent event);
     };
 
-    void update_drumpads();
-
     PizzaControls *parent_controls;
     etl::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
     DrumpadEventHandler drumpad_observer;

@@ -181,14 +181,10 @@ void PizzaControls::DrumpadComponent::init() {
 }
 
 void PizzaControls::DrumpadComponent::update() {
-  update_drumpads();
-}
-
-void PizzaControls::DrumpadComponent::update_drumpads() {
   PizzaControls *controls = parent_controls;
   for (size_t i = 0; i < drumpads.size(); ++i) {
     uint16_t raw_value = controls->_scanner.get_raw_value(drumpad_addresses[(drumpads[i].get_id())]);
-    drumpads[i].update(raw_value);
+    drumpads[i].update(4096 - raw_value);
 
     musin::ui::RetriggerMode current_mode = drumpads[i].get_retrigger_mode();
     if (current_mode != _last_known_retrigger_mode_per_pad[i]) {

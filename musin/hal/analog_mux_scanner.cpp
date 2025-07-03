@@ -61,7 +61,7 @@ void AnalogMuxScanner::perform_scan() {
   for (uint8_t i = 0; i < NUM_CHANNELS; ++i) {
     set_mux_address<etl::array<uint32_t, 4>>(_address_pins, i);
     if (_settle_time_us > 0) {
-      busy_wait_us_32(_settle_time_us);
+      sleep_us(_settle_time_us);
     }
     _raw_values[i] = adc_read();
   }

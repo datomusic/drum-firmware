@@ -34,12 +34,12 @@ void Drumpad::update(uint16_t raw_adc_value) {
   _just_released = false;
   _last_velocity = std::nullopt;
 
-  // constexpr std::uint16_t ADC_MAX_VALUE = 4095;
-  // std::uint16_t current_adc_value = ADC_MAX_VALUE - raw_adc_value;
+  constexpr std::uint16_t ADC_MAX_VALUE = 4095;
+  std::uint16_t current_adc_value = ADC_MAX_VALUE - raw_adc_value;
 
   _last_adc_value = raw_adc_value;
 
-  update_state_machine(raw_adc_value, now);
+  update_state_machine(current_adc_value, now);
 }
 
 void Drumpad::update_state_machine(std::uint16_t current_adc_value, absolute_time_t now) {

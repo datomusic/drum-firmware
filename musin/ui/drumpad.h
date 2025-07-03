@@ -35,13 +35,13 @@ enum class RetriggerMode : uint8_t { Off, Single, Double };
 class Drumpad : public etl::observable<etl::observer<DrumpadEvent>, 4> {
 public:
   static constexpr std::uint16_t DEFAULT_NOISE_THRESHOLD = 50;
-  static constexpr std::uint16_t DEFAULT_PRESS_THRESHOLD = 100;
+  static constexpr std::uint16_t DEFAULT_PRESS_THRESHOLD = 150;
   static constexpr std::uint16_t DEFAULT_VELOCITY_LOW_THRESHOLD = 150;
-  static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 3000;
-  static constexpr std::uint16_t DEFAULT_RELEASE_THRESHOLD = 100;
+  static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 1500;
+  static constexpr std::uint16_t DEFAULT_RELEASE_THRESHOLD = 150;
   static constexpr std::uint16_t DEFAULT_HOLD_THRESHOLD = 800;
-  static constexpr std::uint16_t DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD = 1200;
-  static constexpr std::uint16_t DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD = 2500;
+  static constexpr std::uint16_t DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD = 150;
+  static constexpr std::uint16_t DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD = 1500;
   static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_US = 5000;
   static constexpr std::uint32_t DEFAULT_HOLD_TIME_US = 200000;
   static constexpr std::uint64_t MAX_VELOCITY_TIME_US = 50000;

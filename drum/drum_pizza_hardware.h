@@ -3,7 +3,7 @@
 
 #include "musin/boards/dato_submarine.h"
 #include "musin/hal/logger.h"
-#include <array>
+#include "etl/array.h"
 #include <cstddef> // For size_t
 #include <cstdint>
 #include <cstdio>
@@ -42,7 +42,7 @@ constexpr uint32_t LED_STEP7_START = 28;
 constexpr uint32_t LED_STEP8_START = 33;
 
 // LED indices for the 8x4 sequencer grid
-constexpr std::array<uint32_t, 32> LED_ARRAY = {
+constexpr etl::array<uint32_t, 32> LED_ARRAY = {
     1,  2,  3,  4,  // Step 1
     6,  7,  8,  9,  // Step 2
     10, 11, 12, 13, // Step 3
@@ -93,11 +93,10 @@ constexpr uint8_t KEYPAD_ROWS = 8;
 constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
-// --- Drumpad Configuration ---
-constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
-constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
-constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
-constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
+
+constexpr etl::array<uint8_t, 4> drumpad_addresses = {
+  0, 2, 11, 13
+};
 
 // --- Hardware Utilities ---
 

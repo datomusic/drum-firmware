@@ -16,7 +16,7 @@ Button::Button(uint32_t gpio_pin, bool active_high, uint32_t debounce_time_ms,
 {
 }
 
-Button::Button(uint32_t gpio_pin, const std::array<uint32_t, 3> &mux_address_pins,
+Button::Button(uint32_t gpio_pin, const etl::array<uint32_t, 3> &mux_address_pins,
                uint8_t mux_channel, bool active_high, uint32_t debounce_time_ms,
                uint32_t hold_time_ms)
     : gpio(gpio_pin), active_level(active_high), debounce_time_us(debounce_time_ms * 1000),
@@ -27,7 +27,7 @@ Button::Button(uint32_t gpio_pin, const std::array<uint32_t, 3> &mux_address_pin
 {
 }
 
-Button::Button(uint32_t gpio_pin, const std::array<uint32_t, 4> &mux_address_pins,
+Button::Button(uint32_t gpio_pin, const etl::array<uint32_t, 4> &mux_address_pins,
                uint8_t mux_channel, bool active_high, uint32_t debounce_time_ms,
                uint32_t hold_time_ms)
     : gpio(gpio_pin), active_level(active_high), debounce_time_us(debounce_time_ms * 1000),

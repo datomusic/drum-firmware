@@ -174,16 +174,13 @@ PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
           Drumpad{DRUMPAD_ADDRESS_2},
           Drumpad{DRUMPAD_ADDRESS_3},
           Drumpad{DRUMPAD_ADDRESS_4}},
-      drumpad_observers{DrumpadEventHandler{this, 0, parent_ptr->_logger_ref},
-                        DrumpadEventHandler{this, 1, parent_ptr->_logger_ref},
-                        DrumpadEventHandler{this, 2, parent_ptr->_logger_ref},
-                        DrumpadEventHandler{this, 3, parent_ptr->_logger_ref}} {
+      drumpad_observer{this, parent_ptr->_logger_ref} {
 }
 
 void PizzaControls::DrumpadComponent::init() {
   for (size_t i = 0; i < drumpads.size(); ++i) {
     drumpads[i].init();
-    drumpads[i].add_observer(drumpad_observers[i]);
+    drumpads[i].add_observer(drumpad_observer);
   }
 }
 
@@ -249,7 +246,6 @@ uint8_t PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) con
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-  logger.debug("Handler ", this->pad_index);
   logger.debug("Drumpad ", event.pad_index);
   auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
   if(event.velocity.has_value()) {
@@ -258,17 +254,17 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   if (event.pad_index < config::NUM_DRUMPADS) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       logger.debug("PRESSED ", event.pad_index);
-      seq_controller.set_pad_pressed_state(this->pad_index, true);
+      seq_controller.set_pad_pressed_state(event.pad_index, true);
       if (event.velocity.has_value()) {
-        uint8_t note = parent->get_note_for_pad(this->pad_index);
+        uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
-        seq_controller.trigger_note_on(this->pad_index, note, velocity);
+        seq_controller.trigger_note_on(event.pad_index, note, velocity);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
-      logger.debug("RELEASED ", this->pad_index);
-      seq_controller.set_pad_pressed_state(this->pad_index, false);
-      uint8_t note = parent->get_note_for_pad(this->pad_index);
-      seq_controller.trigger_note_off(this->pad_index, note);
+      logger.debug("RELEASED ", event.pad_index);
+      seq_controller.set_pad_pressed_state(event.pad_index, false);
+      uint8_t note = parent->get_note_for_pad(event.pad_index);
+      seq_controller.trigger_note_off(event.pad_index, note);
     } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
       logger.debug("HELD ", event.pad_index);
     }

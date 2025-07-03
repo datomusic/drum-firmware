@@ -105,13 +105,10 @@ public:
   private:
     struct DrumpadEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       DrumpadComponent *parent;
-      const uint8_t pad_index;
       musin::Logger &logger;
 
-      const uint8_t physical_drumpad_id;
-
-      constexpr DrumpadEventHandler(DrumpadComponent *p, uint8_t index, uint8_t physical_id, musin::Logger &logger_ref)
-          : parent(p), pad_index(index), physical_drumpad_id(physical_id), logger(logger_ref) {
+      constexpr DrumpadEventHandler(DrumpadComponent *p, musin::Logger &logger_ref)
+          : parent(p), logger(logger_ref) {
       }
       void notification(musin::ui::DrumpadEvent event);
     };
@@ -120,7 +117,7 @@ public:
 
     PizzaControls *parent_controls;
     etl::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
-    etl::array<DrumpadEventHandler, config::NUM_DRUMPADS> drumpad_observers;
+    DrumpadEventHandler drumpad_observer;
     etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };
 

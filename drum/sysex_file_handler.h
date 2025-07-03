@@ -3,7 +3,6 @@
 
 #include "drum/applications/rompler/standard_file_ops.h"
 #include "drum/configuration_manager.h"
-#include "drum/sample_repository.h"
 #include "drum/sysex/protocol.h"
 #include "etl/observer.h"
 #include "musin/hal/logger.h"
@@ -21,8 +20,7 @@ class SysExFileHandler
     : public etl::observable<etl::observer<drum::Events::SysExTransferStateChangeEvent>,
                              drum::config::MAX_SYSEX_EVENT_OBSERVERS> {
 public:
-  SysExFileHandler(ConfigurationManager &config_manager, SampleRepository &sample_repository,
-                   musin::Logger &logger);
+  SysExFileHandler(ConfigurationManager &config_manager, musin::Logger &logger);
 
   void update(absolute_time_t now);
 
@@ -31,7 +29,6 @@ public:
 
 private:
   ConfigurationManager &config_manager_;
-  SampleRepository &sample_repository_;
   musin::Logger &logger_;
 
   StandardFileOps file_ops_;

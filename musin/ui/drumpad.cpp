@@ -34,8 +34,7 @@ void Drumpad::update(uint16_t raw_adc_value) {
   _just_released = false;
   _last_velocity = std::nullopt;
 
-  uint16_t value = _active_low ? static_cast<uint16_t>(musin::hal::ADC_MAX_VALUE) - raw_adc_value
-                               : raw_adc_value;
+  uint16_t value = _active_low ? musin::hal::ADC_MAX_VALUE - raw_adc_value : raw_adc_value;
 
   _last_adc_value = value;
 

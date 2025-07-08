@@ -1,9 +1,9 @@
 #ifndef DRUM_PIZZA_HARDWARE_H
 #define DRUM_PIZZA_HARDWARE_H
 
+#include "etl/array.h"
 #include "musin/boards/dato_submarine.h"
 #include "musin/hal/logger.h"
-#include "etl/array.h"
 #include <cstddef> // For size_t
 #include <cstdint>
 #include <cstdio>
@@ -93,10 +93,7 @@ constexpr uint8_t KEYPAD_ROWS = 8;
 constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
-
-constexpr etl::array<uint8_t, 4> drumpad_addresses = {
-  0, 2, 11, 13
-};
+constexpr etl::array<uint8_t, 4> drumpad_addresses = {0, 2, 11, 13};
 
 // --- Hardware Utilities ---
 

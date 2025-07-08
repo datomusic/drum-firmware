@@ -168,8 +168,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent ---
 PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), drumpads{Drumpad{0}, Drumpad{1},
-                                            Drumpad{2}, Drumpad{3}},
+    : parent_controls(parent_ptr), drumpads{Drumpad{0}, Drumpad{1}, Drumpad{2}, Drumpad{3}},
       drumpad_observer{this, parent_ptr->_logger_ref} {
 }
 
@@ -183,7 +182,8 @@ void PizzaControls::DrumpadComponent::init() {
 void PizzaControls::DrumpadComponent::update() {
   PizzaControls *controls = parent_controls;
   for (size_t i = 0; i < drumpads.size(); ++i) {
-    uint16_t raw_value = controls->_scanner.get_raw_value(drumpad_addresses[(drumpads[i].get_id())]);
+    uint16_t raw_value =
+        controls->_scanner.get_raw_value(drumpad_addresses[(drumpads[i].get_id())]);
     drumpads[i].update(4096 - raw_value);
 
     musin::ui::RetriggerMode current_mode = drumpads[i].get_retrigger_mode();

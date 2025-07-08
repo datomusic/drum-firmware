@@ -51,6 +51,41 @@ namespace drumpad {
 constexpr uint8_t DEFAULT_FALLBACK_NOTE = 36;
 constexpr uint8_t RETRIGGER_VELOCITY = 100;
 
+// Per-pad settings structure
+struct DrumpadConfig {
+  uint16_t press_threshold;
+  uint16_t release_threshold;
+  uint16_t velocity_low_threshold;
+  uint16_t velocity_high_threshold;
+  uint16_t hold_threshold;
+  uint16_t single_retrigger_pressure_threshold;
+  uint16_t double_retrigger_pressure_threshold;
+  bool active_low;
+  uint32_t debounce_time_us;
+  uint32_t hold_time_us;
+  uint64_t max_velocity_time_us;
+  uint64_t min_velocity_time_us;
+};
+
+// Since all pads are physically identical, we can define a single configuration
+constexpr DrumpadConfig default_drumpad_config = {.press_threshold = 150,
+                                                  .release_threshold = 150,
+                                                  .velocity_low_threshold = 150,
+                                                  .velocity_high_threshold = 1500,
+                                                  .hold_threshold = 800,
+                                                  .single_retrigger_pressure_threshold = 150,
+                                                  .double_retrigger_pressure_threshold = 1500,
+                                                  .active_low = true,
+                                                  .debounce_time_us = 5000,
+                                                  .hold_time_us = 200000,
+                                                  .max_velocity_time_us = 50000,
+                                                  .min_velocity_time_us = 500};
+
+// Create the array of configurations using the default for all pads
+constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {
+    {default_drumpad_config, default_drumpad_config, default_drumpad_config,
+     default_drumpad_config}};
+
 constexpr uint32_t DEBOUNCE_PRESS_MS = 50U;
 constexpr uint32_t DEBOUNCE_RELEASE_MS = 250U;
 constexpr uint32_t HOLD_THRESHOLD_MS = 150U;

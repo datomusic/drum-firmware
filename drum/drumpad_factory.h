@@ -1,7 +1,7 @@
 #ifndef DRUM_DRUMPAD_FACTORY_H
 #define DRUM_DRUMPAD_FACTORY_H
 
-#include "config.h"
+#include "drum/config.h"
 #include "musin/ui/drumpad.h"
 #include <array>
 

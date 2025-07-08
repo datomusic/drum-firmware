@@ -114,7 +114,7 @@ public:
     };
 
     PizzaControls *parent_controls;
-    etl::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
+    std::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
     DrumpadEventHandler drumpad_observer;
     etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
   };

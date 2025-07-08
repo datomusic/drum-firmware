@@ -1,4 +1,5 @@
 #include "pizza_controls.h"
+#include "drum/drumpad_factory.h"
 #include "drum/ui/pizza_display.h"
 #include "message_router.h"
 #include "musin/hal/analog_mux_scanner.h"
@@ -168,7 +169,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent ---
 PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), drumpads{Drumpad{0}, Drumpad{1}, Drumpad{2}, Drumpad{3}},
+    : parent_controls(parent_ptr), drumpads(DrumpadFactory::create_drumpads()),
       drumpad_observer{this, parent_ptr->_logger_ref} {
 }
 

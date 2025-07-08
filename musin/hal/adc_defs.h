@@ -9,7 +9,7 @@ namespace musin::hal {
 
 // --- Public Constants ---
 static constexpr float ADC_REFERENCE_VOLTAGE = 3.3f;
-static constexpr float ADC_MAX_VALUE = 4095.0f;
+static constexpr uint16_t ADC_MAX_VALUE = 4095;
 
 /**
  * @brief Converts a GPIO pin number to its corresponding ADC channel number at compile time.

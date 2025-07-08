@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "drum/config.h"
 #include "etl/observer.h"
 #include "musin/hal/adc_defs.h" // For ADC_MAX_VALUE
 
@@ -14,7 +15,11 @@ extern "C" {
 namespace musin::ui {
 
 struct DrumpadEvent {
-  enum class Type : uint8_t { Press, Release, Hold };
+  enum class Type : uint8_t {
+    Press,
+    Release,
+    Hold
+  };
   uint8_t pad_index;
   Type type;
   std::optional<uint8_t> velocity;
@@ -30,33 +35,15 @@ enum class DrumpadState : std::uint8_t {
   DEBOUNCING_RELEASE
 };
 
-enum class RetriggerMode : uint8_t { Off, Single, Double };
+enum class RetriggerMode : uint8_t {
+  Off,
+  Single,
+  Double
+};
 
 class Drumpad : public etl::observable<etl::observer<DrumpadEvent>, 4> {
 public:
-  static constexpr std::uint16_t DEFAULT_NOISE_THRESHOLD = 50;
-  static constexpr std::uint16_t DEFAULT_PRESS_THRESHOLD = 150;
-  static constexpr std::uint16_t DEFAULT_VELOCITY_LOW_THRESHOLD = 150;
-  static constexpr std::uint16_t DEFAULT_VELOCITY_HIGH_THRESHOLD = 1500;
-  static constexpr std::uint16_t DEFAULT_RELEASE_THRESHOLD = 150;
-  static constexpr std::uint16_t DEFAULT_HOLD_THRESHOLD = 800;
-  static constexpr std::uint16_t DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD = 150;
-  static constexpr std::uint16_t DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD = 1500;
-  static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_US = 5000;
-  static constexpr std::uint32_t DEFAULT_HOLD_TIME_US = 200000;
-  static constexpr std::uint64_t MAX_VELOCITY_TIME_US = 50000;
-  static constexpr std::uint64_t MIN_VELOCITY_TIME_US = 500;
-
-  explicit Drumpad(uint8_t pad_id,
-                   std::uint16_t press_threshold = DEFAULT_PRESS_THRESHOLD,
-                   std::uint16_t release_threshold = DEFAULT_RELEASE_THRESHOLD,
-                   std::uint16_t velocity_low_threshold = DEFAULT_VELOCITY_LOW_THRESHOLD,
-                   std::uint16_t velocity_high_threshold = DEFAULT_VELOCITY_HIGH_THRESHOLD,
-                   std::uint16_t hold_threshold = DEFAULT_HOLD_THRESHOLD,
-                   std::uint32_t debounce_time_us = DEFAULT_DEBOUNCE_TIME_US,
-                   std::uint32_t hold_time_us = DEFAULT_HOLD_TIME_US,
-                   std::uint16_t single_retrigger_pressure_threshold = DEFAULT_SINGLE_RETRIGGER_PRESSURE_THRESHOLD,
-                   std::uint16_t double_retrigger_pressure_threshold = DEFAULT_DOUBLE_RETRIGGER_PRESSURE_THRESHOLD);
+  explicit Drumpad(uint8_t pad_id, const drum::config::drumpad::DrumpadConfig &config);
 
   Drumpad(const Drumpad &) = delete;
   Drumpad &operator=(const Drumpad &) = delete;
@@ -64,14 +51,30 @@ public:
   void init();
   void update(uint16_t raw_adc_value);
 
-  bool was_pressed() const { return _just_pressed; }
-  bool was_released() const { return _just_released; }
-  bool is_held() const { return _current_state == DrumpadState::HOLDING; }
-  std::optional<uint8_t> get_velocity() const { return _last_velocity; }
-  std::uint16_t get_raw_adc_value() const { return _last_adc_value; }
-  DrumpadState get_current_state() const { return _current_state; }
-  RetriggerMode get_retrigger_mode() const { return _current_retrigger_mode; }
-  uint8_t get_id() const { return _pad_id; }
+  bool was_pressed() const {
+    return _just_pressed;
+  }
+  bool was_released() const {
+    return _just_released;
+  }
+  bool is_held() const {
+    return _current_state == DrumpadState::HOLDING;
+  }
+  std::optional<uint8_t> get_velocity() const {
+    return _last_velocity;
+  }
+  std::uint16_t get_raw_adc_value() const {
+    return _last_adc_value;
+  }
+  DrumpadState get_current_state() const {
+    return _current_state;
+  }
+  RetriggerMode get_retrigger_mode() const {
+    return _current_retrigger_mode;
+  }
+  uint8_t get_id() const {
+    return _pad_id;
+  }
 
 private:
   void notify_event(DrumpadEvent::Type type, std::optional<uint8_t> velocity, uint16_t raw_value);
@@ -86,8 +89,11 @@ private:
   const std::uint16_t _hold_threshold;
   const std::uint16_t _single_retrigger_pressure_threshold;
   const std::uint16_t _double_retrigger_pressure_threshold;
+  const bool _active_low;
   const std::uint32_t _debounce_time_us;
   const std::uint32_t _hold_time_us;
+  const std::uint64_t _max_velocity_time_us;
+  const std::uint64_t _min_velocity_time_us;
 
   DrumpadState _current_state = DrumpadState::IDLE;
   RetriggerMode _current_retrigger_mode = RetriggerMode::Off;

@@ -81,6 +81,22 @@ constexpr DrumpadConfig default_drumpad_config = {.press_threshold = 150,
                                                   .max_velocity_time_us = 50000,
                                                   .min_velocity_time_us = 500};
 
+// Configuration for the play button, which is also a drumpad
+constexpr DrumpadConfig play_button_config = {
+    .press_threshold = 500, // Simple press threshold
+    .release_threshold = 500,
+    .velocity_low_threshold = 0,              // Not used
+    .velocity_high_threshold = 0,             // Not used
+    .hold_threshold = 0,                      // Not used
+    .single_retrigger_pressure_threshold = 0, // Not used
+    .double_retrigger_pressure_threshold = 0, // Not used
+    .active_low = true,
+    .debounce_time_us = 5000,
+    .hold_time_us = 0,         // No hold detection
+    .max_velocity_time_us = 0, // Not used
+    .min_velocity_time_us = 0  // Not used
+};
+
 // Create the array of configurations using the default for all pads
 constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {
     {default_drumpad_config, default_drumpad_config, default_drumpad_config,

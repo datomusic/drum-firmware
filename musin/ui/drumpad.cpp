@@ -1,20 +1,20 @@
 #include "musin/ui/drumpad.h"
+#include "drum/config.h"
 
 namespace musin::ui {
 
-Drumpad::Drumpad(uint8_t pad_id, std::uint16_t press_threshold,
-                 std::uint16_t release_threshold, std::uint16_t velocity_low_threshold,
-                 std::uint16_t velocity_high_threshold, std::uint16_t hold_threshold,
-                 std::uint32_t debounce_time_us, std::uint32_t hold_time_us,
-                 std::uint16_t single_retrigger_pressure_threshold,
-                 std::uint16_t double_retrigger_pressure_threshold)
-    : _pad_id(pad_id), _press_threshold(press_threshold),
-      _release_threshold(release_threshold),
-      _velocity_low_threshold(velocity_low_threshold),
-      _velocity_high_threshold(velocity_high_threshold), _hold_threshold(hold_threshold),
-      _single_retrigger_pressure_threshold(single_retrigger_pressure_threshold),
-      _double_retrigger_pressure_threshold(double_retrigger_pressure_threshold),
-      _debounce_time_us(debounce_time_us), _hold_time_us(hold_time_us) {}
+Drumpad::Drumpad(uint8_t pad_id, const drum::config::drumpad::DrumpadConfig &config)
+    : _pad_id(pad_id), _press_threshold(config.press_threshold),
+      _release_threshold(config.release_threshold),
+      _velocity_low_threshold(config.velocity_low_threshold),
+      _velocity_high_threshold(config.velocity_high_threshold),
+      _hold_threshold(config.hold_threshold),
+      _single_retrigger_pressure_threshold(config.single_retrigger_pressure_threshold),
+      _double_retrigger_pressure_threshold(config.double_retrigger_pressure_threshold),
+      _active_low(config.active_low), _debounce_time_us(config.debounce_time_us),
+      _hold_time_us(config.hold_time_us), _max_velocity_time_us(config.max_velocity_time_us),
+      _min_velocity_time_us(config.min_velocity_time_us) {
+}
 
 void Drumpad::init() {
   _current_state = DrumpadState::IDLE;
@@ -34,9 +34,12 @@ void Drumpad::update(uint16_t raw_adc_value) {
   _just_released = false;
   _last_velocity = std::nullopt;
 
-  _last_adc_value = raw_adc_value;
+  uint16_t value = _active_low ? static_cast<uint16_t>(musin::hal::ADC_MAX_VALUE) - raw_adc_value
+                               : raw_adc_value;
 
-  update_state_machine(raw_adc_value, now);
+  _last_adc_value = value;
+
+  update_state_machine(value, now);
 }
 
 void Drumpad::update_state_machine(std::uint16_t current_adc_value, absolute_time_t now) {
@@ -145,15 +148,15 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value, absolute_tim
 }
 
 uint8_t Drumpad::calculate_velocity(uint64_t time_diff_us) const {
-  if (time_diff_us <= MIN_VELOCITY_TIME_US) {
+  if (time_diff_us <= _min_velocity_time_us) {
     return 127;
   }
-  if (time_diff_us >= MAX_VELOCITY_TIME_US) {
+  if (time_diff_us >= _max_velocity_time_us) {
     return 1;
   }
 
-  uint64_t time_range = MAX_VELOCITY_TIME_US - MIN_VELOCITY_TIME_US;
-  uint64_t adjusted_time = time_diff_us - MIN_VELOCITY_TIME_US;
+  uint64_t time_range = _max_velocity_time_us - _min_velocity_time_us;
+  uint64_t adjusted_time = time_diff_us - _min_velocity_time_us;
 
   uint64_t velocity_scaled = 126ULL * (time_range - adjusted_time);
   uint8_t velocity = 1 + static_cast<uint8_t>(velocity_scaled / time_range);

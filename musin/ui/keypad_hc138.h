@@ -2,11 +2,11 @@
 #ifndef DRUM_DRIVERS_KEYPAD_HC138_H
 #define DRUM_DRIVERS_KEYPAD_HC138_H
 
+#include "etl/array.h"
 #include "etl/observer.h"   // Include ETL observer pattern
 #include "etl/span.h"       // Include ETL span
 #include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
 #include "musin/hal/gpio.h" // Include the GPIO abstraction
-#include "etl/array.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -51,8 +51,8 @@ enum class KeyState : std::uint8_t {
  * @brief Internal data structure to hold the state for a single key.
  */
 struct KeyData {
-  KeyState state = KeyState::IDLE;            ///< Current debounced and hold state.
-  absolute_time_t press_start_time = nil_time; ///< Time of the initial press for hold detection.
+  KeyState state = KeyState::IDLE;              ///< Current debounced and hold state.
+  absolute_time_t press_start_time = nil_time;  ///< Time of the initial press for hold detection.
   absolute_time_t state_change_time = nil_time; ///< Time of the last state change for debouncing.
   absolute_time_t press_event_time =
       nil_time;              ///< Time of the confirmed press event for tap detection.

@@ -5,7 +5,8 @@
 namespace musin::ui {
 
 AnalogControl::AnalogControl(uint16_t control_id, bool invert, float threshold)
-    : _id(control_id), _invert_mapping(invert), _threshold(threshold) {}
+    : _id(control_id), _invert_mapping(invert), _threshold(threshold) {
+}
 
 void AnalogControl::init() {
   _last_notified_value = -1.0f;

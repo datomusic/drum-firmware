@@ -1,9 +1,9 @@
 #ifndef MUSIN_UI_BUTTON_H
 #define MUSIN_UI_BUTTON_H
 
+#include "etl/array.h"
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
-#include "etl/array.h"
 #include <cstdint>
 
 extern "C" {

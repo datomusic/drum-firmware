@@ -1,5 +1,6 @@
 #include "audio_engine.h"
 
+#include "config.h"
 #include "musin/audio/audio_output.h"
 #include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
@@ -167,9 +168,15 @@ void AudioEngine::set_crush_depth(float normalized_value) {
 }
 
 void AudioEngine::notification(drum::Events::NoteEvent event) {
-  // The event.note is used as the sample_index, consistent with the
-  // previous direct call from MessageRouter.
-  play_on_voice(event.track_index, event.note, event.velocity);
+  if (event.velocity > 0) {
+    // Note On: The event.note is used as the sample_index.
+    play_on_voice(event.track_index, event.note, event.velocity);
+  } else {
+    // Note Off (velocity == 0)
+    if constexpr (!config::IGNORE_MIDI_NOTE_OFF) {
+      stop_voice(event.track_index);
+    }
+  }
 }
 
 } // namespace drum

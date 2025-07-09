@@ -103,8 +103,9 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
 MessageRouter::MessageRouter(
     AudioEngine &audio_engine,
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
-        &sequencer_controller)
-    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
+        &sequencer_controller,
+    musin::Logger &logger)
+    : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller), logger_(logger),
       _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
       _previous_local_control_mode(std::nullopt) { // Default local control to ON
   note_event_queue_.clear();
@@ -225,9 +226,11 @@ void MessageRouter::update() {
 // --- MessageRouter Notification Implementation ---
 
 void MessageRouter::notification(drum::Events::NoteEvent event) {
-  if (!note_event_queue_.full()) {
-    note_event_queue_.push(event);
+  if (note_event_queue_.full()) {
+    logger_.warn("Note event queue full, dropping event.");
+    return;
   }
+  note_event_queue_.push(event);
 }
 
 void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {

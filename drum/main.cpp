@@ -54,7 +54,7 @@ static musin::timing::TempoHandler
 static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
-static drum::MessageRouter message_router(audio_engine, sequencer_controller);
+static drum::MessageRouter message_router(audio_engine, sequencer_controller, logger);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);

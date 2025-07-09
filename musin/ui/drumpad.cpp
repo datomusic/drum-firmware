@@ -19,7 +19,7 @@ Drumpad::Drumpad(uint8_t pad_id, const drum::config::drumpad::DrumpadConfig &con
 void Drumpad::init() {
   _current_state = DrumpadState::IDLE;
   _current_retrigger_mode = RetriggerMode::Off;
-  _last_adc_value = 0;
+  _last_adc_value = _active_low ? musin::hal::ADC_MAX_VALUE : 0;
   _state_transition_time = nil_time;
   _velocity_low_time = nil_time;
   _velocity_high_time = nil_time;

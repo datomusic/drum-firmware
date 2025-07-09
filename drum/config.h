@@ -68,33 +68,35 @@ struct DrumpadConfig {
 };
 
 // Since all pads are physically identical, we can define a single configuration
-constexpr DrumpadConfig default_drumpad_config = {.press_threshold = 150,
-                                                  .release_threshold = 150,
-                                                  .velocity_low_threshold = 150,
-                                                  .velocity_high_threshold = 1500,
-                                                  .hold_threshold = 800,
-                                                  .single_retrigger_pressure_threshold = 150,
-                                                  .double_retrigger_pressure_threshold = 1500,
-                                                  .active_low = true,
-                                                  .debounce_time_us = 5000,
-                                                  .hold_time_us = 200000,
-                                                  .max_velocity_time_us = 50000,
-                                                  .min_velocity_time_us = 500};
+constexpr DrumpadConfig default_drumpad_config = {
+  .press_threshold = 150,
+  .release_threshold = 150,
+  .velocity_low_threshold = 150,
+  .velocity_high_threshold = 1000,
+  .hold_threshold = 800,
+  .single_retrigger_pressure_threshold = 150,
+  .double_retrigger_pressure_threshold = 2500,
+  .active_low = true,
+  .debounce_time_us = 5000,
+  .hold_time_us = 200000,
+  .max_velocity_time_us = 50000,
+  .min_velocity_time_us = 500
+};
 
 // Configuration for the play button, which is also a drumpad
 constexpr DrumpadConfig play_button_config = {
-    .press_threshold = 500, // Simple press threshold
-    .release_threshold = 500,
-    .velocity_low_threshold = 0,              // Not used
-    .velocity_high_threshold = 0,             // Not used
-    .hold_threshold = 0,                      // Not used
-    .single_retrigger_pressure_threshold = 0, // Not used
-    .double_retrigger_pressure_threshold = 0, // Not used
-    .active_low = true,
-    .debounce_time_us = 5000,
-    .hold_time_us = 0,         // No hold detection
-    .max_velocity_time_us = 0, // Not used
-    .min_velocity_time_us = 0  // Not used
+  .press_threshold = 150, // Simple press threshold
+  .release_threshold = 150,
+  .velocity_low_threshold = 0,              // Not used
+  .velocity_high_threshold = 0,             // Not used
+  .hold_threshold = 0,                      // Not used
+  .single_retrigger_pressure_threshold = 0, // Not used
+  .double_retrigger_pressure_threshold = 0, // Not used
+  .active_low = true,
+  .debounce_time_us = 5000,
+  .hold_time_us = 2000000,         // No hold detection
+  .max_velocity_time_us = 0, // Not used
+  .min_velocity_time_us = 0  // Not used
 };
 
 // Create the array of configurations using the default for all pads
@@ -134,42 +136,43 @@ struct NoteDefinition {
   uint32_t color; // 0xRRGGBB
 };
 
-constexpr etl::array<NoteDefinition, 32> global_note_definitions = {{// Track 0 (Kick/Bass)
-                                                                     {35, 0xFF0000},
-                                                                     {36, 0xFF0020},
-                                                                     {37, 0xFF0040},
-                                                                     {41, 0xFF0060},
-                                                                     {43, 0xFF1010},
-                                                                     {47, 0xFF1020},
-                                                                     {48, 0xFF2040},
-                                                                     {50, 0xFF2060},
-                                                                     // Track 1 (Snare)
-                                                                     {38, 0x0000FF},
-                                                                     {40, 0x0028FF},
-                                                                     {39, 0x0050FF},
-                                                                     {54, 0x0078FF},
-                                                                     {56, 0x1010FF},
-                                                                     {75, 0x1028FF},
-                                                                     {76, 0x2050FF},
-                                                                     {77, 0x3078FF},
-                                                                     // Track 2 (Percussion)
-                                                                     {45, 0x00FF00},
-                                                                     {58, 0x00FF1E},
-                                                                     {59, 0x00FF3C},
-                                                                     {60, 0x00FF5A},
-                                                                     {61, 0x10FF10},
-                                                                     {62, 0x10FF1E},
-                                                                     {63, 0x10FF3C},
-                                                                     {64, 0x20FF5A},
-                                                                     // Track 3 (Hi-Hats/Cymbals)
-                                                                     {42, 0xFFFF00},
-                                                                     {44, 0xFFE100},
-                                                                     {46, 0xFFC300},
-                                                                     {49, 0xFFA500},
-                                                                     {51, 0xFFFF20},
-                                                                     {52, 0xFFE120},
-                                                                     {53, 0xFFC320},
-                                                                     {57, 0xFFA520}}};
+constexpr etl::array<NoteDefinition, 32> global_note_definitions = {{
+  // Track 0 (Kick/Bass)
+  {35, 0xFF0000},
+  {36, 0xFF0020},
+  {37, 0xFF0040},
+  {41, 0xFF0060},
+  {43, 0xFF1010},
+  {47, 0xFF1020},
+  {48, 0xFF2040},
+  {50, 0xFF2060},
+  // Track 1 (Snare)
+  {38, 0x0000FF},
+  {40, 0x0028FF},
+  {39, 0x0050FF},
+  {54, 0x0078FF},
+  {56, 0x1010FF},
+  {75, 0x1028FF},
+  {76, 0x2050FF},
+  {77, 0x3078FF},
+  // Track 2 (Percussion)
+  {45, 0x00FF00},
+  {58, 0x00FF1E},
+  {59, 0x00FF3C},
+  {60, 0x00FF5A},
+  {61, 0x10FF10},
+  {62, 0x10FF1E},
+  {63, 0x10FF3C},
+  {64, 0x20FF5A},
+  // Track 3 (Hi-Hats/Cymbals)
+  {42, 0xFFFF00},
+  {44, 0xFFE100},
+  {46, 0xFFC300},
+  {49, 0xFFA500},
+  {51, 0xFFFF20},
+  {52, 0xFFE120},
+  {53, 0xFFC320},
+  {57, 0xFFA520}}};
 
 // Analog Control Component Configuration
 namespace analog_controls {

@@ -56,9 +56,6 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value, absolute_tim
     break;
 
   case DrumpadState::RISING:
-    if (is_nil_time(_velocity_low_time) && current_adc_value >= _velocity_low_threshold) {
-      _velocity_low_time = now;
-    }
     if (!is_nil_time(_velocity_low_time) && current_adc_value >= _velocity_high_threshold) {
       _velocity_high_time = now;
       _current_state = DrumpadState::PEAKING;
@@ -68,6 +65,8 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value, absolute_tim
       _last_velocity = calculate_velocity(diff);
       _just_pressed = true;
       notify_event(DrumpadEvent::Type::Press, _last_velocity, current_adc_value);
+    } else if (is_nil_time(_velocity_low_time) && current_adc_value >= _velocity_low_threshold) {
+      _velocity_low_time = now;
     } else if (current_adc_value < _release_threshold) {
       _current_state = DrumpadState::DEBOUNCING_RELEASE;
       _state_transition_time = now;

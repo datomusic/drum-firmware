@@ -128,8 +128,10 @@ public:
   private:
     struct PlaybuttonEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
       PlaybuttonComponent *parent;
+      musin::Logger &logger;
 
-      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p) : parent(p) {
+      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p, musin::Logger &logger_ref)
+          : parent(p), logger(logger_ref) {
       }
       void notification(musin::ui::DrumpadEvent event);
     };

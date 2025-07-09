@@ -393,7 +393,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::notificat
 // --- PlaybuttonComponent ---
 PizzaControls::PlaybuttonComponent::PlaybuttonComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr), playbutton{PLAYBUTTON, config::drumpad::play_button_config},
-      playbutton_observer(this) {
+      playbutton_observer(this, parent_ptr->_logger_ref) {
 }
 
 void PizzaControls::PlaybuttonComponent::init() {
@@ -408,9 +408,21 @@ void PizzaControls::PlaybuttonComponent::update() {
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-  if (event.type == musin::ui::DrumpadEvent::Type::Press) {
-    parent->parent_controls->_sequencer_controller_ref.toggle();
+  logger.debug("Playbutton event for pad: ", event.pad_index);
+
+  if (event.velocity.has_value()) {
+    logger.debug("Velocity ", event.velocity.value());
   }
+
+  if (event.type == musin::ui::DrumpadEvent::Type::Press) {
+    logger.debug("PLAYBUTTON PRESSED");
+    parent->parent_controls->_sequencer_controller_ref.toggle();
+  } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
+    logger.debug("PLAYBUTTON RELEASED");
+  } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
+    logger.debug("PLAYBUTTON HELD");
+  }
+  logger.debug("Raw value ", event.raw_value);
 }
 
 } // namespace drum

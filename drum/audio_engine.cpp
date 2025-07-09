@@ -93,6 +93,13 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
     return;
   }
 
+  if (velocity == 0) {
+    if constexpr (!config::IGNORE_MIDI_NOTE_OFF) {
+      stop_voice(voice_index);
+    }
+    return;
+  }
+
   Voice &voice = voices_[voice_index];
 
   // Get the file path from the repository for the given sample index.
@@ -168,14 +175,14 @@ void AudioEngine::set_crush_depth(float normalized_value) {
 }
 
 void AudioEngine::notification(drum::Events::NoteEvent event) {
-  if (event.velocity > 0) {
-    // Note On: The event.note is used as the sample_index.
-    play_on_voice(event.track_index, event.note, event.velocity);
-  } else {
-    // Note Off (velocity == 0)
-    if constexpr (!config::IGNORE_MIDI_NOTE_OFF) {
-      stop_voice(event.track_index);
-    }
+  const auto &defs = drum::config::global_note_definitions;
+  auto it = std::find_if(defs.begin(), defs.end(), [midi_note = event.note](const auto &def) {
+    return def.midi_note_number == midi_note;
+  });
+
+  if (it != defs.end()) {
+    size_t sample_id = std::distance(defs.begin(), it);
+    play_on_voice(event.track_index, sample_id, event.velocity);
   }
 }
 

@@ -51,6 +51,32 @@ public:
   void error(etl::string_view message, std::int32_t value) {
     log(LogLevel::ERROR, message, value);
   }
+
+  void debug(etl::string_view message, std::uint32_t value) {
+    log(LogLevel::DEBUG, message, value);
+  }
+  void info(etl::string_view message, std::uint32_t value) {
+    log(LogLevel::INFO, message, value);
+  }
+  void warn(etl::string_view message, std::uint32_t value) {
+    log(LogLevel::WARN, message, value);
+  }
+  void error(etl::string_view message, std::uint32_t value) {
+    log(LogLevel::ERROR, message, value);
+  }
+
+  void debug(etl::string_view message, float value) {
+    log(LogLevel::DEBUG, message, value);
+  }
+  void info(etl::string_view message, float value) {
+    log(LogLevel::INFO, message, value);
+  }
+  void warn(etl::string_view message, float value) {
+    log(LogLevel::WARN, message, value);
+  }
+  void error(etl::string_view message, float value) {
+    log(LogLevel::ERROR, message, value);
+  }
 };
 
 } // namespace musin

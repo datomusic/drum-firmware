@@ -1,8 +1,8 @@
 #include "musin/midi/midi_wrapper.h"
 #include "../pico_uart.h"
-#include "musin/midi/midi_output_queue.h" // For enqueuing messages
 #include "musin/hal/null_logger.h"
 #include "musin/hal/pico_logger.h"
+#include "musin/midi/midi_output_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
 #include <stdio.h> // For printf

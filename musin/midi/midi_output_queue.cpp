@@ -45,13 +45,13 @@ void process_midi_output_queue(musin::Logger &logger) {
 
   if (!can_send) {
     // Log deferred message with type and time since last send
-    int64_t time_since_last = is_nil_time(last_non_realtime_send_time) 
-        ? -1 
-        : absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time());
+    int64_t time_since_last =
+        is_nil_time(last_non_realtime_send_time)
+            ? -1
+            : absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time());
     logger.log(LogLevel::DEBUG, "Deferred MIDI type",
                static_cast<int32_t>(message_to_process.type));
-    logger.log(LogLevel::DEBUG, "Time since last send (us)",
-               static_cast<int32_t>(time_since_last));
+    logger.log(LogLevel::DEBUG, "Time since last send (us)", static_cast<int32_t>(time_since_last));
   }
 
   if (can_send) {

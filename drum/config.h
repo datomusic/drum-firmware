@@ -69,34 +69,33 @@ struct DrumpadConfig {
 
 // Since all pads are physically identical, we can define a single configuration
 constexpr DrumpadConfig default_drumpad_config = {
-  .press_threshold = 150,
-  .release_threshold = 150,
-  .velocity_low_threshold = 150,
-  .velocity_high_threshold = 1000,
-  .hold_threshold = 800,
-  .single_retrigger_pressure_threshold = 150,
-  .double_retrigger_pressure_threshold = 2500,
-  .active_low = true,
-  .debounce_time_us = 5000,
-  .hold_time_us = 200000,
-  .max_velocity_time_us = 50000,
-  .min_velocity_time_us = 500
-};
+    .press_threshold = 100,
+    .release_threshold = 100,
+    .velocity_low_threshold = 150,
+    .velocity_high_threshold = 3000,
+    .hold_threshold = 800,
+    .single_retrigger_pressure_threshold = 1200,
+    .double_retrigger_pressure_threshold = 2500,
+    .active_low = true,
+    .debounce_time_us = 5000,
+    .hold_time_us = 200000,
+    .max_velocity_time_us = 50000,
+    .min_velocity_time_us = 500};
 
 // Configuration for the play button, which is also a drumpad
 constexpr DrumpadConfig play_button_config = {
-  .press_threshold = 150, // Simple press threshold
-  .release_threshold = 150,
-  .velocity_low_threshold = 0,              // Not used
-  .velocity_high_threshold = 0,             // Not used
-  .hold_threshold = 0,                      // Not used
-  .single_retrigger_pressure_threshold = 0, // Not used
-  .double_retrigger_pressure_threshold = 0, // Not used
-  .active_low = true,
-  .debounce_time_us = 5000,
-  .hold_time_us = 2000000,         // No hold detection
-  .max_velocity_time_us = 0, // Not used
-  .min_velocity_time_us = 0  // Not used
+    .press_threshold = 150, // Simple press threshold
+    .release_threshold = 150,
+    .velocity_low_threshold = 0,              // Not used
+    .velocity_high_threshold = 0,             // Not used
+    .hold_threshold = 0,                      // Not used
+    .single_retrigger_pressure_threshold = 0, // Not used
+    .double_retrigger_pressure_threshold = 0, // Not used
+    .active_low = true,
+    .debounce_time_us = 5000,
+    .hold_time_us = 2000000, // No hold detection
+    .max_velocity_time_us = 0,   // Not used
+    .min_velocity_time_us = 0    // Not used
 };
 
 // Create the array of configurations using the default for all pads
@@ -111,9 +110,8 @@ constexpr uint32_t HOLD_REPEAT_DELAY_MS = 1500U;
 constexpr uint32_t HOLD_REPEAT_INTERVAL_MS = 100U;
 constexpr uint32_t MIN_PRESSURE_VALUE = 800U;
 constexpr uint32_t MAX_PRESSURE_VALUE = 1000U;
-constexpr uint8_t RANDOM_PROBABILITY_DEFAULT = 75; // 75% chance to flip steps when random is active
-constexpr uint32_t MIN_VELOCITY_VALUE = 150U;
-constexpr uint32_t MAX_VELOCITY_VALUE = 3000U;
+constexpr uint8_t RANDOM_PROBABILITY_DEFAULT =
+    75; // 75% chance to flip steps when random is active
 } // namespace drumpad
 
 // MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md for general MIDI input

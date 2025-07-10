@@ -1,5 +1,5 @@
 #include "musin/midi/midi_output_queue.h"
-#include "etl/queue.h"
+#include "etl/deque.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal actual send functions
 #include "pico/sync.h"
 #include "pico/time.h" // For RP2040 specific timing (get_absolute_time, absolute_time_diff_us, is_nil_time)
@@ -9,7 +9,7 @@
 namespace musin::midi {
 
 // Define the global queue instance and its spinlock
-etl::queue<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
+etl::deque<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
 static spin_lock_t *midi_queue_lock = spin_lock_init(spin_lock_claim_unused(true));
 
 bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &logger) {
@@ -35,7 +35,7 @@ bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &log
   // If no message was coalesced, enqueue this one if there's space
   bool success = false;
   if (!midi_output_queue.full()) {
-    midi_output_queue.push(message);
+    midi_output_queue.push_back(message);
     success = true;
   } else {
     // Log queue full error
@@ -63,7 +63,7 @@ void process_midi_output_queue(musin::Logger &logger) {
           absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time()) >=
               MIN_INTERVAL_US_NON_REALTIME) {
         message_to_send = message_in_queue;
-        midi_output_queue.pop();
+        midi_output_queue.pop_front();
       } else {
         rate_limited = true;
       }

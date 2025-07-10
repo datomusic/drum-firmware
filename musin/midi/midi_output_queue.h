@@ -2,7 +2,7 @@
 #define MUSIN_MIDI_MIDI_MESSAGE_QUEUE_H
 
 #include "etl/array.h"
-#include "etl/queue.h" // Using a standard queue with external locking
+#include "etl/deque.h" // Using deque to allow iteration for coalescing
 #include "midi_common.h"
 #include "midi_wrapper.h"     // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
 #include "musin/hal/logger.h" // Include logger header
@@ -88,7 +88,7 @@ struct OutgoingMidiMessage {
   }
 };
 
-extern etl::queue<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
+extern etl::deque<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
 
 bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &logger);
 

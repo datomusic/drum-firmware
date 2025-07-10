@@ -1,9 +1,9 @@
 #ifndef MUSIN_UI_BUTTON_H
 #define MUSIN_UI_BUTTON_H
 
+#include "etl/array.h"
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
-#include <array>
 #include <cstdint>
 
 extern "C" {
@@ -40,12 +40,12 @@ public:
   }
 
   // 8-channel mux constructor
-  Button(uint32_t gpio_pin, const std::array<uint32_t, 3> &mux_address_pins, uint8_t mux_channel,
+  Button(uint32_t gpio_pin, const etl::array<uint32_t, 3> &mux_address_pins, uint8_t mux_channel,
          bool pull_up = true, uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_MS,
          uint32_t hold_time_ms = DEFAULT_HOLD_MS);
 
   // 16-channel mux constructor
-  Button(uint32_t gpio_pin, const std::array<uint32_t, 4> &mux_address_pins, uint8_t mux_channel,
+  Button(uint32_t gpio_pin, const etl::array<uint32_t, 4> &mux_address_pins, uint8_t mux_channel,
          bool pull_up = true, uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_MS,
          uint32_t hold_time_ms = DEFAULT_HOLD_MS);
 
@@ -85,7 +85,7 @@ private:
 
   // Mux configuration
   const bool is_muxed;
-  const std::array<uint32_t, 4> mux_address_pins;
+  const etl::array<uint32_t, 4> mux_address_pins;
   const uint8_t mux_channel;
   const uint8_t mux_width; // 0=direct, 3=8ch, 4=16ch
 

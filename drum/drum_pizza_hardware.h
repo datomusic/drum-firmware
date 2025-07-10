@@ -1,9 +1,9 @@
 #ifndef DRUM_PIZZA_HARDWARE_H
 #define DRUM_PIZZA_HARDWARE_H
 
+#include "etl/array.h"
 #include "musin/boards/dato_submarine.h"
 #include "musin/hal/logger.h"
-#include <array>
 #include <cstddef> // For size_t
 #include <cstdint>
 #include <cstdio>
@@ -18,6 +18,8 @@ extern "C" {
 
 // The single ADC pin connected to the output of all multiplexers
 constexpr uint32_t PIZZA_MUX_ADC_PIN = DATO_SUBMARINE_ADC_PIN;
+static_assert(PIZZA_MUX_ADC_PIN >= 26 && PIZZA_MUX_ADC_PIN <= 29,
+              "PIZZA_MUX_ADC_PIN must be a valid ADC pin (26-29)");
 
 // Logical names for LED driver pins
 constexpr uint32_t PIZZA_LED_DATA_PIN = PICO_DEFAULT_WS2812_PIN;
@@ -40,7 +42,7 @@ constexpr uint32_t LED_STEP7_START = 28;
 constexpr uint32_t LED_STEP8_START = 33;
 
 // LED indices for the 8x4 sequencer grid
-constexpr std::array<uint32_t, 32> LED_ARRAY = {
+constexpr etl::array<uint32_t, 32> LED_ARRAY = {
     1,  2,  3,  4,  // Step 1
     6,  7,  8,  9,  // Step 2
     10, 11, 12, 13, // Step 3
@@ -75,15 +77,15 @@ enum {
 };
 
 // Static array for multiplexer address pins (AnalogControls use 4)
-const std::array<uint32_t, 4> analog_address_pins = {
+const etl::array<uint32_t, 4> analog_address_pins = {
     DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
     DATO_SUBMARINE_MUX_ADDR3_PIN};
 // Static array for keypad column pins
-const std::array<uint32_t, 5> keypad_columns_pins = {
+const etl::array<uint32_t, 5> keypad_columns_pins = {
     DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
     DATO_SUBMARINE_KEYPAD_COL4_PIN, DATO_SUBMARINE_KEYPAD_COL5_PIN};
 // Static array for keypad decoder address pins (uses first 3)
-const std::array<uint32_t, 3> keypad_decoder_pins = {
+const etl::array<uint32_t, 3> keypad_decoder_pins = {
     DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
 
 // --- Keypad Configuration ---
@@ -91,11 +93,7 @@ constexpr uint8_t KEYPAD_ROWS = 8;
 constexpr uint8_t KEYPAD_COLS = std::size(keypad_columns_pins);
 constexpr size_t KEYPAD_TOTAL_KEYS = KEYPAD_ROWS * KEYPAD_COLS;
 
-// --- Drumpad Configuration ---
-constexpr uint8_t DRUMPAD_ADDRESS_1 = 0;
-constexpr uint8_t DRUMPAD_ADDRESS_2 = 2;
-constexpr uint8_t DRUMPAD_ADDRESS_3 = 11;
-constexpr uint8_t DRUMPAD_ADDRESS_4 = 13;
+constexpr etl::array<uint8_t, 4> drumpad_addresses = {0, 2, 11, 13};
 
 // --- Hardware Utilities ---
 

@@ -3,8 +3,8 @@
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal actual send functions
 #include "pico/sync.h"
 #include "pico/time.h" // For RP2040 specific timing (get_absolute_time, absolute_time_diff_us, is_nil_time)
-#include <optional>
 #include <cstdio> // For printf
+#include <optional>
 
 namespace musin::midi {
 

@@ -4,9 +4,9 @@
 #include "etl/array.h"
 #include "etl/queue.h" // Using a standard queue with external locking
 #include "midi_common.h"
-#include "midi_wrapper.h" // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
+#include "midi_wrapper.h"     // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
 #include "musin/hal/logger.h" // Include logger header
-#include <algorithm>      // For std::min, std::copy
+#include <algorithm>          // For std::min, std::copy
 #include <cstdint>
 
 namespace musin::midi {

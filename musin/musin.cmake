@@ -238,6 +238,8 @@ macro(musin_setup_hal_target)
     add_library(musin_hal_impl STATIC
         ${MUSIN_ROOT}/hal/analog_in.cpp
         ${MUSIN_ROOT}/hal/gpio.cpp
+        ${MUSIN_ROOT}/hal/null_logger.cpp
+        ${MUSIN_ROOT}/hal/pico_logger.cpp
     )
 
     # Implementation needs include paths to find musin headers
@@ -250,6 +252,7 @@ macro(musin_setup_hal_target)
         pico_stdlib
         hardware_adc
         hardware_gpio
+        etl::etl
     )
 
     # Public interface library for hal
@@ -259,6 +262,7 @@ macro(musin_setup_hal_target)
         hardware_pio
         hardware_dma
         hardware_adc
+        etl::etl
     )
     add_library(musin::hal ALIAS musin_hal)
 endmacro()

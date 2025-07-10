@@ -2,7 +2,7 @@
 #define MUSIN_MIDI_MIDI_MESSAGE_QUEUE_H
 
 #include "etl/array.h"
-#include "etl/queue_spsc_atomic.h" // Using SPSC atomic queue
+#include "etl/queue.h" // Using a standard queue with external locking
 #include "midi_common.h"
 #include "midi_wrapper.h" // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
 #include "musin/hal/logger.h" // Include logger header
@@ -88,9 +88,7 @@ struct OutgoingMidiMessage {
   }
 };
 
-extern etl::queue_spsc_atomic<OutgoingMidiMessage, MIDI_QUEUE_SIZE,
-                              etl::memory_model::MEMORY_MODEL_SMALL>
-    midi_output_queue;
+extern etl::queue<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
 
 bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &logger);
 

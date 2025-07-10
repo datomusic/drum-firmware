@@ -43,7 +43,8 @@ enum class RetriggerMode : uint8_t {
 
 class Drumpad : public etl::observable<etl::observer<DrumpadEvent>, 4> {
 public:
-  explicit Drumpad(uint8_t pad_id, const drum::config::drumpad::DrumpadConfig &config);
+  explicit Drumpad(uint8_t pad_id,
+                   const drum::config::drumpad::DrumpadConfig &config);
 
   Drumpad(const Drumpad &) = delete;
   Drumpad &operator=(const Drumpad &) = delete;
@@ -77,17 +78,15 @@ public:
   }
 
 private:
-  void notify_event(DrumpadEvent::Type type, std::optional<uint8_t> velocity, uint16_t raw_value);
-  void update_state_machine(std::uint16_t current_adc_value, absolute_time_t now);
+  void notify_event(DrumpadEvent::Type type, std::optional<uint8_t> velocity,
+                    uint16_t raw_value);
+  void update_state_machine(std::uint16_t current_adc_value,
+                            absolute_time_t now);
   uint8_t calculate_velocity(uint64_t time_diff_us) const;
 
   const uint8_t _pad_id;
-  const std::uint16_t _press_threshold;
-  const std::uint16_t _release_threshold;
-  const std::uint16_t _velocity_low_threshold;
-  const std::uint16_t _velocity_high_threshold;
-  const std::uint16_t _hold_threshold;
-  const std::uint16_t _single_retrigger_pressure_threshold;
+  const std::uint16_t _noise_threshold;
+  const std::uint16_t _trigger_threshold;
   const std::uint16_t _double_retrigger_pressure_threshold;
   const bool _active_low;
   const std::uint32_t _debounce_time_us;

@@ -55,12 +55,8 @@ constexpr uint8_t RETRIGGER_VELOCITY = 100;
 
 // Per-pad settings structure
 struct DrumpadConfig {
-  uint16_t press_threshold;
-  uint16_t release_threshold;
-  uint16_t velocity_low_threshold;
-  uint16_t velocity_high_threshold;
-  uint16_t hold_threshold;
-  uint16_t single_retrigger_pressure_threshold;
+  uint16_t noise_threshold;
+  uint16_t trigger_threshold;
   uint16_t double_retrigger_pressure_threshold;
   bool active_low;
   uint32_t debounce_time_us;
@@ -71,31 +67,23 @@ struct DrumpadConfig {
 
 // Since all pads are physically identical, we can define a single configuration
 constexpr DrumpadConfig default_drumpad_config = {
-    .press_threshold = 100,
-    .release_threshold = 100,
-    .velocity_low_threshold = 150,
-    .velocity_high_threshold = 3000,
-    .hold_threshold = 800,
-    .single_retrigger_pressure_threshold = 1200,
+    .noise_threshold = 150,
+    .trigger_threshold = 800,
     .double_retrigger_pressure_threshold = 2500,
     .active_low = true,
     .debounce_time_us = 5000,
-    .hold_time_us = 200000,
+    .hold_time_us = 100000,
     .max_velocity_time_us = 50000,
     .min_velocity_time_us = 500};
 
 // Configuration for the play button, which is also a drumpad
 constexpr DrumpadConfig play_button_config = {
-    .press_threshold = 150, // Simple press threshold
-    .release_threshold = 150,
-    .velocity_low_threshold = 0,              // Not used
-    .velocity_high_threshold = 0,             // Not used
-    .hold_threshold = 0,                      // Not used
-    .single_retrigger_pressure_threshold = 0, // Not used
+    .noise_threshold = 150,                   // Simple press threshold
+    .trigger_threshold = 0,                   // Not used
     .double_retrigger_pressure_threshold = 0, // Not used
     .active_low = true,
     .debounce_time_us = 5000,
-    .hold_time_us = 2000000,   // No hold detection
+    .hold_time_us = 1000000,   // No hold detection
     .max_velocity_time_us = 0, // Not used
     .min_velocity_time_us = 0  // Not used
 };

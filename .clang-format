@@ -3,5 +3,5 @@ AllowShortCaseLabelsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
-ColumnLimit: 100
 IndentWidth: 2
+Standard: c++20

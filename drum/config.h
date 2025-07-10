@@ -19,7 +19,8 @@ constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
 constexpr size_t MAX_PATH_LENGTH = 64;
 
 // MIDI Configuration
-constexpr uint8_t FALLBACK_MIDI_CHANNEL = 10; // Default MIDI Channel (GM Percussion Standard)
+constexpr uint8_t FALLBACK_MIDI_CHANNEL =
+    10; // Default MIDI Channel (GM Percussion Standard)
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = false;
 
 // SysEx Manufacturer and Device IDs
@@ -93,9 +94,9 @@ constexpr DrumpadConfig play_button_config = {
     .double_retrigger_pressure_threshold = 0, // Not used
     .active_low = true,
     .debounce_time_us = 5000,
-    .hold_time_us = 2000000, // No hold detection
-    .max_velocity_time_us = 0,   // Not used
-    .min_velocity_time_us = 0    // Not used
+    .hold_time_us = 2000000,   // No hold detection
+    .max_velocity_time_us = 0, // Not used
+    .min_velocity_time_us = 0  // Not used
 };
 
 // Create the array of configurations using the default for all pads
@@ -114,19 +115,25 @@ constexpr uint8_t RANDOM_PROBABILITY_DEFAULT =
     75; // 75% chance to flip steps when random is active
 } // namespace drumpad
 
-// MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md for general MIDI input
-// Track 1 - Kick/Bass Drums
-constexpr etl::array<uint8_t, 8> track_0_notes = {{35, 36, 37, 41, 43, 47, 48, 50}};
+// MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md for general
+// MIDI input Track 1 - Kick/Bass Drums
+constexpr etl::array<uint8_t, 8> track_0_notes = {
+    {35, 36, 37, 41, 43, 47, 48, 50}};
 // Track 2 - Snare Drums
-constexpr etl::array<uint8_t, 8> track_1_notes = {{38, 40, 39, 54, 56, 75, 76, 77}};
+constexpr etl::array<uint8_t, 8> track_1_notes = {
+    {38, 40, 39, 54, 56, 75, 76, 77}};
 // Track 3 - Percussion
-constexpr etl::array<uint8_t, 8> track_2_notes = {{45, 58, 59, 60, 61, 62, 63, 64}};
+constexpr etl::array<uint8_t, 8> track_2_notes = {
+    {45, 58, 59, 60, 61, 62, 63, 64}};
 // Track 4 - Hi-Hats & Cymbals
-constexpr etl::array<uint8_t, 8> track_3_notes = {{42, 44, 46, 49, 51, 52, 53, 57}};
+constexpr etl::array<uint8_t, 8> track_3_notes = {
+    {42, 44, 46, 49, 51, 52, 53, 57}};
 
-constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> track_note_ranges = {
-    {etl::span<const uint8_t>(track_0_notes), etl::span<const uint8_t>(track_1_notes),
-     etl::span<const uint8_t>(track_2_notes), etl::span<const uint8_t>(track_3_notes)}};
+constexpr etl::array<etl::span<const uint8_t>, NUM_DRUMPADS> track_note_ranges =
+    {{etl::span<const uint8_t>(track_0_notes),
+      etl::span<const uint8_t>(track_1_notes),
+      etl::span<const uint8_t>(track_2_notes),
+      etl::span<const uint8_t>(track_3_notes)}};
 
 // Note Definitions with Colors
 struct NoteDefinition {
@@ -134,47 +141,48 @@ struct NoteDefinition {
   uint32_t color; // 0xRRGGBB
 };
 
-constexpr etl::array<NoteDefinition, 32> global_note_definitions = {{
-  // Track 0 (Kick/Bass)
-  {35, 0xFF0000},
-  {36, 0xFF0020},
-  {37, 0xFF0040},
-  {41, 0xFF0060},
-  {43, 0xFF1010},
-  {47, 0xFF1020},
-  {48, 0xFF2040},
-  {50, 0xFF2060},
-  // Track 1 (Snare)
-  {38, 0x0000FF},
-  {40, 0x0028FF},
-  {39, 0x0050FF},
-  {54, 0x0078FF},
-  {56, 0x1010FF},
-  {75, 0x1028FF},
-  {76, 0x2050FF},
-  {77, 0x3078FF},
-  // Track 2 (Percussion)
-  {45, 0x00FF00},
-  {58, 0x00FF1E},
-  {59, 0x00FF3C},
-  {60, 0x00FF5A},
-  {61, 0x10FF10},
-  {62, 0x10FF1E},
-  {63, 0x10FF3C},
-  {64, 0x20FF5A},
-  // Track 3 (Hi-Hats/Cymbals)
-  {42, 0xFFFF00},
-  {44, 0xFFE100},
-  {46, 0xFFC300},
-  {49, 0xFFA500},
-  {51, 0xFFFF20},
-  {52, 0xFFE120},
-  {53, 0xFFC320},
-  {57, 0xFFA520}}};
+constexpr etl::array<NoteDefinition, 32> global_note_definitions = {
+    {// Track 0 (Kick/Bass)
+     {35, 0xFF0000},
+     {36, 0xFF0020},
+     {37, 0xFF0040},
+     {41, 0xFF0060},
+     {43, 0xFF1010},
+     {47, 0xFF1020},
+     {48, 0xFF2040},
+     {50, 0xFF2060},
+     // Track 1 (Snare)
+     {38, 0x0000FF},
+     {40, 0x0028FF},
+     {39, 0x0050FF},
+     {54, 0x0078FF},
+     {56, 0x1010FF},
+     {75, 0x1028FF},
+     {76, 0x2050FF},
+     {77, 0x3078FF},
+     // Track 2 (Percussion)
+     {45, 0x00FF00},
+     {58, 0x00FF1E},
+     {59, 0x00FF3C},
+     {60, 0x00FF5A},
+     {61, 0x10FF10},
+     {62, 0x10FF1E},
+     {63, 0x10FF3C},
+     {64, 0x20FF5A},
+     // Track 3 (Hi-Hats/Cymbals)
+     {42, 0xFFFF00},
+     {44, 0xFFE100},
+     {46, 0xFFC300},
+     {49, 0xFFA500},
+     {51, 0xFFFF20},
+     {52, 0xFFE120},
+     {53, 0xFFC320},
+     {57, 0xFFA520}}};
 
 // Analog Control Component Configuration
 namespace analog_controls {
-constexpr float FILTER_SMOOTHING_RATE = 6.0f; // Lower is slower, higher is faster
+constexpr float FILTER_SMOOTHING_RATE =
+    6.0f; // Lower is slower, higher is faster
 constexpr float RANDOM_ACTIVATION_THRESHOLD = 0.1f;
 constexpr float SWING_KNOB_CENTER_VALUE = 0.5f;
 constexpr uint8_t SWING_BASE_PERCENT = 50;

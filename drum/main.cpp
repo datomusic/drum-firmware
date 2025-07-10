@@ -147,7 +147,7 @@ int main() {
     musin::usb::background_update();
     midi_process_input();
     tempo_handler.update();
-    musin::midi::process_midi_output_queue();
+    musin::midi::process_midi_output_queue(logger); // Pass logger to queue processing
 
 #ifndef VERBOSE
     // Watchdog update for Release builds

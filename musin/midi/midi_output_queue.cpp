@@ -9,30 +9,21 @@ namespace musin::midi {
 etl::queue_spsc_atomic<OutgoingMidiMessage, MIDI_QUEUE_SIZE, etl::memory_model::MEMORY_MODEL_SMALL>
     midi_output_queue;
 
-bool enqueue_midi_message(const OutgoingMidiMessage &message) {
-  // For SPSC queue, push is ISR safe if this is the single producer context.
-  // If multiple contexts (ISRs, main loop) call this, a MPMC queue or explicit locking around
-  // push() would be safer. For now, we proceed with SPSC, assuming careful usage or future
-  // refinement if needed. The `etl::queue_spsc_atomic` is designed for one producer and one
-  // consumer. If `enqueue_midi_message` can be called from multiple ISRs or from an ISR and the
-  // main thread concurrently, then the `push` operation itself might need external protection if
-  // those calls could interleave at an instruction level that affects the queue's internal atomic
-  // operations. However, typically, the atomicity provided by the queue handles this for
-  // single-word operations.
+bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &logger) {
   if (!midi_output_queue.full()) {
     midi_output_queue.push(message);
     return true;
   }
-  // Optional: Handle queue full error (e.g., log, drop oldest, etc.)
-  // printf("MIDI QUEUE FULL!\n");
-  return false; // Dropping new message if queue is full
+  // Log queue full error
+  logger.debug("MIDI queue full - message dropped");
+  return false;
 }
 
 // Rate limiting for non-real-time messages
 constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME = 960; // 3125 bytes per second at 3 bytes each
 static absolute_time_t last_non_realtime_send_time = nil_time;
 
-void process_midi_output_queue() {
+void process_midi_output_queue(musin::Logger &logger) {
   if (midi_output_queue.empty()) {
     return;
   }
@@ -52,13 +43,14 @@ void process_midi_output_queue() {
     }
   }
 
-  if (!can_send && (message_to_process.type == MidiMessageType::NOTE_ON ||
-                    message_to_process.type == MidiMessageType::NOTE_OFF ||
-                    message_to_process.type == MidiMessageType::CONTROL_CHANGE)) {
-    // printf("MIDI Q: Non-RT msg (type %d) deferred by rate limit. Time since last: %lld us\n",
-    // (int)message_to_process.type, is_nil_time(last_non_realtime_send_time) ? -1 :
-    // absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time())); // More detailed
-    // debug
+  if (!can_send) {
+    // Log deferred message with type and time since last send
+    int64_t time_since_last = is_nil_time(last_non_realtime_send_time) 
+        ? -1 
+        : absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time());
+    logger.debug("Deferred MIDI type %d: time since last %d us", 
+                 static_cast<int>(message_to_process.type), 
+                 static_cast<int>(time_since_last));
   }
 
   if (can_send) {
@@ -66,10 +58,11 @@ void process_midi_output_queue() {
     OutgoingMidiMessage message = message_to_process; // Copy the message
     midi_output_queue.pop();                          // Remove from queue
 
+    // Log message processing
+    logger.debug("Processing MIDI type %d", static_cast<int>(message.type));
+
     switch (message.type) {
     case MidiMessageType::NOTE_ON:
-      // printf("MIDI Q: Processing NOTE_ON ch=%d n=%d v=%d\n", message.data.note_message.channel,
-      // message.data.note_message.note, message.data.note_message.velocity); // DEBUG
       MIDI::internal::_sendNoteOn_actual(message.data.note_message.channel,
                                          message.data.note_message.note,
                                          message.data.note_message.velocity);
@@ -103,9 +96,6 @@ void process_midi_output_queue() {
       break;
     }
   }
-  // If a non-real-time message was deferred due to rate limiting,
-  // it remains at the front of the queue and will be re-evaluated
-  // on the next call to process_midi_output_queue().
 }
 
 } // namespace musin::midi

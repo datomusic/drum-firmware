@@ -5,6 +5,7 @@
 #include "etl/queue_spsc_atomic.h" // Using SPSC atomic queue
 #include "midi_common.h"
 #include "midi_wrapper.h" // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
+#include "musin/hal/logger.h" // Include logger header
 #include <algorithm>      // For std::min, std::copy
 #include <cstdint>
 
@@ -91,9 +92,9 @@ extern etl::queue_spsc_atomic<OutgoingMidiMessage, MIDI_QUEUE_SIZE,
                               etl::memory_model::MEMORY_MODEL_SMALL>
     midi_output_queue;
 
-bool enqueue_midi_message(const OutgoingMidiMessage &message);
+bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &logger);
 
-void process_midi_output_queue();
+void process_midi_output_queue(musin::Logger &logger);
 
 } // namespace musin::midi
 

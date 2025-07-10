@@ -269,10 +269,10 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
 PizzaControls::AnalogControlComponent::AnalogControlComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
       mux_controls{
-          AnalogControl{FILTER, true}, AnalogControl{PITCH1, true}, AnalogControl{PITCH2, true},
-          AnalogControl{RANDOM, true}, AnalogControl{VOLUME},       AnalogControl{PITCH3, true},
-          AnalogControl{SWING, true},  AnalogControl{CRUSH, true},  AnalogControl{REPEAT, true},
-          AnalogControl{SPEED, false}, AnalogControl{PITCH4, true}},
+          AnalogControl{FILTER, true, true}, AnalogControl{PITCH1, true, true}, AnalogControl{PITCH2, true, true},
+          AnalogControl{RANDOM, true, true}, AnalogControl{VOLUME, false, true},       AnalogControl{PITCH3, true, true},
+          AnalogControl{SWING, true, true},  AnalogControl{CRUSH, true, true},  AnalogControl{REPEAT, true, true},
+          AnalogControl{SPEED, false, true}, AnalogControl{PITCH4, true, true}},
       control_observers{
           AnalogControlEventHandler{this, FILTER}, AnalogControlEventHandler{this, PITCH1},
           AnalogControlEventHandler{this, PITCH2}, AnalogControlEventHandler{this, RANDOM},

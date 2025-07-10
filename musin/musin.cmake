@@ -208,6 +208,7 @@ endmacro()
 macro(musin_setup_ui_target)
     # Private implementation library for musin ui
     add_library(musin_ui_impl STATIC
+        ${MUSIN_UI}/adaptive_filter.cpp
         ${MUSIN_UI}/analog_control.cpp
         ${MUSIN_UI}/button.cpp
         ${MUSIN_UI}/drumpad.cpp

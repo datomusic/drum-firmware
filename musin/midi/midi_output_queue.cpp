@@ -48,9 +48,10 @@ void process_midi_output_queue(musin::Logger &logger) {
     int64_t time_since_last = is_nil_time(last_non_realtime_send_time) 
         ? -1 
         : absolute_time_diff_us(last_non_realtime_send_time, get_absolute_time());
-    logger.debug("Deferred MIDI type %d: time since last %d us", 
-                 static_cast<int>(message_to_process.type), 
-                 static_cast<int>(time_since_last));
+    logger.log(LogLevel::DEBUG, "Deferred MIDI type",
+               static_cast<int32_t>(message_to_process.type));
+    logger.log(LogLevel::DEBUG, "Time since last send (us)",
+               static_cast<int32_t>(time_since_last));
   }
 
   if (can_send) {
@@ -59,7 +60,7 @@ void process_midi_output_queue(musin::Logger &logger) {
     midi_output_queue.pop();                          // Remove from queue
 
     // Log message processing
-    logger.debug("Processing MIDI type %d", static_cast<int>(message.type));
+    logger.log(LogLevel::DEBUG, "Processing MIDI type", static_cast<int32_t>(message.type));
 
     switch (message.type) {
     case MidiMessageType::NOTE_ON:

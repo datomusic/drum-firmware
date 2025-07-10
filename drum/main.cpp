@@ -3,6 +3,7 @@
 #include "musin/hal/pico_logger.h"
 #include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_sender.h"
+#include "musin/midi/midi_output_queue.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_out.h"
@@ -144,7 +145,7 @@ int main() {
     musin::usb::background_update();
     midi_process_input();
     tempo_handler.update();
-    // musin::midi::process_midi_output_queue();
+    musin::midi::process_midi_output_queue();
 
 #ifndef VERBOSE
     // Watchdog update for Release builds

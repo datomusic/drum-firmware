@@ -7,6 +7,7 @@
 #include "etl/queue.h"
 #include "events.h" // Include NoteEvent definition
 #include "musin/hal/logger.h"
+#include "musin/midi/midi_sender.h"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -52,7 +53,7 @@ public:
   explicit MessageRouter(
       AudioEngine &audio_engine,
       SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller,
-      musin::Logger &logger);
+      musin::midi::MidiSender &midi_sender, musin::Logger &logger);
 
   // Delete copy and move operations
   MessageRouter(const MessageRouter &) = delete;
@@ -161,6 +162,7 @@ private:
   etl::queue<drum::Events::NoteEvent, 32> note_event_queue_;
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
+  musin::midi::MidiSender &_midi_sender;
   musin::Logger &logger_;
   OutputMode _output_mode;
   LocalControlMode _local_control_mode;

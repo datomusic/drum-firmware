@@ -2,8 +2,8 @@
 #include "musin/hal/null_logger.h"
 #include "musin/hal/pico_logger.h"
 #include "musin/midi/midi_input_queue.h"
-#include "musin/midi/midi_sender.h"
 #include "musin/midi/midi_output_queue.h"
+#include "musin/midi/midi_sender.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_out.h"
@@ -56,7 +56,9 @@ static musin::timing::TempoHandler
 static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
-static musin::midi::MidiSender midi_sender(musin::midi::MidiSendStrategy::QUEUED, logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
+static musin::midi::MidiSender
+    midi_sender(musin::midi::MidiSendStrategy::QUEUED,
+                logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
 static drum::MessageRouter message_router(audio_engine, sequencer_controller, midi_sender, logger);
 
 // View

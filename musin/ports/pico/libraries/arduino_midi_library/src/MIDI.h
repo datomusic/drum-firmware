@@ -282,6 +282,7 @@ private:
     MidiMessage     mMessage;
     unsigned long   mLastMessageSentTime;
     unsigned long   mLastMessageReceivedTime;
+    unsigned long   mSysExReceiveTime;
     unsigned long   mSenderActiveSensingPeriodicity;
     bool            mReceiverActiveSensingActivated;
     int8_t          mLastError;

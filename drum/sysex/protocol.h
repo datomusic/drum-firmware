@@ -298,7 +298,13 @@ private:
       write_buffer_pos += bytes_decoded;
 
       if (write_buffer_pos >= write_buffer.size()) {
-        flush_write_buffer();
+        if (!flush_write_buffer()) {
+          logger.error("SysEx: Failed to write buffer, aborting transfer.");
+          opened_file.reset();
+          state = State::Idle;
+          send_reply(Tag::Nack);
+          return Result::FileError;
+        }
       }
       last_activity_time_ = now;
       send_reply(Tag::Ack);
@@ -311,11 +317,16 @@ private:
     }
   }
 
-  constexpr void flush_write_buffer() {
+  constexpr bool flush_write_buffer() {
     if (opened_file.has_value() && write_buffer_pos > 0) {
-      opened_file->write(etl::span{write_buffer.cbegin(), write_buffer_pos});
+      const size_t written = opened_file->write(etl::span{write_buffer.cbegin(), write_buffer_pos});
+      if (written != write_buffer_pos) {
+        logger.error("SysEx: Failed to write all bytes to file.");
+        return false;
+      }
       write_buffer_pos = 0;
     }
+    return true;
   }
 
   constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,

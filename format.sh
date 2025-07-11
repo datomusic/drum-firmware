@@ -26,10 +26,7 @@ function run(){
     -not -path './musin/audio/waveshaper.*' \
     -not -path './musin/audio/buffered_reader.h' \
     -not -path './musin/audio/audio_memory_reader.h' \
-    -not -path './experiments/support/samples/*' \
-    -not -path './experiments/pizza_example/*' \
-    -not -path './experiments/midi_sample_player/*' \
-    -not -path './experiments/drum_pad_test/*' \
+    -not -path './experiments/*' \
     -exec clang-format -Werror "$args" {} +
 }
 

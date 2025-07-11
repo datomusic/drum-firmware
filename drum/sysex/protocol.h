@@ -85,9 +85,11 @@ template <typename FileOperations> struct Protocol {
   };
 
   template <typename Sender>
-  constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply, absolute_time_t now) {
+  constexpr Result handle_chunk(const Chunk &chunk, Sender send_reply,
+                                absolute_time_t now) {
     if (chunk.size() < 5) {
-      logger.error("SysEx: Short message, size", static_cast<uint32_t>(chunk.size()));
+      logger.error("SysEx: Short message, size",
+                   static_cast<uint32_t>(chunk.size()));
       return Result::ShortMessage;
     }
 
@@ -105,8 +107,8 @@ template <typename FileOperations> struct Protocol {
 
     const bool body_was_present = (iterator != chunk.cend());
     etl::array<uint16_t, Chunk::Data::SIZE> values{};
-    const auto value_count =
-        codec::decode_3_to_16bit(iterator, chunk.cend(), values.begin(), values.end());
+    const auto value_count = codec::decode_3_to_16bit(
+        iterator, chunk.cend(), values.begin(), values.end());
 
     if (value_count == 0 && body_was_present) {
       logger.error("SysEx: Present body could not be decoded.");
@@ -137,7 +139,8 @@ template <typename FileOperations> struct Protocol {
         return *maybe_result;
       }
 
-      logger.error("SysEx: Unknown command with no body. Tag", static_cast<uint32_t>(tag));
+      logger.error("SysEx: Unknown command with no body. Tag",
+                   static_cast<uint32_t>(tag));
       if (state == State::FileTransfer) {
         opened_file.reset();
         state = State::Idle;
@@ -149,7 +152,8 @@ template <typename FileOperations> struct Protocol {
 
   constexpr bool check_timeout(absolute_time_t now) {
     if (state == State::FileTransfer) {
-      if (absolute_time_diff_us(last_activity_time_, now) > static_cast<int64_t>(TIMEOUT_US)) {
+      if (absolute_time_diff_us(last_activity_time_, now) >
+          static_cast<int64_t>(TIMEOUT_US)) {
         logger.warn("SysEx: File transfer timed out.");
         flush_write_buffer();
         opened_file.reset();
@@ -190,7 +194,8 @@ private:
   };
 
   template <typename Sender>
-  constexpr etl::optional<Result> handle_no_body(const uint16_t tag, Sender send_reply) {
+  constexpr etl::optional<Result> handle_no_body(const uint16_t tag,
+                                                 Sender send_reply) {
     switch (tag) {
     case Tag::RebootBootloader:
       return Result::Reboot;
@@ -223,7 +228,8 @@ private:
 
   template <typename Sender, typename ValueIt>
   constexpr Result handle_packet(const uint16_t tag, ValueIt value_iterator,
-                                 const ValueIt values_end, Sender send_reply, absolute_time_t now) {
+                                 const ValueIt values_end, Sender send_reply,
+                                 absolute_time_t now) {
     etl::array<uint8_t, FileOperations::BlockSize> byte_array;
     auto byte_iterator = byte_array.begin();
     size_t byte_count = 0;
@@ -252,10 +258,12 @@ private:
   }
 
   template <typename Sender>
-  constexpr Result handle_begin_file_write(const etl::span<const uint8_t> &bytes, Sender send_reply,
-                                           absolute_time_t now) {
+  constexpr Result
+  handle_begin_file_write(const etl::span<const uint8_t> &bytes,
+                          Sender send_reply, absolute_time_t now) {
     if (state != State::Idle) {
-      logger.warn("SysEx: BeginFileWrite received while another file transfer is in progress. "
+      logger.warn("SysEx: BeginFileWrite received while another file transfer "
+                  "is in progress. "
                   "Canceling previous transfer.");
       flush_write_buffer();
       opened_file.reset();
@@ -289,17 +297,20 @@ private:
   }
 
   template <typename Sender, typename InputIt>
-  constexpr Result handle_file_bytes_fast(InputIt start, InputIt end, Sender send_reply,
+  constexpr Result handle_file_bytes_fast(InputIt start, InputIt end,
+                                          Sender send_reply,
                                           absolute_time_t now) {
     if (state != State::FileTransfer) {
-      logger.error("SysEx: FileBytes received while not in a file transfer state.");
+      logger.error(
+          "SysEx: FileBytes received while not in a file transfer state.");
       send_reply(Tag::Nack);
       return Result::FileError;
     }
 
     if (opened_file.has_value()) {
       const size_t bytes_decoded = codec::decode_8_to_7(
-          start, end, write_buffer.begin() + write_buffer_pos, write_buffer.end());
+          start, end, write_buffer.begin() + write_buffer_pos,
+          write_buffer.end());
       write_buffer_pos += bytes_decoded;
 
       if (write_buffer_pos >= write_buffer.size()) {
@@ -324,7 +335,8 @@ private:
 
   constexpr bool flush_write_buffer() {
     if (opened_file.has_value() && write_buffer_pos > 0) {
-      const size_t written = opened_file->write(etl::span{write_buffer.cbegin(), write_buffer_pos});
+      const size_t written = opened_file->write(
+          etl::span{write_buffer.cbegin(), write_buffer_pos});
       if (written != write_buffer_pos) {
         logger.error("SysEx: Failed to write all bytes to file.");
         return false;
@@ -334,9 +346,11 @@ private:
     return true;
   }
 
-  constexpr bool check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
-                                                   const size_t chunk_size) const {
-    if (chunk_size >= 4 && (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
+  constexpr bool
+  check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
+                                    const size_t chunk_size) const {
+    if (chunk_size >= 4 &&
+        (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
         (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
         (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&
         (*(iterator + 3)) == drum::config::sysex::DEVICE_ID) {
@@ -347,8 +361,9 @@ private:
     return false;
   }
 
-  static constexpr SanitizeResult sanitize_path(const etl::span<const uint8_t> &raw_path,
-                                                char (&out_path)[drum::config::MAX_PATH_LENGTH]) {
+  static constexpr SanitizeResult
+  sanitize_path(const etl::span<const uint8_t> &raw_path,
+                char (&out_path)[drum::config::MAX_PATH_LENGTH]) {
     for (size_t i = 0; i < drum::config::MAX_PATH_LENGTH; ++i) {
       out_path[i] = 0;
     }

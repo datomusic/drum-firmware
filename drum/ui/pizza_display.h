@@ -22,10 +22,11 @@
 
 namespace drum {
 
-class PizzaDisplay : public etl::observer<musin::timing::TempoEvent>,
-                     public etl::observer<drum::Events::NoteEvent>,
-                     public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
-                     public etl::observer<drum::Events::ParameterChangeEvent> {
+class PizzaDisplay
+    : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observer<drum::Events::NoteEvent>,
+      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+      public etl::observer<drum::Events::ParameterChangeEvent> {
 public:
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -38,9 +39,11 @@ public:
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
-  explicit PizzaDisplay(drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
-                            &sequencer_controller_ref,
-                        musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger_ref);
+  explicit PizzaDisplay(
+      drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+          &sequencer_controller_ref,
+      musin::timing::TempoHandler &tempo_handler_ref,
+      musin::Logger &logger_ref);
 
   PizzaDisplay(const PizzaDisplay &) = delete;
   PizzaDisplay &operator=(const PizzaDisplay &) = delete;
@@ -53,8 +56,8 @@ public:
   bool init();
 
   /**
-   * @brief Updates the entire display by drawing all elements and sending to hardware.
-   * This should be the primary method called from the main loop.
+   * @brief Updates the entire display by drawing all elements and sending to
+   * hardware. This should be the primary method called from the main loop.
    * @param now The current absolute time, used for animations.
    */
   void update(absolute_time_t now);
@@ -84,18 +87,22 @@ public:
   void set_play_button_led(Color color);
 
   /**
-   * @brief Set the color of a keypad LED based on intensity. Does not call show().
+   * @brief Set the color of a keypad LED based on intensity. Does not call
+   * show().
    * @param row Row index (0-7).
-   * @param col Column index (0-4). Note: Col 4 (sample select) might not have a direct LED.
-   * @param intensity Intensity value (0-127), used to scale a base color (e.g., white).
+   * @param col Column index (0-4). Note: Col 4 (sample select) might not have a
+   * direct LED.
+   * @param intensity Intensity value (0-127), used to scale a base color (e.g.,
+   * white).
    */
   void set_keypad_led(uint8_t row, uint8_t col, uint8_t intensity);
 
-  // get_note_color is removed, color is fetched via get_color_for_midi_note using
-  // config::global_note_definitions
+  // get_note_color is removed, color is fetched via get_color_for_midi_note
+  // using config::global_note_definitions
 
   /**
-   * @brief Handles TempoEvent notifications for internal display logic (e.g., pulsing).
+   * @brief Handles TempoEvent notifications for internal display logic (e.g.,
+   * pulsing).
    */
   void notification(musin::timing::TempoEvent event);
 
@@ -105,7 +112,8 @@ public:
   void notification(drum::Events::NoteEvent event);
 
   /**
-   * @brief Handles SysExTransferStateChangeEvent notifications to show transfer status.
+   * @brief Handles SysExTransferStateChangeEvent notifications to show transfer
+   * status.
    */
   void notification(drum::Events::SysExTransferStateChangeEvent event);
 
@@ -130,12 +138,14 @@ public:
   /**
    * @brief Gets the start time of the fade for a specific drumpad.
    * @param pad_index The index of the drumpad (0-based).
-   * @return absolute_time_t The time the fade started, or nil_time if not fading.
+   * @return absolute_time_t The time the fade started, or nil_time if not
+   * fading.
    */
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
-   * @brief Update the sequencer LEDs to reflect the current state of the sequencer.
+   * @brief Update the sequencer LEDs to reflect the current state of the
+   * sequencer.
    */
   void draw_sequencer_state(absolute_time_t now);
 
@@ -159,37 +169,44 @@ private:
   void draw_animations(absolute_time_t now);
 
   /**
-   * @brief Updates the internal state of the highlight pulse based on tempo ticks.
+   * @brief Updates the internal state of the highlight pulse based on tempo
+   * ticks.
    */
   void update_highlight_state();
 
   /**
-   * @brief Calculate the LED color for a sequencer step based on note and velocity.
+   * @brief Calculate the LED color for a sequencer step based on note and
+   * velocity.
    * @param step The sequencer step data.
    * @return Color The calculated color, or black if step is disabled/invalid.
    */
   Color calculate_step_color(const musin::timing::Step &step) const;
 
   /**
-   * @brief Apply a pulsing highlight effect to a color based on the current pulse state.
+   * @brief Apply a pulsing highlight effect to a color based on the current
+   * pulse state.
    * @param base_color The base color.
    * @return Color The highlighted color.
    */
   Color apply_pulsing_highlight(Color base_color) const;
 
   /**
-   * @brief Get the physical LED index corresponding to a sequencer track and step.
+   * @brief Get the physical LED index corresponding to a sequencer track and
+   * step.
    * @param track_idx The track index (0-based).
    * @param step_idx The step index (0-based).
-   * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
+   * @return std::optional<uint32_t> The physical LED index if valid, otherwise
+   * std::nullopt.
    */
-  std::optional<uint32_t> get_sequencer_led_index(size_t track_idx, size_t step_idx) const;
+  std::optional<uint32_t> get_sequencer_led_index(size_t track_idx,
+                                                  size_t step_idx) const;
 
   /**
    * @brief Get the physical LED index corresponding to a keypad row and column.
    * @param row The keypad row index (0-7).
    * @param col The keypad column index (0-3 for sequencer LEDs).
-   * @return std::optional<uint32_t> The physical LED index if valid, otherwise std::nullopt.
+   * @return std::optional<uint32_t> The physical LED index if valid, otherwise
+   * std::nullopt.
    */
   std::optional<uint32_t> get_keypad_led_index(uint8_t row, uint8_t col) const;
 
@@ -204,7 +221,8 @@ private:
 
   musin::drivers::WS2812_DMA<NUM_LEDS> _leds;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
-  etl::array<std::optional<Color>, SEQUENCER_TRACKS_DISPLAYED> _track_override_colors;
+  etl::array<std::optional<Color>, SEQUENCER_TRACKS_DISPLAYED>
+      _track_override_colors;
 
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
@@ -222,11 +240,12 @@ private:
   void update_track_override_colors();
 };
 
-inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t track_idx,
-                                                                     size_t step_idx) const {
+inline std::optional<uint32_t>
+PizzaDisplay::get_sequencer_led_index(size_t track_idx, size_t step_idx) const {
   // Map logical track index to physical column index (0->3, 1->2, 2->1, 3->0)
   size_t physical_col_idx = (SEQUENCER_TRACKS_DISPLAYED - 1) - track_idx;
-  size_t led_array_index = step_idx * SEQUENCER_TRACKS_DISPLAYED + physical_col_idx;
+  size_t led_array_index =
+      step_idx * SEQUENCER_TRACKS_DISPLAYED + physical_col_idx;
 
   if (led_array_index < LED_ARRAY.size()) {
     return LED_ARRAY[led_array_index];
@@ -234,7 +253,8 @@ inline std::optional<uint32_t> PizzaDisplay::get_sequencer_led_index(size_t trac
   return std::nullopt;
 }
 
-inline std::optional<uint32_t> PizzaDisplay::get_keypad_led_index(uint8_t row, uint8_t col) const {
+inline std::optional<uint32_t>
+PizzaDisplay::get_keypad_led_index(uint8_t row, uint8_t col) const {
   if (col >= SEQUENCER_TRACKS_DISPLAYED) {
     return std::nullopt;
   }

@@ -82,13 +82,6 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     if (time_in_state >= _hold_time_us) {
       _current_state = DrumpadState::HOLDING;
       notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);
-      if (current_adc_value >= _double_retrigger_pressure_threshold) {
-        _current_retrigger_mode = RetriggerMode::Double;
-      } else if (current_adc_value >= _trigger_threshold) {
-        _current_retrigger_mode = RetriggerMode::Single;
-      } else {
-        _current_retrigger_mode = RetriggerMode::Off;
-      }
     } else if (current_adc_value < _noise_threshold) {
       _current_state = DrumpadState::DEBOUNCING_RELEASE;
       _current_retrigger_mode = RetriggerMode::Off;

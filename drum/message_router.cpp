@@ -11,14 +11,19 @@ namespace drum {
 
 namespace { // Anonymous namespace for internal linkage
 
-void send_midi_cc(const uint8_t channel, const uint8_t cc_number, const uint8_t value) {
-  MIDI::sendControlChange(cc_number, value, channel);
+void send_midi_cc([[maybe_unused]] const uint8_t channel, [[maybe_unused]] const uint8_t cc_number,
+                  [[maybe_unused]] const uint8_t value) {
+  // This function is no longer used directly for sending MIDI CCs from MessageRouter
+  // as MidiSender will handle it.
+  // MIDI::sendControlChange(cc_number, value, channel);
 }
 
-void send_midi_note(const uint8_t channel, const uint8_t note_number, const uint8_t velocity) {
-  // The underlying library handles Note On/Off based on velocity
-  // Use sendNoteOn for both Note On (velocity > 0) and Note Off (velocity == 0)
-  MIDI::sendNoteOn(note_number, velocity, channel);
+void send_midi_note([[maybe_unused]] const uint8_t channel,
+                    [[maybe_unused]] const uint8_t note_number,
+                    [[maybe_unused]] const uint8_t velocity) {
+  // This function is no longer used directly for sending MIDI notes from MessageRouter
+  // as MidiSender will handle it.
+  // MIDI::sendNoteOn(note_number, velocity, channel);
 }
 
 struct ParameterMapping {
@@ -103,9 +108,11 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
 MessageRouter::MessageRouter(
     AudioEngine &audio_engine,
     SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
-        &sequencer_controller)
+        &sequencer_controller,
+    musin::midi::MidiSender &midi_sender, musin::Logger &logger)
     : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
-      _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
+      _midi_sender(midi_sender), logger_(logger), _output_mode(OutputMode::BOTH),
+      _local_control_mode(LocalControlMode::ON),
       _previous_local_control_mode(std::nullopt) { // Default local control to ON
   note_event_queue_.clear();
   // TODO: Initialize _track_sample_map if added
@@ -156,7 +163,7 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
       uint8_t midi_channel = drum::config::FALLBACK_MIDI_CHANNEL;
       uint8_t midi_value = static_cast<uint8_t>(std::round(value * 127.0f));
       midi_value = std::min(midi_value, static_cast<uint8_t>(127));
-      send_midi_cc(midi_channel, cc_number, midi_value);
+      _midi_sender.sendControlChange(midi_channel, cc_number, midi_value);
       // TODO: Future enhancement - Add logic here to send 14-bit CC if desired
     }
   }
@@ -210,7 +217,7 @@ void MessageRouter::update() {
     note_event_queue_.pop();
 
     if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
-      send_midi_note(drum::config::FALLBACK_MIDI_CHANNEL, event.note, event.velocity);
+      _midi_sender.sendNoteOn(drum::config::FALLBACK_MIDI_CHANNEL, event.note, event.velocity);
     }
 
     if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
@@ -225,9 +232,11 @@ void MessageRouter::update() {
 // --- MessageRouter Notification Implementation ---
 
 void MessageRouter::notification(drum::Events::NoteEvent event) {
-  if (!note_event_queue_.full()) {
-    note_event_queue_.push(event);
+  if (note_event_queue_.full()) {
+    logger_.warn("Note event queue full, dropping event.");
+    return;
   }
+  note_event_queue_.push(event);
 }
 
 void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {

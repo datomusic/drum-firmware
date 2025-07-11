@@ -31,6 +31,7 @@ add_executable(${EXECUTABLE_NAME}
   sample_repository.cpp
   usb_descriptors.c
   sysex_file_handler.cpp
+  ../musin/midi/midi_sender.cpp
   drumpad_factory.cpp
 )
 

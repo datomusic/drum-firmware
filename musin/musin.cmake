@@ -239,6 +239,8 @@ macro(musin_setup_hal_target)
     # Private implementation library for musin hal
     add_library(musin_hal_impl STATIC
         ${MUSIN_ROOT}/hal/gpio.cpp
+        ${MUSIN_ROOT}/hal/null_logger.cpp
+        ${MUSIN_ROOT}/hal/pico_logger.cpp
         ${MUSIN_ROOT}/hal/analog_mux_scanner.cpp
         ${MUSIN_ROOT}/hal/adc_defs.cpp
     )
@@ -263,6 +265,7 @@ macro(musin_setup_hal_target)
         hardware_pio
         hardware_dma
         hardware_adc
+        etl::etl
     )
     add_library(musin::hal ALIAS musin_hal)
 endmacro()

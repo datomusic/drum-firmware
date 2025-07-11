@@ -255,14 +255,14 @@ PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
 
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-
+  logger.debug("Drumpad ", static_cast<uint32_t>(event.pad_index));
   auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
   if (event.velocity.has_value()) {
-    logger.debug("Velocity ", event.velocity.value());
+    logger.debug("Velocity ", static_cast<uint32_t>(event.velocity.value()));
   }
   if (event.pad_index < config::NUM_DRUMPADS) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
-      logger.debug("PRESSED ", event.pad_index);
+      logger.debug("PRESSED ", static_cast<uint32_t>(event.pad_index));
       seq_controller.set_pad_pressed_state(event.pad_index, true);
       if (event.velocity.has_value()) {
         uint8_t note = parent->get_note_for_pad(event.pad_index);
@@ -270,15 +270,15 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
         seq_controller.trigger_note_on(event.pad_index, note, velocity);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
-      logger.debug("RELEASED ", event.pad_index);
+      logger.debug("RELEASED ", static_cast<uint32_t>(event.pad_index));
       seq_controller.set_pad_pressed_state(event.pad_index, false);
       uint8_t note = parent->get_note_for_pad(event.pad_index);
       seq_controller.trigger_note_off(event.pad_index, note);
     } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
-      logger.debug("HELD ", event.pad_index);
+      logger.debug("HELD ", static_cast<uint32_t>(event.pad_index));
     }
   }
-  logger.debug("Raw_value ", event.raw_value);
+  logger.debug("Raw_value ", static_cast<uint32_t>(event.raw_value));
 }
 
 // --- AnalogControlComponent ---
@@ -444,10 +444,10 @@ void PizzaControls::PlaybuttonComponent::update() {
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-  logger.debug("Playbutton event for pad: ", event.pad_index);
+  logger.debug("Playbutton event for pad: ", static_cast<uint32_t>(event.pad_index));
 
   if (event.velocity.has_value()) {
-    logger.debug("Velocity ", event.velocity.value());
+    logger.debug("Velocity ", static_cast<uint32_t>(event.velocity.value()));
   }
 
   if (event.type == musin::ui::DrumpadEvent::Type::Press) {
@@ -458,7 +458,7 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
     logger.debug("PLAYBUTTON HELD");
   }
-  logger.debug("Raw value ", event.raw_value);
+  logger.debug("Raw value ", static_cast<uint32_t>(event.raw_value));
 }
 
 } // namespace drum

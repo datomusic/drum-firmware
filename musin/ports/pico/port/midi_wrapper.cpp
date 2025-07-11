@@ -1,9 +1,17 @@
 #include "musin/midi/midi_wrapper.h"
 #include "../pico_uart.h"
+#include "musin/hal/null_logger.h"
+#include "musin/hal/pico_logger.h"
 #include "musin/midi/midi_output_queue.h" // For enqueuing messages
 #include <MIDI.h>
 #include <USB-MIDI.h>
 #include <stdio.h> // For printf
+
+#ifdef VERBOSE
+static musin::PicoLogger midi_send_logger;
+#else
+static musin::NullLogger midi_send_logger;
+#endif
 
 struct MIDISettings {
   /*! Running status enables short messages when sending multiple values
@@ -99,29 +107,29 @@ void MIDI::read() {
 
 void MIDI::sendRealTime(const midi::MidiType message) {
   musin::midi::OutgoingMidiMessage msg(message);
-  musin::midi::enqueue_midi_message(msg);
+  musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
 void MIDI::sendControlChange(const byte cc, const byte value, const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, cc, value);
-  musin::midi::enqueue_midi_message(msg);
+  musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
 void MIDI::sendNoteOn(const byte note, const byte velocity, const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, true);
-  bool enqueued = musin::midi::enqueue_midi_message(msg);
+  bool enqueued = musin::midi::enqueue_midi_message(msg, midi_send_logger);
   if (!enqueued) {
   }
 }
 
 void MIDI::sendNoteOff(const byte note, const byte velocity, const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, false);
-  musin::midi::enqueue_midi_message(msg);
+  musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
 void MIDI::sendPitchBend(const int bend, const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, bend);
-  musin::midi::enqueue_midi_message(msg);
+  musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
 void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
@@ -131,7 +139,7 @@ void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
   // }
   // printf("\n");
   musin::midi::OutgoingMidiMessage msg(bytes, length);
-  musin::midi::enqueue_midi_message(msg);
+  musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
 // --- Internal Actual Send Functions (Called by Queue Processor) ---

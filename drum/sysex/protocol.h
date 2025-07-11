@@ -134,7 +134,7 @@ template <typename FileOperations> struct Protocol {
         return *maybe_result;
       }
 
-      logger.error("SysEx: Unknown command with no body. Tag", tag);
+      logger.error("SysEx: Unknown command with no body. Tag", static_cast<uint32_t>(tag));
       if (state == State::FileTransfer) {
         opened_file.reset();
         state = State::Idle;
@@ -236,7 +236,7 @@ private:
     case BeginFileWrite:
       return handle_begin_file_write(bytes, send_reply, now);
     default:
-      logger.error("SysEx: Unknown tag with body", tag);
+      logger.error("SysEx: Unknown tag with body", static_cast<uint32_t>(tag));
       if (state == State::FileTransfer) {
         opened_file.reset();
         state = State::Idle;

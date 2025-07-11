@@ -1,11 +1,14 @@
 #ifndef FILESYSTEM_H_A1PWKQIM
 #define FILESYSTEM_H_A1PWKQIM
 
+#include <cstdint>
+
 namespace musin::filesystem {
 
-// Forward declarations for opaque C types used by the filesystem
-struct filesystem_t;
-struct blockdevice_t;
+struct StorageInfo {
+  uint32_t total_bytes;
+  uint32_t free_bytes;
+};
 
 /**
  * @brief Initializes the filesystem.
@@ -37,6 +40,13 @@ bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash);
  * @param path The directory path to list (e.g., "/").
  */
 void list_files(const char *path);
+
+/**
+ * @brief Gets the total and free space of the filesystem.
+ *
+ * @return A StorageInfo struct containing the total and free space in bytes.
+ */
+StorageInfo get_storage_info();
 
 } // namespace musin::filesystem
 

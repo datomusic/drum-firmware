@@ -1,5 +1,6 @@
 #include "midi_functions.h"
 #include "message_router.h" // For drum::MessageRouter
+#include "musin/filesystem/filesystem.h"
 #include "musin/midi/midi_input_queue.h"
 #include "sysex_file_handler.h"
 
@@ -41,6 +42,7 @@ namespace { // Anonymous namespace for internal linkage
 void midi_print_identity();
 void midi_print_firmware_version();
 void midi_print_serial_number();
+void midi_send_storage_info();
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
 void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint8_t velocity);
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
@@ -105,6 +107,9 @@ void handle_sysex(const sysex::Chunk &chunk) {
     break;
   case sysex::Protocol<StandardFileOps>::Result::PrintSerialNumber:
     midi_print_serial_number();
+    break;
+  case sysex::Protocol<StandardFileOps>::Result::PrintStorageInfo:
+    midi_send_storage_info();
     break;
   default:
     break;
@@ -177,6 +182,38 @@ void midi_print_serial_number() {
     msbs |= ((id.id[i] >> 7) & 0x01) << i;
   }
   sysex[14] = msbs;
+  sysex[15] = 0xF7;
+
+  MIDI::sendSysEx(sizeof(sysex), sysex);
+}
+
+void midi_send_storage_info() {
+  logger_ptr->info("Sending storage info via SysEx");
+  musin::filesystem::StorageInfo info = musin::filesystem::get_storage_info();
+  logger_ptr->info("Total:", info.total_bytes);
+  logger_ptr->info("Free:", info.free_bytes);
+
+  uint8_t sysex[16];
+  sysex[0] = 0xF0;
+  sysex[1] = drum::config::sysex::MANUFACTURER_ID_0;
+  sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
+  sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
+  sysex[4] = drum::config::sysex::DEVICE_ID;
+  sysex[5] = static_cast<uint8_t>(sysex::Protocol<StandardFileOps>::Tag::StorageInfoResponse);
+
+  // Total space (32-bit)
+  sysex[6] = (info.total_bytes >> 21) & 0x7F;
+  sysex[7] = (info.total_bytes >> 14) & 0x7F;
+  sysex[8] = (info.total_bytes >> 7) & 0x7F;
+  sysex[9] = info.total_bytes & 0x7F;
+
+  // Free space (32-bit)
+  sysex[10] = (info.free_bytes >> 21) & 0x7F;
+  sysex[11] = (info.free_bytes >> 14) & 0x7F;
+  sysex[12] = (info.free_bytes >> 7) & 0x7F;
+  sysex[13] = info.free_bytes & 0x7F;
+
+  sysex[14] = 0;
   sysex[15] = 0xF7;
 
   MIDI::sendSysEx(sizeof(sysex), sysex);

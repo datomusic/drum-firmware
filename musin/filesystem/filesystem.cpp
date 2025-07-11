@@ -10,6 +10,9 @@ extern "C" {
 #include <string.h>
 }
 
+#include "filesystem.h"
+#include "filesystem/vfs.h" // Include for vfs_get_lfs
+
 namespace musin::filesystem {
 
 bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash) {
@@ -65,6 +68,20 @@ bool init(bool force_format) {
     }
     return true; // Mount successful
   }
+}
+
+StorageInfo get_storage_info() {
+  struct lfs_fsinfo info;
+  int err = lfs_fs_stat(vfs_get_lfs(), &info);
+  if (err != 0) {
+    return {0, 0};
+  }
+
+  uint32_t total_bytes = info.block_count * info.block_size;
+  uint32_t used_bytes = lfs_fs_size(vfs_get_lfs()) * info.block_size;
+  uint32_t free_bytes = total_bytes - used_bytes;
+
+  return {total_bytes, free_bytes};
 }
 
 } // namespace musin::filesystem

@@ -57,6 +57,8 @@ template <typename FileOperations> struct Protocol {
     // Simple Commands (no data payload)
     RequestFirmwareVersion = 0x01,
     RequestSerialNumber = 0x02,
+    RequestStorageInfo = 0x03,
+    StorageInfoResponse = 0x04,
     RebootBootloader = 0x0B,
 
     // File Transfer Commands
@@ -74,6 +76,7 @@ template <typename FileOperations> struct Protocol {
     Reboot,
     PrintFirmwareVersion,
     PrintSerialNumber,
+    PrintStorageInfo,
     FileError,
     ShortMessage,
     NotSysex,
@@ -195,6 +198,8 @@ private:
       return Result::PrintFirmwareVersion;
     case Tag::RequestSerialNumber:
       return Result::PrintSerialNumber;
+    case Tag::RequestStorageInfo:
+      return Result::PrintStorageInfo;
     default:
       break;
     }

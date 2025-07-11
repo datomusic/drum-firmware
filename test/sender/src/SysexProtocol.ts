@@ -9,6 +9,7 @@ const SYSEX_DEVICE_ID = 0x65;
 export class SysexProtocol {
   private transport: IMidiTransport;
   private ackQueue: { resolve: () => void; reject: (reason?: any) => void; timer: NodeJS.Timeout }[] = [];
+  private replyPromise: { resolve: (data: any) => void; reject: (reason?: any) => void; timer: NodeJS.Timeout } | null = null;
 
   constructor(transport: IMidiTransport) {
     this.transport = transport;
@@ -36,6 +37,14 @@ export class SysexProtocol {
           if (ackResolver) {
             clearTimeout(ackResolver.timer);
             ackResolver.reject(new Error('Received NACK from device.'));
+          }
+        } else if (tag === Command.StorageInfoResponse) {
+          if (this.replyPromise) {
+            const total_bytes = (message[6] << 21) | (message[7] << 14) | (message[8] << 7) | message[9];
+            const free_bytes = (message[10] << 21) | (message[11] << 14) | (message[12] << 7) | message[13];
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve({ total: total_bytes, free: free_bytes });
+            this.replyPromise = null;
           }
         }
       }
@@ -90,6 +99,20 @@ export class SysexProtocol {
 
   async endFileTransfer(): Promise<void> {
     await this.sendCommandAndWait(Command.EndFileTransfer);
+  }
+
+  async getStorageInfo(): Promise<{ total: number; free: number }> {
+    await this.sendMessage([Command.RequestStorageInfo]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for storage info reply.'));
+        }, 2000)
+      };
+    });
   }
 
   async sendFileChunk(chunk: Buffer): Promise<void> {

@@ -147,4 +147,11 @@ describe('SysexProtocol', () => {
     const smallFileName = 'small_file.bin';
     await expect(protocol.beginFileTransfer(smallFileName)).rejects.toThrow('Received NACK from device.');
   }, 60000);
+
+  test('should get storage info', async () => {
+    const info = await protocol.getStorageInfo();
+    expect(info.total).toBeGreaterThan(0);
+    expect(info.free).toBeGreaterThan(0);
+    expect(info.free).toBeLessThanOrEqual(info.total);
+  });
 });

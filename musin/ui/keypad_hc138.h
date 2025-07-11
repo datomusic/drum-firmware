@@ -2,11 +2,11 @@
 #ifndef DRUM_DRIVERS_KEYPAD_HC138_H
 #define DRUM_DRIVERS_KEYPAD_HC138_H
 
+#include "etl/array.h"
 #include "etl/observer.h"   // Include ETL observer pattern
 #include "etl/span.h"       // Include ETL span
 #include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
 #include "musin/hal/gpio.h" // Include the GPIO abstraction
-#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -51,8 +51,8 @@ enum class KeyState : std::uint8_t {
  * @brief Internal data structure to hold the state for a single key.
  */
 struct KeyData {
-  KeyState state = KeyState::IDLE;            ///< Current debounced and hold state.
-  absolute_time_t press_start_time = nil_time; ///< Time of the initial press for hold detection.
+  KeyState state = KeyState::IDLE;              ///< Current debounced and hold state.
+  absolute_time_t press_start_time = nil_time;  ///< Time of the initial press for hold detection.
   absolute_time_t state_change_time = nil_time; ///< Time of the last state change for debouncing.
   absolute_time_t press_event_time =
       nil_time;              ///< Time of the confirmed press event for tap detection.
@@ -97,8 +97,8 @@ public:
    * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
    * @param tap_time_ms Maximum time between a press and release to be considered a 'tap'.
    */
-  Keypad_HC138(const std::array<uint32_t, 3> &decoder_address_pins,
-               const std::array<uint32_t, NumCols> &col_pins, // Use std::array reference
+  Keypad_HC138(const etl::array<uint32_t, 3> &decoder_address_pins,
+               const etl::array<uint32_t, NumCols> &col_pins, // Use etl::array reference
                // No longer need key_data_buffer parameter
                std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
                std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,
@@ -200,7 +200,7 @@ private:
   const std::uint32_t _tap_time_us;
 
   // --- State ---
-  std::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer
+  etl::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer
   absolute_time_t _last_scan_time = nil_time;                // Initialize to nil_time
 
   // --- Private Notification Helper ---

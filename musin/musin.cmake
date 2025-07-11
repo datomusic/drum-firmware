@@ -208,8 +208,10 @@ endmacro()
 macro(musin_setup_ui_target)
     # Private implementation library for musin ui
     add_library(musin_ui_impl STATIC
+        ${MUSIN_UI}/adaptive_filter.cpp
         ${MUSIN_UI}/analog_control.cpp
         ${MUSIN_UI}/button.cpp
+        ${MUSIN_UI}/drumpad.cpp
     )
 
     # Implementation needs include paths to find musin headers
@@ -236,10 +238,11 @@ endmacro()
 macro(musin_setup_hal_target)
     # Private implementation library for musin hal
     add_library(musin_hal_impl STATIC
-        ${MUSIN_ROOT}/hal/analog_in.cpp
         ${MUSIN_ROOT}/hal/gpio.cpp
         ${MUSIN_ROOT}/hal/null_logger.cpp
         ${MUSIN_ROOT}/hal/pico_logger.cpp
+        ${MUSIN_ROOT}/hal/analog_mux_scanner.cpp
+        ${MUSIN_ROOT}/hal/adc_defs.cpp
     )
 
     # Implementation needs include paths to find musin headers

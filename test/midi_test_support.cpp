@@ -1,4 +1,5 @@
 #include "midi_test_support.h"
+#include "musin/hal/null_logger.h"
 #include "musin/midi/midi_output_queue.h" // For midi_output_queue and MIDI_QUEUE_SIZE
 #include <algorithm>                       // For std::equal, std::min
 #include <utility>                         // For std::move
@@ -9,7 +10,8 @@
 // We only need to provide the storage for the global mock_current_time.
 absolute_time_t mock_current_time = 0;
 
-
+// --- Mock Logger ---
+static musin::NullLogger test_logger;
 
 // --- Mock MIDI Call Recording Implementation ---
 std::vector<MockMidiCallRecord> mock_midi_calls;
@@ -94,7 +96,7 @@ void reset_test_state() {
 
   while (!musin::midi::midi_output_queue.empty()) {
     advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
-    musin::midi::process_midi_output_queue();
+    musin::midi::process_midi_output_queue(test_logger);
   }
   reset_mock_midi_calls();
 

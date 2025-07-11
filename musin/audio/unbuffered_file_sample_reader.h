@@ -21,7 +21,8 @@ public:
 
   // Non-copyable and non-movable
   UnbufferedFileSampleReader(const UnbufferedFileSampleReader &) = delete;
-  UnbufferedFileSampleReader &operator=(const UnbufferedFileSampleReader &) = delete;
+  UnbufferedFileSampleReader &
+  operator=(const UnbufferedFileSampleReader &) = delete;
   UnbufferedFileSampleReader(UnbufferedFileSampleReader &&) = delete;
   UnbufferedFileSampleReader &operator=(UnbufferedFileSampleReader &&) = delete;
 

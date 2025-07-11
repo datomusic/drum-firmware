@@ -10,8 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -56,26 +56,27 @@ void Waveshaper::shape(const float *new_shape, size_t length) {
   // It's calculated such that the highest index (length - 2) is reachable.
   size_t index_range = length - 1; // Number of segments in the table
   if (index_range == 0) {
-    lerpshift = 16; // Avoid issues if length is somehow 1 (should be caught above)
+    lerpshift =
+        16; // Avoid issues if length is somehow 1 (should be caught above)
   } else {
-    // Find the number of bits needed to represent the index range [0, length-2].
-    // This is equivalent to floor(log2(index_range-1)) + 1 if index_range > 1,
-    // or simply finding the position of the most significant bit.
-    // lerpshift = 16 - (number of bits needed for index)
+    // Find the number of bits needed to represent the index range [0,
+    // length-2]. This is equivalent to floor(log2(index_range-1)) + 1 if
+    // index_range > 1, or simply finding the position of the most significant
+    // bit. lerpshift = 16 - (number of bits needed for index)
     size_t bits_needed = 0;
     size_t temp_range = index_range; // Use index_range (length-1) here
     while (temp_range > 0) {
       temp_range >>= 1;
       bits_needed++;
     }
-    // If index_range is exactly power of 2 (e.g. 1024 for length 1025), bits_needed is correct.
-    // If not (e.g. 1000 for length 1001), we still need the same number of bits as the next power
-    // of 2.
+    // If index_range is exactly power of 2 (e.g. 1024 for length 1025),
+    // bits_needed is correct. If not (e.g. 1000 for length 1001), we still need
+    // the same number of bits as the next power of 2.
     lerpshift = 16 - bits_needed;
 
-    // Original logic check: (length - 1) should be power of two for optimal lerp shift
-    // bool is_power_of_two = ((length - 1) > 0) && (((length - 1) & (length - 2)) == 0);
-    // if (!is_power_of_two) { /* maybe log warning */ }
+    // Original logic check: (length - 1) should be power of two for optimal
+    // lerp shift bool is_power_of_two = ((length - 1) > 0) && (((length - 1) &
+    // (length - 2)) == 0); if (!is_power_of_two) { /* maybe log warning */ }
   }
 }
 
@@ -83,7 +84,8 @@ void Waveshaper::fill_buffer(AudioBlock &out_samples) {
   // First, get the audio data from the upstream source
   source.fill_buffer(out_samples);
 
-  // If no waveshape table is loaded or it's too small, pass audio through unmodified
+  // If no waveshape table is loaded or it's too small, pass audio through
+  // unmodified
   if (waveshape_table.size() < 2) {
     return;
   }
@@ -116,7 +118,8 @@ void Waveshaper::fill_buffer(AudioBlock &out_samples) {
     // fraction = lower bits of x = (x & ((1 << lerpshift) - 1))
     // result = ya + ((yb - ya) * fraction) >> lerpshift;
     // Use 32-bit intermediate for multiplication to avoid overflow
-    int32_t fraction = static_cast<int32_t>(x & ((1 << lerpshift) - 1)); // Get the fractional part
+    int32_t fraction = static_cast<int32_t>(
+        x & ((1 << lerpshift) - 1)); // Get the fractional part
     int32_t delta = static_cast<int32_t>(yb - ya);
     out_samples[i] = ya + static_cast<int16_t>((delta * fraction) >> lerpshift);
   }

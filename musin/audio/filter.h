@@ -42,15 +42,17 @@ public:
   static constexpr float Q31_FLOAT_SCALE = 2147483647.0f; // 2^31 - 1
 
   static constexpr float MIN_AUDIBLE_FREQ_HZ = 20.0f;
-  static constexpr float MAX_FREQ_NYQUIST_DIVISOR = 2.5f; // Limits freq to SAMPLE_RATE / 2.5
+  static constexpr float MAX_FREQ_NYQUIST_DIVISOR =
+      2.5f; // Limits freq to SAMPLE_RATE / 2.5
 
   static constexpr float MIN_RESONANCE_Q = 0.7f;
   static constexpr float MAX_RESONANCE_Q = 5.0f;
   static constexpr int32_t Q30_INT_SCALE = (1 << 30);
 
   static constexpr float MIN_OCTAVE_CONTROL = 0.0f;
-  static constexpr float MAX_OCTAVE_CONTROL = 6.9999f;       // Approx 7 octaves
-  static constexpr float OCTAVE_CONTROL_INT_SCALE = 4096.0f; // For Q12 representation
+  static constexpr float MAX_OCTAVE_CONTROL = 6.9999f; // Approx 7 octaves
+  static constexpr float OCTAVE_CONTROL_INT_SCALE =
+      4096.0f; // For Q12 representation
 
   struct Outputs {
     ::AudioBlock lowpass;
@@ -71,14 +73,19 @@ public:
   void frequency(float freq) {
     if (freq < MIN_AUDIBLE_FREQ_HZ)
       freq = MIN_AUDIBLE_FREQ_HZ;
-    else if (freq > static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / MAX_FREQ_NYQUIST_DIVISOR)
-      freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) / MAX_FREQ_NYQUIST_DIVISOR;
+    else if (freq > static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) /
+                        MAX_FREQ_NYQUIST_DIVISOR)
+      freq = static_cast<float>(AudioOutput::SAMPLE_FREQUENCY) /
+             MAX_FREQ_NYQUIST_DIVISOR;
 
-    const float radians_per_sample_half = PI_F / static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
-    setting_fcenter = (freq * (radians_per_sample_half / 2.0f)) * Q31_FLOAT_SCALE;
+    const float radians_per_sample_half =
+        PI_F / static_cast<float>(AudioOutput::SAMPLE_FREQUENCY);
+    setting_fcenter =
+        (freq * (radians_per_sample_half / 2.0f)) * Q31_FLOAT_SCALE;
     // TODO: should we use an approximation when freq is not a const,
     // so the sinf() function isn't linked?
-    setting_fmult = std::sin(freq * (radians_per_sample_half / 2.0f)) * Q31_FLOAT_SCALE;
+    setting_fmult =
+        std::sin(freq * (radians_per_sample_half / 2.0f)) * Q31_FLOAT_SCALE;
   }
 
   void resonance(float q) {
@@ -102,13 +109,14 @@ public:
     setting_octavemult = n * OCTAVE_CONTROL_INT_SCALE; // Q12
   }
 
-  void update_variable(const ::AudioBlock &input_samples, const ::AudioBlock &control,
-                       Outputs &outputs);
+  void update_variable(const ::AudioBlock &input_samples,
+                       const ::AudioBlock &control, Outputs &outputs);
   void update_fixed(const ::AudioBlock &input_samples, Outputs &outputs);
 
   /**
    * @brief Sets the filter cutoff/center frequency using a normalized value.
-   * Maps [0.0, 1.0] logarithmically to the audible range [20Hz, SAMPLE_FREQUENCY/2.5Hz].
+   * Maps [0.0, 1.0] logarithmically to the audible range [20Hz,
+   * SAMPLE_FREQUENCY/2.5Hz].
    * @param freq_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void frequency_normalized(float freq_normalized) {
@@ -135,12 +143,13 @@ private:
     const float log_max = std::log(max_freq);
     const float log_freq = log_min + freq_normalized * (log_max - log_min);
     const float freq_hz = std::exp(log_freq); // Use std::exp
-    frequency(freq_hz);                       // Call the original frequency setter
+    frequency(freq_hz); // Call the original frequency setter
   }
   // Internal resonance calculation based on normalized input
   void calculate_resonance(float res_normalized) {
     // Linear mapping: 0.0 -> MIN_RESONANCE_Q, 1.0 -> MAX_RESONANCE_Q
-    const float q = MIN_RESONANCE_Q + res_normalized * (MAX_RESONANCE_Q - MIN_RESONANCE_Q);
+    const float q =
+        MIN_RESONANCE_Q + res_normalized * (MAX_RESONANCE_Q - MIN_RESONANCE_Q);
     resonance(q); // Call the original resonance setter
   }
 
@@ -160,11 +169,13 @@ struct Lowpass : ::BufferSource {
   void fill_buffer(::AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
-    etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(), out_samples.begin());
+    etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(),
+              out_samples.begin());
   }
 
   /**
-   * @brief Sets the filter cutoff frequency using a normalized value [0.0, 1.0].
+   * @brief Sets the filter cutoff frequency using a normalized value
+   * [0.0, 1.0].
    */
   void frequency(float freq_normalized) {
     filter.frequency_normalized(freq_normalized);
@@ -189,11 +200,13 @@ struct Highpass : ::BufferSource {
   void fill_buffer(::AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
-    etl::copy(outputs.highpass.cbegin(), outputs.highpass.cend(), out_samples.begin());
+    etl::copy(outputs.highpass.cbegin(), outputs.highpass.cend(),
+              out_samples.begin());
   }
 
   /**
-   * @brief Sets the filter cutoff frequency using a normalized value [0.0, 1.0].
+   * @brief Sets the filter cutoff frequency using a normalized value
+   * [0.0, 1.0].
    */
   void frequency(float freq_normalized) {
     filter.frequency_normalized(freq_normalized);

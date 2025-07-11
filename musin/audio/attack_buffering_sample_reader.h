@@ -15,7 +15,8 @@
 
 namespace musin {
 
-template <size_t NumFlashBufferBlocks = musin::DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT>
+template <size_t NumFlashBufferBlocks =
+              musin::DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT>
 class AttackBufferingSampleReader : public SampleReader {
 private:
   // A private proxy class to abstract the sustain data source (memory vs file)
@@ -53,14 +54,16 @@ private:
 
 public:
   AttackBufferingSampleReader()
-      : ram_read_pos_(0), attack_buffer_length_(0), source_type_(SourceType::NONE),
+      : ram_read_pos_(0), attack_buffer_length_(0),
+        source_type_(SourceType::NONE),
         flash_data_buffered_reader_(sustain_reader_proxy_) {
     sustain_reader_proxy_.set_active_reader(&flash_data_memory_reader_);
   }
 
   // This constructor is for backward compatibility.
   explicit AttackBufferingSampleReader(const SampleData &sample_data_ref)
-      : ram_read_pos_(0), attack_buffer_length_(0), source_type_(SourceType::NONE),
+      : ram_read_pos_(0), attack_buffer_length_(0),
+        source_type_(SourceType::NONE),
         flash_data_buffered_reader_(sustain_reader_proxy_) {
     set_source(sample_data_ref);
   }
@@ -74,8 +77,9 @@ public:
     source_type_ = SourceType::FROM_SAMPLEDATA;
     sample_data_ptr_ = &sample_data_ref;
     sustain_reader_proxy_.set_active_reader(&flash_data_memory_reader_);
-    flash_data_memory_reader_.set_source(sample_data_ptr_->get_flash_data_ptr(),
-                                         sample_data_ptr_->get_flash_data_length());
+    flash_data_memory_reader_.set_source(
+        sample_data_ptr_->get_flash_data_ptr(),
+        sample_data_ptr_->get_flash_data_length());
     reset(); // Resets ram_read_pos_ and flash_data_buffered_reader_
   }
 
@@ -83,7 +87,8 @@ public:
    * @brief Configures the reader to stream from a file.
    * It pre-loads the first block of the file as the attack portion.
    * @param path The path to the sample file.
-   * @return true if the file was opened and the attack was loaded, false otherwise.
+   * @return true if the file was opened and the attack was loaded, false
+   * otherwise.
    */
   bool load(const etl::string_view &path) {
     flash_data_file_reader_.close();
@@ -97,7 +102,8 @@ public:
     reset(); // Rewinds file to beginning via proxy
 
     // Preload the attack from the start of the file.
-    attack_buffer_length_ = flash_data_file_reader_.read_samples(attack_buffer_ram_);
+    attack_buffer_length_ =
+        flash_data_file_reader_.read_samples(attack_buffer_ram_);
 
     // File is now positioned after the attack, ready for sustain reading.
     return true;
@@ -153,30 +159,36 @@ public:
     }
 
     if (attack_source_ptr && ram_read_pos_ < attack_length) {
-      const uint32_t ram_samples_to_read =
-          std::min(static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES - samples_written_total),
-                   attack_length - ram_read_pos_);
+      const uint32_t ram_samples_to_read = std::min(
+          static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES - samples_written_total),
+          attack_length - ram_read_pos_);
 
       if (ram_samples_to_read > 0) {
         std::copy(attack_source_ptr + ram_read_pos_,
-                  attack_source_ptr + ram_read_pos_ + ram_samples_to_read, out_ptr);
+                  attack_source_ptr + ram_read_pos_ + ram_samples_to_read,
+                  out_ptr);
         ram_read_pos_ += ram_samples_to_read;
         samples_written_total += ram_samples_to_read;
         out_ptr += ram_samples_to_read;
       }
     }
 
-    // 2. Read from buffered sustain data if more samples are needed and RAM buffer is exhausted
+    // 2. Read from buffered sustain data if more samples are needed and RAM
+    // buffer is exhausted
     if (samples_written_total < AUDIO_BLOCK_SAMPLES) {
-      uint32_t samples_needed_from_sustain = AUDIO_BLOCK_SAMPLES - samples_written_total;
+      uint32_t samples_needed_from_sustain =
+          AUDIO_BLOCK_SAMPLES - samples_written_total;
       uint32_t samples_read_from_sustain =
-          flash_data_buffered_reader_.read_buffered_chunk(out_ptr, samples_needed_from_sustain);
+          flash_data_buffered_reader_.read_buffered_chunk(
+              out_ptr, samples_needed_from_sustain);
 
       samples_written_total += samples_read_from_sustain;
-      out_ptr += samples_read_from_sustain; // Advance out_ptr by the number of samples read
+      out_ptr += samples_read_from_sustain; // Advance out_ptr by the number of
+                                            // samples read
     }
 
-    // 3. Fill remaining part of the block with zeros if not enough samples were read
+    // 3. Fill remaining part of the block with zeros if not enough samples were
+    // read
     if (samples_written_total < AUDIO_BLOCK_SAMPLES) {
       std::fill(out.begin() + samples_written_total, out.end(), 0);
     }
@@ -234,11 +246,13 @@ private:
   };
   SourceType source_type_;
 
-  // Internal readers for handling the sustain data portion with double buffering
+  // Internal readers for handling the sustain data portion with double
+  // buffering
   MemorySampleReader flash_data_memory_reader_;
   UnbufferedFileSampleReader flash_data_file_reader_;
   SustainReader sustain_reader_proxy_;
-  BufferedReader<NumFlashBufferBlocks, musin::hal::PicoDmaCopier> flash_data_buffered_reader_;
+  BufferedReader<NumFlashBufferBlocks, musin::hal::PicoDmaCopier>
+      flash_data_buffered_reader_;
 };
 
 } // namespace musin

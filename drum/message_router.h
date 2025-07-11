@@ -27,23 +27,27 @@ enum class OutputMode : uint8_t {
 };
 
 /**
- * @brief Defines whether panel controls directly affect parameters or if MIDI has control.
+ * @brief Defines whether panel controls directly affect parameters or if MIDI
+ * has control.
  */
 enum class LocalControlMode : uint8_t {
-  ON, // Panel controls affect parameters; MIDI CCs for these parameters might be ignored or have
-      // different behavior.
-  OFF // Panel controls might only send MIDI; MIDI CCs primarily control parameters.
+  ON, // Panel controls affect parameters; MIDI CCs for these parameters might
+      // be ignored or have different behavior.
+  OFF // Panel controls might only send MIDI; MIDI CCs primarily control
+      // parameters.
 };
 
 /*
- * @brief Routes sound trigger events, parameter changes, and NoteEvents to MIDI, internal audio, or
- * both.
+ * @brief Routes sound trigger events, parameter changes, and NoteEvents to
+ * MIDI, internal audio, or both.
  */
-class MessageRouter : public etl::observer<drum::Events::NoteEvent>,
-                      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
-                      public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                             drum::config::MAX_NOTE_EVENT_OBSERVERS>,
-                      public etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2> {
+class MessageRouter
+    : public etl::observer<drum::Events::NoteEvent>,
+      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                             drum::config::MAX_NOTE_EVENT_OBSERVERS>,
+      public etl::observable<etl::observer<drum::Events::ParameterChangeEvent>,
+                             2> {
 public:
   /**
    * @brief Constructor.
@@ -52,7 +56,8 @@ public:
    */
   explicit MessageRouter(
       AudioEngine &audio_engine,
-      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &sequencer_controller,
+      SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+          &sequencer_controller,
       musin::midi::MidiSender &midi_sender, musin::Logger &logger);
 
   // Delete copy and move operations
@@ -97,9 +102,10 @@ public:
    * @brief Sets the value for a specific controllable parameter.
    * Routes the parameter change based on the current output mode.
    * @param param_id The logical identifier of the parameter.
-   * @param value The parameter value, typically normalized between 0.0f and 1.0f.
-   * @param track_index Optional track index (0-3) if the parameter is per-track (e.g., PITCH).
-   *                    Defaults to std::nullopt if not provided.
+   * @param value The parameter value, typically normalized between 0.0f
+   * and 1.0f.
+   * @param track_index Optional track index (0-3) if the parameter is per-track
+   * (e.g., PITCH). Defaults to std::nullopt if not provided.
    */
   void set_parameter(Parameter param_id, float value,
                      std::optional<uint8_t> track_index = std::nullopt);
@@ -125,10 +131,10 @@ public:
   /**
    * @brief Handles an incoming MIDI Note On/Off message.
    * If the note corresponds to a configured track:
-   * - For Note On (velocity > 0): Plays the sound on the audio engine and sets the active note
-   *   for that track in the sequencer controller.
-   * - For Note Off (velocity == 0): Plays the sound on the audio engine (which should handle
-   *   velocity 0 as silence or note off).
+   * - For Note On (velocity > 0): Plays the sound on the audio engine and sets
+   * the active note for that track in the sequencer controller.
+   * - For Note Off (velocity == 0): Plays the sound on the audio engine (which
+   * should handle velocity 0 as silence or note off).
    * @param note The MIDI note number.
    * @param velocity The MIDI velocity (0 for Note Off).
    */
@@ -136,7 +142,8 @@ public:
 
   /**
    * @brief Handles an incoming MIDI Control Change message.
-   * This method will map the CC number to a `drum::Parameter` and apply the change.
+   * This method will map the CC number to a `drum::Parameter` and apply the
+   * change.
    * @param controller The MIDI CC number.
    * @param value The MIDI CC value.
    */
@@ -145,23 +152,27 @@ public:
   /**
    * @brief Adds an observer for NoteEvents, resolving ambiguity.
    */
-  void add_note_event_observer(etl::observer<drum::Events::NoteEvent> &observer) {
-    etl::observable<etl::observer<drum::Events::NoteEvent>,
-                    drum::config::MAX_NOTE_EVENT_OBSERVERS>::add_observer(observer);
+  void
+  add_note_event_observer(etl::observer<drum::Events::NoteEvent> &observer) {
+    etl::observable<
+        etl::observer<drum::Events::NoteEvent>,
+        drum::config::MAX_NOTE_EVENT_OBSERVERS>::add_observer(observer);
   }
 
   /**
    * @brief Adds an observer for ParameterChangeEvents, resolving ambiguity.
    */
-  void
-  add_parameter_change_event_observer(etl::observer<drum::Events::ParameterChangeEvent> &observer) {
-    etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::add_observer(observer);
+  void add_parameter_change_event_observer(
+      etl::observer<drum::Events::ParameterChangeEvent> &observer) {
+    etl::observable<etl::observer<drum::Events::ParameterChangeEvent>,
+                    2>::add_observer(observer);
   }
 
 private:
   etl::queue<drum::Events::NoteEvent, 32> note_event_queue_;
   AudioEngine &_audio_engine;
-  SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK> &_sequencer_controller;
+  SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
+      &_sequencer_controller;
   musin::midi::MidiSender &_midi_sender;
   musin::Logger &logger_;
   OutputMode _output_mode;

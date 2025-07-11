@@ -53,22 +53,27 @@ static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
-static drum::SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+static drum::SequencerController<drum::config::NUM_TRACKS,
+                                 drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
 static musin::midi::MidiSender
     midi_sender(musin::midi::MidiSendStrategy::QUEUED,
                 logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
-static drum::MessageRouter message_router(audio_engine, sequencer_controller, midi_sender, logger);
+static drum::MessageRouter message_router(audio_engine, sequencer_controller,
+                                          midi_sender, logger);
 
 // View
-static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler, logger);
+static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
+                                        logger);
 
 // Controller
-static drum::PizzaControls pizza_controls(pizza_display, tempo_handler, sequencer_controller,
-                                          message_router, logger);
+static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
+                                          sequencer_controller, message_router,
+                                          logger);
 
-static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN, internal_clock);
+static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN,
+                                       internal_clock);
 
 int main() {
   stdio_usb_init();
@@ -93,7 +98,8 @@ int main() {
     if (configFile) {
       char read_buffer[129];
       size_t bytes_read;
-      while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1, configFile)) > 0) {
+      while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1,
+                                 configFile)) > 0) {
         read_buffer[bytes_read] = '\0';
         logger.info(read_buffer);
       }
@@ -115,11 +121,14 @@ int main() {
   pizza_controls.init();
 
   // --- Initialize Clocking System ---
-  // TempoHandler's constructor calls set_clock_source, which handles initial observation.
+  // TempoHandler's constructor calls set_clock_source, which handles initial
+  // observation.
   tempo_handler.add_observer(sequencer_controller);
-  tempo_handler.add_observer(pizza_display); // PizzaDisplay needs tempo events for pulsing
+  tempo_handler.add_observer(
+      pizza_display); // PizzaDisplay needs tempo events for pulsing
 
-  // SequencerController notifies MessageRouter, which queues the events internally.
+  // SequencerController notifies MessageRouter, which queues the events
+  // internally.
   sequencer_controller.add_observer(message_router);
 
   // Register observers for SysEx state changes
@@ -138,8 +147,10 @@ int main() {
     sysex_file_handler.update(get_absolute_time());
 
     pizza_controls.update(get_absolute_time());
-    sequencer_controller.update(); // Checks if a step is due and queues NoteEvents
-    message_router.update();       // Drains NoteEvent queue, sending to observers and MIDI
+    sequencer_controller
+        .update(); // Checks if a step is due and queues NoteEvents
+    message_router
+        .update(); // Drains NoteEvent queue, sending to observers and MIDI
     audio_engine.process();
 
     pizza_display.update(get_absolute_time());
@@ -147,7 +158,8 @@ int main() {
     musin::usb::background_update();
     midi_process_input();
     tempo_handler.update();
-    musin::midi::process_midi_output_queue(logger); // Pass logger to queue processing
+    musin::midi::process_midi_output_queue(
+        logger); // Pass logger to queue processing
 
 #ifndef VERBOSE
     // Watchdog update for Release builds

@@ -78,15 +78,17 @@ enum {
 
 // Static array for multiplexer address pins (AnalogControls use 4)
 const etl::array<uint32_t, 4> analog_address_pins = {
-    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN,
-    DATO_SUBMARINE_MUX_ADDR3_PIN};
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN,
+    DATO_SUBMARINE_MUX_ADDR2_PIN, DATO_SUBMARINE_MUX_ADDR3_PIN};
 // Static array for keypad column pins
 const etl::array<uint32_t, 5> keypad_columns_pins = {
-    DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN, DATO_SUBMARINE_KEYPAD_COL3_PIN,
-    DATO_SUBMARINE_KEYPAD_COL4_PIN, DATO_SUBMARINE_KEYPAD_COL5_PIN};
+    DATO_SUBMARINE_KEYPAD_COL1_PIN, DATO_SUBMARINE_KEYPAD_COL2_PIN,
+    DATO_SUBMARINE_KEYPAD_COL3_PIN, DATO_SUBMARINE_KEYPAD_COL4_PIN,
+    DATO_SUBMARINE_KEYPAD_COL5_PIN};
 // Static array for keypad decoder address pins (uses first 3)
 const etl::array<uint32_t, 3> keypad_decoder_pins = {
-    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN, DATO_SUBMARINE_MUX_ADDR2_PIN};
+    DATO_SUBMARINE_MUX_ADDR0_PIN, DATO_SUBMARINE_MUX_ADDR1_PIN,
+    DATO_SUBMARINE_MUX_ADDR2_PIN};
 
 // --- Keypad Configuration ---
 constexpr uint8_t KEYPAD_ROWS = 8;
@@ -115,9 +117,11 @@ enum class ExternalPinState {
  *
  * @param gpio The GPIO pin number to check.
  * @param logger A logger instance for debug output.
- * @return The determined state of the pin (FLOATING, PULL_UP, PULL_DOWN, or UNDETERMINED).
+ * @return The determined state of the pin (FLOATING, PULL_UP, PULL_DOWN, or
+ * UNDETERMINED).
  */
-inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logger &logger) {
+inline ExternalPinState check_external_pin_state(std::uint32_t gpio,
+                                                 musin::Logger &logger) {
   gpio_init(gpio);
   gpio_set_dir(gpio, GPIO_IN);
 
@@ -131,8 +135,9 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
 
   ExternalPinState determined_state;
 
-  // The logic for determining the state is based on how the pin behaves with an internal pull-up.
-  // This avoids using the internal pull-down, which is buggy on the RP2350.
+  // The logic for determining the state is based on how the pin behaves with an
+  // internal pull-up. This avoids using the internal pull-down, which is buggy
+  // on the RP2350.
   // - A floating pin will read LOW without pull and HIGH with pull-up.
   // - A pin with an external pull-up will read HIGH in both cases.
   // - A pin with an external pull-down will read LOW in both cases.
@@ -163,8 +168,10 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
   }
 
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "Pin check GPIO %2lu -> %-12s (initial=%d, pullup=%d)",
-           static_cast<unsigned long>(gpio), state_str, initial_read, pullup_read);
+  snprintf(buffer, sizeof(buffer),
+           "Pin check GPIO %2lu -> %-12s (initial=%d, pullup=%d)",
+           static_cast<unsigned long>(gpio), state_str, initial_read,
+           pullup_read);
   logger.debug(buffer);
 
   gpio_disable_pulls(gpio);
@@ -174,7 +181,8 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
 }
 
 /**
- * @brief Checks if the control panel is disconnected by checking for floating pins.
+ * @brief Checks if the control panel is disconnected by checking for floating
+ * pins.
  *
  * This is used to detect if the control panel is not properly connected. If all
  * of the first three analog multiplexer address pins are floating, it's assumed
@@ -184,15 +192,19 @@ inline ExternalPinState check_external_pin_state(std::uint32_t gpio, musin::Logg
  * @return true if all three checked pins are floating, false otherwise.
  */
 inline bool is_control_panel_disconnected(musin::Logger &logger) {
-  // We check the first 3 address pins. If all are floating, we assume the panel is disconnected.
-  // The 4th pin is not checked as it lacks external pull resistors.
-  if (check_external_pin_state(analog_address_pins[0], logger) != ExternalPinState::FLOATING) {
+  // We check the first 3 address pins. If all are floating, we assume the panel
+  // is disconnected. The 4th pin is not checked as it lacks external pull
+  // resistors.
+  if (check_external_pin_state(analog_address_pins[0], logger) !=
+      ExternalPinState::FLOATING) {
     return false;
   }
-  if (check_external_pin_state(analog_address_pins[1], logger) != ExternalPinState::FLOATING) {
+  if (check_external_pin_state(analog_address_pins[1], logger) !=
+      ExternalPinState::FLOATING) {
     return false;
   }
-  if (check_external_pin_state(analog_address_pins[2], logger) != ExternalPinState::FLOATING) {
+  if (check_external_pin_state(analog_address_pins[2], logger) !=
+      ExternalPinState::FLOATING) {
     return false;
   }
   return true; // All three are floating

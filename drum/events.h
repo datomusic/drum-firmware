@@ -7,7 +7,8 @@
 namespace drum {
 /**
  * @brief Defines logical identifiers for controllable parameters/effects.
- * These abstract away the specific MIDI CC numbers or internal audio engine parameters.
+ * These abstract away the specific MIDI CC numbers or internal audio engine
+ * parameters.
  */
 enum class Parameter : uint8_t {
   // Per-Track Parameters
@@ -40,9 +41,10 @@ struct NoteEvent {
  * @brief Event data structure for parameter change events.
  */
 struct ParameterChangeEvent {
-  drum::Parameter param_id;           // The parameter that changed
-  float value;                        // The new value (typically 0.0f to 1.0f)
-  std::optional<uint8_t> track_index; // Optional track index for per-track parameters
+  drum::Parameter param_id; // The parameter that changed
+  float value;              // The new value (typically 0.0f to 1.0f)
+  std::optional<uint8_t>
+      track_index; // Optional track index for per-track parameters
 };
 
 /**

@@ -39,10 +39,11 @@ class PizzaControls {
 
 public:
   // Constructor takes essential shared resources and dependencies
-  explicit PizzaControls(drum::PizzaDisplay &display_ref,
-                         musin::timing::TempoHandler &tempo_handler_ref,
-                         drum::DefaultSequencerController &sequencer_controller_ref,
-                         drum::MessageRouter &message_router_ref, musin::Logger &logger_ref);
+  explicit PizzaControls(
+      drum::PizzaDisplay &display_ref,
+      musin::timing::TempoHandler &tempo_handler_ref,
+      drum::DefaultSequencerController &sequencer_controller_ref,
+      drum::MessageRouter &message_router_ref, musin::Logger &logger_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -62,9 +63,9 @@ public:
       const etl::array<uint8_t, KEYPAD_TOTAL_KEYS> &cc_map;
       const uint8_t midi_channel;
 
-      constexpr KeypadEventHandler(KeypadComponent *p,
-                                   const etl::array<uint8_t, KEYPAD_TOTAL_KEYS> &map,
-                                   uint8_t channel)
+      constexpr KeypadEventHandler(
+          KeypadComponent *p, const etl::array<uint8_t, KEYPAD_TOTAL_KEYS> &map,
+          uint8_t channel)
           : parent(p), cc_map(map), midi_channel(channel) {
       }
       void notification(musin::ui::KeypadEvent event);
@@ -107,7 +108,8 @@ public:
       DrumpadComponent *parent;
       musin::Logger &logger;
 
-      constexpr DrumpadEventHandler(DrumpadComponent *p, musin::Logger &logger_ref)
+      constexpr DrumpadEventHandler(DrumpadComponent *p,
+                                    musin::Logger &logger_ref)
           : parent(p), logger(logger_ref) {
       }
       void notification(musin::ui::DrumpadEvent event);
@@ -116,7 +118,8 @@ public:
     PizzaControls *parent_controls;
     std::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
     DrumpadEventHandler drumpad_observer;
-    etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS> _last_known_retrigger_mode_per_pad{};
+    etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS>
+        _last_known_retrigger_mode_per_pad{};
   };
 
   class PlaybuttonComponent {
@@ -126,11 +129,13 @@ public:
     void update();
 
   private:
-    struct PlaybuttonEventHandler : public etl::observer<musin::ui::DrumpadEvent> {
+    struct PlaybuttonEventHandler
+        : public etl::observer<musin::ui::DrumpadEvent> {
       PlaybuttonComponent *parent;
       musin::Logger &logger;
 
-      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p, musin::Logger &logger_ref)
+      constexpr PlaybuttonEventHandler(PlaybuttonComponent *p,
+                                       musin::Logger &logger_ref)
           : parent(p), logger(logger_ref) {
       }
       void notification(musin::ui::DrumpadEvent event);
@@ -149,19 +154,23 @@ public:
     void update(absolute_time_t now);
 
   private:
-    struct AnalogControlEventHandler : public etl::observer<musin::ui::AnalogControlEvent> {
+    struct AnalogControlEventHandler
+        : public etl::observer<musin::ui::AnalogControlEvent> {
       AnalogControlComponent *parent;
       const uint16_t control_id;
 
-      constexpr AnalogControlEventHandler(AnalogControlComponent *p, uint16_t id)
+      constexpr AnalogControlEventHandler(AnalogControlComponent *p,
+                                          uint16_t id)
           : parent(p), control_id(id) {
       }
       void notification(musin::ui::AnalogControlEvent event);
     };
 
     PizzaControls *parent_controls;
-    etl::array<musin::ui::AnalogControl, config::NUM_ANALOG_MUX_CONTROLS> mux_controls;
-    etl::array<AnalogControlEventHandler, config::NUM_ANALOG_MUX_CONTROLS> control_observers;
+    etl::array<musin::ui::AnalogControl, config::NUM_ANALOG_MUX_CONTROLS>
+        mux_controls;
+    etl::array<AnalogControlEventHandler, config::NUM_ANALOG_MUX_CONTROLS>
+        control_observers;
     size_t _next_analog_control_to_update_idx = 0;
 
     // Smoothing for the filter knob

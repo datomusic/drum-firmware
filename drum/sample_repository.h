@@ -12,7 +12,8 @@
 namespace drum {
 
 /**
- * @brief Generates file paths for sample slots based on a fixed naming convention.
+ * @brief Generates file paths for sample slots based on a fixed naming
+ * convention.
  *
  * This class provides a central point for the AudioEngine to query for sample
  * paths. It dynamically constructs the path for a given slot index, e.g., slot

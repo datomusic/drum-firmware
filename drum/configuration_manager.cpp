@@ -4,7 +4,8 @@
 
 namespace drum {
 
-ConfigurationManager::ConfigurationManager(musin::Logger &logger) : logger_(logger) {
+ConfigurationManager::ConfigurationManager(musin::Logger &logger)
+    : logger_(logger) {
 }
 
 bool ConfigurationManager::load() {
@@ -16,8 +17,8 @@ bool ConfigurationManager::load() {
   }
 
   static etl::array<config::SampleSlotMetadata, 32> buffer;
-  size_t items_read =
-      fread(buffer.data(), sizeof(config::SampleSlotMetadata), buffer.size(), config_file);
+  size_t items_read = fread(buffer.data(), sizeof(config::SampleSlotMetadata),
+                            buffer.size(), config_file);
   fclose(config_file);
 
   if (items_read == 0) {
@@ -37,7 +38,8 @@ bool ConfigurationManager::load() {
     cfg.note = item.midi_note;
     cfg.track = item.track;
     cfg.color = (static_cast<uint32_t>(item.color.r) << 16) |
-                (static_cast<uint32_t>(item.color.g) << 8) | (static_cast<uint32_t>(item.color.b));
+                (static_cast<uint32_t>(item.color.g) << 8) |
+                (static_cast<uint32_t>(item.color.b));
     sample_configs_.push_back(cfg);
   }
 
@@ -53,8 +55,8 @@ bool ConfigurationManager::load_factory_kit() {
   }
 
   static etl::array<config::SampleSlotMetadata, 32> buffer;
-  size_t items_read =
-      fread(buffer.data(), sizeof(config::SampleSlotMetadata), buffer.size(), factory_kit_file);
+  size_t items_read = fread(buffer.data(), sizeof(config::SampleSlotMetadata),
+                            buffer.size(), factory_kit_file);
   fclose(factory_kit_file);
 
   if (items_read != buffer.size()) {
@@ -69,14 +71,16 @@ bool ConfigurationManager::load_factory_kit() {
     cfg.note = item.midi_note;
     cfg.track = item.track;
     cfg.color = (static_cast<uint32_t>(item.color.r) << 16) |
-                (static_cast<uint32_t>(item.color.g) << 8) | (static_cast<uint32_t>(item.color.b));
+                (static_cast<uint32_t>(item.color.g) << 8) |
+                (static_cast<uint32_t>(item.color.b));
     sample_configs_.push_back(cfg);
   }
 
   return true;
 }
 
-const etl::ivector<SampleConfig> &ConfigurationManager::get_sample_configs() const {
+const etl::ivector<SampleConfig> &
+ConfigurationManager::get_sample_configs() const {
   return sample_configs_;
 }
 

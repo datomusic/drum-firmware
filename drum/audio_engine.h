@@ -31,7 +31,8 @@ private:
    * @brief Internal structure representing a single audio voice.
    */
   struct Voice {
-    etl::optional<musin::AttackBufferingSampleReader<>> reader; // Use default template arg
+    etl::optional<musin::AttackBufferingSampleReader<>>
+        reader; // Use default template arg
     Sound sound;
     float current_pitch = 1.0f;
 
@@ -39,7 +40,8 @@ private:
   };
 
 public:
-  explicit AudioEngine(const SampleRepository &repository, musin::Logger &logger);
+  explicit AudioEngine(const SampleRepository &repository,
+                       musin::Logger &logger);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -68,18 +70,22 @@ public:
    * @param sample_index The index of the sample within the global sample bank.
    * @param velocity Playback velocity (0-127), affecting volume.
    */
-  void play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity);
+  void play_on_voice(uint8_t voice_index, size_t sample_index,
+                     uint8_t velocity);
 
   /**
-   * @brief Stops playback on a specific voice/track immediately by setting volume to 0.
+   * @brief Stops playback on a specific voice/track immediately by setting
+   * volume to 0.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
    */
   void stop_voice(uint8_t voice_index);
 
   /**
-   * @brief Sets the pitch multiplier for a specific voice/track for the *next* time it's triggered.
+   * @brief Sets the pitch multiplier for a specific voice/track for the *next*
+   * time it's triggered.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
-   * @param value The pitch value, normalized (0.0f to 1.0f), mapped internally to a multiplier.
+   * @param value The pitch value, normalized (0.0f to 1.0f), mapped internally
+   * to a multiplier.
    */
   void set_pitch(uint8_t voice_index, float value);
 
@@ -109,7 +115,8 @@ public:
 
   /**
    * @brief Sets the global crusher bit depth.
-   * @param normalized_value The desired depth amount, normalized (0.0f to 1.0f).
+   * @param normalized_value The desired depth amount, normalized (0.0f
+   * to 1.0f).
    */
   void set_crush_depth(float normalized_value);
 
@@ -130,7 +137,8 @@ private:
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
 
-  // profiler_ member is removed, ProfileSection enum remains for use with the global profiler
+  // profiler_ member is removed, ProfileSection enum remains for use with the
+  // global profiler
   enum class ProfileSection {
     AUDIO_PROCESS_UPDATE,
     PLAY_ON_VOICE_UPDATE

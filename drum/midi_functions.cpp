@@ -13,13 +13,13 @@ extern "C" {
 #include "etl/delegate.h"
 #include "etl/variant.h"
 #include "musin/hal/logger.h"
-#include "musin/midi/midi_wrapper.h"           // For MIDI namespace and byte type
+#include "musin/midi/midi_wrapper.h" // For MIDI namespace and byte type
 #include "musin/timing/midi_clock_processor.h" // For MidiClockProcessor
 #include "sequencer_controller.h"              // For SequencerController
 #include "sysex/protocol.h"                    // For SysEx protocol handler
-#include "version.h"                           // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
-#include <cassert>                             // For assert
-#include <optional>                            // For std::optional
+#include "version.h" // For FIRMWARE_MAJOR, FIRMWARE_MINOR, FIRMWARE_PATCH
+#include <cassert>   // For assert
+#include <optional>  // For std::optional
 
 struct MidiHandlers {
   etl::delegate<void(uint8_t, uint8_t, uint8_t)> note_on;
@@ -44,7 +44,8 @@ void midi_print_firmware_version();
 void midi_print_serial_number();
 void midi_send_storage_info();
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
-void midi_note_off_callback(uint8_t channel, uint8_t note, [[maybe_unused]] uint8_t velocity);
+void midi_note_off_callback(uint8_t channel, uint8_t note,
+                            [[maybe_unused]] uint8_t velocity);
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value);
 void handle_sysex_callback(uint8_t *const data, unsigned length);
 void midi_clock_callback();
@@ -61,20 +62,24 @@ void handle_sysex_callback(uint8_t *const data, unsigned length) {
   }
   // Create a non-owning view of the data. This is fast.
   etl::span<const uint8_t> sysex_view(data + 1, length - 2);
-  musin::midi::enqueue_incoming_midi_message(musin::midi::SysExRawData{sysex_view});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SysExRawData{sysex_view});
 }
 
-void handle_note_on([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t note,
+void handle_note_on([[maybe_unused]] uint8_t channel,
+                    [[maybe_unused]] uint8_t note,
                     [[maybe_unused]] uint8_t velocity) {
   // TODO: Route MIDI note on events to the sound engine.
 }
 
-void handle_note_off([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t note,
+void handle_note_off([[maybe_unused]] uint8_t channel,
+                     [[maybe_unused]] uint8_t note,
                      [[maybe_unused]] uint8_t velocity) {
   // TODO: Route MIDI note off events to the sound engine.
 }
 
-void handle_control_change([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t controller,
+void handle_control_change([[maybe_unused]] uint8_t channel,
+                           [[maybe_unused]] uint8_t controller,
                            [[maybe_unused]] uint8_t value) {
   // TODO: Route MIDI CC events to the sound engine/parameter manager.
 }
@@ -91,9 +96,10 @@ void handle_sysex(const sysex::Chunk &chunk) {
     MIDI::sendSysEx(sizeof(msg), msg);
   };
 
-  assert(sysex_protocol_ptr != nullptr && "sysex_protocol_ptr must be initialized");
-  auto result = sysex_protocol_ptr->template handle_chunk<decltype(sender)>(chunk, sender,
-                                                                            get_absolute_time());
+  assert(sysex_protocol_ptr != nullptr &&
+         "sysex_protocol_ptr must be initialized");
+  auto result = sysex_protocol_ptr->template handle_chunk<decltype(sender)>(
+      chunk, sender, get_absolute_time());
 
   switch (result) {
   case sysex::Protocol<StandardFileOps>::Result::FileWritten:
@@ -117,11 +123,13 @@ void handle_sysex(const sysex::Chunk &chunk) {
 }
 
 void midi_note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::NoteOnData{channel, note, velocity});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::NoteOnData{channel, note, velocity});
 }
 
 void midi_note_off_callback(uint8_t channel, uint8_t note, uint8_t velocity) {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::NoteOffData{channel, note, velocity});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::NoteOffData{channel, note, velocity});
 }
 
 void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
@@ -130,19 +138,23 @@ void midi_cc_callback(uint8_t channel, uint8_t controller, uint8_t value) {
 }
 
 void midi_clock_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Clock});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Clock});
 }
 
 void midi_start_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Start});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Start});
 }
 
 void midi_continue_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Continue});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Continue});
 }
 
 void midi_stop_callback() {
-  musin::midi::enqueue_incoming_midi_message(musin::midi::SystemRealtimeData{::midi::Stop});
+  musin::midi::enqueue_incoming_midi_message(
+      musin::midi::SystemRealtimeData{::midi::Stop});
 }
 
 void midi_print_firmware_version() {
@@ -155,7 +167,8 @@ void midi_print_firmware_version() {
       drum::config::sysex::MANUFACTURER_ID_2,
       drum::config::sysex::DEVICE_ID,
       static_cast<uint8_t>(
-          sysex::Protocol<StandardFileOps>::Tag::RequestFirmwareVersion), // Command byte
+          sysex::Protocol<
+              StandardFileOps>::Tag::RequestFirmwareVersion), // Command byte
       (uint8_t)(FIRMWARE_MAJOR & 0x7F),
       (uint8_t)(FIRMWARE_MINOR & 0x7F),
       (uint8_t)(FIRMWARE_PATCH & 0x7F),
@@ -174,7 +187,8 @@ void midi_print_serial_number() {
   sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
   sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
   sysex[4] = drum::config::sysex::DEVICE_ID;
-  sysex[5] = static_cast<uint8_t>(sysex::Protocol<StandardFileOps>::Tag::RequestSerialNumber);
+  sysex[5] = static_cast<uint8_t>(
+      sysex::Protocol<StandardFileOps>::Tag::RequestSerialNumber);
 
   uint8_t msbs = 0;
   for (int i = 0; i < 8; ++i) {
@@ -199,7 +213,8 @@ void midi_send_storage_info() {
   sysex[2] = drum::config::sysex::MANUFACTURER_ID_1;
   sysex[3] = drum::config::sysex::MANUFACTURER_ID_2;
   sysex[4] = drum::config::sysex::DEVICE_ID;
-  sysex[5] = static_cast<uint8_t>(sysex::Protocol<StandardFileOps>::Tag::StorageInfoResponse);
+  sysex[5] = static_cast<uint8_t>(
+      sysex::Protocol<StandardFileOps>::Tag::StorageInfoResponse);
 
   // Total space (32-bit)
   sysex[6] = (info.total_bytes >> 21) & 0x7F;
@@ -227,7 +242,8 @@ void midi_process_input() {
   musin::midi::IncomingMidiMessage message;
   while (musin::midi::dequeue_incoming_midi_message(message)) {
     // Gate all non-SysEx messages during a file transfer to prevent conflicts.
-    if (sysex_protocol_ptr->busy() && !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
+    if (sysex_protocol_ptr->busy() &&
+        !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
       continue;
     }
 
@@ -238,9 +254,11 @@ void midi_process_input() {
             handle_note_on(arg.channel, arg.note, arg.velocity);
           } else if constexpr (std::is_same_v<T, musin::midi::NoteOffData>) {
             handle_note_off(arg.channel, arg.note, arg.velocity);
-          } else if constexpr (std::is_same_v<T, musin::midi::ControlChangeData>) {
+          } else if constexpr (std::is_same_v<T,
+                                              musin::midi::ControlChangeData>) {
             handle_control_change(arg.channel, arg.controller, arg.value);
-          } else if constexpr (std::is_same_v<T, musin::midi::SystemRealtimeData>) {
+          } else if constexpr (std::is_same_v<
+                                   T, musin::midi::SystemRealtimeData>) {
             midi_handlers.realtime(arg.type);
           } else if constexpr (std::is_same_v<T, musin::midi::SysExRawData>) {
             sysex::Chunk chunk(arg.data.data(), arg.data.size());
@@ -252,7 +270,8 @@ void midi_process_input() {
 }
 
 void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
-               drum::SysExFileHandler &sysex_file_handler, musin::Logger &logger) {
+               drum::SysExFileHandler &sysex_file_handler,
+               musin::Logger &logger) {
   logger_ptr = &logger;
   sysex_protocol_ptr = &sysex_file_handler.get_protocol();
 
@@ -260,11 +279,13 @@ void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
   midi_handlers.note_off.set<handle_note_off>();
   midi_handlers.control_change.set<handle_control_change>();
   midi_handlers.sysex.set<handle_sysex>();
-  midi_handlers.realtime.set([&midi_clock_processor]([[maybe_unused]] ::midi::MidiType type) {
-    midi_clock_processor.on_midi_clock_tick_received();
-  });
+  midi_handlers.realtime.set(
+      [&midi_clock_processor]([[maybe_unused]] ::midi::MidiType type) {
+        midi_clock_processor.on_midi_clock_tick_received();
+      });
   midi_handlers.file_received
-      .set<drum::SysExFileHandler, &drum::SysExFileHandler::on_file_received>(sysex_file_handler);
+      .set<drum::SysExFileHandler, &drum::SysExFileHandler::on_file_received>(
+          sysex_file_handler);
 
   MIDI::init(MIDI::Callbacks{
       .note_on = midi_note_on_callback,

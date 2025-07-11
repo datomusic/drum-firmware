@@ -19,7 +19,8 @@ etl::optional<etl::string_view> SampleRepository::get_path(size_t index) const {
   etl::format_spec format;
   format.width(2).fill('0');
 
-  etl::to_string(static_cast<uint16_t>(index), generated_path_, format, /*append=*/true);
+  etl::to_string(static_cast<uint16_t>(index), generated_path_, format,
+                 /*append=*/true);
 
   generated_path_.append(".pcm");
 

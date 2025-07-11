@@ -444,7 +444,8 @@ void PizzaControls::PlaybuttonComponent::update() {
 
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     musin::ui::DrumpadEvent event) {
-  logger.debug("Playbutton event for pad: ", static_cast<uint32_t>(event.pad_index));
+  logger.debug("Playbutton event for pad: ",
+               static_cast<uint32_t>(event.pad_index));
 
   if (event.velocity.has_value()) {
     logger.debug("Velocity ", static_cast<uint32_t>(event.velocity.value()));

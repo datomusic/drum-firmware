@@ -13,18 +13,20 @@ extern "C" {
 
 namespace musin::timing {
 
-// Maximum number of observers InternalClock can notify (e.g., TempoHandler, PizzaControls)
+// Maximum number of observers InternalClock can notify (e.g., TempoHandler,
+// PizzaControls)
 constexpr size_t MAX_CLOCK_OBSERVERS = 3;
 
 /**
  * @brief Generates clock ticks based on an internal timer and BPM setting.
  */
 class InternalClock
-    : public etl::observable<etl::observer<musin::timing::ClockEvent>, MAX_CLOCK_OBSERVERS> {
+    : public etl::observable<etl::observer<musin::timing::ClockEvent>,
+                             MAX_CLOCK_OBSERVERS> {
 public:
   /**
-   * @brief Pulses Per Quarter Note (PPQN). Standard MIDI clock is 24, common sequencer resolution
-   * is 96.
+   * @brief Pulses Per Quarter Note (PPQN). Standard MIDI clock is 24, common
+   * sequencer resolution is 96.
    */
   static constexpr uint32_t PPQN = musin::timing::DEFAULT_PPQN;
 
@@ -78,7 +80,8 @@ private:
   // handle_tick() logic moved into timer_callback
 
   /**
-   * @brief Calculate the timer interval in microseconds for a given BPM and current PPQN.
+   * @brief Calculate the timer interval in microseconds for a given BPM and
+   * current PPQN.
    * @param bpm The beats per minute to calculate interval for.
    * @return The calculated interval in microseconds, or 0 if BPM is invalid.
    */
@@ -90,9 +93,11 @@ private:
   struct repeating_timer _timer_info; // Stores repeating timer state
 
   // For pending BPM changes
-  volatile float _pending_bpm = 0.0f;             // Written by main thread, read by ISR
-  volatile int64_t _pending_tick_interval_us = 0; // Written by main thread, read by ISR
-  std::atomic<bool> _bpm_change_pending{false};   // Synchronizes access to pending values
+  volatile float _pending_bpm = 0.0f; // Written by main thread, read by ISR
+  volatile int64_t _pending_tick_interval_us =
+      0; // Written by main thread, read by ISR
+  std::atomic<bool> _bpm_change_pending{
+      false}; // Synchronizes access to pending values
 };
 
 } // namespace musin::timing

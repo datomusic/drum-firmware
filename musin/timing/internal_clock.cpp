@@ -7,7 +7,8 @@
 namespace musin::timing {
 
 InternalClock::InternalClock(float initial_bpm)
-    : _current_bpm(initial_bpm), _is_running(false), _bpm_change_pending{false} {
+    : _current_bpm(initial_bpm), _is_running(false),
+      _bpm_change_pending{false} {
   _timer_info = {};
   _tick_interval_us = calculate_tick_interval(initial_bpm);
   _pending_bpm = initial_bpm;
@@ -55,7 +56,8 @@ void InternalClock::start() {
   }
 
   // Add the repeating timer
-  if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this, &_timer_info)) {
+  if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this,
+                             &_timer_info)) {
     _is_running = true;
   } else {
     _is_running = false;

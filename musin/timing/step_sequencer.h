@@ -49,7 +49,8 @@ public:
    */
   [[nodiscard]] constexpr const Step &get_step(size_t index) const {
     // Basic bounds check (can be enhanced with ETL assertions if desired)
-    ETL_ASSERT(index < NumSteps, etl::range_error("Track::get_step: index out of bounds"));
+    ETL_ASSERT(index < NumSteps,
+               etl::range_error("Track::get_step: index out of bounds"));
     return steps[index];
   }
 
@@ -66,8 +67,9 @@ public:
    * @return The new enabled state of the step.
    */
   constexpr bool toggle_step_enabled(size_t step_idx) {
-    ETL_ASSERT(step_idx < NumSteps,
-               etl::range_error("Track::toggle_step_enabled: index out of bounds"));
+    ETL_ASSERT(
+        step_idx < NumSteps,
+        etl::range_error("Track::toggle_step_enabled: index out of bounds"));
     steps[step_idx].enabled = !steps[step_idx].enabled;
     return steps[step_idx].enabled;
   }
@@ -78,8 +80,9 @@ public:
    * @param enabled The new enabled state.
    */
   constexpr void set_step_enabled(size_t step_idx, bool enabled) {
-    ETL_ASSERT(step_idx < NumSteps,
-               etl::range_error("Track::set_step_enabled: index out of bounds"));
+    ETL_ASSERT(
+        step_idx < NumSteps,
+        etl::range_error("Track::set_step_enabled: index out of bounds"));
     steps[step_idx].enabled = enabled;
   }
 
@@ -89,7 +92,8 @@ public:
    * @param note The MIDI note number (0-127) or std::nullopt.
    */
   constexpr void set_step_note(size_t step_idx, std::optional<uint8_t> note) {
-    ETL_ASSERT(step_idx < NumSteps, etl::range_error("Track::set_step_note: index out of bounds"));
+    ETL_ASSERT(step_idx < NumSteps,
+               etl::range_error("Track::set_step_note: index out of bounds"));
     steps[step_idx].note = note;
   }
 
@@ -98,9 +102,11 @@ public:
    * @param step_idx The index of the step (0 to NumSteps-1).
    * @param velocity The MIDI velocity (1-127) or std::nullopt.
    */
-  constexpr void set_step_velocity(size_t step_idx, std::optional<uint8_t> velocity) {
-    ETL_ASSERT(step_idx < NumSteps,
-               etl::range_error("Track::set_step_velocity: index out of bounds"));
+  constexpr void set_step_velocity(size_t step_idx,
+                                   std::optional<uint8_t> velocity) {
+    ETL_ASSERT(
+        step_idx < NumSteps,
+        etl::range_error("Track::set_step_velocity: index out of bounds"));
     steps[step_idx].velocity = velocity;
   }
 
@@ -109,9 +115,11 @@ public:
    * @param step_idx The index of the step (0 to NumSteps-1).
    * @return std::optional<uint8_t> containing the velocity if set.
    */
-  [[nodiscard]] constexpr std::optional<uint8_t> get_step_velocity(size_t step_idx) const {
-    ETL_ASSERT(step_idx < NumSteps,
-               etl::range_error("Track::get_step_velocity: index out of bounds"));
+  [[nodiscard]] constexpr std::optional<uint8_t>
+  get_step_velocity(size_t step_idx) const {
+    ETL_ASSERT(
+        step_idx < NumSteps,
+        etl::range_error("Track::get_step_velocity: index out of bounds"));
     return steps[step_idx].velocity;
   }
 

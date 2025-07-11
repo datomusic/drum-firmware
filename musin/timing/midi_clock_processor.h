@@ -11,17 +11,20 @@
 
 namespace musin::timing {
 
-// Maximum number of observers MidiClockProcessor can notify (e.g., TempoHandler)
+// Maximum number of observers MidiClockProcessor can notify (e.g.,
+// TempoHandler)
 constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 1;
 // Number of raw tick intervals to average for BPM. MIDI clock is 24 PPQN.
 // Averaging over one quarter note (24 ticks) can provide a good balance.
 constexpr size_t MIDI_CLOCK_INTERVAL_HISTORY_SIZE = 24;
 
 /**
- * @brief Processes raw incoming MIDI clock ticks to derive a stable tempo and generate ClockEvents.
+ * @brief Processes raw incoming MIDI clock ticks to derive a stable tempo and
+ * generate ClockEvents.
  */
-class MidiClockProcessor : public etl::observable<etl::observer<musin::timing::ClockEvent>,
-                                                  MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS> {
+class MidiClockProcessor
+    : public etl::observable<etl::observer<musin::timing::ClockEvent>,
+                             MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS> {
 public:
   MidiClockProcessor();
 
@@ -30,19 +33,22 @@ public:
   MidiClockProcessor &operator=(const MidiClockProcessor &) = delete;
 
   /**
-   * @brief Called by the MIDI input layer upon receiving a raw MIDI clock tick (0xF8).
+   * @brief Called by the MIDI input layer upon receiving a raw MIDI clock tick
+   * (0xF8).
    */
   void on_midi_clock_tick_received();
 
   /**
    * @brief Gets the BPM derived from the incoming MIDI clock.
-   * @return Derived BPM, or 0.0f if not enough data or clock is inactive/timed out.
+   * @return Derived BPM, or 0.0f if not enough data or clock is inactive/timed
+   * out.
    */
   [[nodiscard]] float get_derived_bpm() const;
 
   /**
-   * @brief Resets the processor's state (e.g., when MIDI clock stops or source changes).
-   * This should be called by TempoHandler when switching away from MIDI clock source.
+   * @brief Resets the processor's state (e.g., when MIDI clock stops or source
+   * changes). This should be called by TempoHandler when switching away from
+   * MIDI clock source.
    */
   void reset();
 
@@ -61,8 +67,8 @@ private:
   // For generating stable output ticks based on the derived average interval
   absolute_time_t _next_stable_tick_target_time;
 
-  // Timeout for considering MIDI clock inactive. MIDI spec suggests 300ms for Active Sensing.
-  // A slightly longer timeout might be practical for clock.
+  // Timeout for considering MIDI clock inactive. MIDI spec suggests 300ms for
+  // Active Sensing. A slightly longer timeout might be practical for clock.
   static constexpr uint32_t MIDI_CLOCK_TIMEOUT_US = 500000; // 500ms
 };
 

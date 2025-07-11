@@ -18,18 +18,17 @@ function run(){
     -not -path './musin/ports/pico/libraries/*' \
     -not -path './musin/ports/pico/pico-sdk/*' \
     -not -path './musin/ports/pico/pico-extras/*' \
+    -not -path './musin/ports/pico/port/*' \
     -not -path './musin/usb/*' \
     -not -path './musin/ui/*' \
     -not -path './musin/hal/*' \
+    -not -path './musin/midi/*' \
     -not -path './musin/drivers/*' \
     -not -path './musin/boards/*' \
     -not -path './musin/audio/waveshaper.*' \
     -not -path './musin/audio/buffered_reader.h' \
     -not -path './musin/audio/audio_memory_reader.h' \
-    -not -path './experiments/support/samples/*' \
-    -not -path './experiments/pizza_example/*' \
-    -not -path './experiments/midi_sample_player/*' \
-    -not -path './experiments/drum_pad_test/*' \
+    -not -path './experiments/*' \
     -exec clang-format -Werror "$args" {} +
 }
 
@@ -41,10 +40,9 @@ function check(){
   run "$1" --dry-run
 }
 
-run ./experiments
 run ./drum
 run ./musin
-run ./test/musin
+#run ./test/musin
 
 if [ $? -eq 0 ]; then
   echo "All files are correctly formatted."

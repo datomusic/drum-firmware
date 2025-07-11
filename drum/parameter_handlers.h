@@ -29,7 +29,8 @@ public:
 
 class TempoParameterHandler : public IParameterHandler {
 public:
-  TempoParameterHandler(musin::timing::TempoHandler &tempo_handler, MessageRouter &message_router);
+  TempoParameterHandler(musin::timing::TempoHandler &tempo_handler,
+                        MessageRouter &message_router);
   void handle_update(float normalized_value) override;
 
 private:

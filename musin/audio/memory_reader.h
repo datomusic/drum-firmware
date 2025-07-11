@@ -8,9 +8,11 @@ namespace musin {
 
 // Streams items of DataType in chunks, into some iterator.
 // The user must ensure the iterator can accept max ChunkSize items.
-template <typename DataType, typename OutputIterator, int ChunkSize> struct MemoryReader {
+template <typename DataType, typename OutputIterator, int ChunkSize>
+struct MemoryReader {
   // Add default arguments to allow default construction
-  constexpr MemoryReader(const DataType *items = nullptr, const uint32_t count = 0) {
+  constexpr MemoryReader(const DataType *items = nullptr,
+                         const uint32_t count = 0) {
     set_source(items, count);
   }
 
@@ -50,7 +52,8 @@ private:
   uint32_t count;
 };
 
-// Specialization of MemoryReader for 16bit samples, implementing the SampleReader interface
+// Specialization of MemoryReader for 16bit samples, implementing the
+// SampleReader interface
 struct MemorySampleReader : SampleReader {
   // Provide a default constructor for etl::optional
   constexpr MemorySampleReader()
@@ -81,11 +84,12 @@ struct MemorySampleReader : SampleReader {
 
   // Reader interface
   constexpr bool read_next(int16_t &out) override {
-    if (m_buffer_read_idx >= m_buffer_valid_samples) { // If current buffer is exhausted
+    if (m_buffer_read_idx >=
+        m_buffer_valid_samples) { // If current buffer is exhausted
       m_buffer_valid_samples = reader.read_chunk(m_buffer.begin()); // Refill it
       m_buffer_read_idx = 0;             // Reset read index for new buffer
       if (m_buffer_valid_samples == 0) { // If refill yielded nothing
-        out = 0;                         // Default value, consistent with other readers
+        out = 0; // Default value, consistent with other readers
         return false;
       }
     }
@@ -101,8 +105,10 @@ struct MemorySampleReader : SampleReader {
 
     // 1. Drain from m_buffer
     if (m_buffer_read_idx < m_buffer_valid_samples) {
-      uint32_t can_copy_from_m_buffer = m_buffer_valid_samples - m_buffer_read_idx;
-      uint32_t num_to_copy = std::min(can_copy_from_m_buffer, samples_to_fill_in_block);
+      uint32_t can_copy_from_m_buffer =
+          m_buffer_valid_samples - m_buffer_read_idx;
+      uint32_t num_to_copy =
+          std::min(can_copy_from_m_buffer, samples_to_fill_in_block);
 
       std::copy(m_buffer.begin() + m_buffer_read_idx,
                 m_buffer.begin() + m_buffer_read_idx + num_to_copy, out_ptr);
@@ -113,7 +119,8 @@ struct MemorySampleReader : SampleReader {
       samples_to_fill_in_block -= num_to_copy;
     }
 
-    // 2. If more samples are needed, read directly from the underlying reader's next chunk(s)
+    // 2. If more samples are needed, read directly from the underlying reader's
+    // next chunk(s)
     //    This part assumes m_buffer is now exhausted or was initially empty.
     //    The 'reader' will provide fresh data.
     if (samples_to_fill_in_block > 0) {
@@ -121,8 +128,8 @@ struct MemorySampleReader : SampleReader {
       m_buffer_read_idx = 0;
       m_buffer_valid_samples = 0;
 
-      // Read directly into the output block. read_chunk will fill up to AUDIO_BLOCK_SAMPLES
-      // or fewer if the source is exhausted.
+      // Read directly into the output block. read_chunk will fill up to
+      // AUDIO_BLOCK_SAMPLES or fewer if the source is exhausted.
       uint32_t samples_read_from_main_reader = reader.read_chunk(out_ptr);
 
       total_samples_copied_from_source += samples_read_from_main_reader;
@@ -140,7 +147,8 @@ struct MemorySampleReader : SampleReader {
 
 private:
   MemoryReader<int16_t, int16_t *, AUDIO_BLOCK_SAMPLES> reader;
-  AudioBlock m_buffer; // Internal buffer for read_next and to ensure coherence with read_samples
+  AudioBlock m_buffer; // Internal buffer for read_next and to ensure coherence
+                       // with read_samples
   uint32_t m_buffer_read_idx;
   uint32_t m_buffer_valid_samples;
 };

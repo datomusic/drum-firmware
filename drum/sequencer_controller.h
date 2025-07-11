@@ -27,14 +27,16 @@ template <size_t NumTracks, size_t NumSteps> class Sequencer;
  *
  * Acts as the bridge between the tempo generation system (TempoMultiplier)
  * and the musical pattern storage (Sequencer). It operates on a high-resolution
- * internal clock tick derived from the tempo source. Emits NoteEvents when steps play.
+ * internal clock tick derived from the tempo source. Emits NoteEvents when
+ * steps play.
  */
 
 template <size_t NumTracks, size_t NumSteps>
-class SequencerController : public etl::observer<musin::timing::TempoEvent>,
-                            public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
-                            public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                                                   drum::config::MAX_NOTE_EVENT_OBSERVERS> {
+class SequencerController
+    : public etl::observer<musin::timing::TempoEvent>,
+      public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+      public etl::observable<etl::observer<drum::Events::NoteEvent>,
+                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
@@ -79,17 +81,20 @@ public:
   void trigger_note_off(uint8_t track_index, uint8_t note);
 
   /**
-   * @brief Get the current logical step index (0 to NumSteps-1) that was last triggered.
+   * @brief Get the current logical step index (0 to NumSteps-1) that was last
+   * triggered.
    */
   [[nodiscard]] uint32_t get_current_step() const noexcept;
 
   /**
-   * @brief Get the index of the step (0 to NumSteps-1) that was last triggered/played for a
-   * specific track. This considers effects like Repeat and Random that might alter the played step
-   * for that track. Returns std::nullopt if no step has been played for the track since the last
+   * @brief Get the index of the step (0 to NumSteps-1) that was last
+   * triggered/played for a specific track. This considers effects like Repeat
+   * and Random that might alter the played step for that track. Returns
+   * std::nullopt if no step has been played for the track since the last
    * reset/trigger.
    */
-  [[nodiscard]] std::optional<size_t> get_last_played_step_for_track(size_t track_idx) const;
+  [[nodiscard]] std::optional<size_t>
+  get_last_played_step_for_track(size_t track_idx) const;
 
   /**
    * @brief Reset the current step index (e.g., on transport stop/start).
@@ -135,7 +140,8 @@ public:
   /**
    * @brief Set whether swing delay applies to odd steps.
    * @param delay_odd If true, odd steps (1, 3, ...) are delayed/longer.
-   *                  If false (default), even steps (0, 2, ...) are delayed/longer.
+   *                  If false (default), even steps (0, 2, ...) are
+   * delayed/longer.
    */
   void set_swing_target(bool delay_odd);
 
@@ -155,15 +161,17 @@ public:
 
   /**
    * @brief Sets the intended state of the repeat effect.
-   * Compares the intended state with the current state and performs necessary actions
-   * (activate, deactivate, set length).
-   * @param intended_length std::nullopt to turn off repeat, or a value for the desired length.
+   * Compares the intended state with the current state and performs necessary
+   * actions (activate, deactivate, set length).
+   * @param intended_length std::nullopt to turn off repeat, or a value for the
+   * desired length.
    */
   void set_intended_repeat_state(std::optional<uint32_t> intended_length);
 
   /**
    * @brief Sets the active MIDI note number for a specific track.
-   * This note is used by default when new steps are created or when drumpads are triggered.
+   * This note is used by default when new steps are created or when drumpads
+   * are triggered.
    * @param track_index The logical track index.
    * @param note The MIDI note number to set as active for the track.
    */
@@ -195,7 +203,8 @@ public:
   /**
    * @brief Get a const reference to the internal sequencer instance.
    */
-  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() const {
+  [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps> &
+  get_sequencer() const {
     return sequencer_;
   }
 
@@ -226,12 +235,14 @@ private:
   uint64_t repeat_activation_step_counter_ = 0;
 
   bool random_active_ = false;
-  uint8_t random_probability_ = drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
+  uint8_t random_probability_ =
+      drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
   etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-  etl::array<std::optional<uint64_t>, NumTracks> _retrigger_target_tick_per_track{};
+  etl::array<std::optional<uint64_t>, NumTracks>
+      _retrigger_target_tick_per_track{};
 
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;
@@ -243,7 +254,8 @@ public:
   /**
    * @brief Activates retriggering for a specific track.
    * @param track_index The track to activate retriggering on.
-   * @param mode 1 for single retrigger per step, 2 for double retrigger per step.
+   * @param mode 1 for single retrigger per step, 2 for double retrigger per
+   * step.
    */
   void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
   /**
@@ -255,8 +267,8 @@ public:
   [[nodiscard]] bool is_repeat_active() const;
 
   /**
-   * @brief Get the number of high-resolution SequencerTickEvents that form one musical step
-   * (e.g., a 16th note) of this sequencer.
+   * @brief Get the number of high-resolution SequencerTickEvents that form one
+   * musical step (e.g., a 16th note) of this sequencer.
    */
   [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 };

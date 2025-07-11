@@ -33,9 +33,11 @@
 
 // computes limit((val >> rshift), 2**bits)
 // Returns a 32-bit signed integer saturated to the specified bit width.
-static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t rshift)
+static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits,
+                                             int32_t rshift)
     __attribute__((always_inline, unused));
-static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits, int32_t rshift) {
+static inline int32_t signed_saturate_rshift(int32_t val, int32_t bits,
+                                             int32_t rshift) {
   int32_t out, max;
   out = val >> rshift;
   // Basic bounds check for bits to prevent undefined behavior with shifts
@@ -65,7 +67,8 @@ static inline int16_t signed_saturate_rshift16(int32_t val, int32_t rshift) {
 }
 
 // computes limit(val, 2**16)
-static constexpr int16_t saturate16(const int32_t value) __attribute__((always_inline, unused));
+static constexpr int16_t saturate16(const int32_t value)
+    __attribute__((always_inline, unused));
 static constexpr int16_t saturate16(const int32_t value) {
   return intrinsics::signed_saturate<16>(value);
 }
@@ -103,38 +106,44 @@ static inline int32_t multiply_32x32_rshift32_rounded(int32_t a, int32_t b) {
 }
 
 // computes sum + (((int64_t)a[31:0] * (int64_t)b[31:0] + 0x8000000) >> 32)
-static inline int32_t multiply_accumulate_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b)
+static inline int32_t
+multiply_accumulate_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b)
     __attribute__((always_inline, unused));
-static inline int32_t multiply_accumulate_32x32_rshift32_rounded(int32_t sum, int32_t a,
-                                                                 int32_t b) {
+static inline int32_t
+multiply_accumulate_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b) {
 
   return sum + ((((int64_t)a * (int64_t)b) + 0x8000000) >> 32);
 }
 
 // computes sum - (((int64_t)a[31:0] * (int64_t)b[31:0] + 0x8000000) >> 32)
-static inline int32_t multiply_subtract_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b)
+static inline int32_t
+multiply_subtract_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b)
     __attribute__((always_inline, unused));
-static inline int32_t multiply_subtract_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b) {
+static inline int32_t
+multiply_subtract_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b) {
 
   return sum - ((((int64_t)a * (int64_t)b) + 0x8000000) >> 32);
 }
 
 // computes (a[31:16] | (b[31:16] >> 16))
-static inline uint32_t pack_16t_16t(int32_t a, int32_t b) __attribute__((always_inline, unused));
+static inline uint32_t pack_16t_16t(int32_t a, int32_t b)
+    __attribute__((always_inline, unused));
 static inline uint32_t pack_16t_16t(int32_t a, int32_t b) {
 
   return (a & 0xFFFF0000) | ((uint32_t)b >> 16);
 }
 
 // computes (a[31:16] | b[15:0])
-static inline uint32_t pack_16t_16b(int32_t a, int32_t b) __attribute__((always_inline, unused));
+static inline uint32_t pack_16t_16b(int32_t a, int32_t b)
+    __attribute__((always_inline, unused));
 static inline uint32_t pack_16t_16b(int32_t a, int32_t b) {
 
   return (a & 0xFFFF0000) | (b & 0x0000FFFF);
 }
 
 // computes ((a[15:0] << 16) | b[15:0])
-static inline uint32_t pack_16b_16b(int32_t a, int32_t b) __attribute__((always_inline, unused));
+static inline uint32_t pack_16b_16b(int32_t a, int32_t b)
+    __attribute__((always_inline, unused));
 static inline uint32_t pack_16b_16b(int32_t a, int32_t b) {
 
   return (a << 16) | (b & 0x0000FFFF);

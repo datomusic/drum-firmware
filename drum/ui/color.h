@@ -21,16 +21,21 @@ public:
   }
 
   // Additive blend with white
-  [[nodiscard]] Color brighter(uint8_t amount, uint8_t max_brightness = 255) const {
+  [[nodiscard]] Color brighter(uint8_t amount,
+                               uint8_t max_brightness = 255) const {
     uint8_t r = (value >> 16) & 0xFF;
     uint8_t g = (value >> 8) & 0xFF;
     uint8_t b = value & 0xFF;
 
-    r = static_cast<uint8_t>(std::min<int>(max_brightness, static_cast<int>(r) + amount));
-    g = static_cast<uint8_t>(std::min<int>(max_brightness, static_cast<int>(g) + amount));
-    b = static_cast<uint8_t>(std::min<int>(max_brightness, static_cast<int>(b) + amount));
+    r = static_cast<uint8_t>(
+        std::min<int>(max_brightness, static_cast<int>(r) + amount));
+    g = static_cast<uint8_t>(
+        std::min<int>(max_brightness, static_cast<int>(g) + amount));
+    b = static_cast<uint8_t>(
+        std::min<int>(max_brightness, static_cast<int>(b) + amount));
 
-    return Color((static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b);
+    return Color((static_cast<uint32_t>(r) << 16) |
+                 (static_cast<uint32_t>(g) << 8) | b);
   }
 
   // Equality operators

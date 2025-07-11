@@ -28,15 +28,18 @@ template <typename T> struct Protocol;
 // Function declarations (prototypes) for functions defined in midi.cpp
 /**
  * @brief Initialize the MIDI system and callbacks.
- * @param midi_clock_processor Reference to the MidiClockProcessor for handling MIDI clock input.
+ * @param midi_clock_processor Reference to the MidiClockProcessor for handling
+ * MIDI clock input.
  * @param sysex_file_handler Reference to the SysExFileHandler.
  * @param logger Reference to the system logger.
  */
 void midi_init(musin::timing::MidiClockProcessor &midi_clock_processor,
-               drum::SysExFileHandler &sysex_file_handler, musin::Logger &logger);
+               drum::SysExFileHandler &sysex_file_handler,
+               musin::Logger &logger);
 
 /**
- * @brief Read and process incoming MIDI messages. Should be called periodically.
+ * @brief Read and process incoming MIDI messages. Should be called
+ * periodically.
  */
 void midi_process_input();
 

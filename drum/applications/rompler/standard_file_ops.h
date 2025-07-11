@@ -15,7 +15,8 @@ struct StandardFileOps {
 
   struct Handle {
 
-    Handle(const etl::string_view &path, musin::Logger &logger) : logger(logger) {
+    Handle(const etl::string_view &path, musin::Logger &logger)
+        : logger(logger) {
       if (file_pointer) {
         fclose(file_pointer);
         // TODO: Report some error. This should not happen;
@@ -45,7 +46,8 @@ struct StandardFileOps {
     size_t write(const etl::span<const uint8_t> &bytes) {
       // printf("Writing %i bytes\n", bytes.size());
       if (file_pointer) {
-        const auto written = fwrite(bytes.cbegin(), sizeof(uint8_t), bytes.size(), file_pointer);
+        const auto written =
+            fwrite(bytes.cbegin(), sizeof(uint8_t), bytes.size(), file_pointer);
         // printf("written: %i\n", written);
         return written;
       } else {
@@ -71,7 +73,8 @@ struct StandardFileOps {
 
   bool format() {
     logger.info("Formatting filesystem...");
-    // This will re-initialize the filesystem, which includes formatting if the flag is true.
+    // This will re-initialize the filesystem, which includes formatting if the
+    // flag is true.
     bool success = musin::filesystem::init(true);
     if (success) {
       logger.info("Filesystem formatted successfully.");

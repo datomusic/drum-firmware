@@ -17,8 +17,10 @@ extern "C" {
 
 // Interpolator strategies
 struct CubicInterpolator {
-  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                             const int16_t y2, const int16_t y3,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0,
+                                                             const int16_t y1,
+                                                             const int16_t y2,
+                                                             const int16_t y3,
                                                              const float mu) {
     const float mu2 = mu * mu;
     const float mu3 = mu2 * mu;
@@ -39,8 +41,10 @@ struct CubicInterpolator {
 };
 
 struct CubicInterpolatorOptimized {
-  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                             const int16_t y2, const int16_t y3,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0,
+                                                             const int16_t y1,
+                                                             const int16_t y2,
+                                                             const int16_t y3,
                                                              const float mu) {
     // Optimized Catmull-Rom using Horner's method to reduce multiplications.
     const float c0 = y1;
@@ -58,8 +62,10 @@ struct CubicInterpolatorOptimized {
 };
 
 struct CubicInterpolatorInt {
-  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                             const int16_t y2, const int16_t y3,
+  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0,
+                                                             const int16_t y1,
+                                                             const int16_t y2,
+                                                             const int16_t y3,
                                                              const float mu) {
     // Fixed-point cubic interpolation. Uses 8 fractional bits for mu.
     const int32_t N = 8;
@@ -82,9 +88,10 @@ struct CubicInterpolatorInt {
 };
 
 struct QuadraticInterpolator {
-  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                             const int16_t y2, const int16_t /*y3*/,
-                                                             const float mu) {
+  static constexpr int16_t
+  __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                    const int16_t y2, const int16_t /*y3*/,
+                                    const float mu) {
     // Quadratic interpolation using y0, y1, y2. y3 is not used.
     const float mu2 = mu * mu;
 
@@ -103,15 +110,17 @@ struct QuadraticInterpolator {
 };
 
 struct QuadraticInterpolatorInt {
-  static constexpr int16_t __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
-                                                             const int16_t y2, const int16_t /*y3*/,
-                                                             const float mu) {
+  static constexpr int16_t
+  __time_critical_func(interpolate)(const int16_t y0, const int16_t y1,
+                                    const int16_t y2, const int16_t /*y3*/,
+                                    const float mu) {
     // Fixed-point quadratic interpolation. Uses 7 fractional bits for mu
     // to keep intermediate products within 32-bit integers.
     const int32_t N = 7;
     const int32_t mu_fp = static_cast<int32_t>(mu * (1 << N)); // 0 to 127
 
-    const int32_t a = static_cast<int32_t>(y0) + y2 - (2 * static_cast<int32_t>(y1));
+    const int32_t a =
+        static_cast<int32_t>(y0) + y2 - (2 * static_cast<int32_t>(y1));
     const int32_t b = static_cast<int32_t>(y2) - y0;
 
     const int32_t mu_fp_sq = mu_fp * mu_fp;
@@ -126,11 +135,12 @@ struct QuadraticInterpolatorInt {
 };
 
 struct NearestNeighborInterpolator {
-  static constexpr int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
-                                                             const int16_t y2, const int16_t /*y3*/,
-                                                             const float mu) {
-    // y0 and y3 are not used for nearest neighbor interpolation focusing on y1 and y2.
-    // mu is the fractional position between y1 and y2.
+  static constexpr int16_t
+  __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
+                                    const int16_t y2, const int16_t /*y3*/,
+                                    const float mu) {
+    // y0 and y3 are not used for nearest neighbor interpolation focusing on y1
+    // and y2. mu is the fractional position between y1 and y2.
     if (mu < 0.5f) {
       return y1;
     } else {
@@ -140,10 +150,13 @@ struct NearestNeighborInterpolator {
 };
 
 struct HardwareLinearInterpolator {
-  static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/, const int16_t y1,
-                                                   const int16_t y2, const int16_t /*y3*/,
+  static int16_t __time_critical_func(interpolate)(const int16_t /*y0*/,
+                                                   const int16_t y1,
+                                                   const int16_t y2,
+                                                   const int16_t /*y3*/,
                                                    const float mu) {
-    // Ensure the hardware is initialized. This will only run the setup code once.
+    // Ensure the hardware is initialized. This will only run the setup code
+    // once.
     initialize_hardware();
 
     // Convert float fraction (0.0 to 1.0) to 8-bit integer (0 to 255)
@@ -169,7 +182,8 @@ private:
       interp_config_set_blend(&cfg, true);
       interp_set_config(interp0, 0, &cfg);
 
-      // Configure Lane 1 for signed values, which is needed for signed audio samples
+      // Configure Lane 1 for signed values, which is needed for signed audio
+      // samples
       cfg = interp_default_config();
       interp_config_set_signed(&cfg, true);
       interp_set_config(interp0, 1, &cfg);
@@ -183,8 +197,8 @@ private:
 };
 
 struct PitchShifter : SampleReader {
-  using InterpolateFn = int16_t (*)(const int16_t, const int16_t, const int16_t, const int16_t,
-                                    const float);
+  using InterpolateFn = int16_t (*)(const int16_t, const int16_t, const int16_t,
+                                    const int16_t, const float);
 
   PitchShifter(SampleReader &reader)
       : speed(1.0f), sample_reader(reader), m_internal_buffer_read_idx(0),
@@ -223,7 +237,8 @@ struct PitchShifter : SampleReader {
       return sample_reader.has_data();
     } else {
       // Either we have buffered samples or the source still has data
-      // or we're still processing the last few samples in the interpolation buffer
+      // or we're still processing the last few samples in the interpolation
+      // buffer
       return (m_internal_buffer_read_idx < m_internal_buffer_valid_samples) ||
              sample_reader.has_data() || !has_reached_end;
     }
@@ -239,7 +254,8 @@ struct PitchShifter : SampleReader {
       if (m_internal_buffer_read_idx >= m_internal_buffer_valid_samples) {
         // Buffer is exhausted, try to refill it by calling read_resampled
         m_internal_buffer_valid_samples = read_resampled(m_internal_buffer);
-        m_internal_buffer_read_idx = 0; // Reset read index for the new buffer content
+        m_internal_buffer_read_idx =
+            0; // Reset read index for the new buffer content
 
         if (m_internal_buffer_valid_samples == 0) {
           // No more samples could be generated by read_resampled
@@ -286,9 +302,11 @@ struct PitchShifter : SampleReader {
 
 private:
   bool __time_critical_func(get_next_source_sample)(int16_t &out_sample) {
-    // If our local source buffer is exhausted, refill it by reading a full block.
+    // If our local source buffer is exhausted, refill it by reading a full
+    // block.
     if (m_source_buffer_read_idx >= m_source_buffer_valid_samples) {
-      m_source_buffer_valid_samples = sample_reader.read_samples(m_source_buffer);
+      m_source_buffer_valid_samples =
+          sample_reader.read_samples(m_source_buffer);
       m_source_buffer_read_idx = 0;
 
       if (m_source_buffer_valid_samples == 0) {
@@ -308,7 +326,8 @@ private:
     float current_position = position;
 
     // Process each output sample
-    for (uint32_t out_sample_index = 0; out_sample_index < out.size(); ++out_sample_index) {
+    for (uint32_t out_sample_index = 0; out_sample_index < out.size();
+         ++out_sample_index) {
       // Get the integer and fractional parts of the current position
       int new_buffer_position = static_cast<int>(current_position);
       float mu = current_position - static_cast<float>(new_buffer_position);
@@ -317,13 +336,15 @@ private:
       // For Catmull-Rom, we need samples at n-1, n, n+1, and n+2 to interpolate
       // at position n. So we need to have read up to sample n+2.
       bool has_more_data = true;
-      while (source_index <= static_cast<uint32_t>(new_buffer_position + 2) && has_more_data) {
+      while (source_index <= static_cast<uint32_t>(new_buffer_position + 2) &&
+             has_more_data) {
         bool is_first_sample_ever = (source_index == 0);
         has_more_data = get_next_source_sample(sample);
 
         if (is_first_sample_ever && has_more_data) {
-          // This is the first sample. Prime the entire interpolation buffer with it
-          // to provide a stable history for interpolation at the very beginning.
+          // This is the first sample. Prime the entire interpolation buffer
+          // with it to provide a stable history for interpolation at the very
+          // beginning.
           for (int i = 0; i < 4; i++) {
             interpolation_samples[i] = sample;
           }
@@ -331,8 +352,8 @@ private:
           if (!has_more_data) {
             // Reached the end of input data
             has_reached_end = true;
-            // Don't immediately exit - we can still use the samples in the buffer
-            // Just pad with zeros if needed
+            // Don't immediately exit - we can still use the samples in the
+            // buffer Just pad with zeros if needed
             sample = 0;
           }
           shift_interpolation_samples(sample);
@@ -340,8 +361,9 @@ private:
         source_index++;
       }
 
-      // Calculate interpolated value even if we've reached the end of the source data
-      // This allows us to use the remaining samples in the interpolation buffer
+      // Calculate interpolated value even if we've reached the end of the
+      // source data This allows us to use the remaining samples in the
+      // interpolation buffer
 
       // The interpolation buffer acts as a shift register. The while loop above
       // ensures it holds the four samples needed for interpolation around the
@@ -363,14 +385,16 @@ private:
       // Advance position based on playback speed
       current_position += this->speed;
 
-      // If we've moved past the available data and we've already reached the end,
-      // start fading out the sound to avoid abrupt stopping
-      if (has_reached_end && static_cast<uint32_t>(new_buffer_position) > source_index) {
+      // If we've moved past the available data and we've already reached the
+      // end, start fading out the sound to avoid abrupt stopping
+      if (has_reached_end &&
+          static_cast<uint32_t>(new_buffer_position) > source_index) {
         // Only continue for a few more samples to provide a smooth tail-off
         int samples_beyond_end =
             new_buffer_position -
-            static_cast<int>(source_index); // Keep consistent types for subtraction
-        if (samples_beyond_end > 8) {       // Arbitrary cutoff for tail fade-out
+            static_cast<int>(
+                source_index);        // Keep consistent types for subtraction
+        if (samples_beyond_end > 8) { // Arbitrary cutoff for tail fade-out
           // Fill the rest of the output buffer with silence
           for (uint32_t i = out_sample_index + 1; i < out.size(); ++i) {
             out[i] = 0;

@@ -32,11 +32,13 @@ static bool running = false;
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 #define BUFFER_COUNT 3
 
-static audio_format_t audio_format = {.sample_freq = AudioOutput::SAMPLE_FREQUENCY,
+static audio_format_t audio_format = {.sample_freq =
+                                          AudioOutput::SAMPLE_FREQUENCY,
                                       .format = AUDIO_BUFFER_FORMAT_PCM_S16,
                                       .channel_count = 1};
 
-static audio_buffer_format_t producer_format = {.format = &audio_format, .sample_stride = 2};
+static audio_buffer_format_t producer_format = {.format = &audio_format,
+                                                .sample_stride = 2};
 
 struct audio_i2s_config i2s_config = {
     .data_pin = PICO_AUDIO_I2S_DATA_PIN,
@@ -60,7 +62,8 @@ bool AudioOutput::init() {
 
   audio_format.sample_freq = SAMPLE_FREQUENCY;
 
-  producer_pool = audio_new_producer_pool(&producer_format, BUFFER_COUNT, AUDIO_BLOCK_SAMPLES);
+  producer_pool = audio_new_producer_pool(&producer_format, BUFFER_COUNT,
+                                          AUDIO_BLOCK_SAMPLES);
 
   bool __unused ok;
   const audio_format_t *output_format;
@@ -116,13 +119,16 @@ bool AudioOutput::volume(float volume) {
     return false;
   }
 
-  // Scale float [0.0, 1.0] to integer [0, 1024] for high-precision fixed-point math
-  const int32_t input_volume = static_cast<int32_t>(std::clamp(volume, 0.0f, 1.0f) * 1024.0f);
+  // Scale float [0.0, 1.0] to integer [0, 1024] for high-precision fixed-point
+  // math
+  const int32_t input_volume =
+      static_cast<int32_t>(std::clamp(volume, 0.0f, 1.0f) * 1024.0f);
 
   // --- Piecewise Linear Curve ---
   // All calculations are done in the [0, 1024] domain to avoid floats.
-  const int32_t threshold = 512;        // Breakpoint at 50% input (512/1024)
-  const int32_t threshold_output = 768; // At breakpoint, output is 75% (768/1024)
+  const int32_t threshold = 512; // Breakpoint at 50% input (512/1024)
+  const int32_t threshold_output =
+      768; // At breakpoint, output is 75% (768/1024)
 
   int32_t curved_volume;
   if (input_volume <= threshold) {
@@ -135,13 +141,15 @@ bool AudioOutput::volume(float volume) {
     const int32_t remaining_input = input_volume - threshold;
     const int32_t remaining_output = 1024 - threshold_output;
     const int32_t input_range = 1024 - threshold;
-    curved_volume = threshold_output + (remaining_input * remaining_output) / input_range;
+    curved_volume =
+        threshold_output + (remaining_input * remaining_output) / input_range;
   }
 
   // --- DAC Volume (Output Stage) ---
   // Map curved volume [0, 1024] to DAC register value [-127, 0]
   int8_t dac_register_value;
-  // If volume is below 3% (31/1024), mute it to prevent noise at the lowest levels.
+  // If volume is below 3% (31/1024), mute it to prevent noise at the lowest
+  // levels.
   if (curved_volume < 31) {
     dac_register_value = -127;
   } else {
@@ -149,14 +157,15 @@ bool AudioOutput::volume(float volume) {
     int32_t mapped_dac_value = ((curved_volume - 31) * 63) / (1024 - 31);
     dac_register_value = static_cast<int8_t>(mapped_dac_value - 63);
   }
-  bool dac_ok = codec->set_dac_volume(dac_register_value) == musin::drivers::Aic3204Status::OK;
+  bool dac_ok = codec->set_dac_volume(dac_register_value) ==
+                musin::drivers::Aic3204Status::OK;
 
   // --- Mixer Volume (Input Stage) ---
   // Map curved volume [0, 1024] to Mixer register value [-40, 0]
   int32_t mapped_mixer_value = (curved_volume * 40) / 1024;
   int8_t mixer_register_value = static_cast<int8_t>(mapped_mixer_value - 40);
-  bool mixer_ok =
-      codec->set_mixer_volume(mixer_register_value) == musin::drivers::Aic3204Status::OK;
+  bool mixer_ok = codec->set_mixer_volume(mixer_register_value) ==
+                  musin::drivers::Aic3204Status::OK;
 
   return dac_ok && mixer_ok;
 #else
@@ -184,11 +193,12 @@ bool AudioOutput::update(BufferSource &source) {
       source.fill_buffer(block);
 
       // Copy mono samples directly to the stereo buffer
-      // The pico-sdk audio layer expects stereo, but we configure I2S for mono input.
-      // It seems to handle the duplication internally or expects mono data in the buffer.
-      // Let's copy directly for now. If stereo is needed, duplicate samples here.
-      // NOTE: The previous digital volume scaling `(volume * block[i]) >> 8u` is removed.
-      // Volume is now controlled solely by the hardware codec via AudioOutput::volume().
+      // The pico-sdk audio layer expects stereo, but we configure I2S for mono
+      // input. It seems to handle the duplication internally or expects mono
+      // data in the buffer. Let's copy directly for now. If stereo is needed,
+      // duplicate samples here. NOTE: The previous digital volume scaling
+      // `(volume * block[i]) >> 8u` is removed. Volume is now controlled solely
+      // by the hardware codec via AudioOutput::volume().
       int16_t *out_samples = (int16_t *)buffer->buffer->bytes;
       for (size_t i = 0; i < block.size(); ++i) {
         out_samples[i] = block[i];

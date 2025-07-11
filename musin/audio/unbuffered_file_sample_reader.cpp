@@ -50,7 +50,8 @@ uint32_t UnbufferedFileSampleReader::read_samples(AudioBlock &out) {
     return 0;
   }
 
-  const size_t samples_read = fread(out.begin(), sizeof(int16_t), out.size(), file_handle_);
+  const size_t samples_read =
+      fread(out.begin(), sizeof(int16_t), out.size(), file_handle_);
 
   if (samples_read < out.size()) {
     // Fill the rest of the buffer with silence if we hit EOF.

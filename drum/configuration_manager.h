@@ -23,7 +23,8 @@ struct SampleConfig {
 };
 
 /**
- * @brief Parses and provides access to system-wide configuration from config.json.
+ * @brief Parses and provides access to system-wide configuration from
+ * config.json.
  *
  * This class is responsible for reading the main JSON configuration file,
  * parsing it with jsmn, and populating internal data structures that other

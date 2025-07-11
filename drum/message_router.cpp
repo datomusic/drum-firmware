@@ -1,5 +1,5 @@
 #include "message_router.h"
-#include "config.h"                  // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
+#include "config.h" // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
 #include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
 #include "sequencer_controller.h" // For SequencerController
@@ -11,19 +11,20 @@ namespace drum {
 
 namespace { // Anonymous namespace for internal linkage
 
-void send_midi_cc([[maybe_unused]] const uint8_t channel, [[maybe_unused]] const uint8_t cc_number,
+void send_midi_cc([[maybe_unused]] const uint8_t channel,
+                  [[maybe_unused]] const uint8_t cc_number,
                   [[maybe_unused]] const uint8_t value) {
-  // This function is no longer used directly for sending MIDI CCs from MessageRouter
-  // as MidiSender will handle it.
+  // This function is no longer used directly for sending MIDI CCs from
+  // MessageRouter as MidiSender will handle it.
   // MIDI::sendControlChange(cc_number, value, channel);
 }
 
 void send_midi_note([[maybe_unused]] const uint8_t channel,
                     [[maybe_unused]] const uint8_t note_number,
                     [[maybe_unused]] const uint8_t velocity) {
-  // This function is no longer used directly for sending MIDI notes from MessageRouter
-  // as MidiSender will handle it.
-  // MIDI::sendNoteOn(note_number, velocity, channel);
+  // This function is no longer used directly for sending MIDI notes from
+  // MessageRouter as MidiSender will handle it. MIDI::sendNoteOn(note_number,
+  // velocity, channel);
 }
 
 struct ParameterMapping {
@@ -63,7 +64,8 @@ std::optional<ParameterMapping> map_midi_cc_to_parameter(uint8_t cc_number) {
 } // namespace
 
 // --- MIDI CC Mapping ---
-constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uint8_t> track_index) {
+constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id,
+                                           std::optional<uint8_t> track_index) {
   switch (param_id) {
   case Parameter::PITCH:
     if (track_index.has_value()) {
@@ -107,13 +109,15 @@ constexpr uint8_t map_parameter_to_midi_cc(Parameter param_id, std::optional<uin
 
 MessageRouter::MessageRouter(
     AudioEngine &audio_engine,
-    SequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+    SequencerController<drum::config::NUM_TRACKS,
+                        drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller,
     musin::midi::MidiSender &midi_sender, musin::Logger &logger)
     : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
-      _midi_sender(midi_sender), logger_(logger), _output_mode(OutputMode::BOTH),
-      _local_control_mode(LocalControlMode::ON),
-      _previous_local_control_mode(std::nullopt) { // Default local control to ON
+      _midi_sender(midi_sender), logger_(logger),
+      _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
+      _previous_local_control_mode(
+          std::nullopt) { // Default local control to ON
   note_event_queue_.clear();
   // TODO: Initialize _track_sample_map if added
 }
@@ -134,7 +138,8 @@ LocalControlMode MessageRouter::get_local_control_mode() const {
   return _local_control_mode;
 }
 
-void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note, uint8_t velocity) {
+void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note,
+                                  uint8_t velocity) {
   if (track_index >= 4)
     return;
 
@@ -155,7 +160,8 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
 
   // Notify observers about the parameter change.
   drum::Events::ParameterChangeEvent event{param_id, value, track_index};
-  etl::observable<etl::observer<drum::Events::ParameterChangeEvent>, 2>::notify_observers(event);
+  etl::observable<etl::observer<drum::Events::ParameterChangeEvent>,
+                  2>::notify_observers(event);
 
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
@@ -187,9 +193,10 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
       // AudioEngine::set_crush_depth expects a normalized value (0.0 to 1.0)
       // It internally maps this to bit depth (5 to 16).
       // Higher normalized value should mean more crush (lower bit depth).
-      // The map_value_linear in AudioEngine for crush_depth is (normalized_value, 5.0f, 16.0f)
-      // So a higher normalized_value gives a higher bit depth (less crush). This is inverted from
-      // typical "amount". To make higher CC value = more crush, we pass (1.0f - value) to
+      // The map_value_linear in AudioEngine for crush_depth is
+      // (normalized_value, 5.0f, 16.0f) So a higher normalized_value gives a
+      // higher bit depth (less crush). This is inverted from typical "amount".
+      // To make higher CC value = more crush, we pass (1.0f - value) to
       // set_crush_depth.
       _audio_engine.set_crush_depth(1.0f - value);
       _audio_engine.set_crush_rate(value);
@@ -217,14 +224,18 @@ void MessageRouter::update() {
     note_event_queue_.pop();
 
     if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
-      _midi_sender.sendNoteOn(drum::config::FALLBACK_MIDI_CHANNEL, event.note, event.velocity);
+      _midi_sender.sendNoteOn(drum::config::FALLBACK_MIDI_CHANNEL, event.note,
+                              event.velocity);
     }
 
-    if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
+    if ((_output_mode == OutputMode::AUDIO ||
+         _output_mode == OutputMode::BOTH) &&
         _local_control_mode == LocalControlMode::ON) {
-      // Notify observers like AudioEngine and PizzaDisplay to handle the event locally
-      etl::observable<etl::observer<drum::Events::NoteEvent>,
-                      drum::config::MAX_NOTE_EVENT_OBSERVERS>::notify_observers(event);
+      // Notify observers like AudioEngine and PizzaDisplay to handle the event
+      // locally
+      etl::observable<
+          etl::observer<drum::Events::NoteEvent>,
+          drum::config::MAX_NOTE_EVENT_OBSERVERS>::notify_observers(event);
     }
   }
 }
@@ -239,7 +250,8 @@ void MessageRouter::notification(drum::Events::NoteEvent event) {
   note_event_queue_.push(event);
 }
 
-void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent event) {
+void MessageRouter::notification(
+    drum::Events::SysExTransferStateChangeEvent event) {
   if (event.is_active) {
     _previous_local_control_mode = get_local_control_mode();
     set_local_control_mode(LocalControlMode::OFF);
@@ -252,7 +264,8 @@ void MessageRouter::notification(drum::Events::SysExTransferStateChangeEvent eve
 }
 
 void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
-  for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size(); ++track_idx) {
+  for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size();
+       ++track_idx) {
     if (track_idx >= drum::config::NUM_TRACKS)
       break; // Ensure we don't go out of bounds if config sizes differ
 
@@ -264,18 +277,22 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
       // Play the sound on the audio engine for this track.
       // The AudioEngine::play_on_voice should handle velocity 0 as note off.
 
-      // Queue the event to be processed in the main loop, unifying the handling path
-      // with events from the internal sequencer.
-      drum::Events::NoteEvent event{
-          .track_index = static_cast<uint8_t>(track_idx), .note = note, .velocity = velocity};
+      // Queue the event to be processed in the main loop, unifying the handling
+      // path with events from the internal sequencer.
+      drum::Events::NoteEvent event{.track_index =
+                                        static_cast<uint8_t>(track_idx),
+                                    .note = note,
+                                    .velocity = velocity};
       notification(event);
 
       // Set the active note for that track in the sequencer controller,
       // only if it's a Note On (velocity > 0).
       if (velocity > 0) {
-        _sequencer_controller.set_active_note_for_track(static_cast<uint8_t>(track_idx), note);
+        _sequencer_controller.set_active_note_for_track(
+            static_cast<uint8_t>(track_idx), note);
       }
-      // Assuming a note belongs to only one track's list for this purpose, so we can stop.
+      // Assuming a note belongs to only one track's list for this purpose, so
+      // we can stop.
       return;
     }
   }

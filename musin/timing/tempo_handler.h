@@ -22,7 +22,8 @@ enum class PlaybackState : uint8_t {
   PLAYING
 };
 
-// Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier, PizzaControls)
+// Maximum number of observers TempoHandler can notify (e.g., TempoMultiplier,
+// PizzaControls)
 constexpr size_t MAX_TEMPO_OBSERVERS = 3;
 
 /**
@@ -35,13 +36,16 @@ constexpr size_t MAX_TEMPO_OBSERVERS = 3;
  */
 class TempoHandler
     : public etl::observer<musin::timing::ClockEvent>,
-      public etl::observable<etl::observer<musin::timing::TempoEvent>, MAX_TEMPO_OBSERVERS> {
+      public etl::observable<etl::observer<musin::timing::TempoEvent>,
+                             MAX_TEMPO_OBSERVERS> {
 public:
   /**
    * @brief Constructor.
    * @param internal_clock_ref Reference to the InternalClock instance.
-   * @param midi_clock_processor_ref Reference to the MidiClockProcessor instance.
-   * @param send_midi_clock_when_stopped If true, MIDI clock is sent even when stopped.
+   * @param midi_clock_processor_ref Reference to the MidiClockProcessor
+   * instance.
+   * @param send_midi_clock_when_stopped If true, MIDI clock is sent even when
+   * stopped.
    * @param initial_source The clock source to use initially.
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
@@ -85,8 +89,8 @@ public:
   void set_playback_state(PlaybackState new_state);
 
   /**
-   * @brief Periodically called to update internal state, like auto-switching clock source.
-   * Should be called from the main application loop.
+   * @brief Periodically called to update internal state, like auto-switching
+   * clock source. Should be called from the main application loop.
    */
   void update();
 
@@ -99,9 +103,8 @@ private:
   const bool _send_midi_clock_when_stopped;
 
   // Pointers or references to actual clock instances might be needed here
-  // if TempoHandler needs to interact with them directly (e.g., enable/disable).
-  // Example:
-  // Clock::InternalClock& internal_clock_;
+  // if TempoHandler needs to interact with them directly (e.g.,
+  // enable/disable). Example: Clock::InternalClock& internal_clock_;
   // Clock::MIDIClock& midi_clock_;
   // Clock::ExternalSyncClock& external_sync_clock_;
   // These would likely be passed in the constructor.

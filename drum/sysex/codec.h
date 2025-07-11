@@ -5,9 +5,11 @@
 
 namespace sysex::codec {
 
-// Decodes legacy 7-bit SysEx bytes into 16bit values. 3 input bytes per single output value.
+// Decodes legacy 7-bit SysEx bytes into 16bit values. 3 input bytes per single
+// output value.
 template <typename InputIt, typename OutputIt>
-size_t decode_3_to_16bit(InputIt start, InputIt end, OutputIt out_start, OutputIt out_end) {
+size_t decode_3_to_16bit(InputIt start, InputIt end, OutputIt out_start,
+                         OutputIt out_end) {
   size_t value_count = 0;
   size_t sysex_count = 0;
   uint8_t byte_buffer[2];
@@ -34,11 +36,13 @@ size_t decode_3_to_16bit(InputIt start, InputIt end, OutputIt out_start, OutputI
 // `output` is where the decoded data will be written.
 // Returns the number of bytes written to `output`.
 template <typename InputIt, typename OutputIt>
-size_t decode_8_to_7(InputIt start, InputIt end, OutputIt output_start, OutputIt output_end) {
+size_t decode_8_to_7(InputIt start, InputIt end, OutputIt output_start,
+                     OutputIt output_end) {
   size_t bytes_written = 0;
   auto out_it = output_start;
 
-  while (static_cast<size_t>(etl::distance(start, end)) >= 8 && out_it != output_end) {
+  while (static_cast<size_t>(etl::distance(start, end)) >= 8 &&
+         out_it != output_end) {
     const uint8_t msbs = *(start + 7);
 
     for (int i = 0; i < 7; ++i) {

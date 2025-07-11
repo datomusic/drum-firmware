@@ -36,20 +36,25 @@ float map_value_filter_fast(float normalized_value) {
     return std::lerp(min_freq, breakpoint_freq, t);
   } else {
     // Scale from (0.5, 1.0] to (800, 20000]
-    const float t = (normalized_value - breakpoint_input) / (1.0f - breakpoint_input);
+    const float t =
+        (normalized_value - breakpoint_input) / (1.0f - breakpoint_input);
     return std::lerp(breakpoint_freq, max_freq, t);
   }
 }
 
 } // namespace
 
-AudioEngine::Voice::Voice() : sound(reader.emplace()) { // reader is default constructed here
+AudioEngine::Voice::Voice()
+    : sound(reader.emplace()) { // reader is default constructed here
 }
 
-AudioEngine::AudioEngine(const SampleRepository &repository, musin::Logger &logger)
+AudioEngine::AudioEngine(const SampleRepository &repository,
+                         musin::Logger &logger)
     : sample_repository_(repository), logger_(logger),
-      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound, &voices_[3].sound},
-      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_), highpass_(lowpass_) {
+      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
+                     &voices_[3].sound},
+      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
+      highpass_(lowpass_) {
   // Initialize to a known, silent state.
   set_volume(1.0f); // Set master volume to full.
 
@@ -85,7 +90,8 @@ void AudioEngine::process() {
   AudioOutput::update(highpass_);
 }
 
-void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_t velocity) {
+void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
+                                uint8_t velocity) {
   musin::hal::DebugUtils::ScopedProfile p(
       musin::hal::DebugUtils::g_section_profiler,
       static_cast<size_t>(ProfileSection::PLAY_ON_VOICE_UPDATE));
@@ -105,9 +111,9 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index, uint8_
   // Get the file path from the repository for the given sample index.
   auto path_opt = sample_repository_.get_path(sample_index);
   if (!path_opt.has_value()) {
-    // No sample is mapped to this index, so we play silence by not loading anything.
-    // We could optionally stop the voice if it was playing something else.
-    // stop_voice(voice_index);
+    // No sample is mapped to this index, so we play silence by not loading
+    // anything. We could optionally stop the voice if it was playing something
+    // else. stop_voice(voice_index);
     return;
   }
 
@@ -142,8 +148,8 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
 
   const float pitch_multiplier = map_value_pitch_fast(value);
   voices_[voice_index].current_pitch = pitch_multiplier;
-  // TODO: Consider if pitch should affect currently playing sound (requires Sound modification)
-  // voices_[voice_index].sound.set_speed(pitch_multiplier);
+  // TODO: Consider if pitch should affect currently playing sound (requires
+  // Sound modification) voices_[voice_index].sound.set_speed(pitch_multiplier);
 }
 
 void AudioEngine::set_volume(float volume) {
@@ -176,9 +182,10 @@ void AudioEngine::set_crush_depth(float normalized_value) {
 
 void AudioEngine::notification(drum::Events::NoteEvent event) {
   const auto &defs = drum::config::global_note_definitions;
-  auto it = std::find_if(defs.begin(), defs.end(), [midi_note = event.note](const auto &def) {
-    return def.midi_note_number == midi_note;
-  });
+  auto it = std::find_if(defs.begin(), defs.end(),
+                         [midi_note = event.note](const auto &def) {
+                           return def.midi_note_number == midi_note;
+                         });
 
   if (it != defs.end()) {
     size_t sample_id = std::distance(defs.begin(), it);

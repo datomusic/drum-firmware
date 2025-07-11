@@ -12,8 +12,11 @@ template <typename Handle, int BlockSize> struct FileOperations {
 
   const Open open;
   etl::delegate<void(Handle handle)> close;
-  etl::delegate<size_t(Handle handle, etl::array<uint8_t, BlockSize> &output)> read;
-  etl::delegate<void(Handle handle, const etl::span<const uint8_t, BlockSize> bytes)> write;
+  etl::delegate<size_t(Handle handle, etl::array<uint8_t, BlockSize> &output)>
+      read;
+  etl::delegate<void(Handle handle,
+                     const etl::span<const uint8_t, BlockSize> bytes)>
+      write;
 };
 
 #endif /* end of include guard: FILE_OPS_H_BSDNSIZL */

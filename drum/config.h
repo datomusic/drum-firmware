@@ -66,26 +66,25 @@ struct DrumpadConfig {
 };
 
 // Since all pads are physically identical, we can define a single configuration
-constexpr DrumpadConfig default_drumpad_config = {
-    .noise_threshold = 150,
-    .trigger_threshold = 800,
-    .high_pressure_threshold = 2500,
-    .active_low = true,
-    .debounce_time_us = 5000,
-    .hold_time_us = 50000,
-    .max_velocity_time_us = 50000,
-    .min_velocity_time_us = 100};
+constexpr DrumpadConfig default_drumpad_config = {.noise_threshold = 150,
+                                                  .trigger_threshold = 800,
+                                                  .high_pressure_threshold =
+                                                      2500,
+                                                  .active_low = true,
+                                                  .debounce_time_us = 5000,
+                                                  .hold_time_us = 50000,
+                                                  .max_velocity_time_us = 50000,
+                                                  .min_velocity_time_us = 100};
 
 // Configuration for the play button, which is also a drumpad
-constexpr DrumpadConfig play_button_config = {
-    .noise_threshold = 150,
-    .trigger_threshold = 800,
-    .high_pressure_threshold = 0,
-    .active_low = true,
-    .debounce_time_us = 5000,
-    .hold_time_us = 1000000,
-    .max_velocity_time_us = 0,
-    .min_velocity_time_us = 0};
+constexpr DrumpadConfig play_button_config = {.noise_threshold = 150,
+                                              .trigger_threshold = 800,
+                                              .high_pressure_threshold = 0,
+                                              .active_low = true,
+                                              .debounce_time_us = 5000,
+                                              .hold_time_us = 1000000,
+                                              .max_velocity_time_us = 0,
+                                              .min_velocity_time_us = 0};
 
 // Create the array of configurations using the default for all pads
 constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {

@@ -27,7 +27,8 @@
 
 /**
  * @file mixer.h
- * @brief Defines the AudioMixer template class for mixing multiple audio sources.
+ * @brief Defines the AudioMixer template class for mixing multiple audio
+ * sources.
  */
 
 #ifndef mixer_h_
@@ -55,11 +56,12 @@ template <size_t N> struct AudioMixer : ::BufferSource {
 
   /**
    * @brief Constructs an AudioMixer from an existing array of sources.
-   * @param initial_sources An array of pointers to the ::BufferSource objects to mix.
-   *                        The mixer copies this array but does not take ownership of the pointers.
-   *                        Initial gain for all channels is set to 1.0 (256 in Q8.8 format).
+   * @param initial_sources An array of pointers to the ::BufferSource objects
+   * to mix. The mixer copies this array but does not take ownership of the
+   * pointers. Initial gain for all channels is set to 1.0 (256 in Q8.8 format).
    */
-  AudioMixer(const etl::array<::BufferSource *, N> &initial_sources) : sources(initial_sources) {
+  AudioMixer(const etl::array<::BufferSource *, N> &initial_sources)
+      : sources(initial_sources) {
     for (size_t i = 0; i < N; i++) {
       multipliers[i] = 256; // Default gain = 1.0 (Q8.8)
     }
@@ -67,18 +69,20 @@ template <size_t N> struct AudioMixer : ::BufferSource {
 
   /**
    * @brief Constructs an AudioMixer from individual source pointers.
-   * @tparam SourcePtrs The types of the source pointers (must be convertible to ::BufferSource*).
-   * @param source_ptrs A parameter pack of pointers to the ::BufferSource objects to mix.
-   *                    The number of arguments must exactly match the template parameter N.
-   *                    The mixer copies these pointers but does not take ownership.
-   *                    Initial gain for all channels is set to 1.0 (256 in Q8.8 format).
+   * @tparam SourcePtrs The types of the source pointers (must be convertible to
+   * ::BufferSource*).
+   * @param source_ptrs A parameter pack of pointers to the ::BufferSource
+   * objects to mix. The number of arguments must exactly match the template
+   * parameter N. The mixer copies these pointers but does not take ownership.
+   *                    Initial gain for all channels is set to 1.0 (256 in Q8.8
+   * format).
    */
   template <typename... SourcePtrs>
   AudioMixer(SourcePtrs... source_ptrs) : sources{source_ptrs...} {
     static_assert(sizeof...(SourcePtrs) == N,
                   "Number of sources provided must match template parameter N");
-    // Ensure all provided types are convertible to ::BufferSource* (compiler implicitly checks this
-    // during array initialization)
+    // Ensure all provided types are convertible to ::BufferSource* (compiler
+    // implicitly checks this during array initialization)
     for (size_t i = 0; i < N; i++) {
       multipliers[i] = 256; // Default gain = 1.0 (Q8.8)
     }
@@ -98,7 +102,8 @@ template <size_t N> struct AudioMixer : ::BufferSource {
     ::AudioBlock temp_buffer;
 
     // Zero out the output buffer first
-    for (size_t sample_index = 0; sample_index < out_samples.size(); ++sample_index) {
+    for (size_t sample_index = 0; sample_index < out_samples.size();
+         ++sample_index) {
       out_samples[sample_index] = 0;
     }
 
@@ -106,7 +111,8 @@ template <size_t N> struct AudioMixer : ::BufferSource {
     for (size_t channel = 0; channel < N; ++channel) {
       if (sources[channel] != nullptr) { // Check if source is valid
         sources[channel]->fill_buffer(temp_buffer);
-        for (size_t sample_index = 0; sample_index < out_samples.size(); ++sample_index) {
+        for (size_t sample_index = 0; sample_index < out_samples.size();
+             ++sample_index) {
           const int16_t multiplier = multipliers[channel]; // Q8.8 format
 
           // Multiply sample by gain (multiplier is Q8.8, sample is Q1.15)
@@ -115,7 +121,8 @@ template <size_t N> struct AudioMixer : ::BufferSource {
           // Saturate the final result back to Q1.15 (int16_t)
           const int32_t value =
               out_samples[sample_index] +
-              ((static_cast<int32_t>(temp_buffer[sample_index]) * multiplier) >> 8);
+              ((static_cast<int32_t>(temp_buffer[sample_index]) * multiplier) >>
+               8);
           // Use the 16-bit saturation function from dspinst.h
           out_samples[sample_index] = signed_saturate_rshift16(value, 0);
         }

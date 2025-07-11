@@ -9,8 +9,8 @@ namespace musin::Audio {
 
 struct FileReader : SampleReader {
   FileReader()
-      : file_name(nullptr), read_count(0), handle(nullptr), data_available(false),
-        update_needed(false), current_idx_in_buffer(0) {
+      : file_name(nullptr), read_count(0), handle(nullptr),
+        data_available(false), update_needed(false), current_idx_in_buffer(0) {
   }
 
   void load(const char *new_file_name) {
@@ -35,7 +35,8 @@ struct FileReader : SampleReader {
     } else {
       /*printf("[FileReader] Loaded sample: %s\n", this->file_name);*/
       this->data_available = true; // File is open, data might be available
-      // Buffer is empty, first read_next or has_data check will trigger a fill if needed.
+      // Buffer is empty, first read_next or has_data check will trigger a fill
+      // if needed.
     }
   }
 
@@ -58,7 +59,8 @@ struct FileReader : SampleReader {
   void reset() {
     // Uses the existing file_name. Re-loads it.
     if (this->file_name) {
-      load(this->file_name); // load handles closing previous handle, reopening, and setting state
+      load(this->file_name); // load handles closing previous handle, reopening,
+                             // and setting state
     } else {
       // No file name was ever set, or it was null.
       if (handle) { // Should not happen if file_name is null, but defensive
@@ -75,14 +77,14 @@ struct FileReader : SampleReader {
   // This method overrides a pure virtual method from SampleReader
   bool has_data() override {
     // True if there are samples ready in the current buffer,
-    // OR if the file stream is still marked as available (this->data_available = true)
-    // meaning a read attempt might yield more samples.
+    // OR if the file stream is still marked as available (this->data_available
+    // = true) meaning a read attempt might yield more samples.
     return (current_idx_in_buffer < read_count) || this->data_available;
   }
 
   bool read_next(int16_t &out) override {
     if (current_idx_in_buffer >= read_count) { // Internal buffer is exhausted
-      if (!this->data_available) {             // And file stream is known to be exhausted
+      if (!this->data_available) { // And file stream is known to be exhausted
         return false;
       }
 
@@ -94,13 +96,16 @@ struct FileReader : SampleReader {
         return false;
       }
 
-      this->read_count = fread(this->buffer, sizeof(int16_t), AudioBlock::MaxSamples, handle);
+      this->read_count =
+          fread(this->buffer, sizeof(int16_t), AudioBlock::MaxSamples, handle);
       this->current_idx_in_buffer = 0;
 
-      if (this->read_count == 0) {    // No samples were read, means EOF or error.
-        this->data_available = false; // No more data expected from the file stream.
-        // Consider closing the file handle here to release resources if it's truly EOF.
-        // fclose(handle); handle = nullptr; // This might affect reset() behavior.
+      if (this->read_count == 0) { // No samples were read, means EOF or error.
+        this->data_available =
+            false; // No more data expected from the file stream.
+        // Consider closing the file handle here to release resources if it's
+        // truly EOF. fclose(handle); handle = nullptr; // This might affect
+        // reset() behavior.
         return false;
       }
       // If read_count < AudioBlock::MaxSamples but > 0, some data was read,

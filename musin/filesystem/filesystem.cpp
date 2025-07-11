@@ -1,13 +1,14 @@
 extern "C" {
-#include "blockdevice/flash.h"
-#include "filesystem/littlefs.h"
-#include "filesystem/vfs.h" // Include for vfs_get_lfs
 #include <dirent.h>
 #include <errno.h>
 #include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "blockdevice/flash.h"
+#include "filesystem/littlefs.h"
+#include "filesystem/vfs.h" // Include for vfs_get_lfs
 }
 
 #include "filesystem.h"
@@ -55,9 +56,9 @@ void list_files(const char *path) {
 
 bool init(bool force_format) {
   printf("init_filesystem, force_format: %d\n", force_format);
-  blockdevice_t *flash = blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
+  blockdevice_t *flash =
+      blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
   g_fs = filesystem_littlefs_create(500, 16);
-
 
   if (force_format) {
     return format_filesystem(flash);
@@ -65,7 +66,8 @@ bool init(bool force_format) {
     printf("Attempting to mount filesystem\n");
     int err = fs_mount("/", g_fs, flash);
     if (err == -1) {
-      printf("Initial mount failed: %s. Attempting to format...\n", strerror(errno));
+      printf("Initial mount failed: %s. Attempting to format...\n",
+             strerror(errno));
       return format_filesystem(flash);
     }
     return true; // Mount successful

@@ -13,12 +13,13 @@ struct StorageInfo {
 /**
  * @brief Initializes the filesystem.
  *
- * This function attempts to mount the existing filesystem. If `force_format` is true,
- * it will format the filesystem before attempting to mount.
+ * This function attempts to mount the existing filesystem. If `force_format` is
+ * true, it will format the filesystem before attempting to mount.
  *
- * @param force_format If true, the filesystem will be formatted even if mounting an existing one
- * could succeed.
- * @return true if the filesystem is successfully initialized (mounted), false otherwise.
+ * @param force_format If true, the filesystem will be formatted even if
+ * mounting an existing one could succeed.
+ * @return true if the filesystem is successfully initialized (mounted), false
+ * otherwise.
  */
 bool init(bool force_format);
 

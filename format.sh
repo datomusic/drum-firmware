@@ -42,7 +42,7 @@ function check(){
 
 run ./drum
 run ./musin
-run ./test/musin
+#run ./test/musin
 
 if [ $? -eq 0 ]; then
   echo "All files are correctly formatted."

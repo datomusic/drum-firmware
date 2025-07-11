@@ -27,12 +27,12 @@ struct DrumpadEvent {
 };
 
 enum class DrumpadState : std::uint8_t {
-  IDLE,
-  RISING,
-  PEAKING,
-  FALLING,
-  HOLDING,
-  DEBOUNCING_RELEASE
+  Idle,
+  Rising,
+  Peaking,
+  Falling,
+  Holding,
+  DebouncingRelease
 };
 
 enum class RetriggerMode : uint8_t {
@@ -59,7 +59,7 @@ public:
     return _just_released;
   }
   bool is_held() const {
-    return _current_state == DrumpadState::HOLDING;
+    return _current_state == DrumpadState::Holding;
   }
   std::optional<uint8_t> get_velocity() const {
     return _last_velocity;
@@ -94,7 +94,7 @@ private:
   const std::uint64_t _max_velocity_time_us;
   const std::uint64_t _min_velocity_time_us;
 
-  DrumpadState _current_state = DrumpadState::IDLE;
+  DrumpadState _current_state = DrumpadState::Idle;
   RetriggerMode _current_retrigger_mode = RetriggerMode::Off;
   std::uint16_t _last_adc_value = 0;
   absolute_time_t _state_transition_time = nil_time;

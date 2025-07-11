@@ -17,7 +17,7 @@ Drumpad::Drumpad(uint8_t pad_id,
 }
 
 void Drumpad::init() {
-  _current_state = DrumpadState::IDLE;
+  _current_state = DrumpadState::Idle;
   _current_retrigger_mode = RetriggerMode::Off;
   _last_adc_value = _active_low ? musin::hal::ADC_MAX_VALUE : 0;
   _state_transition_time = nil_time;
@@ -47,9 +47,9 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
   uint64_t time_in_state = absolute_time_diff_us(_state_transition_time, now);
 
   switch (_current_state) {
-  case DrumpadState::IDLE:
+  case DrumpadState::Idle:
     if (current_adc_value >= _noise_threshold) {
-      _current_state = DrumpadState::RISING;
+      _current_state = DrumpadState::Rising;
       _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
       _velocity_low_time = now; // Start timing for velocity from here
@@ -57,10 +57,10 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     }
     break;
 
-  case DrumpadState::RISING:
+  case DrumpadState::Rising:
     if (current_adc_value >= _trigger_threshold) {
       _velocity_high_time = now;
-      _current_state = DrumpadState::PEAKING;
+      _current_state = DrumpadState::Peaking;
       _state_transition_time = now;
 
       uint64_t diff =
@@ -70,34 +70,34 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
       notify_event(DrumpadEvent::Type::Press, _last_velocity,
                    current_adc_value);
     } else if (current_adc_value < _noise_threshold) {
-      _current_state = DrumpadState::IDLE;
+      _current_state = DrumpadState::Idle;
       _state_transition_time = now;
     }
     break;
 
-  case DrumpadState::PEAKING:
+  case DrumpadState::Peaking:
     if (current_adc_value < _trigger_threshold) {
-      _current_state = DrumpadState::FALLING;
+      _current_state = DrumpadState::Falling;
     }
     if (time_in_state >= _hold_time_us) {
-      _current_state = DrumpadState::HOLDING;
+      _current_state = DrumpadState::Holding;
       notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);
     } else if (current_adc_value < _noise_threshold) {
-      _current_state = DrumpadState::DEBOUNCING_RELEASE;
+      _current_state = DrumpadState::DebouncingRelease;
       _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
     }
     break;
 
-  case DrumpadState::FALLING:
+  case DrumpadState::Falling:
     if (current_adc_value < _noise_threshold) {
-      _current_state = DrumpadState::DEBOUNCING_RELEASE;
+      _current_state = DrumpadState::DebouncingRelease;
       _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
     }
     break;
 
-  case DrumpadState::HOLDING:
+  case DrumpadState::Holding:
     if (current_adc_value >= _double_retrigger_pressure_threshold) {
       _current_retrigger_mode = RetriggerMode::Double;
     } else if (current_adc_value >= _trigger_threshold) {
@@ -107,18 +107,18 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     }
 
     if (current_adc_value < _trigger_threshold) {
-      _current_state = DrumpadState::FALLING;
+      _current_state = DrumpadState::Falling;
     }
     break;
 
-  case DrumpadState::DEBOUNCING_RELEASE:
+  case DrumpadState::DebouncingRelease:
     if (current_adc_value >= _noise_threshold) {
-      _current_state = DrumpadState::FALLING;
+      _current_state = DrumpadState::Falling;
       _state_transition_time = now;
     } else if (time_in_state >= _debounce_time_us) {
       notify_event(DrumpadEvent::Type::Release, std::nullopt,
                    current_adc_value);
-      _current_state = DrumpadState::IDLE;
+      _current_state = DrumpadState::Idle;
       _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
       _just_released = true;

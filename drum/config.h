@@ -72,36 +72,28 @@ constexpr DrumpadConfig default_drumpad_config = {
     .double_retrigger_pressure_threshold = 2500,
     .active_low = true,
     .debounce_time_us = 5000,
-    .hold_time_us = 100000,
+    .hold_time_us = 200000,
     .max_velocity_time_us = 50000,
-    .min_velocity_time_us = 500};
+    .min_velocity_time_us = 100};
 
 // Configuration for the play button, which is also a drumpad
 constexpr DrumpadConfig play_button_config = {
-    .noise_threshold = 150,                   // Simple press threshold
-    .trigger_threshold = 0,                   // Not used
-    .double_retrigger_pressure_threshold = 0, // Not used
+    .noise_threshold = 150,
+    .trigger_threshold = 800,
+    .double_retrigger_pressure_threshold = 0,
     .active_low = true,
     .debounce_time_us = 5000,
-    .hold_time_us = 1000000,   // No hold detection
-    .max_velocity_time_us = 0, // Not used
-    .min_velocity_time_us = 0  // Not used
-};
+    .hold_time_us = 1000000,
+    .max_velocity_time_us = 0,
+    .min_velocity_time_us = 0};
 
 // Create the array of configurations using the default for all pads
 constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {
     {default_drumpad_config, default_drumpad_config, default_drumpad_config,
      default_drumpad_config}};
 
-constexpr uint32_t DEBOUNCE_PRESS_MS = 50U;
-constexpr uint32_t DEBOUNCE_RELEASE_MS = 250U;
-constexpr uint32_t HOLD_THRESHOLD_MS = 150U;
-constexpr uint32_t HOLD_REPEAT_DELAY_MS = 1500U;
-constexpr uint32_t HOLD_REPEAT_INTERVAL_MS = 100U;
-constexpr uint32_t MIN_PRESSURE_VALUE = 800U;
-constexpr uint32_t MAX_PRESSURE_VALUE = 1000U;
 constexpr uint8_t RANDOM_PROBABILITY_DEFAULT =
-    75; // 75% chance to flip steps when random is active
+    75; // chance to flip steps when random is active
 } // namespace drumpad
 
 // MIDI Note Numbers from DATO_Drum_midi_implementation_chart.md for general

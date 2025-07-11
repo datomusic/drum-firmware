@@ -57,7 +57,7 @@ constexpr uint8_t RETRIGGER_VELOCITY = 100;
 struct DrumpadConfig {
   uint16_t noise_threshold;
   uint16_t trigger_threshold;
-  uint16_t double_retrigger_pressure_threshold;
+  uint16_t high_pressure_threshold;
   bool active_low;
   uint32_t debounce_time_us;
   uint32_t hold_time_us;
@@ -69,10 +69,10 @@ struct DrumpadConfig {
 constexpr DrumpadConfig default_drumpad_config = {
     .noise_threshold = 150,
     .trigger_threshold = 800,
-    .double_retrigger_pressure_threshold = 2500,
+    .high_pressure_threshold = 2500,
     .active_low = true,
     .debounce_time_us = 5000,
-    .hold_time_us = 200000,
+    .hold_time_us = 50000,
     .max_velocity_time_us = 50000,
     .min_velocity_time_us = 100};
 
@@ -80,7 +80,7 @@ constexpr DrumpadConfig default_drumpad_config = {
 constexpr DrumpadConfig play_button_config = {
     .noise_threshold = 150,
     .trigger_threshold = 800,
-    .double_retrigger_pressure_threshold = 0,
+    .high_pressure_threshold = 0,
     .active_low = true,
     .debounce_time_us = 5000,
     .hold_time_us = 1000000,

@@ -7,8 +7,8 @@ Drumpad::Drumpad(uint8_t pad_id,
                  const drum::config::drumpad::DrumpadConfig &config)
     : _pad_id(pad_id), _noise_threshold(config.noise_threshold),
       _trigger_threshold(config.trigger_threshold),
-      _double_retrigger_pressure_threshold(
-          config.double_retrigger_pressure_threshold),
+      _high_pressure_threshold(
+          config.high_pressure_threshold),
       _active_low(config.active_low),
       _debounce_time_us(config.debounce_time_us),
       _hold_time_us(config.hold_time_us),
@@ -98,7 +98,7 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     break;
 
   case DrumpadState::Holding:
-    if (current_adc_value >= _double_retrigger_pressure_threshold) {
+    if (current_adc_value >= _high_pressure_threshold) {
       _current_retrigger_mode = RetriggerMode::Double;
     } else if (current_adc_value >= _trigger_threshold) {
       _current_retrigger_mode = RetriggerMode::Single;

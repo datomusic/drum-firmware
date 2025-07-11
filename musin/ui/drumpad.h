@@ -87,7 +87,7 @@ private:
   const uint8_t _pad_id;
   const std::uint16_t _noise_threshold;
   const std::uint16_t _trigger_threshold;
-  const std::uint16_t _double_retrigger_pressure_threshold;
+  const std::uint16_t _high_pressure_threshold;
   const bool _active_low;
   const std::uint32_t _debounce_time_us;
   const std::uint32_t _hold_time_us;

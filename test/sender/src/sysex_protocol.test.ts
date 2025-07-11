@@ -77,7 +77,12 @@ describe('SysexProtocol', () => {
     await expect(protocol.beginFileTransfer(invalidFileName)).rejects.toThrow('Received NACK from device.');
   });
 
-  test('should fail gracefully when sending a file that is too large', async () => {
+  // --- Optional Long-Running Tests ---
+  // These tests are skipped by default. Run them with:
+  // RUN_LARGE_TESTS=true npm test
+  const runLargeTests = process.env.RUN_LARGE_TESTS === 'true';
+
+  (runLargeTests ? test : test.skip)('should fail gracefully when sending a file that is too large', async () => {
     const fourMegabytes = 4 * 1024 * 1024;
     const largeFile = Buffer.alloc(fourMegabytes);
     const fileName = 'large_file.bin';
@@ -93,8 +98,9 @@ describe('SysexProtocol', () => {
       try {
         await protocol.sendFileChunk(chunk);
         process.stdout.write(`.`); // Print a dot for each successful chunk
-      } catch (error) {
+      } catch (error: any) {
         console.log('\nTransfer failed as expected.');
+        expect(error.message).toContain('Received NACK from device.');
         transferFailedAsExpected = true;
         break; // Exit the loop on failure
       }
@@ -114,4 +120,31 @@ describe('SysexProtocol', () => {
     console.log('Recovery successful.');
 
   }, 60000); // 60-second timeout for this long test
+
+  (runLargeTests ? test : test.skip)('should receive a NACK when writing to a full filesystem', async () => {
+    // 1. Fill the filesystem with a large file.
+    const fourMegabytes = 4 * 1024 * 1024;
+    const largeFile = Buffer.alloc(fourMegabytes);
+    const largeFileName = 'large_file_to_fill_fs.bin';
+
+    await protocol.beginFileTransfer(largeFileName);
+
+    let transferFailedAsExpected = false;
+    const CHUNK_SIZE = 98;
+
+    for (let i = 0; i < largeFile.length; i += CHUNK_SIZE) {
+      const chunk = largeFile.slice(i, i + CHUNK_SIZE);
+      try {
+        await protocol.sendFileChunk(chunk);
+      } catch (error: any) {
+        transferFailedAsExpected = true;
+        break;
+      }
+    }
+    expect(transferFailedAsExpected).toBe(true);
+
+    // 2. Attempt to write a small file.
+    const smallFileName = 'small_file.bin';
+    await expect(protocol.beginFileTransfer(smallFileName)).rejects.toThrow('Received NACK from device.');
+  }, 60000);
 });

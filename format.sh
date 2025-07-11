@@ -18,9 +18,11 @@ function run(){
     -not -path './musin/ports/pico/libraries/*' \
     -not -path './musin/ports/pico/pico-sdk/*' \
     -not -path './musin/ports/pico/pico-extras/*' \
+    -not -path './musin/ports/pico/port/*' \
     -not -path './musin/usb/*' \
     -not -path './musin/ui/*' \
     -not -path './musin/hal/*' \
+    -not -path './musin/midi/*' \
     -not -path './musin/drivers/*' \
     -not -path './musin/boards/*' \
     -not -path './musin/audio/waveshaper.*' \
@@ -38,7 +40,6 @@ function check(){
   run "$1" --dry-run
 }
 
-run ./experiments
 run ./drum
 run ./musin
 run ./test/musin

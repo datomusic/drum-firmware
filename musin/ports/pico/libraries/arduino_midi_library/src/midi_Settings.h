@@ -72,6 +72,12 @@ struct DefaultSettings
     */
     static const unsigned SysExMaxSize = 128;
 
+    /*! When receiving a SysEx message, the library will wait for this amount of
+    milliseconds before throwing a timeout error. This prevents the library
+    from getting stuck waiting for an EOX byte that is never received.
+    */
+    static const unsigned SysExTimeOut = 1000; // 1 second
+
     /*! Global switch to turn on/off sender ActiveSensing
     Set to true to send ActiveSensing
     Set to false will not send ActiveSensing message (will also save memory)

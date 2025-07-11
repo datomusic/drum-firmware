@@ -44,6 +44,7 @@ inline MidiInterface<Transport, Settings, Platform>::MidiInterface(Transport& in
     , mThruFilterMode(Thru::Full)
     , mLastMessageSentTime(0)
     , mLastMessageReceivedTime(0)
+    , mSysExReceiveTime(0)
     , mSenderActiveSensingPeriodicity(0)
     , mReceiverActiveSensingActivated(false)
     , mLastError(0)
@@ -759,6 +760,14 @@ inline bool MidiInterface<Transport, Settings, Platform>::read()
 template<class Transport, class Settings, class Platform>
 inline bool MidiInterface<Transport, Settings, Platform>::read(Channel inChannel)
 {
+    if (mPendingMessageIndex > 0 && mMessage.sysexArray[0] == SystemExclusiveStart && (Platform::now() - mSysExReceiveTime) > Settings::SysExTimeOut)
+    {
+        mLastError |= 1UL << ErrorSysExTimeOut;
+        if (mErrorCallback)
+            mErrorCallback(mLastError);
+        resetInput();
+    }
+
     #ifndef RegionActiveSending
     // Active Sensing. This message is intended to be sent
     // repeatedly to tell the receiver that a connection is alive. Use
@@ -927,6 +936,7 @@ bool MidiInterface<Transport, Settings, Platform>::parse()
                 mPendingMessageExpectedLength = MidiMessage::sSysExMaxSize;
                 mRunningStatus_RX = InvalidType;
                 mMessage.sysexArray[0] = pendingType;
+                mSysExReceiveTime = Platform::now();
                 break;
 
             case InvalidType:
@@ -1037,8 +1047,10 @@ bool MidiInterface<Transport, Settings, Platform>::parse()
 
         // Add extracted data byte to pending message
         if ((mPendingMessage[0] == SystemExclusiveStart)
-        ||  (mPendingMessage[0] == SystemExclusiveEnd))
+        ||  (mPendingMessage[0] == SystemExclusiveEnd)) {
             mMessage.sysexArray[mPendingMessageIndex] = extracted;
+            mSysExReceiveTime = Platform::now();
+        }
         else
             mPendingMessage[mPendingMessageIndex] = extracted;
 

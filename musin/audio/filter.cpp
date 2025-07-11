@@ -179,7 +179,7 @@ void __time_critical_func(Filter::update_variable)(const ::AudioBlock &in,
     // compute fmult using control input, fcenter and octavemult
     control = *ctl_iterator++; // signal is always 15 fractional bits
     control *= octavemult;     // octavemult range: 0 to 28671 (12 frac bits) ->
-                           // control is now Q15.12 (27 total, 12 frac)
+                               // control is now Q15.12 (27 total, 12 frac)
     n = control & N_CONTROL_FRAC_MASK; // 27 fractional control bits (actually
                                        // Q0.27 from Q15.12)
 #ifdef IMPROVE_EXPONENTIAL_ACCURACY

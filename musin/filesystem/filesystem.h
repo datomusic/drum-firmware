@@ -23,18 +23,6 @@ struct StorageInfo {
 bool init(bool force_format);
 
 /**
- * @brief Formats the filesystem and then mounts it.
- *
- * This function should be called if a fresh filesystem is required or if the existing
- * filesystem is corrupted.
- *
- * @param lfs Pointer to the filesystem_t structure.
- * @param flash Pointer to the blockdevice_t structure for the flash memory.
- * @return true if formatting and subsequent mounting are successful, false otherwise.
- */
-bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash);
-
-/**
  * @brief Lists all files and directories at the given path.
  *
  * @param path The directory path to list (e.g., "/").

@@ -1,7 +1,7 @@
 extern "C" {
 #include "blockdevice/flash.h"
 #include "filesystem/littlefs.h"
-#include "filesystem/vfs.h"
+#include "filesystem/vfs.h" // Include for vfs_get_lfs
 #include <dirent.h>
 #include <errno.h>
 #include <hardware/flash.h>
@@ -11,20 +11,21 @@ extern "C" {
 }
 
 #include "filesystem.h"
-#include "filesystem/vfs.h" // Include for vfs_get_lfs
 
 namespace musin::filesystem {
 
-bool format_filesystem(filesystem_t *lfs, blockdevice_t *flash) {
+static filesystem_t *g_fs = nullptr;
+
+static bool format_filesystem(blockdevice_t *flash) {
   printf("Formatting filesystem with littlefs\n");
-  int err = fs_format(lfs, flash);
+  int err = fs_format(g_fs, flash);
   if (err == -1) {
     printf("fs_format error: %s\n", strerror(errno));
     return false;
   }
   // Mount after formatting is essential
   printf("Mounting filesystem after format\n");
-  err = fs_mount("/", lfs, flash);
+  err = fs_mount("/", g_fs, flash);
   if (err == -1) {
     printf("fs_mount after format error: %s\n", strerror(errno));
     return false;
@@ -55,30 +56,36 @@ void list_files(const char *path) {
 bool init(bool force_format) {
   printf("init_filesystem, force_format: %d\n", force_format);
   blockdevice_t *flash = blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
-  filesystem_t *lfs = filesystem_littlefs_create(500, 16);
+  g_fs = filesystem_littlefs_create(500, 16);
+
 
   if (force_format) {
-    return format_filesystem(lfs, flash);
+    return format_filesystem(flash);
   } else {
     printf("Attempting to mount filesystem\n");
-    int err = fs_mount("/", lfs, flash);
+    int err = fs_mount("/", g_fs, flash);
     if (err == -1) {
       printf("Initial mount failed: %s. Attempting to format...\n", strerror(errno));
-      return format_filesystem(lfs, flash);
+      return format_filesystem(flash);
     }
     return true; // Mount successful
   }
 }
 
 StorageInfo get_storage_info() {
+  if (!g_fs || g_fs->type != FILESYSTEM_TYPE_LITTLEFS) {
+    return {0, 0}; // Not a valid LittleFS filesystem
+  }
+
+  lfs_t *lfs = (lfs_t *)g_fs->context;
   struct lfs_fsinfo info;
-  int err = lfs_fs_stat(vfs_get_lfs(), &info);
+  int err = lfs_fs_stat(lfs, &info);
   if (err != 0) {
     return {0, 0};
   }
 
   uint32_t total_bytes = info.block_count * info.block_size;
-  uint32_t used_bytes = lfs_fs_size(vfs_get_lfs()) * info.block_size;
+  uint32_t used_bytes = lfs_fs_size(lfs) * info.block_size;
   uint32_t free_bytes = total_bytes - used_bytes;
 
   return {total_bytes, free_bytes};

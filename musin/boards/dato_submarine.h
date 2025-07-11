@@ -53,9 +53,7 @@
 #ifndef PICO_FLASH_SPI_CLKDIV
 #define PICO_FLASH_SPI_CLKDIV 2
 #endif
-#ifndef PICO_FS_DEFAULT_SIZE
 #define PICO_FS_DEFAULT_SIZE (4 * 1024 * 1024)
-#endif
 #ifndef PICO_FLASH_SIZE_BYTES
 #define PICO_FLASH_SIZE_BYTES (8 * 1024 * 1024)
 #endif

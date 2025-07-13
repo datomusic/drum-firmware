@@ -138,14 +138,9 @@ void TempoHandler::update() {
       // MIDI.\n");
       set_clock_source(ClockSource::MIDI);
     }
-  } else if (current_source_ == ClockSource::MIDI) {
-    // If we are on MIDI clock, check if it has timed out
-    if (_midi_clock_processor_ref.get_derived_bpm() == 0.0f) {
-      // printf("TempoHandler Update: MIDI clock timed out. Switching to
-      // INTERNAL.\n");
-      set_clock_source(ClockSource::INTERNAL);
-    }
   }
+  // The logic to switch from MIDI to INTERNAL on timeout has been removed to
+  // prevent unwanted clock source changes. See issue #322.
 }
 
 } // namespace musin::timing

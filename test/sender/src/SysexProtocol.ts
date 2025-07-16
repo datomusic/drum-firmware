@@ -38,6 +38,15 @@ export class SysexProtocol {
             clearTimeout(ackResolver.timer);
             ackResolver.reject(new Error('Received NACK from device.'));
           }
+        } else if (tag === Command.RequestFirmwareVersion) {
+          if (this.replyPromise) {
+            const major = message[6];
+            const minor = message[7];
+            const patch = message[8];
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve({ major, minor, patch });
+            this.replyPromise = null;
+          }
         } else if (tag === Command.StorageInfoResponse) {
           if (this.replyPromise) {
             const total_bytes = (message[6] << 21) | (message[7] << 14) | (message[8] << 7) | message[9];
@@ -99,6 +108,20 @@ export class SysexProtocol {
 
   async endFileTransfer(): Promise<void> {
     await this.sendCommandAndWait(Command.EndFileTransfer);
+  }
+
+  async getFirmwareVersion(): Promise<{ major: number; minor: number; patch: number }> {
+    await this.sendMessage([Command.RequestFirmwareVersion]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for firmware version reply.'));
+        }, 2000)
+      };
+    });
   }
 
   async getStorageInfo(): Promise<{ total: number; free: number }> {

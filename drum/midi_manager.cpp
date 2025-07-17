@@ -1,7 +1,7 @@
 #include "drum/midi_manager.h"
 
 #include "drum/message_router.h"
-#include "drum/sysex_file_handler.h"
+#include "drum/sysex_handler.h"
 #include "musin/hal/logger.h"
 #include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_wrapper.h"
@@ -18,11 +18,11 @@ MidiManager *MidiManager::instance_ = nullptr;
 
 MidiManager::MidiManager(MessageRouter &message_router,
                          musin::timing::MidiClockProcessor &midi_clock_processor,
-                         SysExFileHandler &sysex_file_handler,
+                         SysExHandler &sysex_handler,
                          musin::Logger &logger)
     : message_router_(message_router),
       midi_clock_processor_(midi_clock_processor),
-      sysex_file_handler_(sysex_file_handler), logger_(logger) {
+      sysex_handler_(sysex_handler), logger_(logger) {
   assert(!instance_ && "Only one MidiManager instance is allowed.");
   instance_ = this;
 }
@@ -48,7 +48,7 @@ void MidiManager::process_input() {
   musin::midi::IncomingMidiMessage message;
   while (musin::midi::dequeue_incoming_midi_message(message)) {
     // Gate all non-SysEx messages during a file transfer to prevent conflicts.
-    if (sysex_file_handler_.is_busy() &&
+    if (sysex_handler_.is_busy() &&
         !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
       continue;
     }
@@ -127,23 +127,23 @@ void MidiManager::stop_callback() {
 
 // --- Message Handlers ---
 
-void MidiManager::handle_note_on(uint8_t channel, uint8_t note,
+void MidiManager::handle_note_on([[maybe_unused]] uint8_t channel, uint8_t note,
                                  uint8_t velocity) {
-  // TODO: Route to MessageRouter
+  message_router_.handle_incoming_midi_note(note, velocity);
 }
 
-void MidiManager::handle_note_off(uint8_t channel, uint8_t note,
+void MidiManager::handle_note_off([[maybe_unused]] uint8_t channel, uint8_t note,
                                   uint8_t velocity) {
-  // TODO: Route to MessageRouter
+  message_router_.handle_incoming_midi_note(note, velocity);
 }
 
-void MidiManager::handle_control_change(uint8_t channel, uint8_t controller,
-                                        uint8_t value) {
-  // TODO: Route to MessageRouter
+void MidiManager::handle_control_change([[maybe_unused]] uint8_t channel,
+                                        uint8_t controller, uint8_t value) {
+  message_router_.handle_incoming_midi_cc(controller, value);
 }
 
 void MidiManager::handle_sysex(const etl::span<const uint8_t> &data) {
-  sysex_file_handler_.handle_sysex_message(data);
+  sysex_handler_.handle_sysex_message(data);
 }
 
 void MidiManager::handle_realtime(uint16_t type) {

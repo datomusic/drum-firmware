@@ -164,7 +164,7 @@ template <typename FileOperations> struct Protocol {
     return false;
   }
 
-  constexpr bool busy() {
+  constexpr bool busy() const {
     return state != State::Idle;
   }
 

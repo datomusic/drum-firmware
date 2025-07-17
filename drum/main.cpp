@@ -11,7 +11,8 @@
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
-#include "drum/sysex_file_handler.h"
+#include "drum/midi_manager.h"
+#include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
 
@@ -31,7 +32,6 @@ extern "C" {
 #include "drum/ui/pizza_display.h"
 #include "events.h"
 #include "message_router.h"
-#include "midi_functions.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
 
@@ -45,7 +45,7 @@ static musin::NullLogger logger;
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
-static drum::SysExFileHandler sysex_file_handler(config_manager, logger);
+static drum::SysExHandler sysex_handler(config_manager, logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
@@ -62,6 +62,10 @@ static musin::midi::MidiSender
                 logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
                                           midi_sender, logger);
+
+// MIDI Manager
+static drum::MidiManager midi_manager(message_router, midi_clock_processor,
+                                      sysex_handler, logger);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
@@ -112,7 +116,7 @@ int main() {
     config_manager.load();
   }
 
-  midi_init(midi_clock_processor, sysex_file_handler, logger);
+  midi_manager.init();
 
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
@@ -132,9 +136,9 @@ int main() {
   sequencer_controller.add_observer(message_router);
 
   // Register observers for SysEx state changes
-  sysex_file_handler.add_observer(message_router);
-  sysex_file_handler.add_observer(pizza_display);
-  sysex_file_handler.add_observer(sequencer_controller);
+  sysex_handler.add_observer(message_router);
+  sysex_handler.add_observer(pizza_display);
+  sysex_handler.add_observer(sequencer_controller);
 
   // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
@@ -144,7 +148,7 @@ int main() {
   sync_out.enable();
 
   while (true) {
-    sysex_file_handler.update(get_absolute_time());
+    sysex_handler.update(get_absolute_time());
 
     pizza_controls.update(get_absolute_time());
     sequencer_controller
@@ -156,7 +160,7 @@ int main() {
     pizza_display.update(get_absolute_time());
 
     musin::usb::background_update();
-    midi_process_input();
+    midi_manager.process_input();
     tempo_handler.update();
     musin::midi::process_midi_output_queue(
         logger); // Pass logger to queue processing

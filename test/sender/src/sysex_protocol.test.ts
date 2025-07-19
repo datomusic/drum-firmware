@@ -224,7 +224,7 @@ describe('SysexProtocol', () => {
 
     // 6. Wait for the device to boot up
     console.log('Device has exited bootloader. Waiting for it to boot up...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 4000));
     console.log('Device should now be ready.');
 
   }, 25000); // 25-second timeout for this long test

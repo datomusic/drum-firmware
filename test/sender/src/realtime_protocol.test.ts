@@ -28,7 +28,7 @@ describe('MIDI Realtime Message Handling', () => {
       expect(version.patch).toBeDefined();
     } catch (e) {
       // Explicitly fail the test if the probe fails.
-      fail('Device did not respond to firmware version request.');
+      throw new Error('Device did not respond to firmware version request.');
     }
   };
 

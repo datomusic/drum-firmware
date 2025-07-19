@@ -123,7 +123,8 @@ export class SysexProtocol {
   }
 
   async rebootToBootloader(): Promise<void> {
-    await this.sendCommandAndWait(Command.RebootBootloader);
+    // This command causes the device to reboot immediately, so it doesn't send an ACK.
+    await this.sendMessage([Command.RebootBootloader]);
   }
 
   async formatFilesystem(): Promise<void> {

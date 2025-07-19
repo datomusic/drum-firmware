@@ -3,6 +3,9 @@ import { SysexProtocol } from './SysexProtocol';
 import { Command } from './Command';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
+
+import { findDevice, pollForDevice, pollForDeviceDisappearance } from './usb_utils';
 
 describe('SysexProtocol', () => {
   let transport: NodeMidiTransport;
@@ -186,11 +189,43 @@ describe('SysexProtocol', () => {
     await expect(protocol.beginFileTransfer(smallFileName)).rejects.toThrow('Received NACK from device.');
   }, 60000);
 
-  (runRebootTests ? test : test.skip)('should reboot to bootloader', async () => {
-    // This test sends the reboot command and expects an ACK.
-    // It cannot verify the device actually reboots, which requires manual observation.
-    // This test runs last because it will put the device in a state where it cannot respond to other tests.
+  (runRebootTests ? test : test.skip)('should reboot to bootloader, be detected, and then return to app mode', async () => {
+    // This test verifies the full reboot cycle: app -> bootloader -> app.
+    // It requires `picotool` to be installed and in the system's PATH.
     // Run with: RUN_REBOOT_TESTS=true npm test
+
+    const BOOTLOADER_VID = 0x2e8a;
+    const BOOTLOADER_PID = 0x000f;
+
+    // 1. Verify bootloader is not present before test
+    expect(findDevice(BOOTLOADER_VID, BOOTLOADER_PID)).toBeUndefined();
+
+    // 2. Send reboot command
     await protocol.rebootToBootloader();
-  });
+
+    // 3. Poll for the device to appear in bootloader mode
+    console.log('Waiting for device to reboot into bootloader mode...');
+    let deviceAppeared = await pollForDevice(BOOTLOADER_VID, BOOTLOADER_PID, 10000);
+    expect(deviceAppeared).toBe(true);
+
+    // 4. Use picotool to reboot the device back to the application
+    console.log('Device found in bootloader mode. Rebooting back to application...');
+    try {
+      execSync('picotool reboot -f');
+    } catch (error) {
+      console.error('Failed to execute "picotool reboot -f". Is picotool installed and in your PATH?');
+      throw error;
+    }
+
+    // 5. Poll for the device to disappear from bootloader mode
+    console.log('Waiting for device to exit bootloader mode...');
+    const deviceDisappeared = await pollForDeviceDisappearance(BOOTLOADER_VID, BOOTLOADER_PID, 10000);
+    expect(deviceDisappeared).toBe(true);
+
+    // 6. Wait for the device to boot up
+    console.log('Device has exited bootloader. Waiting for it to boot up...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('Device should now be ready.');
+
+  }, 25000); // 25-second timeout for this long test
 });

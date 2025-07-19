@@ -122,6 +122,14 @@ export class SysexProtocol {
     await this.sendCommandAndWait(Command.EndFileTransfer);
   }
 
+  async rebootToBootloader(): Promise<void> {
+    await this.sendCommandAndWait(Command.RebootBootloader);
+  }
+
+  async formatFilesystem(): Promise<void> {
+    await this.sendCommandAndWait(Command.FormatFilesystem);
+  }
+
   async getFirmwareVersion(): Promise<{ major: number; minor: number; patch: number }> {
     await this.sendMessage([Command.RequestFirmwareVersion]);
     return new Promise((resolve, reject) => {

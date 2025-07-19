@@ -105,10 +105,20 @@ describe('SysexProtocol', () => {
   // as it is a destructive operation that would wipe the device's storage.
   // This test should be run manually if filesystem behavior is being tested.
 
-  // --- Optional Long-Running Tests ---
-  // These tests are skipped by default. Run them with:
-  // RUN_LARGE_TESTS=true npm test
+  // --- Optional Long-Running or Destructive Tests ---
+  // These tests are skipped by default.
   const runLargeTests = process.env.RUN_LARGE_TESTS === 'true';
+  const runRebootTests = process.env.RUN_REBOOT_TESTS === 'true';
+  const runDestructiveTests = process.env.RUN_DESTRUCTIVE_TESTS === 'true';
+
+  (runDestructiveTests ? test : test.skip)('should format the filesystem', async () => {
+    // WARNING: This is a destructive test. It will erase the device's filesystem.
+    // Run with: RUN_DESTRUCTIVE_TESTS=true npm test
+    await protocol.formatFilesystem();
+    // As a basic verification, we can check if the storage info reflects an empty state.
+    const info = await protocol.getStorageInfo();
+    expect(info.free).toBe(info.total);
+  });
 
   (runLargeTests ? test : test.skip)('should fail gracefully when sending a file that is too large', async () => {
     const fourMegabytes = 4 * 1024 * 1024;
@@ -175,4 +185,12 @@ describe('SysexProtocol', () => {
     const smallFileName = 'small_file.bin';
     await expect(protocol.beginFileTransfer(smallFileName)).rejects.toThrow('Received NACK from device.');
   }, 60000);
+
+  (runRebootTests ? test : test.skip)('should reboot to bootloader', async () => {
+    // This test sends the reboot command and expects an ACK.
+    // It cannot verify the device actually reboots, which requires manual observation.
+    // This test runs last because it will put the device in a state where it cannot respond to other tests.
+    // Run with: RUN_REBOOT_TESTS=true npm test
+    await protocol.rebootToBootloader();
+  });
 });

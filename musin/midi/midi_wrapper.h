@@ -3,14 +3,16 @@
 #include <midi_Defs.h>
 
 namespace MIDI {
-static const unsigned SysExMaxSize = 128; // Max SysEx size for messages in our queue
+static const unsigned SysExMaxSize =
+    128; // Max SysEx size for messages in our queue
 
 using MidiType = ::midi::MidiType; // Alias the original library's MidiType
 
 typedef void(VoidCallback)();
 typedef void(SyxCallback)(uint8_t *data, unsigned length);
 typedef void(NoteCallback)(uint8_t channel, uint8_t note, uint8_t velocity);
-typedef void(ControlChangeCallback)(uint8_t channel, uint8_t controller, uint8_t value);
+typedef void(ControlChangeCallback)(uint8_t channel, uint8_t controller,
+                                    uint8_t value);
 typedef void(PitchBendCallback)(uint8_t channel, int bend);
 
 struct Callbacks {
@@ -41,7 +43,8 @@ namespace internal {
 // These functions perform the actual MIDI sending via underlying libraries.
 // They are called by the midi_message_queue processor.
 void _sendRealTime_actual(MidiType message);
-void _sendControlChange_actual(uint8_t channel, uint8_t controller, uint8_t value);
+void _sendControlChange_actual(uint8_t channel, uint8_t controller,
+                               uint8_t value);
 void _sendNoteOn_actual(uint8_t channel, uint8_t note, uint8_t velocity);
 void _sendNoteOff_actual(uint8_t channel, uint8_t note, uint8_t velocity);
 void _sendPitchBend_actual(uint8_t channel, int bend);

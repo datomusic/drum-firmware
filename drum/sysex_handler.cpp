@@ -8,9 +8,10 @@
 namespace drum {
 
 SysExHandler::SysExHandler(ConfigurationManager &config_manager,
-                                   musin::Logger &logger)
+                           musin::Logger &logger)
     : config_manager_(config_manager), logger_(logger), file_ops_(logger),
-      protocol_(file_ops_, logger) {}
+      protocol_(file_ops_, logger) {
+}
 
 void SysExHandler::update(absolute_time_t now) {
   protocol_.check_timeout(now);
@@ -29,15 +30,13 @@ void SysExHandler::update(absolute_time_t now) {
   }
 
   if (new_file_received_) {
-    logger_.info(
-        "SysExHandler: New file received, reloading configuration.");
+    logger_.info("SysExHandler: New file received, reloading configuration.");
     config_manager_.load();
     new_file_received_ = false;
   }
 }
 
-void SysExHandler::handle_sysex_message(
-    const etl::span<const uint8_t> &data) {
+void SysExHandler::handle_sysex_message(const etl::span<const uint8_t> &data) {
   auto sender = [this](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {0xF0,
                      drum::config::sysex::MANUFACTURER_ID_0,
@@ -75,9 +74,13 @@ void SysExHandler::handle_sysex_message(
   }
 }
 
-bool SysExHandler::is_busy() const { return protocol_.busy(); }
+bool SysExHandler::is_busy() const {
+  return protocol_.busy();
+}
 
-void SysExHandler::on_file_received() { new_file_received_ = true; }
+void SysExHandler::on_file_received() {
+  new_file_received_ = true;
+}
 
 void SysExHandler::print_firmware_version() const {
   logger_.info("Sending firmware version via SysEx");

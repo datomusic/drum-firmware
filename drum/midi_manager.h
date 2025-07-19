@@ -1,8 +1,8 @@
 #ifndef DRUM_MIDI_MANAGER_H
 #define DRUM_MIDI_MANAGER_H
 
-#include <cstdint>
 #include "etl/span.h"
+#include <cstdint>
 
 // Forward declarations to minimize header includes
 namespace musin {
@@ -68,8 +68,7 @@ private:
   // --- C-style Callbacks ---
   // These static functions are registered with the MIDI library. They capture
   // incoming data and queue it for processing in the main loop.
-  static void note_on_callback(uint8_t channel, uint8_t note,
-                               uint8_t velocity);
+  static void note_on_callback(uint8_t channel, uint8_t note, uint8_t velocity);
   static void note_off_callback(uint8_t channel, uint8_t note,
                                 uint8_t velocity);
   static void cc_callback(uint8_t channel, uint8_t controller, uint8_t value);

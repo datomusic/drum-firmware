@@ -29,7 +29,8 @@ struct SysExRawData {
 };
 
 using IncomingMidiMessage =
-    etl::variant<NoteOnData, NoteOffData, ControlChangeData, SystemRealtimeData, SysExRawData>;
+    etl::variant<NoteOnData, NoteOffData, ControlChangeData, SystemRealtimeData,
+                 SysExRawData>;
 
 extern etl::queue_spsc_atomic<IncomingMidiMessage, MIDI_INPUT_QUEUE_SIZE,
                               etl::memory_model::MEMORY_MODEL_SMALL>

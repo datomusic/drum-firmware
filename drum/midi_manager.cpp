@@ -16,10 +16,10 @@ namespace drum {
 // Initialize the static instance pointer.
 MidiManager *MidiManager::instance_ = nullptr;
 
-MidiManager::MidiManager(MessageRouter &message_router,
-                         musin::timing::MidiClockProcessor &midi_clock_processor,
-                         SysExHandler &sysex_handler,
-                         musin::Logger &logger)
+MidiManager::MidiManager(
+    MessageRouter &message_router,
+    musin::timing::MidiClockProcessor &midi_clock_processor,
+    SysExHandler &sysex_handler, musin::Logger &logger)
     : message_router_(message_router),
       midi_clock_processor_(midi_clock_processor),
       sysex_handler_(sysex_handler), logger_(logger) {
@@ -132,8 +132,8 @@ void MidiManager::handle_note_on([[maybe_unused]] uint8_t channel, uint8_t note,
   message_router_.handle_incoming_midi_note(note, velocity);
 }
 
-void MidiManager::handle_note_off([[maybe_unused]] uint8_t channel, uint8_t note,
-                                  uint8_t velocity) {
+void MidiManager::handle_note_off([[maybe_unused]] uint8_t channel,
+                                  uint8_t note, uint8_t velocity) {
   message_router_.handle_incoming_midi_note(note, velocity);
 }
 

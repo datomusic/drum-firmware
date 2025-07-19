@@ -47,6 +47,18 @@ export class SysexProtocol {
             this.replyPromise.resolve({ major, minor, patch });
             this.replyPromise = null;
           }
+        } else if (tag === Command.RequestSerialNumber) {
+          if (this.replyPromise) {
+            const serialBytes = message.slice(6, 14);
+            const msbs = message[14];
+            let decodedSerial = Buffer.alloc(8);
+            for (let i = 0; i < 8; i++) {
+              decodedSerial[i] = serialBytes[i] | ((msbs >> i) & 0x01) << 7;
+            }
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve(decodedSerial);
+            this.replyPromise = null;
+          }
         } else if (tag === Command.StorageInfoResponse) {
           if (this.replyPromise) {
             const total_bytes = (message[6] << 21) | (message[7] << 14) | (message[8] << 7) | message[9];
@@ -119,6 +131,20 @@ export class SysexProtocol {
         timer: setTimeout(() => {
           this.replyPromise = null;
           reject(new Error('Timeout waiting for firmware version reply.'));
+        }, 2000)
+      };
+    });
+  }
+
+  async getSerialNumber(): Promise<Buffer> {
+    await this.sendMessage([Command.RequestSerialNumber]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for serial number reply.'));
         }, 2000)
       };
     });

@@ -77,6 +77,34 @@ describe('SysexProtocol', () => {
     await expect(protocol.beginFileTransfer(invalidFileName)).rejects.toThrow('Received NACK from device.');
   });
 
+  // --- Device Information and Control ---
+
+  test('should get firmware version', async () => {
+    const version = await protocol.getFirmwareVersion();
+    console.log('Firmware Version:', version);
+    expect(version.major).toBeDefined();
+    expect(version.minor).toBeDefined();
+    expect(version.patch).toBeDefined();
+  });
+
+  test('should get serial number', async () => {
+    const serial = await protocol.getSerialNumber();
+    console.log('Serial Number:', serial.toString('hex'));
+    expect(serial).toBeInstanceOf(Buffer);
+    expect(serial.length).toBe(8);
+  });
+
+  test('should get storage info', async () => {
+    const info = await protocol.getStorageInfo();
+    expect(info.total).toBeGreaterThan(0);
+    expect(info.free).toBeGreaterThan(0);
+    expect(info.free).toBeLessThanOrEqual(info.total);
+  });
+
+  // Note: We do not automatically test the FormatFilesystem command
+  // as it is a destructive operation that would wipe the device's storage.
+  // This test should be run manually if filesystem behavior is being tested.
+
   // --- Optional Long-Running Tests ---
   // These tests are skipped by default. Run them with:
   // RUN_LARGE_TESTS=true npm test
@@ -147,11 +175,4 @@ describe('SysexProtocol', () => {
     const smallFileName = 'small_file.bin';
     await expect(protocol.beginFileTransfer(smallFileName)).rejects.toThrow('Received NACK from device.');
   }, 60000);
-
-  test('should get storage info', async () => {
-    const info = await protocol.getStorageInfo();
-    expect(info.total).toBeGreaterThan(0);
-    expect(info.free).toBeGreaterThan(0);
-    expect(info.free).toBeLessThanOrEqual(info.total);
-  });
 });

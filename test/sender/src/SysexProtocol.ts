@@ -10,10 +10,20 @@ export class SysexProtocol {
   private transport: IMidiTransport;
   private ackQueue: { resolve: () => void; reject: (reason?: any) => void; timer: NodeJS.Timeout }[] = [];
   private replyPromise: { resolve: (data: any) => void; reject: (reason?: any) => void; timer: NodeJS.Timeout } | null = null;
+  private boundMessageHandler: (message: Uint8Array) => void;
 
   constructor(transport: IMidiTransport) {
     this.transport = transport;
-    this.transport.onMessage(this.handleMidiMessage.bind(this));
+    this.boundMessageHandler = this.handleMidiMessage.bind(this);
+    this.transport.onMessage(this.boundMessageHandler);
+  }
+
+  attach(): void {
+    this.transport.onMessage(this.boundMessageHandler);
+  }
+
+  detach(): void {
+    this.transport.removeOnMessage(this.boundMessageHandler);
   }
 
   private handleMidiMessage(message: Uint8Array): void {

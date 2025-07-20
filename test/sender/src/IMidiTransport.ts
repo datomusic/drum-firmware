@@ -4,5 +4,6 @@ export interface IMidiTransport {
   disconnect(): void;
   sendMessage(data: Uint8Array): Promise<void>;
   onMessage(callback: (data: Uint8Array) => void): void;
+  removeOnMessage(callback: (data: Uint8Array) => void): void;
   isOpen(): boolean;
 }

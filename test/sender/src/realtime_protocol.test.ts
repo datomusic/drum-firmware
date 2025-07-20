@@ -12,6 +12,8 @@ describe('MIDI Realtime Message Handling', () => {
     transport = new NodeMidiTransport();
     await transport.connect();
     protocol = new SysexProtocol(transport);
+    // Probe the device once to ensure it's responsive before starting tests.
+    await probeDevice();
   });
 
   afterAll(() => {
@@ -19,6 +21,19 @@ describe('MIDI Realtime Message Handling', () => {
       transport.disconnect();
     }
   });
+
+  const collectMidiMessages = async (duration: number): Promise<number[][]> => {
+    const messages: number[][] = [];
+    const messageHandler = (message: Uint8Array) => {
+      messages.push(Array.from(message));
+    };
+
+    transport.onMessage(messageHandler);
+    await new Promise(resolve => setTimeout(resolve, duration));
+    transport.removeOnMessage(messageHandler); // Clean up the listener
+
+    return messages;
+  };
 
   const probeDevice = async () => {
     try {
@@ -32,29 +47,48 @@ describe('MIDI Realtime Message Handling', () => {
     }
   };
 
-  test('should remain responsive after a MIDI Start message', async () => {
-    await transport.sendMessage(new Uint8Array([0xFA]));
-    await new Promise(resolve => setTimeout(resolve, 100)); // Wait for processing
-    await probeDevice();
+  test('should start sending MIDI clocks on START message', async () => {
+    protocol.detach();
+    await transport.sendMessage(new Uint8Array([0xFA])); // START
+    const messages = await collectMidiMessages(200);
+    console.log(messages);
+    protocol.attach();
+    expect(messages.some(msg => msg[0] === 0xF8)).toBe(true);
   });
 
-  test('should remain responsive after a MIDI Stop message', async () => {
-    await transport.sendMessage(new Uint8Array([0xFC]));
+  test('should stop sending MIDI clocks on STOP message', async () => {
+    protocol.detach();
+    await transport.sendMessage(new Uint8Array([0xFA])); // Ensure clocks are running
     await new Promise(resolve => setTimeout(resolve, 100));
-    await probeDevice();
+
+    await transport.sendMessage(new Uint8Array([0xFC])); // STOP
+    const messages = await collectMidiMessages(200);
+    protocol.attach();
+    expect(messages.every(msg => msg[0] !== 0xF8)).toBe(true);
   });
 
-  test('should remain responsive after a MIDI Continue message', async () => {
-    await transport.sendMessage(new Uint8Array([0xFB]));
+  test('should resume sending MIDI clocks on CONTINUE message', async () => {
+    protocol.detach();
+    await transport.sendMessage(new Uint8Array([0xFA])); // START
     await new Promise(resolve => setTimeout(resolve, 100));
-    await probeDevice();
+    await transport.sendMessage(new Uint8Array([0xFC])); // STOP
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    await transport.sendMessage(new Uint8Array([0xFB])); // CONTINUE
+    const messages = await collectMidiMessages(200);
+    protocol.attach();
+    expect(messages.some(msg => msg[0] === 0xF8)).toBe(true);
   });
 
-  test('should remain responsive after a burst of MIDI Clock messages', async () => {
+  test('should remain responsive and not send clocks after a burst of MIDI Clock messages', async () => {
     for (let i = 0; i < 48; i++) {
       await transport.sendMessage(new Uint8Array([0xF8]));
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Check that the device doesn't start sending its own clock messages
+    const messages = await collectMidiMessages(200);
+    expect(messages.every(msg => msg[0] !== 0xF8)).toBe(true);
+
+    // And ensure it's still responsive
     await probeDevice();
   });
 

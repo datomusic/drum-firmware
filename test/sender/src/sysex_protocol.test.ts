@@ -213,7 +213,7 @@ describe('SysexProtocol', () => {
     try {
       execSync('picotool reboot -f');
     } catch (error) {
-      console.error('Failed to execute "picotool reboot -f". Is picotool installed and in your PATH?');
+      console.error('Failed to execute "picotool reboot -f". Is picotool installed and in your PATH? Alternatively, unplug and replug the device');
       throw error;
     }
 

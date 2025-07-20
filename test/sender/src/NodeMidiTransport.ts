@@ -4,15 +4,15 @@ import { IMidiTransport } from './IMidiTransport';
 export class NodeMidiTransport implements IMidiTransport {
   private input: midi.Input;
   private output: midi.Output;
-  private onMessageCallback: ((data: Uint8Array) => void) | null = null;
+  private onMessageCallbacks: ((data: Uint8Array) => void)[] = [];
 
   constructor() {
     this.input = new midi.Input();
     this.output = new midi.Output();
     this.input.on('message', (deltaTime: number, message: number[]) => {
-      if (this.onMessageCallback) {
-        this.onMessageCallback(new Uint8Array(message));
-      }
+      this.onMessageCallbacks.forEach(callback => {
+        callback(new Uint8Array(message));
+      });
     });
   }
 
@@ -37,7 +37,14 @@ export class NodeMidiTransport implements IMidiTransport {
   }
 
   onMessage(callback: (data: Uint8Array) => void): void {
-    this.onMessageCallback = callback;
+    this.onMessageCallbacks.push(callback);
+  }
+
+  removeOnMessage(callback: (data: Uint8Array) => void): void {
+    const index = this.onMessageCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.onMessageCallbacks.splice(index, 1);
+    }
   }
 
   isOpen(): boolean {

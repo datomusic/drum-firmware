@@ -21,7 +21,8 @@ project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
   main.cpp
-  midi_functions.cpp
+  midi_manager.cpp
+  sysex_handler.cpp
   pizza_controls.cpp
   ui/pizza_display.cpp
   sequencer_controller.cpp
@@ -30,7 +31,6 @@ add_executable(${EXECUTABLE_NAME}
   audio_engine.cpp
   sample_repository.cpp
   usb_descriptors.c
-  sysex_file_handler.cpp
   ../musin/midi/midi_sender.cpp
   drumpad_factory.cpp
 )

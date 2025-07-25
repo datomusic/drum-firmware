@@ -4,7 +4,7 @@
 #include "etl/array.h"
 #include "etl/deque.h" // Using deque to allow iteration for coalescing
 #include "midi_common.h"
-#include "midi_wrapper.h"     // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
+#include "midi_wrapper.h" // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
 #include "musin/hal/logger.h" // Include logger header
 #include <algorithm>          // For std::min, std::copy
 #include <cstdint>
@@ -12,7 +12,8 @@
 namespace musin::midi {
 
 // Configuration for the MIDI queue
-constexpr size_t MIDI_QUEUE_SIZE = 64; // Max number of MIDI messages in the queue
+constexpr size_t MIDI_QUEUE_SIZE =
+    64; // Max number of MIDI messages in the queue
 
 enum class MidiMessageType : uint8_t {
   NOTE_ON,
@@ -46,11 +47,13 @@ struct OutgoingMidiMessage {
 
   // Constructors
   OutgoingMidiMessage() : type(MidiMessageType::SYSTEM_REALTIME) {
-    // Default constructor, ensure data is initialized if needed for a default message
+    // Default constructor, ensure data is initialized if needed for a default
+    // message
     data.system_realtime_message.type = ::midi::InvalidType;
   }
 
-  OutgoingMidiMessage(::midi::MidiType rt_type) : type(MidiMessageType::SYSTEM_REALTIME) {
+  OutgoingMidiMessage(::midi::MidiType rt_type)
+      : type(MidiMessageType::SYSTEM_REALTIME) {
     data.system_realtime_message.type = rt_type;
   }
 
@@ -68,18 +71,21 @@ struct OutgoingMidiMessage {
     data.control_change_message.value = val;
   }
 
-  OutgoingMidiMessage(uint8_t ch, int pb_val) : type(MidiMessageType::PITCH_BEND) {
+  OutgoingMidiMessage(uint8_t ch, int pb_val)
+      : type(MidiMessageType::PITCH_BEND) {
     data.pitch_bend_message.channel = ch;
     data.pitch_bend_message.bend_value = pb_val;
   }
 
   OutgoingMidiMessage(const uint8_t *sysex_payload, unsigned len)
       : type(MidiMessageType::SYSTEM_EXCLUSIVE) {
-    // Ensure length does not exceed the buffer size defined by MIDI::SysExMaxSize from
-    // midi_wrapper.h
-    data.system_exclusive_message.length = std::min(len, static_cast<unsigned>(MIDI::SysExMaxSize));
+    // Ensure length does not exceed the buffer size defined by
+    // MIDI::SysExMaxSize from midi_wrapper.h
+    data.system_exclusive_message.length =
+        std::min(len, static_cast<unsigned>(MIDI::SysExMaxSize));
     if (sysex_payload != nullptr) { // Check for null payload
-      std::copy(sysex_payload, sysex_payload + data.system_exclusive_message.length,
+      std::copy(sysex_payload,
+                sysex_payload + data.system_exclusive_message.length,
                 data.system_exclusive_message.data_buffer.begin());
     } else {
       // If payload is null, ensure length is 0 to avoid copying garbage
@@ -90,7 +96,8 @@ struct OutgoingMidiMessage {
 
 extern etl::deque<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
 
-bool enqueue_midi_message(const OutgoingMidiMessage &message, musin::Logger &logger);
+bool enqueue_midi_message(const OutgoingMidiMessage &message,
+                          musin::Logger &logger);
 
 void process_midi_output_queue(musin::Logger &logger);
 

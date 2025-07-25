@@ -3,6 +3,9 @@ import { SysexProtocol } from './SysexProtocol';
 import { Command } from './Command';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
+
+import { findDevice, pollForDevice, pollForDeviceDisappearance } from './usb_utils';
 
 describe('SysexProtocol', () => {
   let transport: NodeMidiTransport;
@@ -77,10 +80,48 @@ describe('SysexProtocol', () => {
     await expect(protocol.beginFileTransfer(invalidFileName)).rejects.toThrow('Received NACK from device.');
   });
 
-  // --- Optional Long-Running Tests ---
-  // These tests are skipped by default. Run them with:
-  // RUN_LARGE_TESTS=true npm test
+  // --- Device Information and Control ---
+
+  test('should get firmware version', async () => {
+    const version = await protocol.getFirmwareVersion();
+    console.log('Firmware Version:', version);
+    expect(version.major).toBeDefined();
+    expect(version.minor).toBeDefined();
+    expect(version.patch).toBeDefined();
+  });
+
+  test('should get serial number', async () => {
+    const serial = await protocol.getSerialNumber();
+    console.log('Serial Number:', serial.toString('hex'));
+    expect(serial).toBeInstanceOf(Buffer);
+    expect(serial.length).toBe(8);
+  });
+
+  test('should get storage info', async () => {
+    const info = await protocol.getStorageInfo();
+    expect(info.total).toBeGreaterThan(0);
+    expect(info.free).toBeGreaterThan(0);
+    expect(info.free).toBeLessThanOrEqual(info.total);
+  });
+
+  // Note: We do not automatically test the FormatFilesystem command
+  // as it is a destructive operation that would wipe the device's storage.
+  // This test should be run manually if filesystem behavior is being tested.
+
+  // --- Optional Long-Running or Destructive Tests ---
+  // These tests are skipped by default.
   const runLargeTests = process.env.RUN_LARGE_TESTS === 'true';
+  const runRebootTests = process.env.RUN_REBOOT_TESTS === 'true';
+  const runDestructiveTests = process.env.RUN_DESTRUCTIVE_TESTS === 'true';
+
+  (runDestructiveTests ? test : test.skip)('should format the filesystem', async () => {
+    // WARNING: This is a destructive test. It will erase the device's filesystem.
+    // Run with: RUN_DESTRUCTIVE_TESTS=true npm test
+    await protocol.formatFilesystem();
+    // As a basic verification, we can check if the storage info reflects an empty state.
+    const info = await protocol.getStorageInfo();
+    expect(info.free).toBe(info.total);
+  });
 
   (runLargeTests ? test : test.skip)('should fail gracefully when sending a file that is too large', async () => {
     const fourMegabytes = 4 * 1024 * 1024;
@@ -148,10 +189,43 @@ describe('SysexProtocol', () => {
     await expect(protocol.beginFileTransfer(smallFileName)).rejects.toThrow('Received NACK from device.');
   }, 60000);
 
-  test('should get storage info', async () => {
-    const info = await protocol.getStorageInfo();
-    expect(info.total).toBeGreaterThan(0);
-    expect(info.free).toBeGreaterThan(0);
-    expect(info.free).toBeLessThanOrEqual(info.total);
-  });
+  (runRebootTests ? test : test.skip)('should reboot to bootloader, be detected, and then return to app mode', async () => {
+    // This test verifies the full reboot cycle: app -> bootloader -> app.
+    // It requires `picotool` to be installed and in the system's PATH.
+    // Run with: RUN_REBOOT_TESTS=true npm test
+
+    const BOOTLOADER_VID = 0x2e8a;
+    const BOOTLOADER_PID = 0x000f;
+
+    // 1. Verify bootloader is not present before test
+    expect(findDevice(BOOTLOADER_VID, BOOTLOADER_PID)).toBeUndefined();
+
+    // 2. Send reboot command
+    await protocol.rebootToBootloader();
+
+    // 3. Poll for the device to appear in bootloader mode
+    console.log('Waiting for device to reboot into bootloader mode...');
+    let deviceAppeared = await pollForDevice(BOOTLOADER_VID, BOOTLOADER_PID, 10000);
+    expect(deviceAppeared).toBe(true);
+
+    // 4. Use picotool to reboot the device back to the application
+    console.log('Device found in bootloader mode. Rebooting back to application...');
+    try {
+      execSync('picotool reboot -f');
+    } catch (error) {
+      console.error('Failed to execute "picotool reboot -f". Is picotool installed and in your PATH? Alternatively, unplug and replug the device');
+      throw error;
+    }
+
+    // 5. Poll for the device to disappear from bootloader mode
+    console.log('Waiting for device to exit bootloader mode...');
+    const deviceDisappeared = await pollForDeviceDisappearance(BOOTLOADER_VID, BOOTLOADER_PID, 10000);
+    expect(deviceDisappeared).toBe(true);
+
+    // 6. Wait for the device to boot up
+    console.log('Device has exited bootloader. Waiting for it to boot up...');
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    console.log('Device should now be ready.');
+
+  }, 25000); // 25-second timeout for this long test
 });

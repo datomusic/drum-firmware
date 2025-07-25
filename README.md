@@ -36,3 +36,40 @@ cd drum && cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_VERBOSE_LOGGING=ON &
 ```bash
 cd test && ./run_all_tests.sh
 ```
+
+### Sender Application Tests
+
+The `test/sender` directory contains a Node.js/TypeScript test suite for verifying the device's MIDI communication protocols from a host computer.
+
+To run these tests, first install the dependencies:
+
+```bash
+cd test/sender
+npm install
+```
+
+Then, run the main test suite:
+
+```bash
+npm test
+```
+
+#### Optional and Destructive Tests
+
+The test suite includes tests that are skipped by default because they are long-running, destructive, or require manual intervention. You can enable them using environment variables:
+
+-   **Run long-running tests** (e.g., transferring large files):
+    ```bash
+    RUN_LARGE_TESTS=true npm test
+    ```
+
+-   **Run destructive tests** (e.g., formatting the filesystem). **Warning:** This will erase the device's storage.
+    ```bash
+    RUN_DESTRUCTIVE_TESTS=true npm test
+    ```
+
+-   **Run the reboot test**. This test verifies that the device can reboot into the bootloader and then automatically reboots it back to the main application using `picotool`.
+    ```bash
+    RUN_REBOOT_TESTS=true npm test
+    ```
+--- End of content ---

@@ -10,10 +10,20 @@ export class SysexProtocol {
   private transport: IMidiTransport;
   private ackQueue: { resolve: () => void; reject: (reason?: any) => void; timer: NodeJS.Timeout }[] = [];
   private replyPromise: { resolve: (data: any) => void; reject: (reason?: any) => void; timer: NodeJS.Timeout } | null = null;
+  private boundMessageHandler: (message: Uint8Array) => void;
 
   constructor(transport: IMidiTransport) {
     this.transport = transport;
-    this.transport.onMessage(this.handleMidiMessage.bind(this));
+    this.boundMessageHandler = this.handleMidiMessage.bind(this);
+    this.transport.onMessage(this.boundMessageHandler);
+  }
+
+  attach(): void {
+    this.transport.onMessage(this.boundMessageHandler);
+  }
+
+  detach(): void {
+    this.transport.removeOnMessage(this.boundMessageHandler);
   }
 
   private handleMidiMessage(message: Uint8Array): void {
@@ -37,6 +47,27 @@ export class SysexProtocol {
           if (ackResolver) {
             clearTimeout(ackResolver.timer);
             ackResolver.reject(new Error('Received NACK from device.'));
+          }
+        } else if (tag === Command.RequestFirmwareVersion) {
+          if (this.replyPromise) {
+            const major = message[6];
+            const minor = message[7];
+            const patch = message[8];
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve({ major, minor, patch });
+            this.replyPromise = null;
+          }
+        } else if (tag === Command.RequestSerialNumber) {
+          if (this.replyPromise) {
+            const serialBytes = message.slice(6, 14);
+            const msbs = message[14];
+            let decodedSerial = Buffer.alloc(8);
+            for (let i = 0; i < 8; i++) {
+              decodedSerial[i] = serialBytes[i] | ((msbs >> i) & 0x01) << 7;
+            }
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve(decodedSerial);
+            this.replyPromise = null;
           }
         } else if (tag === Command.StorageInfoResponse) {
           if (this.replyPromise) {
@@ -99,6 +130,43 @@ export class SysexProtocol {
 
   async endFileTransfer(): Promise<void> {
     await this.sendCommandAndWait(Command.EndFileTransfer);
+  }
+
+  async rebootToBootloader(): Promise<void> {
+    // This command causes the device to reboot immediately, so it doesn't send an ACK.
+    await this.sendMessage([Command.RebootBootloader]);
+  }
+
+  async formatFilesystem(): Promise<void> {
+    await this.sendCommandAndWait(Command.FormatFilesystem);
+  }
+
+  async getFirmwareVersion(): Promise<{ major: number; minor: number; patch: number }> {
+    await this.sendMessage([Command.RequestFirmwareVersion]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for firmware version reply.'));
+        }, 2000)
+      };
+    });
+  }
+
+  async getSerialNumber(): Promise<Buffer> {
+    await this.sendMessage([Command.RequestSerialNumber]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for serial number reply.'));
+        }, 2000)
+      };
+    });
   }
 
   async getStorageInfo(): Promise<{ total: number; free: number }> {

@@ -57,9 +57,18 @@ void MidiManager::process_input() {
         [this](auto &&arg) {
           using T = typename std::decay<decltype(arg)>::type;
           if constexpr (std::is_same_v<T, musin::midi::NoteOnData>) {
-            handle_note_on(arg.channel, arg.note, arg.velocity);
+            if (arg.velocity > 0) {
+              handle_note_on(arg.channel, arg.note, arg.velocity);
+            } else {
+              // Note On with velocity 0 is a Note Off
+              if constexpr (!drum::config::IGNORE_MIDI_NOTE_OFF) {
+                handle_note_off(arg.channel, arg.note, arg.velocity);
+              }
+            }
           } else if constexpr (std::is_same_v<T, musin::midi::NoteOffData>) {
-            handle_note_off(arg.channel, arg.note, arg.velocity);
+            if constexpr (!drum::config::IGNORE_MIDI_NOTE_OFF) {
+              handle_note_off(arg.channel, arg.note, arg.velocity);
+            }
           } else if constexpr (std::is_same_v<T,
                                               musin::midi::ControlChangeData>) {
             handle_control_change(arg.channel, arg.controller, arg.value);
@@ -129,12 +138,12 @@ void MidiManager::stop_callback() {
 
 void MidiManager::handle_note_on([[maybe_unused]] uint8_t channel, uint8_t note,
                                  uint8_t velocity) {
-  message_router_.handle_incoming_midi_note(note, velocity);
+  message_router_.handle_incoming_note_on(note, velocity);
 }
 
 void MidiManager::handle_note_off([[maybe_unused]] uint8_t channel,
                                   uint8_t note, uint8_t velocity) {
-  message_router_.handle_incoming_midi_note(note, velocity);
+  message_router_.handle_incoming_note_off(note, velocity);
 }
 
 void MidiManager::handle_control_change([[maybe_unused]] uint8_t channel,

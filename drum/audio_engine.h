@@ -96,6 +96,16 @@ public:
   void set_volume(float volume);
 
   /**
+   * @brief Mutes the audio output.
+   */
+  void mute();
+
+  /**
+   * @brief Unmutes the audio output.
+   */
+  void unmute();
+
+  /**
    * @brief Sets the global lowpass filter cutoff frequency.
    * @param normalized_value The frequency value, normalized (0.0f to 1.0f).
    */
@@ -145,6 +155,8 @@ private:
   };
 
   bool is_initialized_ = false;
+  bool muted_ = false;
+  float current_volume_ = 1.0f;
 };
 
 } // namespace drum

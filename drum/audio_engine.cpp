@@ -153,9 +153,25 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
 }
 
 void AudioEngine::set_volume(float volume) {
-  // Clamp volume to [0.0, 1.0] before passing to AudioOutput
-  volume = std::clamp(volume, 0.0f, 1.0f);
-  AudioOutput::volume(volume);
+  // Clamp volume to [0.0, 1.0]
+  current_volume_ = std::clamp(volume, 0.0f, 1.0f);
+  if (!muted_) {
+    AudioOutput::volume(current_volume_);
+  }
+}
+
+void AudioEngine::mute() {
+  if (!muted_) {
+    muted_ = true;
+    AudioOutput::volume(0.0f);
+  }
+}
+
+void AudioEngine::unmute() {
+  if (muted_) {
+    muted_ = false;
+    AudioOutput::volume(current_volume_);
+  }
 }
 
 void AudioEngine::set_filter_frequency(float normalized_value) {

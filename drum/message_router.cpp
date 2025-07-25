@@ -253,9 +253,11 @@ void MessageRouter::notification(drum::Events::NoteEvent event) {
 void MessageRouter::notification(
     drum::Events::SysExTransferStateChangeEvent event) {
   if (event.is_active) {
+    _audio_engine.mute();
     _previous_local_control_mode = get_local_control_mode();
     set_local_control_mode(LocalControlMode::OFF);
   } else {
+    _audio_engine.unmute();
     if (_previous_local_control_mode.has_value()) {
       set_local_control_mode(_previous_local_control_mode.value());
       _previous_local_control_mode.reset();

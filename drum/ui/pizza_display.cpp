@@ -108,11 +108,10 @@ void PizzaDisplay::draw_base_elements(absolute_time_t now) {
     set_play_button_led(pulse_color);
   } else {
     // Determine base color based on clock source
-    Color base_color =
-        (_tempo_handler_ref.get_clock_source() ==
-         musin::timing::ClockSource::MIDI)
-            ? Color(config::COLOR_MIDI_CLOCK_LISTENER)
-            : drum::PizzaDisplay::COLOR_WHITE;
+    Color base_color = (_tempo_handler_ref.get_clock_source() ==
+                        musin::timing::ClockSource::MIDI)
+                           ? Color(config::COLOR_MIDI_CLOCK_LISTENER)
+                           : drum::PizzaDisplay::COLOR_WHITE;
 
     if (_sequencer_controller_ref.is_running()) {
       set_play_button_led(base_color);

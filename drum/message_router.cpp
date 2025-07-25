@@ -263,7 +263,7 @@ void MessageRouter::notification(
   }
 }
 
-void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
+void MessageRouter::handle_incoming_note_on(uint8_t note, uint8_t velocity) {
   for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size();
        ++track_idx) {
     if (track_idx >= drum::config::NUM_TRACKS)
@@ -274,28 +274,28 @@ void MessageRouter::handle_incoming_midi_note(uint8_t note, uint8_t velocity) {
 
     if (it != notes_for_track.end()) {
       // Note found for this track.
-      // Play the sound on the audio engine for this track.
-      // The AudioEngine::play_on_voice should handle velocity 0 as note off.
-
-      // Queue the event to be processed in the main loop, unifying the handling
-      // path with events from the internal sequencer.
+      // Queue the event to be processed in the main loop.
       drum::Events::NoteEvent event{.track_index =
                                         static_cast<uint8_t>(track_idx),
                                     .note = note,
                                     .velocity = velocity};
       notification(event);
 
-      // Set the active note for that track in the sequencer controller,
-      // only if it's a Note On (velocity > 0).
-      if (velocity > 0) {
-        _sequencer_controller.set_active_note_for_track(
-            static_cast<uint8_t>(track_idx), note);
-      }
+      // Set the active note for that track in the sequencer controller.
+      _sequencer_controller.set_active_note_for_track(
+          static_cast<uint8_t>(track_idx), note);
       // Assuming a note belongs to only one track's list for this purpose, so
       // we can stop.
       return;
     }
   }
+}
+
+void MessageRouter::handle_incoming_note_off(uint8_t note, uint8_t velocity) {
+  // Currently, we do nothing for note-off messages.
+  // This is where logic to mute a voice would go if desired.
+  (void)note;
+  (void)velocity;
 }
 
 void MessageRouter::handle_incoming_midi_cc(uint8_t controller, uint8_t value) {

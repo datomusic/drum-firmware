@@ -136,9 +136,17 @@ public:
    * - For Note Off (velocity == 0): Plays the sound on the audio engine (which
    * should handle velocity 0 as silence or note off).
    * @param note The MIDI note number.
-   * @param velocity The MIDI velocity (0 for Note Off).
+   * @param velocity The MIDI velocity.
    */
-  void handle_incoming_midi_note(uint8_t note, uint8_t velocity);
+  void handle_incoming_note_on(uint8_t note, uint8_t velocity);
+
+  /**
+   * @brief Handles an incoming MIDI Note Off message.
+   * This can be used to mute a voice or perform other note-off actions.
+   * @param note The MIDI note number.
+   * @param velocity The MIDI velocity.
+   */
+  void handle_incoming_note_off(uint8_t note, uint8_t velocity);
 
   /**
    * @brief Handles an incoming MIDI Control Change message.

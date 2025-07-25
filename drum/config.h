@@ -23,6 +23,7 @@ constexpr uint8_t FALLBACK_MIDI_CHANNEL =
     10; // Default MIDI Channel (GM Percussion Standard)
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = false;
 constexpr bool IGNORE_MIDI_NOTE_OFF = true;
+constexpr uint32_t COLOR_MIDI_CLOCK_LISTENER = 0xFFD700; // Gold
 
 // SysEx Manufacturer and Device IDs
 namespace sysex {

@@ -106,17 +106,24 @@ void PizzaDisplay::draw_base_elements(absolute_time_t now) {
     Color pulse_color =
         _highlight_is_bright ? drum::PizzaDisplay::COLOR_GREEN : Color(0);
     set_play_button_led(pulse_color);
-  } else if (_sequencer_controller_ref.is_running()) {
-    set_play_button_led(drum::PizzaDisplay::COLOR_WHITE);
   } else {
-    // When stopped, pulse the play button in sync with the step highlight
-    Color base_color = drum::PizzaDisplay::COLOR_WHITE;
-    Color pulse_color =
-        _highlight_is_bright
-            ? base_color
-            : Color(_leds.adjust_color_brightness(
-                  static_cast<uint32_t>(base_color), REDUCED_BRIGHTNESS));
-    set_play_button_led(pulse_color);
+    // Determine base color based on clock source
+    Color base_color = (_tempo_handler_ref.get_clock_source() ==
+                        musin::timing::ClockSource::MIDI)
+                           ? Color(config::COLOR_MIDI_CLOCK_LISTENER)
+                           : drum::PizzaDisplay::COLOR_WHITE;
+
+    if (_sequencer_controller_ref.is_running()) {
+      set_play_button_led(base_color);
+    } else {
+      // When stopped, pulse the play button in sync with the step highlight
+      Color pulse_color =
+          _highlight_is_bright
+              ? base_color
+              : Color(_leds.adjust_color_brightness(
+                    static_cast<uint32_t>(base_color), REDUCED_BRIGHTNESS));
+      set_play_button_led(pulse_color);
+    }
   }
 
   update_track_override_colors();

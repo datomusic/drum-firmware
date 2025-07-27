@@ -1,12 +1,11 @@
-
 #ifndef DRUM_DRIVERS_KEYPAD_HC138_H
 #define DRUM_DRIVERS_KEYPAD_HC138_H
 
 #include "etl/array.h"
-#include "etl/observer.h"   // Include ETL observer pattern
-#include "etl/span.h"       // Include ETL span
-#include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
-#include "musin/hal/gpio.h" // Include the GPIO abstraction
+#include "etl/span.h"
+#include "etl/vector.h"
+#include "musin/hal/gpio.h"
+#include "musin/observer.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -21,12 +20,7 @@ namespace musin::ui {
  * @brief Event data structure for keypad notifications
  */
 struct KeypadEvent {
-  enum class Type : uint8_t {
-    Press,
-    Release,
-    Hold,
-    Tap
-  };
+  enum class Type : uint8_t { Press, Release, Hold, Tap };
 
   uint8_t row;
   uint8_t col;
@@ -34,7 +28,7 @@ struct KeypadEvent {
 };
 
 // Forward declaration
-template <std::uint8_t NumRows, std::uint8_t NumCols> class Keypad_HC138;
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers> class Keypad_HC138;
 
 /**
  * @brief Represents the possible states of a single key.
@@ -69,10 +63,9 @@ struct KeyData {
  *
  * @tparam NumRows Number of rows (1-8).
  * @tparam NumCols Number of columns (>0).
- * @tparam MaxObservers Maximum number of observers that can be attached.
+ * @tparam Observers A parameter pack of pointers to observer objects with static linkage.
  */
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-class Keypad_HC138 : public etl::observable<etl::observer<KeypadEvent>, 4> {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers> class Keypad_HC138 {
 public:
   // --- Compile-time validation ---
   static_assert(NumRows > 0 && NumRows <= 8, "Keypad_HC138: NumRows must be between 1 and 8.");
@@ -90,8 +83,6 @@ public:
    * @param decoder_address_pins Array containing the 3 GPIO pin numbers for HC138 A0, A1, A2.
    * @param col_pins Array containing the GPIO pin numbers for the columns. Must contain `NumCols`
    * elements.
-   * @param key_data_buffer An etl::span wrapping the buffer allocated by the caller to store key
-   * states. Must contain `NumRows * NumCols` elements.
    * @param scan_interval_ms Time between full keypad scans in milliseconds.
    * @param debounce_time_ms Time duration for debouncing transitions in milliseconds.
    * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
@@ -99,7 +90,6 @@ public:
    */
   Keypad_HC138(const etl::array<uint32_t, 3> &decoder_address_pins,
                const etl::array<uint32_t, NumCols> &col_pins, // Use etl::array reference
-               // No longer need key_data_buffer parameter
                std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
                std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,
                std::uint32_t hold_time_ms = DEFAULT_HOLD_TIME_MS,
@@ -205,7 +195,7 @@ private:
 
   // --- Private Notification Helper ---
   void notify_event(uint8_t r, uint8_t c, KeypadEvent::Type type) {
-    this->notify_observers(KeypadEvent{r, c, type});
+    musin::observable<Observers...>::notify_observers(KeypadEvent{r, c, type});
   }
 
 }; // class Keypad_HC138

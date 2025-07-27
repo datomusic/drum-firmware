@@ -1,4 +1,3 @@
-
 // Implementation file for Keypad_HC138 template class
 // Included by keypad_hc138.h
 
@@ -15,14 +14,13 @@ extern "C" {
 // Note: Definitions are already within Musin::UI namespace via keypad_hc138.h include
 
 // --- Constructor Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-Keypad_HC138<NumRows, NumCols>::Keypad_HC138(const etl::array<uint32_t, 3> &decoder_address_pins,
-                                             const etl::array<uint32_t, NumCols> &col_pins,
-                                             // No key_data_buffer parameter
-                                             std::uint32_t scan_interval_ms,
-                                             std::uint32_t debounce_time_ms,
-                                             std::uint32_t hold_time_ms,
-                                             std::uint32_t tap_time_ms)
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+Keypad_HC138<NumRows, NumCols, Observers...>::Keypad_HC138(
+    const etl::array<uint32_t, 3> &decoder_address_pins,
+    const etl::array<uint32_t, NumCols> &col_pins,
+    // No key_data_buffer parameter
+    std::uint32_t scan_interval_ms, std::uint32_t debounce_time_ms, std::uint32_t hold_time_ms,
+    std::uint32_t tap_time_ms)
     : // Store timing parameters (convert ms to us for internal storage)
       _scan_interval_us(scan_interval_ms * 1000), _debounce_time_us(debounce_time_ms * 1000),
       _hold_time_us(hold_time_ms * 1000), _tap_time_us(tap_time_ms * 1000),
@@ -52,7 +50,8 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(const etl::array<uint32_t, 3> &deco
 }
 
 // --- init() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols> void Keypad_HC138<NumRows, NumCols>::init() {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+void Keypad_HC138<NumRows, NumCols, Observers...>::init() {
   // Initialize Decoder Address Pins (Outputs)
   for (auto &pin : _decoder_address_pins) { // Iterate over GpioPin vector
     pin.set_direction(musin::hal::GpioDirection::OUT);
@@ -71,7 +70,8 @@ template <std::uint8_t NumRows, std::uint8_t NumCols> void Keypad_HC138<NumRows,
 }
 
 // --- scan() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols> bool Keypad_HC138<NumRows, NumCols>::scan() {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+bool Keypad_HC138<NumRows, NumCols, Observers...>::scan() {
   absolute_time_t now = get_absolute_time();
   uint64_t diff_us = absolute_time_diff_us(_last_scan_time, now);
 
@@ -113,8 +113,9 @@ template <std::uint8_t NumRows, std::uint8_t NumCols> bool Keypad_HC138<NumRows,
 }
 
 // --- is_pressed() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::is_pressed(std::uint8_t row, std::uint8_t col) const {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+bool Keypad_HC138<NumRows, NumCols, Observers...>::is_pressed(std::uint8_t row,
+                                                             std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
     return false; // Use template parameters
   const KeyState current_state =
@@ -123,32 +124,34 @@ bool Keypad_HC138<NumRows, NumCols>::is_pressed(std::uint8_t row, std::uint8_t c
 }
 
 // --- was_pressed() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::was_pressed(std::uint8_t row, std::uint8_t col) const {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+bool Keypad_HC138<NumRows, NumCols, Observers...>::was_pressed(std::uint8_t row,
+                                                              std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
     return false;                                              // Use template parameters
   return _internal_key_data[row * NumCols + col].just_pressed; // Use internal array
 }
 
 // --- was_released() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::was_released(std::uint8_t row, std::uint8_t col) const {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+bool Keypad_HC138<NumRows, NumCols, Observers...>::was_released(std::uint8_t row,
+                                                               std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
-    return false;                                               // Use template parameters
+    return false; // Use template parameters
   return _internal_key_data[row * NumCols + col].just_released; // Use internal array
 }
 
 // --- is_Held() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::is_held(std::uint8_t row, std::uint8_t col) const {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+bool Keypad_HC138<NumRows, NumCols, Observers...>::is_held(std::uint8_t row, std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
     return false; // Use template parameters
   return (_internal_key_data[row * NumCols + col].state == KeyState::HOLDING); // Use internal array
 }
 
 // --- select_row() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+void Keypad_HC138<NumRows, NumCols, Observers...>::select_row(std::uint8_t row) {
   // Ensure row is within valid range for the decoder (0-7)
   // This check prevents issues even if _num_rows is smaller
   if (row >= 8)
@@ -161,9 +164,10 @@ void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
 }
 
 // --- update_key_state() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols>
-void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8_t c,
-                                                      bool raw_key_pressed, absolute_time_t now) {
+template <std::uint8_t NumRows, std::uint8_t NumCols, auto *...Observers>
+void Keypad_HC138<NumRows, NumCols, Observers...>::update_key_state(std::uint8_t r, std::uint8_t c,
+                                                                    bool raw_key_pressed,
+                                                                    absolute_time_t now) {
   // Get mutable reference to the key's data using the internal array
   KeyData &key = _internal_key_data[r * NumCols + c]; // Use internal array
 

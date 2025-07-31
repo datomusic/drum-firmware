@@ -97,7 +97,6 @@ void MIDI::init(const Callbacks &callbacks) {
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));
   ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));
-  ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));
   ALL_TRANSPORTS(setHandleStart(callbacks.start));
   ALL_TRANSPORTS(setHandleStop(callbacks.stop));
   ALL_TRANSPORTS(setHandleContinue(callbacks.cont));

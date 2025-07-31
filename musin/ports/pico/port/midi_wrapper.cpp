@@ -92,7 +92,7 @@ static midi::MidiInterface<midi::SerialMIDI<MidiUart>, MIDISettings>
   serial_midi.function_call;
 
 void MIDI::init(const Callbacks &callbacks) {
-  midi_uart.init(31250); // Standard MIDI baud
+  midi_uart.begin(31250); // Standard MIDI baud
   ALL_TRANSPORTS(begin(MIDI_CHANNEL_OMNI));
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));

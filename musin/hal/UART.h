@@ -37,6 +37,13 @@ constexpr etl::array<std::uint32_t, 12> uart1_rx_pins = {5,  7,  9,  11, 21, 23,
 #error "Unsupported target platform for UART HAL pin validation"
 #endif
 
+// Enum to identify UART instances in a constexpr-friendly way
+enum class UartId {
+    UART0,
+    UART1,
+    NONE
+};
+
 // Generic pin checker
 template <std::uint32_t Pin, const auto &ValidPins> constexpr bool check_pin() {
   for (size_t i = 0; i < ValidPins.size(); ++i) {
@@ -48,21 +55,21 @@ template <std::uint32_t Pin, const auto &ValidPins> constexpr bool check_pin() {
 
 // UART instance determination
 template <std::uint32_t Tx, std::uint32_t Rx, typename = void> struct uart_instance {
-  static_assert(!(Tx || Rx), "Invalid TX/RX pin combination");
+    static constexpr UartId value = UartId::NONE;
 };
 
 // UART0 specialization
 template <std::uint32_t Tx, std::uint32_t Rx>
 struct uart_instance<
     Tx, Rx, std::enable_if_t<check_pin<Tx, uart0_tx_pins>() && check_pin<Rx, uart0_rx_pins>()>> {
-  static constexpr uart_inst_t *value = uart0;
+  static constexpr UartId value = UartId::UART0;
 };
 
 // UART1 specialization
 template <std::uint32_t Tx, std::uint32_t Rx>
 struct uart_instance<
     Tx, Rx, std::enable_if_t<check_pin<Tx, uart1_tx_pins>() && check_pin<Rx, uart1_rx_pins>()>> {
-  static constexpr uart_inst_t *value = uart1;
+  static constexpr UartId value = UartId::UART1;
 };
 
 } // namespace detail
@@ -81,9 +88,9 @@ template <std::uint32_t TxPin, std::uint32_t RxPin> class UART {
 public:
   // Compile-time validation: Ensure pins form a valid pair for either UART0 or
   // UART1.
-  static constexpr auto *uart_instance = detail::uart_instance<TxPin, RxPin>::value;
+  static constexpr auto uart_id = detail::uart_instance<TxPin, RxPin>::value;
 
-  static_assert(uart_instance != nullptr,
+  static_assert(uart_id != detail::UartId::NONE,
                 "Invalid TX/RX pins: Must be a valid TX/RX pair for the same "
                 "UART instance (UART0 or UART1).");
 
@@ -96,21 +103,20 @@ public:
   /**
    * @brief Initializes the UART peripheral associated with the template pins.
    *
-   * Configures the pins and the UART peripheral.
+   * Configures the pins and the UART peripheral. This method is compatible
+   * with the Arduino MIDI library.
    *
    * @param baud_rate The desired baud rate in Hz.
-   * @return true (initialization always succeeds if compilation passed).
    */
-  bool init(std::uint32_t baud_rate) {
+  void begin(std::uint32_t baud_rate) {
     // Initialize UART
-    uart_init(uart_instance, baud_rate);
+    uart_init(get_uart_instance(), baud_rate);
 
     // Set the GPIO pin muxing
     gpio_set_function(TxPin, GPIO_FUNC_UART);
     gpio_set_function(RxPin, GPIO_FUNC_UART);
 
     _initialized = true;
-    return true;
   }
 
   /**
@@ -127,7 +133,7 @@ public:
       return 0;
     }
     // uart_getc is blocking, waits for character
-    return uart_getc(uart_instance);
+    return uart_getc(get_uart_instance());
   }
 
   /**
@@ -145,7 +151,7 @@ public:
       return 0;
     }
     // uart_putc is blocking, waits for space in FIFO
-    uart_putc(uart_instance, byte);
+    uart_putc(get_uart_instance(), byte);
     return 1; // Indicate one byte was written
   }
 
@@ -157,10 +163,19 @@ public:
     if (!_initialized) {
       return false;
     }
-    return uart_is_readable(uart_instance);
+    return uart_is_readable(get_uart_instance());
   }
 
 private:
+  // Helper to get the uart_inst_t* at runtime
+  static uart_inst_t* get_uart_instance() {
+      if constexpr (uart_id == detail::UartId::UART0) {
+          return uart0;
+      } else {
+          return uart1;
+      }
+  }
+
   bool _initialized;
 };
 

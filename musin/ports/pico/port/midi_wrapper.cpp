@@ -1,8 +1,9 @@
 #include "musin/midi/midi_wrapper.h"
-#include "../pico_uart.h"
+#include "musin/boards/dato_submarine.h"
+#include "musin/hal/UART.h"
 #include "musin/hal/null_logger.h"
 #include "musin/hal/pico_logger.h"
-#include "musin/midi/midi_output_queue.h" // For enqueuing messages
+#include "musin/midi/midi_output_queue.h"
 #include <MIDI.h>
 #include <USB-MIDI.h>
 #include <stdio.h> // For printf
@@ -22,14 +23,15 @@ struct MIDISettings {
   static const bool UseRunningStatus = false;
 
   /*! NoteOn with 0 velocity should be handled as NoteOf.\n
-  Set to true  to get NoteOff events when receiving null-velocity NoteOn messages.\n
-  Set to false to get NoteOn  events when receiving null-velocity NoteOn messages.
+  Set to true  to get NoteOff events when receiving null-velocity NoteOn
+  messages.\n Set to false to get NoteOn  events when receiving null-velocity
+  NoteOn messages.
   */
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
 
-  /*! Setting this to true will make MIDI.read parse only one byte of data for each
-  call when data is available. This can speed up your application if receiving
-  a lot of traffic, but might induce MIDI Thru and treatment latency.
+  /*! Setting this to true will make MIDI.read parse only one byte of data for
+  each call when data is available. This can speed up your application if
+  receiving a lot of traffic, but might induce MIDI Thru and treatment latency.
   */
   static const bool Use1ByteParsing = true;
 
@@ -52,8 +54,8 @@ struct MIDISettings {
 
   /*! Global switch to turn on/off receiver ActiveSensing
   Set to true to check for message timeouts (via ErrorCallback)
-  Set to false will not check if chained device are still alive (if they use ActiveSensing) (will
-  also save memory)
+  Set to false will not check if chained device are still alive (if they use
+  ActiveSensing) (will also save memory)
   */
   static const bool UseReceiverActiveSensing = false;
 
@@ -75,28 +77,32 @@ struct MIDISettings {
 };
 
 static usbMidi::usbMidiTransport usbTransport(0);
-static midi::MidiInterface<usbMidi::usbMidiTransport, MIDISettings> usb_midi(usbTransport);
+static midi::MidiInterface<usbMidi::usbMidiTransport, MIDISettings>
+    usb_midi(usbTransport);
 
-static PicoUART serial;
-static midi::SerialMIDI<PicoUART> serialTransport(serial);
-static midi::MidiInterface<midi::SerialMIDI<PicoUART>, MIDISettings> serial_midi(serialTransport);
+using MidiUart =
+    musin::hal::UART<DATO_SUBMARINE_MIDI_TX_PIN, DATO_SUBMARINE_MIDI_RX_PIN>;
+static MidiUart midi_uart;
+static midi::SerialMIDI<MidiUart> serialTransport(midi_uart);
+static midi::MidiInterface<midi::SerialMIDI<MidiUart>, MIDISettings>
+    serial_midi(serialTransport);
 
-#define ALL_TRANSPORTS(function_call)                                                              \
-  usb_midi.function_call;                                                                          \
+#define ALL_TRANSPORTS(function_call)                                          \
+  usb_midi.function_call;                                                      \
   serial_midi.function_call;
 
 void MIDI::init(const Callbacks &callbacks) {
-  // Initialize in OMNI mode to listen on all channels
+  midi_uart.begin(31250); // Standard MIDI baud
   ALL_TRANSPORTS(begin(MIDI_CHANNEL_OMNI));
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));
-  ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));
   ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));
   ALL_TRANSPORTS(setHandleStart(callbacks.start));
   ALL_TRANSPORTS(setHandleStop(callbacks.stop));
   ALL_TRANSPORTS(setHandleContinue(callbacks.cont));
   ALL_TRANSPORTS(setHandleControlChange(callbacks.cc));
-  ALL_TRANSPORTS(setHandlePitchBend(callbacks.pitch_bend)); // Register pitch bend handler
+  ALL_TRANSPORTS(
+      setHandlePitchBend(callbacks.pitch_bend)); // Register pitch bend handler
   ALL_TRANSPORTS(setHandleSystemExclusive(callbacks.sysex));
 }
 
@@ -116,19 +122,22 @@ void MIDI::sendRealTime(const midi::MidiType message) {
   musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
-void MIDI::sendControlChange(const byte cc, const byte value, const byte channel) {
+void MIDI::sendControlChange(const byte cc, const byte value,
+                             const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, cc, value);
   musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
-void MIDI::sendNoteOn(const byte note, const byte velocity, const byte channel) {
+void MIDI::sendNoteOn(const byte note, const byte velocity,
+                      const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, true);
   bool enqueued = musin::midi::enqueue_midi_message(msg, midi_send_logger);
   if (!enqueued) {
   }
 }
 
-void MIDI::sendNoteOff(const byte note, const byte velocity, const byte channel) {
+void MIDI::sendNoteOff(const byte note, const byte velocity,
+                       const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, false);
   musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
@@ -154,16 +163,19 @@ void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
   ALL_TRANSPORTS(sendRealTime(message));
 }
 
-void MIDI::internal::_sendControlChange_actual(const byte channel, const byte controller,
+void MIDI::internal::_sendControlChange_actual(const byte channel,
+                                               const byte controller,
                                                const byte value) {
   ALL_TRANSPORTS(sendControlChange(controller, value, channel));
 }
 
-void MIDI::internal::_sendNoteOn_actual(const byte channel, const byte note, const byte velocity) {
+void MIDI::internal::_sendNoteOn_actual(const byte channel, const byte note,
+                                        const byte velocity) {
   ALL_TRANSPORTS(sendNoteOn(note, velocity, channel));
 }
 
-void MIDI::internal::_sendNoteOff_actual(const byte channel, const byte note, const byte velocity) {
+void MIDI::internal::_sendNoteOff_actual(const byte channel, const byte note,
+                                         const byte velocity) {
   ALL_TRANSPORTS(sendNoteOff(note, velocity, channel));
 }
 
@@ -171,7 +183,8 @@ void MIDI::internal::_sendPitchBend_actual(const byte channel, const int bend) {
   ALL_TRANSPORTS(sendPitchBend(bend, channel));
 }
 
-void MIDI::internal::_sendSysEx_actual(const unsigned length, const byte *bytes) {
+void MIDI::internal::_sendSysEx_actual(const unsigned length,
+                                       const byte *bytes) {
   // The underlying Arduino MIDI library adds the F0/F7 terminators itself.
   // We must pass only the payload.
   // This wrapper function will strip the terminators if they are present.

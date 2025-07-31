@@ -1,8 +1,9 @@
 #include "musin/midi/midi_wrapper.h"
-#include "../pico_uart.h"
+#include "musin/boards/dato_submarine.h"
+#include "musin/hal/UART.h"
 #include "musin/hal/null_logger.h"
 #include "musin/hal/pico_logger.h"
-#include "musin/midi/midi_output_queue.h" // For enqueuing messages
+#include "musin/midi/midi_output_queue.h"
 #include <MIDI.h>
 #include <USB-MIDI.h>
 #include <stdio.h> // For printf
@@ -77,16 +78,17 @@ struct MIDISettings {
 static usbMidi::usbMidiTransport usbTransport(0);
 static midi::MidiInterface<usbMidi::usbMidiTransport, MIDISettings> usb_midi(usbTransport);
 
-static PicoUART serial;
-static midi::SerialMIDI<PicoUART> serialTransport(serial);
-static midi::MidiInterface<midi::SerialMIDI<PicoUART>, MIDISettings> serial_midi(serialTransport);
+using MidiUart = musin::hal::UART<DATO_SUBMARINE_MIDI_TX_PIN, DATO_SUBMARINE_MIDI_RX_PIN>;
+static MidiUart midi_uart;
+static midi::SerialMIDI<MidiUart> serialTransport(midi_uart);
+static midi::MidiInterface<midi::SerialMIDI<MidiUart>, MIDISettings> serial_midi(serialTransport);
 
 #define ALL_TRANSPORTS(function_call)                                                              \
   usb_midi.function_call;                                                                          \
   serial_midi.function_call;
 
 void MIDI::init(const Callbacks &callbacks) {
-  // Initialize in OMNI mode to listen on all channels
+  midi_uart.init(31250);  // Standard MIDI baud
   ALL_TRANSPORTS(begin(MIDI_CHANNEL_OMNI));
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));

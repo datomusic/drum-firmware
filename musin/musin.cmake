@@ -68,7 +68,6 @@ endmacro()
 macro(musin_setup_usb_midi_target)
     # Private implementation library for musin usb_midi
     add_library(musin_usb_midi_impl STATIC
-        ${MUSIN_ROOT}/pico_uart.cpp
         ${MUSIN_USB}/usb.cpp
         ${MUSIN_USB}/midi_usb_bridge/MIDIUSB.cpp
         ${MUSIN_ROOT}/ports/pico/port/midi_wrapper.cpp

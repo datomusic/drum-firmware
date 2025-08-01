@@ -5,8 +5,12 @@ namespace musin::timing {
 
 SyncIn::SyncIn(uint32_t sync_pin, uint32_t detect_pin)
     : sync_pin_(sync_pin), detect_pin_(detect_pin) {
-  sync_pin_.init(musin::hal::GpioDirection::IN, false);
-  detect_pin_.init(musin::hal::GpioDirection::IN, true); // Enable pull-down
+  sync_pin_.set_direction(musin::hal::GpioDirection::IN);
+  sync_pin_.disable_pulls();
+
+  detect_pin_.set_direction(musin::hal::GpioDirection::IN);
+  detect_pin_.enable_pulldown();
+
   last_pulse_state_ = sync_pin_.read();
   last_detect_state_ = detect_pin_.read();
   current_detect_state_ = last_detect_state_;

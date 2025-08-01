@@ -6,11 +6,13 @@
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
+#include "musin/timing/sync_in.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
+#include "drum/drum_pizza_hardware.h"
 #include "drum/midi_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
@@ -49,8 +51,10 @@ static drum::SysExHandler sysex_handler(config_manager, logger);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
+static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
+                                     DATO_SUBMARINE_SYNC_DETECT_PIN);
 static musin::timing::TempoHandler
-    tempo_handler(internal_clock, midi_clock_processor,
+    tempo_handler(internal_clock, midi_clock_processor, sync_in,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static drum::SequencerController<drum::config::NUM_TRACKS,
@@ -123,6 +127,7 @@ int main() {
 
   pizza_display.init();
   pizza_controls.init();
+  sync_in.init();
 
   // --- Initialize Clocking System ---
   // TempoHandler's constructor calls set_clock_source, which handles initial
@@ -148,16 +153,18 @@ int main() {
   sync_out.enable();
 
   while (true) {
-    sysex_handler.update(get_absolute_time());
+    absolute_time_t now = get_absolute_time();
+    sysex_handler.update(now);
 
-    pizza_controls.update(get_absolute_time());
+    pizza_controls.update(now);
+    sync_in.update(now);
     sequencer_controller
         .update(); // Checks if a step is due and queues NoteEvents
     message_router
         .update(); // Drains NoteEvent queue, sending to observers and MIDI
     audio_engine.process();
 
-    pizza_display.update(get_absolute_time());
+    pizza_display.update(now);
 
     musin::usb::background_update();
     midi_manager.process_input();
@@ -178,3 +185,4 @@ int main() {
 
   return 0;
 }
+

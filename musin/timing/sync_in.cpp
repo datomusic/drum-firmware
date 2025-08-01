@@ -9,7 +9,7 @@ SyncIn::SyncIn(uint32_t sync_pin, uint32_t detect_pin)
   sync_pin_.disable_pulls();
 
   detect_pin_.set_direction(musin::hal::GpioDirection::IN);
-  detect_pin_.enable_pulldown();
+  detect_pin_.disable_pulls(); // Pullup is external
 
   last_pulse_state_ = sync_pin_.read();
   last_detect_state_ = detect_pin_.read();
@@ -51,6 +51,6 @@ void SyncIn::update(absolute_time_t now) {
   }
 }
 
-bool SyncIn::is_cable_connected() const { return current_detect_state_; }
+bool SyncIn::is_cable_connected() const { return !current_detect_state_; }
 
 } // namespace musin::timing

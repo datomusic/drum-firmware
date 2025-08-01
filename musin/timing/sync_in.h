@@ -4,7 +4,7 @@
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
 #include "musin/timing/clock_event.h"
-#include "pico/types.h" // For absolute_time_t
+#include "pico/time.h" // For absolute_time_t and nil_time
 #include <cstdint>
 
 namespace musin::timing {

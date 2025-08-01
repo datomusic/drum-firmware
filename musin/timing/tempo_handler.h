@@ -16,7 +16,10 @@ class SyncIn;
 /**
  * @brief Defines the playback state of the sequencer.
  */
-enum class PlaybackState : uint8_t { STOPPED, PLAYING };
+enum class PlaybackState : uint8_t {
+  STOPPED,
+  PLAYING
+};
 
 // Maximum number of observers TempoHandler can notify (e.g.,
 // SequencerController)

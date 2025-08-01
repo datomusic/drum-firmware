@@ -53,7 +53,9 @@ void TempoHandler::set_clock_source(ClockSource source) {
   }
 }
 
-ClockSource TempoHandler::get_clock_source() const { return current_source_; }
+ClockSource TempoHandler::get_clock_source() const {
+  return current_source_;
+}
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
   if (event.source == ClockSource::INTERNAL &&

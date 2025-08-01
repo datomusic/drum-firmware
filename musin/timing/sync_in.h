@@ -16,7 +16,6 @@ class SyncIn : public etl::observable<etl::observer<musin::timing::ClockEvent>,
 public:
   SyncIn(uint32_t sync_pin, uint32_t detect_pin);
 
-  void init();
   void update(absolute_time_t now);
   [[nodiscard]] bool is_cable_connected() const;
 

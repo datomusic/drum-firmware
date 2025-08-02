@@ -12,7 +12,6 @@
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
-#include "drum/drum_pizza_hardware.h"
 #include "drum/midi_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"

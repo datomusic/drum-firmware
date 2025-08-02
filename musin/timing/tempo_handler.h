@@ -3,13 +3,13 @@
 
 #include "etl/observer.h"
 #include "musin/timing/clock_event.h"
-#include "musin/timing/internal_clock.h"
 #include "musin/timing/tempo_event.h"
 #include <cstdint>
 
 namespace musin::timing {
 
 // Forward declarations
+class InternalClock;
 class MidiClockProcessor;
 class SyncIn;
 

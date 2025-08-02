@@ -2,6 +2,7 @@
 #include "midi_Defs.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/timing/clock_event.h"
+#include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"

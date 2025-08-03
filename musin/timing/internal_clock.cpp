@@ -8,11 +8,22 @@
 
 namespace musin::timing {
 
-// PLL Tuning Constants
-constexpr float KP = 0.0001f; // Proportional gain
-constexpr float KI = 0.00002f; // Integral gain
-constexpr float INTEGRAL_WINDUP_LIMIT =
-    50000.0f; // Max value for the integral term in microseconds
+/**
+ * @brief Proportional-Integral (PI) controller tuning constants for the PLL.
+ *
+ * These values determine how the clock adjusts to phase errors.
+ * - KP (Proportional Gain): Reacts to the current phase error. A higher value
+ *   makes the clock correct faster but can lead to overshoot and instability.
+ * - KI (Integral Gain): Reacts to the accumulated phase error over time. It
+ *   corrects for small, steady-state frequency drifts but a high value can
+ *   cause oscillations.
+ * - INTEGRAL_WINDUP_LIMIT: Prevents the integral term from growing too large,
+ *   which can cause the clock to take a very long time to recover from a large
+ *   frequency change.
+ */
+constexpr float KP = 0.0001f;
+constexpr float KI = 0.00000f;
+constexpr float INTEGRAL_WINDUP_LIMIT = 50000.0f;
 
 InternalClock::InternalClock(float initial_bpm)
     : target_bpm_(initial_bpm), current_bpm_(initial_bpm) {

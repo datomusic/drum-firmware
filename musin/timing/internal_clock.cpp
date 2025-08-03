@@ -51,7 +51,9 @@ void InternalClock::set_bpm(float bpm) {
   }
 }
 
-float InternalClock::get_bpm() const { return current_bpm_; }
+float InternalClock::get_bpm() const {
+  return current_bpm_;
+}
 
 bool InternalClock::is_running() const {
   return is_running_.load(std::memory_order_relaxed);

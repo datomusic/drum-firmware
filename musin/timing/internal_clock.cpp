@@ -90,7 +90,7 @@ void InternalClock::reference_tick_received(absolute_time_t now,
 
   // 3. Calculate phase error.
   phase_error_us_ =
-      static_cast<float>(actual_ref_interval_us - expected_ref_interval_us);
+      static_cast<float>(expected_ref_interval_us - actual_ref_interval_us);
 
   // 4. Update integral term with anti-windup.
   phase_error_integral_ += phase_error_us_;

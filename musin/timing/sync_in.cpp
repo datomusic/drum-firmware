@@ -78,4 +78,12 @@ bool SyncIn::is_cable_connected() const {
   return !current_detect_state_; // Active low: true when pin is low
 }
 
+void SyncIn::set_ppqn(uint32_t ppqn) {
+  ppqn_ = ppqn;
+}
+
+uint32_t SyncIn::get_ppqn() const {
+  return ppqn_;
+}
+
 } // namespace musin::timing

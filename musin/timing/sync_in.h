@@ -19,7 +19,11 @@ public:
   void update(absolute_time_t now);
   [[nodiscard]] bool is_cable_connected() const;
 
+  void set_ppqn(uint32_t ppqn);
+  [[nodiscard]] uint32_t get_ppqn() const;
+
 private:
+  uint32_t ppqn_ = 24;
   enum class PulseDebounceState {
     WAITING_FOR_RISING_EDGE,
     WAITING_FOR_STABLE_LOW

@@ -38,8 +38,7 @@ void TempoHandler::set_clock_source(ClockSource source) {
 
   uint32_t ppqn = musin::timing::DEFAULT_PPQN;
   if (source == ClockSource::EXTERNAL_SYNC) {
-    // TODO: Make this configurable
-    ppqn = 4; // Example: 4 PPQN for 16th note sync
+    ppqn = _sync_in_ref.get_ppqn();
   }
 
   _internal_clock_ref.set_discipline(source, ppqn);

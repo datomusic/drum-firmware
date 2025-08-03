@@ -128,8 +128,6 @@ int main() {
   pizza_controls.init();
 
   // --- Initialize Clocking System ---
-  // TempoHandler's constructor calls set_clock_source, which handles initial
-  // observation.
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(
       pizza_display); // PizzaDisplay needs tempo events for pulsing

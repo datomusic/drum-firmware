@@ -82,6 +82,19 @@ public:
    */
   void set_discipline(ClockSource source, uint32_t ppqn);
 
+  /**
+   * @brief Informs the clock that a reference tick has been received from an
+   * external source.
+   *
+   * This is the primary input to the PLL. The clock will compare the arrival
+   * time of this tick with its own internal phase to calculate the error and
+   * adjust its frequency.
+   *
+   * @param now The timestamp when the reference tick was received.
+   * @param source The source of the tick (MIDI or EXTERNAL_SYNC).
+   */
+  void reference_tick_received(absolute_time_t now, ClockSource source);
+
 private:
   /**
    * @brief Static timer callback function required by the Pico SDK.

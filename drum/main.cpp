@@ -96,23 +96,6 @@ int main() {
   } else {
     musin::filesystem::list_files("/"); // List files in the root directory
 
-    // Print config.json contents for debugging
-    logger.info("\n--- Contents of /config.json ---");
-    FILE *configFile = fopen("/config.json", "r");
-    if (configFile) {
-      char read_buffer[129];
-      size_t bytes_read;
-      while ((bytes_read = fread(read_buffer, 1, sizeof(read_buffer) - 1,
-                                 configFile)) > 0) {
-        read_buffer[bytes_read] = '\0';
-        logger.info(read_buffer);
-      }
-      fclose(configFile);
-      logger.info("\n--- End of /config.json ---");
-    } else {
-      logger.warn("Could not open /config.json to display.");
-    }
-
     config_manager.load();
   }
 

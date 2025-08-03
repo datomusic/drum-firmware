@@ -68,6 +68,20 @@ public:
    */
   [[nodiscard]] bool is_running() const;
 
+  /**
+   * @brief Sets the external source that this clock should discipline itself to.
+   *
+   * When a discipline source is set, the internal clock will use a PLL to
+   * adjust its phase and frequency to match the incoming ticks from that
+   * source.
+   *
+   * @param source The external clock source to follow (MIDI, EXTERNAL_SYNC).
+   *               Set to INTERNAL to disable disciplining and run freely.
+   * @param ppqn The Pulses Per Quarter Note of the external source. This is
+   *             needed to correctly calculate phase errors.
+   */
+  void set_discipline(ClockSource source, uint32_t ppqn);
+
 private:
   /**
    * @brief Static timer callback function required by the Pico SDK.

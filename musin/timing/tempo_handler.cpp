@@ -6,6 +6,7 @@
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"
+#include "musin/timing/timing_constants.h"
 
 namespace musin::timing {
 
@@ -29,29 +30,15 @@ void TempoHandler::set_clock_source(ClockSource source) {
     return;
   }
 
-  // Cleanup for the old source
-  if (current_source_ == ClockSource::INTERNAL) {
-    _internal_clock_ref.remove_observer(*this);
-    _internal_clock_ref.stop();
-  } else if (current_source_ == ClockSource::MIDI) {
-    _midi_clock_processor_ref.remove_observer(*this);
-    _midi_clock_processor_ref.reset();
-  } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _sync_in_ref.remove_observer(*this);
-  }
-
   current_source_ = source;
 
-  // Setup for the new source
-  if (current_source_ == ClockSource::INTERNAL) {
-    _internal_clock_ref.add_observer(*this);
-    _send_this_internal_tick_as_midi_clock = true;
-    _internal_clock_ref.start();
-  } else if (current_source_ == ClockSource::MIDI) {
-    _midi_clock_processor_ref.add_observer(*this);
-  } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _sync_in_ref.add_observer(*this);
+  uint32_t ppqn = musin::timing::DEFAULT_PPQN;
+  if (source == ClockSource::EXTERNAL_SYNC) {
+    // TODO: Make this configurable
+    ppqn = 4; // Example: 4 PPQN for 16th note sync
   }
+
+  _internal_clock_ref.set_discipline(source, ppqn);
 }
 
 ClockSource TempoHandler::get_clock_source() const {

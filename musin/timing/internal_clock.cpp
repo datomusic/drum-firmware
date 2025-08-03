@@ -81,6 +81,10 @@ bool InternalClock::is_running() const {
   return _is_running;
 }
 
+void InternalClock::set_discipline(ClockSource source, uint32_t ppqn) {
+  // TODO: To be implemented in Phase 1
+}
+
 int64_t InternalClock::calculate_tick_interval(float bpm) const {
   if (bpm <= 0.0f) {
     return 0;

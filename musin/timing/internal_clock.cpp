@@ -1,96 +1,119 @@
 #include "internal_clock.h"
 
+#include "musin/hal/debug_utils.h"
 #include "musin/timing/clock_event.h"
 #include "pico/stdlib.h"
+#include <algorithm>
 #include <cstdio>
 
 namespace musin::timing {
 
+// PLL Tuning Constants
+constexpr float KP = 0.0001f; // Proportional gain
+constexpr float KI = 0.00002f; // Integral gain
+constexpr float INTEGRAL_WINDUP_LIMIT =
+    50000.0f; // Max value for the integral term in microseconds
+
 InternalClock::InternalClock(float initial_bpm)
-    : _current_bpm(initial_bpm), _is_running(false),
-      _bpm_change_pending{false} {
-  _timer_info = {};
-  _tick_interval_us = calculate_tick_interval(initial_bpm);
-  _pending_bpm = initial_bpm;
-  _pending_tick_interval_us = _tick_interval_us;
+    : target_bpm_(initial_bpm), current_bpm_(initial_bpm) {
+  timer_info_ = {};
+  int64_t tick_interval_us = calculate_tick_interval_us(current_bpm_);
+
+  if (tick_interval_us > 0) {
+    if (add_repeating_timer_us(-tick_interval_us, timer_callback, this,
+                               &timer_info_)) {
+      is_running_.store(true, std::memory_order_relaxed);
+      last_internal_tick_time_ = get_absolute_time();
+    }
+  }
 }
 
 void InternalClock::set_bpm(float bpm) {
   if (bpm <= 0.0f) {
     return;
   }
+  target_bpm_ = bpm;
 
-  if (_bpm_change_pending.load(std::memory_order_relaxed)) {
-    if (bpm == _pending_bpm) {
-      return;
-    }
-  } else {
-    if (bpm == _current_bpm) {
-      return;
-    }
-  }
-
-  int64_t new_interval = calculate_tick_interval(bpm);
-
-  if (_is_running) {
-    _pending_bpm = bpm;
-    _pending_tick_interval_us = new_interval;
-    _bpm_change_pending.store(true, std::memory_order_relaxed);
-  } else {
-    _current_bpm = bpm;
-    _tick_interval_us = new_interval;
-    _bpm_change_pending.store(false, std::memory_order_relaxed);
+  if (discipline_source_ == ClockSource::INTERNAL) {
+    current_bpm_ = target_bpm_;
+    phase_error_integral_ = 0.0f; // Reset integral when manually setting
   }
 }
 
-float InternalClock::get_bpm() const {
-  return _current_bpm;
-}
-
-void InternalClock::start() {
-  if (_is_running) {
-    return;
-  }
-  if (_tick_interval_us <= 0) {
-    return;
-  }
-
-  // Add the repeating timer
-  if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this,
-                             &_timer_info)) {
-    _is_running = true;
-  } else {
-    _is_running = false;
-  }
-}
-
-void InternalClock::stop() {
-  if (!_is_running) {
-    return;
-  }
-
-  // Cancel the repeating timer
-  cancel_repeating_timer(&_timer_info);
-  _is_running = false;
-  _bpm_change_pending.store(false, std::memory_order_relaxed);
-
-  _timer_info = {};
-}
+float InternalClock::get_bpm() const { return current_bpm_; }
 
 bool InternalClock::is_running() const {
-  return _is_running;
+  return is_running_.load(std::memory_order_relaxed);
 }
 
 void InternalClock::set_discipline(ClockSource source, uint32_t ppqn) {
-  // TODO: To be implemented in Phase 1
+  discipline_source_ = source;
+  discipline_ppqn_ = ppqn;
+
+  // Reset PLL state when changing source to ensure a clean start
+  phase_error_us_ = 0.0f;
+  phase_error_integral_ = 0.0f;
+  last_reference_tick_time_ = nil_time;
+
+  // If switching back to internal, immediately snap to the target BPM
+  if (source == ClockSource::INTERNAL) {
+    current_bpm_ = target_bpm_;
+  }
 }
 
 void InternalClock::reference_tick_received(absolute_time_t now,
                                             ClockSource source) {
-  // TODO: To be implemented in Phase 1
+  if (source != discipline_source_ || is_nil_time(now)) {
+    return;
+  }
+
+  if (is_nil_time(last_reference_tick_time_)) {
+    // First tick from this source, just record the time and wait for the next
+    // one.
+    last_reference_tick_time_ = now;
+    return;
+  }
+
+  // 1. Calculate the expected interval of the reference clock based on our
+  // current BPM.
+  float ref_ticks_per_second =
+      (current_bpm_ / 60.0f) * static_cast<float>(discipline_ppqn_);
+  if (ref_ticks_per_second <= 0) {
+    return;
+  }
+  int64_t expected_ref_interval_us =
+      static_cast<int64_t>(1000000.0f / ref_ticks_per_second);
+
+  // 2. Calculate the actual time since the last reference tick.
+  int64_t actual_ref_interval_us =
+      absolute_time_diff_us(last_reference_tick_time_, now);
+
+  // 3. Calculate phase error.
+  phase_error_us_ =
+      static_cast<float>(actual_ref_interval_us - expected_ref_interval_us);
+
+  // 4. Update integral term with anti-windup.
+  phase_error_integral_ += phase_error_us_;
+  phase_error_integral_ = std::clamp(
+      phase_error_integral_, -INTEGRAL_WINDUP_LIMIT, INTEGRAL_WINDUP_LIMIT);
+
+  // 5. Apply PI controller to get a BPM adjustment.
+  float adjustment = (KP * phase_error_us_) + (KI * phase_error_integral_);
+
+  // 6. Update the clock's frequency.
+  current_bpm_ = target_bpm_ + adjustment;
+
+  // 7. Store the time of this tick for the next calculation.
+  last_reference_tick_time_ = now;
+
+#ifdef VERBOSE
+  DEBUG_PRINT("Phase Error: %.2f us, Integral: %.2f, Adj: %.4f, "
+              "Current BPM: %.2f\n",
+              phase_error_us_, phase_error_integral_, adjustment, current_bpm_);
+#endif
 }
 
-int64_t InternalClock::calculate_tick_interval(float bpm) const {
+int64_t InternalClock::calculate_tick_interval_us(float bpm) const {
   if (bpm <= 0.0f) {
     return 0;
   }
@@ -101,38 +124,25 @@ int64_t InternalClock::calculate_tick_interval(float bpm) const {
   return static_cast<int64_t>(1000000.0f / ticks_per_second);
 }
 
-// --- Static Timer Callback ---
 bool InternalClock::timer_callback(struct repeating_timer *rt) {
   InternalClock *instance = static_cast<InternalClock *>(rt->user_data);
 
-  if (!instance->_is_running) {
-    return false; // Stop the timer if the clock instance was stopped
-  }
+  instance->last_internal_tick_time_ = get_absolute_time();
 
-  // Notify observers for the current tick (based on the old interval)
   musin::timing::ClockEvent tick_event{musin::timing::ClockSource::INTERNAL};
   instance->notify_observers(tick_event);
 
-  // Check for and apply pending BPM change for the *next* interval
-  if (instance->_bpm_change_pending.load(std::memory_order_relaxed)) {
-    int64_t new_interval = instance->_pending_tick_interval_us;
-    float new_bpm = instance->_pending_bpm;
+  int64_t next_interval_us =
+      instance->calculate_tick_interval_us(instance->current_bpm_);
 
-    instance->_current_bpm = new_bpm;
-    instance->_tick_interval_us = new_interval;
-
-    if (new_interval <= 0) {
-      // Invalid interval, stop the clock
-      instance->_is_running = false;
-      instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
-      return false; // Stop the timer
-    }
-    rt->delay_us = -new_interval; // Set the next interval for the timer
-
-    instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
+  if (next_interval_us <= 0) {
+    instance->is_running_.store(false, std::memory_order_relaxed);
+    return false;
   }
 
-  return instance->_is_running; // Continue if still running
+  rt->delay_us = -next_interval_us;
+
+  return true;
 }
 
 } // namespace musin::timing

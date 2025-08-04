@@ -389,12 +389,10 @@ void PizzaDisplay::update_boot_animation(absolute_time_t now) {
     }
 
     // Light up drumpads for tracks that have been "introduced"
-    for (uint8_t i = config::NUM_DRUMPADS - 1;
-         i >= _boot_animation_track_index; --i) {
-      uint8_t pad_note =
-          _sequencer_controller_ref.get_active_note_for_track(i);
-      Color pad_color =
-          get_color_for_midi_note(pad_note).value_or(COLOR_WHITE);
+    for (uint8_t i = config::NUM_DRUMPADS - 1; i >= _boot_animation_track_index;
+         --i) {
+      uint8_t pad_note = _sequencer_controller_ref.get_active_note_for_track(i);
+      Color pad_color = get_color_for_midi_note(pad_note).value_or(COLOR_WHITE);
       _set_physical_drumpad_led(i, pad_color);
       if (i == 0)
         break; // Prevent underflow with uint8_t

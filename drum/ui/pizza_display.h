@@ -155,7 +155,10 @@ public:
   void start_boot_animation();
 
 private:
-  enum class State { NORMAL, BOOT_ANIMATION };
+  enum class State {
+    NORMAL,
+    BOOT_ANIMATION
+  };
 
   /**
    * @brief Send the current LED buffer data to the physical strip.

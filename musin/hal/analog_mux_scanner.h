@@ -14,7 +14,7 @@ public:
   AnalogMuxScanner(uint32_t adc_pin,
                    const etl::array<uint32_t, 4> &address_pins,
                    uint32_t scan_interval_us = 1000,
-                   uint32_t settle_time_us = 5);
+                   uint32_t settle_time_us = 10);
 
   void init();
   bool scan();

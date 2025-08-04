@@ -265,8 +265,8 @@ void PizzaDisplay::update(absolute_time_t now) {
   } else {
     update_highlight_state();
     draw_base_elements(now);
+    draw_animations(now);
   }
-  draw_animations(now);
   show();
 }
 

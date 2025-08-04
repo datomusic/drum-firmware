@@ -13,7 +13,8 @@
 namespace drum {
 
 /**
- * @brief Holds configuration for a single sample, parsed from config.json.
+ * @brief Holds configuration for a single sample slot.
+ * This is the runtime representation of the data loaded from a binary kit file.
  */
 struct SampleConfig {
   uint8_t slot;
@@ -23,12 +24,15 @@ struct SampleConfig {
 };
 
 /**
- * @brief Parses and provides access to system-wide configuration from
- * config.json.
+ * @brief Manages loading and accessing sample kit configurations.
  *
- * This class is responsible for reading the main JSON configuration file,
- * parsing it with jsmn, and populating internal data structures that other
- * components can query.
+ * This class reads a binary kit file (`/kit.bin`) from the filesystem, which
+ * defines the properties for each of the 32 sample slots (MIDI note, color,
+ * track assignment). If `/kit.bin` is not found, it falls back to loading a
+ * default, compile-time generated `/factory_kit.bin`.
+ *
+ * The binary kit data originates from `factory_kit.cpp`, which is converted
+ * to a binary file at build time via a custom CMake command using `objcopy`.
  */
 class ConfigurationManager {
 public:
@@ -38,14 +42,14 @@ public:
   explicit ConfigurationManager(musin::Logger &logger);
 
   /**
-   * @brief Loads and parses the configuration file.
+   * @brief Loads and parses the kit configuration file.
    *
-   * @return true on successful parsing, false otherwise.
+   * @return true on successful loading, false otherwise.
    */
   bool load();
 
   /**
-   * @brief Gets the parsed sample configuration.
+   * @brief Gets the loaded sample configuration.
    *
    * @return A const reference to the vector of sample configurations.
    */

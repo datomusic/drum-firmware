@@ -143,7 +143,7 @@ A utility script, `tools/sample_sender/sample_sender.js`, is provided to handle 
 | FormatFilesystem | 0x15 | Erases and formats the internal filesystem. All stored samples and configuration will be lost. |
 
 ### File Transfer Protocol
-Transferring files (like samples or `config.json`) to the device is a multi-step process managed by the `sample_sender.js` script.
+Transferring files (like samples or `kit.bin`) to the device is a multi-step process managed by the `sample_sender.js` script.
 
 1.  **Begin Transfer:**
     - **Command:** `BeginFileWrite` (0x10)

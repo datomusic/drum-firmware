@@ -358,7 +358,7 @@ void PizzaDisplay::start_boot_animation() {
 }
 
 void PizzaDisplay::update_boot_animation(absolute_time_t now) {
-  const uint32_t animation_step_duration_ms = 500;
+  const uint32_t animation_step_duration_ms = 400;
 
   if (absolute_time_diff_us(_boot_animation_last_step_time, now) / 1000 >
       animation_step_duration_ms) {

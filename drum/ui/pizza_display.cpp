@@ -352,25 +352,26 @@ PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) const {
 
 void PizzaDisplay::start_boot_animation() {
   _state = State::BOOT_ANIMATION;
-  _boot_animation_track_index = 0;
+  _boot_animation_track_index = config::NUM_DRUMPADS - 1;
   _boot_animation_last_step_time = get_absolute_time();
   clear();
-  start_drumpad_fade(0);
+  start_drumpad_fade(config::NUM_DRUMPADS - 1);
 }
 
 void PizzaDisplay::update_boot_animation(absolute_time_t now) {
-  const uint32_t animation_step_duration_ms = 200;
+  const uint32_t animation_step_duration_ms = 500;
 
   if (absolute_time_diff_us(_boot_animation_last_step_time, now) / 1000 >
       animation_step_duration_ms) {
     _boot_animation_last_step_time = now;
-    _boot_animation_track_index++;
 
-    if (_boot_animation_track_index >= config::NUM_DRUMPADS) {
+    if (_boot_animation_track_index == 0) {
       _state = State::NORMAL;
       clear();
       return;
     }
+
+    _boot_animation_track_index--;
     start_drumpad_fade(_boot_animation_track_index);
   }
 

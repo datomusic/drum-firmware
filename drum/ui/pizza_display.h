@@ -163,7 +163,13 @@ private:
 
   /**
    * @brief Updates time-based animations, such as drumpad LED fades.
-   * This should be called once per update cycle.
+   *
+   * This function is responsible for the visual feedback on the four physical
+   * drumpad LEDs. When a note is played, its corresponding LED begins a 150ms
+   * fade-in effect, ramping from 10% to 100% brightness. Because the LEDs
+   * otherwise show the static color of the assigned sample, this effect
+   * manifests as a brief "dip" in brightness followed by a fade back to full.
+   *
    * @param now The current absolute time.
    */
   void draw_animations(absolute_time_t now);

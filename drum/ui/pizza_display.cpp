@@ -260,8 +260,12 @@ void PizzaDisplay::update_highlight_state() {
 }
 
 void PizzaDisplay::update(absolute_time_t now) {
-  update_highlight_state();
-  draw_base_elements(now);
+  if (_state == State::BOOT_ANIMATION) {
+    update_boot_animation(now);
+  } else {
+    update_highlight_state();
+    draw_base_elements(now);
+  }
   draw_animations(now);
   show();
 }
@@ -344,6 +348,47 @@ PizzaDisplay::get_drumpad_fade_start_time(uint8_t pad_index) const {
     return _drumpad_fade_start_times[pad_index];
   }
   return nil_time;
+}
+
+void PizzaDisplay::start_boot_animation() {
+  _state = State::BOOT_ANIMATION;
+  _boot_animation_track_index = 0;
+  _boot_animation_last_step_time = get_absolute_time();
+  clear();
+  start_drumpad_fade(0);
+}
+
+void PizzaDisplay::update_boot_animation(absolute_time_t now) {
+  const uint32_t animation_step_duration_ms = 200;
+
+  if (absolute_time_diff_us(_boot_animation_last_step_time, now) / 1000 >
+      animation_step_duration_ms) {
+    _boot_animation_last_step_time = now;
+    _boot_animation_track_index++;
+
+    if (_boot_animation_track_index >= config::NUM_DRUMPADS) {
+      _state = State::NORMAL;
+      clear();
+      return;
+    }
+    start_drumpad_fade(_boot_animation_track_index);
+  }
+
+  if (_state == State::BOOT_ANIMATION) {
+    clear();
+    // Draw sequencer ring for current track
+    uint8_t note = _sequencer_controller_ref.get_active_note_for_track(
+        _boot_animation_track_index);
+    auto color = get_color_for_midi_note(note).value_or(COLOR_WHITE);
+
+    for (size_t step = 0; step < SEQUENCER_STEPS_DISPLAYED; ++step) {
+      auto led_index =
+          get_sequencer_led_index(_boot_animation_track_index, step);
+      if (led_index) {
+        _leds.set_pixel(led_index.value(), static_cast<uint32_t>(color));
+      }
+    }
+  }
 }
 
 void PizzaDisplay::draw_animations(absolute_time_t now) {

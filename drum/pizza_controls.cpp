@@ -138,8 +138,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
   uint8_t track_index =
       (drum::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
   uint8_t step_index = (KEYPAD_ROWS - 1) - event.row;
-  auto &track =
-      controls->_sequencer_controller_ref.get_sequencer().get_track(track_index);
+  auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(
+      track_index);
 
   if (event.type == musin::ui::KeypadEvent::Type::Press) {
     const bool now_enabled = track.toggle_step_enabled(step_index);
@@ -153,7 +153,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
                                                             step_velocity);
       }
     }
-  } 
+  }
   if (event.type == musin::ui::KeypadEvent::Type::Hold) {
     if (!track.get_step(step_index).enabled) {
       track.set_step_enabled(step_index, true);

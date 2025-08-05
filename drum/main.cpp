@@ -106,6 +106,7 @@ int main() {
 
   pizza_display.init();
   pizza_controls.init();
+  pizza_display.start_boot_animation();
 
   // --- Initialize Clocking System ---
   // TempoHandler's constructor calls set_clock_source, which handles initial

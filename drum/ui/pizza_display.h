@@ -149,7 +149,17 @@ public:
    */
   void draw_sequencer_state(absolute_time_t now);
 
+  /**
+   * @brief Initiates the boot-up animation sequence.
+   */
+  void start_boot_animation();
+
 private:
+  enum class State {
+    NORMAL,
+    BOOT_ANIMATION
+  };
+
   /**
    * @brief Send the current LED buffer data to the physical strip.
    */
@@ -163,10 +173,21 @@ private:
 
   /**
    * @brief Updates time-based animations, such as drumpad LED fades.
-   * This should be called once per update cycle.
+   *
+   * This function is responsible for the visual feedback on the four physical
+   * drumpad LEDs. When a note is played, its corresponding LED begins a 150ms
+   * fade-in effect, ramping from 10% to 100% brightness. Because the LEDs
+   * otherwise show the static color of the assigned sample, this effect
+   * manifests as a brief "dip" in brightness followed by a fade back to full.
+   *
    * @param now The current absolute time.
    */
   void draw_animations(absolute_time_t now);
+
+  /**
+   * @brief Updates the boot animation frame by frame.
+   */
+  void update_boot_animation(absolute_time_t now);
 
   /**
    * @brief Updates the internal state of the highlight pulse based on tempo
@@ -228,6 +249,10 @@ private:
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
   musin::Logger &_logger_ref;
+
+  State _state = State::NORMAL;
+  uint8_t _boot_animation_track_index = 0;
+  absolute_time_t _boot_animation_last_step_time{};
 
   std::atomic<uint32_t> _clock_tick_counter = 0;
   uint32_t _last_tick_count_for_highlight = 0;

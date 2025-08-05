@@ -2,6 +2,7 @@
 #include "midi_Defs.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/timing/clock_event.h"
+#include "musin/timing/clock_multiplier.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"
@@ -11,12 +12,13 @@ namespace musin::timing {
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
                            SyncIn &sync_in_ref,
+                           ClockMultiplier &clock_multiplier_ref,
                            bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref),
       _midi_clock_processor_ref(midi_clock_processor_ref),
-      _sync_in_ref(sync_in_ref), current_source_(initial_source),
-      _playback_state(PlaybackState::STOPPED),
+      _sync_in_ref(sync_in_ref), _clock_multiplier_ref(clock_multiplier_ref),
+      current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
       _send_this_internal_tick_as_midi_clock(true),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
 
@@ -36,7 +38,8 @@ void TempoHandler::set_clock_source(ClockSource source) {
     _midi_clock_processor_ref.remove_observer(*this);
     _midi_clock_processor_ref.reset();
   } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _sync_in_ref.remove_observer(*this);
+    _clock_multiplier_ref.remove_observer(*this);
+    _clock_multiplier_ref.reset();
   }
 
   current_source_ = source;
@@ -49,7 +52,7 @@ void TempoHandler::set_clock_source(ClockSource source) {
   } else if (current_source_ == ClockSource::MIDI) {
     _midi_clock_processor_ref.add_observer(*this);
   } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _sync_in_ref.add_observer(*this);
+    _clock_multiplier_ref.add_observer(*this);
   }
 }
 

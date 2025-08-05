@@ -12,6 +12,7 @@ namespace musin::timing {
 // Forward declarations
 class MidiClockProcessor;
 class SyncIn;
+class ClockMultiplier;
 
 /**
  * @brief Defines the playback state of the sequencer.
@@ -48,7 +49,9 @@ public:
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         MidiClockProcessor &midi_clock_processor_ref,
-                        SyncIn &sync_in_ref, bool send_midi_clock_when_stopped,
+                        SyncIn &sync_in_ref,
+                        ClockMultiplier &clock_multiplier_ref,
+                        bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
   // Prevent copying and assignment
@@ -71,7 +74,7 @@ public:
    * @brief Notification handler called when a ClockEvent is received.
    * @param event The received clock event.
    */
-  void notification(musin::timing::ClockEvent event) override;
+  void notification(musin::timing::ClockEvent event);
 
   /**
    * @brief Set the tempo for the internal clock.
@@ -95,6 +98,7 @@ private:
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;
+  ClockMultiplier &_clock_multiplier_ref;
 
   ClockSource current_source_;
   PlaybackState _playback_state;

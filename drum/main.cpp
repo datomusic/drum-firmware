@@ -4,6 +4,7 @@
 #include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
+#include "musin/timing/clock_multiplier.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
@@ -53,8 +54,10 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
                                      DATO_SUBMARINE_SYNC_DETECT_PIN);
+static musin::timing::ClockMultiplier clock_multiplier(6); // 4 PPQN to 24 PPQN
 static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor, sync_in,
+                  clock_multiplier,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static drum::SequencerController<drum::config::NUM_TRACKS,
@@ -115,6 +118,7 @@ int main() {
   // --- Initialize Clocking System ---
   // TempoHandler's constructor calls set_clock_source, which handles initial
   // observation.
+  sync_in.add_observer(clock_multiplier);
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(
       pizza_display); // PizzaDisplay needs tempo events for pulsing
@@ -141,6 +145,7 @@ int main() {
 
     pizza_controls.update(now);
     sync_in.update(now);
+    clock_multiplier.update(now);
     sequencer_controller
         .update(); // Checks if a step is due and queues NoteEvents
     message_router

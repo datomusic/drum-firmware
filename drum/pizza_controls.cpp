@@ -135,32 +135,30 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sample_select(
 void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
     musin::ui::KeypadEvent event) {
   PizzaControls *controls = parent->parent_controls;
-  uint8_t track_idx =
+  uint8_t track_index =
       (drum::PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED - 1) - event.col;
-  uint8_t step_idx = (KEYPAD_ROWS - 1) - event.row;
-  auto &track =
-      controls->_sequencer_controller_ref.get_sequencer().get_track(track_idx);
+  uint8_t step_index = (KEYPAD_ROWS - 1) - event.row;
+  auto &track = controls->_sequencer_controller_ref.get_sequencer().get_track(
+      track_index);
 
   if (event.type == musin::ui::KeypadEvent::Type::Press) {
-    const bool now_enabled = track.toggle_step_enabled(step_idx);
+    const bool now_enabled = track.toggle_step_enabled(step_index);
     if (now_enabled) {
       const uint8_t step_velocity = config::keypad::DEFAULT_STEP_VELOCITY;
-      uint8_t note = controls->drumpad_component.get_note_for_pad(track_idx);
-      track.set_step_note(step_idx, note);
-      track.set_step_velocity(step_idx, step_velocity);
+      uint8_t note = controls->drumpad_component.get_note_for_pad(track_index);
+      track.set_step_note(step_index, note);
+      track.set_step_velocity(step_index, step_velocity);
       if (!controls->is_running()) {
-        controls->_sequencer_controller_ref.trigger_note_on(track_idx, note,
+        controls->_sequencer_controller_ref.trigger_note_on(track_index, note,
                                                             step_velocity);
       }
     }
-  } else if (event.type == musin::ui::KeypadEvent::Type::Tap) {
-    if (track.get_step(step_idx).enabled) {
-      track.set_step_velocity(step_idx, config::keypad::STEP_VELOCITY_ON_TAP);
+  }
+  if (event.type == musin::ui::KeypadEvent::Type::Hold) {
+    if (!track.get_step(step_index).enabled) {
+      track.set_step_enabled(step_index, true);
     }
-  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    if (track.get_step(step_idx).enabled) {
-      track.set_step_velocity(step_idx, config::keypad::STEP_VELOCITY_ON_HOLD);
-    }
+    track.set_step_velocity(step_index, config::keypad::STEP_VELOCITY_ON_HOLD);
   }
 }
 

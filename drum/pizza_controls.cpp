@@ -153,10 +153,12 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
                                                             step_velocity);
       }
     }
-  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    if (track.get_step(step_index).enabled) {
-      track.set_step_velocity(step_index, config::keypad::STEP_VELOCITY_ON_HOLD);
+  } 
+  if (event.type == musin::ui::KeypadEvent::Type::Hold) {
+    if (!track.get_step(step_index).enabled) {
+      track.set_step_enabled(step_index, true);
     }
+    track.set_step_velocity(step_index, config::keypad::STEP_VELOCITY_ON_HOLD);
   }
 }
 

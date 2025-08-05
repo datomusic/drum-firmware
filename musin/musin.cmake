@@ -31,7 +31,9 @@ macro(musin_setup_core_target)
     add_library(musin_core_impl STATIC
         ${MUSIN_ROOT}/timing/internal_clock.cpp
         ${MUSIN_ROOT}/timing/sync_out.cpp
+        ${MUSIN_ROOT}/timing/sync_in.cpp
         ${MUSIN_ROOT}/timing/tempo_handler.cpp
+        ${MUSIN_ROOT}/timing/clock_multiplier.cpp
     )
 
     # Implementation needs access to its own headers

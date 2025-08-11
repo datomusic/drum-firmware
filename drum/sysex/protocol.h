@@ -101,11 +101,14 @@ template <typename FileOperations> struct Protocol {
       return Result::InvalidManufacturer;
     }
 
-    const uint16_t tag = (*iterator++);
-
-    if (tag == Tag::FileBytes) {
-      return handle_file_bytes_fast(iterator, chunk.cend(), send_reply, now);
+    // Fast path for FileBytes, which is the most common command during a
+    // transfer. This avoids the overhead of the 3-to-16bit decoding.
+    if (is_file_bytes_command(chunk)) {
+      return handle_file_bytes_fast(iterator + 1, chunk.cend(), send_reply,
+                                    now);
     }
+
+    const uint16_t tag = (*iterator++);
 
     const bool body_was_present = (iterator != chunk.cend());
     etl::array<uint16_t, MIDI::SysExMaxSize> values{};
@@ -194,6 +197,14 @@ private:
     PathTooLong,
     InvalidCharacter
   };
+
+  static constexpr uint8_t get_tag_from_chunk(const Chunk &chunk) {
+    return chunk[4];
+  }
+
+  constexpr bool is_file_bytes_command(const Chunk &chunk) const {
+    return get_tag_from_chunk(chunk) == Tag::FileBytes;
+  }
 
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag,

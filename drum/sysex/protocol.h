@@ -13,6 +13,8 @@ extern "C" {
 
 #include "musin/hal/logger.h"
 
+#include "musin/midi/midi_wrapper.h"
+
 #include "./chunk.h"
 #include "./codec.h"
 
@@ -93,9 +95,9 @@ template <typename FileOperations> struct Protocol {
       return Result::ShortMessage;
     }
 
-    Chunk::Data::const_iterator iterator = chunk.cbegin();
+    Chunk::const_iterator iterator = chunk.cbegin();
 
-    if (!check_and_advance_manufacturer_id(iterator, chunk.size())) {
+    if (!check_and_advance_manufacturer_id(iterator, chunk.cend())) {
       return Result::InvalidManufacturer;
     }
 
@@ -106,7 +108,7 @@ template <typename FileOperations> struct Protocol {
     }
 
     const bool body_was_present = (iterator != chunk.cend());
-    etl::array<uint16_t, Chunk::Data::SIZE> values{};
+    etl::array<uint16_t, MIDI::SysExMaxSize> values{};
     const auto value_count = codec::decode_3_to_16bit(
         iterator, chunk.cend(), values.begin(), values.end());
 
@@ -347,9 +349,9 @@ private:
   }
 
   constexpr bool
-  check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
-                                    const size_t chunk_size) const {
-    if (chunk_size >= 4 &&
+  check_and_advance_manufacturer_id(Chunk::const_iterator &iterator,
+                                    Chunk::const_iterator end) const {
+    if (static_cast<size_t>(etl::distance(iterator, end)) >= 4 &&
         (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
         (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
         (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&

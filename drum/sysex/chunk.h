@@ -1,49 +1,45 @@
 #ifndef SYSEX_CHUNK_H_JY7GCIDU
 #define SYSEX_CHUNK_H_JY7GCIDU
 
-#include <algorithm>
+#include "etl/span.h"
 
-#include "etl/array.h"
-#include "musin/midi/midi_wrapper.h"
-
-// NOTE: If `count` is set larger than Data::SIZE, it will be truncated.
-//       TODO: Error instead, when `count` is too large.
 namespace sysex {
-struct Chunk {
-  typedef etl::array<uint8_t, MIDI::SysExMaxSize> Data;
 
-  // Copy bytes to make sure we have ownership.
-  constexpr Chunk(const uint8_t *bytes, const size_t count)
-      : data(copy_bytes(bytes, count)), count(count) {
-  }
+/**
+ * @class Chunk
+ * @brief A non-owning view of a SysEx message chunk.
+ *
+ * This class wraps an etl::span to provide a consistent, non-owning
+ * interface to a segment of a SysEx message. It avoids copying data,
+ * making it efficient for processing message fragments that are owned
+ * by another buffer (e.g., the MIDI driver's receive buffer).
+ */
+class Chunk {
+public:
+  using const_iterator = etl::span<const uint8_t>::const_iterator;
 
-  constexpr const uint8_t &operator[](const size_t i) const {
-    // TODO: Add some kind of range checking, at least in debug?
-    return data[i];
-  }
+  /**
+   * @brief Constructs a Chunk from a raw pointer and size.
+   */
+  constexpr Chunk(const uint8_t *data, size_t size) : view_(data, size) {}
 
-  constexpr size_t size() const {
-    return count;
-  }
+  /**
+   * @brief Constructs a Chunk from an etl::span.
+   */
+  constexpr Chunk(etl::span<const uint8_t> view) : view_(view) {}
 
-  constexpr Data::const_iterator cbegin() const {
-    return data.cbegin();
-  }
-
-  constexpr Data::const_iterator cend() const {
-    return data.cbegin() + count;
-  }
+  constexpr const uint8_t &operator[](size_t i) const { return view_[i]; }
+  constexpr size_t size() const { return view_.size(); }
+  constexpr bool empty() const { return view_.empty(); }
+  constexpr const_iterator begin() const { return view_.begin(); }
+  constexpr const_iterator end() const { return view_.end(); }
+  constexpr const_iterator cbegin() const { return view_.cbegin(); }
+  constexpr const_iterator cend() const { return view_.cend(); }
 
 private:
-  const Data data;
-  const size_t count;
-
-  static constexpr Data copy_bytes(const uint8_t *bytes, const size_t count) {
-    Data copied;
-    std::copy(bytes, bytes + std::min(count, Data::SIZE), copied.begin());
-    return copied;
-  }
+  etl::span<const uint8_t> view_;
 };
+
 } // namespace sysex
 
 #endif /* end of include guard: SYSEX_CHUNK_H_JY7GCIDU */

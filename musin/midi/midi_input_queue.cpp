@@ -22,7 +22,7 @@ template bool
 enqueue_incoming_midi_message<ControlChangeData>(const ControlChangeData &);
 template bool
 enqueue_incoming_midi_message<SystemRealtimeData>(const SystemRealtimeData &);
-template bool enqueue_incoming_midi_message<SysExRawData>(const SysExRawData &);
+template bool enqueue_incoming_midi_message<sysex::Chunk>(const sysex::Chunk &);
 
 bool dequeue_incoming_midi_message(IncomingMidiMessage &message) {
   if (midi_input_queue.empty()) {

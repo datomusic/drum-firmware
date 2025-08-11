@@ -49,7 +49,7 @@ void MidiManager::process_input() {
   while (musin::midi::dequeue_incoming_midi_message(message)) {
     // Gate all non-SysEx messages during a file transfer to prevent conflicts.
     if (sysex_handler_.is_busy() &&
-        !etl::holds_alternative<musin::midi::SysExRawData>(message)) {
+        !etl::holds_alternative<sysex::Chunk>(message)) {
       continue;
     }
 
@@ -75,8 +75,8 @@ void MidiManager::process_input() {
           } else if constexpr (std::is_same_v<
                                    T, musin::midi::SystemRealtimeData>) {
             handle_realtime(arg.type);
-          } else if constexpr (std::is_same_v<T, musin::midi::SysExRawData>) {
-            handle_sysex(arg.data);
+          } else if constexpr (std::is_same_v<T, sysex::Chunk>) {
+            handle_sysex(arg);
           }
         },
         message);
@@ -109,9 +109,8 @@ void MidiManager::sysex_callback(uint8_t *data, unsigned length) {
   if (length < 2) {
     return;
   }
-  etl::span<const uint8_t> sysex_view(data + 1, length - 2);
   musin::midi::enqueue_incoming_midi_message(
-      musin::midi::SysExRawData{sysex_view});
+      sysex::Chunk(data + 1, length - 2));
 }
 
 void MidiManager::clock_callback() {
@@ -151,8 +150,8 @@ void MidiManager::handle_control_change([[maybe_unused]] uint8_t channel,
   message_router_.handle_incoming_midi_cc(controller, value);
 }
 
-void MidiManager::handle_sysex(const etl::span<const uint8_t> &data) {
-  sysex_handler_.handle_sysex_message(data);
+void MidiManager::handle_sysex(const sysex::Chunk &chunk) {
+  sysex_handler_.handle_sysex_message(chunk);
 }
 
 void MidiManager::handle_realtime(uint16_t type) {

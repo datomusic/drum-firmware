@@ -36,7 +36,7 @@ void SysExHandler::update(absolute_time_t now) {
   }
 }
 
-void SysExHandler::handle_sysex_message(const etl::span<const uint8_t> &data) {
+void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   auto sender = [this](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {0xF0,
                      drum::config::sysex::MANUFACTURER_ID_0,
@@ -48,7 +48,6 @@ void SysExHandler::handle_sysex_message(const etl::span<const uint8_t> &data) {
     MIDI::sendSysEx(sizeof(msg), msg);
   };
 
-  sysex::Chunk chunk(data.data(), data.size());
   auto result = protocol_.template handle_chunk<decltype(sender)>(
       chunk, sender, get_absolute_time());
 

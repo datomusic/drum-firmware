@@ -38,7 +38,10 @@ extern "C" {
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
 
-enum class ApplicationState { SequencerMode, FileTransferMode };
+enum class ApplicationState {
+  SequencerMode,
+  FileTransferMode
+};
 
 #ifdef VERBOSE
 static musin::PicoLogger logger;
@@ -52,8 +55,8 @@ static ApplicationState current_state = ApplicationState::SequencerMode;
 
 struct StateMachineObserver
     : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
-  void
-  notification(const drum::Events::SysExTransferStateChangeEvent &event) override {
+  void notification(
+      const drum::Events::SysExTransferStateChangeEvent &event) override {
     if (event.is_active) {
       logger.debug("Entering FileTransferMode");
       current_state = ApplicationState::FileTransferMode;
@@ -187,12 +190,10 @@ int main() {
       // In file transfer mode, we only service the bare essentials
       // to keep the transfer fast.
       sysex_handler.update(now);
-      pizza_display.update(
-          now); // Keep display alive for progress updates
+      pizza_display.update(now); // Keep display alive for progress updates
       musin::usb::background_update();
       midi_manager.process_input();
-      musin::midi::process_midi_output_queue(
-          logger); // For sending ACKs
+      musin::midi::process_midi_output_queue(logger); // For sending ACKs
       break;
     }
     }

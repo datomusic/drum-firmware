@@ -19,7 +19,7 @@ class DisplayMode {
 public:
   virtual ~DisplayMode() = default;
   virtual void draw(PizzaDisplay &display, absolute_time_t now) = 0;
-  virtual void on_enter(PizzaDisplay &display){};
+  virtual void on_enter([[maybe_unused]] PizzaDisplay &display){};
 };
 
 // --- Concrete Strategy for Sequencer Mode ---

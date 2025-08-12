@@ -60,7 +60,6 @@ void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {
   }
 }
 
-
 std::optional<Color>
 PizzaDisplay::get_color_for_midi_note(uint8_t midi_note_number) const {
   for (const auto &note_def : config::global_note_definitions) {

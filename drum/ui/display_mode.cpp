@@ -62,7 +62,8 @@ SequencerDisplayMode::SequencerDisplayMode(
         &sequencer_controller,
     musin::timing::TempoHandler &tempo_handler)
     : _sequencer_controller_ref(sequencer_controller),
-      _tempo_handler_ref(tempo_handler) {}
+      _tempo_handler_ref(tempo_handler) {
+}
 
 void SequencerDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   display.update_highlight_state();
@@ -82,12 +83,11 @@ void SequencerDisplayMode::draw_base_elements(PizzaDisplay &display,
     display.set_play_button_led(base_color);
   } else {
     // When stopped, pulse the play button in sync with the step highlight
-    Color pulse_color =
-        display._highlight_is_bright
-            ? base_color
-            : Color(display._leds.adjust_color_brightness(
-                  static_cast<uint32_t>(base_color),
-                  PizzaDisplay::REDUCED_BRIGHTNESS));
+    Color pulse_color = display._highlight_is_bright
+                            ? base_color
+                            : Color(display._leds.adjust_color_brightness(
+                                  static_cast<uint32_t>(base_color),
+                                  PizzaDisplay::REDUCED_BRIGHTNESS));
     display.set_play_button_led(pulse_color);
   }
 
@@ -198,10 +198,9 @@ void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
         float current_brightness_factor =
             PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR +
             fade_progress * (1.0f - PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR);
-        uint8_t brightness_value = static_cast<uint8_t>(
-            std::clamp(current_brightness_factor *
-                           config::DISPLAY_BRIGHTNESS_MAX_VALUE,
-                       0.0f, config::DISPLAY_BRIGHTNESS_MAX_VALUE));
+        uint8_t brightness_value = static_cast<uint8_t>(std::clamp(
+            current_brightness_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE,
+            0.0f, config::DISPLAY_BRIGHTNESS_MAX_VALUE));
         final_color = Color(display._leds.adjust_color_brightness(
             static_cast<uint32_t>(base_color), brightness_value));
       } else {
@@ -230,9 +229,9 @@ Color SequencerDisplayMode::calculate_step_color(
       uint16_t calculated_brightness =
           static_cast<uint16_t>(step.velocity.value()) *
           PizzaDisplay::VELOCITY_TO_BRIGHTNESS_SCALE;
-      brightness = static_cast<uint8_t>(std::min(
-          calculated_brightness,
-          static_cast<uint16_t>(PizzaDisplay::MAX_BRIGHTNESS)));
+      brightness = static_cast<uint8_t>(
+          std::min(calculated_brightness,
+                   static_cast<uint16_t>(PizzaDisplay::MAX_BRIGHTNESS)));
     }
 
     color = Color(display._leds.adjust_color_brightness(
@@ -263,8 +262,7 @@ void FileTransferDisplayMode::on_enter(PizzaDisplay &display) {
   _last_update_time = get_absolute_time();
 }
 
-void FileTransferDisplayMode::draw(PizzaDisplay &display,
-                                   absolute_time_t now) {
+void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   constexpr uint32_t CHASER_UPDATE_INTERVAL_MS = 50;
   constexpr int NUM_CHASER_LEDS = 32; // The sequencer grid
 
@@ -301,7 +299,8 @@ void FileTransferDisplayMode::draw(PizzaDisplay &display,
 BootAnimationMode::BootAnimationMode(
     drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
         &sequencer_controller)
-    : _sequencer_controller_ref(sequencer_controller) {}
+    : _sequencer_controller_ref(sequencer_controller) {
+}
 
 void BootAnimationMode::on_enter(PizzaDisplay &display) {
   display.clear();
@@ -331,7 +330,8 @@ void BootAnimationMode::draw(PizzaDisplay &display, absolute_time_t now) {
   auto ring_color =
       display.get_color_for_midi_note(note).value_or(PizzaDisplay::COLOR_WHITE);
 
-  for (size_t step = 0; step < PizzaDisplay::SEQUENCER_STEPS_DISPLAYED; ++step) {
+  for (size_t step = 0; step < PizzaDisplay::SEQUENCER_STEPS_DISPLAYED;
+       ++step) {
     auto led_index =
         display.get_sequencer_led_index(_boot_animation_track_index, step);
     if (led_index) {
@@ -344,9 +344,8 @@ void BootAnimationMode::draw(PizzaDisplay &display, absolute_time_t now) {
   for (uint8_t i = config::NUM_DRUMPADS - 1; i >= _boot_animation_track_index;
        --i) {
     uint8_t pad_note = _sequencer_controller_ref.get_active_note_for_track(i);
-    Color pad_color =
-        display.get_color_for_midi_note(pad_note)
-            .value_or(PizzaDisplay::COLOR_WHITE);
+    Color pad_color = display.get_color_for_midi_note(pad_note).value_or(
+        PizzaDisplay::COLOR_WHITE);
     display._set_physical_drumpad_led(i, pad_color);
     if (i == 0)
       break; // Prevent underflow with uint8_t

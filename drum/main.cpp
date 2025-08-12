@@ -172,7 +172,6 @@ int main() {
           .update(); // Drains NoteEvent queue, sending to observers and MIDI
       audio_engine.process();
       pizza_display.update(now);
-      musin::usb::background_update();
       midi_manager.process_input();
       tempo_handler.update();
       musin::midi::process_midi_output_queue(
@@ -185,13 +184,13 @@ int main() {
       // to keep the transfer fast.
       sysex_handler.update(now);
       pizza_display.update(now); // Keep display alive for progress updates
-      musin::usb::background_update();
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger); // For sending ACKs
       break;
     }
     }
 
+    musin::usb::background_update();
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();

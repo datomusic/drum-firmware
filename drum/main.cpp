@@ -56,7 +56,7 @@ static ApplicationState current_state = ApplicationState::SequencerMode;
 struct StateMachineObserver
     : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
   void notification(
-      drum::Events::SysExTransferStateChangeEvent &event) {
+      drum::Events::SysExTransferStateChangeEvent event) override {
     if (event.is_active) {
       logger.debug("Entering FileTransferMode");
       current_state = ApplicationState::FileTransferMode;

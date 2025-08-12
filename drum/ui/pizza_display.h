@@ -16,11 +16,18 @@
 #include "drum/events.h"
 #include "drum/sequencer_controller.h"
 #include "etl/observer.h"
+#include "drum/ui/display_mode.h"
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/tempo_handler.h"
 
 namespace drum {
+
+namespace ui {
+class SequencerDisplayMode;
+class FileTransferDisplayMode;
+class BootAnimationMode;
+} // namespace ui
 
 class PizzaDisplay
     : public etl::observer<musin::timing::TempoEvent>,
@@ -28,6 +35,10 @@ class PizzaDisplay
       public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
       public etl::observer<drum::Events::ParameterChangeEvent> {
 public:
+  friend class ui::SequencerDisplayMode;
+  friend class ui::FileTransferDisplayMode;
+  friend class ui::BootAnimationMode;
+
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
   static constexpr float MIN_FADE_BRIGHTNESS_FACTOR = 0.1f;
@@ -38,6 +49,7 @@ public:
   static constexpr Color COLOR_GREEN = Color(0x00FF00);
   static constexpr uint16_t INTENSITY_TO_BRIGHTNESS_SCALE = 2;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
+  static constexpr uint8_t REDUCED_BRIGHTNESS = 100;
 
   explicit PizzaDisplay(
       drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
@@ -144,72 +156,19 @@ public:
   absolute_time_t get_drumpad_fade_start_time(uint8_t pad_index) const;
 
   /**
-   * @brief Update the sequencer LEDs to reflect the current state of the
-   * sequencer.
-   */
-  void draw_sequencer_state(absolute_time_t now);
-
-  /**
    * @brief Initiates the boot-up animation sequence.
    */
   void start_boot_animation();
 
+  /**
+   * @brief Switches the display to sequencer mode.
+   * Public so modes can transition out (e.g., boot animation ends).
+   */
+  void switch_to_sequencer_mode();
+
 private:
-  enum class State {
-    NORMAL,
-    BOOT_ANIMATION
-  };
-
-  /**
-   * @brief Send the current LED buffer data to the physical strip.
-   */
   void show();
-
-  /**
-   * @brief Draws base LED elements like the play button and sequencer steps.
-   * It reflects the direct state of the model without animations.
-   */
-  void draw_base_elements(absolute_time_t now);
-
-  /**
-   * @brief Updates time-based animations, such as drumpad LED fades.
-   *
-   * This function is responsible for the visual feedback on the four physical
-   * drumpad LEDs. When a note is played, its corresponding LED begins a 150ms
-   * fade-in effect, ramping from 10% to 100% brightness. Because the LEDs
-   * otherwise show the static color of the assigned sample, this effect
-   * manifests as a brief "dip" in brightness followed by a fade back to full.
-   *
-   * @param now The current absolute time.
-   */
-  void draw_animations(absolute_time_t now);
-
-  /**
-   * @brief Updates the boot animation frame by frame.
-   */
-  void update_boot_animation(absolute_time_t now);
-
-  /**
-   * @brief Updates the internal state of the highlight pulse based on tempo
-   * ticks.
-   */
   void update_highlight_state();
-
-  /**
-   * @brief Calculate the LED color for a sequencer step based on note and
-   * velocity.
-   * @param step The sequencer step data.
-   * @return Color The calculated color, or black if step is disabled/invalid.
-   */
-  Color calculate_step_color(const musin::timing::Step &step) const;
-
-  /**
-   * @brief Apply a pulsing highlight effect to a color based on the current
-   * pulse state.
-   * @param base_color The base color.
-   * @return Color The highlighted color.
-   */
-  Color apply_pulsing_highlight(Color base_color) const;
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and
@@ -239,30 +198,27 @@ private:
   Color calculate_intensity_color(uint8_t intensity) const;
 
   std::optional<Color> get_color_for_midi_note(uint8_t midi_note_number) const;
+  void _set_physical_drumpad_led(uint8_t pad_index, Color color);
 
   musin::drivers::WS2812_DMA<NUM_LEDS> _leds;
   etl::array<absolute_time_t, config::NUM_DRUMPADS> _drumpad_fade_start_times;
   etl::array<std::optional<Color>, SEQUENCER_TRACKS_DISPLAYED>
       _track_override_colors;
 
-  drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
-      &_sequencer_controller_ref;
-  musin::timing::TempoHandler &_tempo_handler_ref;
   musin::Logger &_logger_ref;
 
-  State _state = State::NORMAL;
-  uint8_t _boot_animation_track_index = 0;
-  absolute_time_t _boot_animation_last_step_time{};
-
+  // State for modes to access
   std::atomic<uint32_t> _clock_tick_counter = 0;
   uint32_t _last_tick_count_for_highlight = 0;
   bool _highlight_is_bright = true;
-  bool _sysex_transfer_active = false;
   float _filter_value = 0.0f;
   float _crush_value = 0.0f;
 
-  void _set_physical_drumpad_led(uint8_t pad_index, Color color);
-  void update_track_override_colors();
+  // Strategy pattern members
+  ui::SequencerDisplayMode sequencer_mode_;
+  ui::FileTransferDisplayMode transfer_mode_;
+  ui::BootAnimationMode boot_animation_mode_;
+  ui::DisplayMode *current_mode_ = nullptr;
 };
 
 inline std::optional<uint32_t>

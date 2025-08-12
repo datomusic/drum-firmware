@@ -1,7 +1,5 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/null_logger.h"
-#include "musin/hal/pico_logger.h"
-#include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/clock_multiplier.h"
@@ -13,14 +11,12 @@
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
-#include "drum/drum_pizza_hardware.h"
 #include "drum/midi_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
 
 extern "C" {
-#include "pico/stdio.h"
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
 }
@@ -28,8 +24,6 @@ extern "C" {
 #ifndef VERBOSE
 #include "hardware/watchdog.h"
 #endif
-
-#include <cstdio>
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"

@@ -256,7 +256,7 @@ async function send_file_content(data) {
   console.log("File data length: ", data.length);
   const total_bytes = data.length;
   const CHUNK_SIZE = 1022; // 146 * 7 bytes of raw data -> 146 * 8 = 1168 bytes of encoded data
-  const PIPELINE_WINDOW = 16;
+  const PIPELINE_WINDOW = 1;
   let promises = [];
 
   for (let i = 0; i < total_bytes; i += CHUNK_SIZE) {

@@ -38,12 +38,32 @@ extern "C" {
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
 
+enum class ApplicationState { SequencerMode, FileTransferMode };
+
 #ifdef VERBOSE
 static musin::PicoLogger logger;
 static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
 #endif
+
+// State Machine
+static ApplicationState current_state = ApplicationState::SequencerMode;
+
+struct StateMachineObserver
+    : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
+  void
+  notification(const drum::Events::SysExTransferStateChangeEvent &event) override {
+    if (event.is_active) {
+      logger.debug("Entering FileTransferMode");
+      current_state = ApplicationState::FileTransferMode;
+    } else {
+      logger.debug("Entering SequencerMode");
+      current_state = ApplicationState::SequencerMode;
+    }
+  }
+};
+static StateMachineObserver state_machine_observer;
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
@@ -131,6 +151,7 @@ int main() {
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(pizza_display);
   sysex_handler.add_observer(sequencer_controller);
+  sysex_handler.add_observer(state_machine_observer);
 
   // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
@@ -141,24 +162,40 @@ int main() {
 
   while (true) {
     absolute_time_t now = get_absolute_time();
-    sysex_handler.update(now);
 
-    pizza_controls.update(now);
-    sync_in.update(now);
-    clock_multiplier.update(now);
-    sequencer_controller
-        .update(); // Checks if a step is due and queues NoteEvents
-    message_router
-        .update(); // Drains NoteEvent queue, sending to observers and MIDI
-    audio_engine.process();
-
-    pizza_display.update(now);
-
-    musin::usb::background_update();
-    midi_manager.process_input();
-    tempo_handler.update();
-    musin::midi::process_midi_output_queue(
-        logger); // Pass logger to queue processing
+    switch (current_state) {
+    case ApplicationState::SequencerMode: {
+      sysex_handler.update(now);
+      pizza_controls.update(now);
+      sync_in.update(now);
+      clock_multiplier.update(now);
+      sequencer_controller
+          .update(); // Checks if a step is due and queues NoteEvents
+      message_router
+          .update(); // Drains NoteEvent queue, sending to observers and MIDI
+      audio_engine.process();
+      pizza_display.update(now);
+      musin::usb::background_update();
+      midi_manager.process_input();
+      tempo_handler.update();
+      musin::midi::process_midi_output_queue(
+          logger); // Pass logger to queue processing
+      sleep_us(10);
+      break;
+    }
+    case ApplicationState::FileTransferMode: {
+      // In file transfer mode, we only service the bare essentials
+      // to keep the transfer fast.
+      sysex_handler.update(now);
+      pizza_display.update(
+          now); // Keep display alive for progress updates
+      musin::usb::background_update();
+      midi_manager.process_input();
+      musin::midi::process_midi_output_queue(
+          logger); // For sending ACKs
+      break;
+    }
+    }
 
 #ifndef VERBOSE
     // Watchdog update for Release builds
@@ -166,9 +203,6 @@ int main() {
 #else
     loop_timer.record_iteration_end();
 #endif
-
-    // yield some time
-    // sleep_us(1);
   }
 
   return 0;

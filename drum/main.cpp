@@ -1,5 +1,6 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/null_logger.h"
+#include "musin/hal/pico_logger.h"
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/clock_multiplier.h"

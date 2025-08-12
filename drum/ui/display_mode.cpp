@@ -67,8 +67,8 @@ SequencerDisplayMode::SequencerDisplayMode(
 
 void SequencerDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   display.update_highlight_state();
-  draw_animations(display, now);
   draw_base_elements(display, now);
+  draw_animations(display, now);
 }
 
 void SequencerDisplayMode::draw_base_elements(PizzaDisplay &display,
@@ -170,41 +170,29 @@ void SequencerDisplayMode::update_track_override_colors(PizzaDisplay &display) {
 }
 
 void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
-                                           absolute_time_t now) {
+                                           [[maybe_unused]] absolute_time_t now) {
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    uint8_t active_note =
-        _sequencer_controller_ref.get_active_note_for_track(i);
-    std::optional<Color> base_color_opt =
-        display.get_color_for_midi_note(active_note);
+    uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
+    std::optional<Color> base_color_opt = display.get_color_for_midi_note(active_note);
 
     Color base_color(0x000000);
     if (base_color_opt.has_value()) {
       base_color = base_color_opt.value();
     }
-
+    
     Color final_color = base_color;
     absolute_time_t fade_start_time = display._drumpad_fade_start_times[i];
 
     if (!is_nil_time(fade_start_time)) {
-      uint64_t time_since_fade_start_us =
-          absolute_time_diff_us(fade_start_time, now);
-      uint64_t fade_duration_us =
-          static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
-
-      if (time_since_fade_start_us < fade_duration_us) {
-        float fade_progress =
-            std::min(1.0f, static_cast<float>(time_since_fade_start_us) /
-                               static_cast<float>(fade_duration_us));
-        float current_brightness_factor =
-            PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR +
-            fade_progress * (1.0f - PizzaDisplay::MIN_FADE_BRIGHTNESS_FACTOR);
-        uint8_t brightness_value = static_cast<uint8_t>(std::clamp(
-            current_brightness_factor * config::DISPLAY_BRIGHTNESS_MAX_VALUE,
-            0.0f, config::DISPLAY_BRIGHTNESS_MAX_VALUE));
-        final_color = Color(display._leds.adjust_color_brightness(
-            static_cast<uint32_t>(base_color), brightness_value));
-      } else {
+      // Flash black when notes are triggered
+      final_color = Color(0x000000); // Black
+      
+      // Force clear after a simple counter approach
+      static uint32_t clear_counter = 0;
+      clear_counter++;
+      if (clear_counter > 1000) { // Clear after ~1000 draw calls
         display._drumpad_fade_start_times[i] = nil_time;
+        clear_counter = 0;
       }
     }
     display._set_physical_drumpad_led(i, final_color);

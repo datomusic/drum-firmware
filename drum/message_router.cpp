@@ -222,6 +222,7 @@ void MessageRouter::update() {
   while (!note_event_queue_.empty()) {
     drum::Events::NoteEvent event = note_event_queue_.front();
     note_event_queue_.pop();
+    logger_.debug("MessageRouter processing NoteEvent", static_cast<uint32_t>(event.track_index));
 
     if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
       _midi_sender.sendNoteOn(drum::config::FALLBACK_MIDI_CHANNEL, event.note,

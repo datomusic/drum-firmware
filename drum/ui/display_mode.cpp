@@ -266,9 +266,6 @@ void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   constexpr uint32_t CHASER_UPDATE_INTERVAL_MS = 50;
   constexpr int NUM_CHASER_LEDS = 32; // The sequencer grid
 
-  constexpr uint32_t CHASER_UPDATE_INTERVAL_MS = 50;
-  constexpr int NUM_CHASER_LEDS = 32; // The sequencer grid
-
   // Flash the play button green
   uint32_t time_ms = to_ms_since_boot(now);
   Color pulse_color =

@@ -21,20 +21,36 @@ public:
   /**
    * @brief Constructs a Chunk from a raw pointer and size.
    */
-  constexpr Chunk(const uint8_t *data, size_t size) : view_(data, size) {}
+  constexpr Chunk(const uint8_t *data, size_t size) : view_(data, size) {
+  }
 
   /**
    * @brief Constructs a Chunk from an etl::span.
    */
-  constexpr Chunk(etl::span<const uint8_t> view) : view_(view) {}
+  constexpr Chunk(etl::span<const uint8_t> view) : view_(view) {
+  }
 
-  constexpr const uint8_t &operator[](size_t i) const { return view_[i]; }
-  constexpr size_t size() const { return view_.size(); }
-  constexpr bool empty() const { return view_.empty(); }
-  constexpr const_iterator begin() const { return view_.begin(); }
-  constexpr const_iterator end() const { return view_.end(); }
-  constexpr const_iterator cbegin() const { return view_.cbegin(); }
-  constexpr const_iterator cend() const { return view_.cend(); }
+  constexpr const uint8_t &operator[](size_t i) const {
+    return view_[i];
+  }
+  constexpr size_t size() const {
+    return view_.size();
+  }
+  constexpr bool empty() const {
+    return view_.empty();
+  }
+  constexpr const_iterator begin() const {
+    return view_.begin();
+  }
+  constexpr const_iterator end() const {
+    return view_.end();
+  }
+  constexpr const_iterator cbegin() const {
+    return view_.cbegin();
+  }
+  constexpr const_iterator cend() const {
+    return view_.cend();
+  }
 
 private:
   etl::span<const uint8_t> view_;

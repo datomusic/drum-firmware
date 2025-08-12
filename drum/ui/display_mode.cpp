@@ -172,14 +172,16 @@ void SequencerDisplayMode::update_track_override_colors(PizzaDisplay &display) {
 void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
                                            absolute_time_t now) {
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
-    uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(i);
-    std::optional<Color> base_color_opt = display.get_color_for_midi_note(active_note);
+    uint8_t active_note =
+        _sequencer_controller_ref.get_active_note_for_track(i);
+    std::optional<Color> base_color_opt =
+        display.get_color_for_midi_note(active_note);
 
     Color base_color(0x000000);
     if (base_color_opt.has_value()) {
       base_color = base_color_opt.value();
     }
-    
+
     Color final_color = base_color;
     absolute_time_t fade_start_time = display._drumpad_fade_start_times[i];
 
@@ -187,18 +189,23 @@ void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
       // Calculate fade progress using proper timing
       uint64_t current_time_us = to_us_since_boot(now);
       uint64_t fade_start_us = to_us_since_boot(fade_start_time);
-      uint64_t fade_duration_us = static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
-      
-      if (current_time_us > fade_start_us && (current_time_us - fade_start_us) < fade_duration_us) {
+      uint64_t fade_duration_us =
+          static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
+
+      if (current_time_us > fade_start_us &&
+          (current_time_us - fade_start_us) < fade_duration_us) {
         // Active fade - interpolate from 50% to 100% brightness
         uint64_t elapsed_us = current_time_us - fade_start_us;
-        float fade_progress = static_cast<float>(elapsed_us) / static_cast<float>(fade_duration_us);
+        float fade_progress = static_cast<float>(elapsed_us) /
+                              static_cast<float>(fade_duration_us);
         float brightness_factor = 0.5f + (fade_progress * 0.5f); // 50% to 100%
-        
+
         // Apply brightness factor to RGB values
         uint32_t base_rgb = static_cast<uint32_t>(base_color);
-        uint8_t r = static_cast<uint8_t>(((base_rgb >> 16) & 0xFF) * brightness_factor);
-        uint8_t g = static_cast<uint8_t>(((base_rgb >> 8) & 0xFF) * brightness_factor);
+        uint8_t r =
+            static_cast<uint8_t>(((base_rgb >> 16) & 0xFF) * brightness_factor);
+        uint8_t g =
+            static_cast<uint8_t>(((base_rgb >> 8) & 0xFF) * brightness_factor);
         uint8_t b = static_cast<uint8_t>((base_rgb & 0xFF) * brightness_factor);
         final_color = Color((r << 16) | (g << 8) | b);
       } else if (current_time_us > fade_start_us) {

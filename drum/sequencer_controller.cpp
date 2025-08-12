@@ -410,7 +410,7 @@ void SequencerController<NumTracks, NumSteps>::trigger_note_on(
     uint8_t track_index, uint8_t note, uint8_t velocity) {
   // Debug: Log that trigger_note_on was called
   static_cast<void>(0); // Placeholder for debug log - will add proper logging
-  
+
   // Ensure any previously playing note on this track is turned off first
   if (last_played_note_per_track[track_index].has_value()) {
     if (last_played_note_per_track[track_index].value() !=

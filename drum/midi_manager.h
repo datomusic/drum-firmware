@@ -1,7 +1,7 @@
 #ifndef DRUM_MIDI_MANAGER_H
 #define DRUM_MIDI_MANAGER_H
 
-#include "etl/span.h"
+#include "drum/sysex/chunk.h"
 #include <cstdint>
 
 // Forward declarations to minimize header includes
@@ -84,7 +84,7 @@ private:
   void handle_note_off(uint8_t channel, uint8_t note, uint8_t velocity);
   void handle_control_change(uint8_t channel, uint8_t controller,
                              uint8_t value);
-  void handle_sysex(const etl::span<const uint8_t> &data);
+  void handle_sysex(const sysex::Chunk &chunk);
   void handle_realtime(uint16_t type);
 };
 

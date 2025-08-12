@@ -31,6 +31,11 @@ constexpr uint8_t MANUFACTURER_ID_0 = 0x00;
 constexpr uint8_t MANUFACTURER_ID_1 = 0x22;
 constexpr uint8_t MANUFACTURER_ID_2 = 0x01;
 constexpr uint8_t DEVICE_ID = 0x65; // DRUM device ID
+
+constexpr size_t MAX_FILENAME_LENGTH = 32;
+constexpr uint32_t TIMEOUT_US = 5000000; // 5 seconds
+// 146 * 7 bytes of raw data -> 146 * 8 = 1168 bytes of encoded data
+constexpr size_t DECODED_CHUNK_SIZE = 1022;
 } // namespace sysex
 
 // Keypad Component Configuration

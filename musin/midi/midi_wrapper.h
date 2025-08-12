@@ -4,7 +4,7 @@
 
 namespace MIDI {
 static const unsigned SysExMaxSize =
-    128; // Max SysEx size for messages in our queue
+    2048; // Max SysEx size for messages in our queue
 
 using MidiType = ::midi::MidiType; // Alias the original library's MidiType
 

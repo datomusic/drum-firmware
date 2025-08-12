@@ -5,7 +5,6 @@
 #include "drum/configuration_manager.h"
 #include "drum/sysex/protocol.h"
 #include "etl/observer.h"
-#include "etl/span.h"
 #include "musin/hal/logger.h"
 
 extern "C" {
@@ -29,9 +28,9 @@ public:
   /**
    * @brief Handles an incoming raw SysEx message chunk.
    *
-   * @param data A span containing the SysEx data (excluding start/end bytes).
+   * @param chunk A non-owning view of the SysEx data.
    */
-  void handle_sysex_message(const etl::span<const uint8_t> &data);
+  void handle_sysex_message(const sysex::Chunk &chunk);
 
   /**
    * @brief Checks if a file transfer is currently in progress.

@@ -1,7 +1,5 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/null_logger.h"
-#include "musin/hal/pico_logger.h"
-#include "musin/midi/midi_input_queue.h"
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/clock_multiplier.h"
@@ -13,14 +11,12 @@
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
-#include "drum/drum_pizza_hardware.h"
 #include "drum/midi_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
 
 extern "C" {
-#include "pico/stdio.h"
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
 }
@@ -29,8 +25,6 @@ extern "C" {
 #include "hardware/watchdog.h"
 #endif
 
-#include <cstdio>
-
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
 #include "events.h"
@@ -38,12 +32,35 @@ extern "C" {
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
 
+enum class ApplicationState {
+  SequencerMode,
+  FileTransferMode
+};
+
 #ifdef VERBOSE
 static musin::PicoLogger logger;
 static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
 #endif
+
+// State Machine
+static ApplicationState current_state = ApplicationState::SequencerMode;
+
+struct StateMachineObserver
+    : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
+  void
+  notification(drum::Events::SysExTransferStateChangeEvent event) override {
+    if (event.is_active) {
+      logger.debug("Entering FileTransferMode");
+      current_state = ApplicationState::FileTransferMode;
+    } else {
+      logger.debug("Entering SequencerMode");
+      current_state = ApplicationState::SequencerMode;
+    }
+  }
+};
+static StateMachineObserver state_machine_observer;
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
@@ -131,6 +148,7 @@ int main() {
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(pizza_display);
   sysex_handler.add_observer(sequencer_controller);
+  sysex_handler.add_observer(state_machine_observer);
 
   // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
@@ -141,34 +159,44 @@ int main() {
 
   while (true) {
     absolute_time_t now = get_absolute_time();
-    sysex_handler.update(now);
 
-    pizza_controls.update(now);
-    sync_in.update(now);
-    clock_multiplier.update(now);
-    sequencer_controller
-        .update(); // Checks if a step is due and queues NoteEvents
-    message_router
-        .update(); // Drains NoteEvent queue, sending to observers and MIDI
-    audio_engine.process();
-
-    pizza_display.update(now);
+    switch (current_state) {
+    case ApplicationState::SequencerMode: {
+      sysex_handler.update(now);
+      pizza_controls.update(now);
+      sync_in.update(now);
+      clock_multiplier.update(now);
+      sequencer_controller
+          .update(); // Checks if a step is due and queues NoteEvents
+      message_router
+          .update(); // Drains NoteEvent queue, sending to observers and MIDI
+      audio_engine.process();
+      pizza_display.update(now);
+      midi_manager.process_input();
+      tempo_handler.update();
+      musin::midi::process_midi_output_queue(
+          logger); // Pass logger to queue processing
+      sleep_us(10);
+      break;
+    }
+    case ApplicationState::FileTransferMode: {
+      // In file transfer mode, we only service the bare essentials
+      // to keep the transfer fast.
+      sysex_handler.update(now);
+      pizza_display.update(now); // Keep display alive for progress updates
+      midi_manager.process_input();
+      musin::midi::process_midi_output_queue(logger); // For sending ACKs
+      break;
+    }
+    }
 
     musin::usb::background_update();
-    midi_manager.process_input();
-    tempo_handler.update();
-    musin::midi::process_midi_output_queue(
-        logger); // Pass logger to queue processing
-
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();
 #else
     loop_timer.record_iteration_end();
 #endif
-
-    // yield some time
-    sleep_us(10);
   }
 
   return 0;

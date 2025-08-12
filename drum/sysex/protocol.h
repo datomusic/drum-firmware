@@ -13,6 +13,8 @@ extern "C" {
 
 #include "musin/hal/logger.h"
 
+#include "musin/midi/midi_wrapper.h"
+
 #include "./chunk.h"
 #include "./codec.h"
 
@@ -93,20 +95,23 @@ template <typename FileOperations> struct Protocol {
       return Result::ShortMessage;
     }
 
-    Chunk::Data::const_iterator iterator = chunk.cbegin();
+    Chunk::const_iterator iterator = chunk.cbegin();
 
-    if (!check_and_advance_manufacturer_id(iterator, chunk.size())) {
+    if (!check_and_advance_manufacturer_id(iterator, chunk.cend())) {
       return Result::InvalidManufacturer;
+    }
+
+    // Fast path for FileBytes, which is the most common command during a
+    // transfer. This avoids the overhead of the 3-to-16bit decoding.
+    if (is_file_bytes_command(chunk)) {
+      return handle_file_bytes_fast(iterator + 1, chunk.cend(), send_reply,
+                                    now);
     }
 
     const uint16_t tag = (*iterator++);
 
-    if (tag == Tag::FileBytes) {
-      return handle_file_bytes_fast(iterator, chunk.cend(), send_reply, now);
-    }
-
     const bool body_was_present = (iterator != chunk.cend());
-    etl::array<uint16_t, Chunk::Data::SIZE> values{};
+    etl::array<uint16_t, MIDI::SysExMaxSize> values{};
     const auto value_count = codec::decode_3_to_16bit(
         iterator, chunk.cend(), values.begin(), values.end());
 
@@ -192,6 +197,14 @@ private:
     PathTooLong,
     InvalidCharacter
   };
+
+  static constexpr uint8_t get_tag_from_chunk(const Chunk &chunk) {
+    return chunk[4];
+  }
+
+  constexpr bool is_file_bytes_command(const Chunk &chunk) const {
+    return get_tag_from_chunk(chunk) == Tag::FileBytes;
+  }
 
   template <typename Sender>
   constexpr etl::optional<Result> handle_no_body(const uint16_t tag,
@@ -347,9 +360,9 @@ private:
   }
 
   constexpr bool
-  check_and_advance_manufacturer_id(Chunk::Data::const_iterator &iterator,
-                                    const size_t chunk_size) const {
-    if (chunk_size >= 4 &&
+  check_and_advance_manufacturer_id(Chunk::const_iterator &iterator,
+                                    Chunk::const_iterator end) const {
+    if (static_cast<size_t>(etl::distance(iterator, end)) >= 4 &&
         (*iterator) == drum::config::sysex::MANUFACTURER_ID_0 &&
         (*(iterator + 1)) == drum::config::sysex::MANUFACTURER_ID_1 &&
         (*(iterator + 2)) == drum::config::sysex::MANUFACTURER_ID_2 &&

@@ -67,8 +67,8 @@ SequencerDisplayMode::SequencerDisplayMode(
 
 void SequencerDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   display.update_highlight_state();
-  draw_base_elements(display, now);
   draw_animations(display, now);
+  draw_base_elements(display, now);
 }
 
 void SequencerDisplayMode::draw_base_elements(PizzaDisplay &display,

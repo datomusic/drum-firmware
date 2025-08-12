@@ -168,7 +168,7 @@ int main() {
 #endif
 
     // yield some time
-    sleep_us(10);
+    // sleep_us(1);
   }
 
   return 0;

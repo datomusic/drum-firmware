@@ -184,20 +184,30 @@ void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
     absolute_time_t fade_start_time = display._drumpad_fade_start_times[i];
 
     if (!is_nil_time(fade_start_time)) {
-      // Blend the note color with black by 50% (halve RGB values)
-      uint32_t base_rgb = static_cast<uint32_t>(base_color);
-      uint8_t r = ((base_rgb >> 16) & 0xFF) / 2;
-      uint8_t g = ((base_rgb >> 8) & 0xFF) / 2;
-      uint8_t b = (base_rgb & 0xFF) / 2;
-      final_color = Color((r << 16) | (g << 8) | b);
-      
-      // Clear fade after proper timeout using microseconds since boot
+      // Calculate fade progress using proper timing
       uint64_t current_time_us = to_us_since_boot(now);
       uint64_t fade_start_us = to_us_since_boot(fade_start_time);
       uint64_t fade_duration_us = static_cast<uint64_t>(PizzaDisplay::FADE_DURATION_MS) * 1000;
       
-      if (current_time_us > fade_start_us && (current_time_us - fade_start_us) > fade_duration_us) {
+      if (current_time_us > fade_start_us && (current_time_us - fade_start_us) < fade_duration_us) {
+        // Active fade - interpolate from 50% to 100% brightness
+        uint64_t elapsed_us = current_time_us - fade_start_us;
+        float fade_progress = static_cast<float>(elapsed_us) / static_cast<float>(fade_duration_us);
+        float brightness_factor = 0.5f + (fade_progress * 0.5f); // 50% to 100%
+        
+        // Apply brightness factor to RGB values
+        uint32_t base_rgb = static_cast<uint32_t>(base_color);
+        uint8_t r = static_cast<uint8_t>(((base_rgb >> 16) & 0xFF) * brightness_factor);
+        uint8_t g = static_cast<uint8_t>(((base_rgb >> 8) & 0xFF) * brightness_factor);
+        uint8_t b = static_cast<uint8_t>((base_rgb & 0xFF) * brightness_factor);
+        final_color = Color((r << 16) | (g << 8) | b);
+      } else if (current_time_us > fade_start_us) {
+        // Fade expired - clear it and return to full brightness
         display._drumpad_fade_start_times[i] = nil_time;
+        final_color = base_color;
+      } else {
+        // Edge case: current_time_us <= fade_start_us (shouldn't happen)
+        final_color = base_color;
       }
     }
     display._set_physical_drumpad_led(i, final_color);

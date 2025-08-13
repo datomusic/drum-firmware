@@ -197,10 +197,12 @@ int main() {
       if (pizza_display.get_brightness() == 0) {
         logger.debug("Dimming complete - turning off LEDs and enabling "
                      "watchdog for reboot");
-        pizza_display.deinit();       // Turn off LED enable pin
+        pizza_display.deinit(); // Turn off LED enable pin
+        audio_engine.mute();
         watchdog_enable(8000, false); // 1 second watchdog
         while (true) {
           // Infinite loop - watchdog will reset the device
+          sleep_us(10000);
         }
       }
       break;

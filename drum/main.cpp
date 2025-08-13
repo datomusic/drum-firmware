@@ -46,6 +46,10 @@ static musin::NullLogger logger;
 #endif
 
 // State Machine
+// Note: Boot animation runs independently in PizzaDisplay, always transitions
+// to SequencerMode
+// TODO: When adding StandbyState, centralize all state management here and
+// remove display Strategy pattern
 static ApplicationState current_state = ApplicationState::SequencerMode;
 
 struct StateMachineObserver

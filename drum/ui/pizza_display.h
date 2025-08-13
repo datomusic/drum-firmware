@@ -215,6 +215,8 @@ private:
   float _crush_value = 0.0f;
 
   // Strategy pattern members
+  // TODO: When adding StandbyState, this becomes implementation detail of
+  // system-level state machine
   ui::SequencerDisplayMode sequencer_mode_;
   ui::FileTransferDisplayMode transfer_mode_;
   ui::BootAnimationMode boot_animation_mode_;

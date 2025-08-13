@@ -195,8 +195,10 @@ int main() {
 
       // Check if dimming is complete (brightness at 0)
       if (pizza_display.get_brightness() == 0) {
-        logger.debug("Dimming complete - enabling watchdog for reboot");
-        watchdog_enable(1000, false); // 1 second watchdog
+        logger.debug("Dimming complete - turning off LEDs and enabling "
+                     "watchdog for reboot");
+        pizza_display.deinit();       // Turn off LED enable pin
+        watchdog_enable(8000, false); // 1 second watchdog
         while (true) {
           // Infinite loop - watchdog will reset the device
         }

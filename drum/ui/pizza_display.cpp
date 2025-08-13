@@ -92,6 +92,10 @@ bool PizzaDisplay::init() {
   return true;
 }
 
+void PizzaDisplay::deinit() {
+  gpio_put(PIZZA_LED_ENABLE_PIN, 0);
+}
+
 void PizzaDisplay::update_highlight_state() {
   // This state is managed here, but driven by the SequencerDisplayMode.
   // The mode calls this method. A simple tick division is used for pulsing

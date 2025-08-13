@@ -71,6 +71,12 @@ public:
   bool init();
 
   /**
+   * @brief Deinitialize the display by turning off the LED enable pin.
+   * Called when shutdown fadeout animation is complete.
+   */
+  void deinit();
+
+  /**
    * @brief Updates the entire display by drawing all elements and sending to
    * hardware. This should be the primary method called from the main loop.
    * @param now The current absolute time, used for animations.

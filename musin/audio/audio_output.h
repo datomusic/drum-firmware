@@ -45,6 +45,24 @@ bool update(BufferSource &source);
 bool volume(float volume);
 
 /**
+ * @brief Mutes all audio outputs by disabling amp and headphone drivers.
+ *
+ * Preserves the current volume setting. Call unmute() to restore audio output.
+ *
+ * @return true if muting was successful, false otherwise.
+ */
+bool mute();
+
+/**
+ * @brief Unmutes all audio outputs by enabling amp and headphone drivers.
+ *
+ * Restores audio output at the current volume setting.
+ *
+ * @return true if unmuting was successful, false otherwise.
+ */
+bool unmute();
+
+/**
  * @brief Routes the line input (IN1_L/R) directly to the headphone output
  * (HPL/R).
  *

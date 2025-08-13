@@ -163,14 +163,14 @@ void AudioEngine::set_volume(float volume) {
 void AudioEngine::mute() {
   if (!muted_) {
     muted_ = true;
-    AudioOutput::volume(0.0f);
+    AudioOutput::mute();
   }
 }
 
 void AudioEngine::unmute() {
   if (muted_) {
     muted_ = false;
-    AudioOutput::volume(current_volume_);
+    AudioOutput::unmute();
   }
 }
 

@@ -6,6 +6,7 @@
 #include "pico/time.h"
 
 namespace drum {
+class PizzaDisplay; // Forward declaration
 
 enum class SystemState {
   Boot,         // Hardware initialization, runs boot animation
@@ -17,7 +18,7 @@ enum class SystemState {
 class SystemStateMachine
     : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
 public:
-  SystemStateMachine();
+  explicit SystemStateMachine(PizzaDisplay &display_ref);
 
   void update(absolute_time_t now);
   SystemState get_current_state() const {
@@ -35,6 +36,7 @@ public:
 private:
   SystemState current_state_;
   bool initialization_done_;
+  PizzaDisplay &_display_ref;
 
   void transition_to_sequencer();
   void transition_to_file_transfer();

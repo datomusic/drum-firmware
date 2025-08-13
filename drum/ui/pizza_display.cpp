@@ -37,13 +37,7 @@ void PizzaDisplay::notification(musin::timing::TempoEvent) {
 }
 
 void PizzaDisplay::notification(
-    drum::Events::SysExTransferStateChangeEvent event) {
-  if (event.is_active) {
-    current_mode_ = &transfer_mode_;
-  } else {
-    current_mode_ = &sequencer_mode_;
-  }
-  current_mode_->on_enter(*this);
+    [[maybe_unused]] drum::Events::SysExTransferStateChangeEvent event) {
 }
 
 void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {
@@ -128,6 +122,10 @@ void PizzaDisplay::set_brightness(uint8_t brightness) {
   // recalculated.
 }
 
+uint8_t PizzaDisplay::get_brightness() const {
+  return _leds.get_brightness();
+}
+
 void PizzaDisplay::clear() {
   _leds.clear();
 }
@@ -204,6 +202,20 @@ void PizzaDisplay::start_boot_animation() {
 
 void PizzaDisplay::switch_to_sequencer_mode() {
   current_mode_ = &sequencer_mode_;
+  current_mode_->on_enter(*this);
+}
+
+void PizzaDisplay::switch_to_file_transfer_mode() {
+  current_mode_ = &transfer_mode_;
+  current_mode_->on_enter(*this);
+}
+
+void PizzaDisplay::start_sleep_mode() {
+  // Capture the current mode as the previous mode before switching
+  if (current_mode_ != nullptr) {
+    sleep_mode_.set_previous_mode(*current_mode_);
+  }
+  current_mode_ = &sleep_mode_;
   current_mode_->on_enter(*this);
 }
 

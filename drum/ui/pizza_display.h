@@ -27,6 +27,7 @@ namespace ui {
 class SequencerDisplayMode;
 class FileTransferDisplayMode;
 class BootAnimationMode;
+class SleepDisplayMode;
 } // namespace ui
 
 class PizzaDisplay
@@ -38,6 +39,7 @@ public:
   friend class ui::SequencerDisplayMode;
   friend class ui::FileTransferDisplayMode;
   friend class ui::BootAnimationMode;
+  friend class ui::SleepDisplayMode;
 
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -79,6 +81,12 @@ public:
    * @param brightness Brightness level (0-255).
    */
   void set_brightness(uint8_t brightness);
+
+  /**
+   * @brief Get the current global brightness level.
+   * @return Current brightness level (0-255).
+   */
+  uint8_t get_brightness() const;
 
   /**
    * @brief Set all LEDs to black. Does not call show().
@@ -166,6 +174,16 @@ public:
    */
   void switch_to_sequencer_mode();
 
+  /**
+   * @brief Switches the display to file transfer mode.
+   */
+  void switch_to_file_transfer_mode();
+
+  /**
+   * @brief Switches the display to sleep mode with gradual dimming.
+   */
+  void start_sleep_mode();
+
 private:
   void show();
   void update_highlight_state();
@@ -220,6 +238,7 @@ private:
   ui::SequencerDisplayMode sequencer_mode_;
   ui::FileTransferDisplayMode transfer_mode_;
   ui::BootAnimationMode boot_animation_mode_;
+  ui::SleepDisplayMode sleep_mode_;
   ui::DisplayMode *current_mode_ = nullptr;
 };
 

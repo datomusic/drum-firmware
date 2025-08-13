@@ -359,4 +359,53 @@ void BootAnimationMode::draw(PizzaDisplay &display, absolute_time_t now) {
   }
 }
 
+// --- SleepDisplayMode Implementation ---
+
+void SleepDisplayMode::on_enter(PizzaDisplay &display) {
+  _dimming_start_time = get_absolute_time();
+  _original_brightness = display.get_brightness();
+}
+
+void SleepDisplayMode::set_previous_mode(DisplayMode &previous_mode) {
+  _previous_mode = std::reference_wrapper<DisplayMode>(previous_mode);
+}
+
+void SleepDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
+  if (is_nil_time(_dimming_start_time)) {
+    return;
+  }
+
+  const uint8_t current_brightness = calculate_brightness(now);
+  display.set_brightness(current_brightness);
+
+  if (current_brightness > 0 && _previous_mode.has_value()) {
+    // Delegate drawing to the previous mode with new brightness
+    _previous_mode->get().draw(display, now);
+  } else {
+    // Dimming complete - clear display
+    display.clear();
+  }
+}
+
+uint8_t SleepDisplayMode::calculate_brightness(absolute_time_t now) const {
+  const uint64_t current_time_us = to_us_since_boot(now);
+  const uint64_t dimming_start_us = to_us_since_boot(_dimming_start_time);
+  const uint64_t dimming_duration_us = DIMMING_DURATION_MS * 1000ULL;
+
+  if (current_time_us <= dimming_start_us) {
+    return _original_brightness;
+  }
+
+  const uint64_t elapsed_us = current_time_us - dimming_start_us;
+
+  if (elapsed_us >= dimming_duration_us) {
+    return 0;
+  }
+
+  const auto dimming_progress =
+      static_cast<float>(elapsed_us) / static_cast<float>(dimming_duration_us);
+
+  return static_cast<uint8_t>(_original_brightness * (1.0f - dimming_progress));
+}
+
 } // namespace drum::ui

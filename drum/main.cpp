@@ -39,8 +39,7 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 static musin::NullLogger logger;
 #endif
 
-// System State Machine
-static drum::SystemStateMachine system_state_machine;
+// System State Machine (will be initialized after pizza_display)
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
@@ -74,6 +73,9 @@ static drum::MidiManager midi_manager(message_router, midi_clock_processor,
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
+
+// System State Machine (initialized after pizza_display)
+static drum::SystemStateMachine system_state_machine(pizza_display);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
@@ -126,7 +128,6 @@ int main() {
 
   // Register observers for SysEx state changes
   sysex_handler.add_observer(message_router);
-  sysex_handler.add_observer(pizza_display);
   sysex_handler.add_observer(sequencer_controller);
   sysex_handler.add_observer(system_state_machine);
 
@@ -180,11 +181,18 @@ int main() {
       break;
     }
     case drum::SystemState::Sleep: {
-      // Sleep mode - enable watchdog and go into infinite loop (reboot)
-      logger.debug("Entering sleep mode - enabling watchdog for reboot");
-      watchdog_enable(1000, false); // 1 second watchdog
-      while (true) {
-        // Infinite loop - watchdog will reset the device
+      // Sleep mode - update display for dimming animation
+      pizza_display.update(now);
+      midi_manager.process_input();
+      musin::midi::process_midi_output_queue(logger);
+
+      // Check if dimming is complete (brightness at 0)
+      if (pizza_display.get_brightness() == 0) {
+        logger.debug("Dimming complete - enabling watchdog for reboot");
+        watchdog_enable(1000, false); // 1 second watchdog
+        while (true) {
+          // Infinite loop - watchdog will reset the device
+        }
       }
       break;
     }

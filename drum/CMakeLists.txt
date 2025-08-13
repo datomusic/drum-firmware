@@ -31,6 +31,7 @@ add_executable(${EXECUTABLE_NAME}
   audio_engine.cpp
   sample_repository.cpp
   ui/display_mode.cpp
+  system_state_machine.cpp
   usb_descriptors.c
   ../musin/midi/midi_sender.cpp
   drumpad_factory.cpp

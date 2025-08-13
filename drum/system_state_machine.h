@@ -4,46 +4,71 @@
 #include "drum/events.h"
 #include "etl/observer.h"
 #include "pico/time.h"
+#include "system_context.h"
+#include "system_state.h"
+#include <memory>
 
 namespace drum {
-class PizzaDisplay; // Forward declaration
 
-enum class SystemState {
-  Boot,         // Hardware initialization, runs boot animation
-  Sequencer,    // Normal sequencer operation
-  FileTransfer, // File transfer mode - minimal systems for performance
-  Sleep         // Sleep mode - device is powered down, wake on playbutton
-};
-
+/**
+ * @brief State machine that manages system states using the State Pattern.
+ *
+ * This class coordinates state transitions and delegates state-specific
+ * behavior to state objects. It maintains a context for dependency injection
+ * and ensures proper state lifecycle management.
+ */
 class SystemStateMachine
     : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
 public:
-  explicit SystemStateMachine(PizzaDisplay &display_ref);
+  /**
+   * @brief Construct a new SystemStateMachine with dependency injection.
+   * @param context Shared resources and dependencies for state objects
+   */
+  explicit SystemStateMachine(SystemContext &context);
 
+  /**
+   * @brief Update the current state.
+   * @param now Current system time
+   */
   void update(absolute_time_t now);
-  SystemState get_current_state() const {
-    return current_state_;
-  }
 
-  // Call this after initialization is complete to transition to Sequencer
-  void initialization_complete();
+  /**
+   * @brief Get the current state identifier.
+   * @return SystemStateId The current state
+   */
+  SystemStateId get_current_state() const;
 
-  // Call this when playbutton is held to enter sleep mode
-  void enter_sleep_mode();
+  /**
+   * @brief Transition to a new state with validation.
+   * @param new_state The target state to transition to
+   * @return true if transition was successful, false if invalid
+   */
+  bool transition_to(SystemStateId new_state);
 
-  // Call this when boot animation is complete
-  void boot_animation_complete();
-
+  /**
+   * @brief Handle SysEx transfer state change events.
+   * @param event The SysEx transfer state change event
+   */
   void notification(drum::Events::SysExTransferStateChangeEvent event) override;
 
 private:
-  SystemState current_state_;
-  bool initialization_done_;
-  PizzaDisplay &_display_ref;
+  SystemContext &context_;
+  std::unique_ptr<SystemState> current_state_;
 
-  void transition_to_sequencer();
-  void transition_to_file_transfer();
-  void transition_from_file_transfer();
+  /**
+   * @brief Validate if a state transition is allowed.
+   * @param from Source state
+   * @param to Target state
+   * @return true if transition is valid, false otherwise
+   */
+  bool is_valid_transition(SystemStateId from, SystemStateId to) const;
+
+  /**
+   * @brief Create a state object for the given state ID.
+   * @param state_id The state to create
+   * @return std::unique_ptr<SystemState> The created state object
+   */
+  std::unique_ptr<SystemState> create_state(SystemStateId state_id) const;
 };
 
 } // namespace drum

@@ -1,69 +1,102 @@
 #include "system_state_machine.h"
-#include "drum/ui/pizza_display.h"
+#include "state_implementations.h"
 
 namespace drum {
 
-SystemStateMachine::SystemStateMachine(PizzaDisplay &display_ref)
-    : current_state_(SystemState::Boot), initialization_done_(false),
-      _display_ref(display_ref) {
+SystemStateMachine::SystemStateMachine(SystemContext &context)
+    : context_(context) {
+  // Start in Boot state
+  current_state_ = create_state(SystemStateId::Boot);
+  current_state_->enter(context_);
 }
 
-void SystemStateMachine::update([[maybe_unused]] absolute_time_t now) {
-  switch (current_state_) {
-  case SystemState::Boot:
-    // Boot animation will signal when it's complete via display mode transition
-    break;
-  case SystemState::Sequencer:
-    break;
-  case SystemState::FileTransfer:
-    break;
-  case SystemState::Sleep:
-    // Sleep state - device should be in infinite loop waiting for watchdog
-    break;
+void SystemStateMachine::update(absolute_time_t now) {
+  if (current_state_) {
+    current_state_->update(context_, now);
   }
 }
 
-void SystemStateMachine::initialization_complete() {
-  initialization_done_ = true;
-}
-
-void SystemStateMachine::enter_sleep_mode() {
-  current_state_ = SystemState::Sleep;
-  _display_ref.start_sleep_mode();
-}
-
-void SystemStateMachine::boot_animation_complete() {
-  if (current_state_ == SystemState::Boot) {
-    transition_to_sequencer();
+SystemStateId SystemStateMachine::get_current_state() const {
+  if (current_state_) {
+    return current_state_->get_id();
   }
+  return SystemStateId::Boot; // Fallback
 }
 
-void SystemStateMachine::transition_to_sequencer() {
-  current_state_ = SystemState::Sequencer;
-  _display_ref.switch_to_sequencer_mode();
-}
+bool SystemStateMachine::transition_to(SystemStateId new_state) {
+  if (!current_state_) {
+    context_.logger.error("Cannot transition: no current state");
+    return false;
+  }
 
-void SystemStateMachine::transition_to_file_transfer() {
-  current_state_ = SystemState::FileTransfer;
-  _display_ref.switch_to_file_transfer_mode();
-}
+  SystemStateId current_id = current_state_->get_id();
 
-void SystemStateMachine::transition_from_file_transfer() {
-  current_state_ = SystemState::Sequencer;
-  _display_ref.switch_to_sequencer_mode();
+  // Validate transition
+  if (!is_valid_transition(current_id, new_state)) {
+    context_.logger.error("Invalid state transition");
+    return false;
+  }
+
+  // Perform transition
+  context_.logger.debug("State transition");
+
+  current_state_->exit(context_);
+  current_state_ = create_state(new_state);
+  current_state_->enter(context_);
+
+  return true;
 }
 
 void SystemStateMachine::notification(
     drum::Events::SysExTransferStateChangeEvent event) {
-  // Only handle state changes if we're not in Boot mode
-  if (current_state_ == SystemState::Boot) {
-    return;
-  }
-
+  // Handle SysEx transfer state changes
   if (event.is_active) {
-    transition_to_file_transfer();
+    transition_to(SystemStateId::FileTransfer);
   } else {
-    transition_from_file_transfer();
+    transition_to(SystemStateId::Sequencer);
+  }
+}
+
+bool SystemStateMachine::is_valid_transition(SystemStateId from,
+                                             SystemStateId to) const {
+  // Transition validation table
+  switch (from) {
+  case SystemStateId::Boot:
+    return (to == SystemStateId::Sequencer);
+
+  case SystemStateId::Sequencer:
+    return (to == SystemStateId::FileTransfer || to == SystemStateId::Sleep);
+
+  case SystemStateId::FileTransfer:
+    return (to == SystemStateId::Sequencer);
+
+  case SystemStateId::Sleep:
+    // Sleep state should trigger system reset, not normal transitions
+    return false;
+
+  default:
+    return false;
+  }
+}
+
+std::unique_ptr<SystemState>
+SystemStateMachine::create_state(SystemStateId state_id) const {
+  switch (state_id) {
+  case SystemStateId::Boot:
+    return std::make_unique<BootState>();
+
+  case SystemStateId::Sequencer:
+    return std::make_unique<SequencerState>();
+
+  case SystemStateId::FileTransfer:
+    return std::make_unique<FileTransferState>();
+
+  case SystemStateId::Sleep:
+    return std::make_unique<SleepState>();
+
+  default:
+    context_.logger.error("Unknown state ID");
+    return std::make_unique<BootState>(); // Fallback to Boot
   }
 }
 

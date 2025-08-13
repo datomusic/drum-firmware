@@ -31,6 +31,7 @@ extern "C" {
 #include "message_router.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
+#include "system_context.h"
 #include "system_state_machine.h"
 
 #ifdef VERBOSE
@@ -75,8 +76,11 @@ static drum::MidiManager midi_manager(message_router, midi_clock_processor,
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
-// System State Machine (initialized after pizza_display)
-static drum::SystemStateMachine system_state_machine(pizza_display);
+// System Context for dependency injection
+static drum::SystemContext system_context(pizza_display, logger);
+
+// System State Machine (uses dependency injection)
+static drum::SystemStateMachine system_state_machine(system_context);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
@@ -114,13 +118,11 @@ int main() {
   pizza_display.init();
   pizza_controls.init();
 
-  // Set up callback for when boot animation completes
-  pizza_display.set_boot_complete_callback([]() {
-    // Access the static variable directly within the lambda
-    system_state_machine.boot_animation_complete();
-  });
+  // Set up circular reference for state transitions
+  system_context.set_state_machine(system_state_machine);
 
-  pizza_display.start_boot_animation();
+  // Boot animation is now handled by BootState
+  // No callback needed - state machine handles transitions
 
   // --- Initialize Clocking System ---
   // TempoHandler's constructor calls set_clock_source, which handles initial
@@ -146,8 +148,8 @@ int main() {
 
   sync_out.enable();
 
-  // Signal that initialization is complete
-  system_state_machine.initialization_complete();
+  // SystemStateMachine automatically starts in Boot state
+  // No initialization_complete() call needed
 
   while (true) {
     absolute_time_t now = get_absolute_time();
@@ -155,13 +157,13 @@ int main() {
     system_state_machine.update(now);
 
     switch (system_state_machine.get_current_state()) {
-    case drum::SystemState::Boot: {
+    case drum::SystemStateId::Boot: {
       // During boot, only run essential systems and display
       pizza_display.update(now);
       midi_manager.process_input();
       break;
     }
-    case drum::SystemState::Sequencer: {
+    case drum::SystemStateId::Sequencer: {
       // Full sequencer operation - existing SequencerMode logic
       sysex_handler.update(now);
       pizza_controls.update(now);
@@ -180,7 +182,7 @@ int main() {
       sleep_us(10);
       break;
     }
-    case drum::SystemState::FileTransfer: {
+    case drum::SystemStateId::FileTransfer: {
       // File transfer mode - only service bare essentials for performance
       sysex_handler.update(now);
       pizza_display.update(now); // Keep display alive for progress updates
@@ -188,7 +190,7 @@ int main() {
       musin::midi::process_midi_output_queue(logger); // For sending ACKs
       break;
     }
-    case drum::SystemState::Sleep: {
+    case drum::SystemStateId::Sleep: {
       pizza_display.update(now);
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger);

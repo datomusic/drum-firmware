@@ -1,0 +1,67 @@
+#ifndef DRUM_STATE_IMPLEMENTATIONS_H
+#define DRUM_STATE_IMPLEMENTATIONS_H
+
+#include "system_context.h"
+#include "system_state.h"
+
+namespace drum {
+
+/**
+ * @brief Boot state - handles system initialization and boot animation.
+ */
+class BootState : public SystemState {
+public:
+  void enter(SystemContext &context) override;
+  void update(SystemContext &context, absolute_time_t now) override;
+  void exit(SystemContext &context) override;
+  SystemStateId get_id() const override {
+    return SystemStateId::Boot;
+  }
+
+private:
+  absolute_time_t boot_start_time_;
+};
+
+/**
+ * @brief Sequencer state - handles normal sequencer operation.
+ */
+class SequencerState : public SystemState {
+public:
+  void enter(SystemContext &context) override;
+  void update(SystemContext &context, absolute_time_t now) override;
+  void exit(SystemContext &context) override;
+  SystemStateId get_id() const override {
+    return SystemStateId::Sequencer;
+  }
+};
+
+/**
+ * @brief File transfer state - handles minimal systems for file transfer
+ * performance.
+ */
+class FileTransferState : public SystemState {
+public:
+  void enter(SystemContext &context) override;
+  void update(SystemContext &context, absolute_time_t now) override;
+  void exit(SystemContext &context) override;
+  SystemStateId get_id() const override {
+    return SystemStateId::FileTransfer;
+  }
+};
+
+/**
+ * @brief Sleep state - handles device sleep mode and wake detection.
+ */
+class SleepState : public SystemState {
+public:
+  void enter(SystemContext &context) override;
+  void update(SystemContext &context, absolute_time_t now) override;
+  void exit(SystemContext &context) override;
+  SystemStateId get_id() const override {
+    return SystemStateId::Sleep;
+  }
+};
+
+} // namespace drum
+
+#endif // DRUM_STATE_IMPLEMENTATIONS_H

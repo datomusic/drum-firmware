@@ -25,6 +25,7 @@ extern "C" {
 #include "hardware/watchdog.h"
 
 #include "audio_engine.h"
+#include "drum/drum_pizza_hardware.h"
 #include "drum/ui/pizza_display.h"
 #include "events.h"
 #include "message_router.h"
@@ -188,21 +189,48 @@ int main() {
       break;
     }
     case drum::SystemState::Sleep: {
-      // Sleep mode - update display for dimming animation
       pizza_display.update(now);
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger);
 
-      // Check if dimming is complete (brightness at 0)
       if (pizza_display.get_brightness() == 0) {
-        logger.debug("Dimming complete - turning off LEDs and enabling "
-                     "watchdog for reboot");
+        logger.debug("Dimming complete - configuring MUX for playbutton wake");
         pizza_display.deinit(); // Turn off LED enable pin
         audio_engine.mute();
-        watchdog_enable(8000, false); // 1 second watchdog
-        while (true) {
-          // Infinite loop - watchdog will reset the device
+
+        constexpr uint32_t PLAYBUTTON_ADDRESS = 5;
+        gpio_put(DATO_SUBMARINE_MUX_ADDR0_PIN, PLAYBUTTON_ADDRESS & 0x01);
+        gpio_put(DATO_SUBMARINE_MUX_ADDR1_PIN,
+                 (PLAYBUTTON_ADDRESS >> 1) & 0x01);
+        gpio_put(DATO_SUBMARINE_MUX_ADDR2_PIN,
+                 (PLAYBUTTON_ADDRESS >> 2) & 0x01);
+        gpio_put(DATO_SUBMARINE_MUX_ADDR3_PIN,
+                 (PLAYBUTTON_ADDRESS >> 3) & 0x01);
+
+        constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
+        gpio_init(MUX_IO_PIN);
+        gpio_set_dir(MUX_IO_PIN, GPIO_IN);
+        gpio_pull_up(MUX_IO_PIN);
+
+        logger.debug("MUX configured for playbutton wake - waiting for button "
+                     "release first");
+        watchdog_enable(1000, false);
+
+        while (!gpio_get(MUX_IO_PIN)) {
           sleep_us(10000);
+          watchdog_update();
+        }
+
+        logger.debug("Playbutton released - now waiting for press to wake");
+
+        while (true) {
+          if (!gpio_get(MUX_IO_PIN)) {
+            logger.debug("Playbutton pressed - triggering reset");
+            while (true) {
+            }
+          }
+          sleep_us(10000);
+          watchdog_update();
         }
       }
       break;

@@ -8,6 +8,7 @@
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h"
 #include "sequencer_controller.h"
+#include "system_state_machine.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -22,10 +23,14 @@ PizzaControls::PizzaControls(
     drum::PizzaDisplay &display_ref,
     musin::timing::TempoHandler &tempo_handler_ref,
     drum::DefaultSequencerController &sequencer_controller_ref,
-    drum::MessageRouter &message_router_ref, musin::Logger &logger_ref)
+    drum::MessageRouter &message_router_ref,
+    drum::SystemStateMachine &system_state_machine_ref,
+    musin::Logger &logger_ref)
     : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref),
-      _message_router_ref(message_router_ref), _logger_ref(logger_ref),
+      _message_router_ref(message_router_ref),
+      _system_state_machine_ref(system_state_machine_ref),
+      _logger_ref(logger_ref),
       _scanner(PIZZA_MUX_ADC_PIN, analog_address_pins), // Initialize scanner
       keypad_component(this), drumpad_component(this), analog_component(this),
       playbutton_component(this) {
@@ -455,7 +460,9 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
     logger.debug("PLAYBUTTON RELEASED");
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
-    logger.debug("PLAYBUTTON HELD");
+    logger.debug("PLAYBUTTON HELD - entering sleep mode");
+    parent->parent_controls->_system_state_machine_ref.transition_to(
+        drum::SystemStateId::Sleep);
   }
   logger.debug("Raw value ", static_cast<uint32_t>(event.raw_value));
 }

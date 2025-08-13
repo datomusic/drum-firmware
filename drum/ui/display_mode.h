@@ -7,6 +7,8 @@
 #include "musin/timing/step_sequencer.h"
 #include "musin/timing/tempo_handler.h"
 #include "pico/time.h"
+#include <functional>
+#include <optional>
 
 namespace drum {
 class PizzaDisplay; // Forward declaration
@@ -19,7 +21,7 @@ class DisplayMode {
 public:
   virtual ~DisplayMode() = default;
   virtual void draw(PizzaDisplay &display, absolute_time_t now) = 0;
-  virtual void on_enter([[maybe_unused]] PizzaDisplay &display) {};
+  virtual void on_enter([[maybe_unused]] PizzaDisplay &display);
 };
 
 // --- Concrete Strategy for Sequencer Mode ---
@@ -69,6 +71,25 @@ private:
       &_sequencer_controller_ref;
   uint8_t _boot_animation_track_index = 0;
   absolute_time_t _boot_animation_last_step_time{};
+};
+
+// --- Concrete Strategy for Sleep Mode ---
+class SleepDisplayMode : public DisplayMode {
+public:
+  void draw(PizzaDisplay &display, absolute_time_t now) override;
+  void on_enter(PizzaDisplay &display) override;
+  void set_previous_mode(DisplayMode &previous_mode);
+
+private:
+  static constexpr uint32_t DIMMING_DURATION_MS = 500;
+  static constexpr uint8_t MAX_BRIGHTNESS = 255;
+
+  absolute_time_t _dimming_start_time = nil_time;
+  std::optional<std::reference_wrapper<DisplayMode>> _previous_mode;
+  uint8_t _original_brightness = MAX_BRIGHTNESS;
+
+  uint8_t calculate_brightness(absolute_time_t now) const;
+  float apply_ease_out_curve(float progress) const;
 };
 
 } // namespace drum::ui

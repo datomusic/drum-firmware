@@ -88,7 +88,7 @@ constexpr DrumpadConfig play_button_config = {.noise_threshold = 150,
                                               .high_pressure_threshold = 0,
                                               .active_low = true,
                                               .debounce_time_us = 5000,
-                                              .hold_time_us = 1000000,
+                                              .hold_time_us = 3000000,
                                               .max_velocity_time_us = 0,
                                               .min_velocity_time_us = 0};
 

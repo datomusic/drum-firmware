@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 
 #include "drum/config.h"
@@ -27,6 +28,7 @@ namespace ui {
 class SequencerDisplayMode;
 class FileTransferDisplayMode;
 class BootAnimationMode;
+class SleepDisplayMode;
 } // namespace ui
 
 class PizzaDisplay
@@ -38,6 +40,7 @@ public:
   friend class ui::SequencerDisplayMode;
   friend class ui::FileTransferDisplayMode;
   friend class ui::BootAnimationMode;
+  friend class ui::SleepDisplayMode;
 
   static constexpr size_t SEQUENCER_TRACKS_DISPLAYED = 4;
   static constexpr size_t SEQUENCER_STEPS_DISPLAYED = 8;
@@ -68,6 +71,12 @@ public:
   bool init();
 
   /**
+   * @brief Deinitialize the display by turning off the LED enable pin.
+   * Called when shutdown fadeout animation is complete.
+   */
+  void deinit();
+
+  /**
    * @brief Updates the entire display by drawing all elements and sending to
    * hardware. This should be the primary method called from the main loop.
    * @param now The current absolute time, used for animations.
@@ -79,6 +88,12 @@ public:
    * @param brightness Brightness level (0-255).
    */
   void set_brightness(uint8_t brightness);
+
+  /**
+   * @brief Get the current global brightness level.
+   * @return Current brightness level (0-255).
+   */
+  uint8_t get_brightness() const;
 
   /**
    * @brief Set all LEDs to black. Does not call show().
@@ -166,6 +181,21 @@ public:
    */
   void switch_to_sequencer_mode();
 
+  /**
+   * @brief Switches the display to file transfer mode.
+   */
+  void switch_to_file_transfer_mode();
+
+  /**
+   * @brief Switches the display to sleep mode with gradual dimming.
+   */
+  void start_sleep_mode();
+
+  /**
+   * @brief Set callback for when boot animation completes
+   */
+  void set_boot_complete_callback(std::function<void()> callback);
+
 private:
   void show();
   void update_highlight_state();
@@ -220,7 +250,9 @@ private:
   ui::SequencerDisplayMode sequencer_mode_;
   ui::FileTransferDisplayMode transfer_mode_;
   ui::BootAnimationMode boot_animation_mode_;
+  ui::SleepDisplayMode sleep_mode_;
   ui::DisplayMode *current_mode_ = nullptr;
+  std::function<void()> boot_complete_callback_;
 };
 
 inline std::optional<uint32_t>

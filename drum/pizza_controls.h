@@ -25,7 +25,8 @@
 #include "musin/timing/tempo_handler.h"
 
 namespace drum {
-class PizzaDisplay; // Forward declaration
+class PizzaDisplay;       // Forward declaration
+class SystemStateMachine; // Forward declaration
 
 template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController =
@@ -43,7 +44,9 @@ public:
       drum::PizzaDisplay &display_ref,
       musin::timing::TempoHandler &tempo_handler_ref,
       drum::DefaultSequencerController &sequencer_controller_ref,
-      drum::MessageRouter &message_router_ref, musin::Logger &logger_ref);
+      drum::MessageRouter &message_router_ref,
+      drum::SystemStateMachine &system_state_machine_ref,
+      musin::Logger &logger_ref);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -185,6 +188,7 @@ private:
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::MessageRouter &_message_router_ref;
+  drum::SystemStateMachine &_system_state_machine_ref;
   musin::Logger &_logger_ref;
 
   // --- Owned Hardware Abstractions ---

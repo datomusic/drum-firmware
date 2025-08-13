@@ -37,13 +37,7 @@ void PizzaDisplay::notification(musin::timing::TempoEvent) {
 }
 
 void PizzaDisplay::notification(
-    drum::Events::SysExTransferStateChangeEvent event) {
-  if (event.is_active) {
-    current_mode_ = &transfer_mode_;
-  } else {
-    current_mode_ = &sequencer_mode_;
-  }
-  current_mode_->on_enter(*this);
+    [[maybe_unused]] drum::Events::SysExTransferStateChangeEvent event) {
 }
 
 void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {
@@ -98,6 +92,10 @@ bool PizzaDisplay::init() {
   return true;
 }
 
+void PizzaDisplay::deinit() {
+  gpio_put(PIZZA_LED_ENABLE_PIN, 0);
+}
+
 void PizzaDisplay::update_highlight_state() {
   // This state is managed here, but driven by the SequencerDisplayMode.
   // The mode calls this method. A simple tick division is used for pulsing
@@ -126,6 +124,10 @@ void PizzaDisplay::set_brightness(uint8_t brightness) {
   // Note: Brightness only affects subsequent set_pixel calls in the current
   // WS2812 impl. If immediate effect is desired, the buffer would need to be
   // recalculated.
+}
+
+uint8_t PizzaDisplay::get_brightness() const {
+  return _leds.get_brightness();
 }
 
 void PizzaDisplay::clear() {
@@ -203,8 +205,34 @@ void PizzaDisplay::start_boot_animation() {
 }
 
 void PizzaDisplay::switch_to_sequencer_mode() {
+  // Check if we're transitioning from boot animation
+  bool transitioning_from_boot = (current_mode_ == &boot_animation_mode_);
+
   current_mode_ = &sequencer_mode_;
   current_mode_->on_enter(*this);
+
+  // If this transition is from boot animation, notify the callback
+  if (transitioning_from_boot && boot_complete_callback_) {
+    boot_complete_callback_();
+  }
+}
+
+void PizzaDisplay::switch_to_file_transfer_mode() {
+  current_mode_ = &transfer_mode_;
+  current_mode_->on_enter(*this);
+}
+
+void PizzaDisplay::start_sleep_mode() {
+  // Capture the current mode as the previous mode before switching
+  if (current_mode_ != nullptr) {
+    sleep_mode_.set_previous_mode(*current_mode_);
+  }
+  current_mode_ = &sleep_mode_;
+  current_mode_->on_enter(*this);
+}
+
+void PizzaDisplay::set_boot_complete_callback(std::function<void()> callback) {
+  boot_complete_callback_ = callback;
 }
 
 Color PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {

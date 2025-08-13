@@ -349,8 +349,10 @@ Aic3204Status Aic3204::set_headphone_enabled(bool enable) {
           enable ? "Enabling" : "Disabling");
 
   // Register 0x01/0x09: Output Driver Power Control
-  // D5=HPL, D4=HPR, D3=LOL, D2=LOR, D1=MAL, D0=MAR
-  // 0x3F = all enabled, 0x0F = HPL/HPR disabled, others enabled
+  // Bit positions: D5=HPL, D4=HPR, D3=LOL, D2=LOR, D1=MAL, D0=MAR
+  // 0x3F = 00111111 (all outputs enabled)
+  // Disable only HPL/HPR: turn off bits D5,D4 but keep D3,D2,D1,D0
+  // Result: 00001111 = 0x0F (MAL/MAR/LOL/LOR stay enabled)
   uint8_t power_reg_value = enable ? 0x3F : 0x0F;
 
   Aic3204Status status = write_register(0x01, 0x09, power_reg_value);

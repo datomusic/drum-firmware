@@ -47,7 +47,8 @@ bool volume(float volume);
 /**
  * @brief Mutes all audio outputs by disabling amp and headphone drivers.
  *
- * Preserves the current volume setting. Call unmute() to restore audio output.
+ * Preserves the current volume setting and codec internal routing. Call
+ * unmute() to restore audio output.
  *
  * @return true if muting was successful, false otherwise.
  */

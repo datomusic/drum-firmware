@@ -22,9 +22,7 @@ extern "C" {
 #include "pico/time.h"
 }
 
-#ifndef VERBOSE
 #include "hardware/watchdog.h"
-#endif
 
 #include "audio_engine.h"
 #include "drum/ui/pizza_display.h"
@@ -80,7 +78,7 @@ static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
                                           sequencer_controller, message_router,
-                                          logger);
+                                          system_state_machine, logger);
 
 static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN,
                                        internal_clock);
@@ -179,6 +177,15 @@ int main() {
       pizza_display.update(now); // Keep display alive for progress updates
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger); // For sending ACKs
+      break;
+    }
+    case drum::SystemState::Sleep: {
+      // Sleep mode - enable watchdog and go into infinite loop (reboot)
+      logger.debug("Entering sleep mode - enabling watchdog for reboot");
+      watchdog_enable(1000, false); // 1 second watchdog
+      while (true) {
+        // Infinite loop - watchdog will reset the device
+      }
       break;
     }
     }

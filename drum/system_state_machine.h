@@ -8,9 +8,10 @@
 namespace drum {
 
 enum class SystemState {
-  Boot,        // Hardware initialization, runs boot animation
-  Sequencer,   // Normal sequencer operation
-  FileTransfer // File transfer mode - minimal systems for performance
+  Boot,         // Hardware initialization, runs boot animation
+  Sequencer,    // Normal sequencer operation
+  FileTransfer, // File transfer mode - minimal systems for performance
+  Sleep         // Sleep mode - device is powered down, wake on playbutton
 };
 
 class SystemStateMachine
@@ -25,6 +26,9 @@ public:
 
   // Call this after initialization is complete to transition to Sequencer
   void initialization_complete();
+
+  // Call this when playbutton is held to enter sleep mode
+  void enter_sleep_mode();
 
   void notification(drum::Events::SysExTransferStateChangeEvent event) override;
 

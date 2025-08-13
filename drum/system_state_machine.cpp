@@ -17,11 +17,18 @@ void SystemStateMachine::update([[maybe_unused]] absolute_time_t now) {
     break;
   case SystemState::FileTransfer:
     break;
+  case SystemState::Sleep:
+    // Sleep state - device should be in infinite loop waiting for watchdog
+    break;
   }
 }
 
 void SystemStateMachine::initialization_complete() {
   initialization_done_ = true;
+}
+
+void SystemStateMachine::enter_sleep_mode() {
+  current_state_ = SystemState::Sleep;
 }
 
 void SystemStateMachine::transition_to_sequencer() {

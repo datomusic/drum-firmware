@@ -55,6 +55,12 @@ Color apply_visual_effects(Color color, float filter_val, float crush_val,
 
 } // anonymous namespace
 
+// --- DisplayMode Base Implementation ---
+
+void DisplayMode::on_enter([[maybe_unused]] PizzaDisplay &display) {
+  // Default implementation - do nothing
+}
+
 // --- SequencerDisplayMode Implementation ---
 
 SequencerDisplayMode::SequencerDisplayMode(

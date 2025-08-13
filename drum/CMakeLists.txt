@@ -36,6 +36,8 @@ add_executable(${EXECUTABLE_NAME}
   drumpad_factory.cpp
 )
 
+target_compile_features(${EXECUTABLE_NAME} PRIVATE cxx_std_20)
+
 # --- Generate binary kit file from C++ source ---
 set(KIT_NAME factory_kit)
 set(KIT_SRC_CPP "${CMAKE_CURRENT_SOURCE_DIR}/${KIT_NAME}.cpp")

@@ -124,6 +124,16 @@ bool AudioOutput::volume(float volume) {
   const int32_t input_volume =
       static_cast<int32_t>(std::clamp(volume, 0.0f, 1.0f) * 1024.0f);
 
+  // --- Amp Control Based on Mute State ---
+  bool amp_ok = true;
+  if (input_volume == 0) {
+    // Mute: disable amp
+    amp_ok = codec->set_amp_enabled(false) == musin::drivers::Aic3204Status::OK;
+  } else {
+    // Unmute: enable amp
+    amp_ok = codec->set_amp_enabled(true) == musin::drivers::Aic3204Status::OK;
+  }
+
   // --- Piecewise Linear Curve ---
   // All calculations are done in the [0, 1024] domain to avoid floats.
   const int32_t threshold = 512; // Breakpoint at 50% input (512/1024)
@@ -167,7 +177,7 @@ bool AudioOutput::volume(float volume) {
   bool mixer_ok = codec->set_mixer_volume(mixer_register_value) ==
                   musin::drivers::Aic3204Status::OK;
 
-  return dac_ok && mixer_ok;
+  return dac_ok && mixer_ok && amp_ok;
 #else
   // No codec defined, maybe control digital volume?
   // For now, just return true as there's nothing to set.

@@ -28,6 +28,7 @@ absolute_time_t last_headphone_check = nil_time;
 
 static audio_buffer_pool_t *producer_pool;
 static bool running = false;
+static bool is_muted = false;
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 #define BUFFER_COUNT 3
@@ -218,4 +219,50 @@ bool AudioOutput::update(BufferSource &source) {
   }
 
   return false; // No buffer processed or running is false
+}
+
+bool AudioOutput::mute() {
+#ifdef DATO_SUBMARINE
+  if (!codec) {
+    return false;
+  }
+
+  bool amp_ok =
+      codec->set_amp_enabled(false) == musin::drivers::Aic3204Status::OK;
+  bool headphone_ok =
+      codec->set_headphone_enabled(false) == musin::drivers::Aic3204Status::OK;
+
+  if (amp_ok && headphone_ok) {
+    is_muted = true;
+    return true;
+  }
+  return false;
+#else
+  // No codec defined, just track mute state
+  is_muted = true;
+  return true;
+#endif
+}
+
+bool AudioOutput::unmute() {
+#ifdef DATO_SUBMARINE
+  if (!codec) {
+    return false;
+  }
+
+  bool amp_ok =
+      codec->set_amp_enabled(true) == musin::drivers::Aic3204Status::OK;
+  bool headphone_ok =
+      codec->set_headphone_enabled(true) == musin::drivers::Aic3204Status::OK;
+
+  if (amp_ok && headphone_ok) {
+    is_muted = false;
+    return true;
+  }
+  return false;
+#else
+  // No codec defined, just track mute state
+  is_muted = false;
+  return true;
+#endif
 }

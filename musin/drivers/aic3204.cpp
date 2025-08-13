@@ -23,21 +23,24 @@ namespace musin::drivers {
 
 // --- Constructor / Destructor ---
 
-Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate, uint8_t reset_pin)
+Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
+                 uint8_t reset_pin)
     : _sda_pin(sda_pin), _scl_pin(scl_pin), _reset_pin(reset_pin) {
   if (_reset_pin != 0xFF) {
-    AIC_LOG("Initializing AIC3204 on SDA=GP%u, SCL=GP%u, RST=GP%u...", _sda_pin, _scl_pin,
-            _reset_pin);
+    AIC_LOG("Initializing AIC3204 on SDA=GP%u, SCL=GP%u, RST=GP%u...", _sda_pin,
+            _scl_pin, _reset_pin);
     gpio_init(_reset_pin);
     gpio_set_dir(_reset_pin, GPIO_OUT);
     gpio_put(_reset_pin, 0); // Set LOW
   } else {
-    AIC_LOG("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...", _sda_pin, _scl_pin);
+    AIC_LOG("Initializing AIC3204 on SDA=GP%u, SCL=GP%u...", _sda_pin,
+            _scl_pin);
   }
 
   _i2c_inst = get_i2c_instance(_sda_pin, _scl_pin);
   if (!_i2c_inst) {
-    AIC_LOG("AIC3204 Error: Invalid I2C pin combination (SDA=GP%u, SCL=GP%u).", _sda_pin, _scl_pin);
+    AIC_LOG("AIC3204 Error: Invalid I2C pin combination (SDA=GP%u, SCL=GP%u).",
+            _sda_pin, _scl_pin);
     AIC_LOG("Valid pairs: i2c0 (SDA:0,4,8,12,16,20 | SCL:1,5,9,13,17,21), i2c1 "
             "(SDA:2,6,10,14,18,26 | SCL:3,7,11,15,19,27)");
     return; // _is_initialized remains false
@@ -265,7 +268,8 @@ bool Aic3204::is_initialized() const {
 
 // --- Public API Methods ---
 
-Aic3204Status Aic3204::write_register(uint8_t page, uint8_t reg_addr, uint8_t value) {
+Aic3204Status Aic3204::write_register(uint8_t page, uint8_t reg_addr,
+                                      uint8_t value) {
   if (!_i2c_inst) {
     return Aic3204Status::ERROR_NOT_INITIALIZED;
   }
@@ -279,8 +283,8 @@ Aic3204Status Aic3204::write_register(uint8_t page, uint8_t reg_addr, uint8_t va
 
   Aic3204Status status = i2c_write(reg_addr, value);
   if (status != Aic3204Status::OK) {
-    AIC_LOG("AIC3204 Error: Failed writing value 0x%02X to Page %d, Reg 0x%02X", value,
-            _current_page, reg_addr);
+    AIC_LOG("AIC3204 Error: Failed writing value 0x%02X to Page %d, Reg 0x%02X",
+            value, _current_page, reg_addr);
     return status;
   }
 
@@ -291,7 +295,8 @@ Aic3204Status Aic3204::write_register(uint8_t page, uint8_t reg_addr, uint8_t va
   return Aic3204Status::OK;
 }
 
-Aic3204Status Aic3204::read_register(uint8_t page, uint8_t reg_addr, uint8_t &read_value) {
+Aic3204Status Aic3204::read_register(uint8_t page, uint8_t reg_addr,
+                                     uint8_t &read_value) {
   if (!_i2c_inst) {
     return Aic3204Status::ERROR_NOT_INITIALIZED;
   }
@@ -308,7 +313,8 @@ Aic3204Status Aic3204::read_register(uint8_t page, uint8_t reg_addr, uint8_t &re
 
   status = i2c_read(reg_addr, read_value);
   if (status != Aic3204Status::OK) {
-    AIC_LOG("AIC3204 Error: Failed reading from Page %d, Reg 0x%02X", _current_page, reg_addr);
+    AIC_LOG("AIC3204 Error: Failed reading from Page %d, Reg 0x%02X",
+            _current_page, reg_addr);
     return status;
   }
 
@@ -320,13 +326,13 @@ Aic3204Status Aic3204::set_amp_enabled(bool enable) {
     return Aic3204Status::ERROR_NOT_INITIALIZED;
 
   if (AMP_ENABLE_THROUGH_CODEC) {
-    AIC_LOG("%s external AMP via Codec GPIO MFP4 (%s)...", enable ? "Enabling" : "Disabling",
-            enable ? "HIGH" : "LOW");
+    AIC_LOG("%s external AMP via Codec GPIO MFP4 (%s)...",
+            enable ? "Enabling" : "Disabling", enable ? "HIGH" : "LOW");
     uint8_t value = enable ? 0x05 : 0x00;
     Aic3204Status status = write_register(0x00, 0x37, value);
     if (status != Aic3204Status::OK) {
-      AIC_LOG("AIC3204 Warning: Failed to set MFP4 %s to %s amp.", enable ? "HIGH" : "LOW",
-              enable ? "enable" : "disable");
+      AIC_LOG("AIC3204 Warning: Failed to set MFP4 %s to %s amp.",
+              enable ? "HIGH" : "LOW", enable ? "enable" : "disable");
     }
     sleep_ms(10);
     return status;
@@ -335,12 +341,45 @@ Aic3204Status Aic3204::set_amp_enabled(bool enable) {
   return Aic3204Status::OK;
 }
 
+Aic3204Status Aic3204::set_headphone_enabled(bool enable) {
+  if (!is_initialized())
+    return Aic3204Status::ERROR_NOT_INITIALIZED;
+
+  AIC_LOG("%s headphone drivers (HPL/HPR)...",
+          enable ? "Enabling" : "Disabling");
+
+  // Register 0x01/0x09: Output Driver Power Control
+  // Bit positions: D5=HPL, D4=HPR, D3=LOL, D2=LOR, D1=MAL, D0=MAR
+  // 0x3F = 00111111 (all outputs enabled)
+  // Disable only HPL/HPR: turn off bits D5,D4 but keep D3,D2,D1,D0
+  // Result: 00001111 = 0x0F (MAL/MAR/LOL/LOR stay enabled)
+  uint8_t power_reg_value = enable ? 0x3F : 0x0F;
+
+  Aic3204Status status = write_register(0x01, 0x09, power_reg_value);
+  if (status != Aic3204Status::OK) {
+    AIC_LOG("AIC3204 Error: Failed to %s headphone drivers.",
+            enable ? "enable" : "disable");
+    return status;
+  }
+
+  // Wait for soft-stepping completion when powering up
+  if (enable) {
+    if (wait_for_soft_stepping() == Aic3204Status::ERROR_STEPPING_TIMEOUT) {
+      AIC_LOG("AIC3204 Warning: Timeout waiting for headphone power-up "
+              "soft-stepping.");
+    }
+  }
+
+  return Aic3204Status::OK;
+}
+
 Aic3204Status Aic3204::set_dac_volume(int8_t volume) {
   if (!is_initialized())
     return Aic3204Status::ERROR_NOT_INITIALIZED;
 
   if (volume < -127 || volume > 48) {
-    AIC_LOG("AIC3204 Error: DAC volume %d invalid. Valid range: -127 to +48", volume);
+    AIC_LOG("AIC3204 Error: DAC volume %d invalid. Valid range: -127 to +48",
+            volume);
     return Aic3204Status::ERROR_INVALID_ARG;
   }
 
@@ -349,7 +388,8 @@ Aic3204Status Aic3204::set_dac_volume(int8_t volume) {
   }
 
   if (is_soft_stepping()) {
-    AIC_LOG("AIC3204 Warning: Cannot set DAC volume while soft-stepping is active.");
+    AIC_LOG("AIC3204 Warning: Cannot set DAC volume while soft-stepping is "
+            "active.");
     return Aic3204Status::ERROR_STEPPING_ACTIVE;
   }
 
@@ -374,7 +414,8 @@ Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
 
   // The user provides a value from 0 (0dB) to -40 (Mute).
   if (volume > 0 || volume < -40) {
-    AIC_LOG("AIC3204 Error: Mixer volume %d invalid. Valid range: 0 to -40.", volume);
+    AIC_LOG("AIC3204 Error: Mixer volume %d invalid. Valid range: 0 to -40.",
+            volume);
     return Aic3204Status::ERROR_INVALID_ARG;
   }
 
@@ -390,8 +431,10 @@ Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
   // Convert the user-facing volume (0 to -40) to the register value (0 to 40).
   uint8_t reg_value = static_cast<uint8_t>(-volume);
 
-  Aic3204Status status_l = write_register(MIXER_PAGE, LEFT_MIXER_REG, reg_value);
-  Aic3204Status status_r = write_register(MIXER_PAGE, RIGHT_MIXER_REG, reg_value);
+  Aic3204Status status_l =
+      write_register(MIXER_PAGE, LEFT_MIXER_REG, reg_value);
+  Aic3204Status status_r =
+      write_register(MIXER_PAGE, RIGHT_MIXER_REG, reg_value);
 
   if (status_l == Aic3204Status::OK && status_r == Aic3204Status::OK) {
     AIC_LOG("AIC3204: Mixer volume set to attenuation step %d", volume);
@@ -430,7 +473,8 @@ bool Aic3204::update_headphone_detection() {
     if (is_inserted != _headphone_inserted_state) {
       AIC_LOG("Toggling headphone detect state");
       _headphone_inserted_state = is_inserted;
-      return set_amp_enabled(_headphone_inserted_state == false) == Aic3204Status::OK;
+      return set_amp_enabled(_headphone_inserted_state == false) ==
+             Aic3204Status::OK;
     }
     return true;
   } else {
@@ -476,7 +520,8 @@ Aic3204Status Aic3204::i2c_write(uint8_t reg_addr, uint8_t value) {
 Aic3204Status Aic3204::i2c_read(uint8_t reg_addr, uint8_t &value) {
   if (!_i2c_inst)
     return Aic3204Status::ERROR_NOT_INITIALIZED;
-  int ret_w = i2c_write_timeout_us(_i2c_inst, I2C_ADDR, &reg_addr, 1, true, 5000);
+  int ret_w =
+      i2c_write_timeout_us(_i2c_inst, I2C_ADDR, &reg_addr, 1, true, 5000);
   if (ret_w != 1) {
     return Aic3204Status::ERROR_I2C_WRITE_FAILED;
   }
@@ -508,8 +553,10 @@ bool Aic3204::is_soft_stepping() {
   const uint8_t SOFT_STEPPING_REG = 0x3F;
   const uint8_t SOFT_STEPPING_COMPLETE_MASK = 0xC0;
 
-  if (read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, status_reg) == Aic3204Status::OK) {
-    return (status_reg & SOFT_STEPPING_COMPLETE_MASK) != SOFT_STEPPING_COMPLETE_MASK;
+  if (read_register(SOFT_STEPPING_PAGE, SOFT_STEPPING_REG, status_reg) ==
+      Aic3204Status::OK) {
+    return (status_reg & SOFT_STEPPING_COMPLETE_MASK) !=
+           SOFT_STEPPING_COMPLETE_MASK;
   } else {
     AIC_LOG("AIC3204 Warning: Failed to read soft-stepping status register. "
             "Assuming active.");
@@ -518,7 +565,8 @@ bool Aic3204::is_soft_stepping() {
 }
 
 Aic3204Status Aic3204::wait_for_soft_stepping() {
-  AIC_LOG("Waiting for codec soft-stepping completion (max %d ms)...", SOFT_STEPPING_TIMEOUT_MS);
+  AIC_LOG("Waiting for codec soft-stepping completion (max %d ms)...",
+          SOFT_STEPPING_TIMEOUT_MS);
   absolute_time_t timeout_time = make_timeout_time_ms(SOFT_STEPPING_TIMEOUT_MS);
 
   while (!time_reached(timeout_time)) {

@@ -214,7 +214,7 @@ int main() {
 
         logger.debug("MUX configured for playbutton wake - waiting for button "
                      "release first");
-        watchdog_enable(1000, false);
+        watchdog_enable(500, false);
 
         while (!gpio_get(MUX_IO_PIN)) {
           sleep_us(10000);

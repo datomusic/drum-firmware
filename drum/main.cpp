@@ -112,6 +112,13 @@ int main() {
 
   pizza_display.init();
   pizza_controls.init();
+
+  // Set up callback for when boot animation completes
+  pizza_display.set_boot_complete_callback([]() {
+    // Access the static variable directly within the lambda
+    system_state_machine.boot_animation_complete();
+  });
+
   pizza_display.start_boot_animation();
 
   // --- Initialize Clocking System ---

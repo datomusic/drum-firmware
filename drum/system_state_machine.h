@@ -31,6 +31,9 @@ public:
   // Call this when playbutton is held to enter sleep mode
   void enter_sleep_mode();
 
+  // Call this when boot animation is complete
+  void boot_animation_complete();
+
   void notification(drum::Events::SysExTransferStateChangeEvent event) override;
 
 private:

@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 
 #include "drum/config.h"
@@ -184,6 +185,11 @@ public:
    */
   void start_sleep_mode();
 
+  /**
+   * @brief Set callback for when boot animation completes
+   */
+  void set_boot_complete_callback(std::function<void()> callback);
+
 private:
   void show();
   void update_highlight_state();
@@ -240,6 +246,7 @@ private:
   ui::BootAnimationMode boot_animation_mode_;
   ui::SleepDisplayMode sleep_mode_;
   ui::DisplayMode *current_mode_ = nullptr;
+  std::function<void()> boot_complete_callback_;
 };
 
 inline std::optional<uint32_t>

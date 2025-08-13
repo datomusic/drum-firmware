@@ -81,7 +81,7 @@ public:
   void set_previous_mode(DisplayMode &previous_mode);
 
 private:
-  static constexpr uint32_t DIMMING_DURATION_MS = 2000;
+  static constexpr uint32_t DIMMING_DURATION_MS = 500;
   static constexpr uint8_t MAX_BRIGHTNESS = 255;
 
   absolute_time_t _dimming_start_time = nil_time;
@@ -89,6 +89,7 @@ private:
   uint8_t _original_brightness = MAX_BRIGHTNESS;
 
   uint8_t calculate_brightness(absolute_time_t now) const;
+  float apply_ease_out_curve(float progress) const;
 };
 
 } // namespace drum::ui

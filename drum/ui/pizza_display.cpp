@@ -201,8 +201,16 @@ void PizzaDisplay::start_boot_animation() {
 }
 
 void PizzaDisplay::switch_to_sequencer_mode() {
+  // Check if we're transitioning from boot animation
+  bool transitioning_from_boot = (current_mode_ == &boot_animation_mode_);
+
   current_mode_ = &sequencer_mode_;
   current_mode_->on_enter(*this);
+
+  // If this transition is from boot animation, notify the callback
+  if (transitioning_from_boot && boot_complete_callback_) {
+    boot_complete_callback_();
+  }
 }
 
 void PizzaDisplay::switch_to_file_transfer_mode() {
@@ -217,6 +225,10 @@ void PizzaDisplay::start_sleep_mode() {
   }
   current_mode_ = &sleep_mode_;
   current_mode_->on_enter(*this);
+}
+
+void PizzaDisplay::set_boot_complete_callback(std::function<void()> callback) {
+  boot_complete_callback_ = callback;
 }
 
 Color PizzaDisplay::calculate_intensity_color(uint8_t intensity) const {

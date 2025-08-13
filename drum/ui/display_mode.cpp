@@ -387,6 +387,10 @@ void SleepDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   }
 }
 
+float SleepDisplayMode::apply_ease_out_curve(float progress) const {
+  return 1.0f - (1.0f - progress) * (1.0f - progress);
+}
+
 uint8_t SleepDisplayMode::calculate_brightness(absolute_time_t now) const {
   const uint64_t current_time_us = to_us_since_boot(now);
   const uint64_t dimming_start_us = to_us_since_boot(_dimming_start_time);
@@ -405,7 +409,9 @@ uint8_t SleepDisplayMode::calculate_brightness(absolute_time_t now) const {
   const auto dimming_progress =
       static_cast<float>(elapsed_us) / static_cast<float>(dimming_duration_us);
 
-  return static_cast<uint8_t>(_original_brightness * (1.0f - dimming_progress));
+  const float eased_progress = apply_ease_out_curve(dimming_progress);
+
+  return static_cast<uint8_t>(_original_brightness * (1.0f - eased_progress));
 }
 
 } // namespace drum::ui

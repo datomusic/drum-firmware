@@ -11,9 +11,7 @@ SystemStateMachine::SystemStateMachine(PizzaDisplay &display_ref)
 void SystemStateMachine::update([[maybe_unused]] absolute_time_t now) {
   switch (current_state_) {
   case SystemState::Boot:
-    if (initialization_done_) {
-      transition_to_sequencer();
-    }
+    // Boot animation will signal when it's complete via display mode transition
     break;
   case SystemState::Sequencer:
     break;
@@ -32,6 +30,12 @@ void SystemStateMachine::initialization_complete() {
 void SystemStateMachine::enter_sleep_mode() {
   current_state_ = SystemState::Sleep;
   _display_ref.start_sleep_mode();
+}
+
+void SystemStateMachine::boot_animation_complete() {
+  if (current_state_ == SystemState::Boot) {
+    transition_to_sequencer();
+  }
 }
 
 void SystemStateMachine::transition_to_sequencer() {

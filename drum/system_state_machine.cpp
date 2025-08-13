@@ -1,18 +1,20 @@
 #include "system_state_machine.h"
+#include "musin/hal/logger.h"
 #include "state_implementations.h"
 
 namespace drum {
 
-SystemStateMachine::SystemStateMachine(SystemContext &context)
-    : context_(context) {
+SystemStateMachine::SystemStateMachine(PizzaDisplay &display,
+                                       musin::Logger &logger)
+    : display_(display), logger_(logger) {
   // Start in Boot state
   current_state_ = create_state(SystemStateId::Boot);
-  current_state_->enter(context_);
+  current_state_->enter(display_, logger_);
 }
 
 void SystemStateMachine::update(absolute_time_t now) {
   if (current_state_) {
-    current_state_->update(context_, now);
+    current_state_->update(display_, logger_, *this, now);
   }
 }
 
@@ -25,7 +27,7 @@ SystemStateId SystemStateMachine::get_current_state() const {
 
 bool SystemStateMachine::transition_to(SystemStateId new_state) {
   if (!current_state_) {
-    context_.logger.error("Cannot transition: no current state");
+    logger_.error("Cannot transition: no current state");
     return false;
   }
 
@@ -33,16 +35,16 @@ bool SystemStateMachine::transition_to(SystemStateId new_state) {
 
   // Validate transition
   if (!is_valid_transition(current_id, new_state)) {
-    context_.logger.error("Invalid state transition");
+    logger_.error("Invalid state transition");
     return false;
   }
 
   // Perform transition
-  context_.logger.debug("State transition");
+  logger_.debug("State transition");
 
-  current_state_->exit(context_);
+  current_state_->exit(display_, logger_);
   current_state_ = create_state(new_state);
-  current_state_->enter(context_);
+  current_state_->enter(display_, logger_);
 
   return true;
 }
@@ -95,7 +97,7 @@ SystemStateMachine::create_state(SystemStateId state_id) const {
     return std::make_unique<SleepState>();
 
   default:
-    context_.logger.error("Unknown state ID");
+    logger_.error("Unknown state ID");
     return std::make_unique<BootState>(); // Fallback to Boot
   }
 }

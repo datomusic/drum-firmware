@@ -4,9 +4,18 @@
 #include "drum/events.h"
 #include "etl/observer.h"
 #include "pico/time.h"
-#include "system_context.h"
 #include "system_state.h"
 #include <memory>
+
+namespace drum {
+
+class PizzaDisplay; // Forward declaration
+
+} // namespace drum
+
+namespace musin {
+class Logger; // Forward declaration
+}
 
 namespace drum {
 
@@ -14,17 +23,18 @@ namespace drum {
  * @brief State machine that manages system states using the State Pattern.
  *
  * This class coordinates state transitions and delegates state-specific
- * behavior to state objects. It maintains a context for dependency injection
- * and ensures proper state lifecycle management.
+ * behavior to state objects. Dependencies are passed directly to states
+ * to avoid unnecessary wrapper classes.
  */
 class SystemStateMachine
     : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
 public:
   /**
-   * @brief Construct a new SystemStateMachine with dependency injection.
-   * @param context Shared resources and dependencies for state objects
+   * @brief Construct a new SystemStateMachine with direct dependencies.
+   * @param display Reference to the display system
+   * @param logger Reference to the logging system
    */
-  explicit SystemStateMachine(SystemContext &context);
+  SystemStateMachine(PizzaDisplay &display, musin::Logger &logger);
 
   /**
    * @brief Update the current state.
@@ -52,7 +62,8 @@ public:
   void notification(drum::Events::SysExTransferStateChangeEvent event) override;
 
 private:
-  SystemContext &context_;
+  PizzaDisplay &display_;
+  musin::Logger &logger_;
   std::unique_ptr<SystemState> current_state_;
 
   /**

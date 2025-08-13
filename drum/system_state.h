@@ -5,7 +5,16 @@
 
 namespace drum {
 
-class SystemContext; // Forward declaration
+class PizzaDisplay;       // Forward declaration
+class SystemStateMachine; // Forward declaration
+
+} // namespace drum
+
+namespace musin {
+class Logger; // Forward declaration
+}
+
+namespace drum {
 
 enum class SystemStateId {
   Boot,
@@ -15,10 +24,11 @@ enum class SystemStateId {
 };
 
 /**
- * @brief Abstract base class for system states in the State Pattern.
+ * @brief Abstract base class for system states using the State Pattern.
  *
- * Each state encapsulates behavior for a specific system mode and manages
- * its own lifecycle through enter/update/exit methods.
+ * Each state encapsulates the behavior specific to that system state.
+ * States receive direct dependencies as parameters to avoid unnecessary
+ * wrapper classes and circular dependencies.
  */
 class SystemState {
 public:
@@ -26,26 +36,32 @@ public:
 
   /**
    * @brief Called when entering this state.
-   * @param context Shared resources and dependencies
+   * @param display Reference to the display system
+   * @param logger Reference to the logging system
    */
-  virtual void enter(SystemContext &context) = 0;
+  virtual void enter(PizzaDisplay &display, musin::Logger &logger) = 0;
 
   /**
-   * @brief Called periodically while in this state.
-   * @param context Shared resources and dependencies
+   * @brief Called every update cycle while in this state.
+   * @param display Reference to the display system
+   * @param logger Reference to the logging system
+   * @param state_machine Reference to state machine for transitions
    * @param now Current system time
    */
-  virtual void update(SystemContext &context, absolute_time_t now) = 0;
+  virtual void update(PizzaDisplay &display, musin::Logger &logger,
+                      SystemStateMachine &state_machine,
+                      absolute_time_t now) = 0;
 
   /**
    * @brief Called when exiting this state.
-   * @param context Shared resources and dependencies
+   * @param display Reference to the display system
+   * @param logger Reference to the logging system
    */
-  virtual void exit(SystemContext &context) = 0;
+  virtual void exit(PizzaDisplay &display, musin::Logger &logger) = 0;
 
   /**
-   * @brief Get the unique identifier for this state.
-   * @return SystemStateId The state identifier
+   * @brief Get the state identifier.
+   * @return SystemStateId The state this object represents
    */
   virtual SystemStateId get_id() const = 0;
 };

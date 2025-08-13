@@ -31,7 +31,6 @@ extern "C" {
 #include "message_router.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
-#include "system_context.h"
 #include "system_state_machine.h"
 
 #ifdef VERBOSE
@@ -76,11 +75,8 @@ static drum::MidiManager midi_manager(message_router, midi_clock_processor,
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
-// System Context for dependency injection
-static drum::SystemContext system_context(pizza_display, logger);
-
-// System State Machine (uses dependency injection)
-static drum::SystemStateMachine system_state_machine(system_context);
+// System State Machine (simplified without wrapper)
+static drum::SystemStateMachine system_state_machine(pizza_display, logger);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
@@ -118,11 +114,8 @@ int main() {
   pizza_display.init();
   pizza_controls.init();
 
-  // Set up circular reference for state transitions
-  system_context.set_state_machine(system_state_machine);
-
   // Boot animation is now handled by BootState
-  // No callback needed - state machine handles transitions
+  // No circular references needed with simplified approach
 
   // --- Initialize Clocking System ---
   // TempoHandler's constructor calls set_clock_source, which handles initial
@@ -191,49 +184,16 @@ int main() {
       break;
     }
     case drum::SystemStateId::Sleep: {
+      // Sleep mode - SleepState handles hardware configuration and wake
+      // detection
       pizza_display.update(now);
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger);
 
       if (pizza_display.get_brightness() == 0) {
-        logger.debug("Dimming complete - configuring MUX for playbutton wake");
-        pizza_display.deinit(); // Turn off LED enable pin
         audio_engine.mute();
-
-        constexpr uint32_t PLAYBUTTON_ADDRESS = 5;
-        gpio_put(DATO_SUBMARINE_MUX_ADDR0_PIN, PLAYBUTTON_ADDRESS & 0x01);
-        gpio_put(DATO_SUBMARINE_MUX_ADDR1_PIN,
-                 (PLAYBUTTON_ADDRESS >> 1) & 0x01);
-        gpio_put(DATO_SUBMARINE_MUX_ADDR2_PIN,
-                 (PLAYBUTTON_ADDRESS >> 2) & 0x01);
-        gpio_put(DATO_SUBMARINE_MUX_ADDR3_PIN,
-                 (PLAYBUTTON_ADDRESS >> 3) & 0x01);
-
-        constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
-        gpio_init(MUX_IO_PIN);
-        gpio_set_dir(MUX_IO_PIN, GPIO_IN);
-        gpio_pull_up(MUX_IO_PIN);
-
-        logger.debug("MUX configured for playbutton wake - waiting for button "
-                     "release first");
-        watchdog_enable(500, false);
-
-        while (!gpio_get(MUX_IO_PIN)) {
-          sleep_us(10000);
-          watchdog_update();
-        }
-
-        logger.debug("Playbutton released - now waiting for press to wake");
-
-        while (true) {
-          if (!gpio_get(MUX_IO_PIN)) {
-            logger.debug("Playbutton pressed - triggering reset");
-            while (true) {
-            }
-          }
-          sleep_us(10000);
-          watchdog_update();
-        }
+        // SleepState::enter() handles MUX configuration and wake setup
+        // SleepState::update() handles wake detection and reset logic
       }
       break;
     }

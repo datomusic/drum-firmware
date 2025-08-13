@@ -1,7 +1,6 @@
 #ifndef DRUM_STATE_IMPLEMENTATIONS_H
 #define DRUM_STATE_IMPLEMENTATIONS_H
 
-#include "system_context.h"
 #include "system_state.h"
 
 namespace drum {
@@ -11,9 +10,10 @@ namespace drum {
  */
 class BootState : public SystemState {
 public:
-  void enter(SystemContext &context) override;
-  void update(SystemContext &context, absolute_time_t now) override;
-  void exit(SystemContext &context) override;
+  void enter(PizzaDisplay &display, musin::Logger &logger) override;
+  void update(PizzaDisplay &display, musin::Logger &logger,
+              SystemStateMachine &state_machine, absolute_time_t now) override;
+  void exit(PizzaDisplay &display, musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::Boot;
   }
@@ -27,9 +27,10 @@ private:
  */
 class SequencerState : public SystemState {
 public:
-  void enter(SystemContext &context) override;
-  void update(SystemContext &context, absolute_time_t now) override;
-  void exit(SystemContext &context) override;
+  void enter(PizzaDisplay &display, musin::Logger &logger) override;
+  void update(PizzaDisplay &display, musin::Logger &logger,
+              SystemStateMachine &state_machine, absolute_time_t now) override;
+  void exit(PizzaDisplay &display, musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::Sequencer;
   }
@@ -41,9 +42,10 @@ public:
  */
 class FileTransferState : public SystemState {
 public:
-  void enter(SystemContext &context) override;
-  void update(SystemContext &context, absolute_time_t now) override;
-  void exit(SystemContext &context) override;
+  void enter(PizzaDisplay &display, musin::Logger &logger) override;
+  void update(PizzaDisplay &display, musin::Logger &logger,
+              SystemStateMachine &state_machine, absolute_time_t now) override;
+  void exit(PizzaDisplay &display, musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::FileTransfer;
   }
@@ -54,9 +56,10 @@ public:
  */
 class SleepState : public SystemState {
 public:
-  void enter(SystemContext &context) override;
-  void update(SystemContext &context, absolute_time_t now) override;
-  void exit(SystemContext &context) override;
+  void enter(PizzaDisplay &display, musin::Logger &logger) override;
+  void update(PizzaDisplay &display, musin::Logger &logger,
+              SystemStateMachine &state_machine, absolute_time_t now) override;
+  void exit(PizzaDisplay &display, musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::Sleep;
   }

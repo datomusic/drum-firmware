@@ -3,31 +3,51 @@
 namespace drum {
 
 SystemStateMachine::SystemStateMachine()
-    : current_state_(SystemState::Boot), boot_start_time_(get_absolute_time()) {
+    : current_state_(SystemState::Boot), initialization_done_(false) {
 }
 
-void SystemStateMachine::update(absolute_time_t now) {
+void SystemStateMachine::update([[maybe_unused]] absolute_time_t now) {
   switch (current_state_) {
   case SystemState::Boot:
-    if (absolute_time_diff_us(boot_start_time_, now) >=
-        BOOT_DURATION_MS * 1000) {
-      transition_to_active();
+    if (initialization_done_) {
+      transition_to_sequencer();
     }
     break;
-  case SystemState::Active:
+  case SystemState::Sequencer:
+    break;
+  case SystemState::FileTransfer:
     break;
   }
 }
 
-void SystemStateMachine::transition_to_active() {
-  current_state_ = SystemState::Active;
+void SystemStateMachine::initialization_complete() {
+  initialization_done_ = true;
+}
+
+void SystemStateMachine::transition_to_sequencer() {
+  current_state_ = SystemState::Sequencer;
+}
+
+void SystemStateMachine::transition_to_file_transfer() {
+  current_state_ = SystemState::FileTransfer;
+}
+
+void SystemStateMachine::transition_from_file_transfer() {
+  current_state_ = SystemState::Sequencer;
 }
 
 void SystemStateMachine::notification(
-    [[maybe_unused]] drum::Events::SysExTransferStateChangeEvent event) {
-  // For now, we handle SysEx state changes within Active state
-  // The display strategy pattern handles the visual switch between
-  // sequencer and file transfer modes
+    drum::Events::SysExTransferStateChangeEvent event) {
+  // Only handle state changes if we're not in Boot mode
+  if (current_state_ == SystemState::Boot) {
+    return;
+  }
+
+  if (event.is_active) {
+    transition_to_file_transfer();
+  } else {
+    transition_from_file_transfer();
+  }
 }
 
 } // namespace drum

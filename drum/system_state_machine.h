@@ -8,8 +8,9 @@
 namespace drum {
 
 enum class SystemState {
-  Boot,  // Hardware initialization, runs boot animation
-  Active // Normal sequencer/file transfer operation
+  Boot,        // Hardware initialization, runs boot animation
+  Sequencer,   // Normal sequencer operation
+  FileTransfer // File transfer mode - minimal systems for performance
 };
 
 class SystemStateMachine
@@ -22,15 +23,18 @@ public:
     return current_state_;
   }
 
+  // Call this after initialization is complete to transition to Sequencer
+  void initialization_complete();
+
   void notification(drum::Events::SysExTransferStateChangeEvent event) override;
 
 private:
   SystemState current_state_;
-  absolute_time_t boot_start_time_;
+  bool initialization_done_;
 
-  static constexpr uint32_t BOOT_DURATION_MS = 2000;
-
-  void transition_to_active();
+  void transition_to_sequencer();
+  void transition_to_file_transfer();
+  void transition_from_file_transfer();
 };
 
 } // namespace drum

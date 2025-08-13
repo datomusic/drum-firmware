@@ -32,11 +32,7 @@ extern "C" {
 #include "message_router.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
-
-enum class ApplicationState {
-  SequencerMode,
-  FileTransferMode
-};
+#include "system_state_machine.h"
 
 #ifdef VERBOSE
 static musin::PicoLogger logger;
@@ -45,27 +41,8 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 static musin::NullLogger logger;
 #endif
 
-// State Machine
-// Note: Boot animation runs independently in PizzaDisplay, always transitions
-// to SequencerMode
-// TODO: When adding StandbyState, centralize all state management here and
-// remove display Strategy pattern
-static ApplicationState current_state = ApplicationState::SequencerMode;
-
-struct StateMachineObserver
-    : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
-  void
-  notification(drum::Events::SysExTransferStateChangeEvent event) override {
-    if (event.is_active) {
-      logger.debug("Entering FileTransferMode");
-      current_state = ApplicationState::FileTransferMode;
-    } else {
-      logger.debug("Entering SequencerMode");
-      current_state = ApplicationState::SequencerMode;
-    }
-  }
-};
-static StateMachineObserver state_machine_observer;
+// System State Machine
+static drum::SystemStateMachine system_state_machine;
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
@@ -153,7 +130,7 @@ int main() {
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(pizza_display);
   sysex_handler.add_observer(sequencer_controller);
-  sysex_handler.add_observer(state_machine_observer);
+  sysex_handler.add_observer(system_state_machine);
 
   // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
@@ -162,11 +139,23 @@ int main() {
 
   sync_out.enable();
 
+  // Signal that initialization is complete
+  system_state_machine.initialization_complete();
+
   while (true) {
     absolute_time_t now = get_absolute_time();
 
-    switch (current_state) {
-    case ApplicationState::SequencerMode: {
+    system_state_machine.update(now);
+
+    switch (system_state_machine.get_current_state()) {
+    case drum::SystemState::Boot: {
+      // During boot, only run essential systems and display
+      pizza_display.update(now);
+      midi_manager.process_input();
+      break;
+    }
+    case drum::SystemState::Sequencer: {
+      // Full sequencer operation - existing SequencerMode logic
       sysex_handler.update(now);
       pizza_controls.update(now);
       sync_in.update(now);
@@ -184,9 +173,8 @@ int main() {
       sleep_us(10);
       break;
     }
-    case ApplicationState::FileTransferMode: {
-      // In file transfer mode, we only service the bare essentials
-      // to keep the transfer fast.
+    case drum::SystemState::FileTransfer: {
+      // File transfer mode - only service bare essentials for performance
       sysex_handler.update(now);
       pizza_display.update(now); // Keep display alive for progress updates
       midi_manager.process_input();

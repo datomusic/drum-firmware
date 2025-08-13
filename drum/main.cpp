@@ -1,5 +1,6 @@
 #include "musin/hal/debug_utils.h"
 #include "musin/hal/null_logger.h"
+#include "musin/hal/pico_logger.h"
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/clock_multiplier.h"
@@ -45,6 +46,10 @@ static musin::NullLogger logger;
 #endif
 
 // State Machine
+// Note: Boot animation runs independently in PizzaDisplay, always transitions
+// to SequencerMode
+// TODO: When adding StandbyState, centralize all state management here and
+// remove display Strategy pattern
 static ApplicationState current_state = ApplicationState::SequencerMode;
 
 struct StateMachineObserver

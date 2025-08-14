@@ -275,36 +275,15 @@ Color SequencerDisplayMode::apply_pulsing_highlight(PizzaDisplay &display,
 void FileTransferDisplayMode::on_enter(PizzaDisplay &display) {
   display.clear();
   _chaser_position = 0;
-  _last_update_time = get_absolute_time();
+  _last_update_time = nil_time;
 }
 
 void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
-  constexpr uint32_t CHASER_UPDATE_INTERVAL_MS = 50;
-  constexpr int NUM_CHASER_LEDS = 32; // The sequencer grid
-
   // Flash the play button green
   uint32_t time_ms = to_ms_since_boot(now);
   Color pulse_color =
       (time_ms / 250) % 2 == 0 ? PizzaDisplay::COLOR_GREEN : Color(0);
   display.set_play_button_led(pulse_color);
-
-  if (is_nil_time(_last_update_time) ||
-      absolute_time_diff_us(_last_update_time, now) / 1000 >
-          CHASER_UPDATE_INTERVAL_MS) {
-    _last_update_time = now;
-
-    display.clear(); // Clear the grid for the new frame
-
-    // Draw new chaser position
-    uint8_t track = (_chaser_position / 8);
-    uint8_t step = _chaser_position % 8;
-
-    if (auto led_idx = display.get_sequencer_led_index(track, step)) {
-      display.set_led(led_idx.value(), PizzaDisplay::COLOR_GREEN);
-    }
-
-    _chaser_position = (_chaser_position + 1) % NUM_CHASER_LEDS;
-  }
 }
 
 // --- BootAnimationMode Implementation ---

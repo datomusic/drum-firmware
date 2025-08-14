@@ -41,34 +41,37 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   if (chunk.size() >= 3 && chunk[0] == 0x7E && chunk[1] == 0x65) {
     // SDS message - route to SDS protocol
     logger_.info("SDS message detected, routing to SDS protocol");
-    
+
     auto sds_sender = [this](sds::MessageType type, uint8_t packet_num) {
-      uint8_t msg[] = {0xF0, 0x7E, 0x65, static_cast<uint8_t>(type), packet_num, 0xF7};
+      uint8_t msg[] = {0xF0,       0x7E, 0x65, static_cast<uint8_t>(type),
+                       packet_num, 0xF7};
       MIDI::sendSysEx(sizeof(msg), msg);
     };
-    
+
     // Extract SDS payload (skip 0x7E and channel)
-    const auto sds_payload = etl::span<const uint8_t>{chunk.cbegin() + 2, chunk.cend()};
-    auto result = sds_protocol_.process_message(sds_payload, sds_sender, get_absolute_time());
-    
+    const auto sds_payload =
+        etl::span<const uint8_t>{chunk.cbegin() + 2, chunk.cend()};
+    auto result = sds_protocol_.process_message(sds_payload, sds_sender,
+                                                get_absolute_time());
+
     switch (result) {
-      case sds::Result::SampleComplete:
-        logger_.info("SDS: Sample transfer completed successfully");
-        on_file_received();
-        break;
-      case sds::Result::ChecksumError:
-        logger_.warn("SDS: Checksum error in received packet");
-        break;
-      case sds::Result::FileError:
-        logger_.error("SDS: File operation failed");
-        break;
-      default:
-        // Other results are handled internally
-        break;
+    case sds::Result::SampleComplete:
+      logger_.info("SDS: Sample transfer completed successfully");
+      on_file_received();
+      break;
+    case sds::Result::ChecksumError:
+      logger_.warn("SDS: Checksum error in received packet");
+      break;
+    case sds::Result::FileError:
+      logger_.error("SDS: File operation failed");
+      break;
+    default:
+      // Other results are handled internally
+      break;
     }
     return;
   }
-  
+
   // Not an SDS message - route to existing custom protocol
   auto sender = [this](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {0xF0,

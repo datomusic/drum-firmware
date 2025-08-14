@@ -4,6 +4,7 @@
 #include "drum/applications/rompler/standard_file_ops.h"
 #include "drum/configuration_manager.h"
 #include "drum/sysex/protocol.h"
+#include "drum/sysex/sds_protocol.h"
 #include "etl/observer.h"
 #include "musin/hal/logger.h"
 
@@ -49,6 +50,7 @@ private:
 
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;
+  sds::Protocol<StandardFileOps> sds_protocol_;
   bool new_file_received_ = false;
   bool was_busy_ = false;
 };

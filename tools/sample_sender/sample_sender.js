@@ -255,12 +255,16 @@ function encode_7_to_8(buffer) {
 async function send_file_content(data) {
   console.log("File data length: ", data.length);
   const total_bytes = data.length;
-  const CHUNK_SIZE = 1022; // 146 * 7 bytes of raw data -> 146 * 8 = 1168 bytes of encoded data
+  const CHUNK_SIZE = 1022; // Original size
+  
+  // Adjust chunk size to align with 16-bit samples (must be multiple of 14)
+  // LCM(7,2) = 14, so chunk must be multiple of 14 to preserve sample boundaries
+  const ALIGNED_CHUNK_SIZE = Math.floor(CHUNK_SIZE / 14) * 14; // 1022 -> 1008 (72*14)
   const PIPELINE_WINDOW = 1;
   let promises = [];
 
-  for (let i = 0; i < total_bytes; i += CHUNK_SIZE) {
-    const chunk = data.slice(i, i + CHUNK_SIZE);
+  for (let i = 0; i < total_bytes; i += ALIGNED_CHUNK_SIZE) {
+    const chunk = data.slice(i, i + ALIGNED_CHUNK_SIZE);
     const encoded_chunk = encode_7_to_8(chunk);
     const payload = [FILE_BYTES, ...encoded_chunk];
     

@@ -2,7 +2,7 @@
 
 void musin::audio::Crusher::crush(::AudioBlock &samples) {
   uint32_t i;
-  uint32_t sampleSquidge;
+  int32_t sampleSquidge;
   uint32_t sampleSqueeze; // squidge is bitdepth, squeeze is for samplerate
 
   if (sampleStep <= 1) { // no sample rate mods, just crush the bitdepth.

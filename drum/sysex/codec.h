@@ -49,20 +49,23 @@ etl::pair<size_t, size_t> decode_8_to_7(InputIt start, InputIt end,
          out_it != output_end) {
     const uint8_t msbs = *(start + 7);
     const size_t remaining_out_space = etl::distance(out_it, output_end);
-    const size_t bytes_to_process = etl::min(static_cast<size_t>(7), remaining_out_space);
+    const size_t bytes_to_process =
+        etl::min(static_cast<size_t>(7), remaining_out_space);
 
     for (size_t i = 0; i < bytes_to_process; ++i) {
       *out_it++ = (*(start + i)) | ((msbs >> i) & 0x01 ? 0x80 : 0x00);
     }
     bytes_written += bytes_to_process;
-    
-    // Only advance the input iterator by the full 8 bytes if we processed all 7 data bytes
+
+    // Only advance the input iterator by the full 8 bytes if we processed all 7
+    // data bytes
     if (bytes_to_process == 7) {
-        start += 8;
-        bytes_read += 8;
+      start += 8;
+      bytes_read += 8;
     } else {
-        // If we didn't have enough output space for all 7 bytes, we can't consume the input block.
-        break;
+      // If we didn't have enough output space for all 7 bytes, we can't consume
+      // the input block.
+      break;
     }
   }
   return {bytes_read, bytes_written};

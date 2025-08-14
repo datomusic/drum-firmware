@@ -296,6 +296,10 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
     let offset = 0;
     let successfulPackets = 0;
     
+    const totalPackets = Math.ceil(pcmData.length / 80);
+    const showProgress = totalPackets > 4;
+    let lastProgressUpdate = 0;
+    
     while (offset < pcmData.length) {
       const packet = createDataPacket(packetNum & 0x7F, pcmData, offset);
       if (packetNum < 5) { // Debug first few packets
@@ -311,11 +315,19 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
           offset += 80; // Move to next 40 samples (80 bytes)
           packetNum++;
         } else if (response.type === SDS_NAK) {
-          console.log(`Packet ${packetNum & 0x7F} NAK - retrying`);
+          if (showProgress) {
+            console.log(`\nPacket ${packetNum & 0x7F} NAK - retrying`);
+          } else {
+            console.log(`Packet ${packetNum & 0x7F} NAK - retrying`);
+          }
           continue; // Retry same packet
         } else {
           // Timeout - assume non-handshaking mode
-          console.log(`Packet ${packetNum & 0x7F} timeout - continuing without handshaking`);
+          if (showProgress) {
+            console.log(`\nPacket ${packetNum & 0x7F} timeout - continuing without handshaking`);
+          } else {
+            console.log(`Packet ${packetNum & 0x7F} timeout - continuing without handshaking`);
+          }
           successfulPackets++;
           offset += 80;
           packetNum++;
@@ -323,25 +335,34 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
           handshaking = false;
         }
       } else {
-        // Non-handshaking mode
+        // Non-handshaking mode - advance immediately
         successfulPackets++;
         offset += 80;
         packetNum++;
       }
       
-      // Progress indicator
-      const progress = Math.min(100, (offset / pcmData.length) * 100);
-      const bar_length = 40;
-      const filled_length = Math.round(bar_length * (progress / 100));
-      const bar = '█'.repeat(filled_length) + '░'.repeat(bar_length - filled_length);
-      
-      if (process.stdout.clearLine) {
-        process.stdout.clearLine(0);
-        process.stdout.cursorTo(0);
-        process.stdout.write(`Progress: ${Math.round(progress)}% |${bar}| Packet ${packetNum}`);
-      } else {
-        // Fallback for environments without clearLine
-        console.log(`Progress: ${Math.round(progress)}% |${bar}| Packet ${packetNum}`);
+      // Progress indicator (skip for very small transfers)
+      if (showProgress) {
+        const progress = Math.min(100, (successfulPackets / totalPackets) * 100);
+        
+        // Only update progress every 1% or every 50 packets to reduce flicker
+        const progressPercent = Math.round(progress);
+        if (progressPercent > lastProgressUpdate || successfulPackets % 50 === 0) {
+          lastProgressUpdate = progressPercent;
+          
+          const bar_length = 40;
+          const filled_length = Math.round(bar_length * (progress / 100));
+          const bar = '█'.repeat(filled_length) + '░'.repeat(bar_length - filled_length);
+          
+          if (process.stdout.clearLine) {
+            process.stdout.clearLine(0);
+            process.stdout.cursorTo(0);
+            process.stdout.write(`Progress: ${progressPercent}% |${bar}| ${successfulPackets}/${totalPackets} packets`);
+          } else {
+            // Fallback for environments without clearLine
+            console.log(`Progress: ${progressPercent}% |${bar}| ${successfulPackets}/${totalPackets} packets`);
+          }
+        }
       }
     }
     

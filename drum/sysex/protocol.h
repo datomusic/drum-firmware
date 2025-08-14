@@ -325,7 +325,7 @@ private:
         const auto result = codec::decode_8_to_7(
             start, end, write_buffer.begin() + write_buffer_pos,
             write_buffer.end());
-        
+
         const size_t bytes_read = result.first;
         const size_t bytes_decoded = result.second;
 

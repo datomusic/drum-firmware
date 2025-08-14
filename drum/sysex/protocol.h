@@ -321,18 +321,25 @@ private:
     }
 
     if (opened_file.has_value()) {
-      const size_t bytes_decoded = codec::decode_8_to_7(
-          start, end, write_buffer.begin() + write_buffer_pos,
-          write_buffer.end());
-      write_buffer_pos += bytes_decoded;
+      while (start != end) {
+        const auto result = codec::decode_8_to_7(
+            start, end, write_buffer.begin() + write_buffer_pos,
+            write_buffer.end());
+        
+        const size_t bytes_read = result.first;
+        const size_t bytes_decoded = result.second;
 
-      if (write_buffer_pos >= write_buffer.size()) {
-        if (!flush_write_buffer()) {
-          logger.error("SysEx: Failed to write buffer, aborting transfer.");
-          opened_file.reset();
-          state = State::Idle;
-          send_reply(Tag::Nack);
-          return Result::FileError;
+        write_buffer_pos += bytes_decoded;
+        start += bytes_read;
+
+        if (write_buffer_pos >= write_buffer.size()) {
+          if (!flush_write_buffer()) {
+            logger.error("SysEx: Failed to write buffer, aborting transfer.");
+            opened_file.reset();
+            state = State::Idle;
+            send_reply(Tag::Nack);
+            return Result::FileError;
+          }
         }
       }
       last_activity_time_ = now;

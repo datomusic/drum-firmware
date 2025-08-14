@@ -247,7 +247,9 @@ function createDataPacket(packetNum, pcmData, offset) {
 }
 
 // Main sample transfer function
-async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
+async function transferSample(filePath, sampleNumber, sampleRate = 44100, verboseMode = false) {
+  const verbose = verboseMode;
+  
   // Validate sample number
   if (sampleNumber < 0 || sampleNumber > 127) {
     console.error(`Error: Sample number must be between 0-127, got: ${sampleNumber}`);
@@ -268,19 +270,28 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
   // Calculate transfer parameters
   const numSamples = Math.floor(pcmData.length / 2);
   const packetsNeeded = Math.ceil(pcmData.length / 80); // 40 samples * 2 bytes per packet
-  console.log(`Transfer will require ${packetsNeeded} data packets`);
+  if (verbose) {
+    console.log(`Transfer will require ${packetsNeeded} data packets`);
+  }
   
   try {
     // Step 1: Send Dump Header
-    console.log("\n1. Sending Dump Header...");
-    const header = createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length);
-    console.log("Header bytes:", header.length, "->", header.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
-    sendSysExMessage(header);
+    if (verbose) {
+      console.log("\n1. Sending Dump Header...");
+      const header = createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length);
+      console.log("Header bytes:", header.length, "->", header.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
+      sendSysExMessage(header);
+    } else {
+      const header = createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length);
+      sendSysExMessage(header);
+    }
     
     const headerResponse = await waitForResponse(HEADER_TIMEOUT);
     if (headerResponse.type === SDS_NAK) {
-      console.log("Header NAK received, retrying...");
-      sendSysExMessage(header);
+      if (verbose) {
+        console.log("Header NAK received, retrying...");
+      }
+      sendSysExMessage(createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length));
       const retryResponse = await waitForResponse(HEADER_TIMEOUT);
       if (retryResponse.type !== SDS_ACK && retryResponse.type !== 'timeout') {
         throw new Error("Header rejected twice");
@@ -288,10 +299,10 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
     }
     
     let handshaking = headerResponse.type === SDS_ACK;
-    console.log(`Header ${headerResponse.type === SDS_ACK ? 'ACK' : headerResponse.type} - ${handshaking ? 'handshaking mode' : 'non-handshaking mode'}`);
-    
-    // Step 2: Send Data Packets
-    console.log("\n2. Sending data packets...");
+    if (verbose) {
+      console.log(`Header ${headerResponse.type === SDS_ACK ? 'ACK' : headerResponse.type} - ${handshaking ? 'handshaking mode' : 'non-handshaking mode'}`);
+      console.log("\n2. Sending data packets...");
+    }
     let packetNum = 0;
     let offset = 0;
     let successfulPackets = 0;
@@ -302,7 +313,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
     
     while (offset < pcmData.length) {
       const packet = createDataPacket(packetNum & 0x7F, pcmData, offset);
-      if (packetNum < 5) { // Debug first few packets
+      if (verbose && packetNum < 5) { // Debug first few packets
         console.log(`Packet ${packetNum} size:`, packet.length, "checksum:", `0x${packet[packet.length-1].toString(16)}`);
       }
       sendSysExMessage(packet);
@@ -315,18 +326,22 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100) {
           offset += 80; // Move to next 40 samples (80 bytes)
           packetNum++;
         } else if (response.type === SDS_NAK) {
-          if (showProgress) {
-            console.log(`\nPacket ${packetNum & 0x7F} NAK - retrying`);
-          } else {
-            console.log(`Packet ${packetNum & 0x7F} NAK - retrying`);
+          if (verbose) {
+            if (showProgress) {
+              console.log(`\nPacket ${packetNum & 0x7F} NAK - retrying`);
+            } else {
+              console.log(`Packet ${packetNum & 0x7F} NAK - retrying`);
+            }
           }
           continue; // Retry same packet
         } else {
           // Timeout - assume non-handshaking mode
-          if (showProgress) {
-            console.log(`\nPacket ${packetNum & 0x7F} timeout - continuing without handshaking`);
-          } else {
-            console.log(`Packet ${packetNum & 0x7F} timeout - continuing without handshaking`);
+          if (verbose) {
+            if (showProgress) {
+              console.log(`\nPacket ${packetNum & 0x7F} timeout - continuing without handshaking`);
+            } else {
+              console.log(`Packet ${packetNum & 0x7F} timeout - continuing without handshaking`);
+            }
           }
           successfulPackets++;
           offset += 80;
@@ -380,22 +395,24 @@ const command = process.argv[2];
 const sourcePath = process.argv[3];
 const sampleNumber = process.argv[4] ? parseInt(process.argv[4], 10) : null;
 const sampleRate = process.argv[5] ? parseInt(process.argv[5]) : 44100;
+const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 if (!command) {
   console.log("SDS Sample Sender - MIDI Sample Dump Standard implementation");
   console.log("");
   console.log("Usage:");
-  console.log("  sds_sender.js send <source_path> <sample_number> [sample_rate]");
+  console.log("  sds_sender.js send <source_path> <sample_number> [sample_rate] [--verbose|-v]");
   console.log("");
   console.log("Arguments:");
   console.log("  source_path    - Path to the audio file to upload");
   console.log("  sample_number  - Target sample slot (0-127)");
   console.log("  sample_rate    - Sample rate in Hz (default: 44100)");
+  console.log("  --verbose, -v  - Show detailed transfer information");
   console.log("");
   console.log("Examples:");
   console.log("  sds_sender.js send sine440.pcm 0         # Upload to slot 0 (/00.pcm)");
   console.log("  sds_sender.js send kick.wav 1 48000     # Upload to slot 1 (/01.pcm)");
-  console.log("  sds_sender.js send snare.pcm 15          # Upload to slot 15 (/15.pcm)");
+  console.log("  sds_sender.js send snare.pcm 15 -v       # Upload to slot 15 with verbose output");
   console.log("");
   process.exit(1);
 }
@@ -417,7 +434,7 @@ async function main() {
         process.exit(1);
       }
       
-      const success = await transferSample(sourcePath, sampleNumber, sampleRate);
+      const success = await transferSample(sourcePath, sampleNumber, sampleRate, verbose);
       process.exitCode = success ? 0 : 1;
     } else {
       console.error(`Error: Unknown command '${command}'. Use 'send'.`);

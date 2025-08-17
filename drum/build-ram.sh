@@ -1,4 +1,7 @@
 #!/bin/sh
+SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd)
+pushd "$SCRIPT_DIR" > /dev/null
+trap "popd > /dev/null" EXIT
 if cmake -B build -DPICO_COPY_TO_RAM=ON -DENABLE_VERBOSE_LOGGING=OFF -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel 16; then
   # Find the generated .uf2 file (the name is now versioned)
   UF2_FILE=$(find build -name "*.uf2" -print -quit)

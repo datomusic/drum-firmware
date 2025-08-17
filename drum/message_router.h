@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_MESSAGE_ROUTER_H_
-#define SB25_DRUM_MESSAGE_ROUTER_H_
+#ifndef DRUM_MESSAGE_ROUTER_H_
+#define DRUM_MESSAGE_ROUTER_H_
 
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
@@ -190,4 +190,4 @@ private:
 
 } // namespace drum
 
-#endif // SB25_DRUM_MESSAGE_ROUTER_H_
+#endif // DRUM_MESSAGE_ROUTER_H_

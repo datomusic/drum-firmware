@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_EVENTS_H_
-#define SB25_DRUM_EVENTS_H_
+#ifndef DRUM_EVENTS_H_
+#define DRUM_EVENTS_H_
 
 #include <cstdint>
 #include <optional> // Required for std::optional
@@ -56,4 +56,4 @@ struct SysExTransferStateChangeEvent {
 
 } // namespace drum::Events
 
-#endif // SB25_DRUM_EVENTS__H_
+#endif // DRUM_EVENTS_H_

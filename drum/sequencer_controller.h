@@ -1,5 +1,5 @@
-#ifndef SB25_DRUM_SEQUENCER_CONTROLLER_H
-#define SB25_DRUM_SEQUENCER_CONTROLLER_H
+#ifndef DRUM_SEQUENCER_CONTROLLER_H
+#define DRUM_SEQUENCER_CONTROLLER_H
 
 #include "etl/array.h"
 #include "etl/observer.h"
@@ -275,4 +275,4 @@ public:
 
 } // namespace drum
 
-#endif // SB25_DRUM_SEQUENCER_CONTROLLER_H
+#endif // DRUM_SEQUENCER_CONTROLLER_H

@@ -42,7 +42,6 @@ struct StandardFileOps {
       return;
     }
 
-    // TODO: Use Chunk instead
     size_t write(const etl::span<const uint8_t> &bytes) {
       // printf("Writing %i bytes\n", bytes.size());
       if (file_pointer) {

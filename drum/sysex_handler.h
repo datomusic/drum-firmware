@@ -1,7 +1,7 @@
 #ifndef DRUM_SYSEX_HANDLER_H
 #define DRUM_SYSEX_HANDLER_H
 
-#include "drum/applications/rompler/standard_file_ops.h"
+#include "drum/standard_file_ops.h"
 #include "drum/configuration_manager.h"
 #include "drum/sysex/protocol.h"
 #include "drum/sysex/sds_protocol.h"

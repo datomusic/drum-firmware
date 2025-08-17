@@ -298,6 +298,11 @@ public:
    * @brief Set the random sequencer as active.
    */
   void set_random_active();
+
+  /**
+   * @brief Generate variation pattern by blending main and random patterns.
+   */
+  void generate_variation_blend();
 };
 
 } // namespace drum

@@ -113,12 +113,6 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
       sequencer_->get_track(track_idx).get_step(wrapped_step);
   bool actually_enabled = step.enabled;
 
-  if (random_active_) {
-    // Only apply probability flip if random is active
-    const bool flip_step = (rand() % 100) <= random_probability_;
-    actually_enabled = flip_step ? !step.enabled : step.enabled;
-  }
-
   if (actually_enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
@@ -354,6 +348,27 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_random() {
   if (_running && !random_active_) {
     random_active_ = true;
+
+    // Generate random pattern: copy notes from main, randomize velocities and
+    // enable states
+    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+      auto &main_track = main_sequencer_.get_track(track_idx);
+      auto &random_track = random_sequencer_.get_track(track_idx);
+
+      for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+        auto &main_step = main_track.get_step(step_idx);
+        auto &random_step = random_track.get_step(step_idx);
+
+        // Copy note from main sequencer
+        random_step.note = main_step.note;
+
+        // Random velocity between 64-127
+        random_step.velocity = 64 + (rand() % 64);
+
+        // 50% chance for step to be enabled
+        random_step.enabled = (rand() % 100) < 50;
+      }
+    }
   }
 }
 
@@ -375,6 +390,16 @@ void SequencerController<NumTracks, NumSteps>::set_random_probability(
     uint8_t percent) {
   random_probability_ =
       std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
+
+  // Switch sequencers based on value ranges
+  if (percent < 10) {
+    set_main_active();
+  } else if (percent >= 40 && percent <= 60) {
+    generate_variation_blend();
+    set_variation_active();
+  } else if (percent > 80) {
+    set_random_active();
+  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -610,6 +635,29 @@ void SequencerController<NumTracks, NumSteps>::set_variation_active() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random_active() {
   sequencer_ = &random_sequencer_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::generate_variation_blend() {
+  // Simple blend: alternate between main and random pattern steps
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    auto &main_track = main_sequencer_.get_track(track_idx);
+    auto &random_track = random_sequencer_.get_track(track_idx);
+    auto &variation_track = variation_sequencer_.get_track(track_idx);
+
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      auto &main_step = main_track.get_step(step_idx);
+      auto &random_step = random_track.get_step(step_idx);
+      auto &variation_step = variation_track.get_step(step_idx);
+
+      // Alternate pattern: even steps from main, odd steps from random
+      if (step_idx % 2 == 0) {
+        variation_step = main_step;
+      } else {
+        variation_step = random_step;
+      }
+    }
+  }
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

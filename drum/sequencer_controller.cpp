@@ -19,7 +19,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
       random_active_(false),
       random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
-      random_track_offsets_{}, _active_note_per_track{}, _pad_pressed_state{},
+      _active_note_per_track{}, _pad_pressed_state{},
       _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
@@ -354,7 +354,6 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_random() {
   if (_running && !random_active_) {
     random_active_ = true;
-    random_track_offsets_ = {};
   }
 }
 
@@ -547,19 +546,10 @@ void SequencerController<NumTracks, NumSteps>::update() {
   size_t base_step_index = calculate_base_step_index();
 
   size_t num_tracks = sequencer_->get_num_tracks();
-  size_t num_steps = sequencer_->get_num_steps();
 
   for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
     size_t step_index_to_play_for_track = base_step_index;
 
-    if (random_active_ && num_steps > 0) {
-      int max_offset = num_steps / 2;
-      random_track_offsets_[track_idx] =
-          (rand() % (max_offset * 2 + 1)) - max_offset;
-      step_index_to_play_for_track =
-          (base_step_index + random_track_offsets_[track_idx] + num_steps) %
-          num_steps;
-    }
     _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
     process_track_step(track_idx, step_index_to_play_for_track);
 

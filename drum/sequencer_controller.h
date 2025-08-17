@@ -240,7 +240,6 @@ private:
   bool random_active_ = false;
   uint8_t random_probability_ =
       drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
-  etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};

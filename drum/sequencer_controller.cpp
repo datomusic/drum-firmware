@@ -30,15 +30,27 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     }
   }
 
+  // Initialize all three sequencers with the same initial setup
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint8_t initial_note = _active_note_per_track[track_idx];
-    auto &track = sequencer_.get_track(track_idx);
+    auto &main_track = main_sequencer_.get_track(track_idx);
+    auto &var_track = variation_sequencer_.get_track(track_idx);
+    auto &random_track = random_sequencer_.get_track(track_idx);
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      auto &step = track.get_step(step_idx);
-      step.note = initial_note;
-      step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+      auto &main_step = main_track.get_step(step_idx);
+      auto &var_step = var_track.get_step(step_idx);
+      auto &random_step = random_track.get_step(step_idx);
+      main_step.note = initial_note;
+      main_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+      var_step.note = initial_note;
+      var_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+      random_step.note = initial_note;
+      random_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
     }
   }
+
+  // Set main sequencer as the default active sequencer
+  sequencer_ = &main_sequencer_;
 
   calculate_timing_params();
   srand(time_us_32());
@@ -58,7 +70,7 @@ SequencerController<NumTracks, NumSteps>::~SequencerController() {
 template <size_t NumTracks, size_t NumSteps>
 size_t
 SequencerController<NumTracks, NumSteps>::calculate_base_step_index() const {
-  const size_t num_steps = sequencer_.get_num_steps();
+  const size_t num_steps = sequencer_->get_num_steps();
   if (num_steps == 0)
     return 0;
 
@@ -75,7 +87,7 @@ SequencerController<NumTracks, NumSteps>::calculate_base_step_index() const {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::process_track_step(
     size_t track_idx, size_t step_index_to_play) {
-  const size_t num_steps = sequencer_.get_num_steps();
+  const size_t num_steps = sequencer_->get_num_steps();
   uint8_t track_index_u8 = static_cast<uint8_t>(track_idx);
 
   // Emit Note Off event if a note was previously playing on this track
@@ -98,7 +110,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
           : 0;
 
   const musin::timing::Step &step =
-      sequencer_.get_track(track_idx).get_step(wrapped_step);
+      sequencer_->get_track(track_idx).get_step(wrapped_step);
   bool actually_enabled = step.enabled;
 
   if (random_active_) {
@@ -278,7 +290,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] uint32_t
 SequencerController<NumTracks, NumSteps>::get_current_step() const noexcept {
-  const size_t num_steps = sequencer_.get_num_steps();
+  const size_t num_steps = sequencer_->get_num_steps();
   if (num_steps == 0)
     return 0;
   return current_step_counter % num_steps;
@@ -306,7 +318,7 @@ void SequencerController<NumTracks, NumSteps>::activate_repeat(
   if (_running && !repeat_active_) {
     repeat_active_ = true;
     repeat_length_ = std::max(uint32_t{1}, length);
-    const size_t num_steps = sequencer_.get_num_steps();
+    const size_t num_steps = sequencer_->get_num_steps();
     repeat_activation_step_index_ =
         (num_steps > 0) ? (current_step_counter % num_steps) : 0;
     repeat_activation_step_counter_ = current_step_counter;
@@ -534,8 +546,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
 
   size_t base_step_index = calculate_base_step_index();
 
-  size_t num_tracks = sequencer_.get_num_tracks();
-  size_t num_steps = sequencer_.get_num_steps();
+  size_t num_tracks = sequencer_->get_num_tracks();
+  size_t num_steps = sequencer_->get_num_steps();
 
   for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
     size_t step_index_to_play_for_track = base_step_index;
@@ -583,6 +595,31 @@ void SequencerController<NumTracks, NumSteps>::update() {
 
   next_trigger_tick_target_ += interval_to_next_trigger;
   current_step_counter++;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::copy_to_variation() {
+  variation_sequencer_ = main_sequencer_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::copy_to_random() {
+  random_sequencer_ = main_sequencer_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_main_active() {
+  sequencer_ = &main_sequencer_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_variation_active() {
+  sequencer_ = &variation_sequencer_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_random_active() {
+  sequencer_ = &random_sequencer_;
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

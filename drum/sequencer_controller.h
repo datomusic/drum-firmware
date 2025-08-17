@@ -195,17 +195,17 @@ public:
   [[nodiscard]] uint8_t get_retrigger_mode_for_track(uint8_t track_index) const;
 
   /**
-   * @brief Get a reference to the internal sequencer instance.
+   * @brief Get a reference to the active sequencer instance.
    */
   [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() {
-    return sequencer_;
+    return *sequencer_;
   }
   /**
-   * @brief Get a const reference to the internal sequencer instance.
+   * @brief Get a const reference to the active sequencer instance.
    */
   [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps> &
   get_sequencer() const {
-    return sequencer_;
+    return *sequencer_;
   }
 
 private:
@@ -214,7 +214,10 @@ private:
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
-  musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
+  musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
+  musin::timing::Sequencer<NumTracks, NumSteps> variation_sequencer_;
+  musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
+  musin::timing::Sequencer<NumTracks, NumSteps> *sequencer_;
   std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
@@ -271,6 +274,31 @@ public:
    * musical step (e.g., a 16th note) of this sequencer.
    */
   [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
+
+  /**
+   * @brief Copy the main pattern to the variation pattern.
+   */
+  void copy_to_variation();
+
+  /**
+   * @brief Copy the main pattern to the random pattern.
+   */
+  void copy_to_random();
+
+  /**
+   * @brief Set the main sequencer as active.
+   */
+  void set_main_active();
+
+  /**
+   * @brief Set the variation sequencer as active.
+   */
+  void set_variation_active();
+
+  /**
+   * @brief Set the random sequencer as active.
+   */
+  void set_random_active();
 };
 
 } // namespace drum

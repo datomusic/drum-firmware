@@ -8,6 +8,9 @@
 #include <cstddef>
 #include <cstdint>
 
+// Forward declaration
+struct absolute_time_t;
+
 #include "musin/audio/attack_buffering_sample_reader.h" // Changed include
 #include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
@@ -60,8 +63,9 @@ public:
   /**
    * @brief Periodically updates the audio output buffer.
    * This should be called frequently from the main application loop.
+   * @param now Current time for periodic operations like headphone detection.
    */
-  void process();
+  void process(absolute_time_t now);
 
   /**
    * @brief Starts playback of a sample on a specific voice/track.
@@ -157,6 +161,10 @@ private:
   bool is_initialized_ = false;
   bool muted_ = false;
   float current_volume_ = 1.0f;
+
+  // Headphone state tracking
+  bool last_headphone_state_ = false;
+  absolute_time_t last_headphone_check_;
 };
 
 } // namespace drum

@@ -77,6 +77,14 @@ bool unmute();
 bool route_line_in_to_headphone(bool enable);
 
 /**
+ * @brief Checks if headphones are currently connected.
+ *
+ * @return true if headphones are connected, false if not connected or
+ * detection unavailable.
+ */
+bool is_headphone_connected();
+
+/**
  * @brief Deinitializes the audio output system.
  */
 void deinit();

@@ -8,9 +8,15 @@
 #include <algorithm>
 #include <cmath>
 
+extern "C" {
+#include "pico/time.h"
+}
+
 namespace drum {
 
 namespace {
+
+constexpr uint32_t HEADPHONE_CHECK_INTERVAL_MS = 200;
 
 float map_value_linear(float normalized_value, float min_val, float max_val) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
@@ -54,7 +60,7 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
       voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
                      &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
-      highpass_(lowpass_) {
+      highpass_(lowpass_), last_headphone_check_(nil_time) {
   // Initialize to a known, silent state.
   set_volume(1.0f); // Set master volume to full.
 
@@ -86,7 +92,23 @@ bool AudioEngine::init() {
   return true;
 }
 
-void AudioEngine::process() {
+void AudioEngine::process(absolute_time_t now) {
+  // Check headphone state periodically and adjust highpass filter
+  if (time_reached(last_headphone_check_)) {
+    last_headphone_check_ = make_timeout_time_ms(HEADPHONE_CHECK_INTERVAL_MS);
+
+    bool headphones_connected = AudioOutput::is_headphone_connected();
+    if (headphones_connected != last_headphone_state_) {
+      last_headphone_state_ = headphones_connected;
+
+      // Adaptive highpass filtering:
+      // - Headphones: 0Hz (no filtering, full frequency response)
+      // - Speaker: 100Hz (filter out frequencies the speaker can't reproduce)
+      float highpass_freq = headphones_connected ? 0.0f : 100.0f;
+      highpass_.filter.frequency(highpass_freq);
+    }
+  }
+
   AudioOutput::update(highpass_);
 }
 

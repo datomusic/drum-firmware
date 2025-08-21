@@ -166,7 +166,7 @@ int main() {
           .update(); // Checks if a step is due and queues NoteEvents
       message_router
           .update(); // Drains NoteEvent queue, sending to observers and MIDI
-      audio_engine.process();
+      audio_engine.process(now);
       pizza_display.update(now);
       midi_manager.process_input();
       tempo_handler.update();

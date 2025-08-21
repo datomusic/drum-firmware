@@ -266,3 +266,17 @@ bool AudioOutput::unmute() {
   return true;
 #endif
 }
+
+bool AudioOutput::is_headphone_connected() {
+#ifdef DATO_SUBMARINE
+  if (!codec) {
+    return false;
+  }
+
+  auto headphone_state = codec->is_headphone_inserted();
+  return headphone_state.value_or(false);
+#else
+  // No codec defined, assume no headphones
+  return false;
+#endif
+}

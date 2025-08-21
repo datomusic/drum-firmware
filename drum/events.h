@@ -54,6 +54,14 @@ struct SysExTransferStateChangeEvent {
   bool is_active; // true when transfer starts, false when it ends
 };
 
+/**
+ * @brief Event structure for headphone jack state changes.
+ */
+struct HeadphoneStateChangeEvent {
+  bool headphones_connected; // true when headphones are connected, false when
+                             // disconnected
+};
+
 } // namespace drum::Events
 
 #endif // DRUM_EVENTS_H_

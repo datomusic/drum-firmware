@@ -19,8 +19,10 @@ constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
 constexpr size_t MAX_PATH_LENGTH = 64;
 
 // MIDI Configuration
-constexpr uint8_t FALLBACK_MIDI_CHANNEL =
-    10; // Default MIDI Channel (GM Percussion Standard)
+constexpr uint8_t MIDI_IN_CHANNEL =
+    10; // Input MIDI Channel (GM Percussion Standard)
+constexpr uint8_t MIDI_OUT_CHANNEL =
+    10; // Output MIDI Channel (GM Percussion Standard)
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = false;
 constexpr bool IGNORE_MIDI_NOTE_OFF = true;
 constexpr uint32_t COLOR_MIDI_CLOCK_LISTENER = 0xFFD700; // Gold

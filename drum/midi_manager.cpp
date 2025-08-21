@@ -135,18 +135,27 @@ void MidiManager::stop_callback() {
 
 // --- Message Handlers ---
 
-void MidiManager::handle_note_on([[maybe_unused]] uint8_t channel, uint8_t note,
+void MidiManager::handle_note_on(uint8_t channel, uint8_t note,
                                  uint8_t velocity) {
+  if (channel != drum::config::MIDI_IN_CHANNEL) {
+    return; // Ignore messages not on our input channel
+  }
   message_router_.handle_incoming_note_on(note, velocity);
 }
 
-void MidiManager::handle_note_off([[maybe_unused]] uint8_t channel,
-                                  uint8_t note, uint8_t velocity) {
+void MidiManager::handle_note_off(uint8_t channel, uint8_t note,
+                                  uint8_t velocity) {
+  if (channel != drum::config::MIDI_IN_CHANNEL) {
+    return; // Ignore messages not on our input channel
+  }
   message_router_.handle_incoming_note_off(note, velocity);
 }
 
-void MidiManager::handle_control_change([[maybe_unused]] uint8_t channel,
-                                        uint8_t controller, uint8_t value) {
+void MidiManager::handle_control_change(uint8_t channel, uint8_t controller,
+                                        uint8_t value) {
+  if (channel != drum::config::MIDI_IN_CHANNEL) {
+    return; // Ignore messages not on our input channel
+  }
   message_router_.handle_incoming_midi_cc(controller, value);
 }
 

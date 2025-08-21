@@ -88,6 +88,10 @@ void TempoHandler::set_bpm(float bpm) {
   }
 }
 
+void TempoHandler::set_external_speed_modifier(SpeedModifier modifier) {
+  _clock_multiplier_ref.set_speed_modifier(modifier);
+}
+
 void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
   if (current_source_ == ClockSource::INTERNAL &&

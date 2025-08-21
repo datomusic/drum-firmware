@@ -24,8 +24,13 @@ public:
   void update(absolute_time_t now);
   void reset();
 
+  void set_speed_modifier(SpeedModifier modifier);
+
 private:
-  uint8_t multiplication_factor_;
+  uint8_t calculate_effective_multiplier() const;
+
+  uint8_t base_multiplication_factor_;
+  SpeedModifier current_speed_modifier_ = SpeedModifier::NORMAL_SPEED;
   uint8_t pulse_counter_ = 0;
   uint64_t pulse_interval_us_ = 0;
   absolute_time_t last_pulse_time_ = nil_time;

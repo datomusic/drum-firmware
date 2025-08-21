@@ -83,6 +83,12 @@ public:
   void set_bpm(float bpm);
 
   /**
+   * @brief Set the speed modifier for external clock sources.
+   * @param modifier The speed modifier to apply (half, normal, double speed).
+   */
+  void set_external_speed_modifier(SpeedModifier modifier);
+
+  /**
    * @brief Set the current playback state.
    * @param new_state The new playback state.
    */

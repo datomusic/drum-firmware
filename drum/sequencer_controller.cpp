@@ -383,8 +383,7 @@ SequencerController<NumTracks, NumSteps>::is_random_active() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_random_probability(
-    uint8_t percent) {
+void SequencerController<NumTracks, NumSteps>::set_random(uint8_t percent) {
   random_probability_ =
       std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
 

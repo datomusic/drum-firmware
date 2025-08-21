@@ -156,7 +156,7 @@ public:
    */
   void deactivate_random();
 
-  void set_random_probability(uint8_t percent);
+  void set_random(uint8_t percent);
 
   [[nodiscard]] bool is_random_active() const;
 

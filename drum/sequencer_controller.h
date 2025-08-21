@@ -218,7 +218,8 @@ private:
   musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> variation_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
-  std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>> sequencer_;
+  std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
+      sequencer_;
   std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;

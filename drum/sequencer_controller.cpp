@@ -49,7 +49,6 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     }
   }
 
-
   calculate_timing_params();
   srand(time_us_32());
 

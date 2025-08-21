@@ -359,11 +359,14 @@ void SequencerController<NumTracks, NumSteps>::activate_random() {
         // Copy note from main sequencer
         random_step.note = main_step.note;
 
-        // Random velocity between 64-127
-        random_step.velocity = 64 + (rand() % 64);
+        // Get one random value and extract both velocity and enabled from it
+        uint32_t random_value = rand();
 
-        // 50% chance for step to be enabled
-        random_step.enabled = (rand() % 100) < 50;
+        // Extract velocity from lower 6 bits (0-63) + offset to 64-127 range
+        random_step.velocity = 64 + (random_value & 0x3F);
+
+        // Extract enabled from bit 6 (50% chance)
+        random_step.enabled = (random_value & 0x40) != 0;
       }
     }
   }

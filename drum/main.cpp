@@ -34,7 +34,7 @@ extern "C" {
 #include "system_state_machine.h"
 
 #ifdef VERBOSE
-static musin::PicoLogger logger;
+static musin::PicoLogger logger(musin::LogLevel::DEBUG);
 static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;

@@ -20,39 +20,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       random_active_(false), _active_note_per_track{}, _pad_pressed_state{},
       _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
 
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (track_idx < config::track_note_ranges.size() &&
-        !config::track_note_ranges[track_idx].empty()) {
-      _active_note_per_track[track_idx] =
-          config::track_note_ranges[track_idx][0];
-    }
-  }
-
-  // Initialize all three sequencers with the same initial setup
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    uint8_t initial_note = _active_note_per_track[track_idx];
-    auto &main_track = main_sequencer_.get_track(track_idx);
-    auto &var_track = variation_sequencer_.get_track(track_idx);
-    auto &random_track = random_sequencer_.get_track(track_idx);
-    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      auto &main_step = main_track.get_step(step_idx);
-      auto &var_step = var_track.get_step(step_idx);
-      auto &random_step = random_track.get_step(step_idx);
-      main_step.note = initial_note;
-      main_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
-      var_step.note = initial_note;
-      var_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
-      random_step.note = initial_note;
-      random_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
-    }
-  }
-
-  calculate_timing_params();
-  srand(time_us_32());
-
-  // Initialize last played step to nullopt, as no step has been played yet.
-  _just_played_step_per_track.fill(std::nullopt);
-  _pad_pressed_state.fill(false);
+  initialize_active_notes();
+  initialize_all_sequencers();
+  initialize_timing_and_random();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -654,6 +624,46 @@ void SequencerController<NumTracks, NumSteps>::generate_variation_blend() {
       }
     }
   }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::initialize_active_notes() {
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    if (track_idx < config::track_note_ranges.size() &&
+        !config::track_note_ranges[track_idx].empty()) {
+      _active_note_per_track[track_idx] =
+          config::track_note_ranges[track_idx][0];
+    }
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::initialize_all_sequencers() {
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    uint8_t initial_note = _active_note_per_track[track_idx];
+    auto &main_track = main_sequencer_.get_track(track_idx);
+    auto &var_track = variation_sequencer_.get_track(track_idx);
+    auto &random_track = random_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      auto &main_step = main_track.get_step(step_idx);
+      auto &var_step = var_track.get_step(step_idx);
+      auto &random_step = random_track.get_step(step_idx);
+      main_step.note = initial_note;
+      main_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+      var_step.note = initial_note;
+      var_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+      random_step.note = initial_note;
+      random_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+    }
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
+  calculate_timing_params();
+  srand(time_us_32());
+  _just_played_step_per_track.fill(std::nullopt);
+  _pad_pressed_state.fill(false);
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

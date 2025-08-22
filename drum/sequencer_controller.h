@@ -215,6 +215,10 @@ private:
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
+  void initialize_active_notes();
+  void initialize_all_sequencers();
+  void initialize_timing_and_random();
+
   musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> variation_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;

@@ -343,7 +343,7 @@ SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_random() {
-  if (_running && !random_active_) {
+  if (!random_active_) {
     random_active_ = true;
 
     // Generate random pattern: copy notes from main, randomize velocities and
@@ -386,17 +386,19 @@ SequencerController<NumTracks, NumSteps>::is_random_active() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_random(uint8_t percent) {
-  random_probability_ =
-      std::clamp(percent, static_cast<uint8_t>(0), static_cast<uint8_t>(100));
+void SequencerController<NumTracks, NumSteps>::set_random(float value) {
+  value = std::clamp(value, 0.0f, 1.0f);
 
-  // Switch sequencers based on value ranges
-  if (percent < 10) {
+  // Convert to 0-100 for internal storage
+  random_probability_ = static_cast<uint8_t>(value * 100);
+
+  // Switch sequencers based on normalized ranges
+  if (value < 0.1f) {
     set_main_active();
-  } else if (percent >= 40 && percent <= 60) {
+  } else if (value >= 0.4f && value <= 0.6f) {
     generate_variation_blend();
     set_variation_active();
-  } else if (percent > 80) {
+  } else if (value > 0.8f) {
     set_random_active();
   }
 }

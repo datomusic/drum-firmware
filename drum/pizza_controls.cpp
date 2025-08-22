@@ -360,7 +360,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
       controls->_sequencer_controller_ref.activate_random();
     else if (!should_be_active && was_active)
       controls->_sequencer_controller_ref.deactivate_random();
-    controls->_sequencer_controller_ref.set_random(event.value * 33);
+    controls->_sequencer_controller_ref.set_random(event.value);
     parent->parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::RANDOM_EFFECT, event.value, 0);
   } break;

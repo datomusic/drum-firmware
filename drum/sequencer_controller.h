@@ -156,7 +156,7 @@ public:
    */
   void deactivate_random();
 
-  void set_random(uint8_t percent);
+  void set_random(float value);
 
   [[nodiscard]] bool is_random_active() const;
 
@@ -240,8 +240,6 @@ private:
   uint64_t repeat_activation_step_counter_ = 0;
 
   bool random_active_ = false;
-  uint8_t random_probability_ =
-      drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};

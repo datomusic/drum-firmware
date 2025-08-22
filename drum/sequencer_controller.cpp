@@ -17,9 +17,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       swing_percent_(50), swing_delays_odd_steps_(false),
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
-      random_active_(false),
-      random_probability_(drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT),
-      _active_note_per_track{}, _pad_pressed_state{},
+      random_active_(false), _active_note_per_track{}, _pad_pressed_state{},
       _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
 
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
@@ -362,8 +360,8 @@ void SequencerController<NumTracks, NumSteps>::activate_random() {
         // Get one random value and extract both velocity and enabled from it
         uint32_t random_value = rand();
 
-        // Extract velocity from lower 6 bits (0-63) + offset to 64-127 range
-        random_step.velocity = 64 + (random_value & 0x3F);
+        // Extract velocity from lower 7 bits (0-127) for full MIDI range
+        random_step.velocity = random_value & 0x7F;
 
         // Extract enabled from bit 6 (50% chance)
         random_step.enabled = (random_value & 0x40) != 0;
@@ -388,9 +386,6 @@ SequencerController<NumTracks, NumSteps>::is_random_active() const {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
-
-  // Convert to 0-100 for internal storage
-  random_probability_ = static_cast<uint8_t>(value * 100);
 
   // Switch sequencers based on normalized ranges
   if (value < 0.1f) {

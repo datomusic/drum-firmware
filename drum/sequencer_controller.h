@@ -12,6 +12,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <optional>
 
 #include "config.h"
@@ -155,7 +156,7 @@ public:
    */
   void deactivate_random();
 
-  void set_random_probability(uint8_t percent);
+  void set_random(float value);
 
   [[nodiscard]] bool is_random_active() const;
 
@@ -195,17 +196,17 @@ public:
   [[nodiscard]] uint8_t get_retrigger_mode_for_track(uint8_t track_index) const;
 
   /**
-   * @brief Get a reference to the internal sequencer instance.
+   * @brief Get a reference to the active sequencer instance.
    */
   [[nodiscard]] musin::timing::Sequencer<NumTracks, NumSteps> &get_sequencer() {
-    return sequencer_;
+    return sequencer_.get();
   }
   /**
-   * @brief Get a const reference to the internal sequencer instance.
+   * @brief Get a const reference to the active sequencer instance.
    */
   [[nodiscard]] const musin::timing::Sequencer<NumTracks, NumSteps> &
   get_sequencer() const {
-    return sequencer_;
+    return sequencer_.get();
   }
 
 private:
@@ -214,7 +215,15 @@ private:
   void process_track_step(size_t track_idx, size_t step_index_to_play);
   [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
-  musin::timing::Sequencer<NumTracks, NumSteps> sequencer_;
+  void initialize_active_notes();
+  void initialize_all_sequencers();
+  void initialize_timing_and_random();
+
+  musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
+  musin::timing::Sequencer<NumTracks, NumSteps> variation_sequencer_;
+  musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
+  std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
+      sequencer_;
   std::atomic<uint32_t> current_step_counter;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
@@ -235,9 +244,6 @@ private:
   uint64_t repeat_activation_step_counter_ = 0;
 
   bool random_active_ = false;
-  uint8_t random_probability_ =
-      drum::config::drumpad::RANDOM_PROBABILITY_DEFAULT;
-  etl::array<int8_t, NumTracks> random_track_offsets_{};
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
@@ -271,6 +277,36 @@ public:
    * musical step (e.g., a 16th note) of this sequencer.
    */
   [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
+
+  /**
+   * @brief Copy the main pattern to the variation pattern.
+   */
+  void copy_to_variation();
+
+  /**
+   * @brief Copy the main pattern to the random pattern.
+   */
+  void copy_to_random();
+
+  /**
+   * @brief Set the main sequencer as active.
+   */
+  void set_main_active();
+
+  /**
+   * @brief Set the variation sequencer as active.
+   */
+  void set_variation_active();
+
+  /**
+   * @brief Set the random sequencer as active.
+   */
+  void set_random_active();
+
+  /**
+   * @brief Generate variation pattern by blending main and random patterns.
+   */
+  void generate_variation_blend();
 };
 
 } // namespace drum

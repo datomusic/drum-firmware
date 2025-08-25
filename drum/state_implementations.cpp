@@ -141,7 +141,6 @@ void SleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
   constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
   gpio_init(MUX_IO_PIN);
   gpio_set_dir(MUX_IO_PIN, GPIO_IN);
-  gpio_pull_up(MUX_IO_PIN);
 
   // Enable watchdog for wake reset mechanism
   watchdog_enable(500, false);
@@ -157,7 +156,7 @@ void SleepState::update([[maybe_unused]] PizzaDisplay &display,
   constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
 
   // Wait for button release first
-  if (!gpio_get(MUX_IO_PIN)) {
+  if (gpio_get(MUX_IO_PIN)) {
     sleep_us(10000);
     watchdog_update();
     return;

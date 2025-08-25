@@ -34,7 +34,7 @@ extern "C" {
 #include "system_state_machine.h"
 
 #ifdef VERBOSE
-static musin::PicoLogger logger;
+static musin::PicoLogger logger(musin::LogLevel::DEBUG);
 static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
@@ -184,18 +184,17 @@ int main() {
       musin::midi::process_midi_output_queue(logger); // For sending ACKs
       break;
     }
-    case drum::SystemStateId::Sleep: {
-      // Sleep mode - SleepState handles hardware configuration and wake
-      // detection
+    case drum::SystemStateId::FallingAsleep: {
+      // Falling asleep mode - minimal systems during fadeout
       pizza_display.update(now);
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger);
-
-      if (pizza_display.get_brightness() == 0) {
-        audio_engine.mute();
-        // SleepState::enter() handles MUX configuration and wake setup
-        // SleepState::update() handles wake detection and reset logic
-      }
+      break;
+    }
+    case drum::SystemStateId::Sleep: {
+      // Sleep mode - minimal systems, hardware wake handled by SleepState
+      audio_engine.mute();
+      // Note: Display should be off, wake detection handled by SleepState::update()
       break;
     }
     }

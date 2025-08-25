@@ -40,7 +40,6 @@ bool SystemStateMachine::transition_to(SystemStateId new_state) {
   }
 
   // Perform transition
-  logger_.debug("State transition");
 
   current_state_->exit(display_, logger_);
   current_state_ = create_state(new_state);
@@ -67,10 +66,13 @@ bool SystemStateMachine::is_valid_transition(SystemStateId from,
     return (to == SystemStateId::Sequencer);
 
   case SystemStateId::Sequencer:
-    return (to == SystemStateId::FileTransfer || to == SystemStateId::Sleep);
+    return (to == SystemStateId::FileTransfer || to == SystemStateId::FallingAsleep);
 
   case SystemStateId::FileTransfer:
     return (to == SystemStateId::Sequencer);
+
+  case SystemStateId::FallingAsleep:
+    return (to == SystemStateId::Sleep);
 
   case SystemStateId::Sleep:
     // Sleep state should trigger system reset, not normal transitions
@@ -92,6 +94,9 @@ SystemStateMachine::create_state(SystemStateId state_id) const {
 
   case SystemStateId::FileTransfer:
     return std::make_unique<FileTransferState>();
+
+  case SystemStateId::FallingAsleep:
+    return std::make_unique<FallingAsleepState>();
 
   case SystemStateId::Sleep:
     return std::make_unique<SleepState>();

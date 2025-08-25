@@ -20,6 +20,7 @@ enum class SystemStateId {
   Boot,
   Sequencer,
   FileTransfer,
+  FallingAsleep,
   Sleep
 };
 

@@ -52,6 +52,23 @@ public:
 };
 
 /**
+ * @brief Falling asleep state - handles UI fadeout and transition to sleep.
+ */
+class FallingAsleepState : public SystemState {
+public:
+  void enter(PizzaDisplay &display, musin::Logger &logger) override;
+  void update(PizzaDisplay &display, musin::Logger &logger,
+              SystemStateMachine &state_machine, absolute_time_t now) override;
+  void exit(PizzaDisplay &display, musin::Logger &logger) override;
+  SystemStateId get_id() const override {
+    return SystemStateId::FallingAsleep;
+  }
+
+private:
+  absolute_time_t fallback_timeout_;
+};
+
+/**
  * @brief Sleep state - handles device sleep mode and wake detection.
  */
 class SleepState : public SystemState {

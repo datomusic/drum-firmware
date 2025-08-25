@@ -84,15 +84,48 @@ void FileTransferState::exit(PizzaDisplay &display, musin::Logger &logger) {
   logger.debug("Exiting FileTransfer state");
 }
 
+// --- FallingAsleepState Implementation ---
+
+void FallingAsleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
+  logger.debug("Entering FallingAsleep state");
+  display.start_sleep_mode(); // Start the fadeout
+  fallback_timeout_ = make_timeout_time_ms(750); // 750ms fallback (longer than 500ms fadeout)
+}
+
+void FallingAsleepState::update([[maybe_unused]] PizzaDisplay &display, musin::Logger &logger,
+                                SystemStateMachine &state_machine, absolute_time_t now) {
+  // Check timeout (750ms fallback)
+  if (absolute_time_diff_us(now, fallback_timeout_) <= 0) {
+    logger.debug("Timeout reached - transitioning to Sleep");
+    state_machine.transition_to(SystemStateId::Sleep);
+    return;
+  }
+}
+
+void FallingAsleepState::exit(PizzaDisplay &display, musin::Logger &logger) {
+  (void)display; // Unused in this method
+  logger.debug("Exiting FallingAsleep state");
+}
+
 // --- SleepState Implementation ---
 
 void SleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
   logger.debug("Entering Sleep state");
-  display.start_sleep_mode();
+  // Note: fadeout already started in FallingAsleepState
 
   // Configure MUX for playbutton wake detection
   logger.debug("Configuring MUX for playbutton wake");
   display.deinit(); // Turn off LED enable pin
+
+  // Initialize MUX address pins as outputs
+  gpio_init(DATO_SUBMARINE_MUX_ADDR0_PIN);
+  gpio_set_dir(DATO_SUBMARINE_MUX_ADDR0_PIN, GPIO_OUT);
+  gpio_init(DATO_SUBMARINE_MUX_ADDR1_PIN);
+  gpio_set_dir(DATO_SUBMARINE_MUX_ADDR1_PIN, GPIO_OUT);
+  gpio_init(DATO_SUBMARINE_MUX_ADDR2_PIN);
+  gpio_set_dir(DATO_SUBMARINE_MUX_ADDR2_PIN, GPIO_OUT);
+  gpio_init(DATO_SUBMARINE_MUX_ADDR3_PIN);
+  gpio_set_dir(DATO_SUBMARINE_MUX_ADDR3_PIN, GPIO_OUT);
 
   // Set MUX address to playbutton channel
   constexpr uint32_t PLAYBUTTON_ADDRESS = 5;

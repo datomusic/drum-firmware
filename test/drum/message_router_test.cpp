@@ -1,5 +1,5 @@
-#include "drum/message_router.h"
 #include "drum/config.h"
+#include "drum/message_router.h"
 #include "test/midi_test_support.h"
 #include "test/test_support.h"
 
@@ -32,7 +32,8 @@ public:
 };
 
 template <size_t NumTracks, size_t NumSteps>
-class MockSequencerController : public drum::SequencerController<NumTracks, NumSteps> {
+class MockSequencerController
+    : public drum::SequencerController<NumTracks, NumSteps> {
 public:
   MockSequencerController(musin::timing::Tempo &tempo, musin::Logger &logger)
       : drum::SequencerController<NumTracks, NumSteps>(tempo, logger) {
@@ -60,7 +61,8 @@ TEST_CASE("MessageRouter MIDI Output Tests", "[message_router]") {
   MockLogger logger;
   musin::timing::Tempo tempo;
   MockAudioEngine audio_engine(logger);
-  MockSequencerController<drum::config::NUM_TRACKS, drum::config::NUM_STEPS_PER_TRACK>
+  MockSequencerController<drum::config::NUM_TRACKS,
+                          drum::config::NUM_STEPS_PER_TRACK>
       sequencer_controller(tempo, logger);
 
   MessageRouter router(audio_engine, sequencer_controller, logger);
@@ -75,8 +77,8 @@ TEST_CASE("MessageRouter MIDI Output Tests", "[message_router]") {
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
     // Volume is CC 7. 0.5f * 127 = 63.5, rounded is 64.
     REQUIRE(MIDI::internal::mock_midi_calls[0] ==
-            MIDI::internal::MockMidiCallRecord::ControlChange(drum::config::FALLBACK_MIDI_CHANNEL,
-                                                              7, 64));
+            MIDI::internal::MockMidiCallRecord::ControlChange(
+                drum::config::MIDI_OUT_CHANNEL, 7, 64));
   }
 
   SECTION("Parameter change sends MIDI CC when mode is MIDI") {
@@ -89,8 +91,8 @@ TEST_CASE("MessageRouter MIDI Output Tests", "[message_router]") {
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
     // Filter Freq is CC 74. 1.0f * 127 = 127.
     REQUIRE(MIDI::internal::mock_midi_calls[0] ==
-            MIDI::internal::MockMidiCallRecord::ControlChange(drum::config::FALLBACK_MIDI_CHANNEL,
-                                                              74, 127));
+            MIDI::internal::MockMidiCallRecord::ControlChange(
+                drum::config::MIDI_OUT_CHANNEL, 74, 127));
   }
 
   SECTION("Parameter change does not send MIDI CC when mode is AUDIO") {
@@ -114,23 +116,25 @@ TEST_CASE("MessageRouter MIDI Output Tests", "[message_router]") {
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
     // Track 2 Pitch is CC 22. 0.25f * 127 = 31.75, rounded is 32.
     REQUIRE(MIDI::internal::mock_midi_calls[0] ==
-            MIDI::internal::MockMidiCallRecord::ControlChange(drum::config::FALLBACK_MIDI_CHANNEL,
-                                                              22, 32));
+            MIDI::internal::MockMidiCallRecord::ControlChange(
+                drum::config::MIDI_OUT_CHANNEL, 22, 32));
   }
 
   SECTION("NoteOn event sends MIDI NoteOn when mode is MIDI") {
     reset_test_state();
     router.set_output_mode(OutputMode::MIDI);
 
-    drum::Events::NoteEvent event{.track_index = 0, .note = 60, .velocity = 100};
+    drum::Events::NoteEvent event{
+        .track_index = 0, .note = 60, .velocity = 100};
     router.notification(event);
-    router.update(); // This moves event from internal queue to the main MIDI output queue
+    router.update(); // This moves event from internal queue to the main MIDI
+                     // output queue
     process_midi_output_queue();
 
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
-    REQUIRE(
-        MIDI::internal::mock_midi_calls[0] ==
-        MIDI::internal::MockMidiCallRecord::NoteOn(drum::config::FALLBACK_MIDI_CHANNEL, 60, 100));
+    REQUIRE(MIDI::internal::mock_midi_calls[0] ==
+            MIDI::internal::MockMidiCallRecord::NoteOn(
+                drum::config::MIDI_OUT_CHANNEL, 60, 100));
   }
 
   SECTION("NoteOff event (velocity 0) sends MIDI NoteOff when mode is BOTH") {
@@ -144,16 +148,17 @@ TEST_CASE("MessageRouter MIDI Output Tests", "[message_router]") {
 
     REQUIRE(MIDI::internal::mock_midi_calls.size() == 1);
     // The wrapper turns a NoteOn with velocity 0 into a NoteOff message type
-    REQUIRE(
-        MIDI::internal::mock_midi_calls[0] ==
-        MIDI::internal::MockMidiCallRecord::NoteOff(drum::config::FALLBACK_MIDI_CHANNEL, 62, 0));
+    REQUIRE(MIDI::internal::mock_midi_calls[0] ==
+            MIDI::internal::MockMidiCallRecord::NoteOff(
+                drum::config::MIDI_OUT_CHANNEL, 62, 0));
   }
 
   SECTION("NoteOn event does not send MIDI when mode is AUDIO") {
     reset_test_state();
     router.set_output_mode(OutputMode::AUDIO);
 
-    drum::Events::NoteEvent event{.track_index = 0, .note = 60, .velocity = 100};
+    drum::Events::NoteEvent event{
+        .track_index = 0, .note = 60, .velocity = 100};
     router.notification(event);
     router.update();
     process_midi_output_queue();

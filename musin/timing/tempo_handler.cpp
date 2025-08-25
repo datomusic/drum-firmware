@@ -129,6 +129,18 @@ void TempoHandler::set_playback_state(PlaybackState new_state) {
   }
 }
 
+/**
+ * @brief Automatically switches the clock source based on a fixed priority.
+ *
+ * This method implements the automatic clock source selection logic, which
+ * is called periodically from the main loop. The priority is as follows:
+ * 1. External Sync: If a sync cable is connected, it will always be the
+ *    selected source.
+ * 2. MIDI Clock: If no sync cable is connected, it checks for an active MIDI
+ *    clock signal. If MIDI clock is being received, it becomes the source.
+ * 3. Internal Clock: If neither External Sync nor MIDI clock is available,
+ *    the system falls back to the internal clock.
+ */
 void TempoHandler::update() {
   if (_sync_in_ref.is_cable_connected()) {
     if (current_source_ != ClockSource::EXTERNAL_SYNC) {

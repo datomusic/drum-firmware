@@ -11,6 +11,7 @@ namespace musin::timing {
  */
 struct TempoEvent {
   uint64_t tick_count;
+  bool is_resync = false;  // True when sequencer should immediately advance
 };
 
 } // namespace musin::timing

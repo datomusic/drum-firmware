@@ -1,0 +1,10 @@
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.3
+    hooks:
+      - id: clang-format
+        args: ['-i'] # The '-i' argument means in-place editing
+        files: '\\.(c|cc|cxx|cpp|h|hpp|hxx)$'
+        always_run: true
+        pass_filenames: true
+        additional_dependencies: [pyyaml]

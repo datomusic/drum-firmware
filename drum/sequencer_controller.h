@@ -103,6 +103,12 @@ public:
   void reset();
 
   /**
+   * @brief Immediately advance the sequencer to the next step.
+   * Used for synchronization when external clock resumes after a timeout.
+   */
+  void advance_step();
+
+  /**
    * @brief Start the sequencer by connecting to the tempo source.
    * Does not reset the step index.
    */

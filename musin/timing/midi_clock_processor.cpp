@@ -19,6 +19,11 @@ void MidiClockProcessor::on_midi_clock_tick_received() {
       // Timeout detected, clock might have stopped and restarted. Reset.
       // printf("MCP: MIDI Clock timeout, resetting.\n");
       reset();
+      // Immediately advance the sequencer with a re-sync tick
+      musin::timing::ClockEvent re_sync_tick_event{
+          .source = musin::timing::ClockSource::MIDI,
+          .is_resync = true};
+      notify_observers(re_sync_tick_event);
       // Treat this tick as the first tick after a reset, so it will just update
       // _last_raw_tick_time
     } else if (current_interval_us <

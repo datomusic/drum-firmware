@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/raspberrypi/picotool/develop/json/schemas/whitelabel-schema.json",
+    "volume": {
+        "label": "DATO Boot",
+        "redirect_url": "https://dato.mu/",
+        "redirect_name": "Dato Musical Instruments",
+        "model": "DRUM",
+        "board_id": "Submarine RP2350"
+    }
+}
+

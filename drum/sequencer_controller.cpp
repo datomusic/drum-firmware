@@ -187,6 +187,11 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::advance_step() {
+  _step_is_due = true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::start() {
   if (_running) {
     return;
@@ -228,6 +233,15 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
     [[maybe_unused]] musin::timing::TempoEvent event) {
   if (!_running) {
+    return;
+  }
+
+  // Handle resync events by immediately advancing a step
+  if (event.is_resync) {
+    // Reset timing to start fresh from this point
+    high_res_tick_counter_ = 0;
+    next_trigger_tick_target_ = high_res_ticks_per_step_;
+    advance_step();
     return;
   }
 

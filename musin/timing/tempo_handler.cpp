@@ -83,13 +83,12 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   if (current_source_ == ClockSource::MIDI) {
     // Handle resync events immediately regardless of speed modifier
     if (event.is_resync) {
-      musin::timing::TempoEvent resync_tempo_event{
-          .tick_count = 0,
-          .is_resync = true};
+      musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
+                                                   .is_resync = true};
       notify_observers(resync_tempo_event);
       return;
     }
-    
+
     switch (current_speed_modifier_) {
     case SpeedModifier::NORMAL_SPEED: {
       musin::timing::TempoEvent tempo_tick_event{};

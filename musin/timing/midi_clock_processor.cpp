@@ -38,9 +38,12 @@ bool MidiClockProcessor::is_active() const {
     return false;
   }
   absolute_time_t now = get_absolute_time();
-  return absolute_time_diff_us(_last_raw_tick_time, now) < MIDI_CLOCK_TIMEOUT_US;
+  return absolute_time_diff_us(_last_raw_tick_time, now) <
+         MIDI_CLOCK_TIMEOUT_US;
 }
 
-void MidiClockProcessor::reset() { _last_raw_tick_time = nil_time; }
+void MidiClockProcessor::reset() {
+  _last_raw_tick_time = nil_time;
+}
 
 } // namespace musin::timing

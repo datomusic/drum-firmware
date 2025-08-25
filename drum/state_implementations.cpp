@@ -147,6 +147,12 @@ void SleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
 
   logger.debug(
       "MUX configured for playbutton wake - waiting for button release first");
+
+  // Wait for button release first
+  while (!gpio_get(MUX_IO_PIN)) {
+    sleep_us(10000);
+    watchdog_update();
+  }
 }
 
 void SleepState::update([[maybe_unused]] PizzaDisplay &display,
@@ -154,14 +160,6 @@ void SleepState::update([[maybe_unused]] PizzaDisplay &display,
                         [[maybe_unused]] SystemStateMachine &state_machine,
                         [[maybe_unused]] absolute_time_t now) {
   constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
-
-  // Wait for button release first
-  if (gpio_get(MUX_IO_PIN)) {
-    sleep_us(10000);
-    watchdog_update();
-    return;
-  }
-
   // Now check for button press to wake
   if (!gpio_get(MUX_IO_PIN)) {
     logger.debug("Playbutton pressed - triggering reset");

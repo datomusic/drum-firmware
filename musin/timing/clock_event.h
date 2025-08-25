@@ -15,6 +15,15 @@ enum class ClockSource : uint8_t {
 };
 
 /**
+ * @brief Defines speed modifiers for external clock sources.
+ */
+enum class SpeedModifier : uint8_t {
+  HALF_SPEED = 1,
+  NORMAL_SPEED = 2,
+  DOUBLE_SPEED = 3
+};
+
+/**
  * @brief Event structure carrying information about a clock tick.
  */
 struct ClockEvent {

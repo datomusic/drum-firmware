@@ -169,6 +169,7 @@ int main() {
       audio_engine.process();
       pizza_display.update(now);
       midi_manager.process_input();
+      internal_clock.update(now);
       tempo_handler.update();
       musin::midi::process_midi_output_queue(
           logger); // Pass logger to queue processing

@@ -415,10 +415,24 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
         drum::Parameter::PITCH, event.value, 3);
     break;
   case SPEED: {
-    float bpm = config::analog_controls::MIN_BPM_ADJUST +
-                event.value * (config::analog_controls::MAX_BPM_ADJUST -
-                               config::analog_controls::MIN_BPM_ADJUST);
-    controls->_tempo_handler_ref.set_bpm(bpm);
+    if (controls->_tempo_handler_ref.get_clock_source() ==
+        musin::timing::ClockSource::INTERNAL) {
+      // Internal clock: existing BPM behavior
+      float bpm = config::analog_controls::MIN_BPM_ADJUST +
+                  event.value * (config::analog_controls::MAX_BPM_ADJUST -
+                                 config::analog_controls::MIN_BPM_ADJUST);
+      controls->_tempo_handler_ref.set_bpm(bpm);
+    } else {
+      // External clock: pot controls speed modifier
+      musin::timing::SpeedModifier modifier =
+          musin::timing::SpeedModifier::NORMAL_SPEED;
+      if (event.value < 0.1f) {
+        modifier = musin::timing::SpeedModifier::HALF_SPEED;
+      } else if (event.value > 0.9f) {
+        modifier = musin::timing::SpeedModifier::DOUBLE_SPEED;
+      }
+      controls->_tempo_handler_ref.set_speed_modifier(modifier);
+    }
     parent->parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::TEMPO, event.value);
   } break;

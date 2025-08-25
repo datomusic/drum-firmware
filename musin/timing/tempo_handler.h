@@ -83,6 +83,13 @@ public:
   void set_bpm(float bpm);
 
   /**
+   * @brief Set the speed modifier for all external clock sources (MIDI and
+   * Sync).
+   * @param modifier The speed modifier to apply (half, normal, double speed).
+   */
+  void set_speed_modifier(SpeedModifier modifier);
+
+  /**
    * @brief Set the current playback state.
    * @param new_state The new playback state.
    */
@@ -102,6 +109,8 @@ private:
 
   ClockSource current_source_;
   PlaybackState _playback_state;
+  SpeedModifier current_speed_modifier_;
+  uint8_t midi_tick_counter_;
   bool _send_this_internal_tick_as_midi_clock;
   const bool _send_midi_clock_when_stopped;
 };

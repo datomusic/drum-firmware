@@ -427,9 +427,9 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
       // External clock: pot controls speed modifier
       musin::timing::SpeedModifier modifier =
           musin::timing::SpeedModifier::NORMAL_SPEED;
-      if (event.value < 0.33f) {
+      if (event.value < 0.1f) {
         modifier = musin::timing::SpeedModifier::HALF_SPEED;
-      } else if (event.value > 0.67f) {
+      } else if (event.value > 0.9f) {
         modifier = musin::timing::SpeedModifier::DOUBLE_SPEED;
       }
       controls->_tempo_handler_ref.set_external_speed_modifier(modifier);

@@ -89,11 +89,14 @@ void FileTransferState::exit(PizzaDisplay &display, musin::Logger &logger) {
 void FallingAsleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
   logger.debug("Entering FallingAsleep state");
   display.start_sleep_mode(); // Start the fadeout
-  fallback_timeout_ = make_timeout_time_ms(750); // 750ms fallback (longer than 500ms fadeout)
+  fallback_timeout_ =
+      make_timeout_time_ms(750); // 750ms fallback (longer than 500ms fadeout)
 }
 
-void FallingAsleepState::update([[maybe_unused]] PizzaDisplay &display, musin::Logger &logger,
-                                SystemStateMachine &state_machine, absolute_time_t now) {
+void FallingAsleepState::update([[maybe_unused]] PizzaDisplay &display,
+                                musin::Logger &logger,
+                                SystemStateMachine &state_machine,
+                                absolute_time_t now) {
   // Check timeout (750ms fallback)
   if (absolute_time_diff_us(now, fallback_timeout_) <= 0) {
     logger.debug("Timeout reached - transitioning to Sleep");

@@ -194,7 +194,8 @@ int main() {
     case drum::SystemStateId::Sleep: {
       // Sleep mode - minimal systems, hardware wake handled by SleepState
       audio_engine.mute();
-      // Note: Display should be off, wake detection handled by SleepState::update()
+      // Note: Display should be off, wake detection handled by
+      // SleepState::update()
       break;
     }
     }

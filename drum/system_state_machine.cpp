@@ -66,7 +66,8 @@ bool SystemStateMachine::is_valid_transition(SystemStateId from,
     return (to == SystemStateId::Sequencer);
 
   case SystemStateId::Sequencer:
-    return (to == SystemStateId::FileTransfer || to == SystemStateId::FallingAsleep);
+    return (to == SystemStateId::FileTransfer ||
+            to == SystemStateId::FallingAsleep);
 
   case SystemStateId::FileTransfer:
     return (to == SystemStateId::Sequencer);

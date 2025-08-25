@@ -475,7 +475,7 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
     logger.debug("PLAYBUTTON HELD - entering sleep mode");
     parent->parent_controls->_system_state_machine_ref.transition_to(
-        drum::SystemStateId::Sleep);
+        drum::SystemStateId::FallingAsleep);
   }
   logger.debug("Raw value ", static_cast<uint32_t>(event.raw_value));
 }

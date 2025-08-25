@@ -15,8 +15,8 @@ namespace musin::timing {
 // TempoHandler)
 constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 1;
 // Number of raw tick intervals to average for BPM. MIDI clock is 24 PPQN.
-// Averaging over one quarter note (24 ticks) can provide a good balance.
-constexpr size_t MIDI_CLOCK_INTERVAL_HISTORY_SIZE = 24;
+// Averaging over a sixteenth note (6 ticks) reduces latency.
+constexpr size_t MIDI_CLOCK_INTERVAL_HISTORY_SIZE = 6;
 
 /**
  * @brief Processes raw incoming MIDI clock ticks to derive a stable tempo and

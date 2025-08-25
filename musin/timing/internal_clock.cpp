@@ -31,7 +31,9 @@ void InternalClock::set_bpm(float bpm) {
   _tick_interval_us = new_interval;
 }
 
-float InternalClock::get_bpm() const { return _current_bpm; }
+float InternalClock::get_bpm() const {
+  return _current_bpm;
+}
 
 void InternalClock::start() {
   if (_is_running) {
@@ -52,7 +54,9 @@ void InternalClock::stop() {
   _next_tick_time = nil_time;
 }
 
-bool InternalClock::is_running() const { return _is_running; }
+bool InternalClock::is_running() const {
+  return _is_running;
+}
 
 void InternalClock::update(absolute_time_t now) {
   if (!_is_running || is_nil_time(_next_tick_time) ||

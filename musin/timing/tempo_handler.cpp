@@ -152,7 +152,8 @@ void TempoHandler::update() {
         set_clock_source(ClockSource::MIDI);
       }
     } else {
-      if (current_source_ != ClockSource::MIDI && current_source_ != ClockSource::INTERNAL) {
+      if (current_source_ != ClockSource::MIDI &&
+          current_source_ != ClockSource::INTERNAL) {
         set_clock_source(ClockSource::INTERNAL);
       }
     }

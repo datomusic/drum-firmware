@@ -156,7 +156,7 @@ void TempoHandler::update() {
       set_clock_source(ClockSource::EXTERNAL_SYNC);
     }
   } else {
-    if (_midi_clock_processor_ref.get_derived_bpm() > 0.0f) {
+    if (_midi_clock_processor_ref.is_active()) {
       if (current_source_ != ClockSource::MIDI) {
         set_clock_source(ClockSource::MIDI);
       }

@@ -122,11 +122,7 @@ void MidiClockProcessor::update_derived_bpm() {
 }
 
 float MidiClockProcessor::get_derived_bpm() const {
-  // Check for timeout: if no raw tick received recently, consider BPM invalid
-  if (is_nil_time(_last_raw_tick_time) ||
-      absolute_time_diff_us(_last_raw_tick_time, get_absolute_time()) >
-          MIDI_CLOCK_TIMEOUT_US) {
-    // printf("MCP: get_derived_bpm - timeout\n");
+  if (is_nil_time(_last_raw_tick_time)) {
     return 0.0f;
   }
   return _derived_bpm;

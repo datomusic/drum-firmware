@@ -19,7 +19,8 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
       _midi_clock_processor_ref(midi_clock_processor_ref),
       _sync_in_ref(sync_in_ref), _clock_multiplier_ref(clock_multiplier_ref),
       current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
-      _send_this_internal_tick_as_midi_clock(true),
+      current_speed_modifier_(SpeedModifier::NORMAL_SPEED),
+      midi_tick_counter_(0), _send_this_internal_tick_as_midi_clock(true),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
 
   set_clock_source(initial_source);
@@ -75,10 +76,36 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     }
   }
 
-  if (event.source == current_source_) {
+  if (event.source != current_source_) {
+    return;
+  }
+
+  if (current_source_ == ClockSource::MIDI) {
+    switch (current_speed_modifier_) {
+    case SpeedModifier::NORMAL_SPEED: {
+      musin::timing::TempoEvent tempo_tick_event{};
+      notify_observers(tempo_tick_event);
+      break;
+    }
+    case SpeedModifier::HALF_SPEED: {
+      midi_tick_counter_++;
+      if (midi_tick_counter_ >= 2) {
+        musin::timing::TempoEvent tempo_tick_event{};
+        notify_observers(tempo_tick_event);
+        midi_tick_counter_ = 0;
+      }
+      break;
+    }
+    case SpeedModifier::DOUBLE_SPEED: {
+      musin::timing::TempoEvent tempo_tick_event{};
+      notify_observers(tempo_tick_event);
+      notify_observers(tempo_tick_event);
+      break;
+    }
+    }
+  } else {
     musin::timing::TempoEvent tempo_tick_event{};
-    etl::observable<etl::observer<musin::timing::TempoEvent>,
-                    MAX_TEMPO_OBSERVERS>::notify_observers(tempo_tick_event);
+    notify_observers(tempo_tick_event);
   }
 }
 
@@ -88,8 +115,10 @@ void TempoHandler::set_bpm(float bpm) {
   }
 }
 
-void TempoHandler::set_external_speed_modifier(SpeedModifier modifier) {
+void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
+  current_speed_modifier_ = modifier;
   _clock_multiplier_ref.set_speed_modifier(modifier);
+  midi_tick_counter_ = 0;
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {

@@ -432,7 +432,7 @@ void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
       } else if (event.value > 0.9f) {
         modifier = musin::timing::SpeedModifier::DOUBLE_SPEED;
       }
-      controls->_tempo_handler_ref.set_external_speed_modifier(modifier);
+      controls->_tempo_handler_ref.set_speed_modifier(modifier);
     }
     parent->parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::TEMPO, event.value);

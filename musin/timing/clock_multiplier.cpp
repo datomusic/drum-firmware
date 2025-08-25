@@ -61,10 +61,10 @@ uint8_t ClockMultiplier::calculate_effective_multiplier() const {
   uint8_t ret = base_multiplication_factor_;
   switch (current_speed_modifier_) {
   case SpeedModifier::HALF_SPEED:
-    ret *= 2;
+    ret /= 2;
     break;
   case SpeedModifier::DOUBLE_SPEED:
-    ret /= 2;
+    ret *= 2;
     break;
   case SpeedModifier::NORMAL_SPEED:
   default:

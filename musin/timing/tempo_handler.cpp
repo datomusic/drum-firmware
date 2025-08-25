@@ -81,6 +81,14 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   }
 
   if (current_source_ == ClockSource::MIDI) {
+    // Handle resync events immediately regardless of speed modifier
+    if (event.is_resync) {
+      musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
+                                                   .is_resync = true};
+      notify_observers(resync_tempo_event);
+      return;
+    }
+
     switch (current_speed_modifier_) {
     case SpeedModifier::NORMAL_SPEED: {
       musin::timing::TempoEvent tempo_tick_event{};
@@ -147,7 +155,7 @@ void TempoHandler::update() {
       set_clock_source(ClockSource::EXTERNAL_SYNC);
     }
   } else {
-    if (_midi_clock_processor_ref.get_derived_bpm() > 0.0f) {
+    if (_midi_clock_processor_ref.is_active()) {
       if (current_source_ != ClockSource::MIDI) {
         set_clock_source(ClockSource::MIDI);
       }

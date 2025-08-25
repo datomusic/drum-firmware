@@ -28,6 +28,7 @@ enum class SpeedModifier : uint8_t {
  */
 struct ClockEvent {
   musin::timing::ClockSource source;
+  bool is_resync = false; // True when clock resumes after timeout
 };
 
 } // namespace musin::timing

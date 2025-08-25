@@ -7,45 +7,31 @@
 namespace musin::timing {
 
 InternalClock::InternalClock(float initial_bpm)
-    : _current_bpm(initial_bpm), _is_running(false),
-      _bpm_change_pending{false} {
-  _timer_info = {};
+    : _current_bpm(initial_bpm), _is_running(false) {
   _tick_interval_us = calculate_tick_interval(initial_bpm);
-  _pending_bpm = initial_bpm;
-  _pending_tick_interval_us = _tick_interval_us;
+  _next_tick_time = nil_time;
 }
 
 void InternalClock::set_bpm(float bpm) {
-  if (bpm <= 0.0f) {
+  if (bpm <= 0.0f || bpm == _current_bpm) {
     return;
   }
 
-  if (_bpm_change_pending.load(std::memory_order_relaxed)) {
-    if (bpm == _pending_bpm) {
-      return;
-    }
-  } else {
-    if (bpm == _current_bpm) {
-      return;
-    }
-  }
-
+  _current_bpm = bpm;
   int64_t new_interval = calculate_tick_interval(bpm);
 
   if (_is_running) {
-    _pending_bpm = bpm;
-    _pending_tick_interval_us = new_interval;
-    _bpm_change_pending.store(true, std::memory_order_relaxed);
-  } else {
-    _current_bpm = bpm;
-    _tick_interval_us = new_interval;
-    _bpm_change_pending.store(false, std::memory_order_relaxed);
+    // To make the tempo change feel immediate, we adjust the next tick time
+    // based on the time of the previously scheduled tick.
+    absolute_time_t last_tick_time =
+        delayed_by_us(_next_tick_time, -_tick_interval_us);
+    _next_tick_time = delayed_by_us(last_tick_time, new_interval);
   }
+
+  _tick_interval_us = new_interval;
 }
 
-float InternalClock::get_bpm() const {
-  return _current_bpm;
-}
+float InternalClock::get_bpm() const { return _current_bpm; }
 
 void InternalClock::start() {
   if (_is_running) {
@@ -54,31 +40,33 @@ void InternalClock::start() {
   if (_tick_interval_us <= 0) {
     return;
   }
-
-  // Add the repeating timer
-  if (add_repeating_timer_us(-_tick_interval_us, timer_callback, this,
-                             &_timer_info)) {
-    _is_running = true;
-  } else {
-    _is_running = false;
-  }
+  _is_running = true;
+  _next_tick_time = delayed_by_us(get_absolute_time(), _tick_interval_us);
 }
 
 void InternalClock::stop() {
   if (!_is_running) {
     return;
   }
-
-  // Cancel the repeating timer
-  cancel_repeating_timer(&_timer_info);
   _is_running = false;
-  _bpm_change_pending.store(false, std::memory_order_relaxed);
-
-  _timer_info = {};
+  _next_tick_time = nil_time;
 }
 
-bool InternalClock::is_running() const {
-  return _is_running;
+bool InternalClock::is_running() const { return _is_running; }
+
+void InternalClock::update(absolute_time_t now) {
+  if (!_is_running || is_nil_time(_next_tick_time) ||
+      !time_reached(_next_tick_time)) {
+    return;
+  }
+
+  musin::timing::ClockEvent tick_event{musin::timing::ClockSource::INTERNAL};
+  notify_observers(tick_event);
+
+  // Schedule the next tick.
+  // To avoid drift, we schedule it relative to the last scheduled time,
+  // not the current time 'now'.
+  _next_tick_time = delayed_by_us(_next_tick_time, _tick_interval_us);
 }
 
 int64_t InternalClock::calculate_tick_interval(float bpm) const {
@@ -90,40 +78,6 @@ int64_t InternalClock::calculate_tick_interval(float bpm) const {
     return 0;
   }
   return static_cast<int64_t>(1000000.0f / ticks_per_second);
-}
-
-// --- Static Timer Callback ---
-bool InternalClock::timer_callback(struct repeating_timer *rt) {
-  InternalClock *instance = static_cast<InternalClock *>(rt->user_data);
-
-  if (!instance->_is_running) {
-    return false; // Stop the timer if the clock instance was stopped
-  }
-
-  // Notify observers for the current tick (based on the old interval)
-  musin::timing::ClockEvent tick_event{musin::timing::ClockSource::INTERNAL};
-  instance->notify_observers(tick_event);
-
-  // Check for and apply pending BPM change for the *next* interval
-  if (instance->_bpm_change_pending.load(std::memory_order_relaxed)) {
-    int64_t new_interval = instance->_pending_tick_interval_us;
-    float new_bpm = instance->_pending_bpm;
-
-    instance->_current_bpm = new_bpm;
-    instance->_tick_interval_us = new_interval;
-
-    if (new_interval <= 0) {
-      // Invalid interval, stop the clock
-      instance->_is_running = false;
-      instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
-      return false; // Stop the timer
-    }
-    rt->delay_us = -new_interval; // Set the next interval for the timer
-
-    instance->_bpm_change_pending.store(false, std::memory_order_relaxed);
-  }
-
-  return instance->_is_running; // Continue if still running
 }
 
 } // namespace musin::timing

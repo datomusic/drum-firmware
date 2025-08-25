@@ -54,7 +54,6 @@ public:
 
   /**
    * @brief Start generating clock ticks.
-   * Requires init() to have been called successfully.
    */
   void start();
 
@@ -68,17 +67,13 @@ public:
    */
   [[nodiscard]] bool is_running() const;
 
-private:
   /**
-   * @brief Static timer callback function required by the Pico SDK.
-   * @param id Alarm ID.
-   * @param rt Pointer to the repeating_timer structure.
-   * @return True to continue repeating, false to stop.
+   * @brief Update method to be called from the main loop.
+   * @param now The current time.
    */
-  static bool timer_callback(struct repeating_timer *rt);
+  void update(absolute_time_t now);
 
-  // handle_tick() logic moved into timer_callback
-
+private:
   /**
    * @brief Calculate the timer interval in microseconds for a given BPM and
    * current PPQN.
@@ -90,14 +85,7 @@ private:
   float _current_bpm;
   int64_t _tick_interval_us = 0;
   bool _is_running = false;
-  struct repeating_timer _timer_info; // Stores repeating timer state
-
-  // For pending BPM changes
-  volatile float _pending_bpm = 0.0f; // Written by main thread, read by ISR
-  volatile int64_t _pending_tick_interval_us =
-      0; // Written by main thread, read by ISR
-  std::atomic<bool> _bpm_change_pending{
-      false}; // Synchronizes access to pending values
+  absolute_time_t _next_tick_time;
 };
 
 } // namespace musin::timing

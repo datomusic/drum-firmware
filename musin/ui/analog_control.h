@@ -2,8 +2,8 @@
 #define MUSIN_UI_ANALOG_CONTROL_H
 
 #include "etl/observer.h"
-#include "musin/ui/adaptive_filter.h"
 #include "musin/hal/adc_defs.h"
+#include "musin/ui/adaptive_filter.h"
 #include <algorithm>
 #include <cstdint>
 #include <optional>
@@ -16,11 +16,13 @@ struct AnalogControlEvent {
   uint16_t raw_value;
 };
 
-class AnalogControl : public etl::observable<etl::observer<AnalogControlEvent>, 4> {
+class AnalogControl
+    : public etl::observable<etl::observer<AnalogControlEvent>, 4> {
 public:
-  explicit AnalogControl(uint16_t control_id, bool invert = false, bool use_filter = true, float threshold = 0.005f);
+  explicit AnalogControl(uint16_t control_id, bool invert = false,
+                         bool use_filter = true, float threshold = 0.005f);
 
-  void init();
+  void init(uint16_t initial_raw_value);
   bool update(uint16_t raw_value);
 
   float get_value() const;

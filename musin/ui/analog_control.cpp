@@ -4,18 +4,28 @@
 
 namespace musin::ui {
 
-AnalogControl::AnalogControl(uint16_t control_id, bool invert, bool use_filter, float threshold)
+AnalogControl::AnalogControl(uint16_t control_id, bool invert, bool use_filter,
+                             float threshold)
     : _id(control_id), _invert_mapping(invert), _threshold(threshold) {
   if (use_filter) {
     _filter.emplace();
   }
 }
 
-void AnalogControl::init() {
-  _last_notified_value = -1.0f;
-  _current_raw = 0;
+void AnalogControl::init(uint16_t initial_raw_value) {
+  _current_raw = initial_raw_value;
+  float raw_normalized =
+      static_cast<float>(_current_raw) / musin::hal::ADC_MAX_VALUE;
+  float initial_value =
+      _invert_mapping ? (1.0f - raw_normalized) : raw_normalized;
+
   if (_filter) {
-    _filter->update(0.0f); // Initialize filter value
+    // Initialize the filter with the first reading to prevent it from starting
+    // at 0 and ramping up.
+    _filter->update(initial_value);
+    _last_notified_value = _filter->get_value();
+  } else {
+    _last_notified_value = initial_value;
   }
 }
 
@@ -25,14 +35,17 @@ float AnalogControl::get_value() const {
   }
   // If no filter, we don't have a persistent value, this might need rethinking
   // For now, return a raw normalized value if requested directly.
-  float raw_normalized = static_cast<float>(_current_raw) / musin::hal::ADC_MAX_VALUE;
+  float raw_normalized =
+      static_cast<float>(_current_raw) / musin::hal::ADC_MAX_VALUE;
   return _invert_mapping ? (1.0f - raw_normalized) : raw_normalized;
 }
 
 bool AnalogControl::update(uint16_t raw_value) {
   _current_raw = raw_value;
-  float raw_normalized = static_cast<float>(_current_raw) / musin::hal::ADC_MAX_VALUE;
-  float current_value = _invert_mapping ? (1.0f - raw_normalized) : raw_normalized;
+  float raw_normalized =
+      static_cast<float>(_current_raw) / musin::hal::ADC_MAX_VALUE;
+  float current_value =
+      _invert_mapping ? (1.0f - raw_normalized) : raw_normalized;
 
   float value_to_check = current_value;
 
@@ -42,7 +55,8 @@ bool AnalogControl::update(uint16_t raw_value) {
   }
 
   if (std::abs(value_to_check - _last_notified_value) > _threshold) {
-    this->notify_observers(AnalogControlEvent{_id, value_to_check, _current_raw});
+    this->notify_observers(
+        AnalogControlEvent{_id, value_to_check, _current_raw});
     _last_notified_value = value_to_check;
     return true;
   }

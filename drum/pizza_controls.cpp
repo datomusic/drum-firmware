@@ -309,25 +309,40 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(
 }
 
 void PizzaControls::AnalogControlComponent::init() {
-  // First, initialize controls but don't add observers yet
-  for (size_t i = 0; i < mux_controls.size(); ++i) {
-    mux_controls[i].init();
+  parent_controls->_logger_ref.info(
+      "AnalogControlComponent: Starting analog priming...");
+
+  // Prime the analog controls by reading them multiple times.
+  // This allows the ADC to stabilize and the internal filters to converge.
+  const int PRIMING_LOOPS = 15;
+  for (int i = 0; i < PRIMING_LOOPS; ++i) {
+    parent_controls->_scanner.scan();
+    sleep_ms(5); // Increased delay between priming scans
   }
 
-  // Pre-scan all analog inputs to initialize with actual hardware values
-  // This prevents the initial flood of MIDI CCs on startup
+  parent_controls->_logger_ref.info(
+      "AnalogControlComponent: Priming complete. Initializing controls.");
+
+  // Perform the final, definitive scan.
   parent_controls->_scanner.scan();
+
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     uint16_t raw_value =
         parent_controls->_scanner.get_raw_value(mux_controls[i].get_id());
-    mux_controls[i].update(
-        raw_value); // This will set the initial _last_notified_value
+    mux_controls[i].init(raw_value);
+
+    // Propagate the initial state of the control to the rest of the system.
+    handle_control_change(mux_controls[i].get_id(),
+                          mux_controls[i].get_value());
   }
 
-  // Now add observers after controls are initialized with real values
+  // Add observers now that controls are stably initialized.
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].add_observer(control_observers[i]);
   }
+
+  parent_controls->_logger_ref.info(
+      "AnalogControlComponent: Initialization complete");
 }
 
 void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
@@ -346,6 +361,9 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
   if (dt_us > 0) {
     float dt_s = static_cast<float>(dt_us) / 1000000.0f;
     last_smoothing_time_ = now;
+
+    // The smoothing logic is now always active, but since init ensures
+    // current == target, it won't ramp until the user moves the knob.
     if (std::fabs(filter_current_value_ - filter_target_value_) > 0.001f) {
       float alpha =
           1.0f -
@@ -360,98 +378,115 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
   }
 }
 
-void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
-    notification(musin::ui::AnalogControlEvent event) {
-  PizzaControls *controls = parent->parent_controls;
-  switch (event.control_id) {
+void PizzaControls::AnalogControlComponent::handle_control_change(
+    uint16_t control_id, float value) {
+  PizzaControls *controls = parent_controls;
+
+  switch (control_id) {
   case FILTER:
-    parent->filter_target_value_ = event.value;
+    // For initialization, set current value directly.
+    // For subsequent events, this just updates the target for smoothing.
+    if (is_nil_time(last_smoothing_time_)) { // A proxy for initialization
+      filter_current_value_ = value;
+    }
+    filter_target_value_ = value;
+    // The actual set_parameter for FILTER is handled in the update() smoothing
+    // loop to create a smooth transition.
+    // However, we must send the initial value directly.
+    parent_controls->_message_router_ref.set_parameter(
+        drum::Parameter::FILTER_FREQUENCY, value);
+    parent_controls->_message_router_ref.set_parameter(
+        drum::Parameter::FILTER_RESONANCE, (1.0f - value));
     break;
   case RANDOM: {
     bool was_active = controls->_sequencer_controller_ref.is_random_active();
     bool should_be_active =
-        (event.value >= config::analog_controls::RANDOM_ACTIVATION_THRESHOLD);
+        (value >= config::analog_controls::RANDOM_ACTIVATION_THRESHOLD);
     if (should_be_active && !was_active)
       controls->_sequencer_controller_ref.activate_random();
     else if (!should_be_active && was_active)
       controls->_sequencer_controller_ref.deactivate_random();
-    controls->_sequencer_controller_ref.set_random(event.value);
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::RANDOM_EFFECT, event.value, 0);
+    controls->_sequencer_controller_ref.set_random(value);
+    parent_controls->_message_router_ref.set_parameter(
+        drum::Parameter::RANDOM_EFFECT, value, 0);
   } break;
   case VOLUME:
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::VOLUME, event.value);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::VOLUME,
+                                                       value);
     break;
   case SWING: {
     float distance_from_center =
-        fabsf(event.value - config::analog_controls::SWING_KNOB_CENTER_VALUE);
+        fabsf(value - config::analog_controls::SWING_KNOB_CENTER_VALUE);
     uint8_t swing_percent =
         config::analog_controls::SWING_BASE_PERCENT +
         static_cast<uint8_t>(
             distance_from_center *
             config::analog_controls::SWING_PERCENT_SENSITIVITY);
-    bool delay_odd =
-        (event.value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
+    bool delay_odd = (value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
     controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::SWING, event.value, 0);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::SWING,
+                                                       value, 0);
   } break;
   case CRUSH:
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::CRUSH_EFFECT, event.value);
+    parent_controls->_message_router_ref.set_parameter(
+        drum::Parameter::CRUSH_EFFECT, value);
     break;
   case REPEAT: {
     std::optional<uint32_t> intended_length = std::nullopt;
-    if (event.value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD)
+    if (value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD)
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
-    else if (event.value >= config::analog_controls::REPEAT_MODE_1_THRESHOLD)
+    else if (value >= config::analog_controls::REPEAT_MODE_1_THRESHOLD)
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_1;
     controls->_sequencer_controller_ref.set_intended_repeat_state(
         intended_length);
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::REPEAT_EFFECT, event.value);
+    parent_controls->_message_router_ref.set_parameter(
+        drum::Parameter::REPEAT_EFFECT, value);
   } break;
   case PITCH1:
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::PITCH, event.value, 0);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH,
+                                                       value, 0);
     break;
   case PITCH2:
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::PITCH, event.value, 1);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH,
+                                                       value, 1);
     break;
   case PITCH3:
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::PITCH, event.value, 2);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH,
+                                                       value, 2);
     break;
   case PITCH4:
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::PITCH, event.value, 3);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH,
+                                                       value, 3);
     break;
   case SPEED: {
     if (controls->_tempo_handler_ref.get_clock_source() ==
         musin::timing::ClockSource::INTERNAL) {
       // Internal clock: existing BPM behavior
       float bpm = config::analog_controls::MIN_BPM_ADJUST +
-                  event.value * (config::analog_controls::MAX_BPM_ADJUST -
-                                 config::analog_controls::MIN_BPM_ADJUST);
+                  value * (config::analog_controls::MAX_BPM_ADJUST -
+                           config::analog_controls::MIN_BPM_ADJUST);
       controls->_tempo_handler_ref.set_bpm(bpm);
     } else {
       // External clock: pot controls speed modifier
       musin::timing::SpeedModifier modifier =
           musin::timing::SpeedModifier::NORMAL_SPEED;
-      if (event.value < 0.1f) {
+      if (value < 0.1f) {
         modifier = musin::timing::SpeedModifier::HALF_SPEED;
-      } else if (event.value > 0.9f) {
+      } else if (value > 0.9f) {
         modifier = musin::timing::SpeedModifier::DOUBLE_SPEED;
       }
       controls->_tempo_handler_ref.set_speed_modifier(modifier);
     }
-    parent->parent_controls->_message_router_ref.set_parameter(
-        drum::Parameter::TEMPO, event.value);
+    parent_controls->_message_router_ref.set_parameter(drum::Parameter::TEMPO,
+                                                       value);
   } break;
   }
+}
+
+void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
+    notification(musin::ui::AnalogControlEvent event) {
+  parent->handle_control_change(event.control_id, event.value);
 }
 
 // --- PlaybuttonComponent ---

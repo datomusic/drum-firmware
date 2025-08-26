@@ -4,17 +4,16 @@
 
 namespace drum {
 
-SystemStateMachine::SystemStateMachine(PizzaDisplay &display,
-                                       musin::Logger &logger)
-    : display_(display), logger_(logger) {
+SystemStateMachine::SystemStateMachine(musin::Logger &logger)
+    : logger_(logger) {
   // Start in Boot state
   current_state_ = create_state(SystemStateId::Boot);
-  current_state_->enter(display_, logger_);
+  current_state_->enter(logger_);
 }
 
 void SystemStateMachine::update(absolute_time_t now) {
   if (current_state_) {
-    current_state_->update(display_, logger_, *this, now);
+    current_state_->update(logger_, *this, now);
   }
 }
 
@@ -41,9 +40,9 @@ bool SystemStateMachine::transition_to(SystemStateId new_state) {
 
   // Perform transition
 
-  current_state_->exit(display_, logger_);
+  current_state_->exit(logger_);
   current_state_ = create_state(new_state);
-  current_state_->enter(display_, logger_);
+  current_state_->enter(logger_);
 
   return true;
 }

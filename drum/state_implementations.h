@@ -10,10 +10,10 @@ namespace drum {
  */
 class BootState : public SystemState {
 public:
-  void enter(PizzaDisplay &display, musin::Logger &logger) override;
-  void update(PizzaDisplay &display, musin::Logger &logger,
-              SystemStateMachine &state_machine, absolute_time_t now) override;
-  void exit(PizzaDisplay &display, musin::Logger &logger) override;
+  void enter(musin::Logger &logger) override;
+  void update(musin::Logger &logger, SystemStateMachine &state_machine,
+              absolute_time_t now) override;
+  void exit(musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::Boot;
   }
@@ -27,10 +27,10 @@ private:
  */
 class SequencerState : public SystemState {
 public:
-  void enter(PizzaDisplay &display, musin::Logger &logger) override;
-  void update(PizzaDisplay &display, musin::Logger &logger,
-              SystemStateMachine &state_machine, absolute_time_t now) override;
-  void exit(PizzaDisplay &display, musin::Logger &logger) override;
+  void enter(musin::Logger &logger) override;
+  void update(musin::Logger &logger, SystemStateMachine &state_machine,
+              absolute_time_t now) override;
+  void exit(musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::Sequencer;
   }
@@ -42,10 +42,10 @@ public:
  */
 class FileTransferState : public SystemState {
 public:
-  void enter(PizzaDisplay &display, musin::Logger &logger) override;
-  void update(PizzaDisplay &display, musin::Logger &logger,
-              SystemStateMachine &state_machine, absolute_time_t now) override;
-  void exit(PizzaDisplay &display, musin::Logger &logger) override;
+  void enter(musin::Logger &logger) override;
+  void update(musin::Logger &logger, SystemStateMachine &state_machine,
+              absolute_time_t now) override;
+  void exit(musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::FileTransfer;
   }
@@ -56,10 +56,10 @@ public:
  */
 class FallingAsleepState : public SystemState {
 public:
-  void enter(PizzaDisplay &display, musin::Logger &logger) override;
-  void update(PizzaDisplay &display, musin::Logger &logger,
-              SystemStateMachine &state_machine, absolute_time_t now) override;
-  void exit(PizzaDisplay &display, musin::Logger &logger) override;
+  void enter(musin::Logger &logger) override;
+  void update(musin::Logger &logger, SystemStateMachine &state_machine,
+              absolute_time_t now) override;
+  void exit(musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::FallingAsleep;
   }
@@ -73,10 +73,10 @@ private:
  */
 class SleepState : public SystemState {
 public:
-  void enter(PizzaDisplay &display, musin::Logger &logger) override;
-  void update(PizzaDisplay &display, musin::Logger &logger,
-              SystemStateMachine &state_machine, absolute_time_t now) override;
-  void exit(PizzaDisplay &display, musin::Logger &logger) override;
+  void enter(musin::Logger &logger) override;
+  void update(musin::Logger &logger, SystemStateMachine &state_machine,
+              absolute_time_t now) override;
+  void exit(musin::Logger &logger) override;
   SystemStateId get_id() const override {
     return SystemStateId::Sleep;
   }

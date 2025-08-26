@@ -14,17 +14,13 @@ namespace drum {
 
 // --- BootState Implementation ---
 
-void BootState::enter(PizzaDisplay &display, musin::Logger &logger) {
+void BootState::enter(musin::Logger &logger) {
   logger.debug("Entering Boot state");
-  // TODO Phase 4: Start boot animation via event system
-  // For now, directly call display (will be removed in Phase 3)
-  display.start_boot_animation();
   boot_start_time_ = get_absolute_time();
 }
 
-void BootState::update(PizzaDisplay &display, musin::Logger &logger,
-                       SystemStateMachine &state_machine, absolute_time_t now) {
-  (void)display; // Unused in this method
+void BootState::update(musin::Logger &logger, SystemStateMachine &state_machine,
+                       absolute_time_t now) {
   // Transition to Sequencer after 2 seconds (temporary solution)
   uint64_t elapsed_us =
       to_us_since_boot(now) - to_us_since_boot(boot_start_time_);
@@ -34,44 +30,34 @@ void BootState::update(PizzaDisplay &display, musin::Logger &logger,
   }
 }
 
-void BootState::exit(PizzaDisplay &display, musin::Logger &logger) {
-  (void)display; // Unused in this method
+void BootState::exit(musin::Logger &logger) {
   logger.debug("Exiting Boot state");
 }
 
 // --- SequencerState Implementation ---
 
-void SequencerState::enter(PizzaDisplay &display, musin::Logger &logger) {
+void SequencerState::enter(musin::Logger &logger) {
   logger.debug("Entering Sequencer state");
-  // TODO Phase 4: Switch to sequencer mode via event system
-  // For now, directly call display (will be removed in Phase 3)
-  display.switch_to_sequencer_mode();
 }
 
-void SequencerState::update([[maybe_unused]] PizzaDisplay &display,
-                            [[maybe_unused]] musin::Logger &logger,
+void SequencerState::update([[maybe_unused]] musin::Logger &logger,
                             [[maybe_unused]] SystemStateMachine &state_machine,
                             [[maybe_unused]] absolute_time_t now) {
   // TODO Phase 4: Handle sequencer-specific logic and events
   // Minimal implementation for now
 }
 
-void SequencerState::exit(PizzaDisplay &display, musin::Logger &logger) {
-  (void)display; // Unused in this method
+void SequencerState::exit(musin::Logger &logger) {
   logger.debug("Exiting Sequencer state");
 }
 
 // --- FileTransferState Implementation ---
 
-void FileTransferState::enter(PizzaDisplay &display, musin::Logger &logger) {
+void FileTransferState::enter(musin::Logger &logger) {
   logger.debug("Entering FileTransfer state");
-  // TODO Phase 4: Switch to file transfer mode via event system
-  // For now, directly call display (will be removed in Phase 3)
-  display.switch_to_file_transfer_mode();
 }
 
 void FileTransferState::update(
-    [[maybe_unused]] PizzaDisplay &display,
     [[maybe_unused]] musin::Logger &logger,
     [[maybe_unused]] SystemStateMachine &state_machine,
     [[maybe_unused]] absolute_time_t now) {
@@ -79,22 +65,19 @@ void FileTransferState::update(
   // Minimal implementation for now
 }
 
-void FileTransferState::exit(PizzaDisplay &display, musin::Logger &logger) {
-  (void)display; // Unused in this method
+void FileTransferState::exit(musin::Logger &logger) {
   logger.debug("Exiting FileTransfer state");
 }
 
 // --- FallingAsleepState Implementation ---
 
-void FallingAsleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
+void FallingAsleepState::enter(musin::Logger &logger) {
   logger.debug("Entering FallingAsleep state");
-  display.start_sleep_mode(); // Start the fadeout
   fallback_timeout_ =
       make_timeout_time_ms(750); // 750ms fallback (longer than 500ms fadeout)
 }
 
-void FallingAsleepState::update([[maybe_unused]] PizzaDisplay &display,
-                                musin::Logger &logger,
+void FallingAsleepState::update(musin::Logger &logger,
                                 SystemStateMachine &state_machine,
                                 absolute_time_t now) {
   // Check timeout (750ms fallback)
@@ -105,20 +88,18 @@ void FallingAsleepState::update([[maybe_unused]] PizzaDisplay &display,
   }
 }
 
-void FallingAsleepState::exit(PizzaDisplay &display, musin::Logger &logger) {
-  (void)display; // Unused in this method
+void FallingAsleepState::exit(musin::Logger &logger) {
   logger.debug("Exiting FallingAsleep state");
 }
 
 // --- SleepState Implementation ---
 
-void SleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
+void SleepState::enter(musin::Logger &logger) {
   logger.debug("Entering Sleep state");
   // Note: fadeout already started in FallingAsleepState
 
   // Configure MUX for playbutton wake detection
   logger.debug("Configuring MUX for playbutton wake");
-  display.deinit(); // Turn off LED enable pin
 
   // Initialize MUX address pins as outputs
   gpio_init(DATO_SUBMARINE_MUX_ADDR0_PIN);
@@ -155,8 +136,7 @@ void SleepState::enter(PizzaDisplay &display, musin::Logger &logger) {
   }
 }
 
-void SleepState::update([[maybe_unused]] PizzaDisplay &display,
-                        musin::Logger &logger,
+void SleepState::update(musin::Logger &logger,
                         [[maybe_unused]] SystemStateMachine &state_machine,
                         [[maybe_unused]] absolute_time_t now) {
   constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
@@ -174,8 +154,7 @@ void SleepState::update([[maybe_unused]] PizzaDisplay &display,
   watchdog_update();
 }
 
-void SleepState::exit(PizzaDisplay &display, musin::Logger &logger) {
-  (void)display; // Unused in this method
+void SleepState::exit(musin::Logger &logger) {
   logger.debug("Exiting Sleep state");
 }
 

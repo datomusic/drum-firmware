@@ -30,11 +30,10 @@ class SystemStateMachine
     : public etl::observer<drum::Events::SysExTransferStateChangeEvent> {
 public:
   /**
-   * @brief Construct a new SystemStateMachine with direct dependencies.
-   * @param display Reference to the display system
+   * @brief Construct a new SystemStateMachine.
    * @param logger Reference to the logging system
    */
-  SystemStateMachine(PizzaDisplay &display, musin::Logger &logger);
+  SystemStateMachine(musin::Logger &logger);
 
   /**
    * @brief Update the current state.
@@ -62,7 +61,6 @@ public:
   void notification(drum::Events::SysExTransferStateChangeEvent event) override;
 
 private:
-  PizzaDisplay &display_;
   musin::Logger &logger_;
   std::unique_ptr<SystemState> current_state_;
 

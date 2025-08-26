@@ -76,7 +76,7 @@ static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
 // System State Machine (simplified without wrapper)
-static drum::SystemStateMachine system_state_machine(pizza_display, logger);
+static drum::SystemStateMachine system_state_machine(logger);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
@@ -144,10 +144,38 @@ int main() {
   // SystemStateMachine automatically starts in Boot state
   // No initialization_complete() call needed
 
+  // Track state transitions for display management
+  drum::SystemStateId previous_state = drum::SystemStateId::Boot;
+  pizza_display.start_boot_animation(); // Initial boot animation
+
   while (true) {
     absolute_time_t now = get_absolute_time();
 
     system_state_machine.update(now);
+
+    // Handle state transitions for display
+    drum::SystemStateId current_state =
+        system_state_machine.get_current_state();
+    if (current_state != previous_state) {
+      switch (current_state) {
+      case drum::SystemStateId::Boot:
+        pizza_display.start_boot_animation();
+        break;
+      case drum::SystemStateId::Sequencer:
+        pizza_display.switch_to_sequencer_mode();
+        break;
+      case drum::SystemStateId::FileTransfer:
+        pizza_display.switch_to_file_transfer_mode();
+        break;
+      case drum::SystemStateId::FallingAsleep:
+        pizza_display.start_sleep_mode();
+        break;
+      case drum::SystemStateId::Sleep:
+        pizza_display.deinit();
+        break;
+      }
+      previous_state = current_state;
+    }
 
     switch (system_state_machine.get_current_state()) {
     case drum::SystemStateId::Boot: {

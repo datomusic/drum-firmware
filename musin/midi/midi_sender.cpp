@@ -35,10 +35,14 @@ void MidiSender::sendNoteOff(uint8_t channel, uint8_t note_number,
 void MidiSender::sendControlChange(uint8_t channel, uint8_t controller,
                                    uint8_t value) {
   if (_strategy == MidiSendStrategy::DIRECT_BYPASS_QUEUE) {
-    _logger.info("MIDI_SENDER: Direct ControlChange");
+    _logger.info("MIDI_SENDER: Direct ControlChange CC",
+                 static_cast<uint32_t>(controller));
+    _logger.info("MIDI_SENDER: CC value", static_cast<uint32_t>(value));
     MIDI::internal::_sendControlChange_actual(channel, controller, value);
   } else {
-    _logger.info("MIDI_SENDER: Queued ControlChange");
+    _logger.info("MIDI_SENDER: Queued ControlChange CC",
+                 static_cast<uint32_t>(controller));
+    _logger.info("MIDI_SENDER: CC value", static_cast<uint32_t>(value));
     enqueue_midi_message(OutgoingMidiMessage(channel, controller, value),
                          _logger);
   }

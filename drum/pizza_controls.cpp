@@ -309,8 +309,23 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(
 }
 
 void PizzaControls::AnalogControlComponent::init() {
+  // First, initialize controls but don't add observers yet
   for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].init();
+  }
+
+  // Pre-scan all analog inputs to initialize with actual hardware values
+  // This prevents the initial flood of MIDI CCs on startup
+  parent_controls->_scanner.scan();
+  for (size_t i = 0; i < mux_controls.size(); ++i) {
+    uint16_t raw_value =
+        parent_controls->_scanner.get_raw_value(mux_controls[i].get_id());
+    mux_controls[i].update(
+        raw_value); // This will set the initial _last_notified_value
+  }
+
+  // Now add observers after controls are initialized with real values
+  for (size_t i = 0; i < mux_controls.size(); ++i) {
     mux_controls[i].add_observer(control_observers[i]);
   }
 }

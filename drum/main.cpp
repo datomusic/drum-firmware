@@ -168,6 +168,8 @@ int main() {
         pizza_display.switch_to_file_transfer_mode();
         break;
       case drum::SystemStateId::FallingAsleep:
+        audio_engine.mute();
+        audio_engine.deinit();
         pizza_display.start_sleep_mode();
         break;
       case drum::SystemStateId::Sleep:
@@ -180,12 +182,14 @@ int main() {
     switch (system_state_machine.get_current_state()) {
     case drum::SystemStateId::Boot: {
       // During boot, only run essential systems and display
+      musin::usb::background_update();
       pizza_display.update(now);
       midi_manager.process_input();
       break;
     }
     case drum::SystemStateId::Sequencer: {
       // Full sequencer operation - existing SequencerMode logic
+      musin::usb::background_update();
       sysex_handler.update(now);
       pizza_controls.update(now);
       sync_in.update(now);
@@ -206,6 +210,7 @@ int main() {
     }
     case drum::SystemStateId::FileTransfer: {
       // File transfer mode - only service bare essentials for performance
+      musin::usb::background_update();
       sysex_handler.update(now);
       pizza_display.update(now); // Keep display alive for progress updates
       midi_manager.process_input();
@@ -217,18 +222,17 @@ int main() {
       pizza_display.update(now);
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger);
+      sleep_us(10);
       break;
     }
     case drum::SystemStateId::Sleep: {
       // Sleep mode - minimal systems, hardware wake handled by SleepState
-      audio_engine.mute();
       // Note: Display should be off, wake detection handled by
       // SleepState::update()
       break;
     }
     }
 
-    musin::usb::background_update();
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();

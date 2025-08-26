@@ -58,6 +58,11 @@ public:
   bool init();
 
   /**
+   * @brief Deinitializes the audio engine and puts codec into sleep mode.
+   */
+  void deinit();
+
+  /**
    * @brief Periodically updates the audio output buffer.
    * This should be called frequently from the main application loop.
    */

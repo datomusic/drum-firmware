@@ -3,7 +3,6 @@
 
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
-#include "etl/map.h"
 #include "etl/observer.h"
 #include "etl/queue.h"
 #include "events.h" // Include NoteEvent definition
@@ -178,7 +177,6 @@ public:
   }
 
 private:
-  etl::map<uint8_t, uint8_t, 32> _last_sent_cc_values;
   etl::queue<drum::Events::NoteEvent, 32> note_event_queue_;
   AudioEngine &_audio_engine;
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>

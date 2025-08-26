@@ -170,13 +170,7 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
       uint8_t midi_value = static_cast<uint8_t>(std::round(value * 127.0f));
       midi_value = std::min(midi_value, static_cast<uint8_t>(127));
 
-      // Only send the MIDI CC if the value has changed from the last time it
-      // was sent.
-      auto it = _last_sent_cc_values.find(cc_number);
-      if (it == _last_sent_cc_values.end() || it->second != midi_value) {
-        _midi_sender.sendControlChange(midi_channel, cc_number, midi_value);
-        _last_sent_cc_values[cc_number] = midi_value;
-      }
+      _midi_sender.sendControlChange(midi_channel, cc_number, midi_value);
       // TODO: Future enhancement - Add logic here to send 14-bit CC if desired
     }
   }

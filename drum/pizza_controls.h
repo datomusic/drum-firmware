@@ -53,7 +53,7 @@ public:
 
   void init();
   void update(absolute_time_t now);
-  
+
   // TempoEvent observer implementation
   void notification(musin::timing::TempoEvent event) override;
 
@@ -82,18 +82,20 @@ public:
     };
 
     struct PadCyclingState {
-      bool next_active = false;  // +1 direction button held
-      bool prev_active = false;  // -1 direction button held
-      uint32_t last_step = 0;    // Track last sequencer step to detect advances
-      
+      bool next_active = false; // +1 direction button held
+      bool prev_active = false; // -1 direction button held
+      uint32_t last_step = 0;   // Track last sequencer step to detect advances
+
       bool is_cycling() const {
         // Only cycle when exactly one direction is active (not both or neither)
         return next_active != prev_active;
       }
-      
+
       int8_t get_direction() const {
-        if (next_active && !prev_active) return 1;
-        if (prev_active && !next_active) return -1;
+        if (next_active && !prev_active)
+          return 1;
+        if (prev_active && !next_active)
+          return -1;
         return 0; // No cycling or conflicting directions
       }
     };

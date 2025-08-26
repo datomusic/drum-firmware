@@ -155,6 +155,7 @@ public:
     explicit AnalogControlComponent(PizzaControls *parent_ptr);
     void init();
     void update(absolute_time_t now);
+    void handle_control_change(uint16_t control_id, float value);
 
   private:
     struct AnalogControlEventHandler
@@ -180,6 +181,7 @@ public:
     float filter_target_value_{1.0f};  // Target value from the physical knob
     float filter_current_value_{1.0f}; // Smoothed value sent to the engine
     absolute_time_t last_smoothing_time_ = nil_time;
+    bool filter_smoothing_enabled_ = false; // Enable after first FILTER event
   };
 
 private:

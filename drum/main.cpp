@@ -124,6 +124,8 @@ int main() {
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(
       pizza_display); // PizzaDisplay needs tempo events for pulsing
+  tempo_handler.add_observer(
+      pizza_controls); // PizzaControls needs tempo events for sample cycling
 
   // SequencerController notifies MessageRouter, which queues the events
   // internally.

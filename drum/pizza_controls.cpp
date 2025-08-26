@@ -68,6 +68,37 @@ bool PizzaControls::is_running() const {
   return _sequencer_controller_ref.is_running();
 }
 
+void PizzaControls::notification(
+    [[maybe_unused]] musin::timing::TempoEvent event) {
+  // Only process if sequencer is running
+  if (!is_running()) {
+    // If sequencer stops, deactivate all cycling
+    for (auto &state : keypad_component.cycling_states_) {
+      state.next_active = false;
+      state.prev_active = false;
+    }
+    return;
+  }
+
+  // Only cycle when the sequencer step actually advances
+  uint32_t current_step = _sequencer_controller_ref.get_current_step();
+
+  // Check each pad for active cycling
+  for (size_t pad_index = 0;
+       pad_index < keypad_component.cycling_states_.size(); ++pad_index) {
+    auto &pad_state = keypad_component.cycling_states_[pad_index];
+
+    if (pad_state.is_cycling() && current_step != pad_state.last_step) {
+      pad_state.last_step = current_step;
+
+      // Advance the sample for this pad
+      int8_t direction = pad_state.get_direction();
+      drumpad_component.select_note_for_pad(static_cast<uint8_t>(pad_index),
+                                            direction);
+    }
+  }
+}
+
 // --- KeypadComponent ---
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
@@ -90,49 +121,68 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sample_select(
     musin::ui::KeypadEvent event) {
   PizzaControls *controls = parent->parent_controls;
 
+  // Determine pad_index and offset from event.row
+  uint8_t pad_index = 0;
+  int8_t offset = 0;
+  switch (event.row) {
+  case 0:
+    pad_index = 3;
+    offset = -1;
+    break;
+  case 1:
+    pad_index = 3;
+    offset = 1;
+    break;
+  case 2:
+    pad_index = 2;
+    offset = -1;
+    break;
+  case 3:
+    pad_index = 2;
+    offset = 1;
+    break;
+  case 4:
+    pad_index = 1;
+    offset = -1;
+    break;
+  case 5:
+    pad_index = 1;
+    offset = 1;
+    break;
+  case 6:
+    pad_index = 0;
+    offset = -1;
+    break;
+  case 7:
+    pad_index = 0;
+    offset = 1;
+    break;
+  }
+
   if (event.type == musin::ui::KeypadEvent::Type::Press) {
-    uint8_t pad_index = 0;
-    int8_t offset = 0;
-    switch (event.row) {
-    case 0:
-      pad_index = 3;
-      offset = -1;
-      break;
-    case 1:
-      pad_index = 3;
-      offset = 1;
-      break;
-    case 2:
-      pad_index = 2;
-      offset = -1;
-      break;
-    case 3:
-      pad_index = 2;
-      offset = 1;
-      break;
-    case 4:
-      pad_index = 1;
-      offset = -1;
-      break;
-    case 5:
-      pad_index = 1;
-      offset = 1;
-      break;
-    case 6:
-      pad_index = 0;
-      offset = -1;
-      break;
-    case 7:
-      pad_index = 0;
-      offset = 1;
-      break;
-    }
+    // Existing press logic
     controls->drumpad_component.select_note_for_pad(pad_index, offset);
     if (!controls->is_running()) {
       uint8_t note_to_play =
           controls->drumpad_component.get_note_for_pad(pad_index);
       controls->_sequencer_controller_ref.trigger_note_on(
           pad_index, note_to_play, config::keypad::PREVIEW_NOTE_VELOCITY);
+    }
+  } else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
+    // Start cycling for this pad/direction
+    auto &pad_state = parent->cycling_states_[pad_index];
+    if (offset > 0) {
+      pad_state.next_active = true;
+    } else {
+      pad_state.prev_active = true;
+    }
+  } else if (event.type == musin::ui::KeypadEvent::Type::Release) {
+    // Stop cycling for this pad/direction
+    auto &pad_state = parent->cycling_states_[pad_index];
+    if (offset > 0) {
+      pad_state.next_active = false;
+    } else {
+      pad_state.prev_active = false;
     }
   }
 }

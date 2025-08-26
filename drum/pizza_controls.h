@@ -81,18 +81,28 @@ public:
       void handle_sequencer_step(musin::ui::KeypadEvent event);
     };
 
-    struct SampleCyclingState {
-      bool is_active = false;
-      uint8_t pad_index = 0;
-      int8_t direction = 0; // +1 for up, -1 for down
-      uint32_t last_step = 0; // Track last sequencer step to detect advances
+    struct PadCyclingState {
+      bool next_active = false;  // +1 direction button held
+      bool prev_active = false;  // -1 direction button held
+      uint32_t last_step = 0;    // Track last sequencer step to detect advances
+      
+      bool is_cycling() const {
+        // Only cycle when exactly one direction is active (not both or neither)
+        return next_active != prev_active;
+      }
+      
+      int8_t get_direction() const {
+        if (next_active && !prev_active) return 1;
+        if (prev_active && !next_active) return -1;
+        return 0; // No cycling or conflicting directions
+      }
     };
 
     PizzaControls *parent_controls;
     musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
 
   public:
-    SampleCyclingState cycling_state_;
+    etl::array<PadCyclingState, config::NUM_DRUMPADS> cycling_states_;
     static constexpr etl::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       etl::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {

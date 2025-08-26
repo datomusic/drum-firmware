@@ -69,25 +69,30 @@ bool PizzaControls::is_running() const {
 }
 
 void PizzaControls::notification([[maybe_unused]] musin::timing::TempoEvent event) {
-  // Only process if sequencer is running and cycling is active
-  if (!is_running() || !keypad_component.cycling_state_.is_active) {
-    // If sequencer stops, deactivate cycling
-    if (!is_running()) {
-      keypad_component.cycling_state_.is_active = false;
+  // Only process if sequencer is running
+  if (!is_running()) {
+    // If sequencer stops, deactivate all cycling
+    for (auto &state : keypad_component.cycling_states_) {
+      state.next_active = false;
+      state.prev_active = false;
     }
     return;
   }
 
   // Only cycle when the sequencer step actually advances
   uint32_t current_step = _sequencer_controller_ref.get_current_step();
-  if (current_step != keypad_component.cycling_state_.last_step) {
-    keypad_component.cycling_state_.last_step = current_step;
+  
+  // Check each pad for active cycling
+  for (size_t pad_index = 0; pad_index < keypad_component.cycling_states_.size(); ++pad_index) {
+    auto &pad_state = keypad_component.cycling_states_[pad_index];
     
-    // Advance the sample for the cycling pad
-    uint8_t pad_index = keypad_component.cycling_state_.pad_index;
-    int8_t direction = keypad_component.cycling_state_.direction;
-    
-    drumpad_component.select_note_for_pad(pad_index, direction);
+    if (pad_state.is_cycling() && current_step != pad_state.last_step) {
+      pad_state.last_step = current_step;
+      
+      // Advance the sample for this pad
+      int8_t direction = pad_state.get_direction();
+      drumpad_component.select_note_for_pad(static_cast<uint8_t>(pad_index), direction);
+    }
   }
 }
 
@@ -162,14 +167,22 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sample_select(
     }
   }
   else if (event.type == musin::ui::KeypadEvent::Type::Hold) {
-    // Start cycling
-    parent->cycling_state_.is_active = true;
-    parent->cycling_state_.pad_index = pad_index;
-    parent->cycling_state_.direction = offset;
+    // Start cycling for this pad/direction
+    auto &pad_state = parent->cycling_states_[pad_index];
+    if (offset > 0) {
+      pad_state.next_active = true;
+    } else {
+      pad_state.prev_active = true;
+    }
   }
   else if (event.type == musin::ui::KeypadEvent::Type::Release) {
-    // Stop cycling
-    parent->cycling_state_.is_active = false;
+    // Stop cycling for this pad/direction
+    auto &pad_state = parent->cycling_states_[pad_index];
+    if (offset > 0) {
+      pad_state.next_active = false;
+    } else {
+      pad_state.prev_active = false;
+    }
   }
 }
 

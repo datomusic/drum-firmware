@@ -86,6 +86,13 @@ bool AudioEngine::init() {
   return true;
 }
 
+void AudioEngine::deinit() {
+  if (is_initialized_) {
+    AudioOutput::deinit();
+    is_initialized_ = false;
+  }
+}
+
 void AudioEngine::process() {
   AudioOutput::update(highpass_);
 }

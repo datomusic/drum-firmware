@@ -34,7 +34,7 @@ extern "C" {
 #include "system_state_machine.h"
 
 #ifdef VERBOSE
-static musin::PicoLogger logger;
+static musin::PicoLogger logger(musin::LogLevel::DEBUG);
 static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 #else
 static musin::NullLogger logger;
@@ -76,7 +76,7 @@ static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
 // System State Machine (simplified without wrapper)
-static drum::SystemStateMachine system_state_machine(pizza_display, logger);
+static drum::SystemStateMachine system_state_machine(logger);
 
 // Controller
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
@@ -144,20 +144,52 @@ int main() {
   // SystemStateMachine automatically starts in Boot state
   // No initialization_complete() call needed
 
+  // Track state transitions for display management
+  drum::SystemStateId previous_state = drum::SystemStateId::Boot;
+  pizza_display.start_boot_animation(); // Initial boot animation
+
   while (true) {
     absolute_time_t now = get_absolute_time();
 
     system_state_machine.update(now);
 
+    // Handle state transitions for display
+    drum::SystemStateId current_state =
+        system_state_machine.get_current_state();
+    if (current_state != previous_state) {
+      switch (current_state) {
+      case drum::SystemStateId::Boot:
+        pizza_display.start_boot_animation();
+        break;
+      case drum::SystemStateId::Sequencer:
+        pizza_display.switch_to_sequencer_mode();
+        break;
+      case drum::SystemStateId::FileTransfer:
+        pizza_display.switch_to_file_transfer_mode();
+        break;
+      case drum::SystemStateId::FallingAsleep:
+        audio_engine.mute();
+        audio_engine.deinit();
+        pizza_display.start_sleep_mode();
+        break;
+      case drum::SystemStateId::Sleep:
+        pizza_display.deinit();
+        break;
+      }
+      previous_state = current_state;
+    }
+
     switch (system_state_machine.get_current_state()) {
     case drum::SystemStateId::Boot: {
       // During boot, only run essential systems and display
+      musin::usb::background_update();
       pizza_display.update(now);
       midi_manager.process_input();
       break;
     }
     case drum::SystemStateId::Sequencer: {
       // Full sequencer operation - existing SequencerMode logic
+      musin::usb::background_update();
       sysex_handler.update(now);
       pizza_controls.update(now);
       sync_in.update(now);
@@ -178,29 +210,29 @@ int main() {
     }
     case drum::SystemStateId::FileTransfer: {
       // File transfer mode - only service bare essentials for performance
+      musin::usb::background_update();
       sysex_handler.update(now);
       pizza_display.update(now); // Keep display alive for progress updates
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger); // For sending ACKs
       break;
     }
-    case drum::SystemStateId::Sleep: {
-      // Sleep mode - SleepState handles hardware configuration and wake
-      // detection
+    case drum::SystemStateId::FallingAsleep: {
+      // Falling asleep mode - minimal systems during fadeout
       pizza_display.update(now);
       midi_manager.process_input();
       musin::midi::process_midi_output_queue(logger);
-
-      if (pizza_display.get_brightness() == 0) {
-        audio_engine.mute();
-        // SleepState::enter() handles MUX configuration and wake setup
-        // SleepState::update() handles wake detection and reset logic
-      }
+      sleep_us(10);
+      break;
+    }
+    case drum::SystemStateId::Sleep: {
+      // Sleep mode - minimal systems, hardware wake handled by SleepState
+      // Note: Display should be off, wake detection handled by
+      // SleepState::update()
       break;
     }
     }
 
-    musin::usb::background_update();
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();

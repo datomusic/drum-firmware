@@ -93,7 +93,7 @@ bool AudioOutput::init() {
 void AudioOutput::deinit() {
 #ifdef DATO_SUBMARINE
   if (codec) {
-    codec.reset();
+    codec->enter_sleep_mode();
   }
 #endif
   running = false;

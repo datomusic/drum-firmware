@@ -74,6 +74,7 @@ public:
   Aic3204Status set_mixer_volume(int8_t volume);
   std::optional<bool> is_headphone_inserted();
   bool update_headphone_detection();
+  Aic3204Status enter_sleep_mode();
 
 private:
   // --- Constants ---

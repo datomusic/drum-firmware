@@ -20,6 +20,7 @@ enum class SystemStateId {
   Boot,
   Sequencer,
   FileTransfer,
+  FallingAsleep,
   Sleep
 };
 
@@ -36,28 +37,24 @@ public:
 
   /**
    * @brief Called when entering this state.
-   * @param display Reference to the display system
    * @param logger Reference to the logging system
    */
-  virtual void enter(PizzaDisplay &display, musin::Logger &logger) = 0;
+  virtual void enter(musin::Logger &logger) = 0;
 
   /**
    * @brief Called every update cycle while in this state.
-   * @param display Reference to the display system
    * @param logger Reference to the logging system
    * @param state_machine Reference to state machine for transitions
    * @param now Current system time
    */
-  virtual void update(PizzaDisplay &display, musin::Logger &logger,
-                      SystemStateMachine &state_machine,
+  virtual void update(musin::Logger &logger, SystemStateMachine &state_machine,
                       absolute_time_t now) = 0;
 
   /**
    * @brief Called when exiting this state.
-   * @param display Reference to the display system
    * @param logger Reference to the logging system
    */
-  virtual void exit(PizzaDisplay &display, musin::Logger &logger) = 0;
+  virtual void exit(musin::Logger &logger) = 0;
 
   /**
    * @brief Get the state identifier.

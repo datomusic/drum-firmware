@@ -483,6 +483,39 @@ bool Aic3204::update_headphone_detection() {
   }
 }
 
+Aic3204Status Aic3204::enter_sleep_mode() {
+  if (!is_initialized()) {
+    return Aic3204Status::ERROR_NOT_INITIALIZED;
+  }
+
+  AIC_LOG("Entering sleep mode (3.3V operation)...");
+
+  // Page 1, Register 1, D(3) = 0: Turn on crude AVDD generation
+  uint8_t reg1_val;
+  if (read_register(0x01, 0x01, reg1_val) != Aic3204Status::OK) {
+    return Aic3204Status::ERROR_I2C_READ_FAILED;
+  }
+  reg1_val &= ~(1 << 3); // Clear bit 3
+  if (write_register(0x01, 0x01, reg1_val) != Aic3204Status::OK) {
+    return Aic3204Status::ERROR_I2C_WRITE_FAILED;
+  }
+
+  // Page 1, Register 2, D(0) = 0: Power down AVDD LDO
+  // Page 1, Register 2, D(3) = 1: Power down analog blocks
+  uint8_t reg2_val;
+  if (read_register(0x01, 0x02, reg2_val) != Aic3204Status::OK) {
+    return Aic3204Status::ERROR_I2C_READ_FAILED;
+  }
+  reg2_val &= ~(1 << 0); // Clear bit 0 (power down AVDD LDO)
+  reg2_val |= (1 << 3);  // Set bit 3 (power down analog blocks)
+  if (write_register(0x01, 0x02, reg2_val) != Aic3204Status::OK) {
+    return Aic3204Status::ERROR_I2C_WRITE_FAILED;
+  }
+
+  AIC_LOG("Sleep mode entered successfully");
+  return Aic3204Status::OK;
+}
+
 // --- Private Helper Methods ---
 i2c_inst_t *Aic3204::get_i2c_instance(uint8_t sda_pin, uint8_t scl_pin) {
   bool sda_is_i2c0 = (sda_pin % 4 == 0 && sda_pin <= 20);

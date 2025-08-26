@@ -5,6 +5,7 @@
 #include "system_state_machine.h"
 
 extern "C" {
+#include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/watchdog.h"
 #include "pico/time.h"
@@ -125,6 +126,8 @@ void SleepState::enter(musin::Logger &logger) {
 
   // Enable watchdog for wake reset mechanism
   watchdog_enable(500, false);
+
+  set_sys_clock_48mhz();
 
   logger.debug(
       "MUX configured for playbutton wake - waiting for button release first");

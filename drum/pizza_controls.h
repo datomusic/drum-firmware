@@ -32,7 +32,7 @@ template <size_t NumTracks, size_t NumSteps> class SequencerController;
 using DefaultSequencerController =
     SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>;
 
-class PizzaControls {
+class PizzaControls : public etl::observer<musin::timing::TempoEvent> {
   friend class KeypadComponent;
   friend class DrumpadComponent;
   friend class AnalogControlComponent;
@@ -53,6 +53,9 @@ public:
 
   void init();
   void update(absolute_time_t now);
+  
+  // TempoEvent observer implementation
+  void notification(musin::timing::TempoEvent event) override;
 
   class KeypadComponent {
   public:
@@ -78,8 +81,18 @@ public:
       void handle_sequencer_step(musin::ui::KeypadEvent event);
     };
 
+    struct SampleCyclingState {
+      bool is_active = false;
+      uint8_t pad_index = 0;
+      int8_t direction = 0; // +1 for up, -1 for down
+      uint32_t last_step = 0; // Track last sequencer step to detect advances
+    };
+
     PizzaControls *parent_controls;
     musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad;
+
+  public:
+    SampleCyclingState cycling_state_;
     static constexpr etl::array<uint8_t, KEYPAD_TOTAL_KEYS> keypad_cc_map = [] {
       etl::array<uint8_t, KEYPAD_TOTAL_KEYS> map{};
       for (size_t i = 0; i < KEYPAD_TOTAL_KEYS; ++i) {

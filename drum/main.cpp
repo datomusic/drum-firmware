@@ -40,7 +40,7 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 static musin::NullLogger logger;
 #endif
 
-// --- Model ---
+// Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static drum::SysExHandler sysex_handler(config_manager, logger);
@@ -65,15 +65,15 @@ static musin::midi::MidiSender
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
                                           midi_sender, logger);
 
-// --- MIDI Manager ---
+// MIDI Manager
 static drum::MidiManager midi_manager(message_router, midi_clock_processor,
                                       sysex_handler, logger);
 
-// --- View ---
+// View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
-// --- Controller and State Machine ---
+// Controller
 // PizzaControls is created first, but its dependency on the state machine
 // is injected later to break the circular dependency.
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
@@ -101,37 +101,57 @@ int main() {
 #endif
 
   if (!musin::filesystem::init(false)) {
+    // Filesystem is not critical for basic operation if no samples are present,
+    // but we should log the failure.
     logger.warn("Failed to initialize filesystem.");
   } else {
-    musin::filesystem::list_files("/");
+    musin::filesystem::list_files("/"); // List files in the root directory
+
     config_manager.load();
   }
 
   midi_manager.init();
+
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
+
   pizza_display.init();
   pizza_controls.init();
+
+  // Boot animation is now handled by BootState
+  // No circular references needed with simplified approach
 
   // Complete the dependency loop between controls and state machine
   pizza_controls.set_system_state_machine(&system_state_machine);
 
   // --- Initialize Clocking System ---
+  // TempoHandler's constructor calls set_clock_source, which handles initial
+  // observation.
   sync_in.add_observer(clock_multiplier);
   tempo_handler.add_observer(sequencer_controller);
-  tempo_handler.add_observer(pizza_display);
-  tempo_handler.add_observer(pizza_controls);
+  tempo_handler.add_observer(
+      pizza_display); // PizzaDisplay needs tempo events for pulsing
+  tempo_handler.add_observer(
+      pizza_controls); // PizzaControls needs tempo events for sample cycling
 
-  // --- Initialize Observers ---
+  // SequencerController notifies MessageRouter, which queues the events
+  // internally.
   sequencer_controller.add_observer(message_router);
+
+  // Register observers for SysEx state changes
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(sequencer_controller);
   sysex_handler.add_observer(system_state_machine);
+
+  // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
   message_router.add_parameter_change_event_observer(pizza_display);
   message_router.add_note_event_observer(audio_engine);
 
   sync_out.enable();
+
+  // SystemStateMachine automatically starts in Boot state
+  // No initialization_complete() call needed
 
   // The SystemStateMachine constructor now handles the initial state entry,
   // including the boot animation.
@@ -144,6 +164,7 @@ int main() {
     system_state_machine.update(now);
 
 #ifndef VERBOSE
+    // Watchdog update for Release builds
     watchdog_update();
 #else
     loop_timer.record_iteration_end();

@@ -47,6 +47,7 @@ const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
 
 // Custom Protocol Commands
 const REQUEST_FIRMWARE_VERSION = 0x01;
+const REBOOT_BOOTLOADER = 0x0B;
 const FORMAT_FILESYSTEM = 0x15;
 const CUSTOM_ACK = 0x13;
 const CUSTOM_NACK = 0x14;
@@ -287,6 +288,15 @@ async function format_filesystem() {
   console.log("Sending command to format filesystem...");
   await sendCustomCommandAndWait(FORMAT_FILESYSTEM);
   console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
+}
+
+// Reboot to bootloader
+async function reboot_bootloader() {
+  console.log("Sending command to reboot to bootloader...");
+  const payload = [REBOOT_BOOTLOADER];
+  sendCustomMessage(payload);
+  // Note: Device will reboot immediately, so we don't wait for ACK
+  console.log("Reboot command sent. Device should now enter bootloader mode.");
 }
 
 // Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
@@ -677,11 +687,13 @@ if (!command) {
   console.log("  sds_sender.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
   console.log("  sds_sender.js version");
   console.log("  sds_sender.js format");
+  console.log("  sds_sender.js reboot-bootloader");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples using SDS protocol");
   console.log("  version        - Get device firmware version");
   console.log("  format         - Format device filesystem");
+  console.log("  reboot-bootloader - Reboot device into bootloader mode");
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
@@ -695,6 +707,7 @@ if (!command) {
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1 -v    # Multiple with verbose");
   console.log("  sds_sender.js version                           # Check firmware version");
   console.log("  sds_sender.js format                            # Format filesystem");
+  console.log("  sds_sender.js reboot-bootloader                 # Enter bootloader mode");
   console.log("");
   process.exit(1);
 }
@@ -749,8 +762,8 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
-    } else if (command !== 'version' && command !== 'format') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', or 'format'.`);
+    } else if (command !== 'version' && command !== 'format' && command !== 'reboot-bootloader') {
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'format', or 'reboot-bootloader'.`);
       process.exit(1);
     }
 
@@ -780,6 +793,8 @@ async function main() {
       await get_firmware_version();
     } else if (command === 'format') {
       await format_filesystem();
+    } else if (command === 'reboot-bootloader') {
+      await reboot_bootloader();
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);

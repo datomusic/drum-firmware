@@ -276,6 +276,48 @@ function createDataPacket(packetNum, pcmData, offset) {
   ];
 }
 
+// Batch sample transfer function
+async function transferMultipleSamples(transfers, verboseMode = false) {
+  console.log(`\n=== Batch SDS Transfer: ${transfers.length} samples ===`);
+  
+  const results = [];
+  let successCount = 0;
+  
+  for (let i = 0; i < transfers.length; i++) {
+    const { filePath, slot, sampleRate } = transfers[i];
+    console.log(`\n[${i + 1}/${transfers.length}] Transferring ${filePath} → slot ${slot}`);
+    
+    try {
+      const success = await transferSample(filePath, slot, sampleRate, verboseMode);
+      results.push({ filePath, slot, success, error: null });
+      if (success) {
+        successCount++;
+      }
+    } catch (error) {
+      console.error(`Failed: ${error.message}`);
+      results.push({ filePath, slot, success: false, error: error.message });
+    }
+    
+    // Brief pause between transfers to avoid overwhelming the device
+    if (i < transfers.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  // Summary
+  console.log(`\n=== Transfer Summary ===`);
+  console.log(`Successful: ${successCount}/${transfers.length}`);
+  
+  if (successCount < transfers.length) {
+    console.log('\nFailed transfers:');
+    results.filter(r => !r.success).forEach(r => {
+      console.log(`  ${r.filePath} → slot ${r.slot}: ${r.error}`);
+    });
+  }
+  
+  return successCount === transfers.length;
+}
+
 // Main sample transfer function
 async function transferSample(filePath, sampleNumber, sampleRate = 44100, verboseMode = false) {
   const verbose = verboseMode;
@@ -459,29 +501,65 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   }
 }
 
+// Parse file:slot arguments
+function parseFileSlotArgs(args) {
+  const transfers = [];
+  let sampleRate = 44100;
+  
+  for (const arg of args) {
+    if (arg === '--verbose' || arg === '-v') {
+      continue; // Already handled globally
+    }
+    
+    // Check if it's a sample rate override
+    const rateMatch = arg.match(/^(\d+)$/);
+    if (rateMatch && !arg.includes(':')) {
+      sampleRate = parseInt(arg, 10);
+      continue;
+    }
+    
+    // Parse file:slot format
+    const colonIndex = arg.indexOf(':');
+    if (colonIndex === -1) {
+      throw new Error(`Invalid format '${arg}'. Expected 'file:slot' format.`);
+    }
+    
+    const filePath = arg.substring(0, colonIndex);
+    const slotStr = arg.substring(colonIndex + 1);
+    const slot = parseInt(slotStr, 10);
+    
+    if (isNaN(slot) || slot < 0 || slot > 127) {
+      throw new Error(`Invalid slot number '${slotStr}'. Must be 0-127.`);
+    }
+    
+    transfers.push({ filePath, slot, sampleRate });
+  }
+  
+  return transfers;
+}
+
 // Command line interface
 const command = process.argv[2];
-const sourcePath = process.argv[3];
-const sampleNumber = process.argv[4] ? parseInt(process.argv[4], 10) : null;
-const sampleRate = process.argv[5] ? parseInt(process.argv[5]) : 44100;
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 if (!command) {
   console.log("SDS Sample Sender - MIDI Sample Dump Standard implementation");
   console.log("");
   console.log("Usage:");
-  console.log("  sds_sender.js send <source_path> <sample_number> [sample_rate] [--verbose|-v]");
+  console.log("  sds_sender.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  sds_sender.js send <source_path> <sample_number> [sample_rate] [--verbose|-v]  # Legacy");
   console.log("");
   console.log("Arguments:");
-  console.log("  source_path    - Path to the audio file to upload");
-  console.log("  sample_number  - Target sample slot (0-127)");
-  console.log("  sample_rate    - Sample rate in Hz (default: 44100)");
+  console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
+  console.log("  sample_rate    - Sample rate in Hz (default: 44100, applies to all files)");
   console.log("  --verbose, -v  - Show detailed transfer information");
   console.log("");
   console.log("Examples:");
-  console.log("  sds_sender.js send sine440.pcm 0         # Upload to slot 0 (/00.pcm)");
-  console.log("  sds_sender.js send kick.wav 1 48000     # Upload to slot 1 (/01.pcm)");
-  console.log("  sds_sender.js send snare.pcm 15 -v       # Upload to slot 15 with verbose output");
+  console.log("  sds_sender.js send kick.wav:0                    # Single file to slot 0");
+  console.log("  sds_sender.js send kick.wav:0 snare.wav:1       # Multiple files");
+  console.log("  sds_sender.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
+  console.log("  sds_sender.js send kick.wav:0 snare.wav:1 -v    # Multiple with verbose");
+  console.log("  sds_sender.js send sine440.pcm 0                # Legacy single file mode");
   console.log("");
   process.exit(1);
 }
@@ -515,13 +593,54 @@ process.on('exit', cleanup_and_exit);
 async function main() {
   try {
     if (command === 'send') {
-      if (!sourcePath || sampleNumber === null) {
-        console.error("Error: 'send' command requires source path and sample number.");
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      
+      if (args.length === 0) {
+        console.error("Error: 'send' command requires at least one file:slot argument.");
         process.exit(1);
       }
       
-      const success = await transferSample(sourcePath, sampleNumber, sampleRate, verbose);
-      process.exitCode = success ? 0 : 1;
+      // Check if this is legacy format (no colons in arguments)
+      const hasColonFormat = args.some(arg => arg.includes(':') && !arg.match(/^(\d+)$/));
+      
+      if (hasColonFormat) {
+        // New file:slot format
+        try {
+          const transfers = parseFileSlotArgs(args);
+          if (transfers.length === 0) {
+            console.error("Error: No valid file:slot pairs found.");
+            process.exit(1);
+          }
+          
+          const success = transfers.length === 1 
+            ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
+            : await transferMultipleSamples(transfers, verbose);
+          process.exitCode = success ? 0 : 1;
+        } catch (error) {
+          console.error(`Error: ${error.message}`);
+          process.exit(1);
+        }
+      } else {
+        // Legacy format: send <source_path> <sample_number> [sample_rate]
+        const sourcePath = args[0];
+        const sampleNumber = args[1] ? parseInt(args[1], 10) : null;
+        const sampleRate = args[2] ? parseInt(args[2]) : 44100;
+        
+        if (!sourcePath || sampleNumber === null) {
+          console.error("Error: Legacy format requires source path and sample number.");
+          console.error("Use: sds_sender.js send <source_path> <sample_number> [sample_rate]");
+          console.error("Or new format: sds_sender.js send <file:slot> [file:slot] ...");
+          process.exit(1);
+        }
+        
+        if (isNaN(sampleNumber) || sampleNumber < 0 || sampleNumber > 127) {
+          console.error(`Error: Sample number must be between 0-127, got: ${sampleNumber}`);
+          process.exit(1);
+        }
+        
+        const success = await transferSample(sourcePath, sampleNumber, sampleRate, verbose);
+        process.exitCode = success ? 0 : 1;
+      }
     } else {
       console.error(`Error: Unknown command '${command}'. Use 'send'.`);
       process.exit(1);

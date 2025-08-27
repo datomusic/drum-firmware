@@ -108,20 +108,48 @@ const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
 
 // Message handling
 let pendingResponse = null;
+let deviceStatus = 'unknown'; // 'ok', 'slow', 'error', 'unknown'
+let isTransferActive = false;
+
+function isSdsMessage(message) {
+  return message[0] === SYSEX_START && 
+         message[message.length - 1] === SYSEX_END &&
+         message.length >= 6 &&
+         message[1] === MIDI_NON_REALTIME_ID && 
+         message[2] === SYSEX_CHANNEL;
+}
 
 activeMidiInput.on('message', (deltaTime, message) => {
-  if (message[0] === SYSEX_START && message[message.length - 1] === SYSEX_END) {
-    if (message.length >= 6 && 
-        message[1] === MIDI_NON_REALTIME_ID && 
-        message[2] === SYSEX_CHANNEL) {
-      
-      const messageType = message[3];
-      const packetNum = message.length > 4 ? message[4] : 0;
-      
-      if (pendingResponse && (messageType === SDS_ACK || messageType === SDS_NAK)) {
-        clearTimeout(pendingResponse.timer);
-        pendingResponse.resolve({ type: messageType, packet: packetNum });
-        pendingResponse = null;
+  if (isSdsMessage(message)) {
+    const messageType = message[3];
+    const packetNum = message.length > 4 ? message[4] : 0;
+    
+    // Handle responses during handshaking
+    if (pendingResponse && (messageType === SDS_ACK || messageType === SDS_NAK || 
+                           messageType === SDS_WAIT || messageType === SDS_CANCEL)) {
+      clearTimeout(pendingResponse.timer);
+      pendingResponse.resolve({ type: messageType, packet: packetNum });
+      pendingResponse = null;
+      return;
+    }
+    
+    // Monitor device status even during non-handshaking mode
+    if (isTransferActive) {
+      if (messageType === SDS_WAIT) {
+        deviceStatus = 'slow';
+        if (process.stdout.clearLine) {
+          process.stdout.write('\nDevice is busy processing...');
+        } else {
+          console.log('Device is busy processing...');
+        }
+      } else if (messageType === SDS_CANCEL) {
+        deviceStatus = 'error';
+        console.log('\nDevice cancelled transfer - storage may be full');
+        // Could abort transfer here in future enhancement
+      } else if (messageType === SDS_NAK) {
+        console.log(`\nDevice rejected packet ${packetNum}`);
+      } else if (messageType === SDS_ACK) {
+        deviceStatus = 'ok';
       }
     }
   }
@@ -133,13 +161,15 @@ function sendSysExMessage(data) {
   activeMidiOutput.sendMessage(message);
 }
 
-// Wait for ACK/NAK with timeout
-function waitForResponse(timeout, packetNum = 0) {
-  return new Promise((resolve, reject) => {
+// Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
+function waitForResponse(timeout, packetNum = 0, allowWaitEscape = true) {
+  return new Promise((resolve) => {
+    // For WAIT responses, use longer timeout but still have escape hatch
+    const maxWaitTime = allowWaitEscape ? 30000 : timeout; // 30s max even for WAIT
     const timer = setTimeout(() => {
       pendingResponse = null;
       resolve({ type: 'timeout', packet: packetNum });
-    }, timeout);
+    }, maxWaitTime);
 
     pendingResponse = {
       resolve,
@@ -275,6 +305,9 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   }
   
   try {
+    isTransferActive = true;
+    deviceStatus = 'unknown';
+    
     // Step 1: Send Dump Header
     if (verbose) {
       console.log("\n1. Sending Dump Header...");
@@ -322,6 +355,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
         const response = await waitForResponse(PACKET_TIMEOUT, packetNum & 0x7F);
         
         if (response.type === SDS_ACK) {
+          deviceStatus = 'ok';
           successfulPackets++;
           offset += 80; // Move to next 40 samples (80 bytes)
           packetNum++;
@@ -334,6 +368,33 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
             }
           }
           continue; // Retry same packet
+        } else if (response.type === SDS_WAIT) {
+          if (verbose) {
+            console.log(`\nPacket ${packetNum & 0x7F} WAIT - device is busy, waiting for final response...`);
+          }
+          deviceStatus = 'slow';
+          // Wait indefinitely for ACK/NAK/CANCEL after WAIT
+          const finalResponse = await waitForResponse(30000, packetNum & 0x7F, true);
+          if (finalResponse.type === SDS_ACK) {
+            successfulPackets++;
+            offset += 80;
+            packetNum++;
+          } else if (finalResponse.type === SDS_NAK) {
+            continue; // Retry same packet
+          } else if (finalResponse.type === SDS_CANCEL) {
+            throw new Error('Device cancelled transfer - storage may be full');
+          } else {
+            // Even WAIT can timeout - assume non-handshaking
+            if (verbose) {
+              console.log(`Final response timeout after WAIT - assuming non-handshaking`);
+            }
+            successfulPackets++;
+            offset += 80;
+            packetNum++;
+            handshaking = false;
+          }
+        } else if (response.type === SDS_CANCEL) {
+          throw new Error('Device cancelled transfer - storage may be full');
         } else {
           // Timeout - assume non-handshaking mode
           if (verbose) {
@@ -369,24 +430,32 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
           const filled_length = Math.round(bar_length * (progress / 100));
           const bar = '█'.repeat(filled_length) + '░'.repeat(bar_length - filled_length);
           
+          // Status indicator based on device feedback
+          const statusText = deviceStatus === 'slow' ? '[BUSY]' : 
+                            deviceStatus === 'error' ? '[ERROR]' : 
+                            deviceStatus === 'ok' ? '[OK]' : '[??]';
+          
           if (process.stdout.clearLine) {
             process.stdout.clearLine(0);
             process.stdout.cursorTo(0);
-            process.stdout.write(`Progress: ${progressPercent}% |${bar}| ${successfulPackets}/${totalPackets} packets`);
+            process.stdout.write(`${statusText} Progress: ${progressPercent}% |${bar}| ${successfulPackets}/${totalPackets} packets`);
           } else {
             // Fallback for environments without clearLine
-            console.log(`Progress: ${progressPercent}% |${bar}| ${successfulPackets}/${totalPackets} packets`);
+            console.log(`${statusText} Progress: ${progressPercent}% |${bar}| ${successfulPackets}/${totalPackets} packets`);
           }
         }
       }
     }
     
-    console.log(`\n\n✓ Transfer complete: ${successfulPackets} packets sent`);
+    console.log(`\n\nTransfer complete: ${successfulPackets} packets sent`);
     return true;
     
   } catch (error) {
-    console.error(`\n✗ Transfer failed: ${error.message}`);
+    console.error(`\nTransfer failed: ${error.message}`);
     return false;
+  } finally {
+    isTransferActive = false;
+    deviceStatus = 'unknown';
   }
 }
 
@@ -417,13 +486,30 @@ if (!command) {
   process.exit(1);
 }
 
-// Cleanup handler
-process.on('SIGINT', () => {
+// Enhanced cleanup handler with proper escape from all states
+function cleanup_and_exit() {
   console.log('\n\nClosing MIDI ports and exiting...');
-  activeMidiOutput.closePort();
-  activeMidiInput.closePort();
+  if (activeMidiOutput) {
+    activeMidiOutput.closePort();
+  }
+  if (activeMidiInput) {
+    activeMidiInput.closePort();
+  }
   process.exit(0);
+}
+
+process.on('SIGINT', () => {
+  console.log('\n\nStopping transfer...');
+  if (pendingResponse) {
+    clearTimeout(pendingResponse.timer);
+    pendingResponse = null;
+  }
+  isTransferActive = false;
+  cleanup_and_exit();
 });
+
+process.on('SIGTERM', cleanup_and_exit);
+process.on('exit', cleanup_and_exit);
 
 // Main execution
 async function main() {

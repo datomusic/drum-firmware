@@ -279,6 +279,7 @@ void FileTransferDisplayMode::on_enter(PizzaDisplay &display) {
 }
 
 void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
+  display.clear();
   // Flash the play button green
   uint32_t time_ms = to_ms_since_boot(now);
   Color pulse_color =

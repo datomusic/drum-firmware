@@ -41,6 +41,16 @@ const SYSEX_CHANNEL = 0x65; // DRUM device channel (same as existing protocol)
 const PACKET_TIMEOUT = 20;   // 20ms timeout per packet as per SDS spec
 const HEADER_TIMEOUT = 2000; // 2 second timeout for dump header
 
+// Custom SysEx Configuration (for firmware/format commands)
+const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
+const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
+
+// Custom Protocol Commands
+const REQUEST_FIRMWARE_VERSION = 0x01;
+const FORMAT_FILESYSTEM = 0x15;
+const CUSTOM_ACK = 0x13;
+const CUSTOM_NACK = 0x14;
+
 // Find and connect to DRUM device
 function find_dato_drum() {
   const output = new midi.Output();
@@ -106,6 +116,10 @@ let pendingResponse = null;
 let deviceStatus = 'unknown'; // 'ok', 'slow', 'error', 'unknown'
 let isTransferActive = false;
 
+// Custom protocol handling
+let customAckQueue = [];
+let customReplyPromise = {};
+
 function isSdsMessage(message) {
   return message[0] === SYSEX_START && 
          message[message.length - 1] === SYSEX_END &&
@@ -114,8 +128,19 @@ function isSdsMessage(message) {
          message[2] === SYSEX_CHANNEL;
 }
 
+function isCustomMessage(message) {
+  return message[0] === SYSEX_START && 
+         message[message.length - 1] === SYSEX_END &&
+         message.length >= 6 &&
+         message[1] === SYSEX_MANUFACTURER_ID[0] &&
+         message[2] === SYSEX_MANUFACTURER_ID[1] &&
+         message[3] === SYSEX_MANUFACTURER_ID[2] &&
+         message[4] === SYSEX_DEVICE_ID;
+}
+
 // MIDI message handler - will be attached during initialization
 function handleMidiMessage(deltaTime, message) {
+  // Handle SDS messages
   if (isSdsMessage(message)) {
     const messageType = message[3];
     const packetNum = message.length > 4 ? message[4] : 0;
@@ -149,12 +174,119 @@ function handleMidiMessage(deltaTime, message) {
       }
     }
   }
+  
+  // Handle custom protocol messages (firmware version, format, etc.)
+  if (isCustomMessage(message)) {
+    if (message.length < 6) return;
+    const tag = message[5];
+
+    if (tag === CUSTOM_ACK) {
+      const ackResolver = customAckQueue.shift();
+      if (ackResolver) {
+        clearTimeout(ackResolver.timer);
+        ackResolver.resolve();
+      }
+    } else if (tag === CUSTOM_NACK) {
+      const ackResolver = customAckQueue.shift();
+      if (ackResolver) {
+        clearTimeout(ackResolver.timer);
+        ackResolver.reject(new Error('Received NACK from device.'));
+      }
+    } else {
+      if (customReplyPromise.resolve) {
+        customReplyPromise.resolve(message);
+        customReplyPromise = {};
+      }
+    }
+  }
 }
 
-// Send SysEx message
+// Send SysEx message (for SDS protocol)
 function sendSysExMessage(data) {
   const message = [SYSEX_START, MIDI_NON_REALTIME_ID, SYSEX_CHANNEL, ...data, SYSEX_END];
   activeMidiOutput.sendMessage(message);
+}
+
+// Send custom protocol message
+function sendCustomMessage(payload) {
+  const message = [SYSEX_START, ...SYSEX_MANUFACTURER_ID, SYSEX_DEVICE_ID, ...payload, SYSEX_END];
+  activeMidiOutput.sendMessage(message);
+}
+
+// Wait for custom protocol ACK
+function waitForCustomAck(timeout = 2000) {
+  let timer;
+  const promise = new Promise((resolve, reject) => {
+    const resolver = {
+      resolve: resolve,
+      reject: reject,
+      timer: null // Placeholder
+    };
+    timer = setTimeout(() => {
+      // On timeout, find and remove the resolver from the queue
+      const index = customAckQueue.findIndex(p => p.timer === timer);
+      if (index > -1) {
+        customAckQueue.splice(index, 1);
+      }
+      reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
+    }, timeout);
+    resolver.timer = timer;
+    customAckQueue.push(resolver);
+  });
+  return promise;
+}
+
+// Wait for custom protocol reply
+function waitForCustomReply(timeout = 2000) {
+  let timer;
+  return new Promise((resolve, reject) => {
+    customReplyPromise = {
+      resolve: (msg) => { clearTimeout(timer); resolve(msg); },
+      reject: (err) => { clearTimeout(timer); reject(err); },
+    };
+    timer = setTimeout(() => {
+      if (customReplyPromise.reject) {
+        customReplyPromise.reject(new Error(`Timeout waiting for reply after ${timeout}ms.`));
+        customReplyPromise = {};
+      }
+    }, timeout);
+  });
+}
+
+// Send custom command and wait for ACK
+async function sendCustomCommandAndWait(tag, body = []) {
+  const payload = [tag, ...body];
+  sendCustomMessage(payload);
+  await waitForCustomAck();
+}
+
+// Get firmware version
+async function get_firmware_version() {
+  const tag = REQUEST_FIRMWARE_VERSION;
+  const payload = [tag];
+  sendCustomMessage(payload);
+  try {
+    const reply = await waitForCustomReply();
+    if (reply[5] === REQUEST_FIRMWARE_VERSION) {
+      const major = reply[6];
+      const minor = reply[7];
+      const patch = reply[8];
+      console.log(`Device firmware version: v${major}.${minor}.${patch}`);
+      return { major, minor, patch };
+    } else {
+      throw new Error(`Unexpected reply received. Tag: ${reply[5]}`);
+    }
+  } catch (e) {
+    console.error(`Error requesting firmware version: ${e.message}`);
+    throw e;
+  }
+}
+
+// Format filesystem
+async function format_filesystem() {
+  console.log("Sending command to format filesystem...");
+  await sendCustomCommandAndWait(FORMAT_FILESYSTEM);
+  console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
 }
 
 // Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
@@ -543,8 +675,15 @@ if (!command) {
   console.log("");
   console.log("Usage:");
   console.log("  sds_sender.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  sds_sender.js version");
+  console.log("  sds_sender.js format");
   console.log("");
-  console.log("Arguments:");
+  console.log("Commands:");
+  console.log("  send           - Transfer audio samples using SDS protocol");
+  console.log("  version        - Get device firmware version");
+  console.log("  format         - Format device filesystem");
+  console.log("");
+  console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
   console.log("  sample_rate    - Sample rate in Hz (default: 44100, applies to all files)");
   console.log("  --verbose, -v  - Show detailed transfer information");
@@ -554,6 +693,8 @@ if (!command) {
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1       # Multiple files");
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1 -v    # Multiple with verbose");
+  console.log("  sds_sender.js version                           # Check firmware version");
+  console.log("  sds_sender.js format                            # Format filesystem");
   console.log("");
   process.exit(1);
 }
@@ -588,6 +729,7 @@ process.on('exit', cleanup_and_exit);
 // Main execution
 async function main() {
   try {
+    // Validate arguments early before MIDI initialization
     if (command === 'send') {
       const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
       
@@ -596,38 +738,48 @@ async function main() {
         process.exit(1);
       }
       
+      // Validate file:slot arguments early
       try {
         const transfers = parseFileSlotArgs(args);
         if (transfers.length === 0) {
           console.error("Error: No valid file:slot pairs found.");
           process.exit(1);
         }
-        
-        // Initialize MIDI connection after arguments are validated
-        console.log("Initializing MIDI connection...");
-        const midi_ports = find_dato_drum();
-        if (!midi_ports) {
-          console.error("Failed to initialize MIDI. Exiting.");
-          process.exit(1);
-        }
-        
-        activeMidiOutput = midi_ports.output;
-        activeMidiInput = midi_ports.input;
-        
-        // Attach MIDI message handler
-        activeMidiInput.on('message', handleMidiMessage);
-        
-        const success = transfers.length === 1 
-          ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
-          : await transferMultipleSamples(transfers, verbose);
-        process.exitCode = success ? 0 : 1;
       } catch (error) {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
-    } else {
-      console.error(`Error: Unknown command '${command}'. Use 'send'.`);
+    } else if (command !== 'version' && command !== 'format') {
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', or 'format'.`);
       process.exit(1);
+    }
+
+    // Initialize MIDI connection after arguments are validated
+    console.log("Initializing MIDI connection...");
+    const midi_ports = find_dato_drum();
+    if (!midi_ports) {
+      console.error("Failed to initialize MIDI. Exiting.");
+      process.exit(1);
+    }
+    
+    activeMidiOutput = midi_ports.output;
+    activeMidiInput = midi_ports.input;
+    
+    // Attach MIDI message handler
+    activeMidiInput.on('message', handleMidiMessage);
+
+    if (command === 'send') {
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      const transfers = parseFileSlotArgs(args); // Already validated above
+      
+      const success = transfers.length === 1 
+        ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
+        : await transferMultipleSamples(transfers, verbose);
+      process.exitCode = success ? 0 : 1;
+    } else if (command === 'version') {
+      await get_firmware_version();
+    } else if (command === 'format') {
+      await format_filesystem();
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);

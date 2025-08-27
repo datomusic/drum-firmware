@@ -97,14 +97,9 @@ function find_dato_drum() {
   }
 }
 
-// Initialize MIDI connection
-const midi_ports = find_dato_drum();
-if (!midi_ports) {
-  console.error("Failed to initialize MIDI. Exiting.");
-  process.exit(1);
-}
-
-const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
+// MIDI ports will be initialized after argument validation
+let activeMidiOutput = null;
+let activeMidiInput = null;
 
 // Message handling
 let pendingResponse = null;
@@ -119,7 +114,8 @@ function isSdsMessage(message) {
          message[2] === SYSEX_CHANNEL;
 }
 
-activeMidiInput.on('message', (deltaTime, message) => {
+// MIDI message handler - will be attached during initialization
+function handleMidiMessage(deltaTime, message) {
   if (isSdsMessage(message)) {
     const messageType = message[3];
     const packetNum = message.length > 4 ? message[4] : 0;
@@ -153,7 +149,7 @@ activeMidiInput.on('message', (deltaTime, message) => {
       }
     }
   }
-});
+}
 
 // Send SysEx message
 function sendSysExMessage(data) {
@@ -564,12 +560,14 @@ if (!command) {
 
 // Enhanced cleanup handler with proper escape from all states
 function cleanup_and_exit() {
-  console.log('\n\nClosing MIDI ports and exiting...');
-  if (activeMidiOutput) {
-    activeMidiOutput.closePort();
-  }
-  if (activeMidiInput) {
-    activeMidiInput.closePort();
+  if (activeMidiOutput || activeMidiInput) {
+    console.log('\n\nClosing MIDI ports and exiting...');
+    if (activeMidiOutput) {
+      activeMidiOutput.closePort();
+    }
+    if (activeMidiInput) {
+      activeMidiInput.closePort();
+    }
   }
   process.exit(0);
 }
@@ -605,6 +603,20 @@ async function main() {
           process.exit(1);
         }
         
+        // Initialize MIDI connection after arguments are validated
+        console.log("Initializing MIDI connection...");
+        const midi_ports = find_dato_drum();
+        if (!midi_ports) {
+          console.error("Failed to initialize MIDI. Exiting.");
+          process.exit(1);
+        }
+        
+        activeMidiOutput = midi_ports.output;
+        activeMidiInput = midi_ports.input;
+        
+        // Attach MIDI message handler
+        activeMidiInput.on('message', handleMidiMessage);
+        
         const success = transfers.length === 1 
           ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
           : await transferMultipleSamples(transfers, verbose);
@@ -621,8 +633,12 @@ async function main() {
     console.error(`\nError: ${error.message}`);
     process.exitCode = 1;
   } finally {
-    activeMidiOutput.closePort();
-    activeMidiInput.closePort();
+    if (activeMidiOutput) {
+      activeMidiOutput.closePort();
+    }
+    if (activeMidiInput) {
+      activeMidiInput.closePort();
+    }
   }
 }
 

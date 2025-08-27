@@ -40,9 +40,7 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 static musin::NullLogger logger;
 #endif
 
-// System State Machine (will be initialized after pizza_display)
-
-// Model
+// --- Model ---
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static drum::SysExHandler sysex_handler(config_manager, logger);
@@ -67,21 +65,27 @@ static musin::midi::MidiSender
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
                                           midi_sender, logger);
 
-// MIDI Manager
+// --- MIDI Manager ---
 static drum::MidiManager midi_manager(message_router, midi_clock_processor,
                                       sysex_handler, logger);
 
-// View
+// --- View ---
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
-// System State Machine (simplified without wrapper)
-static drum::SystemStateMachine system_state_machine(logger);
-
-// Controller
+// --- Controller and State Machine ---
+// PizzaControls is created first, but its dependency on the state machine
+// is injected later to break the circular dependency.
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
                                           sequencer_controller, message_router,
-                                          system_state_machine, logger);
+                                          logger);
+
+// The SystemStateMachine is the central orchestrator.
+static drum::SystemStateMachine
+    system_state_machine(logger, sysex_handler, pizza_controls, sync_in,
+                         clock_multiplier, sequencer_controller, message_router,
+                         audio_engine, pizza_display, midi_manager,
+                         internal_clock, tempo_handler);
 
 static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN,
                                        internal_clock);
@@ -97,146 +101,49 @@ int main() {
 #endif
 
   if (!musin::filesystem::init(false)) {
-    // Filesystem is not critical for basic operation if no samples are present,
-    // but we should log the failure.
     logger.warn("Failed to initialize filesystem.");
   } else {
-    musin::filesystem::list_files("/"); // List files in the root directory
-
+    musin::filesystem::list_files("/");
     config_manager.load();
   }
 
   midi_manager.init();
-
   audio_engine.init();
   message_router.set_output_mode(drum::OutputMode::BOTH);
-
   pizza_display.init();
   pizza_controls.init();
 
-  // Boot animation is now handled by BootState
-  // No circular references needed with simplified approach
+  // Complete the dependency loop between controls and state machine
+  pizza_controls.set_system_state_machine(&system_state_machine);
 
   // --- Initialize Clocking System ---
-  // TempoHandler's constructor calls set_clock_source, which handles initial
-  // observation.
   sync_in.add_observer(clock_multiplier);
   tempo_handler.add_observer(sequencer_controller);
-  tempo_handler.add_observer(
-      pizza_display); // PizzaDisplay needs tempo events for pulsing
-  tempo_handler.add_observer(
-      pizza_controls); // PizzaControls needs tempo events for sample cycling
+  tempo_handler.add_observer(pizza_display);
+  tempo_handler.add_observer(pizza_controls);
 
-  // SequencerController notifies MessageRouter, which queues the events
-  // internally.
+  // --- Initialize Observers ---
   sequencer_controller.add_observer(message_router);
-
-  // Register observers for SysEx state changes
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(sequencer_controller);
   sysex_handler.add_observer(system_state_machine);
-
-  // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);
   message_router.add_parameter_change_event_observer(pizza_display);
   message_router.add_note_event_observer(audio_engine);
 
   sync_out.enable();
 
-  // SystemStateMachine automatically starts in Boot state
-  // No initialization_complete() call needed
-
-  // Track state transitions for display management
-  drum::SystemStateId previous_state = drum::SystemStateId::Boot;
-  pizza_display.start_boot_animation(); // Initial boot animation
+  // The SystemStateMachine constructor now handles the initial state entry,
+  // including the boot animation.
 
   while (true) {
     absolute_time_t now = get_absolute_time();
 
+    // The state machine now handles all state-specific logic.
+    // Tell, Don't Ask.
     system_state_machine.update(now);
 
-    // Handle state transitions for display
-    drum::SystemStateId current_state =
-        system_state_machine.get_current_state();
-    if (current_state != previous_state) {
-      switch (current_state) {
-      case drum::SystemStateId::Boot:
-        pizza_display.start_boot_animation();
-        break;
-      case drum::SystemStateId::Sequencer:
-        pizza_display.switch_to_sequencer_mode();
-        break;
-      case drum::SystemStateId::FileTransfer:
-        pizza_display.switch_to_file_transfer_mode();
-        break;
-      case drum::SystemStateId::FallingAsleep:
-        audio_engine.mute();
-        audio_engine.deinit();
-        pizza_display.start_sleep_mode();
-        break;
-      case drum::SystemStateId::Sleep:
-        pizza_display.deinit();
-        break;
-      }
-      previous_state = current_state;
-    }
-
-    switch (system_state_machine.get_current_state()) {
-    case drum::SystemStateId::Boot: {
-      // During boot, only run essential systems and display
-      musin::usb::background_update();
-      pizza_display.update(now);
-      midi_manager.process_input();
-      break;
-    }
-    case drum::SystemStateId::Sequencer: {
-      // Full sequencer operation - existing SequencerMode logic
-      musin::usb::background_update();
-      sysex_handler.update(now);
-      pizza_controls.update(now);
-      sync_in.update(now);
-      clock_multiplier.update(now);
-      sequencer_controller
-          .update(); // Checks if a step is due and queues NoteEvents
-      message_router
-          .update(); // Drains NoteEvent queue, sending to observers and MIDI
-      audio_engine.process();
-      pizza_display.update(now);
-      midi_manager.process_input();
-      internal_clock.update(now);
-      tempo_handler.update();
-      musin::midi::process_midi_output_queue(
-          logger); // Pass logger to queue processing
-      sleep_us(10);
-      break;
-    }
-    case drum::SystemStateId::FileTransfer: {
-      // File transfer mode - only service bare essentials for performance
-      musin::usb::background_update();
-      sysex_handler.update(now);
-      pizza_display.update(now); // Keep display alive for progress updates
-      midi_manager.process_input();
-      musin::midi::process_midi_output_queue(logger); // For sending ACKs
-      break;
-    }
-    case drum::SystemStateId::FallingAsleep: {
-      // Falling asleep mode - minimal systems during fadeout
-      pizza_display.update(now);
-      midi_manager.process_input();
-      musin::midi::process_midi_output_queue(logger);
-      sleep_us(10);
-      break;
-    }
-    case drum::SystemStateId::Sleep: {
-      // Sleep mode - minimal systems, hardware wake handled by SleepState
-      // Note: Display should be off, wake detection handled by
-      // SleepState::update()
-      break;
-    }
-    }
-
 #ifndef VERBOSE
-    // Watchdog update for Release builds
     watchdog_update();
 #else
     loop_timer.record_iteration_end();

@@ -23,14 +23,10 @@ PizzaControls::PizzaControls(
     drum::PizzaDisplay &display_ref,
     musin::timing::TempoHandler &tempo_handler_ref,
     drum::DefaultSequencerController &sequencer_controller_ref,
-    drum::MessageRouter &message_router_ref,
-    drum::SystemStateMachine &system_state_machine_ref,
-    musin::Logger &logger_ref)
+    drum::MessageRouter &message_router_ref, musin::Logger &logger_ref)
     : display(display_ref), _tempo_handler_ref(tempo_handler_ref),
       _sequencer_controller_ref(sequencer_controller_ref),
-      _message_router_ref(message_router_ref),
-      _system_state_machine_ref(system_state_machine_ref),
-      _logger_ref(logger_ref),
+      _message_router_ref(message_router_ref), _logger_ref(logger_ref),
       _scanner(PIZZA_MUX_ADC_PIN, analog_address_pins), // Initialize scanner
       keypad_component(this), drumpad_component(this), analog_component(this),
       playbutton_component(this) {
@@ -558,6 +554,10 @@ void PizzaControls::PlaybuttonComponent::update() {
   playbutton.update(raw_value);
 }
 
+void PizzaControls::set_system_state_machine(SystemStateMachine *ssm) {
+  system_state_machine_ = ssm;
+}
+
 void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     musin::ui::DrumpadEvent event) {
   logger.debug("Playbutton event for pad: ",
@@ -574,8 +574,10 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
     logger.debug("PLAYBUTTON RELEASED");
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
     logger.debug("PLAYBUTTON HELD - entering sleep mode");
-    parent->parent_controls->_system_state_machine_ref.transition_to(
-        drum::SystemStateId::FallingAsleep);
+    if (parent->parent_controls->system_state_machine_) {
+      parent->parent_controls->system_state_machine_->transition_to(
+          drum::SystemStateId::FallingAsleep);
+    }
   }
   logger.debug("Raw value ", static_cast<uint32_t>(event.raw_value));
 }

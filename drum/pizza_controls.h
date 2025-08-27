@@ -44,9 +44,9 @@ public:
       drum::PizzaDisplay &display_ref,
       musin::timing::TempoHandler &tempo_handler_ref,
       drum::DefaultSequencerController &sequencer_controller_ref,
-      drum::MessageRouter &message_router_ref,
-      drum::SystemStateMachine &system_state_machine_ref,
-      musin::Logger &logger_ref);
+      drum::MessageRouter &message_router_ref, musin::Logger &logger_ref);
+
+  void set_system_state_machine(SystemStateMachine *ssm);
 
   PizzaControls(const PizzaControls &) = delete;
   PizzaControls &operator=(const PizzaControls &) = delete;
@@ -215,7 +215,7 @@ private:
   musin::timing::TempoHandler &_tempo_handler_ref;
   drum::DefaultSequencerController &_sequencer_controller_ref;
   drum::MessageRouter &_message_router_ref;
-  drum::SystemStateMachine &_system_state_machine_ref;
+  drum::SystemStateMachine *system_state_machine_ = nullptr;
   musin::Logger &_logger_ref;
 
   // --- Owned Hardware Abstractions ---

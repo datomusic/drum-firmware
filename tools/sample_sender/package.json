@@ -2,5 +2,6 @@
   "dependencies": {
     "midi": "^2.0.0",
     "wavefile": "^11.0.0"
-  }
+  },
+  "description": "SDS Sample Sender - MIDI Sample Dump Standard implementation with confirmation prompts for destructive operations"
 }

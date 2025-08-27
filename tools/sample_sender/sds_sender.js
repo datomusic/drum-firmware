@@ -21,6 +21,7 @@
 
 const midi = require('midi');
 const fs = require('fs');
+const readline = require('readline');
 
 // MIDI SDS Constants
 const SYSEX_START = 0xF0;
@@ -261,6 +262,22 @@ async function sendCustomCommandAndWait(tag, body = []) {
   await waitForCustomAck();
 }
 
+// Confirmation prompt for destructive operations
+function askConfirmation(message) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    rl.question(`${message} (y/N): `, (answer) => {
+      rl.close();
+      const confirmed = answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+      resolve(confirmed);
+    });
+  });
+}
+
 // Get firmware version
 async function get_firmware_version() {
   const tag = REQUEST_FIRMWARE_VERSION;
@@ -285,6 +302,14 @@ async function get_firmware_version() {
 
 // Format filesystem
 async function format_filesystem() {
+  console.log("⚠️  WARNING: This will erase ALL files on the device filesystem!");
+  const confirmed = await askConfirmation("Are you sure you want to format the filesystem?");
+  
+  if (!confirmed) {
+    console.log("Format cancelled.");
+    return;
+  }
+  
   console.log("Sending command to format filesystem...");
   await sendCustomCommandAndWait(FORMAT_FILESYSTEM);
   console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
@@ -292,6 +317,15 @@ async function format_filesystem() {
 
 // Reboot to bootloader
 async function reboot_bootloader() {
+  console.log("⚠️  WARNING: This will reboot the device into bootloader mode!");
+  console.log("The device will disconnect and enter firmware update mode.");
+  const confirmed = await askConfirmation("Are you sure you want to reboot to bootloader?");
+  
+  if (!confirmed) {
+    console.log("Reboot cancelled.");
+    return;
+  }
+  
   console.log("Sending command to reboot to bootloader...");
   const payload = [REBOOT_BOOTLOADER];
   sendCustomMessage(payload);

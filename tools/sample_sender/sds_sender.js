@@ -547,7 +547,6 @@ if (!command) {
   console.log("");
   console.log("Usage:");
   console.log("  sds_sender.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
-  console.log("  sds_sender.js send <source_path> <sample_number> [sample_rate] [--verbose|-v]  # Legacy");
   console.log("");
   console.log("Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
@@ -559,7 +558,6 @@ if (!command) {
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1       # Multiple files");
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1 -v    # Multiple with verbose");
-  console.log("  sds_sender.js send sine440.pcm 0                # Legacy single file mode");
   console.log("");
   process.exit(1);
 }
@@ -600,46 +598,20 @@ async function main() {
         process.exit(1);
       }
       
-      // Check if this is legacy format (no colons in arguments)
-      const hasColonFormat = args.some(arg => arg.includes(':') && !arg.match(/^(\d+)$/));
-      
-      if (hasColonFormat) {
-        // New file:slot format
-        try {
-          const transfers = parseFileSlotArgs(args);
-          if (transfers.length === 0) {
-            console.error("Error: No valid file:slot pairs found.");
-            process.exit(1);
-          }
-          
-          const success = transfers.length === 1 
-            ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
-            : await transferMultipleSamples(transfers, verbose);
-          process.exitCode = success ? 0 : 1;
-        } catch (error) {
-          console.error(`Error: ${error.message}`);
-          process.exit(1);
-        }
-      } else {
-        // Legacy format: send <source_path> <sample_number> [sample_rate]
-        const sourcePath = args[0];
-        const sampleNumber = args[1] ? parseInt(args[1], 10) : null;
-        const sampleRate = args[2] ? parseInt(args[2]) : 44100;
-        
-        if (!sourcePath || sampleNumber === null) {
-          console.error("Error: Legacy format requires source path and sample number.");
-          console.error("Use: sds_sender.js send <source_path> <sample_number> [sample_rate]");
-          console.error("Or new format: sds_sender.js send <file:slot> [file:slot] ...");
+      try {
+        const transfers = parseFileSlotArgs(args);
+        if (transfers.length === 0) {
+          console.error("Error: No valid file:slot pairs found.");
           process.exit(1);
         }
         
-        if (isNaN(sampleNumber) || sampleNumber < 0 || sampleNumber > 127) {
-          console.error(`Error: Sample number must be between 0-127, got: ${sampleNumber}`);
-          process.exit(1);
-        }
-        
-        const success = await transferSample(sourcePath, sampleNumber, sampleRate, verbose);
+        const success = transfers.length === 1 
+          ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
+          : await transferMultipleSamples(transfers, verbose);
         process.exitCode = success ? 0 : 1;
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+        process.exit(1);
       }
     } else {
       console.error(`Error: Unknown command '${command}'. Use 'send'.`);

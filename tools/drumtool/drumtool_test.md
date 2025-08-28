@@ -2,6 +2,8 @@
 
 ## Test Commands and Expected Results
 
+**⚠️ WARNING:** Tests 3 and 4 include destructive commands (`format` and `reboot-bootloader`) that will affect the device. Always ask the user for permission before running these tests.
+
 ### 1. Help Output Test
 ```bash
 node tools/drumtool/drumtool.js
@@ -56,6 +58,24 @@ echo "y" | node tools/drumtool/drumtool.js reboot-bootloader
 - "Reboot command sent. Device should now enter bootloader mode."
 - Clean exit
 
+**Verification:**
+```bash
+picotool info
+```
+**Expected:** Shows "Program Information" with device details (confirms bootloader mode)
+
+**Return to Application Mode:**
+```bash
+picotool reboot -f
+```
+**Expected:** "The device was asked to reboot into application mode."
+
+**Verify Application Mode:**
+```bash
+node tools/drumtool/drumtool.js version
+```
+**Expected:** Device accessible via MIDI again
+
 ```bash
 echo "n" | node tools/drumtool/drumtool.js reboot-bootloader
 ```
@@ -108,3 +128,6 @@ node tools/drumtool/drumtool.js send test.wav:abc
 - ✅ Format command has confirmation prompt and successfully sends format command to device
 - ✅ Reboot-bootloader command has confirmation prompt and successfully sends reboot command to device
 - ✅ Both destructive commands can be cancelled with 'n' response
+- ✅ Bootloader mode can be verified using `picotool info` (shows Program Information)
+- ✅ Device can be returned to application mode using `picotool reboot -f`
+- ✅ Application mode can be verified by successful MIDI communication

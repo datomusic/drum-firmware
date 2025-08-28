@@ -673,27 +673,20 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   }
 }
 
-// Parse file:slot arguments
-function parseFileSlotArgs(args) {
+// Helper function to check if argument is a sample rate
+function isSampleRate(arg) {
+  const rateMatch = arg.match(/^(\d+)$/);
+  return rateMatch && !arg.includes(':') && parseInt(arg, 10) >= 1000; // Reasonable sample rate threshold
+}
+
+// Parse explicit file:slot format
+function parseExplicitSlots(fileArgs, sampleRate) {
   const transfers = [];
-  let sampleRate = 44100;
   
-  for (const arg of args) {
-    if (arg === '--verbose' || arg === '-v') {
-      continue; // Already handled globally
-    }
-    
-    // Check if it's a sample rate override
-    const rateMatch = arg.match(/^(\d+)$/);
-    if (rateMatch && !arg.includes(':')) {
-      sampleRate = parseInt(arg, 10);
-      continue;
-    }
-    
-    // Parse file:slot format
+  for (const arg of fileArgs) {
     const colonIndex = arg.indexOf(':');
     if (colonIndex === -1) {
-      throw new Error(`Invalid format '${arg}'. Expected 'file:slot' format.`);
+      throw new Error(`Mixed formats not allowed. Use either 'filename:slot' for all files or just 'filename' for all files.`);
     }
     
     const filePath = arg.substring(0, colonIndex);
@@ -708,6 +701,55 @@ function parseFileSlotArgs(args) {
   }
   
   return transfers;
+}
+
+// Parse auto-increment format (just filenames)
+function parseAutoIncrement(fileArgs, sampleRate) {
+  const transfers = [];
+  
+  fileArgs.forEach((filePath, index) => {
+    if (index > 127) {
+      throw new Error(`Too many files. Maximum 128 slots (0-127).`);
+    }
+    transfers.push({ filePath, slot: index, sampleRate });
+  });
+  
+  return transfers;
+}
+
+// Parse file:slot arguments with auto-increment support
+function parseFileSlotArgs(args) {
+  let sampleRate = 44100;
+  
+  // Extract sample rate and filter file arguments
+  const fileArgs = [];
+  for (const arg of args) {
+    if (arg === '--verbose' || arg === '-v') {
+      continue; // Already handled globally
+    }
+    
+    if (isSampleRate(arg)) {
+      sampleRate = parseInt(arg, 10);
+      continue;
+    }
+    
+    fileArgs.push(arg);
+  }
+  
+  if (fileArgs.length === 0) {
+    return [];
+  }
+  
+  // Detect mode: check if ANY argument contains ':'
+  const hasSlotSyntax = fileArgs.some(arg => arg.includes(':'));
+  
+  if (hasSlotSyntax) {
+    // Mode A: ALL must use filename:slot format
+    return parseExplicitSlots(fileArgs, sampleRate);
+  } else {
+    // Mode B: ALL are filenames, auto-increment from 0
+    return parseAutoIncrement(fileArgs, sampleRate);
+  }
 }
 
 // Command line interface
@@ -731,14 +773,20 @@ if (!command) {
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
+  console.log("  file           - Audio file path (auto-assigns slots 0,1,2... in order)");
   console.log("  sample_rate    - Sample rate in Hz (default: 44100, applies to all files)");
   console.log("  --verbose, -v  - Show detailed transfer information");
   console.log("");
   console.log("Examples:");
-  console.log("  sds_sender.js send kick.wav:0                    # Single file to slot 0");
-  console.log("  sds_sender.js send kick.wav:0 snare.wav:1       # Multiple files");
+  console.log("  # Explicit slot assignment:");
+  console.log("  sds_sender.js send kick.wav:0 snare.wav:1       # Files to specific slots");
   console.log("  sds_sender.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
-  console.log("  sds_sender.js send kick.wav:0 snare.wav:1 -v    # Multiple with verbose");
+  console.log("  ");
+  console.log("  # Auto-increment slots (starts from 0):");
+  console.log("  sds_sender.js send kick.wav snare.wav hat.wav   # Slots 0,1,2 automatically");
+  console.log("  sds_sender.js send kick.wav snare.wav 48000 -v  # Auto-increment with options");
+  console.log("  ");
+  console.log("  # Cannot mix formats - use either all file:slot OR all filenames");
   console.log("  sds_sender.js version                           # Check firmware version");
   console.log("  sds_sender.js format                            # Format filesystem");
   console.log("  sds_sender.js reboot-bootloader                 # Enter bootloader mode");

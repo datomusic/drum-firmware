@@ -1,22 +1,18 @@
 #!/usr/bin/env node
 /**
- * MIDI Sample Dump Standard (SDS) sender for drum firmware
+ * Drumtool - Comprehensive tool for DRUM device management
  * 
- * This implements a minimal subset of the SDS specification to transfer
- * 16-bit PCM audio samples without the padding corruption issues of the
- * custom SysEx protocol.
+ * This tool implements MIDI Sample Dump Standard (SDS) for reliable
+ * sample transfer and provides device management commands.
  * 
- * Supported features:
- * - Dump Header with basic sample metadata
- * - Data Packets with proper 16-bit sample packing (40 samples per packet)
+ * Features:
+ * - SDS sample transfer with auto-slot assignment
+ * - Batch sample uploads
+ * - Firmware version checking
+ * - Filesystem formatting
+ * - Bootloader reboot
  * - ACK/NAK handshaking with timeout fallback
- * - Checksum validation
- * 
- * Not implemented (yet):
- * - Loop point messages
- * - Multiple bit depths
- * - DUMP REQUEST
- * - WAIT/CANCEL messages
+ * - Checksum validation and progress monitoring
  */
 
 const midi = require('midi');
@@ -757,13 +753,13 @@ const command = process.argv[2];
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 if (!command) {
-  console.log("SDS Sample Sender - MIDI Sample Dump Standard implementation");
+  console.log("Drumtool - DRUM Device Management Tool");
   console.log("");
   console.log("Usage:");
-  console.log("  sds_sender.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
-  console.log("  sds_sender.js version");
-  console.log("  sds_sender.js format");
-  console.log("  sds_sender.js reboot-bootloader");
+  console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  drumtool.js version");
+  console.log("  drumtool.js format");
+  console.log("  drumtool.js reboot-bootloader");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples using SDS protocol");
@@ -779,17 +775,17 @@ if (!command) {
   console.log("");
   console.log("Examples:");
   console.log("  # Explicit slot assignment:");
-  console.log("  sds_sender.js send kick.wav:0 snare.wav:1       # Files to specific slots");
-  console.log("  sds_sender.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
+  console.log("  drumtool.js send kick.wav:0 snare.wav:1       # Files to specific slots");
+  console.log("  drumtool.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
   console.log("  ");
   console.log("  # Auto-increment slots (starts from 0):");
-  console.log("  sds_sender.js send kick.wav snare.wav hat.wav   # Slots 0,1,2 automatically");
-  console.log("  sds_sender.js send kick.wav snare.wav 48000 -v  # Auto-increment with options");
+  console.log("  drumtool.js send kick.wav snare.wav hat.wav   # Slots 0,1,2 automatically");
+  console.log("  drumtool.js send kick.wav snare.wav 48000 -v  # Auto-increment with options");
   console.log("  ");
   console.log("  # Cannot mix formats - use either all file:slot OR all filenames");
-  console.log("  sds_sender.js version                           # Check firmware version");
-  console.log("  sds_sender.js format                            # Format filesystem");
-  console.log("  sds_sender.js reboot-bootloader                 # Enter bootloader mode");
+  console.log("  drumtool.js version                           # Check firmware version");
+  console.log("  drumtool.js format                            # Format filesystem");
+  console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
   console.log("");
   process.exit(1);
 }

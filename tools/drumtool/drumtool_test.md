@@ -1,16 +1,16 @@
-# SDS Sender Test Commands
+# Drumtool Test Commands
 
 ## Test Commands and Expected Results
 
 ### 1. Help Output Test
 ```bash
-node tools/sample_sender/sds_sender.js
+node tools/drumtool/drumtool.js
 ```
 **Expected:** Shows usage information and exits with code 1
 
 ### 2. Version Command Test
 ```bash
-node tools/sample_sender/sds_sender.js version
+node tools/drumtool/drumtool.js version
 ```
 **Expected:** 
 - "Initializing MIDI connection..."
@@ -20,7 +20,7 @@ node tools/sample_sender/sds_sender.js version
 
 ### 3. Format Command Test
 ```bash
-echo "y" | node tools/sample_sender/sds_sender.js format
+echo "y" | node tools/drumtool/drumtool.js format
 ```
 **Expected:**
 - "Initializing MIDI connection..."
@@ -32,7 +32,7 @@ echo "y" | node tools/sample_sender/sds_sender.js format
 - Clean exit
 
 ```bash
-echo "n" | node tools/sample_sender/sds_sender.js format
+echo "n" | node tools/drumtool/drumtool.js format
 ```
 **Expected:**
 - "Initializing MIDI connection..."
@@ -44,7 +44,7 @@ echo "n" | node tools/sample_sender/sds_sender.js format
 
 ### 4. Reboot-Bootloader Command Test
 ```bash
-echo "y" | node tools/sample_sender/sds_sender.js reboot-bootloader
+echo "y" | node tools/drumtool/drumtool.js reboot-bootloader
 ```
 **Expected:**
 - "Initializing MIDI connection..."
@@ -57,7 +57,7 @@ echo "y" | node tools/sample_sender/sds_sender.js reboot-bootloader
 - Clean exit
 
 ```bash
-echo "n" | node tools/sample_sender/sds_sender.js reboot-bootloader
+echo "n" | node tools/drumtool/drumtool.js reboot-bootloader
 ```
 **Expected:**
 - "Initializing MIDI connection..."
@@ -70,33 +70,33 @@ echo "n" | node tools/sample_sender/sds_sender.js reboot-bootloader
 
 ### 5. Invalid Command Tests
 ```bash
-node tools/sample_sender/sds_sender.js invalid
-node tools/sample_sender/sds_sender.js xyz
+node tools/drumtool/drumtool.js invalid
+node tools/drumtool/drumtool.js xyz
 ```
 **Expected:** "Error: Unknown command 'invalid'. Use 'send', 'version', 'format', or 'reboot-bootloader'." (fast exit, no MIDI init)
 
 ### 6. Send Command Validation Tests
 ```bash
 # No arguments
-node tools/sample_sender/sds_sender.js send
+node tools/drumtool/drumtool.js send
 ```
 **Expected:** "Error: 'send' command requires at least one file:slot argument." (fast exit)
 
 ```bash
 # Invalid format
-node tools/sample_sender/sds_sender.js send invalidformat
+node tools/drumtool/drumtool.js send invalidformat
 ```
 **Expected:** "Error: Invalid format 'invalidformat'. Expected 'file:slot' format." (fast exit)
 
 ```bash
 # Invalid slot number (too high)
-node tools/sample_sender/sds_sender.js send test.wav:999
+node tools/drumtool/drumtool.js send test.wav:999
 ```
 **Expected:** "Error: Invalid slot number '999'. Must be 0-127." (fast exit)
 
 ```bash
 # Non-numeric slot
-node tools/sample_sender/sds_sender.js send test.wav:abc
+node tools/drumtool/drumtool.js send test.wav:abc
 ```
 **Expected:** "Error: Invalid slot number 'abc'. Must be 0-127." (fast exit)
 

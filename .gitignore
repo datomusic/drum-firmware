@@ -16,3 +16,4 @@ compile_commands.json
 ai-code/*
 node_modules/
 support/
+package-lock.json

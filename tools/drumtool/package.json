@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "midi": "^2.0.0",
+    "wavefile": "^11.0.0"
+  },
+  "description": "Drumtool - DRUM Device Management Tool with MIDI Sample Dump Standard implementation"
+}

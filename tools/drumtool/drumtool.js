@@ -1,26 +1,23 @@
 #!/usr/bin/env node
 /**
- * MIDI Sample Dump Standard (SDS) sender for drum firmware
+ * Drumtool - Comprehensive tool for DRUM device management
  * 
- * This implements a minimal subset of the SDS specification to transfer
- * 16-bit PCM audio samples without the padding corruption issues of the
- * custom SysEx protocol.
+ * This tool implements MIDI Sample Dump Standard (SDS) for reliable
+ * sample transfer and provides device management commands.
  * 
- * Supported features:
- * - Dump Header with basic sample metadata
- * - Data Packets with proper 16-bit sample packing (40 samples per packet)
+ * Features:
+ * - SDS sample transfer with auto-slot assignment
+ * - Batch sample uploads
+ * - Firmware version checking
+ * - Filesystem formatting
+ * - Bootloader reboot
  * - ACK/NAK handshaking with timeout fallback
- * - Checksum validation
- * 
- * Not implemented (yet):
- * - Loop point messages
- * - Multiple bit depths
- * - DUMP REQUEST
- * - WAIT/CANCEL messages
+ * - Checksum validation and progress monitoring
  */
 
 const midi = require('midi');
 const fs = require('fs');
+const readline = require('readline');
 
 // MIDI SDS Constants
 const SYSEX_START = 0xF0;
@@ -40,6 +37,17 @@ const SDS_WAIT = 0x7C;
 const SYSEX_CHANNEL = 0x65; // DRUM device channel (same as existing protocol)
 const PACKET_TIMEOUT = 20;   // 20ms timeout per packet as per SDS spec
 const HEADER_TIMEOUT = 2000; // 2 second timeout for dump header
+
+// Custom SysEx Configuration (for firmware/format commands)
+const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
+const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
+
+// Custom Protocol Commands
+const REQUEST_FIRMWARE_VERSION = 0x01;
+const REBOOT_BOOTLOADER = 0x0B;
+const FORMAT_FILESYSTEM = 0x15;
+const CUSTOM_ACK = 0x13;
+const CUSTOM_NACK = 0x14;
 
 // Find and connect to DRUM device
 function find_dato_drum() {
@@ -97,19 +105,18 @@ function find_dato_drum() {
   }
 }
 
-// Initialize MIDI connection
-const midi_ports = find_dato_drum();
-if (!midi_ports) {
-  console.error("Failed to initialize MIDI. Exiting.");
-  process.exit(1);
-}
-
-const { output: activeMidiOutput, input: activeMidiInput } = midi_ports;
+// MIDI ports will be initialized after argument validation
+let activeMidiOutput = null;
+let activeMidiInput = null;
 
 // Message handling
 let pendingResponse = null;
 let deviceStatus = 'unknown'; // 'ok', 'slow', 'error', 'unknown'
 let isTransferActive = false;
+
+// Custom protocol handling
+let customAckQueue = [];
+let customReplyPromise = {};
 
 function isSdsMessage(message) {
   return message[0] === SYSEX_START && 
@@ -119,7 +126,19 @@ function isSdsMessage(message) {
          message[2] === SYSEX_CHANNEL;
 }
 
-activeMidiInput.on('message', (deltaTime, message) => {
+function isCustomMessage(message) {
+  return message[0] === SYSEX_START && 
+         message[message.length - 1] === SYSEX_END &&
+         message.length >= 6 &&
+         message[1] === SYSEX_MANUFACTURER_ID[0] &&
+         message[2] === SYSEX_MANUFACTURER_ID[1] &&
+         message[3] === SYSEX_MANUFACTURER_ID[2] &&
+         message[4] === SYSEX_DEVICE_ID;
+}
+
+// MIDI message handler - will be attached during initialization
+function handleMidiMessage(deltaTime, message) {
+  // Handle SDS messages
   if (isSdsMessage(message)) {
     const messageType = message[3];
     const packetNum = message.length > 4 ? message[4] : 0;
@@ -153,12 +172,161 @@ activeMidiInput.on('message', (deltaTime, message) => {
       }
     }
   }
-});
+  
+  // Handle custom protocol messages (firmware version, format, etc.)
+  if (isCustomMessage(message)) {
+    if (message.length < 6) return;
+    const tag = message[5];
 
-// Send SysEx message
+    if (tag === CUSTOM_ACK) {
+      const ackResolver = customAckQueue.shift();
+      if (ackResolver) {
+        clearTimeout(ackResolver.timer);
+        ackResolver.resolve();
+      }
+    } else if (tag === CUSTOM_NACK) {
+      const ackResolver = customAckQueue.shift();
+      if (ackResolver) {
+        clearTimeout(ackResolver.timer);
+        ackResolver.reject(new Error('Received NACK from device.'));
+      }
+    } else {
+      if (customReplyPromise.resolve) {
+        customReplyPromise.resolve(message);
+        customReplyPromise = {};
+      }
+    }
+  }
+}
+
+// Send SysEx message (for SDS protocol)
 function sendSysExMessage(data) {
   const message = [SYSEX_START, MIDI_NON_REALTIME_ID, SYSEX_CHANNEL, ...data, SYSEX_END];
   activeMidiOutput.sendMessage(message);
+}
+
+// Send custom protocol message
+function sendCustomMessage(payload) {
+  const message = [SYSEX_START, ...SYSEX_MANUFACTURER_ID, SYSEX_DEVICE_ID, ...payload, SYSEX_END];
+  activeMidiOutput.sendMessage(message);
+}
+
+// Wait for custom protocol ACK
+function waitForCustomAck(timeout = 2000) {
+  let timer;
+  const promise = new Promise((resolve, reject) => {
+    const resolver = {
+      resolve: resolve,
+      reject: reject,
+      timer: null // Placeholder
+    };
+    timer = setTimeout(() => {
+      // On timeout, find and remove the resolver from the queue
+      const index = customAckQueue.findIndex(p => p.timer === timer);
+      if (index > -1) {
+        customAckQueue.splice(index, 1);
+      }
+      reject(new Error(`Timeout waiting for ACK after ${timeout}ms.`));
+    }, timeout);
+    resolver.timer = timer;
+    customAckQueue.push(resolver);
+  });
+  return promise;
+}
+
+// Wait for custom protocol reply
+function waitForCustomReply(timeout = 2000) {
+  let timer;
+  return new Promise((resolve, reject) => {
+    customReplyPromise = {
+      resolve: (msg) => { clearTimeout(timer); resolve(msg); },
+      reject: (err) => { clearTimeout(timer); reject(err); },
+    };
+    timer = setTimeout(() => {
+      if (customReplyPromise.reject) {
+        customReplyPromise.reject(new Error(`Timeout waiting for reply after ${timeout}ms.`));
+        customReplyPromise = {};
+      }
+    }, timeout);
+  });
+}
+
+// Send custom command and wait for ACK
+async function sendCustomCommandAndWait(tag, body = []) {
+  const payload = [tag, ...body];
+  sendCustomMessage(payload);
+  await waitForCustomAck();
+}
+
+// Confirmation prompt for destructive operations
+function askConfirmation(message) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    rl.question(`${message} (y/N): `, (answer) => {
+      rl.close();
+      const confirmed = answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+      resolve(confirmed);
+    });
+  });
+}
+
+// Get firmware version
+async function get_firmware_version() {
+  const tag = REQUEST_FIRMWARE_VERSION;
+  const payload = [tag];
+  sendCustomMessage(payload);
+  try {
+    const reply = await waitForCustomReply();
+    if (reply[5] === REQUEST_FIRMWARE_VERSION) {
+      const major = reply[6];
+      const minor = reply[7];
+      const patch = reply[8];
+      console.log(`Device firmware version: v${major}.${minor}.${patch}`);
+      return { major, minor, patch };
+    } else {
+      throw new Error(`Unexpected reply received. Tag: ${reply[5]}`);
+    }
+  } catch (e) {
+    console.error(`Error requesting firmware version: ${e.message}`);
+    throw e;
+  }
+}
+
+// Format filesystem
+async function format_filesystem() {
+  console.log("⚠️  WARNING: This will erase ALL files on the device filesystem!");
+  const confirmed = await askConfirmation("Are you sure you want to format the filesystem?");
+  
+  if (!confirmed) {
+    console.log("Format cancelled.");
+    return;
+  }
+  
+  console.log("Sending command to format filesystem...");
+  await sendCustomCommandAndWait(FORMAT_FILESYSTEM);
+  console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
+}
+
+// Reboot to bootloader
+async function reboot_bootloader() {
+  console.log("⚠️  WARNING: This will reboot the device into bootloader mode!");
+  console.log("The device will disconnect and enter firmware update mode.");
+  const confirmed = await askConfirmation("Are you sure you want to reboot to bootloader?");
+  
+  if (!confirmed) {
+    console.log("Reboot cancelled.");
+    return;
+  }
+  
+  console.log("Sending command to reboot to bootloader...");
+  const payload = [REBOOT_BOOTLOADER];
+  sendCustomMessage(payload);
+  // Note: Device will reboot immediately, so we don't wait for ACK
+  console.log("Reboot command sent. Device should now enter bootloader mode.");
 }
 
 // Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
@@ -274,6 +442,48 @@ function createDataPacket(packetNum, pcmData, offset) {
     ...dataBytes,
     checksum
   ];
+}
+
+// Batch sample transfer function
+async function transferMultipleSamples(transfers, verboseMode = false) {
+  console.log(`\n=== Batch SDS Transfer: ${transfers.length} samples ===`);
+  
+  const results = [];
+  let successCount = 0;
+  
+  for (let i = 0; i < transfers.length; i++) {
+    const { filePath, slot, sampleRate } = transfers[i];
+    console.log(`\n[${i + 1}/${transfers.length}] Transferring ${filePath} → slot ${slot}`);
+    
+    try {
+      const success = await transferSample(filePath, slot, sampleRate, verboseMode);
+      results.push({ filePath, slot, success, error: null });
+      if (success) {
+        successCount++;
+      }
+    } catch (error) {
+      console.error(`Failed: ${error.message}`);
+      results.push({ filePath, slot, success: false, error: error.message });
+    }
+    
+    // Brief pause between transfers to avoid overwhelming the device
+    if (i < transfers.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  // Summary
+  console.log(`\n=== Transfer Summary ===`);
+  console.log(`Successful: ${successCount}/${transfers.length}`);
+  
+  if (successCount < transfers.length) {
+    console.log('\nFailed transfers:');
+    results.filter(r => !r.success).forEach(r => {
+      console.log(`  ${r.filePath} → slot ${r.slot}: ${r.error}`);
+    });
+  }
+  
+  return successCount === transfers.length;
 }
 
 // Main sample transfer function
@@ -459,41 +669,137 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   }
 }
 
+// Helper function to check if argument is a sample rate
+function isSampleRate(arg) {
+  const rateMatch = arg.match(/^(\d+)$/);
+  return rateMatch && !arg.includes(':') && parseInt(arg, 10) >= 1000; // Reasonable sample rate threshold
+}
+
+// Parse explicit file:slot format
+function parseExplicitSlots(fileArgs, sampleRate) {
+  const transfers = [];
+  
+  for (const arg of fileArgs) {
+    const colonIndex = arg.indexOf(':');
+    if (colonIndex === -1) {
+      throw new Error(`Mixed formats not allowed. Use either 'filename:slot' for all files or just 'filename' for all files.`);
+    }
+    
+    const filePath = arg.substring(0, colonIndex);
+    const slotStr = arg.substring(colonIndex + 1);
+    const slot = parseInt(slotStr, 10);
+    
+    if (isNaN(slot) || slot < 0 || slot > 127) {
+      throw new Error(`Invalid slot number '${slotStr}'. Must be 0-127.`);
+    }
+    
+    transfers.push({ filePath, slot, sampleRate });
+  }
+  
+  return transfers;
+}
+
+// Parse auto-increment format (just filenames)
+function parseAutoIncrement(fileArgs, sampleRate) {
+  const transfers = [];
+  
+  fileArgs.forEach((filePath, index) => {
+    if (index > 127) {
+      throw new Error(`Too many files. Maximum 128 slots (0-127).`);
+    }
+    transfers.push({ filePath, slot: index, sampleRate });
+  });
+  
+  return transfers;
+}
+
+// Parse file:slot arguments with auto-increment support
+function parseFileSlotArgs(args) {
+  let sampleRate = 44100;
+  
+  // Extract sample rate and filter file arguments
+  const fileArgs = [];
+  for (const arg of args) {
+    if (arg === '--verbose' || arg === '-v') {
+      continue; // Already handled globally
+    }
+    
+    if (isSampleRate(arg)) {
+      sampleRate = parseInt(arg, 10);
+      continue;
+    }
+    
+    fileArgs.push(arg);
+  }
+  
+  if (fileArgs.length === 0) {
+    return [];
+  }
+  
+  // Detect mode: check if ANY argument contains ':'
+  const hasSlotSyntax = fileArgs.some(arg => arg.includes(':'));
+  
+  if (hasSlotSyntax) {
+    // Mode A: ALL must use filename:slot format
+    return parseExplicitSlots(fileArgs, sampleRate);
+  } else {
+    // Mode B: ALL are filenames, auto-increment from 0
+    return parseAutoIncrement(fileArgs, sampleRate);
+  }
+}
+
 // Command line interface
 const command = process.argv[2];
-const sourcePath = process.argv[3];
-const sampleNumber = process.argv[4] ? parseInt(process.argv[4], 10) : null;
-const sampleRate = process.argv[5] ? parseInt(process.argv[5]) : 44100;
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 if (!command) {
-  console.log("SDS Sample Sender - MIDI Sample Dump Standard implementation");
+  console.log("Drumtool - DRUM Device Management Tool");
   console.log("");
   console.log("Usage:");
-  console.log("  sds_sender.js send <source_path> <sample_number> [sample_rate] [--verbose|-v]");
+  console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  drumtool.js version");
+  console.log("  drumtool.js format");
+  console.log("  drumtool.js reboot-bootloader");
   console.log("");
-  console.log("Arguments:");
-  console.log("  source_path    - Path to the audio file to upload");
-  console.log("  sample_number  - Target sample slot (0-127)");
-  console.log("  sample_rate    - Sample rate in Hz (default: 44100)");
+  console.log("Commands:");
+  console.log("  send           - Transfer audio samples using SDS protocol");
+  console.log("  version        - Get device firmware version");
+  console.log("  format         - Format device filesystem");
+  console.log("  reboot-bootloader - Reboot device into bootloader mode");
+  console.log("");
+  console.log("Send Arguments:");
+  console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
+  console.log("  file           - Audio file path (auto-assigns slots 0,1,2... in order)");
+  console.log("  sample_rate    - Sample rate in Hz (default: 44100, applies to all files)");
   console.log("  --verbose, -v  - Show detailed transfer information");
   console.log("");
   console.log("Examples:");
-  console.log("  sds_sender.js send sine440.pcm 0         # Upload to slot 0 (/00.pcm)");
-  console.log("  sds_sender.js send kick.wav 1 48000     # Upload to slot 1 (/01.pcm)");
-  console.log("  sds_sender.js send snare.pcm 15 -v       # Upload to slot 15 with verbose output");
+  console.log("  # Explicit slot assignment:");
+  console.log("  drumtool.js send kick.wav:0 snare.wav:1       # Files to specific slots");
+  console.log("  drumtool.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
+  console.log("  ");
+  console.log("  # Auto-increment slots (starts from 0):");
+  console.log("  drumtool.js send kick.wav snare.wav hat.wav   # Slots 0,1,2 automatically");
+  console.log("  drumtool.js send kick.wav snare.wav 48000 -v  # Auto-increment with options");
+  console.log("  ");
+  console.log("  # Cannot mix formats - use either all file:slot OR all filenames");
+  console.log("  drumtool.js version                           # Check firmware version");
+  console.log("  drumtool.js format                            # Format filesystem");
+  console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
   console.log("");
   process.exit(1);
 }
 
 // Enhanced cleanup handler with proper escape from all states
 function cleanup_and_exit() {
-  console.log('\n\nClosing MIDI ports and exiting...');
-  if (activeMidiOutput) {
-    activeMidiOutput.closePort();
-  }
-  if (activeMidiInput) {
-    activeMidiInput.closePort();
+  if (activeMidiOutput || activeMidiInput) {
+    console.log('\n\nClosing MIDI ports and exiting...');
+    if (activeMidiOutput) {
+      activeMidiOutput.closePort();
+    }
+    if (activeMidiInput) {
+      activeMidiInput.closePort();
+    }
   }
   process.exit(0);
 }
@@ -514,24 +820,70 @@ process.on('exit', cleanup_and_exit);
 // Main execution
 async function main() {
   try {
+    // Validate arguments early before MIDI initialization
     if (command === 'send') {
-      if (!sourcePath || sampleNumber === null) {
-        console.error("Error: 'send' command requires source path and sample number.");
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      
+      if (args.length === 0) {
+        console.error("Error: 'send' command requires at least one file:slot argument.");
         process.exit(1);
       }
       
-      const success = await transferSample(sourcePath, sampleNumber, sampleRate, verbose);
-      process.exitCode = success ? 0 : 1;
-    } else {
-      console.error(`Error: Unknown command '${command}'. Use 'send'.`);
+      // Validate file:slot arguments early
+      try {
+        const transfers = parseFileSlotArgs(args);
+        if (transfers.length === 0) {
+          console.error("Error: No valid file:slot pairs found.");
+          process.exit(1);
+        }
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+        process.exit(1);
+      }
+    } else if (command !== 'version' && command !== 'format' && command !== 'reboot-bootloader') {
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'format', or 'reboot-bootloader'.`);
       process.exit(1);
+    }
+
+    // Initialize MIDI connection after arguments are validated
+    console.log("Initializing MIDI connection...");
+    const midi_ports = find_dato_drum();
+    if (!midi_ports) {
+      console.error("Failed to initialize MIDI. Exiting.");
+      process.exit(1);
+    }
+    
+    activeMidiOutput = midi_ports.output;
+    activeMidiInput = midi_ports.input;
+    
+    // Attach MIDI message handler
+    activeMidiInput.on('message', handleMidiMessage);
+
+    if (command === 'send') {
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      const transfers = parseFileSlotArgs(args); // Already validated above
+      
+      const success = transfers.length === 1 
+        ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
+        : await transferMultipleSamples(transfers, verbose);
+      process.exitCode = success ? 0 : 1;
+    } else if (command === 'version') {
+      await get_firmware_version();
+    } else if (command === 'format') {
+      await format_filesystem();
+    } else if (command === 'reboot-bootloader') {
+      await reboot_bootloader();
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);
     process.exitCode = 1;
   } finally {
-    activeMidiOutput.closePort();
-    activeMidiInput.closePort();
+    if (activeMidiOutput) {
+      activeMidiOutput.closePort();
+    }
+    if (activeMidiInput) {
+      activeMidiInput.closePort();
+    }
   }
 }
 

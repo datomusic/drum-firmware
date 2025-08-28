@@ -132,7 +132,7 @@ All custom SysEx messages share the following structure:
 - **Encoded Payload**: Command-specific data, with each pair of 8-bit bytes encoded into three 7-bit bytes.
 - **F7**: Standard SysEx End byte.
 
-A utility script, `tools/sample_sender/sample_sender.js`, is provided to handle the encoding and communication protocol.
+A utility tool, `tools/drumtool/drumtool.js`, is provided to handle device communication and sample management using MIDI Sample Dump Standard (SDS) protocol.
 
 ### General Commands
 | Command | Tag | Description |
@@ -143,7 +143,7 @@ A utility script, `tools/sample_sender/sample_sender.js`, is provided to handle 
 | FormatFilesystem | 0x15 | Erases and formats the internal filesystem. All stored samples and configuration will be lost. |
 
 ### File Transfer Protocol
-Transferring files (like samples or `kit.bin`) to the device is a multi-step process managed by the `sample_sender.js` script.
+Transferring files (like samples or `kit.bin`) to the device is a multi-step process managed by the `drumtool.js` script.
 
 1.  **Begin Transfer:**
     - **Command:** `BeginFileWrite` (0x10)

@@ -29,7 +29,8 @@
         "secure": "rw",
         "nonsecure": "rw",
         "bootloader": "rw"
-      }
+      },
+      "link": ["a", 0]
     },
     {
       "name": "Data",

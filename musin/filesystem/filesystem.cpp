@@ -4,6 +4,7 @@ extern "C" {
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h" // Include for vfs_get_lfs
 #include "hardware/regs/addressmap.h"
+#include "pico.h" // Must be included before bootrom_constants.h
 #include "pico/bootrom.h"
 #include <dirent.h>
 #include <errno.h>
@@ -14,7 +15,7 @@ extern "C" {
 }
 
 #include "filesystem.h"
-#include "safe_flash_block_device.h"
+#include "partition_flash_block_device.h"
 
 namespace musin::filesystem {
 
@@ -164,15 +165,16 @@ bool Filesystem::init(bool force_format) {
     return false;
   }
 
-  logger_.info("Initializing safe block device for Data partition.");
-  printf(
-      "PRINTF: safe_flash_block_device_create(offset=0x%08lx, size=0x%08lx)\n",
-      (unsigned long)data_partition_offset, (unsigned long)data_partition_size);
+  logger_.info("Initializing partition block device for Data partition.");
+  printf("PRINTF: partition_flash_block_device_create(offset=0x%08lx, "
+         "size=0x%08lx)\n",
+         (unsigned long)data_partition_offset,
+         (unsigned long)data_partition_size);
 
   // Use our custom block device that handles
   // XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE for reads
-  blockdevice_t *flash = safe_flash_block_device_create(data_partition_offset,
-                                                        data_partition_size);
+  blockdevice_t *flash = partition_flash_block_device_create(
+      data_partition_offset, data_partition_size);
 
   if (!flash) {
     logger_.error("Failed to create flash block device.");

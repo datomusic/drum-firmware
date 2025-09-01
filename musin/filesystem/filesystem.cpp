@@ -1,16 +1,16 @@
 extern "C" {
+#include "blockdevice/flash.h"
+#include "boot/bootrom_constants.h" // Include for partition flags
+#include "filesystem/littlefs.h"
+#include "filesystem/vfs.h" // Include for vfs_get_lfs
+#include "hardware/regs/addressmap.h"
+#include "pico/bootrom.h"
 #include <dirent.h>
 #include <errno.h>
 #include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include "hardware/regs/addressmap.h"
-#include "blockdevice/flash.h"
-#include "boot/bootrom_constants.h" // Include for partition flags
-#include "filesystem/littlefs.h"
-#include "filesystem/vfs.h" // Include for vfs_get_lfs
-#include "pico/bootrom.h"
 }
 
 #include "filesystem.h"
@@ -106,42 +106,55 @@ bool Filesystem::init(bool force_format) {
   const uint32_t data_partition_id = 2;
   uint32_t data_partition_info[8];
   // Flags to request location info for a single partition
-  // PT_INFO_SINGLE_PARTITION is 0x8000, PT_INFO_PARTITION_LOCATION_AND_FLAGS is 0x0010
+  // PT_INFO_SINGLE_PARTITION is 0x8000, PT_INFO_PARTITION_LOCATION_AND_FLAGS is
+  // 0x0010
   const uint32_t flags = 0x8000 | 0x0010 | data_partition_id;
 
-  printf("PRINTF: Getting info for Data partition (ID %ld) with flags 0x%08lx\n", (long)data_partition_id, (unsigned long)flags);
+  printf(
+      "PRINTF: Getting info for Data partition (ID %ld) with flags 0x%08lx\n",
+      (long)data_partition_id, (unsigned long)flags);
   int result = rom_get_partition_table_info(data_partition_info, 8, flags);
-  printf("PRINTF: rom_get_partition_table_info for Data partition returned: %d\n", result);
+  printf(
+      "PRINTF: rom_get_partition_table_info for Data partition returned: %d\n",
+      result);
 
   if (result > 0) {
-    // As per documentation, with PT_INFO_PARTITION_LOCATION_AND_FLAGS, the buffer contains:
-    // word 0: supported_flags
-    // word 1: partition_location
-    // word 2: partition_flags
+    // As per documentation, with PT_INFO_PARTITION_LOCATION_AND_FLAGS, the
+    // buffer contains: word 0: supported_flags word 1: partition_location word
+    // 2: partition_flags
     uint32_t supported_flags = data_partition_info[0];
     uint32_t partition_location = data_partition_info[1];
     uint32_t partition_flags = data_partition_info[2];
 
-    printf("PRINTF: Data partition - supported_flags: 0x%08lx, location: 0x%08lx, flags: 0x%08lx\n",
-           (unsigned long)supported_flags, (unsigned long)partition_location, (unsigned long)partition_flags);
+    printf("PRINTF: Data partition - supported_flags: 0x%08lx, location: "
+           "0x%08lx, flags: 0x%08lx\n",
+           (unsigned long)supported_flags, (unsigned long)partition_location,
+           (unsigned long)partition_flags);
 
     // The physical offset is encoded in the lower 24 bits of the location.
-    printf("PRINTF: Raw partition_location: 0x%08lx\n", (unsigned long)partition_location);
+    printf("PRINTF: Raw partition_location: 0x%08lx\n",
+           (unsigned long)partition_location);
     uint32_t raw_offset = partition_location & 0xFFFFFF;
     // Align to flash sector boundary (4096 bytes)
-    data_partition_offset = (raw_offset / FLASH_SECTOR_SIZE) * FLASH_SECTOR_SIZE;
-    printf("PRINTF: Raw offset: 0x%08lx, aligned offset: 0x%08lx\n", 
+    data_partition_offset =
+        (raw_offset / FLASH_SECTOR_SIZE) * FLASH_SECTOR_SIZE;
+    printf("PRINTF: Raw offset: 0x%08lx, aligned offset: 0x%08lx\n",
            (unsigned long)raw_offset, (unsigned long)data_partition_offset);
     // The size is known from the partition table JSON to be 4MB.
     data_partition_size = 0x400000;
 
-    printf("PRINTF: Decoded Data partition - physical offset: 0x%08lx, size: 0x%08lx\n",
-           (unsigned long)data_partition_offset, (unsigned long)data_partition_size);
-    logger_.info("Successfully found Data partition. Offset: ", data_partition_offset);
+    printf("PRINTF: Decoded Data partition - physical offset: 0x%08lx, size: "
+           "0x%08lx\n",
+           (unsigned long)data_partition_offset,
+           (unsigned long)data_partition_size);
+    logger_.info("Successfully found Data partition. Offset: ",
+                 data_partition_offset);
 
   } else {
-    printf("PRINTF: Failed to get info for Data partition, error: %d\n", result);
-    logger_.error("Could not get Data partition info from bootrom: ", static_cast<std::int32_t>(result));
+    printf("PRINTF: Failed to get info for Data partition, error: %d\n",
+           result);
+    logger_.error("Could not get Data partition info from bootrom: ",
+                  static_cast<std::int32_t>(result));
   }
 
   if (data_partition_size == 0 || data_partition_offset == 0) {
@@ -154,12 +167,12 @@ bool Filesystem::init(bool force_format) {
   logger_.info("Initializing safe block device for Data partition.");
   printf(
       "PRINTF: safe_flash_block_device_create(offset=0x%08lx, size=0x%08lx)\n",
-      (unsigned long)data_partition_offset,
-      (unsigned long)data_partition_size);
+      (unsigned long)data_partition_offset, (unsigned long)data_partition_size);
 
-  // Use our custom block device that handles XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE for reads
-  blockdevice_t *flash = safe_flash_block_device_create(
-      data_partition_offset, data_partition_size);
+  // Use our custom block device that handles
+  // XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE for reads
+  blockdevice_t *flash = safe_flash_block_device_create(data_partition_offset,
+                                                        data_partition_size);
 
   if (!flash) {
     logger_.error("Failed to create flash block device.");

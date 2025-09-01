@@ -1,8 +1,8 @@
 #ifndef FILESYSTEM_H_A1PWKQIM
 #define FILESYSTEM_H_A1PWKQIM
 
-#include <cstdint>
 #include "musin/hal/logger.h"
+#include <cstdint>
 
 // Forward declarations for filesystem types
 typedef struct filesystem filesystem_t;
@@ -17,13 +17,13 @@ struct StorageInfo {
 
 class Filesystem {
 public:
-  explicit Filesystem(musin::Logger& logger);
+  explicit Filesystem(musin::Logger &logger);
 
   /**
    * @brief Initializes the filesystem.
    *
-   * This function attempts to mount the existing filesystem. If `force_format` is
-   * true, it will format the filesystem before attempting to mount.
+   * This function attempts to mount the existing filesystem. If `force_format`
+   * is true, it will format the filesystem before attempting to mount.
    *
    * @param force_format If true, the filesystem will be formatted even if
    * mounting an existing one could succeed.
@@ -47,7 +47,7 @@ public:
   StorageInfo get_storage_info();
 
 private:
-  musin::Logger& logger_;
+  musin::Logger &logger_;
   filesystem_t *fs_;
 
   bool format_filesystem(blockdevice_t *flash);

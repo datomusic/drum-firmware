@@ -77,6 +77,10 @@ void process_midi_output_queue(musin::Logger &logger) {
 
   if (message_to_send) {
     OutgoingMidiMessage message = *message_to_send;
+    // Log message processing
+    logger.log(LogLevel::DEBUG, "Processing MIDI type",
+               static_cast<int32_t>(message.type));
+
     switch (message.type) {
     case MidiMessageType::NOTE_ON:
       MIDI::internal::_sendNoteOn_actual(message.data.note_message.channel,

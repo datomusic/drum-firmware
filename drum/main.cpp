@@ -45,7 +45,8 @@ static musin::NullLogger logger;
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
-static drum::SysExHandler sysex_handler(config_manager, logger);
+static musin::filesystem::Filesystem filesystem(logger);
+static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
@@ -96,12 +97,12 @@ int main() {
   watchdog_enable(4000, false);
 #endif
 
-  if (!musin::filesystem::init(false)) {
+  if (!filesystem.init(false)) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
     logger.warn("Failed to initialize filesystem.");
   } else {
-    musin::filesystem::list_files("/"); // List files in the root directory
+    filesystem.list_files("/"); // List files in the root directory
 
     config_manager.load();
   }

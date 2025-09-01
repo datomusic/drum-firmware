@@ -2,6 +2,11 @@
 #define FILESYSTEM_H_A1PWKQIM
 
 #include <cstdint>
+#include "musin/hal/logger.h"
+
+// Forward declarations for filesystem types
+typedef struct filesystem filesystem_t;
+typedef struct blockdevice blockdevice_t;
 
 namespace musin::filesystem {
 
@@ -10,32 +15,43 @@ struct StorageInfo {
   uint32_t free_bytes;
 };
 
-/**
- * @brief Initializes the filesystem.
- *
- * This function attempts to mount the existing filesystem. If `force_format` is
- * true, it will format the filesystem before attempting to mount.
- *
- * @param force_format If true, the filesystem will be formatted even if
- * mounting an existing one could succeed.
- * @return true if the filesystem is successfully initialized (mounted), false
- * otherwise.
- */
-bool init(bool force_format);
+class Filesystem {
+public:
+  explicit Filesystem(musin::Logger& logger);
 
-/**
- * @brief Lists all files and directories at the given path.
- *
- * @param path The directory path to list (e.g., "/").
- */
-void list_files(const char *path);
+  /**
+   * @brief Initializes the filesystem.
+   *
+   * This function attempts to mount the existing filesystem. If `force_format` is
+   * true, it will format the filesystem before attempting to mount.
+   *
+   * @param force_format If true, the filesystem will be formatted even if
+   * mounting an existing one could succeed.
+   * @return true if the filesystem is successfully initialized (mounted), false
+   * otherwise.
+   */
+  bool init(bool force_format);
 
-/**
- * @brief Gets the total and free space of the filesystem.
- *
- * @return A StorageInfo struct containing the total and free space in bytes.
- */
-StorageInfo get_storage_info();
+  /**
+   * @brief Lists all files and directories at the given path.
+   *
+   * @param path The directory path to list (e.g., "/").
+   */
+  void list_files(const char *path);
+
+  /**
+   * @brief Gets the total and free space of the filesystem.
+   *
+   * @return A StorageInfo struct containing the total and free space in bytes.
+   */
+  StorageInfo get_storage_info();
+
+private:
+  musin::Logger& logger_;
+  filesystem_t *fs_;
+
+  bool format_filesystem(blockdevice_t *flash);
+};
 
 } // namespace musin::filesystem
 

@@ -8,9 +8,11 @@
 namespace drum {
 
 SysExHandler::SysExHandler(ConfigurationManager &config_manager,
-                           musin::Logger &logger)
-    : config_manager_(config_manager), logger_(logger), file_ops_(logger),
-      protocol_(file_ops_, logger), sds_protocol_(file_ops_, logger) {
+                           musin::Logger &logger,
+                           musin::filesystem::Filesystem &filesystem)
+    : config_manager_(config_manager), logger_(logger), filesystem_(filesystem),
+      file_ops_(logger, filesystem), protocol_(file_ops_, logger), 
+      sds_protocol_(file_ops_, logger) {
 }
 
 void SysExHandler::update(absolute_time_t now) {
@@ -161,7 +163,7 @@ void SysExHandler::print_serial_number() const {
 
 void SysExHandler::send_storage_info() const {
   logger_.info("Sending storage info via SysEx");
-  musin::filesystem::StorageInfo info = musin::filesystem::get_storage_info();
+  musin::filesystem::StorageInfo info = filesystem_.get_storage_info();
   logger_.info("Total:", info.total_bytes);
   logger_.info("Free:", info.free_bytes);
 

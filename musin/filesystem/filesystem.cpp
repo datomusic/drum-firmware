@@ -4,7 +4,7 @@ extern "C" {
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h" // Include for vfs_get_lfs
 #include "hardware/regs/addressmap.h"
-#include "pico.h" // Must be included before bootrom_constants.h
+#include "pico.h"
 #include "pico/bootrom.h"
 #include <dirent.h>
 #include <errno.h>

@@ -118,6 +118,30 @@
 - **MIDI Input:** Receiving a note plays that sound on the corresponding track AND sets that note as the active sample for that track
 - MIDI Clock input automatically detected and followed
 
+## Build Script
+
+Use `./build.sh` to build and upload firmware with A/B partition support:
+
+```bash
+./build.sh [OPTIONS]
+```
+
+**Common Options:**
+- `-v, --verbose`: Enable verbose logging
+- `-r, --ram`: Copy to RAM (default) 
+- `-f, --flash`: Build for flash execution
+- `-p N, --partition=N`: Upload to partition 0 (Firmware A) or 1 (Firmware B)
+- `-c, --clean`: Remove build directory before building
+- `-n, --no-upload`: Build only, don't upload
+- `-h, --help`: Show all options
+
+**Examples:**
+```bash
+./build.sh                    # Default: RAM build, auto-upload
+./build.sh -v -p 1           # Verbose, upload to Firmware B
+./build.sh --clean --flash   # Clean flash build
+```
+
 ## System Exclusive (SysEx) Commands
 
 The DATO DRUM supports custom SysEx commands for advanced operations like file transfer and system management. All custom commands follow a specific format.

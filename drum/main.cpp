@@ -40,6 +40,8 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 static musin::NullLogger logger;
 #endif
 
+static musin::NullLogger null_logger;
+
 // System State Machine (will be initialized after pizza_display)
 
 // Model
@@ -64,7 +66,7 @@ static drum::SequencerController<drum::config::NUM_TRACKS,
 
 static musin::midi::MidiSender
     midi_sender(musin::midi::MidiSendStrategy::QUEUED,
-                logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
+                null_logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
                                           midi_sender, logger);
 

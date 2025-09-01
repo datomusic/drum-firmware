@@ -3,12 +3,12 @@ extern "C" {
 #include "boot/bootrom_constants.h" // Include for partition flags
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h" // Include for vfs_get_lfs
+#include "hardware/flash.h"
 #include "hardware/regs/addressmap.h"
 #include "pico.h"
 #include "pico/bootrom.h"
 #include <dirent.h>
 #include <errno.h>
-#include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>

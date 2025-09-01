@@ -41,7 +41,9 @@
         "secure": "rw",
         "nonsecure": "rw",
         "bootloader": "rw"
-      }
+      },
+      "ignored_during_arm_boot": true,
+      "ignored_during_riscv_boot": true
     }
   ]
 }

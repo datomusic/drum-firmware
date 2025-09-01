@@ -9,8 +9,9 @@
 #include <stdio.h>
 
 struct StandardFileOps {
-  explicit StandardFileOps(musin::Logger &logger, musin::filesystem::Filesystem &filesystem) 
-    : logger(logger), filesystem_(filesystem) {
+  explicit StandardFileOps(musin::Logger &logger,
+                           musin::filesystem::Filesystem &filesystem)
+      : logger(logger), filesystem_(filesystem) {
   }
   static const unsigned BlockSize = 256;
 

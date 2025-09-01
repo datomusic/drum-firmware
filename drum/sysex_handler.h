@@ -22,7 +22,7 @@ class SysExHandler
           etl::observer<drum::Events::SysExTransferStateChangeEvent>,
           drum::config::MAX_SYSEX_EVENT_OBSERVERS> {
 public:
-  SysExHandler(ConfigurationManager &config_manager, musin::Logger &logger, 
+  SysExHandler(ConfigurationManager &config_manager, musin::Logger &logger,
                musin::filesystem::Filesystem &filesystem);
 
   void update(absolute_time_t now);

@@ -64,9 +64,9 @@ static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
-static musin::midi::MidiSender
-    midi_sender(musin::midi::MidiSendStrategy::QUEUED,
-                null_logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
+static musin::midi::MidiSender midi_sender(
+    musin::midi::MidiSendStrategy::QUEUED,
+    null_logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
                                           midi_sender, logger);
 

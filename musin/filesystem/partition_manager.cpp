@@ -1,12 +1,14 @@
 #include "partition_manager.h"
 
+// clang-format off
 extern "C" {
+#include "pico.h"  // Must be first to avoid platform.h error
 #include "boot/bootrom_constants.h"
 #include "boot/picobin.h"
 #include "hardware/flash.h"
-#include "pico.h"
 #include "pico/bootrom.h"
 }
+// clang-format on
 
 #include <cstdio>
 
@@ -67,7 +69,7 @@ bool PartitionManager::load_partition_table() {
   }
 
   // Parse partition table header
-  uint32_t returned_fields = pt_info[0];
+  [[maybe_unused]] uint32_t returned_fields = pt_info[0];
   partition_count_ = pt_info[1] & 0x000000FF;
   has_partition_table_ = (pt_info[1] & 0x00000100) != 0;
 

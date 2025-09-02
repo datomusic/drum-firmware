@@ -2,7 +2,9 @@
 #define FILESYSTEM_H_A1PWKQIM
 
 #include "musin/hal/logger.h"
+#include "partition_manager.h"
 #include <cstdint>
+#include <optional>
 
 // Forward declarations for filesystem types
 typedef struct filesystem filesystem_t;
@@ -47,10 +49,13 @@ public:
   StorageInfo get_storage_info();
 
 private:
+  std::optional<PartitionManager> partition_manager_;
   musin::Logger &logger_;
   filesystem_t *fs_;
 
   bool format_filesystem(blockdevice_t *flash);
+  bool init_with_partition(const PartitionInfo& partition, bool force_format);
+  bool init_legacy(bool force_format);
 };
 
 } // namespace musin::filesystem

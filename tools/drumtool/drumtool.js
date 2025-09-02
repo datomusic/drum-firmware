@@ -6,6 +6,7 @@
  * sample transfer and provides device management commands.
  * 
  * Features:
+ * - On-the-fly WAV to PCM conversion (mono, 16-bit)
  * - SDS sample transfer with auto-slot assignment
  * - Batch sample uploads
  * - Firmware version checking
@@ -18,6 +19,7 @@
 const midi = require('midi');
 const fs = require('fs');
 const readline = require('readline');
+const WaveFile = require('wavefile');
 
 // MIDI SDS Constants
 const SYSEX_START = 0xF0;
@@ -489,26 +491,59 @@ async function transferMultipleSamples(transfers, verboseMode = false) {
 // Main sample transfer function
 async function transferSample(filePath, sampleNumber, sampleRate = 44100, verboseMode = false) {
   const verbose = verboseMode;
-  
+
   // Validate sample number
   if (sampleNumber < 0 || sampleNumber > 127) {
     console.error(`Error: Sample number must be between 0-127, got: ${sampleNumber}`);
     return false;
   }
-  
+
   const targetFilename = `${sampleNumber.toString().padStart(2, '0')}.pcm`;
   console.log(`\n=== SDS Transfer: ${filePath} → /${targetFilename} (slot ${sampleNumber}) ===`);
-  
+
   if (!fs.existsSync(filePath)) {
     console.error(`Error: Source file not found at '${filePath}'`);
     return false;
   }
-  
-  const pcmData = fs.readFileSync(filePath);
-  console.log(`Sample data: ${pcmData.length} bytes, ${sampleRate}Hz, 16-bit`);
+
+  let pcmData;
+  let finalSampleRate;
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    // Try to parse as WAV file
+    const wav = new WaveFile(fileBuffer);
+
+    // If successful, convert to device-compatible format (16-bit, mono)
+    if (wav.fmt.numChannels !== 1) {
+      if (verbose) console.log('Converting stereo to mono...');
+      wav.toMono();
+    }
+
+    if (wav.fmt.bitsPerSample !== 16) {
+      if (verbose) console.log(`Converting from ${wav.fmt.bitsPerSample}-bit to 16-bit...`);
+      wav.toBitDepth('16');
+    }
+    
+    finalSampleRate = wav.fmt.sampleRate;
+    if (verbose && sampleRate !== 44100 && sampleRate !== finalSampleRate) {
+      console.log(`Note: Using sample rate from WAV file (${finalSampleRate}Hz) instead of command-line argument.`);
+    }
+
+    pcmData = wav.data.samples;
+
+    console.log(`Processed WAV: ${pcmData.length} bytes, ${finalSampleRate}Hz, 16-bit mono`);
+
+  } catch (e) {
+    // If parsing fails, assume it's a raw PCM file
+    console.log(`Could not parse as WAV file. Assuming raw 16-bit PCM data.`);
+    if (verbose) console.log(`(Error: ${e.message})`);
+    pcmData = fs.readFileSync(filePath);
+    finalSampleRate = sampleRate; // Use the rate from command line
+    console.log(`Using raw file data: ${pcmData.length} bytes, ${finalSampleRate}Hz`);
+  }
   
   // Calculate transfer parameters
-  const numSamples = Math.floor(pcmData.length / 2);
   const packetsNeeded = Math.ceil(pcmData.length / 80); // 40 samples * 2 bytes per packet
   if (verbose) {
     console.log(`Transfer will require ${packetsNeeded} data packets`);
@@ -519,22 +554,19 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
     deviceStatus = 'unknown';
     
     // Step 1: Send Dump Header
+    const header = createDumpHeader(sampleNumber, 16, finalSampleRate, pcmData.length);
     if (verbose) {
       console.log("\n1. Sending Dump Header...");
-      const header = createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length);
-      console.log("Header bytes:", header.length, "->", header.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
-      sendSysExMessage(header);
-    } else {
-      const header = createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length);
-      sendSysExMessage(header);
+      console.log("Header bytes:", header.length, ">", header.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
     }
+    sendSysExMessage(header);
     
     const headerResponse = await waitForResponse(HEADER_TIMEOUT);
     if (headerResponse.type === SDS_NAK) {
       if (verbose) {
         console.log("Header NAK received, retrying...");
       }
-      sendSysExMessage(createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length));
+      sendSysExMessage(createDumpHeader(sampleNumber, 16, finalSampleRate, pcmData.length));
       const retryResponse = await waitForResponse(HEADER_TIMEOUT);
       if (retryResponse.type !== SDS_ACK && retryResponse.type !== 'timeout') {
         throw new Error("Header rejected twice");
@@ -762,25 +794,27 @@ if (!command) {
   console.log("  drumtool.js reboot-bootloader");
   console.log("");
   console.log("Commands:");
-  console.log("  send           - Transfer audio samples using SDS protocol");
+  console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
   console.log("  version        - Get device firmware version");
   console.log("  format         - Format device filesystem");
   console.log("  reboot-bootloader - Reboot device into bootloader mode");
   console.log("");
   console.log("Send Arguments:");
-  console.log("  file:slot      - Audio file path and target slot (0-127) in file:slot format");
+  console.log("  file:slot      - Audio file path and target slot (0-127)");
   console.log("  file           - Audio file path (auto-assigns slots 0,1,2... in order)");
-  console.log("  sample_rate    - Sample rate in Hz (default: 44100, applies to all files)");
+  console.log("  sample_rate    - Sample rate in Hz for raw PCM files (default: 44100).");
+  console.log("                   For WAV files, the sample rate is detected automatically.");
   console.log("  --verbose, -v  - Show detailed transfer information");
   console.log("");
   console.log("Examples:");
-  console.log("  # Explicit slot assignment:");
-  console.log("  drumtool.js send kick.wav:0 snare.wav:1       # Files to specific slots");
-  console.log("  drumtool.js send kick.wav:0 snare.wav:1 48000 # Custom sample rate");
+  console.log("  # Explicit slot assignment (WAV files are auto-converted):");
+  console.log("  drumtool.js send kick.wav:0 snare.wav:1");
   console.log("  ");
   console.log("  # Auto-increment slots (starts from 0):");
   console.log("  drumtool.js send kick.wav snare.wav hat.wav   # Slots 0,1,2 automatically");
-  console.log("  drumtool.js send kick.wav snare.wav 48000 -v  # Auto-increment with options");
+  console.log("  ");
+  console.log("  # Transfer raw PCM data with a specific sample rate:");
+  console.log("  drumtool.js send my_sample.pcm:10 22050 -v");
   console.log("  ");
   console.log("  # Cannot mix formats - use either all file:slot OR all filenames");
   console.log("  drumtool.js version                           # Check firmware version");
@@ -825,15 +859,15 @@ async function main() {
       const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
       
       if (args.length === 0) {
-        console.error("Error: 'send' command requires at least one file:slot argument.");
+        console.error("Error: 'send' command requires at least one file argument.");
         process.exit(1);
       }
       
       // Validate file:slot arguments early
       try {
-        const transfers = parseFileSlotArgs(args);
+        const transfers = parseFileSlotArgs(args); // Already validated above
         if (transfers.length === 0) {
-          console.error("Error: No valid file:slot pairs found.");
+          console.error("Error: No valid file arguments found.");
           process.exit(1);
         }
       } catch (error) {

@@ -54,7 +54,7 @@ private:
   filesystem_t *fs_;
 
   bool format_filesystem(blockdevice_t *flash);
-  bool init_with_partition(const PartitionInfo& partition, bool force_format);
+  bool init_with_partition(const PartitionInfo &partition, bool force_format);
   bool init_legacy(bool force_format);
 };
 

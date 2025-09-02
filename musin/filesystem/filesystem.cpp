@@ -79,13 +79,15 @@ bool Filesystem::init(bool force_format) {
   return init_legacy(force_format);
 }
 
-bool Filesystem::init_with_partition(const PartitionInfo& partition, bool force_format) {
+bool Filesystem::init_with_partition(const PartitionInfo &partition,
+                                     bool force_format) {
   logger_.info("Found Data partition. Offset: ", partition.offset);
   logger_.info("Data partition size: ", partition.size);
 
   // Use the standard flash block device which now handles partition access
   // correctly with XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE on RP2350
-  blockdevice_t *flash = blockdevice_flash_create(partition.offset, partition.size);
+  blockdevice_t *flash =
+      blockdevice_flash_create(partition.offset, partition.size);
 
   if (!flash) {
     logger_.error("Failed to create flash block device for partition.");
@@ -110,11 +112,12 @@ bool Filesystem::init_with_partition(const PartitionInfo& partition, bool force_
 bool Filesystem::init_legacy(bool force_format) {
   uint32_t filesystem_offset = PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE;
   uint32_t filesystem_size = PICO_FS_DEFAULT_SIZE;
-  
+
   logger_.info("Legacy filesystem offset: ", filesystem_offset);
   logger_.info("Legacy filesystem size: ", filesystem_size);
-  
-  blockdevice_t *flash = blockdevice_flash_create(filesystem_offset, filesystem_size);
+
+  blockdevice_t *flash =
+      blockdevice_flash_create(filesystem_offset, filesystem_size);
 
   if (!flash) {
     logger_.error("Failed to create flash block device for legacy filesystem.");

@@ -26,15 +26,15 @@ namespace {
 
 namespace musin::filesystem {
 
-uint8_t PartitionManager::pt_work_area_[3264];
+uint8_t PartitionManager::pt_work_area_[PARTITION_WORK_AREA_SIZE];
 
 PartitionManager::PartitionManager(musin::Logger &logger)
     : logger_(logger), partition_table_loaded_(false) {
 }
 
 bool PartitionManager::check_partition_table_available() {
-  uint32_t sys_info_buf[8];
-  int sys_info_result = rom_get_sys_info(sys_info_buf, 8, 0);
+  uint32_t sys_info_buf[SYS_INFO_BUFFER_SIZE];
+  int sys_info_result = rom_get_sys_info(sys_info_buf, SYS_INFO_BUFFER_SIZE, 0);
 
   logger_.info("Boot diagnostics - get_sys_info returned: ",
                static_cast<std::int32_t>(sys_info_result));
@@ -59,7 +59,7 @@ bool PartitionManager::load_partition_table() {
   }
 
   std::int32_t rc =
-      rom_load_partition_table(pt_work_area_, sizeof(pt_work_area_), true);
+      rom_load_partition_table(pt_work_area_, PARTITION_WORK_AREA_SIZE, true);
   logger_.info("rom_load_partition_table returned: ", rc);
 
   if (rc < 0) {
@@ -77,8 +77,8 @@ PartitionManager::find_partition(uint32_t partition_id) {
     return std::nullopt;
   }
 
-  // Load all partition information at once, similar to partition_info.c
-  uint32_t partition_table_info[256]; // Large enough buffer for all partitions
+  // Load all partition information at once
+  uint32_t partition_table_info[PARTITION_TABLE_INFO_BUFFER_SIZE];
   const uint32_t flags = PT_INFO_PT_INFO |
                          PT_INFO_PARTITION_LOCATION_AND_FLAGS |
                          PT_INFO_PARTITION_ID;
@@ -100,8 +100,9 @@ PartitionManager::find_partition(uint32_t partition_id) {
     logger_.error("Partition table fields mismatch - actual: ", fields);
     return std::nullopt;
   }
-  uint32_t partition_count = partition_table_info[pos] & 0x000000FF;
-  bool has_partition_table = partition_table_info[pos] & 0x00000100;
+  uint32_t partition_count = partition_table_info[pos] & PARTITION_COUNT_MASK;
+  bool has_partition_table =
+      partition_table_info[pos] & HAS_PARTITION_TABLE_FLAG;
   pos++;
 
   // Skip unpartitioned space info
@@ -136,8 +137,9 @@ PartitionManager::find_partition(uint32_t partition_id) {
       uint32_t id_low = partition_table_info[pos++];
       uint32_t id_high = partition_table_info[pos++];
       current_partition_id = ((uint64_t)id_high << 32) | id_low;
-      logger_.info("Partition ID: ", static_cast<std::int32_t>(
-                                         current_partition_id & 0xFFFFFFFF));
+      logger_.info("Partition ID: ",
+                   static_cast<std::int32_t>(current_partition_id &
+                                             PARTITION_ID_DISPLAY_MASK));
     }
 
     // Check if this is the partition we're looking for
@@ -170,12 +172,13 @@ blockdevice_t *PartitionManager::create_partition_blockdevice(
 
   // Align partition boundaries to FLASH_SECTOR_SIZE (4096 bytes)
   // Round start address UP to stay within partition bounds
-  uint32_t aligned_start = (partition_info.offset + FLASH_SECTOR_SIZE - 1) &
-                           ~(FLASH_SECTOR_SIZE - 1);
+  uint32_t aligned_start =
+      (partition_info.offset + FLASH_SECTOR_ALIGNMENT_MASK) &
+      ~FLASH_SECTOR_ALIGNMENT_MASK;
 
   // Calculate end address and round DOWN to stay within partition bounds
   uint32_t partition_end = partition_info.offset + partition_info.size;
-  uint32_t aligned_end = partition_end & ~(FLASH_SECTOR_SIZE - 1);
+  uint32_t aligned_end = partition_end & ~FLASH_SECTOR_ALIGNMENT_MASK;
 
   // Ensure we have at least one sector after alignment
   if (aligned_start >= aligned_end) {

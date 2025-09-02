@@ -59,9 +59,8 @@ void Filesystem::list_files(const char *path) {
   }
 }
 
-bool Filesystem::init(bool force_format) {
-  logger_.info("Initializing filesystem, force_format: ",
-               static_cast<uint32_t>(force_format));
+bool Filesystem::init() {
+  logger_.info("Initializing filesystem");
 
   // --- Boot diagnostics to understand bootrom state ---
   uint32_t sys_info_buf[8];
@@ -184,17 +183,57 @@ bool Filesystem::init(bool force_format) {
 
   fs_ = filesystem_littlefs_create(500, 16);
 
-  if (force_format) {
+  logger_.info("Attempting to mount filesystem");
+  int err = fs_mount("/", fs_, flash);
+  if (err == -1) {
+    logger_.warn("Initial mount failed, attempting to format");
     return format_filesystem(flash);
-  } else {
-    logger_.info("Attempting to mount filesystem");
-    int err = fs_mount("/", fs_, flash);
-    if (err == -1) {
-      logger_.warn("Initial mount failed, attempting to format");
-      return format_filesystem(flash);
-    }
-    return true; // Mount successful
   }
+  return true; // Mount successful
+}
+
+bool Filesystem::format() {
+  logger_.info("Explicit format requested");
+
+  // Reuse the same partition discovery logic from init()
+  static uint8_t pt_work_area[3264];
+  std::int32_t rc =
+      rom_load_partition_table(pt_work_area, sizeof(pt_work_area), true);
+
+  if (rc < 0) {
+    logger_.error("Failed to load partition table for format: ", rc);
+    return false;
+  }
+
+  const uint32_t data_partition_id = 2;
+  uint32_t data_partition_info[8];
+  const uint32_t flags = 0x8000 | 0x0010 | data_partition_id;
+
+  int result = rom_get_partition_table_info(data_partition_info, 8, flags);
+  if (result <= 0) {
+    logger_.error("Could not get Data partition info for format: ",
+                  static_cast<std::int32_t>(result));
+    return false;
+  }
+
+  uint32_t partition_location = data_partition_info[1];
+  uint32_t raw_offset = partition_location & 0xFFFFFF;
+  uint32_t data_partition_offset =
+      (raw_offset / FLASH_SECTOR_SIZE) * FLASH_SECTOR_SIZE;
+  uint32_t data_partition_size = 0x400000;
+
+  blockdevice_t *flash =
+      blockdevice_flash_create(data_partition_offset, data_partition_size);
+  if (!flash) {
+    logger_.error("Failed to create flash block device for format.");
+    return false;
+  }
+
+  if (!fs_) {
+    fs_ = filesystem_littlefs_create(500, 16);
+  }
+
+  return format_filesystem(flash);
 }
 
 StorageInfo Filesystem::get_storage_info() {

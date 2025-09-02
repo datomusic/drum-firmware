@@ -74,9 +74,7 @@ struct StandardFileOps {
 
   bool format() {
     logger.info("Formatting filesystem...");
-    // This will re-initialize the filesystem, which includes formatting if the
-    // flag is true.
-    bool success = filesystem_.init(true);
+    bool success = filesystem_.format();
     if (success) {
       logger.info("Filesystem formatted successfully.");
     } else {

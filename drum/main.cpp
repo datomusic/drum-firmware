@@ -99,7 +99,7 @@ int main() {
   watchdog_enable(4000, false);
 #endif
 
-  if (!filesystem.init(false)) {
+  if (!filesystem.init()) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
     logger.warn("Failed to initialize filesystem.");
@@ -209,7 +209,7 @@ int main() {
       internal_clock.update(now);
       tempo_handler.update();
       musin::midi::process_midi_output_queue(
-          logger); // Pass logger to queue processing
+          null_logger); // Pass logger to queue processing
       sleep_us(10);
       break;
     }

@@ -22,15 +22,24 @@ public:
   /**
    * @brief Initializes the filesystem.
    *
-   * This function attempts to mount the existing filesystem. If `force_format`
-   * is true, it will format the filesystem before attempting to mount.
+   * This function attempts to mount the existing filesystem. If mounting fails,
+   * it will automatically attempt to format and then mount.
    *
-   * @param force_format If true, the filesystem will be formatted even if
-   * mounting an existing one could succeed.
    * @return true if the filesystem is successfully initialized (mounted), false
    * otherwise.
    */
-  bool init(bool force_format);
+  bool init();
+
+  /**
+   * @brief Formats the filesystem.
+   *
+   * This function will format the filesystem and then mount it. Use this when
+   * you explicitly want to erase all data and start fresh.
+   *
+   * @return true if the filesystem is successfully formatted and mounted, false
+   * otherwise.
+   */
+  bool format();
 
   /**
    * @brief Lists all files and directories at the given path.

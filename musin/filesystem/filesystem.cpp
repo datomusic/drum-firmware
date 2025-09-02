@@ -17,6 +17,58 @@ extern "C" {
 
 namespace musin::filesystem {
 
+FilesystemMount::FilesystemMount(filesystem_t *fs, const char *path,
+                                 blockdevice_t *device, musin::Logger &logger)
+    : fs_(fs), path_(path), mounted_(false), logger_(logger) {
+  if (fs_ && path_ && device) {
+    int err = fs_mount(path_, fs_, device);
+    if (err == 0) {
+      mounted_ = true;
+      logger_.info("Filesystem mounted successfully");
+    } else {
+      logger_.error("Failed to mount filesystem");
+    }
+  }
+}
+
+FilesystemMount::~FilesystemMount() {
+  if (mounted_ && fs_ && path_) {
+    int err = fs_unmount(path_);
+    if (err == 0) {
+      logger_.info("Filesystem unmounted successfully");
+    } else {
+      logger_.error("Failed to unmount filesystem");
+    }
+    mounted_ = false;
+  }
+}
+
+FilesystemMount::FilesystemMount(FilesystemMount &&other) noexcept
+    : fs_(other.fs_), path_(other.path_), mounted_(other.mounted_),
+      logger_(other.logger_) {
+  other.fs_ = nullptr;
+  other.path_ = nullptr;
+  other.mounted_ = false;
+}
+
+FilesystemMount &FilesystemMount::operator=(FilesystemMount &&other) noexcept {
+  if (this != &other) {
+    // Clean up current state
+    this->~FilesystemMount();
+
+    // Move from other
+    fs_ = other.fs_;
+    path_ = other.path_;
+    mounted_ = other.mounted_;
+
+    // Reset other
+    other.fs_ = nullptr;
+    other.path_ = nullptr;
+    other.mounted_ = false;
+  }
+  return *this;
+}
+
 Filesystem::Filesystem(musin::Logger &logger) : logger_(logger), fs_(nullptr) {
   // Create partition manager - it will handle detection internally
   // If partition detection fails, init() will fall back to legacy mode
@@ -94,19 +146,7 @@ bool Filesystem::init_with_partition(const PartitionInfo &partition,
     return false;
   }
 
-  fs_ = filesystem_littlefs_create(500, 16);
-
-  if (force_format) {
-    return format_filesystem(flash);
-  } else {
-    logger_.info("Attempting to mount partition filesystem");
-    int err = fs_mount("/", fs_, flash);
-    if (err == -1) {
-      logger_.warn("Partition mount failed, attempting to format");
-      return format_filesystem(flash);
-    }
-    return true; // Mount successful
-  }
+  return mount_filesystem(flash, force_format);
 }
 
 bool Filesystem::init_legacy(bool force_format) {
@@ -124,19 +164,34 @@ bool Filesystem::init_legacy(bool force_format) {
     return false;
   }
 
+  return mount_filesystem(flash, force_format);
+}
+
+bool Filesystem::mount_filesystem(blockdevice_t *flash, bool force_format) {
   fs_ = filesystem_littlefs_create(500, 16);
 
   if (force_format) {
-    return format_filesystem(flash);
-  } else {
-    logger_.info("Attempting to mount legacy filesystem");
-    int err = fs_mount("/", fs_, flash);
-    if (err == -1) {
-      logger_.warn("Legacy mount failed, attempting to format");
-      return format_filesystem(flash);
+    if (!format_filesystem(flash)) {
+      return false;
     }
-    return true; // Mount successful
   }
+
+  // Try to mount using RAII FilesystemMount
+  mount_.emplace(fs_, "/", flash, logger_);
+
+  if (!mount_->is_mounted()) {
+    if (!force_format) {
+      logger_.warn("Initial mount failed, attempting to format");
+      if (format_filesystem(flash)) {
+        // Try mounting again after format
+        mount_.emplace(fs_, "/", flash, logger_);
+        return mount_->is_mounted();
+      }
+    }
+    return false;
+  }
+
+  return true;
 }
 
 StorageInfo Filesystem::get_storage_info() {

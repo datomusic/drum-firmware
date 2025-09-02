@@ -17,6 +17,29 @@ struct StorageInfo {
   uint32_t free_bytes;
 };
 
+class FilesystemMount {
+public:
+  FilesystemMount(filesystem_t *fs, const char *path, blockdevice_t *device,
+                  musin::Logger &logger);
+  ~FilesystemMount();
+
+  // Non-copyable, movable
+  FilesystemMount(const FilesystemMount &) = delete;
+  FilesystemMount &operator=(const FilesystemMount &) = delete;
+  FilesystemMount(FilesystemMount &&other) noexcept;
+  FilesystemMount &operator=(FilesystemMount &&other) noexcept;
+
+  bool is_mounted() const noexcept {
+    return mounted_;
+  }
+
+private:
+  filesystem_t *fs_;
+  const char *path_;
+  bool mounted_;
+  musin::Logger &logger_;
+};
+
 class Filesystem {
 public:
   explicit Filesystem(musin::Logger &logger);
@@ -52,10 +75,12 @@ private:
   std::optional<PartitionManager> partition_manager_;
   musin::Logger &logger_;
   filesystem_t *fs_;
+  std::optional<FilesystemMount> mount_;
 
   bool format_filesystem(blockdevice_t *flash);
   bool init_with_partition(const PartitionInfo &partition, bool force_format);
   bool init_legacy(bool force_format);
+  bool mount_filesystem(blockdevice_t *flash, bool force_format);
 };
 
 } // namespace musin::filesystem

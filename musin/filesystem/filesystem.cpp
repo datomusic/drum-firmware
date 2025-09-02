@@ -69,7 +69,8 @@ FilesystemMount &FilesystemMount::operator=(FilesystemMount &&other) noexcept {
   return *this;
 }
 
-Filesystem::Filesystem(musin::Logger &logger) : logger_(logger), fs_(nullptr) {
+Filesystem::Filesystem(musin::Logger &logger)
+    : logger_(logger), fs_(nullptr), current_device_(nullptr) {
   // Create partition manager - it will handle detection internally
   // If partition detection fails, init() will fall back to legacy mode
   partition_manager_.emplace(logger);
@@ -111,16 +112,15 @@ void Filesystem::list_files(const char *path) {
   }
 }
 
-bool Filesystem::init(bool force_format) {
-  logger_.info("Initializing filesystem, force_format: ",
-               static_cast<uint32_t>(force_format));
+bool Filesystem::init() {
+  logger_.info("Initializing filesystem");
 
   // Try partition approach first
   if (partition_manager_.has_value()) {
     auto data_partition = partition_manager_->find_data_partition();
     if (data_partition.has_value()) {
       logger_.info("Using partition-based filesystem");
-      return init_with_partition(*data_partition, force_format);
+      return init_with_partition(*data_partition);
     } else {
       logger_.warn("PartitionManager failed to find data partition");
     }
@@ -128,65 +128,55 @@ bool Filesystem::init(bool force_format) {
 
   // Fall back to legacy approach
   logger_.info("Using legacy filesystem layout (no partitions)");
-  return init_legacy(force_format);
+  return init_legacy();
 }
 
-bool Filesystem::init_with_partition(const PartitionInfo &partition,
-                                     bool force_format) {
+bool Filesystem::init_with_partition(const PartitionInfo &partition) {
   logger_.info("Found Data partition. Offset: ", partition.offset);
   logger_.info("Data partition size: ", partition.size);
 
   // Use the standard flash block device which now handles partition access
   // correctly with XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE on RP2350
-  blockdevice_t *flash =
-      blockdevice_flash_create(partition.offset, partition.size);
+  current_device_ = blockdevice_flash_create(partition.offset, partition.size);
 
-  if (!flash) {
+  if (!current_device_) {
     logger_.error("Failed to create flash block device for partition.");
     return false;
   }
 
-  return mount_filesystem(flash, force_format);
+  return mount_filesystem(current_device_);
 }
 
-bool Filesystem::init_legacy(bool force_format) {
+bool Filesystem::init_legacy() {
   uint32_t filesystem_offset = PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE;
   uint32_t filesystem_size = PICO_FS_DEFAULT_SIZE;
 
   logger_.info("Legacy filesystem offset: ", filesystem_offset);
   logger_.info("Legacy filesystem size: ", filesystem_size);
 
-  blockdevice_t *flash =
+  current_device_ =
       blockdevice_flash_create(filesystem_offset, filesystem_size);
 
-  if (!flash) {
+  if (!current_device_) {
     logger_.error("Failed to create flash block device for legacy filesystem.");
     return false;
   }
 
-  return mount_filesystem(flash, force_format);
+  return mount_filesystem(current_device_);
 }
 
-bool Filesystem::mount_filesystem(blockdevice_t *flash, bool force_format) {
+bool Filesystem::mount_filesystem(blockdevice_t *flash) {
   fs_ = filesystem_littlefs_create(500, 16);
-
-  if (force_format) {
-    if (!format_filesystem(flash)) {
-      return false;
-    }
-  }
 
   // Try to mount using RAII FilesystemMount
   mount_.emplace(fs_, "/", flash, logger_);
 
   if (!mount_->is_mounted()) {
-    if (!force_format) {
-      logger_.warn("Initial mount failed, attempting to format");
-      if (format_filesystem(flash)) {
-        // Try mounting again after format
-        mount_.emplace(fs_, "/", flash, logger_);
-        return mount_->is_mounted();
-      }
+    logger_.warn("Initial mount failed, attempting to format");
+    if (format_filesystem(flash)) {
+      // Try mounting again after format
+      mount_.emplace(fs_, "/", flash, logger_);
+      return mount_->is_mounted();
     }
     return false;
   }
@@ -211,6 +201,19 @@ StorageInfo Filesystem::get_storage_info() {
   uint32_t free_bytes = total_bytes - used_bytes;
 
   return {total_bytes, free_bytes};
+}
+
+bool Filesystem::format() {
+  if (!current_device_) {
+    logger_.error("No device available for formatting. Call init() first.");
+    return false;
+  }
+
+  if (!fs_) {
+    fs_ = filesystem_littlefs_create(500, 16);
+  }
+
+  return format_filesystem(current_device_);
 }
 
 } // namespace musin::filesystem

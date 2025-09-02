@@ -99,7 +99,7 @@ int main() {
   watchdog_enable(4000, false);
 #endif
 
-  if (!filesystem.init(false)) {
+  if (!filesystem.init()) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
     logger.warn("Failed to initialize filesystem.");

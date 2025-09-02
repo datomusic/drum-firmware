@@ -47,15 +47,13 @@ public:
   /**
    * @brief Initializes the filesystem.
    *
-   * This function attempts to mount the existing filesystem. If `force_format`
-   * is true, it will format the filesystem before attempting to mount.
+   * This function attempts to mount the existing filesystem. If mounting fails,
+   * it will attempt to format and then mount.
    *
-   * @param force_format If true, the filesystem will be formatted even if
-   * mounting an existing one could succeed.
    * @return true if the filesystem is successfully initialized (mounted), false
    * otherwise.
    */
-  bool init(bool force_format);
+  bool init();
 
   /**
    * @brief Lists all files and directories at the given path.
@@ -71,6 +69,16 @@ public:
    */
   StorageInfo get_storage_info();
 
+  /**
+   * @brief Explicitly formats the filesystem.
+   *
+   * This will format the filesystem, destroying any existing data.
+   * Call init() after formatting to mount the formatted filesystem.
+   *
+   * @return true if formatting succeeds, false otherwise.
+   */
+  bool format();
+
 private:
   std::optional<PartitionManager> partition_manager_;
   musin::Logger &logger_;
@@ -78,9 +86,10 @@ private:
   std::optional<FilesystemMount> mount_;
 
   bool format_filesystem(blockdevice_t *flash);
-  bool init_with_partition(const PartitionInfo &partition, bool force_format);
-  bool init_legacy(bool force_format);
-  bool mount_filesystem(blockdevice_t *flash, bool force_format);
+  bool init_with_partition(const PartitionInfo &partition);
+  bool init_legacy();
+  bool mount_filesystem(blockdevice_t *flash);
+  blockdevice_t *current_device_;
 };
 
 } // namespace musin::filesystem

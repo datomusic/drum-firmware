@@ -11,6 +11,13 @@ typedef struct blockdevice blockdevice_t;
 
 namespace musin::filesystem {
 
+// Bootrom partition table work area size
+// Size calculation based on RP2350 partition table structures:
+// - Fixed info: 4 + MAX_PARTITIONS * (2 + 2) uint32_t words
+// - Variable data: partition names + extra family IDs
+// - Total: 3264 bytes provides sufficient space for typical configurations
+constexpr size_t PARTITION_TABLE_WORK_AREA_SIZE = 3264;
+
 struct PartitionInfo {
   uint32_t offset;
   uint32_t size;
@@ -48,7 +55,9 @@ public:
 
 private:
   musin::Logger &logger_;
-  static uint8_t pt_work_area_[3264];
+
+  // Work area for bootrom partition table operations
+  static uint8_t pt_work_area_[PARTITION_TABLE_WORK_AREA_SIZE];
   bool partition_table_loaded_;
 
   bool load_partition_table();

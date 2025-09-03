@@ -54,6 +54,17 @@ public:
   std::optional<PartitionInfo> find_partition(uint32_t partition_id);
 
   /**
+   * @brief Discovers and returns information about the first partition of a
+   * specific family type.
+   *
+   * @param family_bit The family bit to search for (e.g.,
+   * PICOBIN_PARTITION_FLAGS_ACCEPTS_DEFAULT_FAMILY_DATA_BITS).
+   * @return Optional PartitionInfo if partition is found, std::nullopt
+   * otherwise.
+   */
+  std::optional<PartitionInfo> find_partition_by_family(uint32_t family_bit);
+
+  /**
    * @brief Creates a block device for the specified partition.
    *
    * @param partition_info The partition information.
@@ -62,19 +73,9 @@ public:
   blockdevice_t *
   create_partition_blockdevice(const PartitionInfo &partition_info);
 
-  /**
-   * @brief Performs boot diagnostics to check partition table availability.
-   *
-   * @return true if partition table is available, false otherwise.
-   */
-  bool check_partition_table_available();
-
 private:
   musin::Logger &logger_;
   static uint8_t pt_work_area_[PARTITION_WORK_AREA_SIZE];
-  bool partition_table_loaded_;
-
-  bool load_partition_table();
 };
 
 } // namespace musin::filesystem

@@ -63,19 +63,27 @@ void Filesystem::list_files(const char *path) {
 bool Filesystem::init() {
   logger_.info("Initializing filesystem");
 
+  logger_.info("Step 1: Checking partition table availability");
   if (!partition_manager_.check_partition_table_available()) {
     logger_.error(
         "Partition table not available, cannot initialize filesystem");
     return false;
   }
 
+  logger_.info("Step 2: Looking for data partition");
   const uint32_t data_partition_id = 2;
+  logger_.info("Searching for data partition with ID: ", data_partition_id);
   auto partition_info = partition_manager_.find_partition(data_partition_id);
 
   if (!partition_info) {
     logger_.error("Data partition not found, cannot initialize filesystem");
+    logger_.error("Expected partition ID 2 for data storage");
     return false;
   }
+
+  logger_.info("Step 3: Data partition found, creating block device");
+  logger_.info("Partition offset: ", partition_info->offset);
+  logger_.info("Partition size: ", partition_info->size);
 
   blockdevice_t *flash =
       partition_manager_.create_partition_blockdevice(*partition_info);
@@ -84,27 +92,49 @@ bool Filesystem::init() {
     return false;
   }
 
+  logger_.info("Step 4: Creating littlefs filesystem instance");
   fs_ = filesystem_littlefs_create(500, 16);
+  if (!fs_) {
+    logger_.error("Failed to create littlefs instance");
+    return false;
+  }
 
-  logger_.info("Attempting to mount filesystem");
+  logger_.info("Step 5: Attempting to mount filesystem");
   int err = fs_mount("/", fs_, flash);
+  logger_.info("fs_mount returned: ", static_cast<std::int32_t>(err));
+  
   if (err == -1) {
     logger_.warn("Initial mount failed, attempting to format");
     return format_filesystem(flash);
   }
+  
+  logger_.info("Filesystem mounted successfully");
   return true;
 }
 
 bool Filesystem::format() {
   logger_.info("Explicit format requested");
 
+  logger_.info("Format Step 1: Checking partition table for format operation");
+  if (!partition_manager_.check_partition_table_available()) {
+    logger_.error("Partition table not available for format operation");
+    return false;
+  }
+
+  logger_.info("Format Step 2: Finding data partition for format");
   const uint32_t data_partition_id = 2;
+  logger_.info("Looking for data partition ID: ", data_partition_id);
   auto partition_info = partition_manager_.find_partition(data_partition_id);
 
   if (!partition_info) {
     logger_.error("Data partition not found for format");
+    logger_.error("Cannot format filesystem without valid data partition");
     return false;
   }
+
+  logger_.info("Format Step 3: Creating block device for format");
+  logger_.info("Format partition offset: ", partition_info->offset);
+  logger_.info("Format partition size: ", partition_info->size);
 
   blockdevice_t *flash =
       partition_manager_.create_partition_blockdevice(*partition_info);
@@ -113,10 +143,19 @@ bool Filesystem::format() {
     return false;
   }
 
+  logger_.info("Format Step 4: Ensuring filesystem instance exists");
   if (!fs_) {
+    logger_.info("Creating new filesystem instance for format");
     fs_ = filesystem_littlefs_create(500, 16);
+    if (!fs_) {
+      logger_.error("Failed to create filesystem instance for format");
+      return false;
+    }
+  } else {
+    logger_.info("Using existing filesystem instance for format");
   }
 
+  logger_.info("Format Step 5: Executing filesystem format");
   return format_filesystem(flash);
 }
 

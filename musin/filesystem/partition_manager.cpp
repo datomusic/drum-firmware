@@ -33,7 +33,10 @@ PartitionManager::PartitionManager(musin::Logger &logger)
 }
 
 bool PartitionManager::check_partition_table_available() {
+  logger_.info("Starting partition table availability check");
+  
   uint32_t sys_info_buf[SYS_INFO_BUFFER_SIZE];
+  logger_.info("Calling rom_get_sys_info with buffer size: ", SYS_INFO_BUFFER_SIZE);
   int sys_info_result = rom_get_sys_info(sys_info_buf, SYS_INFO_BUFFER_SIZE, 0);
 
   logger_.info("Boot diagnostics - get_sys_info returned: ",
@@ -41,41 +44,57 @@ bool PartitionManager::check_partition_table_available() {
 
   if (sys_info_result > 0) {
     logger_.info("Boot diagnostic flags: ", sys_info_buf[0]);
+    logger_.info("BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE flag value: ", 
+                 static_cast<uint32_t>(BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE));
+    
     if (sys_info_buf[0] & BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE) {
-      logger_.info("Boot diagnostic: Partition table found");
+      logger_.info("Boot diagnostic: Partition table found via sys_info");
       return true;
+    } else {
+      logger_.warn("Boot diagnostic: Partition table flag NOT set in sys_info");
+      logger_.warn("sys_info_buf[0] & BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE = 0");
+    }
+  } else {
+    logger_.error("rom_get_sys_info failed or returned no data");
+    if (sys_info_result == 0) {
+      logger_.error("sys_info_result is 0 - no data available");
+    } else {
+      logger_.error("sys_info_result is negative - error code");
     }
   }
 
   // Boot diagnostics might not be reliable, try loading partition table
   // directly
-  logger_.warn("Boot diagnostic: No partition table found, trying direct load");
+  logger_.warn("Boot diagnostic: No partition table found via sys_info, trying direct load");
   return load_partition_table();
 }
 
 bool PartitionManager::load_partition_table() {
   if (partition_table_loaded_) {
+    logger_.info("Partition table already loaded, returning cached result");
     return true;
   }
 
-  std::int32_t rc =
-      rom_load_partition_table(pt_work_area_, PARTITION_WORK_AREA_SIZE, true);
-  logger_.info("rom_load_partition_table returned: ", rc);
-
-  if (rc < 0) {
-    logger_.error("Failed to load partition table: ", rc);
-    return false;
-  }
-
+  logger_.info("Skipping rom_load_partition_table - using direct approach like reference");
+  logger_.info("Partition table loading not required for rom_get_partition_table_info");
+  
+  // Based on reference implementation (partition_info.c), we don't need to call
+  // rom_load_partition_table() - rom_get_partition_table_info() works directly
   partition_table_loaded_ = true;
+  logger_.info("Partition table access enabled");
   return true;
 }
 
 std::optional<PartitionInfo>
 PartitionManager::find_partition(uint32_t partition_id) {
+  logger_.info("Finding partition with ID: ", partition_id);
+  
   if (!load_partition_table()) {
+    logger_.error("Cannot find partition - partition table not loaded");
     return std::nullopt;
   }
+
+  logger_.info("Partition table loaded, getting partition info");
 
   // Load all partition information at once
   uint32_t partition_table_info[PARTITION_TABLE_INFO_BUFFER_SIZE];
@@ -83,12 +102,22 @@ PartitionManager::find_partition(uint32_t partition_id) {
                          PT_INFO_PARTITION_LOCATION_AND_FLAGS |
                          PT_INFO_PARTITION_ID;
 
+  logger_.info("Calling rom_get_partition_table_info with flags: ", flags);
+  logger_.info("Buffer size: ", static_cast<uint32_t>(sizeof(partition_table_info)));
+
   int result = rom_get_partition_table_info(
       partition_table_info, sizeof(partition_table_info), flags);
 
+  logger_.info("rom_get_partition_table_info returned: ", static_cast<std::int32_t>(result));
+
   if (result <= 0) {
-    logger_.error("Could not get partition table info: ",
+    logger_.error("Could not get partition table info with error: ",
                   static_cast<std::int32_t>(result));
+    if (result == 0) {
+      logger_.error("No partition table info available");
+    } else {
+      logger_.error("Negative result indicates error in ROM function");
+    }
     return std::nullopt;
   }
 

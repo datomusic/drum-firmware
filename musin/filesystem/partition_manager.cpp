@@ -34,9 +34,10 @@ PartitionManager::PartitionManager(musin::Logger &logger)
 
 bool PartitionManager::check_partition_table_available() {
   logger_.info("Starting partition table availability check");
-  
+
   uint32_t sys_info_buf[SYS_INFO_BUFFER_SIZE];
-  logger_.info("Calling rom_get_sys_info with buffer size: ", SYS_INFO_BUFFER_SIZE);
+  logger_.info("Calling rom_get_sys_info with buffer size: ",
+               SYS_INFO_BUFFER_SIZE);
   int sys_info_result = rom_get_sys_info(sys_info_buf, SYS_INFO_BUFFER_SIZE, 0);
 
   logger_.info("Boot diagnostics - get_sys_info returned: ",
@@ -44,9 +45,9 @@ bool PartitionManager::check_partition_table_available() {
 
   if (sys_info_result > 0) {
     logger_.info("Boot diagnostic flags: ", sys_info_buf[0]);
-    logger_.info("BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE flag value: ", 
+    logger_.info("BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE flag value: ",
                  static_cast<uint32_t>(BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE));
-    
+
     if (sys_info_buf[0] & BOOT_DIAGNOSTIC_HAS_PARTITION_TABLE) {
       logger_.info("Boot diagnostic: Partition table found via sys_info");
       return true;
@@ -65,7 +66,8 @@ bool PartitionManager::check_partition_table_available() {
 
   // Boot diagnostics might not be reliable, try loading partition table
   // directly
-  logger_.warn("Boot diagnostic: No partition table found via sys_info, trying direct load");
+  logger_.warn("Boot diagnostic: No partition table found via sys_info, trying "
+               "direct load");
   return load_partition_table();
 }
 
@@ -75,9 +77,11 @@ bool PartitionManager::load_partition_table() {
     return true;
   }
 
-  logger_.info("Skipping rom_load_partition_table - using direct approach like reference");
-  logger_.info("Partition table loading not required for rom_get_partition_table_info");
-  
+  logger_.info("Skipping rom_load_partition_table - using direct approach like "
+               "reference");
+  logger_.info(
+      "Partition table loading not required for rom_get_partition_table_info");
+
   // Based on reference implementation (partition_info.c), we don't need to call
   // rom_load_partition_table() - rom_get_partition_table_info() works directly
   partition_table_loaded_ = true;
@@ -88,7 +92,7 @@ bool PartitionManager::load_partition_table() {
 std::optional<PartitionInfo>
 PartitionManager::find_partition(uint32_t partition_id) {
   logger_.info("Finding partition with ID: ", partition_id);
-  
+
   if (!load_partition_table()) {
     logger_.error("Cannot find partition - partition table not loaded");
     return std::nullopt;
@@ -103,12 +107,14 @@ PartitionManager::find_partition(uint32_t partition_id) {
                          PT_INFO_PARTITION_ID;
 
   logger_.info("Calling rom_get_partition_table_info with flags: ", flags);
-  logger_.info("Buffer size: ", static_cast<uint32_t>(sizeof(partition_table_info)));
+  logger_.info("Buffer size: ",
+               static_cast<uint32_t>(sizeof(partition_table_info)));
 
   int result = rom_get_partition_table_info(
       partition_table_info, sizeof(partition_table_info), flags);
 
-  logger_.info("rom_get_partition_table_info returned: ", static_cast<std::int32_t>(result));
+  logger_.info("rom_get_partition_table_info returned: ",
+               static_cast<std::int32_t>(result));
 
   if (result <= 0) {
     logger_.error("Could not get partition table info with error: ",
@@ -192,6 +198,70 @@ PartitionManager::find_partition(uint32_t partition_id) {
 
   logger_.error("Partition ID not found: ",
                 static_cast<std::int32_t>(partition_id));
+  return std::nullopt;
+}
+
+std::optional<PartitionInfo>
+PartitionManager::find_partition_by_family(uint32_t family_bit) {
+  logger_.info("Finding partition with family bit: ", family_bit);
+
+  if (!load_partition_table()) {
+    logger_.error("Cannot find partition - partition table not loaded");
+    return std::nullopt;
+  }
+
+  uint32_t partition_table_info[PARTITION_TABLE_INFO_BUFFER_SIZE];
+  const uint32_t flags = PT_INFO_PT_INFO | PT_INFO_PARTITION_LOCATION_AND_FLAGS;
+
+  int result = rom_get_partition_table_info(
+      partition_table_info, sizeof(partition_table_info), flags);
+
+  if (result <= 0) {
+    logger_.error("Could not get partition table info with error: ",
+                  static_cast<std::int32_t>(result));
+    return std::nullopt;
+  }
+
+  size_t pos = 0;
+  uint32_t fields = partition_table_info[pos++];
+  if (fields != flags) {
+    logger_.error("Partition table fields mismatch - expected: ", flags);
+    logger_.error("Partition table fields mismatch - actual: ", fields);
+    return std::nullopt;
+  }
+
+  uint32_t partition_count = partition_table_info[pos] & PARTITION_COUNT_MASK;
+  pos++; // Skip partition_count and has_partition_table_flag
+  pos++; // Skip unpartitioned_space location
+  pos++; // Skip unpartitioned_space flags
+
+  if (partition_count == 0) {
+    logger_.error("No partitions found in partition table");
+    return std::nullopt;
+  }
+
+  for (uint32_t i = 0; i < partition_count; i++) {
+    uint32_t location = partition_table_info[pos++];
+    uint32_t flags_and_permissions = partition_table_info[pos++];
+
+    if (flags_and_permissions & family_bit) {
+      uint32_t first_sector = PART_LOC_FIRST(location);
+      uint32_t last_sector = PART_LOC_LAST(location);
+
+      uint32_t offset = first_sector * FLASH_SECTOR_SIZE;
+      uint32_t size = (last_sector + 1 - first_sector) * FLASH_SECTOR_SIZE;
+
+      logger_.info("Found matching partition at index ", i);
+      logger_.info("First sector: ", first_sector);
+      logger_.info("Last sector: ", last_sector);
+      logger_.info("Partition offset: ", offset);
+      logger_.info("Partition size: ", size);
+
+      return PartitionInfo{offset, size, flags_and_permissions};
+    }
+  }
+
+  logger_.error("Partition with specified family bit not found: ", family_bit);
   return std::nullopt;
 }
 

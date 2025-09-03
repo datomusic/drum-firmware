@@ -54,6 +54,17 @@ public:
   std::optional<PartitionInfo> find_partition(uint32_t partition_id);
 
   /**
+   * @brief Discovers and returns information about the first partition of a
+   * specific family type.
+   *
+   * @param family_bit The family bit to search for (e.g.,
+   * PICOBIN_PARTITION_FLAGS_ACCEPTS_DEFAULT_FAMILY_DATA_BITS).
+   * @return Optional PartitionInfo if partition is found, std::nullopt
+   * otherwise.
+   */
+  std::optional<PartitionInfo> find_partition_by_family(uint32_t family_bit);
+
+  /**
    * @brief Creates a block device for the specified partition.
    *
    * @param partition_info The partition information.

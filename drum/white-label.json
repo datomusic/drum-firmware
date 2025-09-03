@@ -1,0 +1,9 @@
+{
+  "volume": {
+    "label": "DRUMBOOT",
+    "redirect_url": "https://drum.dato.mu",
+    "redirect_name": "Dato DRUM webpage",
+    "model": "Dato DRUM",
+    "board_id": "Dato Submarine RP2350"
+  }
+}

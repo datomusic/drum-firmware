@@ -19,7 +19,7 @@
 const midi = require('midi');
 const fs = require('fs');
 const readline = require('readline');
-const WaveFile = require('wavefile');
+const { WaveFile } = require('wavefile');
 
 // MIDI SDS Constants
 const SYSEX_START = 0xF0;
@@ -515,22 +515,38 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
     const wav = new WaveFile(fileBuffer);
 
     // If successful, convert to device-compatible format (16-bit, mono)
-    if (wav.fmt.numChannels !== 1) {
-      if (verbose) console.log('Converting stereo to mono...');
-      wav.toMono();
-    }
-
     if (wav.fmt.bitsPerSample !== 16) {
       if (verbose) console.log(`Converting from ${wav.fmt.bitsPerSample}-bit to 16-bit...`);
       wav.toBitDepth('16');
     }
-    
+
     finalSampleRate = wav.fmt.sampleRate;
     if (verbose && sampleRate !== 44100 && sampleRate !== finalSampleRate) {
       console.log(`Note: Using sample rate from WAV file (${finalSampleRate}Hz) instead of command-line argument.`);
     }
 
-    pcmData = wav.data.samples;
+    // Get samples and convert to mono if needed
+    let samples = wav.getSamples(false); // Get as array of samples
+    if (wav.fmt.numChannels !== 1) {
+      if (verbose) console.log('Converting stereo to mono...');
+      // Convert stereo to mono by averaging left and right channels
+      const monoSamples = [];
+      for (let i = 0; i < samples.length; i += wav.fmt.numChannels) {
+        let sum = 0;
+        for (let ch = 0; ch < wav.fmt.numChannels; ch++) {
+          sum += samples[i + ch] || 0;
+        }
+        monoSamples.push(sum / wav.fmt.numChannels);
+      }
+      samples = monoSamples;
+    }
+
+    // Convert samples array back to buffer (16-bit little endian)
+    pcmData = Buffer.alloc(samples.length * 2);
+    for (let i = 0; i < samples.length; i++) {
+      const sample = Math.max(-32768, Math.min(32767, Math.round(samples[i])));
+      pcmData.writeInt16LE(sample, i * 2);
+    }
 
     console.log(`Processed WAV: ${pcmData.length} bytes, ${finalSampleRate}Hz, 16-bit mono`);
 

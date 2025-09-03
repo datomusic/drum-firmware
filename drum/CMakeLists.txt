@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Enable support for RP2350 A2 chip erratum E10. This ensures the
+# --abs-block flag is added to UF2 files for compatibility.
+set(PICO_RP2350_A2_SUPPORTED ON)
+
 set(PICO_BOARD dato_submarine)
 
 set(EXECUTABLE_NAME_BASE drum)

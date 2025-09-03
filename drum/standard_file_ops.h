@@ -9,7 +9,9 @@
 #include <stdio.h>
 
 struct StandardFileOps {
-  explicit StandardFileOps(musin::Logger &logger) : logger(logger) {
+  explicit StandardFileOps(musin::Logger &logger,
+                           musin::filesystem::Filesystem &filesystem)
+      : logger(logger), filesystem_(filesystem) {
   }
   static const unsigned BlockSize = 256;
 
@@ -72,9 +74,7 @@ struct StandardFileOps {
 
   bool format() {
     logger.info("Formatting filesystem...");
-    // This will re-initialize the filesystem, which includes formatting if the
-    // flag is true.
-    bool success = musin::filesystem::init(true);
+    bool success = filesystem_.format();
     if (success) {
       logger.info("Filesystem formatted successfully.");
     } else {
@@ -85,6 +85,7 @@ struct StandardFileOps {
 
 private:
   musin::Logger &logger;
+  musin::filesystem::Filesystem &filesystem_;
 };
 
 #endif /* end of include guard: PRINTING_FILE_OPS_H_CVXHHJDO */

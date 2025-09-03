@@ -40,12 +40,15 @@ static musin::hal::DebugUtils::LoopTimer loop_timer(10000);
 static musin::NullLogger logger;
 #endif
 
+static musin::NullLogger null_logger;
+
 // System State Machine (will be initialized after pizza_display)
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
-static drum::SysExHandler sysex_handler(config_manager, logger);
+static musin::filesystem::Filesystem filesystem(logger);
+static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
@@ -61,9 +64,9 @@ static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler);
 
-static musin::midi::MidiSender
-    midi_sender(musin::midi::MidiSendStrategy::QUEUED,
-                logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
+static musin::midi::MidiSender midi_sender(
+    musin::midi::MidiSendStrategy::QUEUED,
+    null_logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
                                           midi_sender, logger);
 
@@ -96,12 +99,12 @@ int main() {
   watchdog_enable(4000, false);
 #endif
 
-  if (!musin::filesystem::init(false)) {
+  if (!filesystem.init()) {
     // Filesystem is not critical for basic operation if no samples are present,
     // but we should log the failure.
     logger.warn("Failed to initialize filesystem.");
   } else {
-    musin::filesystem::list_files("/"); // List files in the root directory
+    filesystem.list_files("/"); // List files in the root directory
 
     config_manager.load();
   }
@@ -206,7 +209,7 @@ int main() {
       internal_clock.update(now);
       tempo_handler.update();
       musin::midi::process_midi_output_queue(
-          logger); // Pass logger to queue processing
+          null_logger); // Pass logger to queue processing
       sleep_us(10);
       break;
     }

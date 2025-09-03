@@ -1,85 +1,131 @@
+// clang-format off
 extern "C" {
+#include "pico.h" // Must be included before bootrom_constants.h
+#include "blockdevice/flash.h"
+#include "boot/bootrom_constants.h" // Include for partition flags
+#include "filesystem/littlefs.h"
+#include "filesystem/vfs.h" // Include for vfs_get_lfs
+#include "hardware/regs/addressmap.h"
+#include "pico/bootrom.h"
 #include <dirent.h>
 #include <errno.h>
 #include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "blockdevice/flash.h"
-#include "filesystem/littlefs.h"
-#include "filesystem/vfs.h" // Include for vfs_get_lfs
 }
+// clang-format on
 
 #include "filesystem.h"
 
 namespace musin::filesystem {
 
-static filesystem_t *g_fs = nullptr;
+Filesystem::Filesystem(musin::Logger &logger)
+    : logger_(logger), fs_(nullptr), partition_manager_(logger) {
+}
 
-static bool format_filesystem(blockdevice_t *flash) {
-  printf("Formatting filesystem with littlefs\n");
-  int err = fs_format(g_fs, flash);
+bool Filesystem::format_filesystem(blockdevice_t *flash) {
+  logger_.info("Formatting filesystem with littlefs");
+  int err = fs_format(fs_, flash);
   if (err == -1) {
-    printf("fs_format error: %s\n", strerror(errno));
+    logger_.error("fs_format error");
     return false;
   }
   // Mount after formatting is essential
-  printf("Mounting filesystem after format\n");
-  err = fs_mount("/", g_fs, flash);
+  logger_.info("Mounting filesystem after format");
+  err = fs_mount("/", fs_, flash);
   if (err == -1) {
-    printf("fs_mount after format error: %s\n", strerror(errno));
+    logger_.error("fs_mount after format error");
     return false;
   }
   return true;
 }
 
-void list_files(const char *path) {
-  printf("Listing files in '%s':\n", path);
+void Filesystem::list_files(const char *path) {
+  logger_.info("Listing files in directory");
   DIR *dir = opendir(path);
   if (!dir) {
-    printf("  Error opening directory: %s\n", strerror(errno));
+    logger_.error("Error opening directory");
     return;
   }
 
   struct dirent *dirent;
   while ((dirent = readdir(dir)) != NULL) {
-    printf("  - %s\n", dirent->d_name);
+    logger_.info("Found file");
   }
 
   int err = closedir(dir);
   if (err != 0) {
-    printf("  Error closing directory: %s\n", strerror(errno));
+    logger_.error("Error closing directory");
   }
-  printf("\n"); // Add a newline for better log separation
 }
 
-bool init(bool force_format) {
-  printf("init_filesystem, force_format: %d\n", force_format);
+bool Filesystem::init() {
+  logger_.info("Initializing filesystem");
+
+  if (!partition_manager_.check_partition_table_available()) {
+    logger_.error(
+        "Partition table not available, cannot initialize filesystem");
+    return false;
+  }
+
+  const uint32_t data_partition_id = 2;
+  auto partition_info = partition_manager_.find_partition(data_partition_id);
+
+  if (!partition_info) {
+    logger_.error("Data partition not found, cannot initialize filesystem");
+    return false;
+  }
+
   blockdevice_t *flash =
-      blockdevice_flash_create(PICO_FLASH_SIZE_BYTES - PICO_FS_DEFAULT_SIZE, 0);
-  g_fs = filesystem_littlefs_create(500, 16);
-
-  if (force_format) {
-    return format_filesystem(flash);
-  } else {
-    printf("Attempting to mount filesystem\n");
-    int err = fs_mount("/", g_fs, flash);
-    if (err == -1) {
-      printf("Initial mount failed: %s. Attempting to format...\n",
-             strerror(errno));
-      return format_filesystem(flash);
-    }
-    return true; // Mount successful
+      partition_manager_.create_partition_blockdevice(*partition_info);
+  if (!flash) {
+    logger_.error("Failed to create flash block device");
+    return false;
   }
+
+  fs_ = filesystem_littlefs_create(500, 16);
+
+  logger_.info("Attempting to mount filesystem");
+  int err = fs_mount("/", fs_, flash);
+  if (err == -1) {
+    logger_.warn("Initial mount failed, attempting to format");
+    return format_filesystem(flash);
+  }
+  return true;
 }
 
-StorageInfo get_storage_info() {
-  if (!g_fs || g_fs->type != FILESYSTEM_TYPE_LITTLEFS) {
+bool Filesystem::format() {
+  logger_.info("Explicit format requested");
+
+  const uint32_t data_partition_id = 2;
+  auto partition_info = partition_manager_.find_partition(data_partition_id);
+
+  if (!partition_info) {
+    logger_.error("Data partition not found for format");
+    return false;
+  }
+
+  blockdevice_t *flash =
+      partition_manager_.create_partition_blockdevice(*partition_info);
+  if (!flash) {
+    logger_.error("Failed to create flash block device for format");
+    return false;
+  }
+
+  if (!fs_) {
+    fs_ = filesystem_littlefs_create(500, 16);
+  }
+
+  return format_filesystem(flash);
+}
+
+StorageInfo Filesystem::get_storage_info() {
+  if (!fs_ || fs_->type != FILESYSTEM_TYPE_LITTLEFS) {
     return {0, 0}; // Not a valid LittleFS filesystem
   }
 
-  lfs_t *lfs = (lfs_t *)g_fs->context;
+  lfs_t *lfs = (lfs_t *)fs_->context;
   struct lfs_fsinfo info;
   int err = lfs_fs_stat(lfs, &info);
   if (err != 0) {

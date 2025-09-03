@@ -182,6 +182,7 @@ macro(musin_setup_filesystem_target)
     # Private implementation library for musin filesystem
     add_library(musin_filesystem_impl STATIC
         ${MUSIN_ROOT}/filesystem/filesystem.cpp
+        ${MUSIN_ROOT}/filesystem/partition_manager.cpp
     )
 
     # Implementation needs include paths to find musin headers
@@ -195,6 +196,8 @@ macro(musin_setup_filesystem_target)
     target_link_libraries(musin_filesystem_impl PRIVATE
         pico_stdlib
         filesystem_vfs
+        etl::etl
+        musin::hal
     )
 
     # Public interface library for filesystem
@@ -202,6 +205,8 @@ macro(musin_setup_filesystem_target)
     target_link_libraries(musin_filesystem INTERFACE
         musin_filesystem_impl
         filesystem_vfs
+        etl::etl
+        musin::hal
     )
     add_library(musin::filesystem ALIAS musin_filesystem)
 endmacro()

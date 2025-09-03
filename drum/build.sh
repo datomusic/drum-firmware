@@ -15,6 +15,7 @@ PARTITION=""
 FORCE_BOOTSEL=false
 HELP=false
 CLEAN=false
+WHITE_LABEL=false
 
 # Parse command line arguments
 while getopts "vVrfp:nxch-:" opt; do
@@ -37,6 +38,7 @@ while getopts "vVrfp:nxch-:" opt; do
         no-upload) UPLOAD=false ;;
         force-bootsel) FORCE_BOOTSEL=true ;;
         clean) CLEAN=true ;;
+        white-label) WHITE_LABEL=true ;;
         help) HELP=true ;;
         *) echo "Unknown option --$OPTARG" >&2; exit 1 ;;
       esac ;;
@@ -59,6 +61,7 @@ OPTIONS:
   -n, --no-upload      Build only, don't upload
   -x, --force-bootsel  Force device into BOOTSEL mode before upload
   -c, --clean          Remove build directory before building
+  --white-label        Program OTP white-label data from drum/white-label.json
   -h, --help           Show this help
 
 EXAMPLES:
@@ -85,6 +88,22 @@ if [ -n "$PARTITION" ]; then
     echo "Error: Partition must be 0 (Firmware A) or 1 (Firmware B)" >&2
     exit 1
   fi
+fi
+
+# Handle white-label programming
+if [ "$WHITE_LABEL" = true ]; then
+  WHITE_LABEL_JSON="$SCRIPT_DIR/white-label.json"
+  if [ ! -f "$WHITE_LABEL_JSON" ]; then
+    echo "Error: white-label.json not found at $WHITE_LABEL_JSON" >&2
+    exit 1
+  fi
+  echo "Programming white-label OTP from $WHITE_LABEL_JSON..."
+  if ! picotool otp white-label -s 0x400 "$WHITE_LABEL_JSON" -f; then
+    echo "Error: White-label programming failed" >&2
+    exit 1
+  fi
+  echo "White-label programming complete!"
+  exit 0
 fi
 
 # Clean build directory if requested

@@ -73,19 +73,9 @@ public:
   blockdevice_t *
   create_partition_blockdevice(const PartitionInfo &partition_info);
 
-  /**
-   * @brief Performs boot diagnostics to check partition table availability.
-   *
-   * @return true if partition table is available, false otherwise.
-   */
-  bool check_partition_table_available();
-
 private:
   musin::Logger &logger_;
   static uint8_t pt_work_area_[PARTITION_WORK_AREA_SIZE];
-  bool partition_table_loaded_;
-
-  bool load_partition_table();
 };
 
 } // namespace musin::filesystem

@@ -568,6 +568,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   try {
     isTransferActive = true;
     deviceStatus = 'unknown';
+    const transferStartTime = Date.now();
     
     // Step 1: Send Dump Header
     const header = createDumpHeader(sampleNumber, 16, finalSampleRate, pcmData.length);
@@ -705,7 +706,8 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
       }
     }
     
-    console.log(`\n\nTransfer complete: ${successfulPackets} packets sent`);
+    const transferDuration = Date.now() - transferStartTime;
+    console.log(`\n\nTransfer complete: ${successfulPackets} packets sent in ${transferDuration} ms`);
     return true;
     
   } catch (error) {

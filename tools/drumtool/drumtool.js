@@ -115,6 +115,7 @@ let activeMidiInput = null;
 let pendingResponse = null;
 let deviceStatus = 'unknown'; // 'ok', 'slow', 'error', 'unknown'
 let isTransferActive = false;
+let currentTransferInfo = null; // To hold info about the active transfer
 
 // Custom protocol handling
 let customAckQueue = [];
@@ -567,6 +568,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   
   try {
     isTransferActive = true;
+    currentTransferInfo = { sampleNumber };
     deviceStatus = 'unknown';
     const transferStartTime = Date.now();
     
@@ -716,6 +718,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
     return false;
   } finally {
     isTransferActive = false;
+    currentTransferInfo = null;
     deviceStatus = 'unknown';
   }
 }
@@ -859,16 +862,25 @@ function cleanup_and_exit() {
 
 process.on('SIGINT', () => {
   console.log('\n\nStopping transfer...');
+  if (isTransferActive && currentTransferInfo && activeMidiOutput) {
+    const { sampleNumber } = currentTransferInfo;
+    const sampleNumBytes = [sampleNumber & 0x7F, (sampleNumber >> 7) & 0x7F];
+    const cancelMessage = [SDS_CANCEL, ...sampleNumBytes];
+    sendSysExMessage(cancelMessage);
+    console.log(`Cancel command sent for sample ${sampleNumber}.`);
+  }
+
   if (pendingResponse) {
     clearTimeout(pendingResponse.timer);
     pendingResponse = null;
   }
   isTransferActive = false;
-  cleanup_and_exit();
+
+  // A short delay to allow the cancel message to be sent before closing ports
+  setTimeout(cleanup_and_exit, 200);
 });
 
 process.on('SIGTERM', cleanup_and_exit);
-process.on('exit', cleanup_and_exit);
 
 // Main execution
 async function main() {

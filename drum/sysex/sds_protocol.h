@@ -52,6 +52,7 @@ enum class State {
 enum class Result {
   OK,
   SampleComplete,
+  Cancelled,
   InvalidMessage,
   ChecksumError,
   FileError,
@@ -88,7 +89,7 @@ public:
   template <typename Sender>
   constexpr Result process_message(const etl::span<const uint8_t> &message,
                                    Sender send_reply, absolute_time_t now) {
-    if (message.size() < 4) {
+    if (message.size() < 3) {
       return Result::InvalidMessage;
     }
 
@@ -99,6 +100,8 @@ public:
       return handle_dump_header(message, send_reply, now);
     case DATA_PACKET:
       return handle_data_packet(message, send_reply, now);
+    case CANCEL:
+      return handle_cancel_message();
     default:
       logger_.warn("SDS: Unknown message type:",
                    static_cast<uint32_t>(message_type));
@@ -185,6 +188,17 @@ private:
       checksum ^= byte;
     }
     return checksum & 0x7F;
+  }
+
+  // Handle Cancel message
+  constexpr Result handle_cancel_message() {
+    logger_.info("SDS: Transfer cancelled by host.");
+    if (is_busy()) {
+      opened_file_.reset(); // Close file if open
+      state_ = State::Idle;
+    }
+    // No reply should be sent for a CANCEL message.
+    return Result::Cancelled;
   }
 
   // Handle Dump Header message

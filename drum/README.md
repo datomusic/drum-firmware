@@ -135,6 +135,8 @@ Use `./build.sh` to build and upload firmware with A/B partition support:
 - `-n, --no-upload`: Build only, don't upload
 - `-h, --help`: Show all options
 
+**Note:** The build script automatically attempts to force the device into BOOTSEL mode when needed.
+
 **Examples:**
 ```bash
 ./build.sh                    # Default: RAM build, auto-upload

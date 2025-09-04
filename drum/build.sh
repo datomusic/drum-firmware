@@ -7,18 +7,31 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd)
 pushd "$SCRIPT_DIR" > /dev/null
 trap "popd > /dev/null" EXIT
 
+# Function to check if device is connected and force BOOTSEL mode if needed
+check_device_connected() {
+  # Try to connect to device, force BOOTSEL mode if needed
+  if ! picotool info >/dev/null 2>&1; then
+    echo "No RP2350 device found in BOOTSEL mode, attempting to force BOOTSEL mode..."
+    if ! picotool info -f >/dev/null 2>&1; then
+      echo "Error: No RP2350 device found" >&2
+      echo "Please connect the device and put it in BOOTSEL mode before uploading" >&2
+      return 1
+    fi
+  fi
+  return 0
+}
+
 # Default values
 VERBOSE=false
 COPY_TO_RAM=true
 UPLOAD=true
 PARTITION=""
-FORCE_BOOTSEL=false
 HELP=false
 CLEAN=false
 WHITE_LABEL=false
 
 # Parse command line arguments
-while getopts "vVrfp:nxch-:" opt; do
+while getopts "vVrfp:nch-:" opt; do
   case $opt in
     v) VERBOSE=true ;;
     V) VERBOSE=true ;;
@@ -26,7 +39,6 @@ while getopts "vVrfp:nxch-:" opt; do
     f) COPY_TO_RAM=false ;;  # flash build
     p) PARTITION="$OPTARG" ;;
     n) UPLOAD=false ;;       # no upload
-    x) FORCE_BOOTSEL=true ;; # force bootsel
     c) CLEAN=true ;;         # clean build
     h) HELP=true ;;
     -)
@@ -36,7 +48,6 @@ while getopts "vVrfp:nxch-:" opt; do
         flash) COPY_TO_RAM=false ;;
         partition=*) PARTITION="${OPTARG#*=}" ;;
         no-upload) UPLOAD=false ;;
-        force-bootsel) FORCE_BOOTSEL=true ;;
         clean) CLEAN=true ;;
         white-label) WHITE_LABEL=true ;;
         help) HELP=true ;;
@@ -59,7 +70,6 @@ OPTIONS:
   -f, --flash          Build for flash (no RAM copy)
   -p N, --partition=N  Upload to specific partition (0=A, 1=B)
   -n, --no-upload      Build only, don't upload
-  -x, --force-bootsel  Force device into BOOTSEL mode before upload
   -c, --clean          Remove build directory before building
   --white-label        Program OTP white-label data from drum/white-label.json
   -h, --help           Show this help
@@ -159,11 +169,7 @@ if [ "$UPLOAD" = false ]; then
 fi
 
 # Prepare picotool arguments
-PICOTOOL_ARGS=""
-
-if [ "$FORCE_BOOTSEL" = true ]; then
-  PICOTOOL_ARGS="$PICOTOOL_ARGS -f"
-fi
+PICOTOOL_ARGS="-f" # Always force BOOTSEL mode
 
 # Add partition if specified
 if [ -n "$PARTITION" ]; then
@@ -181,9 +187,21 @@ fi
 # Verify partition exists if specified
 if [ -n "$PARTITION" ]; then
   echo "Verifying partition $PARTITION exists..."
-  if ! picotool info -a 2>/dev/null | grep -q "partition $PARTITION:"; then
-    echo "Warning: Partition $PARTITION may not exist. Proceeding anyway..."
+  
+  # Check if device is connected first
+  if ! check_device_connected; then
+    exit 1
   fi
+  
+  # Get partition info and check if the specified partition exists
+  if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*$PARTITION("; then
+    echo "Error: Partition $PARTITION does not exist on the connected device" >&2
+    echo "Available partitions:" >&2
+    picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2 || echo "  No partitions found" >&2
+    exit 1
+  fi
+  
+  echo "Partition $PARTITION verified successfully"
 fi
 
 # Upload

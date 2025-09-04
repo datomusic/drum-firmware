@@ -56,18 +56,40 @@ void SequencerState::exit(musin::Logger &logger) {
 
 void FileTransferState::enter(musin::Logger &logger) {
   logger.debug("Entering FileTransfer state");
+  transfer_active_ = true;
+  last_transfer_activity_ = get_absolute_time();
 }
 
-void FileTransferState::update(
-    [[maybe_unused]] musin::Logger &logger,
-    [[maybe_unused]] SystemStateMachine &state_machine,
-    [[maybe_unused]] absolute_time_t now) {
-  // TODO Phase 4: Handle file transfer-specific logic
-  // Minimal implementation for now
+void FileTransferState::update(musin::Logger &logger,
+                               SystemStateMachine &state_machine,
+                               absolute_time_t now) {
+  // Check if we should transition back to Sequencer after timeout
+  if (!transfer_active_) {
+    uint64_t elapsed_us =
+        to_us_since_boot(now) - to_us_since_boot(last_transfer_activity_);
+    if (elapsed_us > (TIMEOUT_MS * 1000)) { // Convert ms to us
+      logger.debug("File transfer timeout - transitioning to Sequencer");
+      state_machine.transition_to(SystemStateId::Sequencer);
+    }
+  }
 }
 
 void FileTransferState::exit(musin::Logger &logger) {
   logger.debug("Exiting FileTransfer state");
+}
+
+void FileTransferState::reset_timeout() {
+  transfer_active_ = true;
+  last_transfer_activity_ = get_absolute_time();
+}
+
+void FileTransferState::mark_transfer_inactive() {
+  transfer_active_ = false;
+  last_transfer_activity_ = get_absolute_time();
+}
+
+bool FileTransferState::is_transfer_active() const {
+  return transfer_active_;
 }
 
 // --- FallingAsleepState Implementation ---

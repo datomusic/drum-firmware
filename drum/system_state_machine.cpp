@@ -51,9 +51,22 @@ void SystemStateMachine::notification(
     drum::Events::SysExTransferStateChangeEvent event) {
   // Handle SysEx transfer state changes
   if (event.is_active) {
-    transition_to(SystemStateId::FileTransfer);
+    if (get_current_state() == SystemStateId::FileTransfer) {
+      // Reset timeout if already in FileTransfer state
+      FileTransferState *ft_state =
+          static_cast<FileTransferState *>(current_state_.get());
+      ft_state->reset_timeout();
+    } else {
+      // Transition to FileTransfer state
+      transition_to(SystemStateId::FileTransfer);
+    }
   } else {
-    transition_to(SystemStateId::Sequencer);
+    // Mark transfer as inactive - let FileTransferState handle timeout
+    if (get_current_state() == SystemStateId::FileTransfer) {
+      FileTransferState *ft_state =
+          static_cast<FileTransferState *>(current_state_.get());
+      ft_state->mark_transfer_inactive();
+    }
   }
 }
 

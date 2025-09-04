@@ -184,24 +184,34 @@ if [ "$COPY_TO_RAM" = true ]; then
   PICOTOOL_ARGS="$PICOTOOL_ARGS -x"
 fi
 
-# Verify partition exists if specified
+# Always verify partitions exist before flashing
+echo "Verifying device partitions..."
+
+# Check if device is connected first
+if ! check_device_connected; then
+  exit 1
+fi
+
+# Check if device has partitions at all
+if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*[0-9]("; then
+  echo "Error: No partitions found on the connected device" >&2
+  echo "This firmware requires a partitioned device. Please create partitions before flashing." >&2
+  exit 1
+fi
+
+# If specific partition specified, verify it exists
 if [ -n "$PARTITION" ]; then
-  echo "Verifying partition $PARTITION exists..."
-  
-  # Check if device is connected first
-  if ! check_device_connected; then
-    exit 1
-  fi
-  
-  # Get partition info and check if the specified partition exists
   if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*$PARTITION("; then
     echo "Error: Partition $PARTITION does not exist on the connected device" >&2
     echo "Available partitions:" >&2
-    picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2 || echo "  No partitions found" >&2
+    picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
     exit 1
   fi
-  
   echo "Partition $PARTITION verified successfully"
+else
+  echo "No partition specified, will upload to default partition"
+  echo "Available partitions:" >&2
+  picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
 fi
 
 # Upload

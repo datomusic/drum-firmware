@@ -101,6 +101,12 @@ public:
    */
   void update();
 
+  /**
+   * @brief Trigger manual sync behavior when using external clock sources.
+   * Sends resync event to observers when not using internal clock.
+   */
+  void trigger_manual_sync();
+
 private:
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;

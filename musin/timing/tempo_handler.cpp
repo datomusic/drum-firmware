@@ -168,4 +168,10 @@ void TempoHandler::update() {
   }
 }
 
+void TempoHandler::trigger_manual_sync() {
+  musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
+                                                 .is_resync = true};
+  notify_observers(resync_tempo_event);
+}
+
 } // namespace musin::timing

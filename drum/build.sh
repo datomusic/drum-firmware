@@ -12,7 +12,7 @@ check_device_connected() {
   # Try to connect to device, force BOOTSEL mode if needed
   if ! picotool info >/dev/null 2>&1; then
     echo "No RP2350 device found in BOOTSEL mode, attempting to force BOOTSEL mode..."
-    if ! picotool info -f >/dev/null 2>&1; then
+        if ! picotool info -F >/dev/null 2>&1; then
       echo "Error: No RP2350 device found" >&2
       echo "Please connect the device and put it in BOOTSEL mode before uploading" >&2
       return 1
@@ -224,8 +224,10 @@ if ! check_device_connected; then
   exit 1
 fi
 
+
+
 # Check if device has partitions at all
-if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*[0-9]("; then
+if ! picotool partition info -f 2>/dev/null | grep -q "^[[:space:]]*[0-9]("; then
   echo "Error: No partitions found on the connected device" >&2
   echo "This firmware requires a partitioned device. Please create partitions before flashing." >&2
   exit 1
@@ -233,17 +235,17 @@ fi
 
 # If specific partition specified, verify it exists
 if [ -n "$PARTITION" ]; then
-  if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*$PARTITION("; then
+  if ! picotool partition info -f 2>/dev/null | grep -q "^[[:space:]]*$PARTITION("; then
     echo "Error: Partition $PARTITION does not exist on the connected device" >&2
     echo "Available partitions:" >&2
-    picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
+    picotool partition info -f 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
     exit 1
   fi
   echo "Partition $PARTITION verified successfully"
 else
   echo "No partition specified, will upload to default partition"
   echo "Available partitions:" >&2
-  picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
+  picotool partition info -f 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
 fi
 
 # Upload

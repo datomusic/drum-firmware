@@ -214,16 +214,15 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
 
 void AudioEngine::set_distortion(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  // Map normalized value to a gain factor.
-  // Let's go from 1.0 (no gain) to 50.0 (heavy distortion).
-  const float gain = map_value_linear(normalized_value, 1.0f, 50.0f);
-  distortion_stage_.set_gain(gain);
 
-  // Blend between linear and tanh shapes based on normalized_value
+  const float scaled_value = normalized_value * 0.1f;
+
+  const float gain = map_value_linear(scaled_value, 1.0f, 2.0f);
+  distortion_stage_.set_gain(gain);
   etl::array<float, WAVESHAPE_SIZE> blended_shape;
   for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
     blended_shape[i] = std::lerp(waveshape_linear_data[i],
-                                 waveshape_tanh_data[i], normalized_value);
+                                 waveshape_tanh_data[i], scaled_value);
   }
   waveshaper_.shape(blended_shape.data(), blended_shape.size());
 }

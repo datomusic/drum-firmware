@@ -7,18 +7,32 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd)
 pushd "$SCRIPT_DIR" > /dev/null
 trap "popd > /dev/null" EXIT
 
+# Function to check if device is connected and force BOOTSEL mode if needed
+check_device_connected() {
+  # Try to connect to device, force BOOTSEL mode if needed
+  if ! picotool info >/dev/null 2>&1; then
+    echo "No RP2350 device found in BOOTSEL mode, attempting to force BOOTSEL mode..."
+    if ! picotool info -f >/dev/null 2>&1; then
+      echo "Error: No RP2350 device found" >&2
+      echo "Please connect the device and put it in BOOTSEL mode before uploading" >&2
+      return 1
+    fi
+  fi
+  return 0
+}
+
 # Default values
 VERBOSE=false
 COPY_TO_RAM=true
 UPLOAD=true
 PARTITION=""
-FORCE_BOOTSEL=false
 HELP=false
 CLEAN=false
 WHITE_LABEL=false
+SETUP_PARTITIONS=false
 
 # Parse command line arguments
-while getopts "vVrfp:nxch-:" opt; do
+while getopts "vVrfp:nch-:" opt; do
   case $opt in
     v) VERBOSE=true ;;
     V) VERBOSE=true ;;
@@ -26,7 +40,6 @@ while getopts "vVrfp:nxch-:" opt; do
     f) COPY_TO_RAM=false ;;  # flash build
     p) PARTITION="$OPTARG" ;;
     n) UPLOAD=false ;;       # no upload
-    x) FORCE_BOOTSEL=true ;; # force bootsel
     c) CLEAN=true ;;         # clean build
     h) HELP=true ;;
     -)
@@ -36,9 +49,9 @@ while getopts "vVrfp:nxch-:" opt; do
         flash) COPY_TO_RAM=false ;;
         partition=*) PARTITION="${OPTARG#*=}" ;;
         no-upload) UPLOAD=false ;;
-        force-bootsel) FORCE_BOOTSEL=true ;;
         clean) CLEAN=true ;;
         white-label) WHITE_LABEL=true ;;
+        setup-partitions) SETUP_PARTITIONS=true ;;
         help) HELP=true ;;
         *) echo "Unknown option --$OPTARG" >&2; exit 1 ;;
       esac ;;
@@ -59,9 +72,9 @@ OPTIONS:
   -f, --flash          Build for flash (no RAM copy)
   -p N, --partition=N  Upload to specific partition (0=A, 1=B)
   -n, --no-upload      Build only, don't upload
-  -x, --force-bootsel  Force device into BOOTSEL mode before upload
   -c, --clean          Remove build directory before building
   --white-label        Program OTP white-label data from drum/white-label.json
+  --setup-partitions   Create and flash partition table from drum/partition_table.json
   -h, --help           Show this help
 
 EXAMPLES:
@@ -88,6 +101,35 @@ if [ -n "$PARTITION" ]; then
     echo "Error: Partition must be 0 (Firmware A) or 1 (Firmware B)" >&2
     exit 1
   fi
+fi
+
+# Handle partition setup
+if [ "$SETUP_PARTITIONS" = true ]; then
+  PARTITION_JSON="$SCRIPT_DIR/partition_table.json"
+  if [ ! -f "$PARTITION_JSON" ]; then
+    echo "Error: partition_table.json not found at $PARTITION_JSON" >&2
+    exit 1
+  fi
+  
+  # Create build directory if it doesn't exist
+  mkdir -p "$SCRIPT_DIR/build"
+  
+  PARTITION_UF2="$SCRIPT_DIR/build/partition_table.uf2"
+  
+  echo "Creating partition table from $PARTITION_JSON..."
+  if ! picotool partition create "$PARTITION_JSON" "$PARTITION_UF2"; then
+    echo "Error: Partition table creation failed" >&2
+    exit 1
+  fi
+  
+  echo "Flashing partition table..."
+  if ! picotool load -f "$PARTITION_UF2"; then
+    echo "Error: Partition table flash failed" >&2
+    exit 1
+  fi
+  
+  echo "Partition setup complete!"
+  exit 0
 fi
 
 # Handle white-label programming
@@ -159,11 +201,7 @@ if [ "$UPLOAD" = false ]; then
 fi
 
 # Prepare picotool arguments
-PICOTOOL_ARGS=""
-
-if [ "$FORCE_BOOTSEL" = true ]; then
-  PICOTOOL_ARGS="$PICOTOOL_ARGS -f"
-fi
+PICOTOOL_ARGS="-f" # Always force BOOTSEL mode
 
 # Add partition if specified
 if [ -n "$PARTITION" ]; then
@@ -178,12 +216,34 @@ if [ "$COPY_TO_RAM" = true ]; then
   PICOTOOL_ARGS="$PICOTOOL_ARGS -x"
 fi
 
-# Verify partition exists if specified
+# Always verify partitions exist before flashing
+echo "Verifying device partitions..."
+
+# Check if device is connected first
+if ! check_device_connected; then
+  exit 1
+fi
+
+# Check if device has partitions at all
+if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*[0-9]("; then
+  echo "Error: No partitions found on the connected device" >&2
+  echo "This firmware requires a partitioned device. Please create partitions before flashing." >&2
+  exit 1
+fi
+
+# If specific partition specified, verify it exists
 if [ -n "$PARTITION" ]; then
-  echo "Verifying partition $PARTITION exists..."
-  if ! picotool info -a 2>/dev/null | grep -q "partition $PARTITION:"; then
-    echo "Warning: Partition $PARTITION may not exist. Proceeding anyway..."
+  if ! picotool partition info 2>/dev/null | grep -q "^[[:space:]]*$PARTITION("; then
+    echo "Error: Partition $PARTITION does not exist on the connected device" >&2
+    echo "Available partitions:" >&2
+    picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
+    exit 1
   fi
+  echo "Partition $PARTITION verified successfully"
+else
+  echo "No partition specified, will upload to default partition"
+  echo "Available partitions:" >&2
+  picotool partition info 2>/dev/null | grep "^[[:space:]]*[0-9](" >&2
 fi
 
 # Upload

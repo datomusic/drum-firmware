@@ -707,7 +707,8 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
     }
     
     const transferDuration = Date.now() - transferStartTime;
-    console.log(`\n\nTransfer complete: ${successfulPackets} packets sent in ${transferDuration} ms`);
+    const transferSeconds = (transferDuration / 1000).toFixed(1);
+    console.log(`\n\nTransfer complete: ${successfulPackets} packets sent in ${transferSeconds} s`);
     return true;
     
   } catch (error) {

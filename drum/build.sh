@@ -128,6 +128,11 @@ if [ "$SETUP_PARTITIONS" = true ]; then
     exit 1
   fi
   
+  echo "Rebooting device to apply partition table..."
+  if ! picotool reboot -f -u; then
+    echo "Warning: Reboot command failed. Please reboot the device manually." >&2
+  fi
+  
   echo "Partition setup complete!"
   exit 0
 fi

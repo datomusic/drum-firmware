@@ -29,6 +29,7 @@ PARTITION=""
 HELP=false
 CLEAN=false
 WHITE_LABEL=false
+SETUP_PARTITIONS=false
 
 # Parse command line arguments
 while getopts "vVrfp:nch-:" opt; do
@@ -50,6 +51,7 @@ while getopts "vVrfp:nch-:" opt; do
         no-upload) UPLOAD=false ;;
         clean) CLEAN=true ;;
         white-label) WHITE_LABEL=true ;;
+        setup-partitions) SETUP_PARTITIONS=true ;;
         help) HELP=true ;;
         *) echo "Unknown option --$OPTARG" >&2; exit 1 ;;
       esac ;;
@@ -72,6 +74,7 @@ OPTIONS:
   -n, --no-upload      Build only, don't upload
   -c, --clean          Remove build directory before building
   --white-label        Program OTP white-label data from drum/white-label.json
+  --setup-partitions   Create and flash partition table from drum/partition_table.json
   -h, --help           Show this help
 
 EXAMPLES:
@@ -98,6 +101,35 @@ if [ -n "$PARTITION" ]; then
     echo "Error: Partition must be 0 (Firmware A) or 1 (Firmware B)" >&2
     exit 1
   fi
+fi
+
+# Handle partition setup
+if [ "$SETUP_PARTITIONS" = true ]; then
+  PARTITION_JSON="$SCRIPT_DIR/partition_table.json"
+  if [ ! -f "$PARTITION_JSON" ]; then
+    echo "Error: partition_table.json not found at $PARTITION_JSON" >&2
+    exit 1
+  fi
+  
+  # Create build directory if it doesn't exist
+  mkdir -p "$SCRIPT_DIR/build"
+  
+  PARTITION_UF2="$SCRIPT_DIR/build/partition_table.uf2"
+  
+  echo "Creating partition table from $PARTITION_JSON..."
+  if ! picotool partition create "$PARTITION_JSON" "$PARTITION_UF2"; then
+    echo "Error: Partition table creation failed" >&2
+    exit 1
+  fi
+  
+  echo "Flashing partition table..."
+  if ! picotool load -f "$PARTITION_UF2"; then
+    echo "Error: Partition table flash failed" >&2
+    exit 1
+  fi
+  
+  echo "Partition setup complete!"
+  exit 0
 fi
 
 # Handle white-label programming

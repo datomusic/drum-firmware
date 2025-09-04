@@ -197,11 +197,10 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
     case Parameter::VOLUME:
       _audio_engine.set_volume(value);
       break;
-    case Parameter::CRUSH_EFFECT: {
-      _audio_engine.set_crush_depth(1.0f - value);
-      _audio_engine.set_crush_rate(value);
+    case Parameter::CRUSH_EFFECT:
+      // Value is 0.0 to 1.0. Higher value means more distortion.
+      _audio_engine.set_distortion(value);
       break;
-    }
     case Parameter::SWING:
       // TODO: Implement swing effect in sequencer/audio path
       break;

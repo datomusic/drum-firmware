@@ -39,10 +39,14 @@ void SysExHandler::update(absolute_time_t now) {
 }
 
 void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
+  logger_.debug("SysEx: Received message, size:",
+                static_cast<uint32_t>(chunk.size()));
+
   // Check if this is an SDS message (starts with 0x7E)
   if (chunk.size() >= 3 && chunk[0] == 0x7E && chunk[1] == 0x65) {
     // SDS message - route to SDS protocol
     logger_.info("SDS message detected, routing to SDS protocol");
+    logger_.info("SDS message type:", static_cast<uint32_t>(chunk[2]));
 
     auto sds_sender = [this](sds::MessageType type, uint8_t packet_num) {
       uint8_t msg[] = {0xF0,       0x7E, 0x65, static_cast<uint8_t>(type),

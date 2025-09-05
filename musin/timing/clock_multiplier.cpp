@@ -13,8 +13,9 @@ void ClockMultiplier::notification(musin::timing::ClockEvent event) {
 
   if (!is_nil_time(last_pulse_time_)) {
     uint64_t diff = absolute_time_diff_us(last_pulse_time_, now);
-    // Calculate the interval for 24 PPQN pulses based on the 4 PPQN input
-    pulse_interval_us_ = diff / calculate_effective_multiplier();
+    // Always calculate interval for consistent 24 PPQN output
+    // Speed modification is handled by TempoHandler for phase consistency
+    pulse_interval_us_ = diff / base_multiplication_factor_;
   }
 
   last_pulse_time_ = now;
@@ -32,8 +33,7 @@ void ClockMultiplier::notification(musin::timing::ClockEvent event) {
 }
 
 void ClockMultiplier::update(absolute_time_t now) {
-  if (pulse_counter_ == 0 ||
-      pulse_counter_ >= calculate_effective_multiplier() ||
+  if (pulse_counter_ == 0 || pulse_counter_ >= base_multiplication_factor_ ||
       is_nil_time(next_pulse_time_)) {
     return;
   }
@@ -53,24 +53,10 @@ void ClockMultiplier::reset() {
   next_pulse_time_ = nil_time;
 }
 
-void ClockMultiplier::set_speed_modifier(SpeedModifier modifier) {
-  current_speed_modifier_ = modifier;
-}
-
-uint8_t ClockMultiplier::calculate_effective_multiplier() const {
-  uint8_t ret = base_multiplication_factor_;
-  switch (current_speed_modifier_) {
-  case SpeedModifier::HALF_SPEED:
-    ret /= 2;
-    break;
-  case SpeedModifier::DOUBLE_SPEED:
-    ret *= 2;
-    break;
-  case SpeedModifier::NORMAL_SPEED:
-  default:
-    break;
-  }
-  return ret;
+void ClockMultiplier::set_speed_modifier(
+    [[maybe_unused]] SpeedModifier modifier) {
+  // Speed modification is now handled uniformly by TempoHandler
+  // This method is retained for interface compatibility but does nothing
 }
 
 } // namespace musin::timing

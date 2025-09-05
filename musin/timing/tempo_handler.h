@@ -101,7 +101,20 @@ public:
    */
   void update();
 
+  /**
+   * @brief Trigger manual sync behavior when using external clock sources.
+   * Sends resync event to observers for immediate phase alignment.
+   */
+  void trigger_manual_sync();
+
 private:
+  /**
+   * @brief Process external clock tick with speed modifier applied
+   * consistently. Consolidates MIDI and SYNC speed modifier logic for better
+   * phase alignment.
+   */
+  void process_external_tick_with_speed_modifier();
+
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;

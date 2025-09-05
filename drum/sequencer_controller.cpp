@@ -3,9 +3,11 @@
 #include "events.h"
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants
+#include "sequencer_persistence.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 namespace drum {
 
@@ -24,6 +26,11 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   initialize_active_notes();
   initialize_all_sequencers();
   initialize_timing_and_random();
+  
+  // Load persistent state after initialization
+  if (!load_state_from_flash()) {
+    // No saved state or load failed, using defaults
+  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -151,12 +158,14 @@ void SequencerController<NumTracks, NumSteps>::set_swing_percent(
     uint8_t percent) {
   swing_percent_ =
       std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(67));
+  mark_state_dirty();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
   swing_delays_odd_steps_ = delay_odd;
+  mark_state_dirty();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -482,6 +491,7 @@ void SequencerController<NumTracks, NumSteps>::set_active_note_for_track(
     uint8_t track_index, uint8_t note) {
   if (track_index < NumTracks) {
     _active_note_per_track[track_index] = note;
+    mark_state_dirty();
   }
   // else: track_index is out of bounds, do nothing or log an error.
   // For now, we silently ignore out-of-bounds access to prevent crashes.
@@ -636,6 +646,20 @@ void SequencerController<NumTracks, NumSteps>::update() {
 
   next_trigger_tick_target_ += interval_to_next_trigger;
   current_step_counter++;
+
+  // Periodic save logic with debouncing
+  if (state_is_dirty_) {
+    uint32_t current_time_ms = time_us_32() / 1000;
+    uint32_t time_since_change = current_time_ms - last_change_time_ms_;
+    uint32_t time_since_save = current_time_ms - last_save_time_ms_;
+    
+    // Save if enough time has passed since last change (debounce) 
+    // OR if maximum interval has been exceeded
+    if (time_since_change >= SAVE_DEBOUNCE_MS || 
+        time_since_save >= MAX_SAVE_INTERVAL_MS) {
+      save_state_to_flash();
+    }
+  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -687,6 +711,118 @@ void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::mark_state_dirty() {
+  state_is_dirty_ = true;
+  last_change_time_ms_ = time_us_32() / 1000;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::create_persistent_state(
+    SequencerPersistentState& state) const {
+  // Clear the state and set header
+  state = SequencerPersistentState();
+  
+  // Copy track data from main sequencer only
+  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    const auto& track = main_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
+      const auto& step = track.get_step(step_idx);
+      state.tracks[track_idx].notes[step_idx] = step.note.value_or(0);
+      state.tracks[track_idx].velocities[step_idx] = step.velocity.value_or(0);
+    }
+  }
+  
+  // Copy active notes per track
+  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    state.active_notes[track_idx] = _active_note_per_track[track_idx];
+  }
+  
+  // Copy timing settings
+  state.swing_percent = swing_percent_;
+  state.swing_delays_odd_steps = swing_delays_odd_steps_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
+    const SequencerPersistentState& state) {
+  // Apply track data to main sequencer only
+  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    auto& track = main_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
+      auto& step = track.get_step(step_idx);
+      uint8_t note = state.tracks[track_idx].notes[step_idx];
+      uint8_t velocity = state.tracks[track_idx].velocities[step_idx];
+      
+      if (note > 0 && velocity > 0) {
+        step.note = note;
+        step.velocity = velocity;
+        step.enabled = true;
+      } else {
+        step.note = std::nullopt;
+        step.velocity = std::nullopt;
+        step.enabled = false;
+      }
+    }
+  }
+  
+  // Apply active notes per track
+  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    _active_note_per_track[track_idx] = state.active_notes[track_idx];
+  }
+  
+  // Apply timing settings
+  swing_percent_ = state.swing_percent;
+  swing_delays_odd_steps_ = state.swing_delays_odd_steps;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::save_state_to_flash() {
+  SequencerPersistentState state;
+  create_persistent_state(state);
+  
+  FILE* file = fopen(SEQUENCER_STATE_FILE, "wb");
+  if (!file) {
+    return false;
+  }
+  
+  size_t written = fwrite(&state, sizeof(SequencerPersistentState), 1, file);
+  fclose(file);
+  
+  if (written == 1) {
+    state_is_dirty_ = false;
+    last_save_time_ms_ = time_us_32() / 1000;
+    return true;
+  }
+  
+  return false;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::load_state_from_flash() {
+  FILE* file = fopen(SEQUENCER_STATE_FILE, "rb");
+  if (!file) {
+    return false; // File doesn't exist, not an error
+  }
+  
+  SequencerPersistentState state;
+  size_t read_size = fread(&state, sizeof(SequencerPersistentState), 1, file);
+  fclose(file);
+  
+  if (read_size != 1 || !state.is_valid()) {
+    return false; // Corrupted or invalid file
+  }
+  
+  apply_persistent_state(state);
+  state_is_dirty_ = false;
+  return true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
+  mark_state_dirty();
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

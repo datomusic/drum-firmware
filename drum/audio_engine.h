@@ -151,9 +151,9 @@ private:
     void fill_buffer(::AudioBlock &out_samples) override {
       source_.fill_buffer(out_samples);
       for (size_t i = 0; i < out_samples.size(); ++i) {
-        int32_t sample = static_cast<int32_t>(out_samples[i]) * gain_;
-        out_samples[i] = etl::clamp(sample, static_cast<int32_t>(-32768),
-                                    static_cast<int32_t>(32767));
+        float sample = static_cast<float>(out_samples[i]) * gain_;
+        out_samples[i] =
+            static_cast<int16_t>(std::clamp(sample, -32768.0f, 32767.0f));
       }
     }
     void set_gain(float gain) {

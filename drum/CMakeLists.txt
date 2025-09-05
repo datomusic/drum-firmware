@@ -30,6 +30,7 @@ add_executable(${EXECUTABLE_NAME}
   pizza_controls.cpp
   ui/pizza_display.cpp
   sequencer_controller.cpp
+  sequencer_storage.cpp
   configuration_manager.cpp
   message_router.cpp
   audio_engine.cpp

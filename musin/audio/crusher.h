@@ -66,14 +66,16 @@ struct Crusher : ::BufferSource {
 
   /**
    * @brief Sets the bit depth using a normalized value ("Squish").
-   * Maps [0.0, 1.0] linearly to [16 bits, 1 bit].
+   * Maps [0.0, 1.0] with a quadratic curve to [16 bits, 1 bit] for more subtlety.
    * 0.0 = 16 bits (no crush), 1.0 = 1 bit (max crush).
    * @param squish_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void squish(float squish_normalized) {
     float clamped_squish = etl::clamp(squish_normalized, 0.0f, 1.0f);
-    // Map 0.0 -> 16, 1.0 -> 1
-    float b_float = 16.0f - clamped_squish * 15.0f;
+    // Use quadratic curve for more subtle response at lower values
+    // At 0.5f: was 8.5 bits, now ~12.25 bits (more subtle)
+    float curve_factor = clamped_squish * clamped_squish;
+    float b_float = 16.0f - curve_factor * 15.0f;
     bits(static_cast<uint8_t>(std::round(b_float))); // Use std::round
   }
 

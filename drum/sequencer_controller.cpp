@@ -4,6 +4,7 @@
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants
 #include "sequencer_persistence.h"
+#include "sequencer_storage.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -27,8 +28,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   initialize_timing_and_random();
   
   // Load persistent state after initialization
-  if (!load_state_from_flash()) {
-    // No saved state or load failed, using defaults
+  SequencerPersistentState loaded_state;
+  if (storage_.load_state_from_flash(loaded_state)) {
+    apply_persistent_state(loaded_state);
   }
 }
 
@@ -157,14 +159,14 @@ void SequencerController<NumTracks, NumSteps>::set_swing_percent(
     uint8_t percent) {
   swing_percent_ =
       std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(67));
-  mark_state_dirty();
+  storage_.mark_state_dirty();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
   swing_delays_odd_steps_ = delay_odd;
-  mark_state_dirty();
+  storage_.mark_state_dirty();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -474,7 +476,7 @@ void SequencerController<NumTracks, NumSteps>::set_active_note_for_track(
     uint8_t track_index, uint8_t note) {
   if (track_index < NumTracks) {
     _active_note_per_track[track_index] = note;
-    mark_state_dirty();
+    storage_.mark_state_dirty();
   }
   // else: track_index is out of bounds, do nothing or log an error.
   // For now, we silently ignore out-of-bounds access to prevent crashes.
@@ -604,17 +606,10 @@ void SequencerController<NumTracks, NumSteps>::update() {
   current_step_counter++;
 
   // Periodic save logic with debouncing
-  if (state_is_dirty_) {
-    uint32_t current_time_ms = time_us_32() / 1000;
-    uint32_t time_since_change = current_time_ms - last_change_time_ms_;
-    uint32_t time_since_save = current_time_ms - last_save_time_ms_;
-    
-    // Save if enough time has passed since last change (debounce) 
-    // OR if maximum interval has been exceeded
-    if (time_since_change >= SAVE_DEBOUNCE_MS || 
-        time_since_save >= MAX_SAVE_INTERVAL_MS) {
-      save_state_to_flash();
-    }
+  if (storage_.should_save_now()) {
+    SequencerPersistentState state;
+    create_persistent_state(state);
+    storage_.save_state_to_flash(state);
   }
 }
 
@@ -706,11 +701,6 @@ void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   _pad_pressed_state.fill(false);
 }
 
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::mark_state_dirty() {
-  state_is_dirty_ = true;
-  last_change_time_ms_ = time_us_32() / 1000;
-}
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::create_persistent_state(
@@ -775,47 +765,22 @@ template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::save_state_to_flash() {
   SequencerPersistentState state;
   create_persistent_state(state);
-  
-  FILE* file = fopen(SEQUENCER_STATE_FILE, "wb");
-  if (!file) {
-    return false;
-  }
-  
-  size_t written = fwrite(&state, sizeof(SequencerPersistentState), 1, file);
-  fclose(file);
-  
-  if (written == 1) {
-    state_is_dirty_ = false;
-    last_save_time_ms_ = time_us_32() / 1000;
-    return true;
-  }
-  
-  return false;
+  return storage_.save_state_to_flash(state);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::load_state_from_flash() {
-  FILE* file = fopen(SEQUENCER_STATE_FILE, "rb");
-  if (!file) {
-    return false; // File doesn't exist, not an error
-  }
-  
   SequencerPersistentState state;
-  size_t read_size = fread(&state, sizeof(SequencerPersistentState), 1, file);
-  fclose(file);
-  
-  if (read_size != 1 || !state.is_valid()) {
-    return false; // Corrupted or invalid file
+  if (storage_.load_state_from_flash(state)) {
+    apply_persistent_state(state);
+    return true;
   }
-  
-  apply_persistent_state(state);
-  state_is_dirty_ = false;
-  return true;
+  return false;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
-  mark_state_dirty();
+  storage_.mark_state_dirty();
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

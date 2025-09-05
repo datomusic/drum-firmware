@@ -17,6 +17,7 @@
 
 #include "config.h"
 #include "sequencer_persistence.h"
+#include "sequencer_storage.h"
 #include <cstddef>
 
 namespace drum {
@@ -257,16 +258,9 @@ private:
   etl::array<std::optional<uint64_t>, NumTracks>
       _retrigger_target_tick_per_track{};
 
-  // Persistence state tracking
-  static constexpr const char* SEQUENCER_STATE_FILE = "/sequencer_state.dat";
-  static constexpr uint32_t SAVE_DEBOUNCE_MS = 2000; // 2 second debounce
-  static constexpr uint32_t MAX_SAVE_INTERVAL_MS = 30000; // Maximum 30s between saves when dirty
+  // Persistence management
+  SequencerStorage<NumTracks, NumSteps> storage_;
   
-  bool state_is_dirty_ = false;
-  uint32_t last_change_time_ms_ = 0;
-  uint32_t last_save_time_ms_ = 0;
-  
-  void mark_state_dirty();
   void create_persistent_state(SequencerPersistentState& state) const;
   void apply_persistent_state(const SequencerPersistentState& state);
 

@@ -21,8 +21,8 @@ void ClockMultiplier::notification(musin::timing::ClockEvent event) {
   last_pulse_time_ = now;
   pulse_counter_ = 0;
 
-  // Send the first pulse immediately
-  ClockEvent multiplied_event{ClockSource::EXTERNAL_SYNC};
+  // Send the first pulse immediately with resync flag for step alignment
+  ClockEvent multiplied_event{ClockSource::EXTERNAL_SYNC, true};
   notify_observers(multiplied_event);
   pulse_counter_++;
   if (pulse_interval_us_ > 0) {

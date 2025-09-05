@@ -80,40 +80,48 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     return;
   }
 
-  if (current_source_ == ClockSource::MIDI) {
-    // Handle resync events immediately regardless of speed modifier
-    if (event.is_resync) {
-      musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
-                                                   .is_resync = true};
-      notify_observers(resync_tempo_event);
-      return;
-    }
+  // Handle resync events immediately for all sources
+  if (event.is_resync) {
+    musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
+                                                 .is_resync = true};
+    notify_observers(resync_tempo_event);
+    midi_tick_counter_ = 0; // Reset counter for consistent phase alignment
+    return;
+  }
 
-    switch (current_speed_modifier_) {
-    case SpeedModifier::NORMAL_SPEED: {
-      musin::timing::TempoEvent tempo_tick_event{};
-      notify_observers(tempo_tick_event);
-      break;
-    }
-    case SpeedModifier::HALF_SPEED: {
-      midi_tick_counter_++;
-      if (midi_tick_counter_ >= 2) {
-        musin::timing::TempoEvent tempo_tick_event{};
-        notify_observers(tempo_tick_event);
-        midi_tick_counter_ = 0;
-      }
-      break;
-    }
-    case SpeedModifier::DOUBLE_SPEED: {
-      musin::timing::TempoEvent tempo_tick_event{};
-      notify_observers(tempo_tick_event);
-      notify_observers(tempo_tick_event);
-      break;
-    }
-    }
+  // Simplified speed modifier processing for all external sources
+  if (current_source_ == ClockSource::MIDI ||
+      current_source_ == ClockSource::EXTERNAL_SYNC) {
+    process_external_tick_with_speed_modifier();
   } else {
+    // Internal source: forward tick directly (no speed modification needed)
     musin::timing::TempoEvent tempo_tick_event{};
     notify_observers(tempo_tick_event);
+  }
+}
+
+void TempoHandler::process_external_tick_with_speed_modifier() {
+  switch (current_speed_modifier_) {
+  case SpeedModifier::NORMAL_SPEED: {
+    musin::timing::TempoEvent tempo_tick_event{};
+    notify_observers(tempo_tick_event);
+    break;
+  }
+  case SpeedModifier::HALF_SPEED: {
+    midi_tick_counter_++;
+    if (midi_tick_counter_ >= 2) {
+      musin::timing::TempoEvent tempo_tick_event{};
+      notify_observers(tempo_tick_event);
+      midi_tick_counter_ = 0;
+    }
+    break;
+  }
+  case SpeedModifier::DOUBLE_SPEED: {
+    musin::timing::TempoEvent tempo_tick_event{};
+    notify_observers(tempo_tick_event);
+    notify_observers(tempo_tick_event);
+    break;
+  }
   }
 }
 
@@ -165,6 +173,15 @@ void TempoHandler::update() {
         set_clock_source(ClockSource::INTERNAL);
       }
     }
+  }
+}
+
+void TempoHandler::trigger_manual_sync() {
+  if (current_source_ != ClockSource::INTERNAL) {
+    musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
+                                                 .is_resync = true};
+    notify_observers(resync_tempo_event);
+    midi_tick_counter_ = 0; // Reset for consistent phase alignment
   }
 }
 

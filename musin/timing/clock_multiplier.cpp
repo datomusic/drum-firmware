@@ -1,10 +1,14 @@
 #include "musin/timing/clock_multiplier.h"
 #include "pico/time.h"
+#include <cassert>
 
 namespace musin::timing {
 
 ClockMultiplier::ClockMultiplier(uint8_t multiplication_factor)
     : base_multiplication_factor_(multiplication_factor) {
+  assert(multiplication_factor > 0 &&
+         "ClockMultiplier: multiplication_factor cannot be zero - would cause "
+         "division by zero");
   reset();
 }
 

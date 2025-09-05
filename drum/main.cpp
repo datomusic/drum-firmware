@@ -54,7 +54,11 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
                                      DATO_SUBMARINE_SYNC_DETECT_PIN);
-static musin::timing::ClockMultiplier clock_multiplier(12); // 2 PPQN to 24 PPQN
+constexpr uint8_t CLOCK_MULTIPLICATION_FACTOR = 12; // 2 PPQN to 24 PPQN
+static_assert(CLOCK_MULTIPLICATION_FACTOR > 0,
+              "Clock multiplication factor cannot be zero");
+static musin::timing::ClockMultiplier
+    clock_multiplier(CLOCK_MULTIPLICATION_FACTOR);
 static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor, sync_in,
                   clock_multiplier,
@@ -86,8 +90,7 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
                                           sequencer_controller, message_router,
                                           system_state_machine, logger);
 
-static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN,
-                                       internal_clock);
+static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN);
 
 int main() {
   stdio_usb_init();
@@ -132,6 +135,8 @@ int main() {
       pizza_display); // PizzaDisplay needs tempo events for pulsing
   tempo_handler.add_observer(
       pizza_controls); // PizzaControls needs tempo events for sample cycling
+  tempo_handler.add_observer(
+      sync_out); // SyncOut needs tempo events for pulse generation
 
   // SequencerController notifies MessageRouter, which queues the events
   // internally.

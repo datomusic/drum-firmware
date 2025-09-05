@@ -16,6 +16,7 @@
 #include <optional>
 
 #include "config.h"
+#include "sequencer_persistence.h"
 #include <cstddef>
 
 namespace drum {
@@ -256,6 +257,19 @@ private:
   etl::array<std::optional<uint64_t>, NumTracks>
       _retrigger_target_tick_per_track{};
 
+  // Persistence state tracking
+  static constexpr const char* SEQUENCER_STATE_FILE = "/sequencer_state.dat";
+  static constexpr uint32_t SAVE_DEBOUNCE_MS = 2000; // 2 second debounce
+  static constexpr uint32_t MAX_SAVE_INTERVAL_MS = 30000; // Maximum 30s between saves when dirty
+  
+  bool state_is_dirty_ = false;
+  uint32_t last_change_time_ms_ = 0;
+  uint32_t last_save_time_ms_ = 0;
+  
+  void mark_state_dirty();
+  void create_persistent_state(SequencerPersistentState& state) const;
+  void apply_persistent_state(const SequencerPersistentState& state);
+
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;
   }
@@ -313,7 +327,24 @@ public:
    * @brief Generate variation pattern by blending main and random patterns.
    */
   void generate_variation_blend();
-};
+
+  /**
+   * @brief Save the current sequencer state to persistent storage.
+   * @return true if save was successful, false otherwise
+   */
+  bool save_state_to_flash();
+
+  /**
+   * @brief Load sequencer state from persistent storage.
+   * @return true if load was successful, false otherwise
+   */
+  bool load_state_from_flash();
+
+  /**
+   * @brief Manually mark sequencer state as dirty for persistence.
+   * Call this after modifying sequencer patterns via get_sequencer().
+   */
+  void mark_state_dirty_public();
 
 } // namespace drum
 

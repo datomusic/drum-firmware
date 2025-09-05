@@ -10,19 +10,24 @@ ClockMultiplier::ClockMultiplier(uint8_t multiplication_factor)
 
 void ClockMultiplier::notification(musin::timing::ClockEvent event) {
   absolute_time_t now = get_absolute_time();
+  bool send_resync = false;
 
   if (!is_nil_time(last_pulse_time_)) {
     uint64_t diff = absolute_time_diff_us(last_pulse_time_, now);
     // Always calculate interval for consistent 24 PPQN output
     // Speed modification is handled by TempoHandler for phase consistency
     pulse_interval_us_ = diff / base_multiplication_factor_;
+  } else {
+    // First pulse after reset/startup - send resync for initial alignment
+    send_resync = true;
   }
 
   last_pulse_time_ = now;
   pulse_counter_ = 0;
 
-  // Send the first pulse immediately with resync flag for step alignment
-  ClockEvent multiplied_event{ClockSource::EXTERNAL_SYNC, true};
+  // Send the first pulse immediately, with resync only on initial sync or after
+  // timeout
+  ClockEvent multiplied_event{ClockSource::EXTERNAL_SYNC, send_resync};
   notify_observers(multiplied_event);
   pulse_counter_++;
   if (pulse_interval_us_ > 0) {

@@ -245,11 +245,11 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
-    // Reset the timebase. The target is set to the current counter value (0)
-    // so that the main update() function can correctly calculate the *next*
-    // target after this forced step is played.
+    // Reset the timebase and calculate proper swing-adjusted interval for next
+    // step
     high_res_tick_counter_.store(0);
-    next_trigger_tick_target_.store(high_res_tick_counter_.load());
+    uint32_t swing_adjusted_interval = calculate_next_trigger_interval();
+    next_trigger_tick_target_.store(swing_adjusted_interval);
     advance_step();
     return;
   }

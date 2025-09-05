@@ -3,33 +3,29 @@
 
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
-#include "musin/timing/clock_event.h"
-#include "musin/timing/internal_clock.h" // For InternalClock reference
-#include "pico/time.h"                   // For alarm_id_t, absolute_time_t
+#include "musin/timing/tempo_event.h"
+#include "pico/time.h" // For alarm_id_t, absolute_time_t
 #include <cstdint>
 
 namespace musin::timing {
 
 /**
- * @brief Generates synchronization pulses on a GPIO pin based on an
- * InternalClock.
+ * @brief Generates synchronization pulses on a GPIO pin based on tempo events.
  *
- * The SyncOut driver observes an InternalClock and triggers a pulse of
- * configurable duration after a configurable number of clock ticks.
+ * The SyncOut driver observes TempoHandler and triggers a pulse of
+ * configurable duration after a configurable number of tempo ticks.
  */
-class SyncOut : public etl::observer<musin::timing::ClockEvent> {
+class SyncOut : public etl::observer<musin::timing::TempoEvent> {
 public:
   /**
    * @brief Constructor for SyncOut.
    * @param gpio_pin The GPIO pin number to use for the sync output.
-   * @param clock_source A reference to the InternalClock instance to observe.
-   * @param ticks_per_pulse The number of internal clock ticks before a pulse is
-   * generated. Default is 48.
+   * @param ticks_per_pulse The number of tempo ticks before a pulse is
+   * generated. Default is 12 (generates 2 PPQN sync pulses).
    * @param pulse_duration_ms The duration of the sync pulse in milliseconds.
    * Default is 10ms.
    */
-  SyncOut(std::uint32_t gpio_pin, musin::timing::InternalClock &clock_source,
-          std::uint32_t ticks_per_pulse = 12,
+  SyncOut(std::uint32_t gpio_pin, std::uint32_t ticks_per_pulse = 12,
           std::uint32_t pulse_duration_ms = 10);
 
   ~SyncOut();
@@ -41,20 +37,20 @@ public:
   SyncOut &operator=(SyncOut &&) = delete;
 
   /**
-   * @brief Handles incoming clock tick notifications.
-   * @param event The clock event (not used for data, only as a trigger).
+   * @brief Handles incoming tempo tick notifications.
+   * @param event The tempo event (not used for data, only as a trigger).
    */
-  void notification(musin::timing::ClockEvent event) override;
+  void notification(musin::timing::TempoEvent event) override;
 
   /**
    * @brief Enables the sync pulse generation.
-   * Attaches to the InternalClock as an observer.
+   * Must be attached to TempoHandler externally.
    */
   void enable();
 
   /**
    * @brief Disables the sync pulse generation.
-   * Detaches from the InternalClock and ensures any active pulse is terminated.
+   * Must be detached from TempoHandler externally.
    */
   void disable();
 
@@ -69,7 +65,6 @@ private:
   void trigger_pulse_off();
 
   musin::hal::GpioPin _gpio;
-  musin::timing::InternalClock &_clock_source;
   const std::uint32_t _ticks_per_pulse;
   const std::uint64_t
       _pulse_duration_us; // Store in microseconds for precision with alarms

@@ -5,10 +5,9 @@
 
 namespace musin::timing {
 
-SyncOut::SyncOut(std::uint32_t gpio_pin,
-                 musin::timing::InternalClock &clock_source,
-                 std::uint32_t ticks_per_pulse, std::uint32_t pulse_duration_ms)
-    : _gpio(gpio_pin), _clock_source(clock_source),
+SyncOut::SyncOut(std::uint32_t gpio_pin, std::uint32_t ticks_per_pulse,
+                 std::uint32_t pulse_duration_ms)
+    : _gpio(gpio_pin),
       _ticks_per_pulse((ticks_per_pulse == 0)
                            ? 1
                            : ticks_per_pulse), // Default to 1 if 0 is passed
@@ -26,7 +25,7 @@ SyncOut::~SyncOut() {
   disable(); // Ensure cleanup on destruction
 }
 
-void SyncOut::notification(musin::timing::ClockEvent /* event */) {
+void SyncOut::notification(musin::timing::TempoEvent /* event */) {
   if (!_is_enabled) {
     return;
   }
@@ -66,19 +65,16 @@ void SyncOut::enable() {
   if (_is_enabled) {
     return;
   }
-  _clock_source.add_observer(*this);
   _is_enabled = true;
   _tick_counter =
       0; // Reset counter on enable
-         // printf("SyncOut: Enabled. Pin: %u\n", _gpio.get_pin_num()); //
-         // Assuming GpioPin has get_pin_num()
+         // printf("SyncOut: Enabled. Pin: %u\n", _gpio.get_pin_num());
 }
 
 void SyncOut::disable() {
   if (!_is_enabled) {
     return;
   }
-  _clock_source.remove_observer(*this);
   _is_enabled = false;
 
   if (_pulse_active) {

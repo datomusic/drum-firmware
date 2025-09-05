@@ -43,7 +43,18 @@ float map_value_filter_fast(float normalized_value) {
 }
 
 constexpr size_t WAVESHAPE_SIZE = 257;
-etl::array<float, WAVESHAPE_SIZE> waveshape_linear_data;
+
+constexpr auto generate_linear_shape() {
+  etl::array<float, WAVESHAPE_SIZE> data{};
+  for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
+    // Map i to x in [-1, 1] for a linear pass-through
+    float x = -1.0f + 2.0f * static_cast<float>(i) / (WAVESHAPE_SIZE - 1);
+    data[i] = x;
+  }
+  return data;
+}
+
+constexpr etl::array<float, WAVESHAPE_SIZE> waveshape_linear_data = generate_linear_shape();
 etl::array<float, WAVESHAPE_SIZE> waveshape_tanh_data;
 
 void generate_tanh_shape() {
@@ -51,14 +62,6 @@ void generate_tanh_shape() {
     // Map i to x in [-4, 4] for a good tanh curve
     float x = -4.0f + 8.0f * static_cast<float>(i) / (WAVESHAPE_SIZE - 1);
     waveshape_tanh_data[i] = std::tanh(x);
-  }
-}
-
-void generate_linear_shape() {
-  for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
-    // Map i to x in [-1, 1] for a linear pass-through
-    float x = -1.0f + 2.0f * static_cast<float>(i) / (WAVESHAPE_SIZE - 1);
-    waveshape_linear_data[i] = x;
   }
 }
 
@@ -199,8 +202,7 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
   highpass_.filter.frequency(0.0f); // Fully open.
   highpass_.filter.resonance(0.7f); // Default resonance.
 
-  // Generate both linear and tanh shapes once.
-  generate_linear_shape();
+  // Generate tanh shape once (linear shape is constexpr).
   generate_tanh_shape();
 
   // Initialize all voice gains to zero to ensure silence.

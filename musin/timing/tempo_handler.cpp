@@ -89,6 +89,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     return;
   }
 
+  // Always forward ticks regardless of playback state - device should always
+  // send clocks
   // Simplified speed modifier processing for all external sources
   if (current_source_ == ClockSource::MIDI ||
       current_source_ == ClockSource::EXTERNAL_SYNC) {

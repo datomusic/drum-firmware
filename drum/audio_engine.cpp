@@ -215,9 +215,9 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
 void AudioEngine::set_distortion(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
 
-  const float scaled_value = normalized_value * 0.1f;
+  const float scaled_value = normalized_value;
 
-  const float gain = map_value_linear(scaled_value, 1.0f, 2.0f);
+  const float gain = 1.0f + (scaled_value * 8.0f);
   distortion_stage_.set_gain(gain);
   etl::array<float, WAVESHAPE_SIZE> blended_shape;
   for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {

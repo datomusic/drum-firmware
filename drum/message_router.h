@@ -186,6 +186,9 @@ private:
   OutputMode _output_mode;
   LocalControlMode _local_control_mode;
   std::optional<LocalControlMode> _previous_local_control_mode;
+  
+  // Debouncing: track last trigger time for each note (indexed by note number 0-127)
+  std::array<uint32_t, 128> note_last_trigger_time_;
 };
 
 } // namespace drum

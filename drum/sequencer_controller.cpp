@@ -27,7 +27,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   initialize_active_notes();
   initialize_all_sequencers();
   initialize_timing_and_random();
-  
+
   // Load persistent state after initialization
   SequencerPersistentState loaded_state;
   if (storage_.load_state_from_flash(loaded_state)) {
@@ -160,14 +160,12 @@ void SequencerController<NumTracks, NumSteps>::set_swing_percent(
     uint8_t percent) {
   swing_percent_ =
       std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(67));
-  storage_.mark_state_dirty();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
   swing_delays_odd_steps_ = delay_odd;
-  storage_.mark_state_dirty();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -708,44 +706,46 @@ void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   _pad_pressed_state.fill(false);
 }
 
-
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::create_persistent_state(
-    SequencerPersistentState& state) const {
+    SequencerPersistentState &state) const {
   // Clear the state and set header
   state = SequencerPersistentState();
-  
+
   // Copy track data from main sequencer only
-  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
-    const auto& track = main_sequencer_.get_track(track_idx);
-    for (size_t step_idx = 0; step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
-      const auto& step = track.get_step(step_idx);
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    const auto &track = main_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0;
+         step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
+         ++step_idx) {
+      const auto &step = track.get_step(step_idx);
       state.tracks[track_idx].notes[step_idx] = step.note.value_or(0);
       state.tracks[track_idx].velocities[step_idx] = step.velocity.value_or(0);
     }
   }
-  
+
   // Copy active notes per track
-  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
     state.active_notes[track_idx] = _active_note_per_track[track_idx];
   }
-  
-  // Copy timing settings
-  state.swing_percent = swing_percent_;
-  state.swing_delays_odd_steps = swing_delays_odd_steps_;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
-    const SequencerPersistentState& state) {
+    const SequencerPersistentState &state) {
   // Apply track data to main sequencer only
-  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
-    auto& track = main_sequencer_.get_track(track_idx);
-    for (size_t step_idx = 0; step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK; ++step_idx) {
-      auto& step = track.get_step(step_idx);
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    auto &track = main_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0;
+         step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
+         ++step_idx) {
+      auto &step = track.get_step(step_idx);
       uint8_t note = state.tracks[track_idx].notes[step_idx];
       uint8_t velocity = state.tracks[track_idx].velocities[step_idx];
-      
+
       if (note > 0 && velocity > 0) {
         step.note = note;
         step.velocity = velocity;
@@ -757,15 +757,12 @@ void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
       }
     }
   }
-  
+
   // Apply active notes per track
-  for (size_t track_idx = 0; track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
     _active_note_per_track[track_idx] = state.active_notes[track_idx];
   }
-  
-  // Apply timing settings
-  swing_percent_ = state.swing_percent;
-  swing_delays_odd_steps_ = state.swing_delays_odd_steps;
 }
 
 template <size_t NumTracks, size_t NumSteps>

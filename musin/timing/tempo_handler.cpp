@@ -19,8 +19,8 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
       _midi_clock_processor_ref(midi_clock_processor_ref),
       _sync_in_ref(sync_in_ref), _clock_multiplier_ref(clock_multiplier_ref),
       current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
-      current_speed_modifier_(SpeedModifier::NORMAL_SPEED),
-      midi_tick_counter_(0), _send_this_internal_tick_as_midi_clock(true),
+      current_speed_modifier_(SpeedModifier::NORMAL_SPEED), tick_counter_(0),
+      _send_this_internal_tick_as_midi_clock(true),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
 
   set_clock_source(initial_source);
@@ -44,6 +44,8 @@ void TempoHandler::set_clock_source(ClockSource source) {
   }
 
   current_source_ = source;
+  tick_counter_ =
+      0; // Reset counter to prevent phase pollution on source change
 
   // Setup for the new source
   if (current_source_ == ClockSource::INTERNAL) {
@@ -85,7 +87,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
                                                  .is_resync = true};
     notify_observers(resync_tempo_event);
-    midi_tick_counter_ = 0; // Reset counter for consistent phase alignment
+    tick_counter_ = 0; // Reset counter for consistent phase alignment
     return;
   }
 
@@ -110,11 +112,11 @@ void TempoHandler::process_external_tick_with_speed_modifier() {
     break;
   }
   case SpeedModifier::HALF_SPEED: {
-    midi_tick_counter_++;
-    if (midi_tick_counter_ >= 2) {
+    tick_counter_++;
+    if (tick_counter_ >= 2) {
       musin::timing::TempoEvent tempo_tick_event{};
       notify_observers(tempo_tick_event);
-      midi_tick_counter_ = 0;
+      tick_counter_ = 0;
     }
     break;
   }
@@ -136,7 +138,7 @@ void TempoHandler::set_bpm(float bpm) {
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
   _clock_multiplier_ref.set_speed_modifier(modifier);
-  midi_tick_counter_ = 0;
+  tick_counter_ = 0;
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {
@@ -183,7 +185,7 @@ void TempoHandler::trigger_manual_sync() {
     musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
                                                  .is_resync = true};
     notify_observers(resync_tempo_event);
-    midi_tick_counter_ = 0; // Reset for consistent phase alignment
+    tick_counter_ = 0; // Reset for consistent phase alignment
   }
 }
 

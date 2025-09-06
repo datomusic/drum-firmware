@@ -9,68 +9,59 @@ namespace drum {
 
 /**
  * @brief Data structure for persisting sequencer state to flash storage.
- * 
+ *
  * Contains all necessary state to restore the main sequencer at boot:
- * - All track steps (notes and velocities)  
+ * - All track steps (notes and velocities)
  * - Active MIDI note numbers for each track
  * - Swing and timing settings
- * 
+ *
  * Only the main sequencer is saved - variation and random sequencers
  * are generated on-the-fly and don't need persistence.
  */
 struct SequencerPersistentState {
-    // File format version and validation
-    static constexpr uint32_t MAGIC_NUMBER = 0x53455143; // 'SEQC'
-    static constexpr uint8_t FORMAT_VERSION = 1;
-    
-    uint32_t magic;
-    uint8_t version;
-    uint8_t reserved[3]; // Padding for alignment
-    
-    // Sequencer pattern data - main sequencer only
-    struct TrackData {
-        etl::array<uint8_t, config::NUM_STEPS_PER_TRACK> notes;
-        etl::array<uint8_t, config::NUM_STEPS_PER_TRACK> velocities;
-    };
-    etl::array<TrackData, config::NUM_TRACKS> tracks;
-    
-    // Active note assignments per track (for drumpad triggering)
-    etl::array<uint8_t, config::NUM_TRACKS> active_notes;
-    
-    // Timing and swing settings
-    uint8_t swing_percent;
-    bool swing_delays_odd_steps;
-    uint8_t padding[2]; // Alignment padding
-    
-    SequencerPersistentState() : magic(MAGIC_NUMBER), version(FORMAT_VERSION) {
-        // Initialize with sensible defaults
-        swing_percent = 50;
-        swing_delays_odd_steps = false;
-        
-        // Initialize active notes with first note from each track's range
-        active_notes[0] = config::track_0_notes[0]; // Kick
-        active_notes[1] = config::track_1_notes[0]; // Snare  
-        active_notes[2] = config::track_2_notes[0]; // Percussion
-        active_notes[3] = config::track_3_notes[0]; // Hi-Hat
-        
-        // Clear all pattern data
-        for (auto& track : tracks) {
-            track.notes.fill(0);
-            track.velocities.fill(0);
-        }
+  // File format version and validation
+  static constexpr uint32_t MAGIC_NUMBER = 0x53455143; // 'SEQC'
+  static constexpr uint8_t FORMAT_VERSION = 1;
+
+  uint32_t magic;
+  uint8_t version;
+  uint8_t reserved[3]; // Padding for alignment
+
+  // Sequencer pattern data - main sequencer only
+  struct TrackData {
+    etl::array<uint8_t, config::NUM_STEPS_PER_TRACK> notes;
+    etl::array<uint8_t, config::NUM_STEPS_PER_TRACK> velocities;
+  };
+  etl::array<TrackData, config::NUM_TRACKS> tracks;
+
+  // Active note assignments per track (for drumpad triggering)
+  etl::array<uint8_t, config::NUM_TRACKS> active_notes;
+
+  SequencerPersistentState() : magic(MAGIC_NUMBER), version(FORMAT_VERSION) {
+    // Initialize active notes with first note from each track's range
+    active_notes[0] = config::track_0_notes[0]; // Kick
+    active_notes[1] = config::track_1_notes[0]; // Snare
+    active_notes[2] = config::track_2_notes[0]; // Percussion
+    active_notes[3] = config::track_3_notes[0]; // Hi-Hat
+
+    // Clear all pattern data
+    for (auto &track : tracks) {
+      track.notes.fill(0);
+      track.velocities.fill(0);
     }
-    
-    /**
-     * @brief Validates the loaded data structure.
-     * @return true if valid, false if corrupted or unsupported version
-     */
-    bool is_valid() const {
-        return magic == MAGIC_NUMBER && version == FORMAT_VERSION;
-    }
+  }
+
+  /**
+   * @brief Validates the loaded data structure.
+   * @return true if valid, false if corrupted or unsupported version
+   */
+  bool is_valid() const {
+    return magic == MAGIC_NUMBER && version == FORMAT_VERSION;
+  }
 };
 
 // Compile-time size check to ensure we're not too large
-static_assert(sizeof(SequencerPersistentState) < 512, 
+static_assert(sizeof(SequencerPersistentState) < 512,
               "SequencerPersistentState too large for efficient flash storage");
 
 } // namespace drum

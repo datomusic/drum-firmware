@@ -54,7 +54,11 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
                                      DATO_SUBMARINE_SYNC_DETECT_PIN);
-static musin::timing::ClockMultiplier clock_multiplier(12); // 2 PPQN to 24 PPQN
+constexpr uint8_t SYNC_TO_MIDI_CLOCK_MULTIPLIER = 12;
+static musin::timing::ClockMultiplier
+    clock_multiplier(SYNC_TO_MIDI_CLOCK_MULTIPLIER); // 2 PPQN to 24 PPQN
+static_assert(SYNC_TO_MIDI_CLOCK_MULTIPLIER > 0,
+              "Clock multiplication factor cannot be zero");
 static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor, sync_in,
                   clock_multiplier,

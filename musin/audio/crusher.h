@@ -81,21 +81,19 @@ struct Crusher : ::BufferSource {
 
   /**
    * @brief Sets the sample rate reduction using a normalized value ("Squeeze").
-   * Maps [0.0, 1.0] logarithmically to [SAMPLE_FREQUENCY, SAMPLE_FREQUENCY/64].
+   * Maps [0.0, 1.0] with a quadratic curve to [SAMPLE_FREQUENCY, SAMPLE_FREQUENCY/64].
    * 0.0 = No rate reduction, 1.0 = Max rate reduction (SAMPLE_FREQUENCY/64).
    * @param squeeze_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void squeeze(float squeeze_normalized) {
     float clamped_squeeze = etl::clamp(squeeze_normalized, 0.0f, 1.0f);
-    // Logarithmic mapping: 0.0 -> SAMPLE_FREQ, 1.0 -> SAMPLE_FREQ/64
+    // Use quadratic curve for more subtle response at lower values
+    float curve_factor = clamped_squeeze * clamped_squeeze;
     const float min_rate =
         static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY) / 64.0f;
     const float max_rate = static_cast<float>(::AudioOutput::SAMPLE_FREQUENCY);
-    const float log_min = std::log(min_rate); // Use std::log
-    const float log_max = std::log(max_rate); // Use std::log
-    // Inverse mapping: squeeze=0 -> log_max, squeeze=1 -> log_min
-    const float log_rate = log_max - clamped_squeeze * (log_max - log_min);
-    const float rate_hz = std::exp(log_rate); // Use std::exp
+    // Linear interpolation using quadratic curve factor
+    const float rate_hz = max_rate - curve_factor * (max_rate - min_rate);
     sampleRate(rate_hz);
   }
 

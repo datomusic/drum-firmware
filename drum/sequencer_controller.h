@@ -265,9 +265,9 @@ private:
 
   // Persistence management
   SequencerStorage<NumTracks, NumSteps> storage_;
-  
-  void create_persistent_state(SequencerPersistentState& state) const;
-  void apply_persistent_state(const SequencerPersistentState& state);
+
+  void create_persistent_state(SequencerPersistentState &state) const;
+  void apply_persistent_state(const SequencerPersistentState &state);
 
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;

@@ -215,12 +215,12 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
     return; // CM is routed to Right MICPGA via CM1R with 10k resistance
   }
 
-  // Set MICPGA Volume Control for 6dB boost on line inputs
-  if (write_register(0x01, 0x3B, 0x0C) != Aic3204Status::OK) {
-    return; // Left MICPGA Volume: +6dB (0.5dB steps, 12 steps = 6dB)
+  // Set MICPGA Volume Control for 8.5dB boost on line inputs
+  if (write_register(0x01, 0x3B, 0x11) != Aic3204Status::OK) {
+    return; // Left MICPGA Volume: +8.5dB (0.5dB steps)
   }
-  if (write_register(0x01, 0x3C, 0x0C) != Aic3204Status::OK) {
-    return; // Right MICPGA Volume: +6dB (0.5dB steps, 12 steps = 6dB)
+  if (write_register(0x01, 0x3C, 0x11) != Aic3204Status::OK) {
+    return; // Right MICPGA Volume: +8.5dB (0.5dB steps)
   }
 
   // Power up Output Drivers (Page 1) - This starts soft-stepping

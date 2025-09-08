@@ -192,7 +192,7 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
   lowpass_.filter.resonance(resonance);
 }
 void AudioEngine::set_crush_rate(float normalized_value) {
-  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
+  normalized_value = std::clamp(normalized_value, 0.0f, 0.5f);
   const float rate = map_value_filter_fast(normalized_value);
   crusher_.sampleRate(rate);
 }

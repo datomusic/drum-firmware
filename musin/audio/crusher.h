@@ -66,8 +66,8 @@ struct Crusher : ::BufferSource {
 
   /**
    * @brief Sets the bit depth using a normalized value ("Squish").
-   * Maps [0.0, 1.0] with a quadratic curve to [16 bits, 1 bit] for more subtlety.
-   * 0.0 = 16 bits (no crush), 1.0 = 1 bit (max crush).
+   * Maps [0.0, 1.0] with a quadratic curve to [16 bits, 1 bit] for more
+   * subtlety. 0.0 = 16 bits (no crush), 1.0 = 1 bit (max crush).
    * @param squish_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void squish(float squish_normalized) {
@@ -81,8 +81,9 @@ struct Crusher : ::BufferSource {
 
   /**
    * @brief Sets the sample rate reduction using a normalized value ("Squeeze").
-   * Maps [0.0, 1.0] with a quadratic curve to [SAMPLE_FREQUENCY, SAMPLE_FREQUENCY/64].
-   * 0.0 = No rate reduction, 1.0 = Max rate reduction (SAMPLE_FREQUENCY/64).
+   * Maps [0.0, 1.0] with a quadratic curve to [SAMPLE_FREQUENCY,
+   * SAMPLE_FREQUENCY/64]. 0.0 = No rate reduction, 1.0 = Max rate reduction
+   * (SAMPLE_FREQUENCY/64).
    * @param squeeze_normalized Value between 0.0 and 1.0. Clamped internally.
    */
   void squeeze(float squeeze_normalized) {

@@ -54,7 +54,8 @@ constexpr auto generate_linear_shape() {
   return data;
 }
 
-constexpr etl::array<float, WAVESHAPE_SIZE> waveshape_linear_data = generate_linear_shape();
+constexpr etl::array<float, WAVESHAPE_SIZE> waveshape_linear_data =
+    generate_linear_shape();
 etl::array<float, WAVESHAPE_SIZE> waveshape_tanh_data;
 
 void generate_tanh_shape() {

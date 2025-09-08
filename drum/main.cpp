@@ -176,6 +176,14 @@ int main() {
         pizza_display.switch_to_file_transfer_mode();
         break;
       case drum::SystemStateId::FallingAsleep:
+        // Force save sequencer state before sleep
+        if (sequencer_controller.is_persistence_initialized()) {
+          if (sequencer_controller.save_state_to_flash()) {
+            logger.info("State saved successfully before sleep");
+          } else {
+            logger.warn("Failed to save state before sleep");
+          }
+        }
         audio_engine.mute();
         audio_engine.deinit();
         pizza_display.start_sleep_mode();

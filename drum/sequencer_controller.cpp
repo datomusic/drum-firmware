@@ -586,15 +586,17 @@ void SequencerController<NumTracks, NumSteps>::update() {
     }
   }
 
-  // --- Random 4-steps-ahead logic ---
+  // --- Random per-track-ahead logic ---
   if (continuous_randomization_active_ && !repeat_active_) {
-    // Calculate the step 4 positions ahead
     const size_t num_steps = sequencer_.get().get_num_steps();
     if (num_steps > 0) {
-      size_t steps_ahead_index = (current_step_counter + 4) % num_steps;
-
-      // Randomize the step that's 4 steps ahead for all tracks
+      // Randomize each track at its own offset ahead
       for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+        size_t track_offset =
+            RANDOM_STEP_OFFSETS[track_idx % RANDOM_STEP_OFFSETS.size()];
+        size_t steps_ahead_index =
+            (current_step_counter + track_offset) % num_steps;
+
         auto &random_track = random_sequencer_.get_track(track_idx);
         auto &random_step = random_track.get_step(steps_ahead_index);
 

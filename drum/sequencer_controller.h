@@ -41,6 +41,7 @@ class SequencerController
 public:
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
+  static constexpr etl::array<size_t, 4> RANDOM_STEP_OFFSETS = {3, 5, 7, 4};
 
   /**
    * @brief Constructor.

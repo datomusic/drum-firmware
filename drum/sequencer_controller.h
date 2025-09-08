@@ -171,8 +171,6 @@ public:
 
   [[nodiscard]] bool is_continuous_randomization_active() const;
 
-  [[nodiscard]] bool is_random_pattern_generated() const;
-
   /**
    * @brief Sets the intended state of the repeat effect.
    * Compares the intended state with the current state and performs necessary
@@ -255,7 +253,6 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  bool random_pattern_generated_ = false;
   bool continuous_randomization_active_ = false;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};

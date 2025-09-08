@@ -17,9 +17,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       swing_percent_(50), swing_delays_odd_steps_(false),
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
-      random_pattern_generated_(false), continuous_randomization_active_(false),
-      _active_note_per_track{}, _pad_pressed_state{},
-      _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
+      continuous_randomization_active_(false), _active_note_per_track{},
+      _pad_pressed_state{}, _retrigger_mode_per_track{},
+      _retrigger_target_tick_per_track{} {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -178,7 +178,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   _just_played_step_per_track.fill(std::nullopt);
 
   deactivate_repeat();
-  random_pattern_generated_ = false;
   stop_continuous_randomization();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
@@ -329,31 +328,27 @@ SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::generate_random_pattern() {
-  if (!random_pattern_generated_) {
-    random_pattern_generated_ = true;
+  // Generate random pattern: copy notes from main, randomize velocities and
+  // enable states
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    auto &main_track = main_sequencer_.get_track(track_idx);
+    auto &random_track = random_sequencer_.get_track(track_idx);
 
-    // Generate random pattern: copy notes from main, randomize velocities and
-    // enable states
-    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-      auto &main_track = main_sequencer_.get_track(track_idx);
-      auto &random_track = random_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      auto &main_step = main_track.get_step(step_idx);
+      auto &random_step = random_track.get_step(step_idx);
 
-      for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-        auto &main_step = main_track.get_step(step_idx);
-        auto &random_step = random_track.get_step(step_idx);
+      // Copy note from main sequencer
+      random_step.note = main_step.note;
 
-        // Copy note from main sequencer
-        random_step.note = main_step.note;
+      // Get one random value and extract both velocity and enabled from it
+      uint32_t random_value = rand();
 
-        // Get one random value and extract both velocity and enabled from it
-        uint32_t random_value = rand();
+      // Extract velocity from lower 7 bits (0-127) for full MIDI range
+      random_step.velocity = random_value & 0x7F;
 
-        // Extract velocity from lower 7 bits (0-127) for full MIDI range
-        random_step.velocity = random_value & 0x7F;
-
-        // Extract enabled from bit 6 (50% chance)
-        random_step.enabled = (random_value & 0x40) != 0;
-      }
+      // Extract enabled from bit 6 (50% chance)
+      random_step.enabled = (random_value & 0x40) != 0;
     }
   }
 }
@@ -377,14 +372,10 @@ SequencerController<NumTracks, NumSteps>::is_continuous_randomization_active()
 }
 
 template <size_t NumTracks, size_t NumSteps>
-[[nodiscard]] bool
-SequencerController<NumTracks, NumSteps>::is_random_pattern_generated() const {
-  return random_pattern_generated_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
+
+  bool was_using_random = (&sequencer_.get() == &random_sequencer_);
 
   // Use main sequencer for low values
   if (value < 0.2f) {
@@ -393,9 +384,12 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
     return;
   }
 
-  // Switch to random sequencer and generate pattern once if not already done
-  select_random_sequencer();
-  if (!is_random_pattern_generated()) {
+  // Switch to random sequencer and generate new pattern every time we cross
+  // 0.2f threshold
+  if (!was_using_random) {
+    // Crossing from main to random - switch sequencer and generate fresh
+    // pattern
+    select_random_sequencer();
     generate_random_pattern();
   }
 

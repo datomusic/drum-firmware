@@ -1,10 +1,14 @@
 #include "musin/timing/clock_multiplier.h"
 #include "pico/time.h"
+#include <cassert>
 
 namespace musin::timing {
 
 ClockMultiplier::ClockMultiplier(uint8_t multiplication_factor)
     : base_multiplication_factor_(multiplication_factor) {
+  assert(multiplication_factor > 0 &&
+         "ClockMultiplier: multiplication_factor cannot be zero - would cause "
+         "division by zero");
   reset();
 }
 
@@ -56,6 +60,12 @@ void ClockMultiplier::reset() {
   pulse_interval_us_ = 0;
   last_pulse_time_ = nil_time;
   next_pulse_time_ = nil_time;
+}
+
+void ClockMultiplier::set_speed_modifier(
+    [[maybe_unused]] SpeedModifier modifier) {
+  // Speed modification is now handled uniformly by TempoHandler
+  // This method is retained for interface compatibility but does nothing
 }
 
 } // namespace musin::timing

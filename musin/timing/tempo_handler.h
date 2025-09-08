@@ -24,7 +24,7 @@ enum class PlaybackState : uint8_t {
 
 // Maximum number of observers TempoHandler can notify (e.g.,
 // SequencerController)
-constexpr size_t MAX_TEMPO_OBSERVERS = 3;
+constexpr size_t MAX_TEMPO_OBSERVERS = 4;
 
 /**
  * @brief Manages the selection of the active clock source and forwards ticks.

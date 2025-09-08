@@ -296,7 +296,7 @@ public:
   /**
    * @brief Set the random sequencer as active.
    */
-  void set_random_active();
+  void select_random_sequencer();
 };
 
 } // namespace drum

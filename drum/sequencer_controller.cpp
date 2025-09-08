@@ -378,7 +378,7 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
     set_main_active();
     deactivate_random();
   } else {
-    set_random_active();
+    select_random_sequencer();
     if (value > 0.8f) {
       activate_random();
     } else {
@@ -633,7 +633,7 @@ void SequencerController<NumTracks, NumSteps>::set_main_active() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_random_active() {
+void SequencerController<NumTracks, NumSteps>::select_random_sequencer() {
   sequencer_ = std::ref(random_sequencer_);
 }
 

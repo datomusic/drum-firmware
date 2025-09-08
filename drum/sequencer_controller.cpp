@@ -573,7 +573,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
   }
 
   // --- Random 4-steps-ahead logic ---
-  if (random_active_) {
+  if (random_active_ && !repeat_active_) {
     // Calculate the step 4 positions ahead
     const size_t num_steps = sequencer_.get().get_num_steps();
     if (num_steps > 0) {

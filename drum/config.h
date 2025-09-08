@@ -193,7 +193,8 @@ constexpr size_t MAX_SYSEX_EVENT_OBSERVERS = 4;
 
 // MessageRouter debounce configuration
 namespace message_router {
-constexpr uint32_t DEBOUNCE_TIME_MS = 20; // Minimum time between triggers for the same note
+constexpr uint32_t DEBOUNCE_TIME_MS =
+    20; // Minimum time between triggers for the same note
 } // namespace message_router
 
 } // namespace config

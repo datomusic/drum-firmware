@@ -256,22 +256,24 @@ void MessageRouter::notification(drum::Events::NoteEvent event) {
   if (event.velocity > 0) {
     // Get current time in milliseconds
     uint32_t current_time_ms = to_ms_since_boot(get_absolute_time());
-    
+
     // Check if this note was triggered recently
     uint32_t last_trigger_time = note_last_trigger_time_[event.note];
     if (last_trigger_time > 0) {
       uint32_t time_since_last_trigger = current_time_ms - last_trigger_time;
-      if (time_since_last_trigger < drum::config::message_router::DEBOUNCE_TIME_MS) {
+      if (time_since_last_trigger <
+          drum::config::message_router::DEBOUNCE_TIME_MS) {
         // Too soon - ignore this trigger
-        logger_.debug("Debouncing note trigger", static_cast<uint32_t>(event.note));
+        logger_.debug("Debouncing note trigger",
+                      static_cast<uint32_t>(event.note));
         return;
       }
     }
-    
+
     // Update the last trigger time for this note
     note_last_trigger_time_[event.note] = current_time_ms;
   }
-  
+
   if (note_event_queue_.full()) {
     logger_.warn("Note event queue full, dropping event.");
     return;

@@ -266,8 +266,8 @@ private:
   etl::array<std::optional<uint64_t>, NumTracks>
       _retrigger_target_tick_per_track{};
 
-  // Persistence management
-  SequencerStorage<NumTracks, NumSteps> storage_;
+  // Persistence management (optional until filesystem is ready)
+  std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;
 
   // Logger reference
   musin::Logger &logger_;
@@ -329,6 +329,19 @@ public:
    * @return true if load was successful, false otherwise
    */
   bool load_state_from_flash();
+
+  /**
+   * @brief Initialize persistence subsystem after filesystem is ready.
+   * Must be called after filesystem.init() succeeds.
+   * @return true if initialization and state loading succeeded, false otherwise
+   */
+  bool init_persistence();
+
+  /**
+   * @brief Check if persistence subsystem is initialized.
+   * @return true if persistence is available, false otherwise
+   */
+  [[nodiscard]] bool is_persistence_initialized() const;
 
   /**
    * @brief Manually mark sequencer state as dirty for persistence.

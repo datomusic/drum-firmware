@@ -226,7 +226,6 @@ private:
   void initialize_timing_and_random();
 
   musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
-  musin::timing::Sequencer<NumTracks, NumSteps> variation_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
       sequencer_;
@@ -285,11 +284,6 @@ public:
   [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 
   /**
-   * @brief Copy the main pattern to the variation pattern.
-   */
-  void copy_to_variation();
-
-  /**
    * @brief Copy the main pattern to the random pattern.
    */
   void copy_to_random();
@@ -300,19 +294,9 @@ public:
   void set_main_active();
 
   /**
-   * @brief Set the variation sequencer as active.
-   */
-  void set_variation_active();
-
-  /**
    * @brief Set the random sequencer as active.
    */
   void set_random_active();
-
-  /**
-   * @brief Generate variation pattern by blending main and random patterns.
-   */
-  void generate_variation_blend();
 };
 
 } // namespace drum

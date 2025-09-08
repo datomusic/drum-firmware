@@ -373,14 +373,17 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
 
-  // Switch sequencers based on normalized ranges
+  // Switch between main and random sequencers
   if (value < 0.1f) {
     set_main_active();
-  } else if (value >= 0.4f && value <= 0.6f) {
-    generate_variation_blend();
-    set_variation_active();
-  } else if (value > 0.8f) {
+    deactivate_random();
+  } else {
     set_random_active();
+    if (value > 0.8f) {
+      activate_random();
+    } else {
+      deactivate_random();
+    }
   }
 }
 
@@ -620,11 +623,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::copy_to_variation() {
-  variation_sequencer_ = main_sequencer_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::copy_to_random() {
   random_sequencer_ = main_sequencer_;
 }
@@ -635,36 +633,8 @@ void SequencerController<NumTracks, NumSteps>::set_main_active() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_variation_active() {
-  sequencer_ = std::ref(variation_sequencer_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random_active() {
   sequencer_ = std::ref(random_sequencer_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::generate_variation_blend() {
-  // Simple blend: alternate between main and random pattern steps
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    auto &main_track = main_sequencer_.get_track(track_idx);
-    auto &random_track = random_sequencer_.get_track(track_idx);
-    auto &variation_track = variation_sequencer_.get_track(track_idx);
-
-    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      auto &main_step = main_track.get_step(step_idx);
-      auto &random_step = random_track.get_step(step_idx);
-      auto &variation_step = variation_track.get_step(step_idx);
-
-      // Alternate pattern: even steps from main, odd steps from random
-      if (step_idx % 2 == 0) {
-        variation_step = main_step;
-      } else {
-        variation_step = random_step;
-      }
-    }
-  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -683,16 +653,12 @@ void SequencerController<NumTracks, NumSteps>::initialize_all_sequencers() {
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint8_t initial_note = _active_note_per_track[track_idx];
     auto &main_track = main_sequencer_.get_track(track_idx);
-    auto &var_track = variation_sequencer_.get_track(track_idx);
     auto &random_track = random_sequencer_.get_track(track_idx);
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       auto &main_step = main_track.get_step(step_idx);
-      auto &var_step = var_track.get_step(step_idx);
       auto &random_step = random_track.get_step(step_idx);
       main_step.note = initial_note;
       main_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
-      var_step.note = initial_note;
-      var_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
       random_step.note = initial_note;
       random_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
     }

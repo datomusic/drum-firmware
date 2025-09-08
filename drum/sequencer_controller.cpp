@@ -569,6 +569,30 @@ void SequencerController<NumTracks, NumSteps>::update() {
     }
   }
 
+  // --- Random 4-steps-ahead logic ---
+  if (random_active_) {
+    // Calculate the step 4 positions ahead
+    const size_t num_steps = sequencer_.get().get_num_steps();
+    if (num_steps > 0) {
+      size_t steps_ahead_index = (current_step_counter + 4) % num_steps;
+      
+      // Randomize the step that's 4 steps ahead for all tracks
+      for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+        auto &random_track = random_sequencer_.get_track(track_idx);
+        auto &random_step = random_track.get_step(steps_ahead_index);
+        
+        // Copy note from main sequencer if available
+        const auto &main_step = main_sequencer_.get_track(track_idx).get_step(steps_ahead_index);
+        random_step.note = main_step.note;
+        
+        // Generate random velocity and enable state
+        uint32_t random_value = rand();
+        random_step.velocity = random_value & 0x7F; // 0-127
+        random_step.enabled = (random_value & 0x40) != 0; // 50% chance
+      }
+    }
+  }
+
   // --- Prepare for the next step ---
   uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
   uint64_t step_trigger_tick = next_trigger_tick_target_.load();

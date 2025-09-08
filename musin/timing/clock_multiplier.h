@@ -24,6 +24,8 @@ public:
   void update(absolute_time_t now);
   void reset();
 
+  void set_speed_modifier(SpeedModifier modifier);
+
 private:
   uint8_t base_multiplication_factor_;
   uint8_t pulse_counter_ = 0;

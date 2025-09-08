@@ -218,15 +218,26 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
 void AudioEngine::set_distortion(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
 
-  const float scaled_value = normalized_value;
+  // 1. Pre-distortion gain (drives the effect)
+  const float pre_gain = 1.0f + (normalized_value * 8.0f);
+  distortion_stage_.set_gain(pre_gain);
 
-  const float gain = 1.0f + (scaled_value * 8.0f);
-  distortion_stage_.set_gain(gain);
+  // 2. Calculate the post-distortion compensation gain to keep volume stable
+  const float post_gain = std::lerp(1.0f, 0.4f, normalized_value);
+
+  // 3. Blend the waveshape and apply the compensation gain directly to the
+  //    lookup table data.
   etl::array<float, WAVESHAPE_SIZE> blended_shape;
   for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
-    blended_shape[i] = std::lerp(waveshape_linear_data[i],
-                                 waveshape_tanh_data[i], scaled_value);
+    // First, blend between the linear and tanh shapes
+    float shape_value = std::lerp(waveshape_linear_data[i],
+                                  waveshape_tanh_data[i], normalized_value);
+
+    // Then, apply the compensation gain to the shape point itself
+    blended_shape[i] = shape_value * post_gain;
   }
+
+  // Send the final, gain-compensated shape to the waveshaper
   waveshaper_.shape(blended_shape.data(), blended_shape.size());
 }
 

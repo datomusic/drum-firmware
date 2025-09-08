@@ -14,7 +14,7 @@ namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    musin::timing::TempoHandler &tempo_handler_ref)
+    musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
     : sequencer_(main_sequencer_), current_step_counter{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
@@ -22,7 +22,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
       continuous_randomization_active_(false), _active_note_per_track{},
       _pad_pressed_state{}, _retrigger_mode_per_track{},
-      _retrigger_target_tick_per_track{} {
+      _retrigger_target_tick_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -32,6 +32,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   SequencerPersistentState loaded_state;
   if (storage_.load_state_from_flash(loaded_state)) {
     apply_persistent_state(loaded_state);
+    logger_.info("Sequencer state loaded from flash");
+  } else {
+    logger_.info("No sequencer state found, using defaults");
   }
 }
 
@@ -651,7 +654,11 @@ void SequencerController<NumTracks, NumSteps>::update() {
   if (storage_.should_save_now()) {
     SequencerPersistentState state;
     create_persistent_state(state);
-    storage_.save_state_to_flash(state);
+    if (storage_.save_state_to_flash(state)) {
+      logger_.debug("Periodic save completed successfully");
+    } else {
+      logger_.warn("Periodic save failed");
+    }
   }
 }
 
@@ -769,7 +776,13 @@ template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::save_state_to_flash() {
   SequencerPersistentState state;
   create_persistent_state(state);
-  return storage_.save_state_to_flash(state);
+  bool success = storage_.save_state_to_flash(state);
+  if (success) {
+    logger_.info("Manual save to flash completed successfully");
+  } else {
+    logger_.error("Manual save to flash failed");
+  }
+  return success;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -777,8 +790,10 @@ bool SequencerController<NumTracks, NumSteps>::load_state_from_flash() {
   SequencerPersistentState state;
   if (storage_.load_state_from_flash(state)) {
     apply_persistent_state(state);
+    logger_.info("Manual load from flash completed successfully");
     return true;
   }
+  logger_.warn("Manual load from flash failed - no valid state found");
   return false;
 }
 

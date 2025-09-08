@@ -62,7 +62,7 @@ static musin::timing::TempoHandler
                   musin::timing::ClockSource::INTERNAL);
 static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
-    sequencer_controller(tempo_handler);
+    sequencer_controller(tempo_handler, logger);
 
 static musin::midi::MidiSender midi_sender(
     musin::midi::MidiSendStrategy::QUEUED,

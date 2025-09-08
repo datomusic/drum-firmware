@@ -16,6 +16,7 @@
 #include <optional>
 
 #include "config.h"
+#include "musin/hal/logger.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
 #include <cstddef>
@@ -48,8 +49,10 @@ public:
   /**
    * @brief Constructor.
    * @param tempo_handler_ref A reference to the tempo handler.
+   * @param logger A reference to the logger instance.
    */
-  SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
+  SequencerController(musin::timing::TempoHandler &tempo_handler_ref,
+                      musin::Logger &logger);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -265,6 +268,9 @@ private:
 
   // Persistence management
   SequencerStorage<NumTracks, NumSteps> storage_;
+
+  // Logger reference
+  musin::Logger &logger_;
 
   void create_persistent_state(SequencerPersistentState &state) const;
   void apply_persistent_state(const SequencerPersistentState &state);

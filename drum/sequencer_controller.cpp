@@ -28,14 +28,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   initialize_all_sequencers();
   initialize_timing_and_random();
 
-  // Load persistent state after initialization
-  SequencerPersistentState loaded_state;
-  if (storage_.load_state_from_flash(loaded_state)) {
-    apply_persistent_state(loaded_state);
-    logger_.info("Sequencer state loaded from flash");
-  } else {
-    logger_.info("No sequencer state found, using defaults");
-  }
+  // Note: Persistence initialization deferred until filesystem is ready
+  // Call init_persistence() after filesystem.init() succeeds
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -478,7 +472,9 @@ void SequencerController<NumTracks, NumSteps>::set_active_note_for_track(
     uint8_t track_index, uint8_t note) {
   if (track_index < NumTracks) {
     _active_note_per_track[track_index] = note;
-    storage_.mark_state_dirty();
+    if (storage_.has_value()) {
+      storage_->mark_state_dirty();
+    }
   }
   // else: track_index is out of bounds, do nothing or log an error.
   // For now, we silently ignore out-of-bounds access to prevent crashes.
@@ -608,10 +604,10 @@ void SequencerController<NumTracks, NumSteps>::update() {
   current_step_counter++;
 
   // Periodic save logic with debouncing
-  if (storage_.should_save_now()) {
+  if (storage_.has_value() && storage_->should_save_now()) {
     SequencerPersistentState state;
     create_persistent_state(state);
-    if (storage_.save_state_to_flash(state)) {
+    if (storage_->save_state_to_flash(state)) {
       logger_.debug("Periodic save completed successfully");
     } else {
       logger_.warn("Periodic save failed");
@@ -768,9 +764,14 @@ void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
 
 template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::save_state_to_flash() {
+  if (!storage_.has_value()) {
+    logger_.error("Manual save to flash failed - persistence not initialized");
+    return false;
+  }
+
   SequencerPersistentState state;
   create_persistent_state(state);
-  bool success = storage_.save_state_to_flash(state);
+  bool success = storage_->save_state_to_flash(state);
   if (success) {
     logger_.info("Manual save to flash completed successfully");
   } else {
@@ -781,8 +782,14 @@ bool SequencerController<NumTracks, NumSteps>::save_state_to_flash() {
 
 template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::load_state_from_flash() {
+  if (!storage_.has_value()) {
+    logger_.error(
+        "Manual load from flash failed - persistence not initialized");
+    return false;
+  }
+
   SequencerPersistentState state;
-  if (storage_.load_state_from_flash(state)) {
+  if (storage_->load_state_from_flash(state)) {
     apply_persistent_state(state);
     logger_.info("Manual load from flash completed successfully");
     return true;
@@ -792,8 +799,39 @@ bool SequencerController<NumTracks, NumSteps>::load_state_from_flash() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::init_persistence() {
+  if (storage_.has_value()) {
+    logger_.warn("Persistence already initialized");
+    return true;
+  }
+
+  // Initialize storage now that filesystem is ready
+  storage_.emplace();
+
+  // Attempt to load existing state
+  SequencerPersistentState loaded_state;
+  if (storage_->load_state_from_flash(loaded_state)) {
+    apply_persistent_state(loaded_state);
+    logger_.info("Sequencer state loaded from flash during init_persistence");
+    return true;
+  } else {
+    logger_.info(
+        "No sequencer state found during init_persistence, using defaults");
+    return false;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::is_persistence_initialized()
+    const {
+  return storage_.has_value();
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
-  storage_.mark_state_dirty();
+  if (storage_.has_value()) {
+    storage_->mark_state_dirty();
+  }
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

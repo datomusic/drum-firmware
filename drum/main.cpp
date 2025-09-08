@@ -107,6 +107,9 @@ int main() {
     filesystem.list_files("/"); // List files in the root directory
 
     config_manager.load();
+
+    // Initialize persistence subsystem now that filesystem is ready
+    sequencer_controller.init_persistence();
   }
 
   midi_manager.init();

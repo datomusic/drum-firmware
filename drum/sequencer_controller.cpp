@@ -17,7 +17,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       swing_percent_(50), swing_delays_odd_steps_(false),
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
-      random_active_(false), _active_note_per_track{}, _pad_pressed_state{},
+      random_pattern_generated_(false), continuous_randomization_active_(false),
+      _active_note_per_track{}, _pad_pressed_state{},
       _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
 
   initialize_active_notes();
@@ -177,7 +178,8 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   _just_played_step_per_track.fill(std::nullopt);
 
   deactivate_repeat();
-  deactivate_random();
+  random_pattern_generated_ = false;
+  stop_continuous_randomization();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
@@ -326,9 +328,9 @@ SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::activate_random() {
-  if (!random_active_) {
-    random_active_ = true;
+void SequencerController<NumTracks, NumSteps>::generate_random_pattern() {
+  if (!random_pattern_generated_) {
+    random_pattern_generated_ = true;
 
     // Generate random pattern: copy notes from main, randomize velocities and
     // enable states
@@ -357,33 +359,51 @@ void SequencerController<NumTracks, NumSteps>::activate_random() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::deactivate_random() {
-  if (random_active_) {
-    random_active_ = false;
-  }
+void SequencerController<NumTracks,
+                         NumSteps>::start_continuous_randomization() {
+  continuous_randomization_active_ = true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::stop_continuous_randomization() {
+  continuous_randomization_active_ = false;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool
-SequencerController<NumTracks, NumSteps>::is_random_active() const {
-  return random_active_;
+SequencerController<NumTracks, NumSteps>::is_continuous_randomization_active()
+    const {
+  return continuous_randomization_active_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] bool
+SequencerController<NumTracks, NumSteps>::is_random_pattern_generated() const {
+  return random_pattern_generated_;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
 
-  // Switch between main and random sequencers
-  if (value < 0.1f) {
+  // Use main sequencer for low values
+  if (value < 0.2f) {
     set_main_active();
-    deactivate_random();
+    stop_continuous_randomization();
+    return;
+  }
+
+  // Switch to random sequencer and generate pattern once if not already done
+  select_random_sequencer();
+  if (!is_random_pattern_generated()) {
+    generate_random_pattern();
+  }
+
+  // Control continuous randomization separately for high values
+  if (value > 0.8f) {
+    start_continuous_randomization();
   } else {
-    select_random_sequencer();
-    if (value > 0.8f) {
-      activate_random();
-    } else {
-      deactivate_random();
-    }
+    stop_continuous_randomization();
   }
 }
 
@@ -573,7 +593,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
   }
 
   // --- Random 4-steps-ahead logic ---
-  if (random_active_ && !repeat_active_) {
+  if (continuous_randomization_active_ && !repeat_active_) {
     // Calculate the step 4 positions ahead
     const size_t num_steps = sequencer_.get().get_num_steps();
     if (num_steps > 0) {

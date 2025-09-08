@@ -449,13 +449,6 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
         drum::Parameter::FILTER_RESONANCE, (1.0f - value));
     break;
   case RANDOM: {
-    bool was_active = controls->_sequencer_controller_ref.is_random_active();
-    bool should_be_active =
-        (value >= config::analog_controls::RANDOM_ACTIVATION_THRESHOLD);
-    if (should_be_active && !was_active)
-      controls->_sequencer_controller_ref.activate_random();
-    else if (!should_be_active && was_active)
-      controls->_sequencer_controller_ref.deactivate_random();
     controls->_sequencer_controller_ref.set_random(value);
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::RANDOM_EFFECT, value, 0);

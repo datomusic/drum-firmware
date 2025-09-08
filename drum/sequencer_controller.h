@@ -153,18 +153,25 @@ public:
   void set_swing_target(bool delay_odd);
 
   /**
-   * @brief Activate the random step effect.
+   * @brief Generate a random pattern once for the random sequencer.
    */
-  void activate_random();
+  void generate_random_pattern();
 
   /**
-   * @brief Deactivate the random step effect.
+   * @brief Start continuous 4-steps-ahead randomization.
    */
-  void deactivate_random();
+  void start_continuous_randomization();
+
+  /**
+   * @brief Stop continuous 4-steps-ahead randomization.
+   */
+  void stop_continuous_randomization();
 
   void set_random(float value);
 
-  [[nodiscard]] bool is_random_active() const;
+  [[nodiscard]] bool is_continuous_randomization_active() const;
+
+  [[nodiscard]] bool is_random_pattern_generated() const;
 
   /**
    * @brief Sets the intended state of the repeat effect.
@@ -248,7 +255,8 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  bool random_active_ = false;
+  bool random_pattern_generated_ = false;
+  bool continuous_randomization_active_ = false;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};

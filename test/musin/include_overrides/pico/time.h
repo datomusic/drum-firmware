@@ -3,15 +3,17 @@
 
 #include <cstdint> // For uint64_t, int64_t
 
-// Define absolute_time_t as it's used by the code under test and the mock functions.
+// Define absolute_time_t as it's used by the code under test and the mock
+// functions.
 typedef uint64_t absolute_time_t;
 
-// This global variable will be defined in the test .cpp file (e.g., midi_message_queue_test.cpp)
-// and controlled by the tests to simulate time.
+// This global variable will be defined in the test .cpp file (e.g.,
+// midi_message_queue_test.cpp) and controlled by the tests to simulate time.
 extern absolute_time_t mock_current_time;
 
-// Define nil_time and at_the_end_of_time as they are used by pico/time.h and potentially by code
-// including it. These values are taken from the actual pico/time.h.
+// Define nil_time and at_the_end_of_time as they are used by pico/time.h and
+// potentially by code including it. These values are taken from the actual
+// pico/time.h.
 #define nil_time ((absolute_time_t)0)
 #define at_the_end_of_time ((absolute_time_t)0xffffffffffffffffULL)
 
@@ -30,23 +32,32 @@ static inline bool is_nil_time(absolute_time_t t) {
 // Mock implementation for absolute_time_diff_us()
 // Calculates the difference in microseconds between two absolute_time_t values.
 // Matches the signature from pico/time.h which returns int64_t.
-static inline int64_t absolute_time_diff_us(absolute_time_t from, absolute_time_t to) {
+static inline int64_t absolute_time_diff_us(absolute_time_t from,
+                                            absolute_time_t to) {
   if (is_nil_time(from)) {
-    // Behavior for nil 'from' can vary; often results in a large positive or negative
-    // value if 'to' is not nil, or 0 if both are nil.
-    // The actual SDK might have specific behavior; for testing, returning 0 if 'from' is nil
-    // is a simple approach, or one could try to mimic the SDK's large value if 'to' is far.
-    // Given the queue logic, if last_non_realtime_send_time is nil, it implies a send is allowed.
-    return is_nil_time(to)
-               ? 0
-               : static_cast<int64_t>(
-                     to); // Simplified: if from is nil, effectively infinite time has passed.
+    // Behavior for nil 'from' can vary; often results in a large positive or
+    // negative value if 'to' is not nil, or 0 if both are nil. The actual SDK
+    // might have specific behavior; for testing, returning 0 if 'from' is nil
+    // is a simple approach, or one could try to mimic the SDK's large value if
+    // 'to' is far. Given the queue logic, if last_non_realtime_send_time is
+    // nil, it implies a send is allowed.
+    return is_nil_time(to) ? 0
+                           : static_cast<int64_t>(
+                                 to); // Simplified: if from is nil, effectively
+                                      // infinite time has passed.
   }
   if (is_nil_time(to)) {
     // If 'to' is nil and 'from' is not, this implies a negative duration.
     return -static_cast<int64_t>(from);
   }
   return static_cast<int64_t>(to) - static_cast<int64_t>(from);
+}
+
+// Mock implementation for time_us_32()
+// Returns current time in microseconds as uint32_t (wraps around)
+// Used by PicoTimeSource in save_timing_manager.cpp
+static inline uint32_t time_us_32() {
+  return static_cast<uint32_t>(mock_current_time & 0xFFFFFFFF);
 }
 
 // Helper functions for tests to control mock time.

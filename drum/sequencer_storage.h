@@ -2,17 +2,19 @@
 #define DRUM_SEQUENCER_STORAGE_H
 
 #include "config.h"
+#include "save_timing_manager.h"
 #include "sequencer_persistence.h"
+#include "sequencer_persister.h"
 #include <cstdint>
 
 namespace drum {
 
 /**
- * @brief Handles sequencer state persistence to flash storage.
+ * @brief Orchestrates sequencer state persistence using composed architecture.
  *
- * This class manages the saving and loading of sequencer state data,
- * providing debounced persistence with intelligent timing to minimize
- * flash wear while ensuring data integrity.
+ * This class maintains the same public API as before but internally composes
+ * SequencerPersister (for file I/O) and SaveTimingManager (for timing logic)
+ * to provide a testable, modular architecture following SOLID principles.
  */
 template <size_t NumTracks, size_t NumSteps> class SequencerStorage {
 public:
@@ -65,9 +67,10 @@ private:
   static constexpr uint32_t MAX_SAVE_INTERVAL_MS =
       30000; // Maximum 30s between saves when dirty
 
-  bool state_is_dirty_ = false;
-  uint32_t last_change_time_ms_ = 0;
-  uint32_t last_save_time_ms_ = 0;
+  // Composed architecture - testable components with dependency injection
+  SequencerPersister persister_;
+  PicoTimeSource pico_time_;
+  SaveTimingManager timing_manager_;
 };
 
 } // namespace drum

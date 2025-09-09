@@ -149,16 +149,25 @@ void TempoHandler::process_external_tick_with_speed_modifier(
     break;
   }
 
-  // Emit event if we anchored (phase may have changed) or if we advance
-  if (anchored_this_tick || advance_this_tick) {
+  // Event/advance ordering to avoid phase ambiguity and races:
+  // - On anchored ticks: emit the anchor phase (0/12), then advance.
+  // - On non-anchored ticks: advance first (if applicable), then emit.
+  if (anchored_this_tick) {
+    // Emit anchored phase
     musin::timing::TempoEvent tempo_event{
         .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
     notify_observers(tempo_event);
-  }
 
-  // Advance phase for next tick
-  if (advance_this_tick && step > 0) {
+    // Advance after anchor if this tick should advance due to speed modifier
+    if (advance_this_tick && step > 0) {
+      phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
+    }
+  } else if (advance_this_tick && step > 0) {
+    // Non-anchored: advance, then emit the new phase
     phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
+    musin::timing::TempoEvent tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+    notify_observers(tempo_event);
   }
 }
 
@@ -173,6 +182,9 @@ void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   _clock_multiplier_ref.set_speed_modifier(modifier);
   // Reset prescaler to a known state when changing speed
   half_prescaler_toggle_ = false;
+  // Reset physical pulse counter so HALF speed anchoring starts from
+  // a consistent boundary after mode changes.
+  physical_pulse_counter_ = 0;
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {

@@ -17,8 +17,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       swing_percent_(50), swing_delays_odd_steps_(false),
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
-      random_active_(false), _active_note_per_track{}, _pad_pressed_state{},
-      _retrigger_mode_per_track{}, _retrigger_target_tick_per_track{} {
+      continuous_randomization_active_(false), _active_note_per_track{},
+      _pad_pressed_state{}, _retrigger_mode_per_track{},
+      _retrigger_target_tick_per_track{} {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -177,7 +178,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   _just_played_step_per_track.fill(std::nullopt);
 
   deactivate_repeat();
-  deactivate_random();
+  stop_continuous_randomization();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
@@ -326,61 +327,77 @@ SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::activate_random() {
-  if (!random_active_) {
-    random_active_ = true;
+void SequencerController<NumTracks, NumSteps>::generate_random_pattern() {
+  // Generate random pattern: copy notes from main, randomize velocities and
+  // enable states
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    auto &main_track = main_sequencer_.get_track(track_idx);
+    auto &random_track = random_sequencer_.get_track(track_idx);
 
-    // Generate random pattern: copy notes from main, randomize velocities and
-    // enable states
-    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-      auto &main_track = main_sequencer_.get_track(track_idx);
-      auto &random_track = random_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
+      auto &main_step = main_track.get_step(step_idx);
+      auto &random_step = random_track.get_step(step_idx);
 
-      for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-        auto &main_step = main_track.get_step(step_idx);
-        auto &random_step = random_track.get_step(step_idx);
+      // Copy note from main sequencer
+      random_step.note = main_step.note;
 
-        // Copy note from main sequencer
-        random_step.note = main_step.note;
+      // Get one random value and extract both velocity and enabled from it
+      uint32_t random_value = rand();
 
-        // Get one random value and extract both velocity and enabled from it
-        uint32_t random_value = rand();
+      // Extract velocity from lower 7 bits (0-127) for full MIDI range
+      random_step.velocity = random_value & 0x7F;
 
-        // Extract velocity from lower 7 bits (0-127) for full MIDI range
-        random_step.velocity = random_value & 0x7F;
-
-        // Extract enabled from bit 6 (50% chance)
-        random_step.enabled = (random_value & 0x40) != 0;
-      }
+      // Extract enabled from bit 6 (50% chance)
+      random_step.enabled = (random_value & 0x40) != 0;
     }
   }
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::deactivate_random() {
-  if (random_active_) {
-    random_active_ = false;
-  }
+void SequencerController<NumTracks,
+                         NumSteps>::start_continuous_randomization() {
+  continuous_randomization_active_ = true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::stop_continuous_randomization() {
+  continuous_randomization_active_ = false;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool
-SequencerController<NumTracks, NumSteps>::is_random_active() const {
-  return random_active_;
+SequencerController<NumTracks, NumSteps>::is_continuous_randomization_active()
+    const {
+  return continuous_randomization_active_;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
 
-  // Switch sequencers based on normalized ranges
-  if (value < 0.1f) {
+  bool was_using_random = (&sequencer_.get() == &random_sequencer_);
+
+  // Use main sequencer for low values
+  if (value < 0.2f) {
     set_main_active();
-  } else if (value >= 0.4f && value <= 0.6f) {
-    generate_variation_blend();
-    set_variation_active();
-  } else if (value > 0.8f) {
-    set_random_active();
+    stop_continuous_randomization();
+    return;
+  }
+
+  // Switch to random sequencer and generate new pattern every time we cross
+  // 0.2f threshold
+  if (!was_using_random) {
+    // Crossing from main to random - switch sequencer and generate fresh
+    // pattern
+    select_random_sequencer();
+    generate_random_pattern();
+  }
+
+  // Control continuous randomization separately for high values
+  if (value > 0.8f) {
+    start_continuous_randomization();
+  } else {
+    stop_continuous_randomization();
   }
 }
 
@@ -569,6 +586,33 @@ void SequencerController<NumTracks, NumSteps>::update() {
     }
   }
 
+  // --- Random per-track-ahead logic ---
+  if (continuous_randomization_active_ && !repeat_active_) {
+    const size_t num_steps = sequencer_.get().get_num_steps();
+    if (num_steps > 0) {
+      // Randomize each track at its own offset ahead
+      for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+        size_t track_offset =
+            RANDOM_STEP_OFFSETS[track_idx % RANDOM_STEP_OFFSETS.size()];
+        size_t steps_ahead_index =
+            (current_step_counter + track_offset) % num_steps;
+
+        auto &random_track = random_sequencer_.get_track(track_idx);
+        auto &random_step = random_track.get_step(steps_ahead_index);
+
+        // Copy note from main sequencer if available
+        const auto &main_step =
+            main_sequencer_.get_track(track_idx).get_step(steps_ahead_index);
+        random_step.note = main_step.note;
+
+        // Generate random velocity and enable state
+        uint32_t random_value = rand();
+        random_step.velocity = random_value & 0x7F;       // 0-127
+        random_step.enabled = (random_value & 0x40) != 0; // 50% chance
+      }
+    }
+  }
+
   // --- Prepare for the next step ---
   uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
   uint64_t step_trigger_tick = next_trigger_tick_target_.load();
@@ -595,11 +639,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::copy_to_variation() {
-  variation_sequencer_ = main_sequencer_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::copy_to_random() {
   random_sequencer_ = main_sequencer_;
 }
@@ -610,36 +649,8 @@ void SequencerController<NumTracks, NumSteps>::set_main_active() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_variation_active() {
-  sequencer_ = std::ref(variation_sequencer_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_random_active() {
+void SequencerController<NumTracks, NumSteps>::select_random_sequencer() {
   sequencer_ = std::ref(random_sequencer_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::generate_variation_blend() {
-  // Simple blend: alternate between main and random pattern steps
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    auto &main_track = main_sequencer_.get_track(track_idx);
-    auto &random_track = random_sequencer_.get_track(track_idx);
-    auto &variation_track = variation_sequencer_.get_track(track_idx);
-
-    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      auto &main_step = main_track.get_step(step_idx);
-      auto &random_step = random_track.get_step(step_idx);
-      auto &variation_step = variation_track.get_step(step_idx);
-
-      // Alternate pattern: even steps from main, odd steps from random
-      if (step_idx % 2 == 0) {
-        variation_step = main_step;
-      } else {
-        variation_step = random_step;
-      }
-    }
-  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -658,16 +669,12 @@ void SequencerController<NumTracks, NumSteps>::initialize_all_sequencers() {
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint8_t initial_note = _active_note_per_track[track_idx];
     auto &main_track = main_sequencer_.get_track(track_idx);
-    auto &var_track = variation_sequencer_.get_track(track_idx);
     auto &random_track = random_sequencer_.get_track(track_idx);
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
       auto &main_step = main_track.get_step(step_idx);
-      auto &var_step = var_track.get_step(step_idx);
       auto &random_step = random_track.get_step(step_idx);
       main_step.note = initial_note;
       main_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
-      var_step.note = initial_note;
-      var_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
       random_step.note = initial_note;
       random_step.velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
     }

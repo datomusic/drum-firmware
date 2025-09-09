@@ -41,6 +41,7 @@ class SequencerController
 public:
   static constexpr uint32_t CLOCK_PPQN = 24;
   static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
+  static constexpr etl::array<size_t, 4> RANDOM_STEP_OFFSETS = {3, 5, 7, 4};
 
   /**
    * @brief Constructor.
@@ -153,18 +154,23 @@ public:
   void set_swing_target(bool delay_odd);
 
   /**
-   * @brief Activate the random step effect.
+   * @brief Generate a random pattern once for the random sequencer.
    */
-  void activate_random();
+  void generate_random_pattern();
 
   /**
-   * @brief Deactivate the random step effect.
+   * @brief Start continuous 4-steps-ahead randomization.
    */
-  void deactivate_random();
+  void start_continuous_randomization();
+
+  /**
+   * @brief Stop continuous 4-steps-ahead randomization.
+   */
+  void stop_continuous_randomization();
 
   void set_random(float value);
 
-  [[nodiscard]] bool is_random_active() const;
+  [[nodiscard]] bool is_continuous_randomization_active() const;
 
   /**
    * @brief Sets the intended state of the repeat effect.
@@ -226,7 +232,6 @@ private:
   void initialize_timing_and_random();
 
   musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
-  musin::timing::Sequencer<NumTracks, NumSteps> variation_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
       sequencer_;
@@ -249,7 +254,7 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  bool random_active_ = false;
+  bool continuous_randomization_active_ = false;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
@@ -285,11 +290,6 @@ public:
   [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 
   /**
-   * @brief Copy the main pattern to the variation pattern.
-   */
-  void copy_to_variation();
-
-  /**
    * @brief Copy the main pattern to the random pattern.
    */
   void copy_to_random();
@@ -300,19 +300,9 @@ public:
   void set_main_active();
 
   /**
-   * @brief Set the variation sequencer as active.
-   */
-  void set_variation_active();
-
-  /**
    * @brief Set the random sequencer as active.
    */
-  void set_random_active();
-
-  /**
-   * @brief Generate variation pattern by blending main and random patterns.
-   */
-  void generate_variation_blend();
+  void select_random_sequencer();
 };
 
 } // namespace drum

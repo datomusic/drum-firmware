@@ -138,16 +138,33 @@ function(generate_version_header HEADER_FILE)
   # Version variables should already be set by calling configure_version_from_git()
   # in the main CMakeLists.txt before calling this function.
   
-  # Create header file content
-  file(WRITE ${HEADER_FILE} "#ifndef FIRMWARE_VERSION_H\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_VERSION_H\n\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_VERSION \"${VERSION_STRING}\"\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_VERSION_BASE \"${VERSION_BASE}\"\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_MAJOR ${VERSION_MAJOR}\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_MINOR ${VERSION_MINOR}\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_PATCH ${VERSION_PATCH}\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_COMMITS ${VERSION_COMMITS}\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_COMMIT \"${VERSION_SHA}\"\n")
-  file(APPEND ${HEADER_FILE} "#define FIRMWARE_IS_RELEASE ${VERSION_IS_RELEASE}\n")
-  file(APPEND ${HEADER_FILE} "\n#endif // FIRMWARE_VERSION_H\n")
+  # Ensure destination directory exists
+  get_filename_component(_hdr_dir ${HEADER_FILE} DIRECTORY)
+  file(MAKE_DIRECTORY ${_hdr_dir})
+
+  # Compose header content
+  set(_version_header_content "#ifndef FIRMWARE_VERSION_H\n")
+  string(APPEND _version_header_content "#define FIRMWARE_VERSION_H\n\n")
+  string(APPEND _version_header_content "#define FIRMWARE_VERSION \"${VERSION_STRING}\"\n")
+  string(APPEND _version_header_content "#define FIRMWARE_VERSION_BASE \"${VERSION_BASE}\"\n")
+  string(APPEND _version_header_content "#define FIRMWARE_MAJOR ${VERSION_MAJOR}\n")
+  string(APPEND _version_header_content "#define FIRMWARE_MINOR ${VERSION_MINOR}\n")
+  string(APPEND _version_header_content "#define FIRMWARE_PATCH ${VERSION_PATCH}\n")
+  string(APPEND _version_header_content "#define FIRMWARE_COMMITS ${VERSION_COMMITS}\n")
+  string(APPEND _version_header_content "#define FIRMWARE_COMMIT \"${VERSION_SHA}\"\n")
+  string(APPEND _version_header_content "#define FIRMWARE_IS_RELEASE ${VERSION_IS_RELEASE}\n")
+  string(APPEND _version_header_content "\n#endif // FIRMWARE_VERSION_H\n")
+
+  # Only write if content changed to avoid needless recompiles
+  set(_needs_write TRUE)
+  if(EXISTS ${HEADER_FILE})
+    file(READ ${HEADER_FILE} _existing_content)
+    if(_existing_content STREQUAL _version_header_content)
+      set(_needs_write FALSE)
+    endif()
+  endif()
+
+  if(_needs_write)
+    file(WRITE ${HEADER_FILE} "${_version_header_content}")
+  endif()
 endfunction()

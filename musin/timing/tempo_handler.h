@@ -136,6 +136,10 @@ private:
   // For external sync alignment: alternate physical pulses between phases 0 and
   // 12
   bool external_align_to_12_next_ = false;
+
+  // Scaling state for external rate adapter (HALF/DOUBLE speed)
+  bool half_prescaler_toggle_ = false;  // toggles each raw 24 PPQN tick
+  uint32_t physical_pulse_counter_ = 0; // counts SyncIn physical pulses
 };
 
 } // namespace musin::timing

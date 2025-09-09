@@ -723,8 +723,15 @@ void SequencerController<NumTracks, NumSteps>::create_persistent_state(
          step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
          ++step_idx) {
       const auto &step = track.get_step(step_idx);
-      state.tracks[track_idx].notes[step_idx] = step.note.value_or(0);
-      state.tracks[track_idx].velocities[step_idx] = step.velocity.value_or(0);
+      // Persist disabled steps as (0, 0) so they restore disabled.
+      if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
+          step.velocity.value() > 0) {
+        state.tracks[track_idx].notes[step_idx] = step.note.value();
+        state.tracks[track_idx].velocities[step_idx] = step.velocity.value();
+      } else {
+        state.tracks[track_idx].notes[step_idx] = 0;
+        state.tracks[track_idx].velocities[step_idx] = 0;
+      }
     }
   }
 

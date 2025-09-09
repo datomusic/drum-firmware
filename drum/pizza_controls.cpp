@@ -203,6 +203,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
       uint8_t note = controls->drumpad_component.get_note_for_pad(track_index);
       track.set_step_note(step_index, note);
       track.set_step_velocity(step_index, step_velocity);
+      // Mark sequencer state dirty after pattern change
+      controls->_sequencer_controller_ref.mark_state_dirty_public();
       if (!controls->is_running()) {
         controls->_sequencer_controller_ref.trigger_note_on(track_index, note,
                                                             step_velocity);
@@ -214,6 +216,8 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
       track.set_step_enabled(step_index, true);
     }
     track.set_step_velocity(step_index, config::keypad::STEP_VELOCITY_ON_HOLD);
+    // Mark sequencer state dirty after velocity edit
+    controls->_sequencer_controller_ref.mark_state_dirty_public();
   }
 }
 
@@ -296,6 +300,8 @@ void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index,
   parent_controls->_sequencer_controller_ref.get_sequencer()
       .get_track(pad_index)
       .set_note(new_selected_note_value);
+  // Mark sequencer state dirty after changing track note assignments
+  parent_controls->_sequencer_controller_ref.mark_state_dirty_public();
 }
 
 uint8_t

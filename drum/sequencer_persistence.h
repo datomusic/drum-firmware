@@ -11,9 +11,8 @@ namespace drum {
  * @brief Data structure for persisting sequencer state to flash storage.
  *
  * Contains all necessary state to restore the main sequencer at boot:
- * - All track steps (notes and velocities)
- * - Active MIDI note numbers for each track
- * - Swing and timing settings
+ * - Per-step velocities (0 = disabled)
+ * - Active MIDI note numbers for each track (used for all enabled steps)
  *
  * Only the main sequencer is saved - variation and random sequencers
  * are generated on-the-fly and don't need persistence.
@@ -21,7 +20,8 @@ namespace drum {
 struct SequencerPersistentState {
   // File format version and validation
   static constexpr uint32_t MAGIC_NUMBER = 0x53455143; // 'SEQC'
-  static constexpr uint8_t FORMAT_VERSION = 1;
+  // v2 drops per-step notes; relies on per-track active note.
+  static constexpr uint8_t FORMAT_VERSION = 2;
 
   uint32_t magic;
   uint8_t version;
@@ -29,7 +29,7 @@ struct SequencerPersistentState {
 
   // Sequencer pattern data - main sequencer only
   struct TrackData {
-    etl::array<uint8_t, config::NUM_STEPS_PER_TRACK> notes;
+    // Only store velocity per step; 0 means disabled.
     etl::array<uint8_t, config::NUM_STEPS_PER_TRACK> velocities;
   };
   etl::array<TrackData, config::NUM_TRACKS> tracks;
@@ -46,7 +46,6 @@ struct SequencerPersistentState {
 
     // Clear all pattern data
     for (auto &track : tracks) {
-      track.notes.fill(0);
       track.velocities.fill(0);
     }
   }
@@ -55,9 +54,7 @@ struct SequencerPersistentState {
    * @brief Validates the loaded data structure.
    * @return true if valid, false if corrupted or unsupported version
    */
-  bool is_valid() const {
-    return magic == MAGIC_NUMBER && version == FORMAT_VERSION;
-  }
+  bool is_valid() const { return magic == MAGIC_NUMBER && version == FORMAT_VERSION; }
 };
 
 // Compile-time size check to ensure we're not too large

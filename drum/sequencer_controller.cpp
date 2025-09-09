@@ -717,13 +717,11 @@ void SequencerController<NumTracks, NumSteps>::create_persistent_state(
          step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
          ++step_idx) {
       const auto &step = track.get_step(step_idx);
-      // Persist disabled steps as (0, 0) so they restore disabled.
-      if (step.enabled && step.note.has_value() && step.velocity.has_value() &&
+      // Persist only velocity; 0 velocity means disabled.
+      if (step.enabled && step.velocity.has_value() &&
           step.velocity.value() > 0) {
-        state.tracks[track_idx].notes[step_idx] = step.note.value();
         state.tracks[track_idx].velocities[step_idx] = step.velocity.value();
       } else {
-        state.tracks[track_idx].notes[step_idx] = 0;
         state.tracks[track_idx].velocities[step_idx] = 0;
       }
     }
@@ -739,19 +737,26 @@ void SequencerController<NumTracks, NumSteps>::create_persistent_state(
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
     const SequencerPersistentState &state) {
-  // Apply track data to main sequencer only
+  // Apply active notes first
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    _active_note_per_track[track_idx] = state.active_notes[track_idx];
+  }
+
+  // Apply per-step velocities to main sequencer; note is derived from active note
   for (size_t track_idx = 0;
        track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
     auto &track = main_sequencer_.get_track(track_idx);
+    uint8_t track_note = _active_note_per_track[track_idx];
+    // Ensure track default note matches active note
+    track.set_note(track_note);
     for (size_t step_idx = 0;
          step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
          ++step_idx) {
       auto &step = track.get_step(step_idx);
-      uint8_t note = state.tracks[track_idx].notes[step_idx];
       uint8_t velocity = state.tracks[track_idx].velocities[step_idx];
-
-      if (note > 0 && velocity > 0) {
-        step.note = note;
+      if (velocity > 0) {
+        step.note = track_note;
         step.velocity = velocity;
         step.enabled = true;
       } else {
@@ -760,12 +765,6 @@ void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
         step.enabled = false;
       }
     }
-  }
-
-  // Apply active notes per track
-  for (size_t track_idx = 0;
-       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
-    _active_note_per_track[track_idx] = state.active_notes[track_idx];
   }
 }
 

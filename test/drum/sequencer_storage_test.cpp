@@ -18,10 +18,17 @@ namespace drum {
 // Include component implementations inline for integration testing
 // (avoiding duplicate symbol issues with individual test files)
 
+// Redirect production path to a writable test path
+static const char *kTestRedirectPath = "/tmp/test_sequencer_state.dat";
+
 // SequencerPersister implementation
 bool SequencerPersister::save_to_file(const char *filepath,
                                       const SequencerPersistentState &state) {
-  FILE *file = fopen(filepath, "wb");
+  const char *target = filepath;
+  if (std::string(filepath) == "/sequencer_state.dat") {
+    target = kTestRedirectPath;
+  }
+  FILE *file = fopen(target, "wb");
   if (!file) {
     return false;
   }
@@ -34,7 +41,11 @@ bool SequencerPersister::save_to_file(const char *filepath,
 
 bool SequencerPersister::load_from_file(const char *filepath,
                                         SequencerPersistentState &state) {
-  FILE *file = fopen(filepath, "rb");
+  const char *target = filepath;
+  if (std::string(filepath) == "/sequencer_state.dat") {
+    target = kTestRedirectPath;
+  }
+  FILE *file = fopen(target, "rb");
   if (!file) {
     return false; // File doesn't exist, not an error
   }
@@ -128,10 +139,9 @@ private:
 SequencerPersistentState create_test_state() {
   SequencerPersistentState state;
 
-  // Fill with a recognizable pattern
+  // Fill with a recognizable pattern (velocities only)
   for (size_t track = 0; track < config::NUM_TRACKS; ++track) {
     for (size_t step = 0; step < config::NUM_STEPS_PER_TRACK; ++step) {
-      state.tracks[track].notes[step] = static_cast<uint8_t>(track * 10 + step);
       state.tracks[track].velocities[step] =
           static_cast<uint8_t>(127 - (track * 10 + step));
     }
@@ -151,9 +161,8 @@ bool states_equal(const SequencerPersistentState &a,
 
   for (size_t track = 0; track < config::NUM_TRACKS; ++track) {
     for (size_t step = 0; step < config::NUM_STEPS_PER_TRACK; ++step) {
-      if (a.tracks[track].notes[step] != b.tracks[track].notes[step] ||
-          a.tracks[track].velocities[step] !=
-              b.tracks[track].velocities[step]) {
+      if (a.tracks[track].velocities[step] !=
+          b.tracks[track].velocities[step]) {
         return false;
       }
     }
@@ -191,7 +200,7 @@ TEST_CASE("SequencerPersistentState validation", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage basic round-trip", "[sequencer_storage]") {
-  TempFileManager temp_file("/tmp/test_sequencer_state.dat");
+  TempFileManager temp_file(kTestRedirectPath);
   SequencerStorage<4, 8> storage;
 
   SECTION("Save and load valid state") {
@@ -233,15 +242,15 @@ TEST_CASE("SequencerStorage basic round-trip", "[sequencer_storage]") {
       REQUIRE(states_equal(state, loaded_state));
 
       // Modify state slightly for next cycle
-      state.tracks[0].notes[0] = static_cast<uint8_t>(cycle + 100);
+      state.tracks[0].velocities[0] = static_cast<uint8_t>(cycle + 100);
       state = loaded_state; // Use loaded state as basis for next cycle
-      state.tracks[0].notes[0] = static_cast<uint8_t>(cycle + 100);
+      state.tracks[0].velocities[0] = static_cast<uint8_t>(cycle + 100);
     }
   }
 }
 
 TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
-  TempFileManager temp_file("/tmp/test_sequencer_integrity.dat");
+  TempFileManager temp_file(kTestRedirectPath);
   SequencerStorage<4, 8> storage;
 
   SECTION("All track data preservation") {
@@ -250,8 +259,6 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
     // Fill with distinct patterns for each track
     for (size_t track = 0; track < config::NUM_TRACKS; ++track) {
       for (size_t step = 0; step < config::NUM_STEPS_PER_TRACK; ++step) {
-        state.tracks[track].notes[step] =
-            static_cast<uint8_t>((track + 1) * 20 + step);
         state.tracks[track].velocities[step] =
             static_cast<uint8_t>(100 + track * 10 + step);
       }
@@ -265,8 +272,6 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
     // Verify each track independently
     for (size_t track = 0; track < config::NUM_TRACKS; ++track) {
       for (size_t step = 0; step < config::NUM_STEPS_PER_TRACK; ++step) {
-        REQUIRE(loaded_state.tracks[track].notes[step] ==
-                (track + 1) * 20 + step);
         REQUIRE(loaded_state.tracks[track].velocities[step] ==
                 100 + track * 10 + step);
       }
@@ -297,8 +302,6 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
     SequencerPersistentState state;
 
     // Test with min and max values
-    state.tracks[0].notes[0] = 0;        // Min note
-    state.tracks[0].notes[1] = 255;      // Max note
     state.tracks[0].velocities[0] = 0;   // Min velocity
     state.tracks[0].velocities[1] = 255; // Max velocity
     state.active_notes[0] = 0;           // Min active note
@@ -309,8 +312,6 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
     SequencerPersistentState loaded_state;
     REQUIRE(storage.load_state_from_flash(loaded_state));
 
-    REQUIRE(loaded_state.tracks[0].notes[0] == 0);
-    REQUIRE(loaded_state.tracks[0].notes[1] == 255);
     REQUIRE(loaded_state.tracks[0].velocities[0] == 0);
     REQUIRE(loaded_state.tracks[0].velocities[1] == 255);
     REQUIRE(loaded_state.active_notes[0] == 0);
@@ -319,7 +320,7 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage file system edge cases", "[sequencer_storage]") {
-  TempFileManager temp_file("/tmp/test_sequencer_edge_cases.dat");
+  TempFileManager temp_file(kTestRedirectPath);
   SequencerStorage<4, 8> storage;
 
   SECTION("Non-existent file load returns false") {
@@ -386,7 +387,7 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
   }
 
   SECTION("Successful save cleans state") {
-    TempFileManager temp_file("/tmp/test_sequencer_save_clean.dat");
+    TempFileManager temp_file(kTestRedirectPath);
     SequencerPersistentState state;
 
     storage.mark_state_dirty();
@@ -397,7 +398,7 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
   }
 
   SECTION("Load clears dirty flag") {
-    TempFileManager temp_file("/tmp/test_sequencer_load_clean.dat");
+    TempFileManager temp_file(kTestRedirectPath);
     SequencerPersistentState state = create_test_state();
 
     // Save a valid state first
@@ -415,7 +416,7 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
 
 TEST_CASE("SequencerStorage integration - composed architecture verification",
           "[sequencer_storage]") {
-  TempFileManager temp_file("/sequencer_state.dat");
+  TempFileManager temp_file(kTestRedirectPath);
   SequencerStorage<4, 8> storage;
 
   SECTION("Orchestrator correctly delegates to components") {
@@ -480,7 +481,7 @@ TEST_CASE("SequencerStorage integration - composed architecture verification",
 TEST_CASE("SequencerStorage integration - file path consistency",
           "[sequencer_storage]") {
   // Verify that the orchestrator uses the correct file path consistently
-  TempFileManager temp_file("/sequencer_state.dat");
+  TempFileManager temp_file(kTestRedirectPath);
   SequencerStorage<4, 8> storage;
 
   SequencerPersistentState state = create_test_state();

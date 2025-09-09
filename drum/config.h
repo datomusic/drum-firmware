@@ -191,6 +191,12 @@ constexpr uint8_t RETRIGGER_DIVISOR_FOR_DOUBLE_MODE = 2;
 constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 4;
 constexpr size_t MAX_SYSEX_EVENT_OBSERVERS = 4;
 
+// MessageRouter debounce configuration
+namespace message_router {
+constexpr uint32_t DEBOUNCE_TIME_MS =
+    40; // Minimum time between triggers for the same note
+} // namespace message_router
+
 } // namespace config
 } // namespace drum
 

@@ -296,6 +296,7 @@ public:
   void deactivate_play_on_every_step(uint8_t track_index);
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
+  [[nodiscard]] uint32_t get_repeat_length() const;
 
   /**
    * @brief Get the number of high-resolution SequencerTickEvents that form one

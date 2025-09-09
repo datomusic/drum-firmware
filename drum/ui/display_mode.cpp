@@ -281,8 +281,15 @@ void SequencerDisplayMode::sync_highlight_phase_with_step(
     display._last_tick_count_for_highlight = display._clock_tick_counter;
 
     if (_sequencer_controller_ref.is_running()) {
-      // Flip bright/dim once per step while running (half-speed blink)
-      _bright_phase_for_current_step = !_bright_phase_for_current_step;
+      bool repeat_alt = _sequencer_controller_ref.is_repeat_active() &&
+                        _sequencer_controller_ref.get_repeat_length() == 1;
+      if (repeat_alt) {
+        // Flip bright/dim once per step while running when repeat length is 1
+        _bright_phase_for_current_step = !_bright_phase_for_current_step;
+      } else {
+        // Keep steady bright when running normally or other repeat lengths
+        _bright_phase_for_current_step = true;
+      }
     }
   }
 }
@@ -296,8 +303,10 @@ bool SequencerDisplayMode::is_highlight_bright(
   }
 
   if (_sequencer_controller_ref.is_running()) {
-    // While running: keep one brightness state per full step.
-    return _bright_phase_for_current_step;
+    // While running: alternate only if repeat length == 1; else steady bright.
+    bool repeat_alt = _sequencer_controller_ref.is_repeat_active() &&
+                      _sequencer_controller_ref.get_repeat_length() == 1;
+    return repeat_alt ? _bright_phase_for_current_step : true;
   }
 
   // When stopped: free-run pulse at half speed (one full cycle over 2 steps).

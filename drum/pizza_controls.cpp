@@ -255,12 +255,18 @@ void PizzaControls::DrumpadComponent::update() {
       if (current_mode == musin::ui::RetriggerMode::Single) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
             static_cast<uint8_t>(i), 1);
+        controls->_sequencer_controller_ref.set_pad_pressed_state(
+            static_cast<uint8_t>(i), true);
       } else if (current_mode == musin::ui::RetriggerMode::Double) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
             static_cast<uint8_t>(i), 2);
+        controls->_sequencer_controller_ref.set_pad_pressed_state(
+            static_cast<uint8_t>(i), true);
       } else {
         controls->_sequencer_controller_ref.deactivate_play_on_every_step(
             static_cast<uint8_t>(i));
+        controls->_sequencer_controller_ref.set_pad_pressed_state(
+            static_cast<uint8_t>(i), false);
       }
     }
     _last_known_retrigger_mode_per_pad[i] = current_mode;
@@ -322,7 +328,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   if (event.pad_index < config::NUM_DRUMPADS) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       logger.debug("PRESSED ", static_cast<uint32_t>(event.pad_index));
-      seq_controller.set_pad_pressed_state(event.pad_index, true);
       if (event.velocity.has_value()) {
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
@@ -330,7 +335,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
       logger.debug("RELEASED ", static_cast<uint32_t>(event.pad_index));
-      seq_controller.set_pad_pressed_state(event.pad_index, false);
       uint8_t note = parent->get_note_for_pad(event.pad_index);
       seq_controller.trigger_note_off(event.pad_index, note);
     } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
@@ -482,6 +486,21 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
         drum::Parameter::CRUSH_EFFECT, value);
     break;
   case REPEAT: {
+    // When stopped: treat REPEAT as one-shot advance & play
+    if (!controls->is_running()) {
+      const float threshold = config::analog_controls::REPEAT_MODE_1_THRESHOLD;
+      const bool pressed = (value >= threshold);
+      if (pressed && !repeat_pressed_edge_) {
+        repeat_pressed_edge_ = true;
+        controls->_sequencer_controller_ref.advance_step();
+      } else if (!pressed && repeat_pressed_edge_) {
+        repeat_pressed_edge_ = false;
+      }
+      // Do not modify repeat effect state while stopped
+      return;
+    }
+
+    // Running: normal repeat effect behavior
     std::optional<uint32_t> intended_length = std::nullopt;
     if (value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD)
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;

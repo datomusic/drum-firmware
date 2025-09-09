@@ -207,6 +207,9 @@ public:
     float filter_current_value_{1.0f}; // Smoothed value sent to the engine
     absolute_time_t last_smoothing_time_ = nil_time;
     bool filter_smoothing_enabled_ = false; // Enable after first FILTER event
+
+    // Edge detection for REPEAT one-shot when stopped
+    bool repeat_pressed_edge_ = false;
   };
 
 private:

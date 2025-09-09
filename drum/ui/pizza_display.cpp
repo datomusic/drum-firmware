@@ -96,18 +96,6 @@ void PizzaDisplay::deinit() {
   gpio_put(PIZZA_LED_ENABLE_PIN, 0);
 }
 
-void PizzaDisplay::update_highlight_state() {
-  // This state is managed here, but driven by the SequencerDisplayMode.
-  // The mode calls this method. A simple tick division is used for pulsing
-  // when the sequencer isn't running.
-  uint32_t ticks_per_step = 24; // A reasonable default for a pulsing feel.
-
-  if (_clock_tick_counter - _last_tick_count_for_highlight >= ticks_per_step) {
-    _highlight_is_bright = !_highlight_is_bright;
-    _last_tick_count_for_highlight = _clock_tick_counter;
-  }
-}
-
 void PizzaDisplay::update(absolute_time_t now) {
   if (current_mode_) {
     current_mode_->draw(*this, now);

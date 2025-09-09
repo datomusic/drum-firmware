@@ -72,7 +72,7 @@ SequencerDisplayMode::SequencerDisplayMode(
 }
 
 void SequencerDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
-  display.update_highlight_state();
+  sync_highlight_phase_with_step(display);
   draw_base_elements(display, now);
   draw_animations(display, now);
 }
@@ -85,11 +85,13 @@ void SequencerDisplayMode::draw_base_elements(PizzaDisplay &display,
                          ? Color(config::COLOR_MIDI_CLOCK_LISTENER)
                          : drum::PizzaDisplay::COLOR_WHITE;
 
+  bool bright_phase = is_highlight_bright(display);
+
   if (_sequencer_controller_ref.is_running()) {
     display.set_play_button_led(base_color);
   } else {
     // When stopped, pulse the play button in sync with the step highlight
-    Color pulse_color = display._highlight_is_bright
+    Color pulse_color = bright_phase
                             ? base_color
                             : Color(display._leds.adjust_color_brightness(
                                   static_cast<uint32_t>(base_color),
@@ -141,7 +143,8 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
           (!is_running && step_idx == controller.get_current_step());
 
       if (is_cursor_step) {
-        final_color = apply_pulsing_highlight(display, final_color);
+        bool bright_now = is_highlight_bright(display);
+        final_color = apply_pulsing_highlight(final_color, bright_now);
       }
 
       std::optional<uint32_t> led_index_opt =
@@ -256,18 +259,62 @@ Color SequencerDisplayMode::calculate_step_color(
   return color;
 }
 
-Color SequencerDisplayMode::apply_pulsing_highlight(PizzaDisplay &display,
-                                                    Color base_color) const {
-  uint8_t amount;
-
-  if (display._highlight_is_bright) {
-    amount = PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT;
-  } else {
-    amount = ((PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT *
-               PizzaDisplay::REDUCED_BRIGHTNESS) >>
-              8);
-  }
+Color SequencerDisplayMode::apply_pulsing_highlight(Color base_color,
+                                                    bool bright_phase) const {
+  uint8_t amount =
+      bright_phase
+          ? PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT
+          : static_cast<uint8_t>((PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT *
+                                  PizzaDisplay::REDUCED_BRIGHTNESS) >>
+                                 8);
   return base_color.brighter(amount, PizzaDisplay::MAX_BRIGHTNESS);
+}
+
+void SequencerDisplayMode::sync_highlight_phase_with_step(
+    PizzaDisplay &display) {
+  // Phase-lock to step boundaries and toggle brightness only on step changes
+  // to achieve a blink that spans two steps (half the previous speed).
+  uint32_t current_step = _sequencer_controller_ref.get_current_step();
+  if (!_last_synced_step_index.has_value() ||
+      _last_synced_step_index.value() != current_step) {
+    _last_synced_step_index = current_step;
+    display._last_tick_count_for_highlight = display._clock_tick_counter;
+
+    if (_sequencer_controller_ref.is_running()) {
+      bool repeat_alt = _sequencer_controller_ref.is_repeat_active() &&
+                        _sequencer_controller_ref.get_repeat_length() == 1;
+      if (repeat_alt) {
+        // Flip bright/dim once per step while running when repeat length is 1
+        _bright_phase_for_current_step = !_bright_phase_for_current_step;
+      } else {
+        // Keep steady bright when running normally or other repeat lengths
+        _bright_phase_for_current_step = true;
+      }
+    }
+  }
+}
+
+bool SequencerDisplayMode::is_highlight_bright(
+    const PizzaDisplay &display) const {
+  uint32_t ticks_per_step =
+      _sequencer_controller_ref.get_ticks_per_musical_step();
+  if (ticks_per_step == 0) {
+    return true;
+  }
+
+  if (_sequencer_controller_ref.is_running()) {
+    // While running: alternate only if repeat length == 1; else steady bright.
+    bool repeat_alt = _sequencer_controller_ref.is_repeat_active() &&
+                      _sequencer_controller_ref.get_repeat_length() == 1;
+    return repeat_alt ? _bright_phase_for_current_step : true;
+  }
+
+  // When stopped: free-run pulse at half speed (one full cycle over 2 steps).
+  uint32_t period = ticks_per_step * 2;
+  uint32_t elapsed =
+      display._clock_tick_counter - display._last_tick_count_for_highlight;
+  uint32_t phase = elapsed % period;
+  return phase < ticks_per_step;
 }
 
 // --- FileTransferDisplayMode Implementation ---

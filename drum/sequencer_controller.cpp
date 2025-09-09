@@ -333,6 +333,12 @@ SequencerController<NumTracks, NumSteps>::is_repeat_active() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] uint32_t
+SequencerController<NumTracks, NumSteps>::get_repeat_length() const {
+  return repeat_active_ ? repeat_length_ : 0;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::generate_random_pattern() {
   // Generate random pattern: copy notes from main, randomize velocities and
   // enable states

@@ -16,7 +16,7 @@ public:
 
 /**
  * @brief Manages save timing and debounce logic.
- * 
+ *
  * This class handles the debounce logic for determining when state
  * should be saved, with an injectable time source for testability.
  */
@@ -28,9 +28,8 @@ public:
    * @param save_debounce_ms Minimum time between state changes and save
    * @param max_save_interval_ms Maximum time between saves when dirty
    */
-  SaveTimingManager(TimeSource& time_source, 
-                   uint32_t save_debounce_ms = 10000,
-                   uint32_t max_save_interval_ms = 30000);
+  SaveTimingManager(TimeSource &time_source, uint32_t save_debounce_ms = 10000,
+                    uint32_t max_save_interval_ms = 30000);
 
   /**
    * @brief Mark that state has changed (needs saving).
@@ -55,10 +54,10 @@ public:
   bool should_save_now() const;
 
 private:
-  TimeSource& time_source_;
+  TimeSource &time_source_;
   uint32_t save_debounce_ms_;
   uint32_t max_save_interval_ms_;
-  
+
   bool state_is_dirty_ = false;
   uint32_t last_change_time_ms_ = 0;
   uint32_t last_save_time_ms_ = 0;

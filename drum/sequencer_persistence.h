@@ -54,7 +54,9 @@ struct SequencerPersistentState {
    * @brief Validates the loaded data structure.
    * @return true if valid, false if corrupted or unsupported version
    */
-  bool is_valid() const { return magic == MAGIC_NUMBER && version == FORMAT_VERSION; }
+  bool is_valid() const {
+    return magic == MAGIC_NUMBER && version == FORMAT_VERSION;
+  }
 };
 
 // Compile-time size check to ensure we're not too large

@@ -3,11 +3,10 @@
 
 namespace drum {
 
-SaveTimingManager::SaveTimingManager(TimeSource& time_source,
-                                   uint32_t save_debounce_ms,
-                                   uint32_t max_save_interval_ms)
-    : time_source_(time_source),
-      save_debounce_ms_(save_debounce_ms),
+SaveTimingManager::SaveTimingManager(TimeSource &time_source,
+                                     uint32_t save_debounce_ms,
+                                     uint32_t max_save_interval_ms)
+    : time_source_(time_source), save_debounce_ms_(save_debounce_ms),
       max_save_interval_ms_(max_save_interval_ms) {
 }
 

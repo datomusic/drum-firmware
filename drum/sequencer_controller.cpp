@@ -209,19 +209,38 @@ void SequencerController<NumTracks, NumSteps>::notification(
   }
 
   // Process retrigger logic based on phases
-  // Mode 1: eighth notes (phases 0 and 12)
-  // Mode 2: sixteenth notes (phases 0, 6, 12, 18)
+  // Swing OFF behavior:
+  //   - Mode 1: eighths (0, 12)
+  //   - Mode 2: sixteenths (0, 6, 12, 18)
+  // Swing ON behavior:
+  //   - Mode 1: follows swing grid (0 and DEFAULT_SWING_PRESET)
+  //   - Mode 2: triplets (every 8 phases: 0, 8, 16)
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (_retrigger_mode_per_track[track_idx] == 1) {
-      // Eighth-note retrigger: phases 0 and 12
-      if (event.phase_24 == 0 || event.phase_24 == 12) {
-        _retrigger_due_mask |= (1 << track_idx);
+    uint8_t mode = _retrigger_mode_per_track[track_idx];
+    if (mode == 0) {
+      continue;
+    }
+
+    bool due = false;
+    if (swing_enabled_) {
+      if (mode == 1) {
+        constexpr uint8_t off_beat_phase =
+            static_cast<uint8_t>(drum::config::timing::DEFAULT_SWING_PRESET);
+        due = (event.phase_24 == 0) || (event.phase_24 == off_beat_phase);
+      } else if (mode == 2) {
+        // Triplet grid
+        due = (event.phase_24 % 8) == 0;
       }
-    } else if (_retrigger_mode_per_track[track_idx] == 2) {
-      // Sixteenth-note retrigger: phases 0, 6, 12, 18
-      if (event.phase_24 % 6 == 0) {
-        _retrigger_due_mask |= (1 << track_idx);
+    } else {
+      if (mode == 1) {
+        due = (event.phase_24 == 0) || (event.phase_24 == 12);
+      } else if (mode == 2) {
+        due = (event.phase_24 % 6) == 0;
       }
+    }
+
+    if (due) {
+      _retrigger_due_mask |= (1 << track_idx);
     }
   }
 }

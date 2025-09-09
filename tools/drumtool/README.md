@@ -155,14 +155,43 @@ No suitable MIDI output port found containing any of: Pico, DRUM
 - Ensure user has access to MIDI devices
 - May need to run with elevated permissions: `sudo node drumtool.js ...`
 
+## Architecture
+
+Drumtool features a modular, platform-agnostic architecture:
+
+- **Core Logic**: Platform-independent business logic in `src/core/`
+- **Protocol Modules**: SDS and custom protocol implementations in `src/protocol/`
+- **Platform Abstraction**: Interface definitions in `src/interfaces/`
+- **Node.js Implementation**: Platform-specific implementations in `src/nodejs/`
+- **CLI Layer**: Command-line interface orchestration in `src/cli/`
+
+This design enables:
+- 🧪 **Comprehensive Testing**: Full test coverage without hardware dependencies
+- 🌐 **Platform Portability**: Core logic reusable for web applications
+- 🔧 **Easy Maintenance**: Clean separation of concerns
+- 📈 **Extensibility**: Simple to add new features and platforms
+
 ## Development
 
 ### Testing
-See `drumtool_test.md` for comprehensive test scenarios and expected outputs.
+```bash
+# Run protocol tests
+node test/protocol_test.js
+
+# Run file processor tests
+node test/file_processor_test.js
+
+# Run integration tests
+node test/integration_test.js
+
+# Manual testing scenarios
+# See `drumtool_test.md` for comprehensive test procedures
+```
 
 ### Contributing
 - Follow existing code style (2-space indentation)
-- Add tests for new features
+- Add tests for new features in the `test/` directory
+- Use the modular architecture - separate concerns properly
 - Update documentation for API changes
 
 ## Technical Notes

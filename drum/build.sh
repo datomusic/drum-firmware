@@ -193,8 +193,9 @@ if ! cmake -B build $GEN_ARGS $CMAKE_ARGS; then
   exit 1
 fi
 
-echo "Building with 16 parallel jobs..."
-if ! cmake --build build --parallel 16; then
+# Hard-code parallelism for consistent performance on this Mac
+echo "Building with 10 parallel jobs..."
+if ! cmake --build build --parallel 10; then
   echo "Error: Build failed" >&2
   exit 1
 fi

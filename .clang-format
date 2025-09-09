@@ -5,3 +5,11 @@ AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
 IndentWidth: 2
 Standard: c++20
+
+# Default: disable formatting for all files
+DisableFormat: true
+---
+# Enable formatting for C and C++ files
+Language: Cpp
+DisableFormat: false
+---

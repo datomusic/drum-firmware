@@ -3,15 +3,18 @@
 #include "events.h"
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants
+#include "sequencer_persistence.h"
+#include "sequencer_storage.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 namespace drum {
 
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
-    musin::timing::TempoHandler &tempo_handler_ref)
+    musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
     : sequencer_(main_sequencer_), current_step_counter{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
@@ -19,11 +22,14 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       high_res_tick_counter_{0}, next_trigger_tick_target_{0},
       continuous_randomization_active_(false), _active_note_per_track{},
       _pad_pressed_state{}, _retrigger_mode_per_track{},
-      _retrigger_target_tick_per_track{} {
+      _retrigger_target_tick_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
   initialize_timing_and_random();
+
+  // Note: Persistence initialization deferred until filesystem is ready
+  // Call init_persistence() after filesystem.init() succeeds
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -482,6 +488,9 @@ void SequencerController<NumTracks, NumSteps>::set_active_note_for_track(
     uint8_t track_index, uint8_t note) {
   if (track_index < NumTracks) {
     _active_note_per_track[track_index] = note;
+    if (storage_.has_value()) {
+      storage_->mark_state_dirty();
+    }
   }
   // else: track_index is out of bounds, do nothing or log an error.
   // For now, we silently ignore out-of-bounds access to prevent crashes.
@@ -544,6 +553,17 @@ void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::update() {
+  // Periodic save logic with debouncing (runs regardless of step timing)
+  if (storage_.has_value() && storage_->should_save_now()) {
+    SequencerPersistentState state;
+    create_persistent_state(state);
+    if (storage_->save_state_to_flash(state)) {
+      logger_.debug("Periodic save completed successfully");
+    } else {
+      logger_.warn("Periodic save failed");
+    }
+  }
+
   uint8_t current_retrigger_mask = _retrigger_due_mask.load();
   if (current_retrigger_mask > 0) {
     uint8_t processed_mask = 0;
@@ -687,6 +707,144 @@ void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::create_persistent_state(
+    SequencerPersistentState &state) const {
+  // Clear the state and set header
+  state = SequencerPersistentState();
+
+  // Copy track data from main sequencer only
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    const auto &track = main_sequencer_.get_track(track_idx);
+    for (size_t step_idx = 0;
+         step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
+         ++step_idx) {
+      const auto &step = track.get_step(step_idx);
+      // Persist only velocity; 0 velocity means disabled.
+      if (step.enabled && step.velocity.has_value() &&
+          step.velocity.value() > 0) {
+        state.tracks[track_idx].velocities[step_idx] = step.velocity.value();
+      } else {
+        state.tracks[track_idx].velocities[step_idx] = 0;
+      }
+    }
+  }
+
+  // Copy active notes per track
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    state.active_notes[track_idx] = _active_note_per_track[track_idx];
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
+    const SequencerPersistentState &state) {
+  // Apply active notes first
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    _active_note_per_track[track_idx] = state.active_notes[track_idx];
+  }
+
+  // Apply per-step velocities to main sequencer; note is derived from active
+  // note
+  for (size_t track_idx = 0;
+       track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
+    auto &track = main_sequencer_.get_track(track_idx);
+    uint8_t track_note = _active_note_per_track[track_idx];
+    // Ensure track default note matches active note
+    track.set_note(track_note);
+    for (size_t step_idx = 0;
+         step_idx < NumSteps && step_idx < config::NUM_STEPS_PER_TRACK;
+         ++step_idx) {
+      auto &step = track.get_step(step_idx);
+      uint8_t velocity = state.tracks[track_idx].velocities[step_idx];
+      if (velocity > 0) {
+        step.note = track_note;
+        step.velocity = velocity;
+        step.enabled = true;
+      } else {
+        step.note = std::nullopt;
+        step.velocity = std::nullopt;
+        step.enabled = false;
+      }
+    }
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::save_state_to_flash() {
+  if (!storage_.has_value()) {
+    logger_.error("Manual save to flash failed - persistence not initialized");
+    return false;
+  }
+
+  SequencerPersistentState state;
+  create_persistent_state(state);
+  bool success = storage_->save_state_to_flash(state);
+  if (success) {
+    logger_.info("Manual save to flash completed successfully");
+  } else {
+    logger_.error("Manual save to flash failed");
+  }
+  return success;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::load_state_from_flash() {
+  if (!storage_.has_value()) {
+    logger_.error(
+        "Manual load from flash failed - persistence not initialized");
+    return false;
+  }
+
+  SequencerPersistentState state;
+  if (storage_->load_state_from_flash(state)) {
+    apply_persistent_state(state);
+    logger_.info("Manual load from flash completed successfully");
+    return true;
+  }
+  logger_.warn("Manual load from flash failed - no valid state found");
+  return false;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::init_persistence() {
+  if (storage_.has_value()) {
+    logger_.warn("Persistence already initialized");
+    return true;
+  }
+
+  // Initialize storage now that filesystem is ready
+  storage_.emplace();
+
+  // Attempt to load existing state
+  SequencerPersistentState loaded_state;
+  if (storage_->load_state_from_flash(loaded_state)) {
+    apply_persistent_state(loaded_state);
+    logger_.info("Sequencer state loaded from flash during init_persistence");
+    return true;
+  } else {
+    logger_.info(
+        "No sequencer state found during init_persistence, using defaults");
+    return false;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::is_persistence_initialized()
+    const {
+  return storage_.has_value();
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
+  if (storage_.has_value()) {
+    storage_->mark_state_dirty();
+  }
 }
 
 // Explicit template instantiation for 4 tracks, 8 steps

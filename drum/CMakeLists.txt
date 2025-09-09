@@ -20,7 +20,6 @@ set(EXECUTABLE_NAME ${EXECUTABLE_NAME_BASE}-${VERSION_FILENAME})
 # Generate version header file
 generate_version_header(${CMAKE_BINARY_DIR}/generated/version.h)
 
-
 project(${EXECUTABLE_NAME})
 
 add_executable(${EXECUTABLE_NAME}
@@ -30,6 +29,9 @@ add_executable(${EXECUTABLE_NAME}
   pizza_controls.cpp
   ui/pizza_display.cpp
   sequencer_controller.cpp
+  sequencer_storage.cpp
+  sequencer_persister.cpp
+  save_timing_manager.cpp
   configuration_manager.cpp
   message_router.cpp
   audio_engine.cpp
@@ -56,8 +58,8 @@ target_link_libraries(${KIT_NAME}_obj PRIVATE etl::etl)
 
 # 2. Find objcopy
 find_program(OBJCOPY_PATH NAMES arm-none-eabi-objcopy HINTS ENV PICO_TOOLCHAIN_PATH)
-if(NOT OBJCOPY_PATH)
-    message(FATAL_ERROR "arm-none-eabi-objcopy not found. Make sure the PICO_TOOLCHAIN_PATH is set.")
+if (NOT OBJCOPY_PATH)
+  message(FATAL_ERROR "arm-none-eabi-objcopy not found. Make sure the PICO_TOOLCHAIN_PATH is set.")
 endif()
 
 # 3. Add a custom command to extract the data from the compiled object file.
@@ -65,16 +67,15 @@ endif()
 set(KIT_OBJECT_FILE "$<TARGET_OBJECTS:${KIT_NAME}_obj>")
 
 add_custom_command(
-    OUTPUT ${KIT_BINARY_FILE}
-    COMMAND ${OBJCOPY_PATH} -O binary -j .rodata ${KIT_OBJECT_FILE} ${KIT_BINARY_FILE}
-    DEPENDS ${KIT_NAME}_obj
-    COMMENT "Generating ${KIT_BINARY_FILE} from ${KIT_SRC_CPP}"
-    VERBATIM
+  OUTPUT ${KIT_BINARY_FILE}
+  COMMAND ${OBJCOPY_PATH} -O binary -j.rodata ${KIT_OBJECT_FILE} ${KIT_BINARY_FILE}
+  DEPENDS ${KIT_NAME}_obj
+  COMMENT "Generating ${KIT_BINARY_FILE} from ${KIT_SRC_CPP}"
+  VERBATIM
 )
 
 # 4. Add a target to drive the generation.
 add_custom_target(generate_kit_binaries DEPENDS ${KIT_BINARY_FILE})
-
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   USBD_MANUFACTURER="Dato"
@@ -84,26 +85,25 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   SWAP_AUDIO_CLOCK=1
 )
 
-if(SWAP_AUDIO_CLOCK)
-  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
-    PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1
-  )
+if (SWAP_AUDIO_CLOCK)
+  target_compile_definitions(${EXECUTABLE_NAME} PRIVATE PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1)
 endif(SWAP_AUDIO_CLOCK)
 
 # Add include directories for the target
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ${CMAKE_BINARY_DIR}/generated # For version.h and config_default.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/config
-    # Add other specific include paths here if needed
-    ../lib
+  ${CMAKE_BINARY_DIR}/generated # For version.h and config_default.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/config
+  # Add other specific include paths here if needed
+  .
+  ./lib
 )
 
 # To enable verbose logging, pass -DENABLE_VERBOSE_LOGGING=ON to the cmake command.
-if(NOT DEFINED ENABLE_VERBOSE_LOGGING)
+if (NOT DEFINED ENABLE_VERBOSE_LOGGING)
   set(ENABLE_VERBOSE_LOGGING OFF CACHE BOOL "Enable verbose logging")
 endif()
 
-if(ENABLE_VERBOSE_LOGGING)
+if (ENABLE_VERBOSE_LOGGING)
   message(STATUS "Verbose logging enabled.")
   target_compile_definitions(${EXECUTABLE_NAME} PRIVATE VERBOSE)
 endif()
@@ -124,13 +124,13 @@ musin_setup_core_target()
 
 # --- Link application against musin libraries ---
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
-    musin::core
-    musin::hal
-    musin::drivers
-    musin::ui
-    musin::usb_midi
-    musin::audio
-    musin::filesystem
+  musin::core
+  musin::hal
+  musin::drivers
+  musin::ui
+  musin::usb_midi
+  musin::audio
+  musin::filesystem
 )
 
 # Enable filesystem for the pico (must be done after linking)
@@ -138,28 +138,24 @@ pico_enable_filesystem(${EXECUTABLE_NAME})
 
 add_dependencies(${EXECUTABLE_NAME} generate_kit_binaries)
 
-
 # Explicitly find the size utility, hinting at the Pico toolchain path
 set(TOOLCHAIN_PREFIX "arm-none-eabi-") # Adjust if your toolchain prefix is different
-find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size
-    HINTS $ENV{PICO_TOOLCHAIN_PATH} # Tell CMake where to look
-)
-if(NOT SIZE_UTIL_PATH)
-    message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found in standard paths or ${PICO_TOOLCHAIN_PATH}. Post-build size report will be skipped.")
+find_program(SIZE_UTIL_PATH NAMES ${TOOLCHAIN_PREFIX}size HINTS $ENV{PICO_TOOLCHAIN_PATH}) # Tell CMake where to look
+if (NOT SIZE_UTIL_PATH)
+  message(WARNING "Size utility (${TOOLCHAIN_PREFIX}size) not found in standard paths or ${PICO_TOOLCHAIN_PATH}. Post-build size report will be skipped.")
 endif()
 
-
 # Add size reporting commands only if the utility was found
-if(SIZE_UTIL_PATH)
-    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
-        COMMAND ${SIZE_UTIL_PATH} -A $<TARGET_FILE:${EXECUTABLE_NAME}>
-        COMMENT "Detailed size report:"
-    )
+if (SIZE_UTIL_PATH)
+  add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${SIZE_UTIL_PATH} -A $<TARGET_FILE:${EXECUTABLE_NAME}>
+    COMMENT "Detailed size report:"
+  )
 
-    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
-        COMMAND ${SIZE_UTIL_PATH} $<TARGET_FILE:${EXECUTABLE_NAME}>
-        COMMENT "Concise size report:"
-    )
+  add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${SIZE_UTIL_PATH} $<TARGET_FILE:${EXECUTABLE_NAME}>
+    COMMENT "Concise size report:"
+  )
 endif()
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})

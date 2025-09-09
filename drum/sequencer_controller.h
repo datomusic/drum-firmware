@@ -16,6 +16,9 @@
 #include <optional>
 
 #include "config.h"
+#include "musin/hal/logger.h"
+#include "sequencer_persistence.h"
+#include "sequencer_storage.h"
 #include <cstddef>
 
 namespace drum {
@@ -46,8 +49,10 @@ public:
   /**
    * @brief Constructor.
    * @param tempo_handler_ref A reference to the tempo handler.
+   * @param logger A reference to the logger instance.
    */
-  SequencerController(musin::timing::TempoHandler &tempo_handler_ref);
+  SequencerController(musin::timing::TempoHandler &tempo_handler_ref,
+                      musin::Logger &logger);
   ~SequencerController();
 
   SequencerController(const SequencerController &) = delete;
@@ -261,6 +266,15 @@ private:
   etl::array<std::optional<uint64_t>, NumTracks>
       _retrigger_target_tick_per_track{};
 
+  // Persistence management (optional until filesystem is ready)
+  std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;
+
+  // Logger reference
+  musin::Logger &logger_;
+
+  void create_persistent_state(SequencerPersistentState &state) const;
+  void apply_persistent_state(const SequencerPersistentState &state);
+
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;
   }
@@ -303,6 +317,37 @@ public:
    * @brief Set the random sequencer as active.
    */
   void select_random_sequencer();
+
+  /**
+   * @brief Save the current sequencer state to persistent storage.
+   * @return true if save was successful, false otherwise
+   */
+  bool save_state_to_flash();
+
+  /**
+   * @brief Load sequencer state from persistent storage.
+   * @return true if load was successful, false otherwise
+   */
+  bool load_state_from_flash();
+
+  /**
+   * @brief Initialize persistence subsystem after filesystem is ready.
+   * Must be called after filesystem.init() succeeds.
+   * @return true if initialization and state loading succeeded, false otherwise
+   */
+  bool init_persistence();
+
+  /**
+   * @brief Check if persistence subsystem is initialized.
+   * @return true if persistence is available, false otherwise
+   */
+  [[nodiscard]] bool is_persistence_initialized() const;
+
+  /**
+   * @brief Manually mark sequencer state as dirty for persistence.
+   * Call this after modifying sequencer patterns via get_sequencer().
+   */
+  void mark_state_dirty_public();
 };
 
 } // namespace drum

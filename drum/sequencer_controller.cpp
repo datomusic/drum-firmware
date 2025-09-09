@@ -537,6 +537,17 @@ void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::update() {
+  // Periodic save logic with debouncing (runs regardless of step timing)
+  if (storage_.has_value() && storage_->should_save_now()) {
+    SequencerPersistentState state;
+    create_persistent_state(state);
+    if (storage_->save_state_to_flash(state)) {
+      logger_.debug("Periodic save completed successfully");
+    } else {
+      logger_.warn("Periodic save failed");
+    }
+  }
+
   uint8_t current_retrigger_mask = _retrigger_due_mask.load();
   if (current_retrigger_mask > 0) {
     uint8_t processed_mask = 0;
@@ -602,17 +613,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
 
   next_trigger_tick_target_ += interval_to_next_trigger;
   current_step_counter++;
-
-  // Periodic save logic with debouncing
-  if (storage_.has_value() && storage_->should_save_now()) {
-    SequencerPersistentState state;
-    create_persistent_state(state);
-    if (storage_->save_state_to_flash(state)) {
-      logger_.debug("Periodic save completed successfully");
-    } else {
-      logger_.warn("Periodic save failed");
-    }
-  }
 }
 
 template <size_t NumTracks, size_t NumSteps>

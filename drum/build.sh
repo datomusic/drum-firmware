@@ -178,14 +178,23 @@ else
 fi
 
 # Build
-echo "Configuring build: cmake -B build $CMAKE_ARGS"
-if ! cmake -B build $CMAKE_ARGS; then
+# Prefer Ninja generator if available for faster builds
+GEN_ARGS=""
+if command -v ninja >/dev/null 2>&1; then
+  GEN_ARGS="-G Ninja"
+  echo "Using CMake generator: Ninja"
+else
+  echo "Using CMake default generator"
+fi
+
+echo "Configuring build: cmake -B build $GEN_ARGS $CMAKE_ARGS"
+if ! cmake -B build $GEN_ARGS $CMAKE_ARGS; then
   echo "Error: CMake configuration failed" >&2
   exit 1
 fi
 
-echo "Building with 16 parallel jobs..."
-if ! cmake --build build --parallel 16; then
+echo "Building with 10 parallel jobs..."
+if ! cmake --build build --parallel 10; then
   echo "Error: Build failed" >&2
   exit 1
 fi

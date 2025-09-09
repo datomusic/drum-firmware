@@ -40,10 +40,15 @@ private:
   void update_track_override_colors(PizzaDisplay &display);
   Color calculate_step_color(PizzaDisplay &display,
                              const musin::timing::Step &step) const;
-  Color apply_pulsing_highlight(PizzaDisplay &display, Color base_color) const;
+  Color apply_pulsing_highlight(PizzaDisplay &display, Color base_color,
+                                bool bright_phase) const;
+  void sync_highlight_phase_with_step(PizzaDisplay &display);
+  bool is_highlight_bright(const PizzaDisplay &display) const;
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
+  std::optional<uint32_t> _last_synced_step_index{};
+  bool _bright_phase_for_current_step = true;
 };
 
 // --- Concrete Strategy for File Transfer Mode ---

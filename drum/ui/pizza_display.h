@@ -198,7 +198,6 @@ public:
 
 private:
   void show();
-  void update_highlight_state();
 
   /**
    * @brief Get the physical LED index corresponding to a sequencer track and
@@ -240,7 +239,6 @@ private:
   // State for modes to access
   std::atomic<uint32_t> _clock_tick_counter = 0;
   uint32_t _last_tick_count_for_highlight = 0;
-  bool _highlight_is_bright = true;
   float _filter_value = 0.0f;
   float _crush_value = 0.0f;
 

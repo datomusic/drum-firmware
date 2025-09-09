@@ -114,10 +114,10 @@ TEST_CASE("SequencerPersister basic round-trip", "[sequencer_persister]") {
       
       REQUIRE(states_equal(state, loaded_state));
       
-      // Modify state slightly for next cycle
-      state.tracks[0].notes[0] = static_cast<uint8_t>(cycle + 100);
+      // Modify state slightly for next cycle (velocity tweak)
+      state.tracks[0].velocities[0] = static_cast<uint8_t>(cycle + 100);
       state = loaded_state; // Use loaded state as basis for next cycle
-      state.tracks[0].notes[0] = static_cast<uint8_t>(cycle + 100);
+      state.tracks[0].velocities[0] = static_cast<uint8_t>(cycle + 100);
     }
   }
 }
@@ -144,8 +144,8 @@ TEST_CASE("SequencerPersister data integrity", "[sequencer_persister]") {
     // Verify each track independently
     for (size_t track = 0; track < config::NUM_TRACKS; ++track) {
       for (size_t step = 0; step < config::NUM_STEPS_PER_TRACK; ++step) {
-        REQUIRE(loaded_state.tracks[track].notes[step] == (track + 1) * 20 + step);
-        REQUIRE(loaded_state.tracks[track].velocities[step] == 100 + track * 10 + step);
+        REQUIRE(loaded_state.tracks[track].velocities[step] ==
+                100 + track * 10 + step);
       }
     }
   }

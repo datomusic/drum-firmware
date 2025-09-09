@@ -749,7 +749,8 @@ void SequencerController<NumTracks, NumSteps>::apply_persistent_state(
     _active_note_per_track[track_idx] = state.active_notes[track_idx];
   }
 
-  // Apply per-step velocities to main sequencer; note is derived from active note
+  // Apply per-step velocities to main sequencer; note is derived from active
+  // note
   for (size_t track_idx = 0;
        track_idx < NumTracks && track_idx < config::NUM_TRACKS; ++track_idx) {
     auto &track = main_sequencer_.get_track(track_idx);

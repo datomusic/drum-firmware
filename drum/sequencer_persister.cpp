@@ -3,8 +3,9 @@
 
 namespace drum {
 
-bool SequencerPersister::save_to_file(const char* filepath, const SequencerPersistentState& state) {
-  FILE* file = fopen(filepath, "wb");
+bool SequencerPersister::save_to_file(const char *filepath,
+                                      const SequencerPersistentState &state) {
+  FILE *file = fopen(filepath, "wb");
   if (!file) {
     return false;
   }
@@ -15,8 +16,9 @@ bool SequencerPersister::save_to_file(const char* filepath, const SequencerPersi
   return written == 1;
 }
 
-bool SequencerPersister::load_from_file(const char* filepath, SequencerPersistentState& state) {
-  FILE* file = fopen(filepath, "rb");
+bool SequencerPersister::load_from_file(const char *filepath,
+                                        SequencerPersistentState &state) {
+  FILE *file = fopen(filepath, "rb");
   if (!file) {
     return false; // File doesn't exist, not an error
   }

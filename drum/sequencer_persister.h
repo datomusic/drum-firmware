@@ -7,7 +7,7 @@ namespace drum {
 
 /**
  * @brief Pure file I/O operations for sequencer state persistence.
- * 
+ *
  * This class handles only the reading and writing of sequencer state
  * to/from files. It has no dependencies on timing, hardware, or state
  * management - making it easily testable.
@@ -20,7 +20,8 @@ public:
    * @param state The state data to save
    * @return true if save was successful, false otherwise
    */
-  bool save_to_file(const char* filepath, const SequencerPersistentState& state);
+  bool save_to_file(const char *filepath,
+                    const SequencerPersistentState &state);
 
   /**
    * @brief Load sequencer state from a file.
@@ -28,7 +29,7 @@ public:
    * @param state Output parameter to receive the loaded state
    * @return true if load was successful, false otherwise
    */
-  bool load_from_file(const char* filepath, SequencerPersistentState& state);
+  bool load_from_file(const char *filepath, SequencerPersistentState &state);
 };
 
 } // namespace drum

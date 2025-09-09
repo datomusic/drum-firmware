@@ -63,7 +63,7 @@ public:
 
 private:
   static constexpr const char *SEQUENCER_STATE_FILE = "/sequencer_state.dat";
-  static constexpr uint32_t SAVE_DEBOUNCE_MS = 2000; // 2 second debounce
+  static constexpr uint32_t SAVE_DEBOUNCE_MS = 10000; // 10 second debounce
   static constexpr uint32_t MAX_SAVE_INTERVAL_MS =
       30000; // Maximum 30s between saves when dirty
 

@@ -173,6 +173,9 @@ constexpr float FILTER_SMOOTHING_RATE =
     6.0f; // Lower is slower, higher is faster
 constexpr float RANDOM_ACTIVATION_THRESHOLD = 0.1f;
 constexpr float SWING_KNOB_CENTER_VALUE = 0.5f;
+// Swing on/off handling uses a deadband around center; beyond this, swing is ON
+constexpr float SWING_ON_OFF_DEADBAND =
+    0.12f; // ~12% away from center to enable
 constexpr uint8_t SWING_BASE_PERCENT = 50;
 constexpr float SWING_PERCENT_SENSITIVITY = 33.0f;
 constexpr float REPEAT_MODE_1_THRESHOLD = 0.3f;
@@ -194,6 +197,24 @@ constexpr uint32_t REPEAT_RUNNING_DEBOUNCE_MS = 30;
 constexpr float MIN_BPM_ADJUST = 60.0f;
 constexpr float MAX_BPM_ADJUST = 360.0f;
 } // namespace analog_controls
+
+// Timing configuration (musical policies)
+namespace timing {
+/**
+ * Swing presets define the off-beat phase for the second eighth note.
+ * Values are 24 PPQN phases (0..23).
+ */
+enum class SwingPreset : uint8_t {
+  None = 12,       // 50/50
+  Light = 13,      // ~54/46
+  Medium = 14,     // ~58/42
+  Strong = 15,     // 62.5/37.5
+  FullShuffle = 16 // ~66.7/33.3 (≈ 2:1)
+};
+
+// Compile-time selection of swing preset when swing is enabled
+inline constexpr SwingPreset DEFAULT_SWING_PRESET = SwingPreset::FullShuffle;
+} // namespace timing
 
 // PizzaControls specific
 namespace main_controls {

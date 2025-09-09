@@ -1,7 +1,7 @@
 #ifndef DRUM_SEQUENCER_CONTROLLER_H
 #define DRUM_SEQUENCER_CONTROLLER_H
 
-#include "drum/config/timing_config.h"
+#include "drum/config.h"
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "events.h"
@@ -43,8 +43,6 @@ class SequencerController
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
-  static constexpr uint32_t CLOCK_PPQN = 24;
-  static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
   static constexpr etl::array<size_t, 4> RANDOM_STEP_OFFSETS = {3, 5, 7, 4};
 
   /**
@@ -61,9 +59,9 @@ public:
 
   /**
    * @brief Notification handler called when a TempoEvent is received.
-   * Implements the etl::observer interface. This is expected to be called
-   * at the high resolution defined by CLOCK_PPQN.
-   * @param event The received tempo event.
+   * Implements the etl::observer interface. This is called on every
+   * 24 PPQN tick with phase-based timing information.
+   * @param event The received tempo event containing phase_24 (0-23).
    */
   void notification(musin::timing::TempoEvent event);
 

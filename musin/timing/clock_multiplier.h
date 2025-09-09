@@ -32,6 +32,7 @@ private:
   uint64_t pulse_interval_us_ = 0;
   absolute_time_t last_pulse_time_ = nil_time;
   absolute_time_t next_pulse_time_ = nil_time;
+  ClockSource current_source_ = ClockSource::INTERNAL;
 };
 
 } // namespace musin::timing

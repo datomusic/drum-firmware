@@ -29,8 +29,9 @@ void SyncIn::update(absolute_time_t now) {
   switch (pulse_state_) {
   case PulseDebounceState::WAITING_FOR_RISING_EDGE:
     if (current_pulse_pin_state) { // Rising edge detected
-      // Fire the event immediately
+      // Fire the event immediately, marking it as a physical pulse
       ClockEvent event{ClockSource::EXTERNAL_SYNC};
+      event.is_physical_pulse = true;
       notify_observers(event);
 
       // Transition to the next state to wait for a stable low

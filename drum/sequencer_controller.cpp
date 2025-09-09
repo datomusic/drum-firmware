@@ -194,9 +194,9 @@ void SequencerController<NumTracks, NumSteps>::notification(
   bool should_advance_step = false;
 
   if (swing_enabled_) {
-    // Swing ON: advance on phases 0 and kSwingOnPreset
+    // Swing ON: advance on phases 0 and DEFAULT_SWING_PRESET
     constexpr uint8_t off_beat_phase =
-        static_cast<uint8_t>(drum::config::kSwingOnPreset);
+        static_cast<uint8_t>(drum::config::timing::DEFAULT_SWING_PRESET);
     should_advance_step =
         (event.phase_24 == 0) || (event.phase_24 == off_beat_phase);
   } else {

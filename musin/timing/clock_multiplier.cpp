@@ -15,6 +15,10 @@ ClockMultiplier::ClockMultiplier(uint8_t multiplication_factor)
 void ClockMultiplier::notification(musin::timing::ClockEvent event) {
   absolute_time_t now = get_absolute_time();
   bool send_resync = false;
+  bool is_physical = event.is_physical_pulse;
+
+  // Store the current source from the incoming event
+  current_source_ = event.source;
 
   if (!is_nil_time(last_pulse_time_)) {
     uint64_t diff = absolute_time_diff_us(last_pulse_time_, now);
@@ -29,9 +33,10 @@ void ClockMultiplier::notification(musin::timing::ClockEvent event) {
   last_pulse_time_ = now;
   pulse_counter_ = 0;
 
-  // Send the first pulse immediately, with resync only on initial sync or after
-  // timeout
-  ClockEvent multiplied_event{ClockSource::EXTERNAL_SYNC, send_resync};
+  // Send the first pulse immediately, preserving the original source and
+  // whether this was a physical pulse
+  ClockEvent multiplied_event{current_source_, send_resync};
+  multiplied_event.is_physical_pulse = is_physical;
   notify_observers(multiplied_event);
   pulse_counter_++;
   if (pulse_interval_us_ > 0) {
@@ -48,8 +53,10 @@ void ClockMultiplier::update(absolute_time_t now) {
   }
 
   if (time_reached(next_pulse_time_)) {
-    ClockEvent event{ClockSource::EXTERNAL_SYNC};
-    notify_observers(event);
+    ClockEvent interp_event{current_source_};
+    // Interpolated ticks are not physical pulses
+    interp_event.is_physical_pulse = false;
+    notify_observers(interp_event);
     pulse_counter_++;
     next_pulse_time_ = delayed_by_us(next_pulse_time_, pulse_interval_us_);
   }

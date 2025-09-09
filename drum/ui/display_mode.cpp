@@ -262,15 +262,17 @@ Color SequencerDisplayMode::calculate_step_color(
 Color SequencerDisplayMode::apply_pulsing_highlight(PizzaDisplay &display,
                                                     Color base_color,
                                                     bool bright_phase) const {
-  uint8_t amount = bright_phase
-                       ? PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT
-                       : static_cast<uint8_t>((PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT *
-                                               PizzaDisplay::REDUCED_BRIGHTNESS) >>
-                                              8);
+  uint8_t amount =
+      bright_phase
+          ? PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT
+          : static_cast<uint8_t>((PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT *
+                                  PizzaDisplay::REDUCED_BRIGHTNESS) >>
+                                 8);
   return base_color.brighter(amount, PizzaDisplay::MAX_BRIGHTNESS);
 }
 
-void SequencerDisplayMode::sync_highlight_phase_with_step(PizzaDisplay &display) {
+void SequencerDisplayMode::sync_highlight_phase_with_step(
+    PizzaDisplay &display) {
   // Phase-lock to step boundaries and toggle brightness only on step changes
   // to achieve a blink that spans two steps (half the previous speed).
   uint32_t current_step = _sequencer_controller_ref.get_current_step();
@@ -286,7 +288,8 @@ void SequencerDisplayMode::sync_highlight_phase_with_step(PizzaDisplay &display)
   }
 }
 
-bool SequencerDisplayMode::is_highlight_bright(const PizzaDisplay &display) const {
+bool SequencerDisplayMode::is_highlight_bright(
+    const PizzaDisplay &display) const {
   uint32_t ticks_per_step =
       _sequencer_controller_ref.get_ticks_per_musical_step();
   if (ticks_per_step == 0) {

@@ -32,8 +32,11 @@ PizzaDisplay::PizzaDisplay(
   current_mode_ = &sequencer_mode_;
 }
 
-void PizzaDisplay::notification(musin::timing::TempoEvent) {
-  _clock_tick_counter++;
+void PizzaDisplay::notification(musin::timing::TempoEvent event) {
+  // Update highlight state based on phases 0 and 12 for consistent blinking
+  if (event.phase_24 == 0 || event.phase_24 == 12) {
+    _highlight_is_bright = !_highlight_is_bright;
+  }
 }
 
 void PizzaDisplay::notification(
@@ -96,6 +99,11 @@ void PizzaDisplay::deinit() {
   gpio_put(PIZZA_LED_ENABLE_PIN, 0);
 }
 
+void PizzaDisplay::update_highlight_state() {
+  // This state is now managed directly in the notification method
+  // based on phases 0 and 12 for consistent blinking.
+  // The highlight state is updated on each relevant phase tick.
+}
 void PizzaDisplay::update(absolute_time_t now) {
   if (current_mode_) {
     current_mode_->draw(*this, now);

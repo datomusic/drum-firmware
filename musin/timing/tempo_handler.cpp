@@ -19,8 +19,8 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
       _midi_clock_processor_ref(midi_clock_processor_ref),
       _sync_in_ref(sync_in_ref), _clock_multiplier_ref(clock_multiplier_ref),
       current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
-      current_speed_modifier_(SpeedModifier::NORMAL_SPEED), tick_counter_(0),
-      _send_this_internal_tick_as_midi_clock(true),
+      current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_24_(0),
+      tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
 
   set_clock_source(initial_source);
@@ -44,13 +44,12 @@ void TempoHandler::set_clock_source(ClockSource source) {
   }
 
   current_source_ = source;
-  tick_counter_ =
-      0; // Reset counter to prevent phase pollution on source change
+  phase_24_ = 0; // Reset phase on source change
+  external_align_to_12_next_ = (current_source_ == ClockSource::EXTERNAL_SYNC);
 
   // Setup for the new source
   if (current_source_ == ClockSource::INTERNAL) {
     _internal_clock_ref.add_observer(*this);
-    _send_this_internal_tick_as_midi_clock = true;
     _internal_clock_ref.start();
   } else if (current_source_ == ClockSource::MIDI) {
     _midi_clock_processor_ref.add_observer(*this);
@@ -68,13 +67,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
       current_source_ == ClockSource::INTERNAL) {
     if (_playback_state == PlaybackState::PLAYING ||
         _send_midi_clock_when_stopped) {
-      if (_send_this_internal_tick_as_midi_clock) {
-        MIDI::sendRealTime(midi::Clock);
-      }
-      _send_this_internal_tick_as_midi_clock =
-          !_send_this_internal_tick_as_midi_clock;
-    } else {
-      _send_this_internal_tick_as_midi_clock = true;
+      // Send MIDI realtime clock on every internal tick (24 PPQN)
+      MIDI::sendRealTime(midi::Clock);
     }
   }
 
@@ -84,10 +78,13 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
   // Handle resync events immediately for all sources
   if (event.is_resync) {
-    musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
-                                                 .is_resync = true};
+    phase_24_ = 0; // Reset phase on resync
+    if (current_source_ == ClockSource::EXTERNAL_SYNC) {
+      external_align_to_12_next_ = true; // Next physical pulse aligns to 12
+    }
+    musin::timing::TempoEvent resync_tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
     notify_observers(resync_tempo_event);
-    tick_counter_ = 0; // Reset counter for consistent phase alignment
     return;
   }
 
@@ -96,34 +93,55 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   // Simplified speed modifier processing for all external sources
   if (current_source_ == ClockSource::MIDI ||
       current_source_ == ClockSource::EXTERNAL_SYNC) {
-    process_external_tick_with_speed_modifier();
+    process_external_tick_with_speed_modifier(event.is_physical_pulse);
   } else {
-    // Internal source: forward tick directly (no speed modification needed)
-    musin::timing::TempoEvent tempo_tick_event{};
-    notify_observers(tempo_tick_event);
+    // Internal source: advance phase and emit event on every tick
+    advance_phase_and_emit_event();
   }
 }
 
-void TempoHandler::process_external_tick_with_speed_modifier() {
+void TempoHandler::process_external_tick_with_speed_modifier(
+    bool is_physical_pulse) {
+  // For external sync, ensure physical pulses align exactly to phases 0 and 12.
+  if (is_physical_pulse) {
+    phase_24_ = external_align_to_12_next_ ? 12 : 0;
+    external_align_to_12_next_ = !external_align_to_12_next_;
+  } else {
+    // Interpolated tick: advance by one phase
+    phase_24_ = static_cast<uint8_t>((phase_24_ + 1) % 24);
+  }
+  tick_count_++;
+
+  // Apply speed modifiers to musical event emission only
   switch (current_speed_modifier_) {
   case SpeedModifier::NORMAL_SPEED: {
-    musin::timing::TempoEvent tempo_tick_event{};
-    notify_observers(tempo_tick_event);
+    // Emit one event per phase
+    musin::timing::TempoEvent tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+    notify_observers(tempo_event);
     break;
   }
   case SpeedModifier::HALF_SPEED: {
-    tick_counter_++;
-    if (tick_counter_ >= 2) {
-      musin::timing::TempoEvent tempo_tick_event{};
-      notify_observers(tempo_tick_event);
-      tick_counter_ = 0;
+    // Emit only on even phases (phase % 2 == 0)
+    if (phase_24_ % 2 == 0) {
+      musin::timing::TempoEvent tempo_event{
+          .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+      notify_observers(tempo_event);
     }
     break;
   }
   case SpeedModifier::DOUBLE_SPEED: {
-    musin::timing::TempoEvent tempo_tick_event{};
-    notify_observers(tempo_tick_event);
-    notify_observers(tempo_tick_event);
+    // Emit twice per phase: current phase and next phase
+    musin::timing::TempoEvent tempo_event_1{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+    notify_observers(tempo_event_1);
+
+    // Emit second event with next phase (wrapping at 24)
+    musin::timing::TempoEvent tempo_event_2{
+        .tick_count = tick_count_,
+        .phase_24 = static_cast<uint8_t>((phase_24_ + 1) % 24),
+        .is_resync = false};
+    notify_observers(tempo_event_2);
     break;
   }
   }
@@ -138,15 +156,10 @@ void TempoHandler::set_bpm(float bpm) {
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
   _clock_multiplier_ref.set_speed_modifier(modifier);
-  tick_counter_ = 0;
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
-  if (current_source_ == ClockSource::INTERNAL &&
-      _playback_state == PlaybackState::STOPPED) {
-    _send_this_internal_tick_as_midi_clock = true;
-  }
 }
 
 /**
@@ -182,11 +195,25 @@ void TempoHandler::update() {
 
 void TempoHandler::trigger_manual_sync() {
   if (current_source_ != ClockSource::INTERNAL) {
-    musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
-                                                 .is_resync = true};
+    phase_24_ = 0; // Reset phase on manual sync
+    musin::timing::TempoEvent resync_tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
     notify_observers(resync_tempo_event);
-    tick_counter_ = 0; // Reset for consistent phase alignment
   }
+}
+
+void TempoHandler::advance_phase_and_emit_event() {
+  // Advance the 24 PPQN phase counter (0-23)
+  phase_24_ = (phase_24_ + 1) % 24;
+
+  // Advance the running tick count
+  tick_count_++;
+
+  // Emit tempo event with current phase information
+  musin::timing::TempoEvent tempo_event{
+      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+
+  notify_observers(tempo_event);
 }
 
 } // namespace musin::timing

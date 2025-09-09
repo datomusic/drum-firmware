@@ -15,8 +15,7 @@ SyncOut::SyncOut(std::uint32_t gpio_pin, std::uint32_t ticks_per_pulse,
                              ? 1000 // Default to 1ms if 0 is passed
                              : static_cast<std::uint64_t>(pulse_duration_ms) *
                                    1000),
-      _tick_counter(0), _is_enabled(false), _pulse_active(false),
-      _pulse_alarm_id(0) {
+      _is_enabled(false), _pulse_active(false), _pulse_alarm_id(0) {
   _gpio.set_direction(musin::hal::GpioDirection::OUT);
   _gpio.write(false); // Ensure output is initially low
 }
@@ -25,39 +24,35 @@ SyncOut::~SyncOut() {
   disable(); // Ensure cleanup on destruction
 }
 
-void SyncOut::notification(musin::timing::TempoEvent /* event */) {
+void SyncOut::notification(musin::timing::TempoEvent event) {
   if (!_is_enabled) {
     return;
   }
 
-  _tick_counter++;
-  if (_tick_counter >= _ticks_per_pulse) {
-    _tick_counter = 0;
+  // Phase-based stable 4 PPQN: pulse on phases 0, 6, 12, 18 (every six ticks)
+  // independent of swing
+  bool should_pulse = (event.phase_24 % 6) == 0;
 
-    if (!_pulse_active) {
-      _gpio.write(true);
-      _pulse_active = true;
+  if (should_pulse && !_pulse_active) {
+    _gpio.write(true);
+    _pulse_active = true;
 
-      // Cancel any existing alarm before setting a new one (should not happen
-      // often)
-      if (_pulse_alarm_id > 0) {
-        cancel_alarm(_pulse_alarm_id);
-      }
-      // User_data is 'this' SyncOut instance
-      _pulse_alarm_id = add_alarm_in_us(_pulse_duration_us,
-                                        pulse_off_alarm_callback, this, true);
-      if (_pulse_alarm_id <= 0) {
-        // Handle error: Failed to add alarm.
-        // For now, immediately turn off pulse to prevent it staying high
-        // indefinitely. A more robust solution might involve logging or an
-        // error state.
-        trigger_pulse_off();
-        // printf("SyncOut Error: Failed to schedule pulse off alarm.\n");
-      }
+    // Cancel any existing alarm before setting a new one
+    if (_pulse_alarm_id > 0) {
+      cancel_alarm(_pulse_alarm_id);
     }
-    // If pulse is already active, this tick is effectively skipped for
-    // re-triggering to prevent re-entrant calls or complex logic for extending
-    // pulse.
+
+    // Schedule pulse off after configured duration
+    _pulse_alarm_id = add_alarm_in_us(_pulse_duration_us,
+                                      pulse_off_alarm_callback, this, true);
+    if (_pulse_alarm_id <= 0) {
+      // Handle error: Failed to add alarm.
+      // For now, immediately turn off pulse to prevent it staying high
+      // indefinitely. A more robust solution might involve logging or an
+      // error state.
+      trigger_pulse_off();
+      // printf("SyncOut Error: Failed to schedule pulse off alarm.\n");
+    }
   }
 }
 
@@ -66,9 +61,7 @@ void SyncOut::enable() {
     return;
   }
   _is_enabled = true;
-  _tick_counter =
-      0; // Reset counter on enable
-         // printf("SyncOut: Enabled. Pin: %u\n", _gpio.get_pin_num());
+  // printf("SyncOut: Enabled. Pin: %u\n", _gpio.get_pin_num());
 }
 
 void SyncOut::disable() {

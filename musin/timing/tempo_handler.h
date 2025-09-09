@@ -113,7 +113,14 @@ private:
    * consistently. Consolidates MIDI and SYNC speed modifier logic for better
    * phase alignment.
    */
-  void process_external_tick_with_speed_modifier();
+  void process_external_tick_with_speed_modifier(bool is_physical_pulse);
+
+  /**
+   * @brief Advance internal phase counter and emit tempo event.
+   * This is the central method that advances phase_24_ and tick_count_,
+   * then emits a TempoEvent with the current phase information.
+   */
+  void advance_phase_and_emit_event();
 
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
@@ -123,9 +130,12 @@ private:
   ClockSource current_source_;
   PlaybackState _playback_state;
   SpeedModifier current_speed_modifier_;
-  uint8_t tick_counter_;
-  bool _send_this_internal_tick_as_midi_clock;
+  uint8_t phase_24_;    // 24 PPQN phase counter (0-23)
+  uint64_t tick_count_; // Running tick count
   const bool _send_midi_clock_when_stopped;
+  // For external sync alignment: alternate physical pulses between phases 0 and
+  // 12
+  bool external_align_to_12_next_ = false;
 };
 
 } // namespace musin::timing

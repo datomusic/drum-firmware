@@ -144,7 +144,7 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
 
       if (is_cursor_step) {
         bool bright_now = is_highlight_bright(display);
-        final_color = apply_pulsing_highlight(display, final_color, bright_now);
+        final_color = apply_pulsing_highlight(final_color, bright_now);
       }
 
       std::optional<uint32_t> led_index_opt =
@@ -259,8 +259,7 @@ Color SequencerDisplayMode::calculate_step_color(
   return color;
 }
 
-Color SequencerDisplayMode::apply_pulsing_highlight(PizzaDisplay &display,
-                                                    Color base_color,
+Color SequencerDisplayMode::apply_pulsing_highlight(Color base_color,
                                                     bool bright_phase) const {
   uint8_t amount =
       bright_phase

@@ -40,8 +40,7 @@ private:
   void update_track_override_colors(PizzaDisplay &display);
   Color calculate_step_color(PizzaDisplay &display,
                              const musin::timing::Step &step) const;
-  Color apply_pulsing_highlight(PizzaDisplay &display, Color base_color,
-                                bool bright_phase) const;
+  Color apply_pulsing_highlight(Color base_color, bool bright_phase) const;
   void sync_highlight_phase_with_step(PizzaDisplay &display);
   bool is_highlight_bright(const PizzaDisplay &display) const;
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>

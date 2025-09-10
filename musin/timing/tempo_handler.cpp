@@ -15,7 +15,8 @@ namespace {
 // Normalize any integer to [0, DEFAULT_PPQN-1] for 24 PPQN phase safety.
 constexpr uint8_t wrap24(int v) noexcept {
   int r = v % static_cast<int>(musin::timing::DEFAULT_PPQN);
-  return static_cast<uint8_t>(r < 0 ? r + 24 : r);
+  return static_cast<uint8_t>(
+      r < 0 ? r + static_cast<int>(musin::timing::DEFAULT_PPQN) : r);
 }
 } // namespace
 

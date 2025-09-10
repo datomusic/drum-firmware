@@ -1,4 +1,5 @@
 #include "sync_out.h"
+#include "musin/timing/timing_constants.h"
 
 #include "pico/stdlib.h" // For hardware_alarm functions
 #include <cstdio>        // For printf, if debugging
@@ -31,7 +32,8 @@ void SyncOut::notification(musin::timing::TempoEvent event) {
 
   // Phase-based stable 4 PPQN: pulse on phases 0, 6, 12, 18 (every six ticks)
   // independent of swing
-  bool should_pulse = (event.phase_24 % 6) == 0;
+  bool should_pulse =
+      (event.phase_24 % musin::timing::PHASE_SIXTEENTH_STEP) == 0;
 
   if (should_pulse && !_pulse_active) {
     _gpio.write(true);

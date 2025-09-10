@@ -211,7 +211,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
   high_res_tick_counter_.store(0);
   next_trigger_tick_target_.store(0);
 
-  
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
 

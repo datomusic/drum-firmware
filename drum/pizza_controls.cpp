@@ -488,24 +488,83 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
   case REPEAT: {
     // When stopped: treat REPEAT as one-shot advance & play
     if (!controls->is_running()) {
-      const float threshold = config::analog_controls::REPEAT_MODE_1_THRESHOLD;
-      const bool pressed = (value >= threshold);
-      if (pressed && !repeat_pressed_edge_) {
-        repeat_pressed_edge_ = true;
-        controls->_sequencer_controller_ref.advance_step();
-      } else if (!pressed && repeat_pressed_edge_) {
-        repeat_pressed_edge_ = false;
+      const absolute_time_t now = get_absolute_time();
+      const uint32_t debounce_us =
+          config::analog_controls::REPEAT_EDGE_DEBOUNCE_MS * 1000u;
+      const bool debounce_ok =
+          is_nil_time(repeat_last_transition_time_) ||
+          absolute_time_diff_us(repeat_last_transition_time_, now) >=
+              static_cast<int64_t>(debounce_us);
+
+      if (!repeat_pressed_edge_) {
+        // Currently released: require ON threshold to trigger press
+        if (debounce_ok &&
+            value >= config::analog_controls::REPEAT_EDGE_ON_THRESHOLD) {
+          repeat_pressed_edge_ = true;
+          repeat_last_transition_time_ = now;
+          controls->_sequencer_controller_ref.advance_step();
+        }
+      } else {
+        // Currently pressed: require OFF threshold to release
+        if (debounce_ok &&
+            value <= config::analog_controls::REPEAT_EDGE_OFF_THRESHOLD) {
+          repeat_pressed_edge_ = false;
+          repeat_last_transition_time_ = now;
+        }
       }
       // Do not modify repeat effect state while stopped
       return;
     }
 
-    // Running: normal repeat effect behavior
+    // Running: hysteresis-based repeat mode selection with debounce
+    {
+      const absolute_time_t now = get_absolute_time();
+      const uint32_t debounce_us =
+          config::analog_controls::REPEAT_RUNNING_DEBOUNCE_MS * 1000u;
+      const bool debounce_ok =
+          is_nil_time(repeat_running_last_transition_time_) ||
+          absolute_time_diff_us(repeat_running_last_transition_time_, now) >=
+              static_cast<int64_t>(debounce_us);
+
+      if (debounce_ok) {
+        switch (repeat_running_state_) {
+        case RepeatRunningState::None:
+          if (value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
+            repeat_running_state_ = RepeatRunningState::Mode2;
+            repeat_running_last_transition_time_ = now;
+          } else if (value >=
+                     config::analog_controls::REPEAT_MODE1_ENTER_THRESHOLD) {
+            repeat_running_state_ = RepeatRunningState::Mode1;
+            repeat_running_last_transition_time_ = now;
+          }
+          break;
+        case RepeatRunningState::Mode1:
+          if (value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
+            repeat_running_state_ = RepeatRunningState::Mode2;
+            repeat_running_last_transition_time_ = now;
+          } else if (value <=
+                     config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
+            repeat_running_state_ = RepeatRunningState::None;
+            repeat_running_last_transition_time_ = now;
+          }
+          break;
+        case RepeatRunningState::Mode2:
+          if (value <= config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD) {
+            // Drop to Mode1 on falling below Mode2 exit threshold
+            repeat_running_state_ = RepeatRunningState::Mode1;
+            repeat_running_last_transition_time_ = now;
+          }
+          break;
+        }
+      }
+    }
+
     std::optional<uint32_t> intended_length = std::nullopt;
-    if (value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD)
+    if (repeat_running_state_ == RepeatRunningState::Mode2) {
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
-    else if (value >= config::analog_controls::REPEAT_MODE_1_THRESHOLD)
+    } else if (repeat_running_state_ == RepeatRunningState::Mode1) {
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_1;
+    }
     controls->_sequencer_controller_ref.set_intended_repeat_state(
         intended_length);
     parent_controls->_message_router_ref.set_parameter(

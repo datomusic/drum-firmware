@@ -210,6 +210,16 @@ public:
 
     // Edge detection for REPEAT one-shot when stopped
     bool repeat_pressed_edge_ = false;
+    absolute_time_t repeat_last_transition_time_ = nil_time;
+
+    // Hysteresis state for REPEAT while running
+    enum class RepeatRunningState : uint8_t {
+      None = 0,
+      Mode1 = 1,
+      Mode2 = 2
+    };
+    RepeatRunningState repeat_running_state_ = RepeatRunningState::None;
+    absolute_time_t repeat_running_last_transition_time_ = nil_time;
   };
 
 private:

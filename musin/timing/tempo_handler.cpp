@@ -10,6 +10,14 @@
 
 namespace musin::timing {
 
+namespace {
+// Normalize any integer to [0, 23] for 24 PPQN phase safety.
+constexpr uint8_t wrap24(int v) noexcept {
+  int r = v % 24;
+  return static_cast<uint8_t>(r < 0 ? r + 24 : r);
+}
+} // namespace
+
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
                            SyncIn &sync_in_ref,
@@ -92,8 +100,9 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
       half_prescaler_toggle_ = false;    // Reset prescaler on resync
       physical_pulse_counter_ = 0;       // Reset pulse counter on resync
     }
-    musin::timing::TempoEvent resync_tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+    musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
+                                                 .phase_24 = wrap24(phase_24_),
+                                                 .is_resync = true};
     notify_observers(resync_tempo_event);
     return;
   }
@@ -185,7 +194,7 @@ void TempoHandler::process_external_tick_with_speed_modifier(
   if (anchored_this_tick) {
     // Emit anchored phase
     musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                          .phase_24 = phase_24_,
+                                          .phase_24 = wrap24(phase_24_),
                                           .is_resync =
                                               anchored_is_manual_resync};
     notify_observers(tempo_event);
@@ -197,8 +206,9 @@ void TempoHandler::process_external_tick_with_speed_modifier(
   } else if (advance_this_tick && step > 0) {
     // Non-anchored: advance, then emit the new phase
     phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
-    musin::timing::TempoEvent tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+    musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
+                                          .phase_24 = wrap24(phase_24_),
+                                          .is_resync = false};
     notify_observers(tempo_event);
   }
 }
@@ -299,7 +309,8 @@ void TempoHandler::trigger_manual_sync() {
         // Emit resync at the anchor phase first
         phase_24_ = anchor_phase;
         musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
-                                                     .phase_24 = phase_24_,
+                                                     .phase_24 =
+                                                         wrap24(phase_24_),
                                                      .is_resync = true};
         notify_observers(resync_tempo_event);
 
@@ -337,8 +348,9 @@ void TempoHandler::trigger_manual_sync() {
   case ClockSource::EXTERNAL_SYNC:
     // Immediate resync for SyncIn
     phase_24_ = 0; // Reset phase on manual sync
-    musin::timing::TempoEvent resync_tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+    musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
+                                                 .phase_24 = wrap24(phase_24_),
+                                                 .is_resync = true};
     notify_observers(resync_tempo_event);
     break;
   }
@@ -352,8 +364,9 @@ void TempoHandler::advance_phase_and_emit_event() {
   tick_count_++;
 
   // Emit tempo event with current phase information
-  musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+  musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
+                                        .phase_24 = wrap24(phase_24_),
+                                        .is_resync = false};
 
   notify_observers(tempo_event);
 }

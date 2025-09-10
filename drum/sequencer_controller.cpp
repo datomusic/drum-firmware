@@ -31,11 +31,9 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       continuous_randomization_active_(false), _active_note_per_track{},
-      _pad_pressed_state{},
-      swing_sign_change_pending_(false),
+      _pad_pressed_state{}, swing_sign_change_pending_(false),
       swing_delays_odd_steps_applied_(swing_delays_odd_steps_),
-      _retrigger_mode_per_track{},
-      logger_(logger) {
+      _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -114,10 +112,12 @@ void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) {
+void SequencerController<NumTracks, NumSteps>::set_swing_target(
+    bool delay_odd) {
   if (swing_delays_odd_steps_ != delay_odd) {
     swing_delays_odd_steps_ = delay_odd;
-    // Defer applying the new sign until the next offbeat to avoid dropping a step
+    // Defer applying the new sign until the next offbeat to avoid dropping a
+    // step
     swing_sign_change_pending_ = true;
   }
 }
@@ -217,6 +217,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
+  // event.phase_24 is guaranteed in [0, PPQN-1] by TempoHandler
+
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
     advance_step();
@@ -235,8 +237,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
   bool on_offbeat = (event.phase_24 == offbeat_phase);
 
   // Use the currently-applied sign while a change is pending
-  bool effective_delay_odd = swing_sign_change_pending_ ?
-                                 swing_delays_odd_steps_applied_
+  bool effective_delay_odd = swing_sign_change_pending_
+                                 ? swing_delays_odd_steps_applied_
                                  : swing_delays_odd_steps_;
   bool offbeat_should_be_even = effective_delay_odd; // opposite of downbeat
 

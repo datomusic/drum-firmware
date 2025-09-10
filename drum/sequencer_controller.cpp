@@ -30,10 +30,10 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     : sequencer_(main_sequencer_), current_step_counter{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
-      continuous_randomization_active_(false), _active_note_per_track{},
-      _pad_pressed_state{}, swing_sign_change_pending_(false),
+      swing_sign_change_pending_(false),
       swing_delays_odd_steps_applied_(swing_delays_odd_steps_),
-      _retrigger_mode_per_track{}, logger_(logger) {
+      continuous_randomization_active_(false), _active_note_per_track{},
+      _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();

@@ -237,7 +237,7 @@ private:
   musin::Logger &_logger_ref;
 
   // State for modes to access
-  bool _highlight_is_bright = true;
+  std::atomic<bool> _highlight_is_bright{true};
   float _filter_value = 0.0f;
   float _crush_value = 0.0f;
 

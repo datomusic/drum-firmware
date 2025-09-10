@@ -6,6 +6,7 @@
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"
+#include "pico/time.h"
 
 namespace musin::timing {
 
@@ -48,6 +49,11 @@ void TempoHandler::set_clock_source(ClockSource source) {
   external_align_to_12_next_ = (current_source_ == ClockSource::EXTERNAL_SYNC);
   half_prescaler_toggle_ = false; // Reset prescaler on source change
   physical_pulse_counter_ = 0;    // Reset pulse counter on source change
+  // Clear any deferred anchoring state when switching sources
+  pending_anchor_on_next_external_tick_ = false;
+  pending_manual_resync_flag_ = false;
+  last_external_tick_us_ = 0;
+  last_external_tick_interval_us_ = 0;
 
   // Setup for the new source
   if (current_source_ == ClockSource::INTERNAL) {
@@ -97,6 +103,16 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   // Simplified speed modifier processing for all external sources
   if (current_source_ == ClockSource::MIDI ||
       current_source_ == ClockSource::EXTERNAL_SYNC) {
+    // Capture timing for MIDI look-behind anchoring
+    if (current_source_ == ClockSource::MIDI) {
+      uint32_t now_us =
+          static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+      if (last_external_tick_us_ != 0) {
+        last_external_tick_interval_us_ =
+            now_us - last_external_tick_us_; // wrap-safe
+      }
+      last_external_tick_us_ = now_us;
+    }
     process_external_tick_with_speed_modifier(event.is_physical_pulse);
   } else {
     // Internal source: advance phase and emit event on every tick
@@ -111,6 +127,20 @@ void TempoHandler::process_external_tick_with_speed_modifier(
 
   // Optional anchoring on physical SyncIn pulses
   bool anchored_this_tick = false;
+  bool anchored_is_manual_resync = false;
+
+  // If a manual anchor was requested while MIDI is the source, perform it on
+  // the first subsequent external tick. This produces an anchor at the nearest
+  // upcoming MIDI clock boundary rather than immediately.
+  if (pending_anchor_on_next_external_tick_ &&
+      current_source_ == ClockSource::MIDI) {
+    phase_24_ = external_align_to_12_next_ ? 12 : 0;
+    external_align_to_12_next_ = !external_align_to_12_next_;
+    anchored_this_tick = true;
+    anchored_is_manual_resync = pending_manual_resync_flag_;
+    pending_manual_resync_flag_ = false;
+    pending_anchor_on_next_external_tick_ = false;
+  }
   if (is_physical_pulse) {
     physical_pulse_counter_++;
 
@@ -154,8 +184,10 @@ void TempoHandler::process_external_tick_with_speed_modifier(
   // - On non-anchored ticks: advance first (if applicable), then emit.
   if (anchored_this_tick) {
     // Emit anchored phase
-    musin::timing::TempoEvent tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+    musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
+                                          .phase_24 = phase_24_,
+                                          .is_resync =
+                                              anchored_is_manual_resync};
     notify_observers(tempo_event);
 
     // Advance after anchor if this tick should advance due to speed modifier
@@ -223,11 +255,83 @@ void TempoHandler::update() {
 }
 
 void TempoHandler::trigger_manual_sync() {
-  if (current_source_ != ClockSource::INTERNAL) {
+  switch (current_source_) {
+  case ClockSource::INTERNAL:
+    // No-op for internal clock; phase advances locally.
+    break;
+  case ClockSource::MIDI:
+    // Attempt look-behind: if the press is shortly after a MIDI tick, treat
+    // that last tick as the anchor boundary (0/12). Otherwise, defer to the
+    // next tick.
+    {
+      uint32_t now_us =
+          static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+      bool have_last_tick = (last_external_tick_us_ != 0);
+      // Define a window as half of the last tick interval, with a reasonable
+      // upper bound to avoid overly long windows at slow tempos.
+      uint32_t interval_us = last_external_tick_interval_us_;
+      if (interval_us == 0 && have_last_tick) {
+        // Fallback estimate: assume 120 BPM -> ~20.8ms per 24ppqn tick
+        interval_us = 20833u;
+      }
+      uint32_t window_us = interval_us / 2u;
+      if (window_us > 12000u) {
+        window_us = 12000u; // cap at 12ms
+      }
+
+      if (have_last_tick && (now_us - last_external_tick_us_) <= window_us) {
+        // Backdate anchor to the last MIDI tick: emit resync at anchor phase
+        // (0 or 12), then advance locally if that tick would have advanced.
+        uint8_t anchor_phase = external_align_to_12_next_ ? 12 : 0;
+
+        // After an anchor we flip the 0/12 toggle.
+        external_align_to_12_next_ = !external_align_to_12_next_;
+
+        // Emit resync at the anchor phase first
+        phase_24_ = anchor_phase;
+        musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
+                                                     .phase_24 = phase_24_,
+                                                     .is_resync = true};
+        notify_observers(resync_tempo_event);
+
+        // Determine whether the last tick would have advanced based on current
+        // scaling state. For HALF speed, the decision for the last tick is the
+        // current half_prescaler_toggle_ value (it toggles per tick).
+        bool would_advance = true;
+        uint8_t step = 1;
+        switch (current_speed_modifier_) {
+        case SpeedModifier::NORMAL_SPEED:
+          step = 1;
+          would_advance = true;
+          break;
+        case SpeedModifier::HALF_SPEED:
+          would_advance = half_prescaler_toggle_;
+          step = would_advance ? 1 : 0;
+          break;
+        case SpeedModifier::DOUBLE_SPEED:
+          step = 2;
+          would_advance = true;
+          break;
+        }
+
+        // Advance local phase as if that anchored tick had completed
+        if (would_advance && step > 0) {
+          phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
+        }
+      } else {
+        // Defer anchoring to the next incoming MIDI tick
+        pending_anchor_on_next_external_tick_ = true;
+        pending_manual_resync_flag_ = true; // mark the anchored tick as resync
+      }
+    }
+    break;
+  case ClockSource::EXTERNAL_SYNC:
+    // Immediate resync for SyncIn
     phase_24_ = 0; // Reset phase on manual sync
     musin::timing::TempoEvent resync_tempo_event{
         .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
     notify_observers(resync_tempo_event);
+    break;
   }
 }
 

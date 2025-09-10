@@ -35,7 +35,8 @@ PizzaDisplay::PizzaDisplay(
 void PizzaDisplay::notification(musin::timing::TempoEvent event) {
   // Update highlight state based on phases 0 and 12 for consistent blinking
   if (event.phase_24 == 0 || event.phase_24 == 12) {
-    _highlight_is_bright = !_highlight_is_bright;
+    bool prev = _highlight_is_bright.load(std::memory_order_relaxed);
+    _highlight_is_bright.store(!prev, std::memory_order_relaxed);
   }
 }
 

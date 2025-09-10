@@ -487,11 +487,15 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
                                                        value);
     break;
   case SWING: {
-    // Swing is a simple ON/OFF: compile-time preset selects amount.
+    // Swing is ON/OFF with deterministic sign: right of center delays odd steps
     float distance_from_center =
         fabsf(value - config::analog_controls::SWING_KNOB_CENTER_VALUE);
     bool swing_on = (distance_from_center >=
                      config::analog_controls::SWING_ON_OFF_DEADBAND);
+    bool delay_odd =
+        (value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
+    // Remember the sign regardless of ON/OFF, so toggling later is stable
+    controls->_sequencer_controller_ref.set_swing_target(delay_odd);
     controls->_sequencer_controller_ref.set_swing_enabled(swing_on);
     // Forward raw value for UI feedback/telemetry if needed.
     parent_controls->_message_router_ref.set_parameter(drum::Parameter::SWING,

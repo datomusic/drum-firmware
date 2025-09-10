@@ -110,6 +110,11 @@ void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) {
+  swing_delays_odd_steps_ = delay_odd;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::is_swing_enabled() const {
   return swing_enabled_;
 }
@@ -210,19 +215,20 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  // Use phase-based step advance: check if we should advance on this phase
-  bool should_advance_step = false;
-
-  if (swing_enabled_) {
-    // Swing ON: advance on downbeat and swing offbeat
-    should_advance_step =
-        (event.phase_24 == musical_timing::DOWNBEAT) ||
-        (event.phase_24 == musical_timing::swing_offbeat_phase());
-  } else {
-    // Swing OFF: advance on downbeat and straight offbeat (straight eighths)
-    should_advance_step = (event.phase_24 == musical_timing::DOWNBEAT) ||
-                          (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
-  }
+  // Use phase-based step advance with deterministic swing sign:
+  // Map step parity to specific phases so the "swung" steps are stable even if
+  // swing is toggled at arbitrary times.
+  uint8_t offbeat_phase = swing_enabled_ ? musical_timing::swing_offbeat_phase()
+                                         : musical_timing::STRAIGHT_OFFBEAT;
+  bool next_step_is_even = (current_step_counter % 2) == 0;
+  bool on_downbeat = (event.phase_24 == musical_timing::DOWNBEAT);
+  bool on_offbeat = (event.phase_24 == offbeat_phase);
+  // If we delay odd steps, even steps should occur on downbeats; otherwise odd
+  // steps occur on downbeats.
+  bool downbeat_should_be_even = !swing_delays_odd_steps_;
+  bool should_advance_step =
+      (on_downbeat && (next_step_is_even == downbeat_should_be_even)) ||
+      (on_offbeat && (next_step_is_even != downbeat_should_be_even));
 
   if (should_advance_step) {
     _step_is_due = true;

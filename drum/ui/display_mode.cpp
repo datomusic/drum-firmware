@@ -135,12 +135,18 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
       final_color = apply_visual_effects(final_color, display._filter_value,
                                          display._crush_value, now);
 
-      bool is_cursor_step =
-          (is_running &&
-           controller.get_last_played_step_for_track(track_idx).has_value() &&
-           step_idx ==
-               controller.get_last_played_step_for_track(track_idx).value()) ||
-          (!is_running && step_idx == controller.get_current_step());
+      bool is_cursor_step = false;
+      if (is_running) {
+        auto last_played = controller.get_last_played_step_for_track(track_idx);
+        if (last_played.has_value()) {
+          is_cursor_step = (step_idx == last_played.value());
+        } else {
+          // Fallback while running but no tick yet: use current step
+          is_cursor_step = (step_idx == controller.get_current_step());
+        }
+      } else {
+        is_cursor_step = (step_idx == controller.get_current_step());
+      }
 
       if (is_cursor_step) {
         bool bright_now = is_highlight_bright(display);
@@ -304,7 +310,7 @@ bool SequencerDisplayMode::is_highlight_bright(
 
   // When stopped: use phase-based blinking managed by PizzaDisplay
   // This provides consistent blinking on phases 0 and 12
-  return display._highlight_is_bright;
+  return display._highlight_is_bright.load(std::memory_order_relaxed);
 }
 
 // --- FileTransferDisplayMode Implementation ---

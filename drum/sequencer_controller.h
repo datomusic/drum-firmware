@@ -149,6 +149,14 @@ public:
   void set_swing_enabled(bool enabled);
 
   /**
+   * @brief Set whether swing delay applies to odd steps.
+   * @param delay_odd If true, odd steps (1, 3, ...) are delayed (placed on the
+   *                  off-beat phase). If false, even steps (0, 2, ...) are
+   *                  delayed.
+   */
+  void set_swing_target(bool delay_odd);
+
+  /**
    * @brief Check if swing timing is currently enabled.
    * @return true if swing is enabled, false for straight timing
    */
@@ -243,6 +251,7 @@ private:
   std::atomic<uint8_t> _retrigger_due_mask{0};
 
   bool swing_enabled_ = false;
+  bool swing_delays_odd_steps_ = false; // determines parity mapping to phases
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;

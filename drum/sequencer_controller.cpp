@@ -31,7 +31,10 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       continuous_randomization_active_(false), _active_note_per_track{},
-      _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
+      _pad_pressed_state{}, _retrigger_mode_per_track{},
+      swing_sign_change_pending_(false),
+      swing_delays_odd_steps_applied_(swing_delays_odd_steps_),
+      logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -111,7 +114,11 @@ void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(bool delay_odd) {
-  swing_delays_odd_steps_ = delay_odd;
+  if (swing_delays_odd_steps_ != delay_odd) {
+    swing_delays_odd_steps_ = delay_odd;
+    // Defer applying the new sign until the next offbeat to avoid dropping a step
+    swing_sign_change_pending_ = true;
+  }
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -215,23 +222,47 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  // Use phase-based step advance with deterministic swing sign:
-  // Map step parity to specific phases so the "swung" steps are stable even if
-  // swing is toggled at arbitrary times.
+  // Phase-based step advance with deterministic swing sign and no timing gaps:
+  // - Always advance on downbeats to keep unswung beats stable.
+  // - On offbeats, advance the alternate parity according to the applied sign.
+  // - If the sign changed mid-cycle, force the next offbeat to advance to keep
+  //   two steps per quarter (avoid audible delay), then apply the new sign.
+
   uint8_t offbeat_phase = swing_enabled_ ? musical_timing::swing_offbeat_phase()
                                          : musical_timing::STRAIGHT_OFFBEAT;
-  bool next_step_is_even = (current_step_counter % 2) == 0;
   bool on_downbeat = (event.phase_24 == musical_timing::DOWNBEAT);
   bool on_offbeat = (event.phase_24 == offbeat_phase);
-  // If we delay odd steps, even steps should occur on downbeats; otherwise odd
-  // steps occur on downbeats.
-  bool downbeat_should_be_even = !swing_delays_odd_steps_;
-  bool should_advance_step =
-      (on_downbeat && (next_step_is_even == downbeat_should_be_even)) ||
-      (on_offbeat && (next_step_is_even != downbeat_should_be_even));
+
+  // Use the currently-applied sign while a change is pending
+  bool effective_delay_odd = swing_sign_change_pending_ ?
+                                 swing_delays_odd_steps_applied_
+                                 : swing_delays_odd_steps_;
+  bool downbeat_should_be_even = !effective_delay_odd;
+  bool offbeat_should_be_even = effective_delay_odd; // opposite of downbeat
+
+  bool next_step_is_even = (current_step_counter % 2) == 0;
+
+  bool should_advance_step = false;
+  if (on_downbeat) {
+    should_advance_step = true; // keep underlying timing stable
+  } else if (on_offbeat) {
+    // Normal offbeat advance according to effective sign
+    should_advance_step = (next_step_is_even == offbeat_should_be_even);
+    // If a sign change is pending, force this offbeat to advance to avoid
+    // dropping a step, then commit the new sign after scheduling the step.
+    if (swing_sign_change_pending_) {
+      should_advance_step = true;
+    }
+  }
 
   if (should_advance_step) {
     _step_is_due = true;
+    // Commit pending sign change after the first offbeat that follows the
+    // change, so that step count per beat remains stable.
+    if (on_offbeat && swing_sign_change_pending_) {
+      swing_delays_odd_steps_applied_ = swing_delays_odd_steps_;
+      swing_sign_change_pending_ = false;
+    }
   }
 
   // Process retrigger logic based on phases

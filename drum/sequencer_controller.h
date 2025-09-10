@@ -252,6 +252,8 @@ private:
 
   bool swing_enabled_ = false;
   bool swing_delays_odd_steps_ = false; // determines parity mapping to phases
+  bool swing_sign_change_pending_ = false; // pending swap of sign at next offbeat
+  bool swing_delays_odd_steps_applied_ = false; // sign currently applied in gating
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;

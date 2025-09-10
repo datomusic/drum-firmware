@@ -16,7 +16,6 @@
 #include <functional>
 #include <optional>
 
-#include "config.h"
 #include "musin/hal/logger.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"

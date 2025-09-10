@@ -1,6 +1,7 @@
 #include "drum/ui/pizza_display.h"
 #include "drum/drum_pizza_hardware.h"
 #include "drum/ui/display_mode.h"
+#include "musin/timing/timing_constants.h"
 
 #include <algorithm>
 #include <array>
@@ -33,8 +34,9 @@ PizzaDisplay::PizzaDisplay(
 }
 
 void PizzaDisplay::notification(musin::timing::TempoEvent event) {
-  // Update highlight state based on phases 0 and 12 for consistent blinking
-  if (event.phase_24 == 0 || event.phase_24 == 12) {
+  // Update highlight state based on downbeat and eighth offbeat for blinking
+  if (event.phase_24 == musin::timing::PHASE_DOWNBEAT ||
+      event.phase_24 == musin::timing::PHASE_EIGHTH_OFFBEAT) {
     bool prev = _highlight_is_bright.load(std::memory_order_relaxed);
     _highlight_is_bright.store(!prev, std::memory_order_relaxed);
   }

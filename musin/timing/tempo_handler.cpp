@@ -6,14 +6,15 @@
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"
+#include "musin/timing/timing_constants.h"
 #include "pico/time.h"
 
 namespace musin::timing {
 
 namespace {
-// Normalize any integer to [0, 23] for 24 PPQN phase safety.
+// Normalize any integer to [0, DEFAULT_PPQN-1] for 24 PPQN phase safety.
 constexpr uint8_t wrap24(int v) noexcept {
-  int r = v % 24;
+  int r = v % static_cast<int>(musin::timing::DEFAULT_PPQN);
   return static_cast<uint8_t>(r < 0 ? r + 24 : r);
 }
 } // namespace
@@ -143,7 +144,8 @@ void TempoHandler::process_external_tick_with_speed_modifier(
   // upcoming MIDI clock boundary rather than immediately.
   if (pending_anchor_on_next_external_tick_ &&
       current_source_ == ClockSource::MIDI) {
-    phase_24_ = external_align_to_12_next_ ? 12 : 0;
+    phase_24_ =
+        external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
     external_align_to_12_next_ = !external_align_to_12_next_;
     anchored_this_tick = true;
     anchored_is_manual_resync = pending_manual_resync_flag_;
@@ -156,13 +158,15 @@ void TempoHandler::process_external_tick_with_speed_modifier(
     if (current_speed_modifier_ == SpeedModifier::HALF_SPEED) {
       // In half-speed, anchor on every second physical pulse to avoid jumps
       if ((physical_pulse_counter_ % 2) == 0) {
-        phase_24_ = external_align_to_12_next_ ? 12 : 0;
+        phase_24_ =
+            external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
         external_align_to_12_next_ = !external_align_to_12_next_;
         anchored_this_tick = true;
       }
     } else {
       // Normal/Double: anchor on every physical pulse
-      phase_24_ = external_align_to_12_next_ ? 12 : 0;
+      phase_24_ =
+          external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
       external_align_to_12_next_ = !external_align_to_12_next_;
       anchored_this_tick = true;
     }
@@ -201,11 +205,13 @@ void TempoHandler::process_external_tick_with_speed_modifier(
 
     // Advance after anchor if this tick should advance due to speed modifier
     if (advance_this_tick && step > 0) {
-      phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
+      phase_24_ = static_cast<uint8_t>((phase_24_ + step) %
+                                       musin::timing::DEFAULT_PPQN);
     }
   } else if (advance_this_tick && step > 0) {
     // Non-anchored: advance, then emit the new phase
-    phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
+    phase_24_ =
+        static_cast<uint8_t>((phase_24_ + step) % musin::timing::DEFAULT_PPQN);
     musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
                                           .phase_24 = wrap24(phase_24_),
                                           .is_resync = false};
@@ -229,11 +235,13 @@ void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   physical_pulse_counter_ = 0;
 
   // Ensure even parity when entering DOUBLE speed under external clock sources
-  // so that phases 0 and 12 remain reachable when stepping by 2.
+  // so that phases PHASE_DOWNBEAT and PHASE_EIGHTH_OFFBEAT remain reachable
+  // when stepping by 2.
   if (modifier == SpeedModifier::DOUBLE_SPEED &&
       current_source_ != ClockSource::INTERNAL) {
     if ((phase_24_ & 1u) != 0u) {
-      phase_24_ = static_cast<uint8_t>((phase_24_ + 1u) % 24u);
+      phase_24_ =
+          static_cast<uint8_t>((phase_24_ + 1u) % musin::timing::DEFAULT_PPQN);
     }
   }
 }
@@ -301,7 +309,8 @@ void TempoHandler::trigger_manual_sync() {
       if (have_last_tick && (now_us - last_external_tick_us_) <= window_us) {
         // Backdate anchor to the last MIDI tick: emit resync at anchor phase
         // (0 or 12), then advance locally if that tick would have advanced.
-        uint8_t anchor_phase = external_align_to_12_next_ ? 12 : 0;
+        uint8_t anchor_phase =
+            external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
 
         // After an anchor we flip the 0/12 toggle.
         external_align_to_12_next_ = !external_align_to_12_next_;
@@ -336,7 +345,8 @@ void TempoHandler::trigger_manual_sync() {
 
         // Advance local phase as if that anchored tick had completed
         if (would_advance && step > 0) {
-          phase_24_ = static_cast<uint8_t>((phase_24_ + step) % 24);
+          phase_24_ = static_cast<uint8_t>((phase_24_ + step) %
+                                           musin::timing::DEFAULT_PPQN);
         }
       } else {
         // Defer anchoring to the next incoming MIDI tick
@@ -347,7 +357,7 @@ void TempoHandler::trigger_manual_sync() {
     break;
   case ClockSource::EXTERNAL_SYNC:
     // Immediate resync for SyncIn
-    phase_24_ = 0; // Reset phase on manual sync
+    phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
     musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
                                                  .phase_24 = wrap24(phase_24_),
                                                  .is_resync = true};
@@ -357,8 +367,8 @@ void TempoHandler::trigger_manual_sync() {
 }
 
 void TempoHandler::advance_phase_and_emit_event() {
-  // Advance the 24 PPQN phase counter (0-23)
-  phase_24_ = (phase_24_ + 1) % 24;
+  // Advance the 24 PPQN phase counter (0..DEFAULT_PPQN-1)
+  phase_24_ = (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
 
   // Advance the running tick count
   tick_count_++;

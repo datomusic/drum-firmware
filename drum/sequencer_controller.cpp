@@ -12,6 +12,18 @@
 
 namespace drum {
 
+namespace musical_timing {
+constexpr uint8_t PPQN = 24;
+constexpr uint8_t DOWNBEAT = 0;
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 12
+constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 8
+constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 6
+
+constexpr uint8_t swing_offbeat_phase() {
+  return static_cast<uint8_t>(drum::config::timing::DEFAULT_SWING_PRESET);
+}
+} // namespace musical_timing
+
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
@@ -119,6 +131,14 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 
   _just_played_step_per_track.fill(std::nullopt);
 
+  // Pre-populate last-played step indices so the UI has a cursor immediately
+  // after starting, even before the first incoming tick.
+  size_t base_step_index = calculate_base_step_index();
+  size_t num_tracks = sequencer_.get().get_num_tracks();
+  for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+    _just_played_step_per_track[track_idx] = base_step_index;
+  }
+
   deactivate_repeat();
   stop_continuous_randomization();
   for (size_t i = 0; i < NumTracks; ++i) {
@@ -194,14 +214,14 @@ void SequencerController<NumTracks, NumSteps>::notification(
   bool should_advance_step = false;
 
   if (swing_enabled_) {
-    // Swing ON: advance on phases 0 and DEFAULT_SWING_PRESET
-    constexpr uint8_t off_beat_phase =
-        static_cast<uint8_t>(drum::config::timing::DEFAULT_SWING_PRESET);
+    // Swing ON: advance on downbeat and swing offbeat
     should_advance_step =
-        (event.phase_24 == 0) || (event.phase_24 == off_beat_phase);
+        (event.phase_24 == musical_timing::DOWNBEAT) ||
+        (event.phase_24 == musical_timing::swing_offbeat_phase());
   } else {
-    // Swing OFF: advance on phases 0 and 12 (straight eighths)
-    should_advance_step = (event.phase_24 == 0) || (event.phase_24 == 12);
+    // Swing OFF: advance on downbeat and straight offbeat (straight eighths)
+    should_advance_step = (event.phase_24 == musical_timing::DOWNBEAT) ||
+                          (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
   }
 
   if (should_advance_step) {
@@ -224,18 +244,21 @@ void SequencerController<NumTracks, NumSteps>::notification(
     bool due = false;
     if (swing_enabled_) {
       if (mode == 1) {
-        constexpr uint8_t off_beat_phase =
-            static_cast<uint8_t>(drum::config::timing::DEFAULT_SWING_PRESET);
-        due = (event.phase_24 == 0) || (event.phase_24 == off_beat_phase);
+        // Mode 1: follows swing grid (downbeat and swing offbeat)
+        due = (event.phase_24 == musical_timing::DOWNBEAT) ||
+              (event.phase_24 == musical_timing::swing_offbeat_phase());
       } else if (mode == 2) {
-        // Triplet grid
-        due = (event.phase_24 % 8) == 0;
+        // Mode 2: triplet grid (every triplet subdivision)
+        due = (event.phase_24 % musical_timing::TRIPLET_SUBDIVISION) == 0;
       }
     } else {
       if (mode == 1) {
-        due = (event.phase_24 == 0) || (event.phase_24 == 12);
+        // Mode 1: straight eighths (downbeat and straight offbeat)
+        due = (event.phase_24 == musical_timing::DOWNBEAT) ||
+              (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
       } else if (mode == 2) {
-        due = (event.phase_24 % 6) == 0;
+        // Mode 2: sixteenth notes (every sixteenth subdivision)
+        due = (event.phase_24 % musical_timing::SIXTEENTH_SUBDIVISION) == 0;
       }
     }
 

@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}
   audio/pitch_shifter_test.cpp
   audio/memory_reader_test.cpp
   midi/midi_message_queue_test.cpp
+  timing/tempo_handler_test.cpp
 )
 
 if(${STATIC_TESTS})
@@ -28,6 +29,12 @@ endif(${STATIC_TESTS})
 target_sources(${PROJECT_NAME} PRIVATE
   ${musin_audio_generic_sources}
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/midi/midi_output_queue.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/midi/midi_wrapper_test_shim.cpp
+  # Timing sources needed by TempoHandler tests
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/internal_clock.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_processor.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/clock_multiplier.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/tempo_handler.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../midi_test_support.cpp
 )
 

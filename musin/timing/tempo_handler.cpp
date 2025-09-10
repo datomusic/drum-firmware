@@ -217,6 +217,15 @@ void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   // Reset physical pulse counter so HALF speed anchoring starts from
   // a consistent boundary after mode changes.
   physical_pulse_counter_ = 0;
+
+  // Ensure even parity when entering DOUBLE speed under external clock sources
+  // so that phases 0 and 12 remain reachable when stepping by 2.
+  if (modifier == SpeedModifier::DOUBLE_SPEED &&
+      current_source_ != ClockSource::INTERNAL) {
+    if ((phase_24_ & 1u) != 0u) {
+      phase_24_ = static_cast<uint8_t>((phase_24_ + 1u) % 24u);
+    }
+  }
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {

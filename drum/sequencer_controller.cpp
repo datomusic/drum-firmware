@@ -31,9 +31,10 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
       continuous_randomization_active_(false), _active_note_per_track{},
-      _pad_pressed_state{}, _retrigger_mode_per_track{},
+      _pad_pressed_state{},
       swing_sign_change_pending_(false),
       swing_delays_odd_steps_applied_(swing_delays_odd_steps_),
+      _retrigger_mode_per_track{},
       logger_(logger) {
 
   initialize_active_notes();
@@ -237,7 +238,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
   bool effective_delay_odd = swing_sign_change_pending_ ?
                                  swing_delays_odd_steps_applied_
                                  : swing_delays_odd_steps_;
-  bool downbeat_should_be_even = !effective_delay_odd;
   bool offbeat_should_be_even = effective_delay_odd; // opposite of downbeat
 
   bool next_step_is_even = (current_step_counter % 2) == 0;

@@ -150,6 +150,9 @@ private:
   // Unsigned subtraction handles rollover naturally.
   uint32_t last_external_tick_us_ = 0;
   uint32_t last_external_tick_interval_us_ = 0;
+
+  // Tracks whether set_clock_source has performed initial attachment/setup.
+  bool initialized_ = false;
 };
 
 } // namespace musin::timing

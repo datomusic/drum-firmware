@@ -38,20 +38,23 @@ TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
 }
 
 void TempoHandler::set_clock_source(ClockSource source) {
-  if (source == current_source_) {
+  // If already set and initialized, nothing to do
+  if (source == current_source_ && initialized_) {
     return;
   }
 
-  // Cleanup for the old source
-  if (current_source_ == ClockSource::INTERNAL) {
-    _internal_clock_ref.remove_observer(*this);
-    _internal_clock_ref.stop();
-  } else if (current_source_ == ClockSource::MIDI) {
-    _midi_clock_processor_ref.remove_observer(*this);
-    _midi_clock_processor_ref.reset();
-  } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _clock_multiplier_ref.remove_observer(*this);
-    _clock_multiplier_ref.reset();
+  // Cleanup for the old source only if we had previously initialized
+  if (initialized_) {
+    if (current_source_ == ClockSource::INTERNAL) {
+      _internal_clock_ref.remove_observer(*this);
+      _internal_clock_ref.stop();
+    } else if (current_source_ == ClockSource::MIDI) {
+      _midi_clock_processor_ref.remove_observer(*this);
+      _midi_clock_processor_ref.reset();
+    } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
+      _clock_multiplier_ref.remove_observer(*this);
+      _clock_multiplier_ref.reset();
+    }
   }
 
   current_source_ = source;
@@ -74,6 +77,7 @@ void TempoHandler::set_clock_source(ClockSource source) {
   } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
     _clock_multiplier_ref.add_observer(*this);
   }
+  initialized_ = true;
 }
 
 ClockSource TempoHandler::get_clock_source() const {

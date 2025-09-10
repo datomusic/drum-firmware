@@ -251,9 +251,13 @@ private:
   std::atomic<uint8_t> _retrigger_due_mask{0};
 
   bool swing_enabled_ = false;
-  bool swing_delays_odd_steps_ = false; // determines parity mapping to phases
-  bool swing_sign_change_pending_ = false; // pending swap of sign at next offbeat
-  bool swing_delays_odd_steps_applied_ = false; // sign currently applied in gating
+  // Requested swing direction: true = forward (delay odd) using anchors {0,S};
+  // false = reverse (mirror) using anchors {0,24-S}.
+  bool swing_delays_odd_steps_ = false;
+  // Two-anchor swing FSM state
+  etl::array<uint8_t, 2> swing_anchors_{}; // phases for the two anchors
+  uint8_t next_anchor_ = 0;                // index of next anchor to fire
+  bool swing_config_dirty_ = true;         // apply changes on next downbeat
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;
@@ -273,6 +277,9 @@ private:
 
   void create_persistent_state(SequencerPersistentState &state) const;
   void apply_persistent_state(const SequencerPersistentState &state);
+
+  // Recompute swing anchors from requested config; sets next_anchor_ = 0
+  void recompute_swing_anchors();
 
   etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
     return _pad_pressed_state;

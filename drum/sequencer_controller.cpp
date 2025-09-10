@@ -25,13 +25,33 @@ constexpr uint8_t swing_offbeat_phase() {
 } // namespace musical_timing
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::recompute_swing_anchors() {
+  // Always anchor the first hit of the quarter at phase 0 for straight and both
+  // swing modes
+  swing_anchors_[0] = musical_timing::DOWNBEAT; // 0
+  if (!swing_enabled_) {
+    swing_anchors_[1] = musical_timing::STRAIGHT_OFFBEAT; // 12
+  } else {
+    uint8_t s =
+        musical_timing::swing_offbeat_phase(); // e.g., 16 for Full Shuffle
+    if (swing_delays_odd_steps_) {
+      // Forward swing: 0, S
+      swing_anchors_[1] = s;
+    } else {
+      // Reverse swing (mirror): 0, 24 - S
+      swing_anchors_[1] = static_cast<uint8_t>(musical_timing::PPQN - s);
+    }
+  }
+  next_anchor_ = 0;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
     : sequencer_(main_sequencer_), current_step_counter{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
-      swing_sign_change_pending_(false),
-      swing_delays_odd_steps_applied_(swing_delays_odd_steps_),
+      swing_anchors_{}, next_anchor_(0), swing_config_dirty_(true),
       continuous_randomization_active_(false), _active_note_per_track{},
       _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
 
@@ -109,6 +129,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
   swing_enabled_ = enabled;
+  swing_config_dirty_ = true;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -116,9 +137,7 @@ void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
   if (swing_delays_odd_steps_ != delay_odd) {
     swing_delays_odd_steps_ = delay_odd;
-    // Defer applying the new sign until the next offbeat to avoid dropping a
-    // step
-    swing_sign_change_pending_ = true;
+    swing_config_dirty_ = true; // apply at next downbeat
   }
 }
 
@@ -180,6 +199,9 @@ void SequencerController<NumTracks, NumSteps>::start() {
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
 
+  // Realign anchors on start; apply at next downbeat
+  next_anchor_ = 0;
+  swing_config_dirty_ = true;
   _running = true;
 
   // Trigger the first step immediately upon start
@@ -221,50 +243,22 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
+    next_anchor_ = 0;           // realign FSM
+    swing_config_dirty_ = true; // ensure anchors recompute on next downbeat
     advance_step();
     return;
   }
 
-  // Phase-based step advance with deterministic swing sign and no timing gaps:
-  // - Always advance on downbeats to keep unswung beats stable.
-  // - On offbeats, advance the alternate parity according to the applied sign.
-  // - If the sign changed mid-cycle, force the next offbeat to advance to keep
-  //   two steps per quarter (avoid audible delay), then apply the new sign.
-
-  uint8_t offbeat_phase = swing_enabled_ ? musical_timing::swing_offbeat_phase()
-                                         : musical_timing::STRAIGHT_OFFBEAT;
-  bool on_downbeat = (event.phase_24 == musical_timing::DOWNBEAT);
-  bool on_offbeat = (event.phase_24 == offbeat_phase);
-
-  // Use the currently-applied sign while a change is pending
-  bool effective_delay_odd = swing_sign_change_pending_
-                                 ? swing_delays_odd_steps_applied_
-                                 : swing_delays_odd_steps_;
-  bool offbeat_should_be_even = effective_delay_odd; // opposite of downbeat
-
-  bool next_step_is_even = (current_step_counter % 2) == 0;
-
-  bool should_advance_step = false;
-  if (on_downbeat) {
-    should_advance_step = true; // keep underlying timing stable
-  } else if (on_offbeat) {
-    // Normal offbeat advance according to effective sign
-    should_advance_step = (next_step_is_even == offbeat_should_be_even);
-    // If a sign change is pending, force this offbeat to advance to avoid
-    // dropping a step, then commit the new sign after scheduling the step.
-    if (swing_sign_change_pending_) {
-      should_advance_step = true;
-    }
+  // Apply any swing config changes deterministically at downbeat
+  if (event.phase_24 == musical_timing::DOWNBEAT && swing_config_dirty_) {
+    recompute_swing_anchors();
+    swing_config_dirty_ = false;
   }
 
-  if (should_advance_step) {
+  // Two-anchor FSM: fire when current phase equals the current anchor
+  if (event.phase_24 == swing_anchors_[next_anchor_]) {
     _step_is_due = true;
-    // Commit pending sign change after the first offbeat that follows the
-    // change, so that step count per beat remains stable.
-    if (on_offbeat && swing_sign_change_pending_) {
-      swing_delays_odd_steps_applied_ = swing_delays_odd_steps_;
-      swing_sign_change_pending_ = false;
-    }
+    next_anchor_ ^= 1;
   }
 
   // Process retrigger logic based on phases
@@ -281,22 +275,15 @@ void SequencerController<NumTracks, NumSteps>::notification(
     }
 
     bool due = false;
-    if (swing_enabled_) {
-      if (mode == 1) {
-        // Mode 1: follows swing grid (downbeat and swing offbeat)
-        due = (event.phase_24 == musical_timing::DOWNBEAT) ||
-              (event.phase_24 == musical_timing::swing_offbeat_phase());
-      } else if (mode == 2) {
-        // Mode 2: triplet grid (every triplet subdivision)
+    if (mode == 1) {
+      // Follow the current anchor grid (works for straight and swing)
+      due = (event.phase_24 == swing_anchors_[0]) ||
+            (event.phase_24 == swing_anchors_[1]);
+    } else if (mode == 2) {
+      // Preserve existing contrast: triplets when swing ON; sixteenths when OFF
+      if (swing_enabled_) {
         due = (event.phase_24 % musical_timing::TRIPLET_SUBDIVISION) == 0;
-      }
-    } else {
-      if (mode == 1) {
-        // Mode 1: straight eighths (downbeat and straight offbeat)
-        due = (event.phase_24 == musical_timing::DOWNBEAT) ||
-              (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
-      } else if (mode == 2) {
-        // Mode 2: sixteenth notes (every sixteenth subdivision)
+      } else {
         due = (event.phase_24 % musical_timing::SIXTEENTH_SUBDIVISION) == 0;
       }
     }
@@ -718,6 +705,10 @@ void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
+  // Initialize anchors to straight until first downbeat applies requested
+  // config
+  recompute_swing_anchors();
+  swing_config_dirty_ = true; // ensure we re-apply on the next downbeat
 }
 
 template <size_t NumTracks, size_t NumSteps>

@@ -99,7 +99,6 @@ jobs:
           make
           sudo make install
 
-
       - name: Build firmware
         working-directory: drum
         run: cmake -S . -B build -DPICO_BOARD=dato_submarine && cd build && make -j
@@ -108,10 +107,21 @@ jobs:
         id: get_release
         run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Rename binary to match release
+      - name: Find and rename binary
         run: |
           cd drum/build
-          mv drum-*.uf2 drum-${{ steps.get_release.outputs.tag }}.uf2 || echo "File already has correct name"
+          BINARY_FILE=$(find . -name "drum-*.uf2" -print -quit)
+          if [ ! -f "$BINARY_FILE" ]; then
+            echo "Error: No .uf2 file found"
+            exit 1
+          fi
+          TARGET_NAME="drum-${{ steps.get_release.outputs.tag }}.uf2"
+          if [ "$(basename "$BINARY_FILE")" != "$TARGET_NAME" ]; then
+            mv "$BINARY_FILE" "$TARGET_NAME"
+          fi
+
+      - name: Verify binary exists
+        run: test -f ./drum/build/drum-${{ steps.get_release.outputs.tag }}.uf2
 
       - name: Upload release asset
         uses: actions/upload-release-asset@v1

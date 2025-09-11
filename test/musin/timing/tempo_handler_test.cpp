@@ -10,6 +10,7 @@
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h" // Test override provides stub
 #include "musin/timing/tempo_handler.h"
+#include "musin/timing/midi_clock_out.h"
 #include "musin/timing/timing_constants.h"
 
 #include <etl/observer.h>
@@ -58,6 +59,9 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   // Send MIDI clock even when stopped for this test to simplify assertion
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
                   /*send_midi_clock_when_stopped*/ true, ClockSource::INTERNAL);
+
+  musin::timing::MidiClockOut midi_out(th, /*send_when_stopped_as_master*/ true);
+  clock_router.add_observer(midi_out);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
@@ -436,17 +440,21 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
   TempoHandler th_stopped(internal_clock, midi_proc, sync_in, clock_router,
                           /*send_midi_clock_when_stopped*/ false,
                           ClockSource::INTERNAL);
+  musin::timing::MidiClockOut midi_out_stopped(
+      th_stopped, /*send_when_stopped_as_master*/ false);
 
   th_stopped.set_playback_state(PlaybackState::STOPPED);
 
   // Generate internal tick while stopped - should NOT send MIDI clock
   ClockEvent e{ClockSource::INTERNAL};
-  th_stopped.notification(e);
+  midi_out_stopped.notification(e);
 
   // Test with send_midi_clock_when_stopped = true
   TempoHandler th_always(internal_clock, midi_proc, sync_in, clock_router,
                          /*send_midi_clock_when_stopped*/ true,
                          ClockSource::INTERNAL);
+  musin::timing::MidiClockOut midi_out_always(
+      th_always, /*send_when_stopped_as_master*/ true);
 
   th_always.set_playback_state(PlaybackState::STOPPED);
 
@@ -454,7 +462,7 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
   reset_test_state();
 
   // Generate internal tick while stopped - SHOULD send MIDI clock
-  th_always.notification(e);
+  midi_out_always.notification(e);
 
   // Flush MIDI queue so realtime clock is recorded by mock
   {

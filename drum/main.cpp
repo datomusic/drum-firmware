@@ -9,6 +9,7 @@
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/sync_out.h"
+#include "musin/timing/midi_clock_out.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
@@ -68,6 +69,8 @@ static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor, sync_in, clock_router,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
+static musin::timing::MidiClockOut midi_clock_out(
+    tempo_handler, drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER);
 static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler, logger);
@@ -158,6 +161,7 @@ int main() {
   sync_out.enable();
 
   clock_router.add_observer(sync_out);
+  clock_router.add_observer(midi_clock_out);
 
   // SystemStateMachine automatically starts in Boot state
   // No initialization_complete() call needed

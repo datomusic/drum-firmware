@@ -33,6 +33,9 @@ struct ClockEvent {
   // ClockMultiplier should propagate this flag for the immediate tick it emits
   // at the pulse time, and clear it for interpolated ticks.
   bool is_physical_pulse = false;
+  // Timestamp in microseconds since boot when the source tick occurred.
+  // 0 means unset; consumers may fall back to local time if needed.
+  uint32_t timestamp_us = 0;
 };
 
 } // namespace musin::timing

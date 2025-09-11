@@ -36,7 +36,7 @@ public:
     modifier_ = m;
     // Reset internal scheduling/toggling state when mode changes
     half_toggle_ = false;
-    last_tick_time_ = nil_time;
+    last_tick_us_ = 0;
     last_interval_us_ = 0;
     next_insert_time_ = nil_time;
   }
@@ -56,7 +56,7 @@ private:
   bool half_toggle_ = false;
 
   // Timing for DOUBLE mode
-  absolute_time_t last_tick_time_ = nil_time;
+  uint32_t last_tick_us_ = 0;     // timestamp of last source tick
   uint32_t last_interval_us_ = 0; // measured between source ticks
   absolute_time_t next_insert_time_ = nil_time;
   ClockSource current_source_ = ClockSource::INTERNAL;

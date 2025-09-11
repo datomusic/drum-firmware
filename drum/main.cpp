@@ -6,11 +6,11 @@
 #include "musin/timing/clock_multiplier.h"
 #include "musin/timing/clock_router.h"
 #include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_out.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/speed_adapter.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/sync_out.h"
-#include "musin/timing/midi_clock_out.h"
 #include "musin/timing/tempo_handler.h"
 #include "musin/usb/usb.h"
 
@@ -63,17 +63,19 @@ static musin::timing::ClockMultiplier
     clock_multiplier(SYNC_TO_MIDI_CLOCK_MULTIPLIER); // 4 PPQN to 24 PPQN
 static_assert(SYNC_TO_MIDI_CLOCK_MULTIPLIER > 0,
               "Clock multiplication factor cannot be zero");
-static musin::timing::ClockRouter clock_router(
-    internal_clock, midi_clock_processor, clock_multiplier,
-    musin::timing::ClockSource::INTERNAL);
-static musin::timing::SpeedAdapter speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
+static musin::timing::ClockRouter
+    clock_router(internal_clock, midi_clock_processor, clock_multiplier,
+                 musin::timing::ClockSource::INTERNAL);
+static musin::timing::SpeedAdapter
+    speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
 static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor, sync_in, clock_router,
                   speed_adapter,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
-static musin::timing::MidiClockOut midi_clock_out(
-    tempo_handler, drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER);
+static musin::timing::MidiClockOut
+    midi_clock_out(tempo_handler,
+                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER);
 static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler, logger);

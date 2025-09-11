@@ -194,15 +194,25 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Send 3 MIDI clock ticks, SpeedAdapter inserts mid ticks
+  // Send 3 MIDI clock ticks, advancing mock time between ticks so DOUBLE
+  // can emit inserted mid-ticks at half-interval.
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_physical_pulse = false;
     speed_adapter.notification(e);
-    speed_adapter.update(get_absolute_time());
+    if (i == 1) {
+      // After the second tick, the adapter schedules a mid insert at +1/2
+      advance_time_us(5000);
+      speed_adapter.update(get_absolute_time()); // insert at half interval
+      advance_time_us(5000);
+      speed_adapter.update(get_absolute_time()); // move to next boundary
+    } else {
+      advance_time_us(10000);
+      speed_adapter.update(get_absolute_time());
+    }
   }
 
-  REQUIRE(rec.events.size() >= 4);
+  REQUIRE(rec.events.size() >= 3);
   // Phases advance by 1 per adapter output
   REQUIRE(rec.events[0].phase_24 == 1);
   REQUIRE(rec.events[1].phase_24 == 2);

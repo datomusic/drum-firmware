@@ -57,7 +57,6 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
   musin::timing::SpeedAdapter speed_adapter;
-  musin::timing::SpeedAdapter speed_adapter;
 
   // Send MIDI clock even when stopped for this test to simplify assertion
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
@@ -153,7 +152,6 @@ TEST_CASE(
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
   musin::timing::SpeedAdapter speed_adapter;
-  musin::timing::SpeedAdapter speed_adapter;
 
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
@@ -186,6 +184,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
 
+  musin::timing::SpeedAdapter speed_adapter;
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
@@ -219,6 +218,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
 
+  musin::timing::SpeedAdapter speed_adapter;
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 

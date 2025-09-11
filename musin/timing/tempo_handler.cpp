@@ -92,6 +92,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
     // If a manual anchor was requested for MIDI, anchor on this tick
     if (pending_anchor_on_next_external_tick_) {
+      tick_count_++;
       phase_24_ = external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT
                                              : PHASE_DOWNBEAT;
       external_align_to_12_next_ = !external_align_to_12_next_;
@@ -107,6 +108,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
   // External sync: anchor on physical pulses to 0/12, else advance normally
   if (current_source_ == ClockSource::EXTERNAL_SYNC && event.is_physical_pulse) {
+    tick_count_++;
     phase_24_ = external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
     external_align_to_12_next_ = !external_align_to_12_next_;
     musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,

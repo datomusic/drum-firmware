@@ -4,7 +4,6 @@
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
 #include "musin/timing/clock_event.h"
-#include "musin/timing/tempo_event.h"
 #include "pico/time.h" // For alarm_id_t, absolute_time_t
 #include <cstdint>
 
@@ -16,8 +15,7 @@ namespace musin::timing {
  * The SyncOut driver observes TempoHandler and triggers a pulse of
  * configurable duration after a configurable number of tempo ticks.
  */
-class SyncOut : public etl::observer<musin::timing::TempoEvent>,
-                public etl::observer<musin::timing::ClockEvent> {
+class SyncOut : public etl::observer<musin::timing::ClockEvent> {
 public:
   /**
    * @brief Constructor for SyncOut.
@@ -38,12 +36,6 @@ public:
   SyncOut &operator=(const SyncOut &) = delete;
   SyncOut(SyncOut &&) = delete;
   SyncOut &operator=(SyncOut &&) = delete;
-
-  /**
-   * @brief Handles incoming tempo tick notifications.
-   * @param event The tempo event (not used for data, only as a trigger).
-   */
-  void notification(musin::timing::TempoEvent event) override;
 
   // Raw 24 PPQN clock input (independent of speed modifiers)
   void notification(musin::timing::ClockEvent event) override;

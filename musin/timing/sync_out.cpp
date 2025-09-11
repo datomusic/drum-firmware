@@ -25,11 +25,6 @@ SyncOut::~SyncOut() {
   disable(); // Ensure cleanup on destruction
 }
 
-void SyncOut::notification(musin::timing::TempoEvent /*event*/) {
-  // Deprecated for SyncOut timing: use raw ClockEvent notification instead.
-  // Intentionally no-op to avoid coupling to speed-modified phases.
-}
-
 void SyncOut::notification(musin::timing::ClockEvent event) {
   if (!_is_enabled) {
     return;

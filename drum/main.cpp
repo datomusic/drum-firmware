@@ -254,6 +254,22 @@ int main() {
     }
     }
 
+    // Respect SyncOut behavior when stopped as master (internal clock)
+    bool allow_sync_out = true;
+    if (tempo_handler.get_clock_source() ==
+        musin::timing::ClockSource::INTERNAL) {
+      if (tempo_handler.get_playback_state() ==
+              musin::timing::PlaybackState::STOPPED &&
+          !drum::config::SEND_SYNC_CLOCK_WHEN_STOPPED_AS_MASTER) {
+        allow_sync_out = false;
+      }
+    }
+    if (allow_sync_out) {
+      sync_out.enable();
+    } else {
+      sync_out.disable();
+    }
+
 #ifndef VERBOSE
     // Watchdog update for Release builds
     watchdog_update();

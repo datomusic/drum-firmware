@@ -96,6 +96,14 @@ public:
   void set_playback_state(PlaybackState new_state);
 
   /**
+   * @brief Get the current playback state.
+   * @return The current playback state (PLAYING or STOPPED).
+   */
+  [[nodiscard]] PlaybackState get_playback_state() const {
+    return _playback_state;
+  }
+
+  /**
    * @brief Periodically called to update internal state, like auto-switching
    * clock source.
    */

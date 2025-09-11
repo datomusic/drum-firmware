@@ -232,7 +232,6 @@ void TempoHandler::set_bpm(float bpm) {
 
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
-  _clock_multiplier_ref.set_speed_modifier(modifier);
   // Reset prescaler to a known state when changing speed
   half_prescaler_toggle_ = false;
   // Reset physical pulse counter so HALF speed anchoring starts from

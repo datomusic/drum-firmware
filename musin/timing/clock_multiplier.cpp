@@ -69,10 +69,6 @@ void ClockMultiplier::reset() {
   next_pulse_time_ = nil_time;
 }
 
-void ClockMultiplier::set_speed_modifier(
-    [[maybe_unused]] SpeedModifier modifier) {
-  // Speed modification is now handled uniformly by TempoHandler
-  // This method is retained for interface compatibility but does nothing
-}
+// Note: Speed modification is handled by TempoHandler; no speed controls here.
 
 } // namespace musin::timing

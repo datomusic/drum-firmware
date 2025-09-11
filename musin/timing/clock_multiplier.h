@@ -24,7 +24,8 @@ public:
   void update(absolute_time_t now);
   void reset();
 
-  void set_speed_modifier(SpeedModifier modifier);
+  // Speed modification is handled by TempoHandler; ClockMultiplier is a fixed
+  // 2→24 PPQN converter and does not expose speed controls.
 
 private:
   uint8_t base_multiplication_factor_;

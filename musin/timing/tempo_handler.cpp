@@ -11,15 +11,6 @@
 
 namespace musin::timing {
 
-namespace {
-// Normalize any integer to [0, DEFAULT_PPQN-1] for 24 PPQN phase safety.
-constexpr uint8_t wrap24(int v) noexcept {
-  int r = v % static_cast<int>(musin::timing::DEFAULT_PPQN);
-  return static_cast<uint8_t>(
-      r < 0 ? r + static_cast<int>(musin::timing::DEFAULT_PPQN) : r);
-}
-} // namespace
-
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
                            SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
@@ -73,9 +64,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     if (current_source_ == ClockSource::EXTERNAL_SYNC) {
       external_align_to_12_next_ = true; // Next physical pulse aligns to 12
     }
-    musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
-                                                 .phase_24 = wrap24(phase_24_),
-                                                 .is_resync = true};
+    musin::timing::TempoEvent resync_tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
     notify_observers(resync_tempo_event);
     return;
   }
@@ -96,7 +86,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
           external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
       external_align_to_12_next_ = !external_align_to_12_next_;
       musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                            .phase_24 = wrap24(phase_24_),
+                                            .phase_24 = phase_24_,
                                             .is_resync =
                                                 pending_manual_resync_flag_};
       pending_anchor_on_next_external_tick_ = false;
@@ -114,7 +104,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
         external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
     external_align_to_12_next_ = !external_align_to_12_next_;
     musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                          .phase_24 = wrap24(phase_24_),
+                                          .phase_24 = phase_24_,
                                           .is_resync =
                                               pending_manual_resync_flag_};
     pending_manual_resync_flag_ = false;
@@ -211,8 +201,7 @@ void TempoHandler::trigger_manual_sync() {
         // Emit resync at the anchor phase first
         phase_24_ = anchor_phase;
         musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
-                                                     .phase_24 =
-                                                         wrap24(phase_24_),
+                                                     .phase_24 = phase_24_,
                                                      .is_resync = true};
         notify_observers(resync_tempo_event);
 
@@ -227,9 +216,8 @@ void TempoHandler::trigger_manual_sync() {
   case ClockSource::EXTERNAL_SYNC:
     // Immediate resync for SyncIn
     phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
-    musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
-                                                 .phase_24 = wrap24(phase_24_),
-                                                 .is_resync = true};
+    musin::timing::TempoEvent resync_tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
     notify_observers(resync_tempo_event);
     break;
   }
@@ -243,9 +231,8 @@ void TempoHandler::advance_phase_and_emit_event() {
   tick_count_++;
 
   // Emit tempo event with current phase information
-  musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                        .phase_24 = wrap24(phase_24_),
-                                        .is_resync = false};
+  musin::timing::TempoEvent tempo_event{
+      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
 
   notify_observers(tempo_event);
 }

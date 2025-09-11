@@ -34,6 +34,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/internal_clock.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_processor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/clock_multiplier.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/clock_router.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_out.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/tempo_handler.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../midi_test_support.cpp
 )

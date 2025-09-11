@@ -171,10 +171,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
 
   _just_played_step_per_track.fill(std::nullopt);
 
-  // Reset timing base so we don't wait for an old target accumulated
-  // during manual advances while stopped.
-  high_res_tick_counter_.store(0);
-  next_trigger_tick_target_.store(0);
 
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);

@@ -201,20 +201,12 @@ constexpr float MAX_BPM_ADJUST = 360.0f;
 
 // Timing configuration (musical policies)
 namespace timing {
-/**
- * Swing presets define the off-beat phase for the second eighth note.
- * Values are 24 PPQN phases (0..23).
- */
-enum class SwingPreset : uint8_t {
-  None = 12,       // 50/50
-  Light = 13,      // ~54/46
-  Medium = 14,     // ~58/42
-  Strong = 15,     // 62.5/37.5
-  FullShuffle = 16 // ~66.7/33.3 (≈ 2:1)
-};
-
-// Compile-time selection of swing preset when swing is enabled
-inline constexpr SwingPreset DEFAULT_SWING_PRESET = SwingPreset::FullShuffle;
+// Fixed swing offset in 24 PPQN phases applied to swung steps only.
+// Anchors remain at 0 and 12; the controller applies +SWING_OFFSET_PHASES
+// to the next step when that step is marked as swung.
+constexpr uint8_t SWING_OFFSET_PHASES = 4; // valid range: 1..11
+static_assert(SWING_OFFSET_PHASES > 0 && SWING_OFFSET_PHASES < 12,
+              "SWING_OFFSET_PHASES must be between 1 and 11 at 24 PPQN");
 } // namespace timing
 
 // PizzaControls specific

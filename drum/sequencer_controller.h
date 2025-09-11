@@ -142,17 +142,18 @@ public:
 
   /**
    * @brief Enable or disable swing timing.
-   * When enabled, uses compile-time swing preset from timing_config.h.
-   * When disabled, uses straight timing (phases 0 and 12).
+   * When enabled, steps marked as "swung" are delayed by
+   * config::timing::SWING_OFFSET_PHASES from the straight eighth anchors
+   * (phases 0 and 12). When disabled, all steps use straight timing (0 and 12).
    * @param enabled true to enable swing, false for straight timing
    */
   void set_swing_enabled(bool enabled);
 
   /**
    * @brief Set whether swing delay applies to odd steps.
-   * @param delay_odd If true, odd steps (1, 3, ...) are delayed (placed on the
-   *                  off-beat phase). If false, even steps (0, 2, ...) are
-   *                  delayed.
+   * @param delay_odd If true, odd steps (1, 3, ...) are delayed (placed at
+   *                  anchor + SWING_OFFSET_PHASES). If false, even steps
+   *                  (0, 2, ...) are delayed.
    */
   void set_swing_target(bool delay_odd);
 
@@ -251,8 +252,9 @@ private:
   std::atomic<uint8_t> _retrigger_due_mask{0};
 
   bool swing_enabled_ = false;
-  // Requested swing direction: true = forward (delay odd) using anchors {0,S};
-  // false = reverse (mirror) using anchors {0,24-S}.
+  // Swing target: true = delay odd steps; false = delay even steps.
+  // Anchors are always 0 and 12; the controller applies
+  // config::timing::SWING_OFFSET_PHASES to the step that is marked as swung.
   bool swing_delays_odd_steps_ = false;
 
   bool repeat_active_ = false;

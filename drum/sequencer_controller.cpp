@@ -18,10 +18,6 @@ constexpr uint8_t DOWNBEAT = 0;
 constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 12
 constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 8
 constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 6
-
-constexpr uint8_t swing_offbeat_phase() {
-  return static_cast<uint8_t>(drum::config::timing::DEFAULT_SWING_PRESET);
-}
 } // namespace musical_timing
 
 template <size_t NumTracks, size_t NumSteps>
@@ -220,33 +216,31 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  // Simple anchors per mode; SpeedAdapter controls cadence
-  bool on_anchor = false;
-  if (!swing_enabled_) {
-    // Always anchor on straight eighths (0 and 12). Double/Half speed is
-    // achieved by the SpeedAdapter changing event cadence, not by changing
-    // anchor density.
-    on_anchor = (event.phase_24 == musical_timing::DOWNBEAT) ||
-                (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
-  } else if (swing_delays_odd_steps_) {
-    on_anchor =
-        (event.phase_24 == musical_timing::DOWNBEAT) || (event.phase_24 == 16);
-  } else {
-    on_anchor = (event.phase_24 == 4) ||
-                (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
+  // Determine expected phase for the next step using fixed anchors (0,12),
+  // applying +SWING_OFFSET_PHASES only when the next step is marked as swung.
+  const size_t next_index = calculate_base_step_index();
+  const bool next_is_even = (next_index % 2 == 0);
+  const bool delay_this_step =
+      swing_enabled_ && ((swing_delays_odd_steps_ && !next_is_even) ||
+                         (!swing_delays_odd_steps_ && next_is_even));
+
+  uint8_t expected_phase = next_is_even ? musical_timing::DOWNBEAT
+                                        : musical_timing::STRAIGHT_OFFBEAT;
+  if (delay_this_step) {
+    expected_phase = static_cast<uint8_t>(
+        (expected_phase + drum::config::timing::SWING_OFFSET_PHASES) %
+        musical_timing::PPQN);
   }
 
-  if (on_anchor) {
+  if (event.phase_24 == expected_phase) {
     _step_is_due = true;
   }
 
   // Process retrigger logic based on phases
-  // Swing OFF behavior:
-  //   - Mode 1: eighths (0, 12)
-  //   - Mode 2: sixteenths (0, 6, 12, 18)
-  // Swing ON behavior:
-  //   - Mode 1: follows swing grid (0 and DEFAULT_SWING_PRESET)
-  //   - Mode 2: triplets (every 8 phases: 0, 8, 16)
+  // Retrigger behavior:
+  //   - Mode 1: trigger exactly on expected_phase (same as main step)
+  //   - Mode 2: swing ON => triplets (phase % 8 == 0); swing OFF =>
+  //             sixteenths (phase % 6 == 0)
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint8_t mode = _retrigger_mode_per_track[track_idx];
     if (mode == 0) {
@@ -255,17 +249,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
     bool due = false;
     if (mode == 1) {
-      // Trigger on the same anchors as main step timing
-      if (!swing_enabled_) {
-        due = (event.phase_24 == musical_timing::DOWNBEAT) ||
-              (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
-      } else if (swing_delays_odd_steps_) {
-        due = (event.phase_24 == musical_timing::DOWNBEAT) ||
-              (event.phase_24 == 16);
-      } else {
-        due = (event.phase_24 == 4) ||
-              (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
-      }
+      // Trigger exactly with the main step's expected phase
+      due = (event.phase_24 == expected_phase);
     } else if (mode == 2) {
       // Preserve existing contrast: triplets when swing ON; sixteenths when OFF
       if (swing_enabled_) {

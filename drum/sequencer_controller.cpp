@@ -220,17 +220,14 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  // Simple anchors per mode; extend anchors for Double Speed to even spacing
+  // Simple anchors per mode; SpeedAdapter controls cadence
   bool on_anchor = false;
   if (!swing_enabled_) {
-    if (tempo_source.get_speed_modifier() ==
-        musin::timing::SpeedModifier::DOUBLE_SPEED) {
-      // Evenly spaced at 0,6,12,18 using 24 PPQN
-      on_anchor = (event.phase_24 % musical_timing::SIXTEENTH_SUBDIVISION) == 0;
-    } else {
-      on_anchor = (event.phase_24 == musical_timing::DOWNBEAT) ||
-                  (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
-    }
+    // Always anchor on straight eighths (0 and 12). Double/Half speed is
+    // achieved by the SpeedAdapter changing event cadence, not by changing
+    // anchor density.
+    on_anchor = (event.phase_24 == musical_timing::DOWNBEAT) ||
+                (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
   } else if (swing_delays_odd_steps_) {
     on_anchor =
         (event.phase_24 == musical_timing::DOWNBEAT) || (event.phase_24 == 16);

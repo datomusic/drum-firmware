@@ -25,35 +25,36 @@ SyncOut::~SyncOut() {
   disable(); // Ensure cleanup on destruction
 }
 
-void SyncOut::notification(musin::timing::TempoEvent event) {
+void SyncOut::notification(musin::timing::TempoEvent /*event*/) {
+  // Deprecated for SyncOut timing: use raw ClockEvent notification instead.
+  // Intentionally no-op to avoid coupling to speed-modified phases.
+}
+
+void SyncOut::notification(musin::timing::ClockEvent event) {
   if (!_is_enabled) {
     return;
   }
 
-  // Phase-based stable 4 PPQN: pulse on phases 0, 6, 12, 18 (every six ticks)
-  // independent of swing
-  bool should_pulse =
-      (event.phase_24 % musin::timing::PHASE_SIXTEENTH_STEP) == 0;
+  if (event.is_resync) {
+    reset_counters();
+  }
 
-  if (should_pulse && !_pulse_active) {
-    _gpio.write(true);
-    _pulse_active = true;
+  // Count raw 24 PPQN ticks and pulse every _ticks_per_pulse
+  _raw_tick_mod_counter++;
+  if ((_raw_tick_mod_counter % _ticks_per_pulse) == 0) {
+    if (!_pulse_active) {
+      _gpio.write(true);
+      _pulse_active = true;
 
-    // Cancel any existing alarm before setting a new one
-    if (_pulse_alarm_id > 0) {
-      cancel_alarm(_pulse_alarm_id);
-    }
+      if (_pulse_alarm_id > 0) {
+        cancel_alarm(_pulse_alarm_id);
+      }
 
-    // Schedule pulse off after configured duration
-    _pulse_alarm_id = add_alarm_in_us(_pulse_duration_us,
-                                      pulse_off_alarm_callback, this, true);
-    if (_pulse_alarm_id <= 0) {
-      // Handle error: Failed to add alarm.
-      // For now, immediately turn off pulse to prevent it staying high
-      // indefinitely. A more robust solution might involve logging or an
-      // error state.
-      trigger_pulse_off();
-      // printf("SyncOut Error: Failed to schedule pulse off alarm.\n");
+      _pulse_alarm_id = add_alarm_in_us(_pulse_duration_us,
+                                        pulse_off_alarm_callback, this, true);
+      if (_pulse_alarm_id <= 0) {
+        trigger_pulse_off();
+      }
     }
   }
 }
@@ -101,6 +102,14 @@ void SyncOut::trigger_pulse_off() {
   _gpio.write(false);
   _pulse_active = false;
   _pulse_alarm_id = 0; // Mark alarm as no longer active or needed
+}
+
+void SyncOut::reset_counters() {
+  _raw_tick_mod_counter = 0;
+}
+
+void SyncOut::resync() {
+  reset_counters();
 }
 
 } // namespace musin::timing

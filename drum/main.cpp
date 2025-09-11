@@ -135,8 +135,7 @@ int main() {
       pizza_display); // PizzaDisplay needs tempo events for pulsing
   tempo_handler.add_observer(
       pizza_controls); // PizzaControls needs tempo events for sample cycling
-  tempo_handler.add_observer(
-      sync_out); // SyncOut needs tempo events for pulse generation
+  // SyncOut wiring is managed per-source below (raw 24 PPQN ticks)
 
   // SequencerController notifies MessageRouter, which queues the events
   // internally.
@@ -153,6 +152,21 @@ int main() {
   message_router.add_note_event_observer(audio_engine);
 
   sync_out.enable();
+
+  // Attach SyncOut to the current clock source's raw 24 PPQN output
+  musin::timing::ClockSource last_sync_source =
+      tempo_handler.get_clock_source();
+  switch (last_sync_source) {
+  case musin::timing::ClockSource::INTERNAL:
+    internal_clock.add_observer(sync_out);
+    break;
+  case musin::timing::ClockSource::MIDI:
+    midi_clock_processor.add_observer(sync_out);
+    break;
+  case musin::timing::ClockSource::EXTERNAL_SYNC:
+    clock_multiplier.add_observer(sync_out);
+    break;
+  }
 
   // SystemStateMachine automatically starts in Boot state
   // No initialization_complete() call needed
@@ -224,6 +238,40 @@ int main() {
       midi_manager.process_input();
       internal_clock.update(now);
       tempo_handler.update();
+
+      // Rewire SyncOut to follow active clock source changes
+      {
+        musin::timing::ClockSource current = tempo_handler.get_clock_source();
+        if (current != last_sync_source) {
+          // Detach from previous
+          switch (last_sync_source) {
+          case musin::timing::ClockSource::INTERNAL:
+            internal_clock.remove_observer(sync_out);
+            break;
+          case musin::timing::ClockSource::MIDI:
+            midi_clock_processor.remove_observer(sync_out);
+            break;
+          case musin::timing::ClockSource::EXTERNAL_SYNC:
+            clock_multiplier.remove_observer(sync_out);
+            break;
+          }
+          // Attach to new
+          switch (current) {
+          case musin::timing::ClockSource::INTERNAL:
+            internal_clock.add_observer(sync_out);
+            break;
+          case musin::timing::ClockSource::MIDI:
+            midi_clock_processor.add_observer(sync_out);
+            break;
+          case musin::timing::ClockSource::EXTERNAL_SYNC:
+            clock_multiplier.add_observer(sync_out);
+            break;
+          }
+          // Reset SyncOut tick counters to align to new source
+          sync_out.resync();
+          last_sync_source = current;
+        }
+      }
       musin::midi::process_midi_output_queue(
           null_logger); // Pass logger to queue processing
       sleep_us(10);

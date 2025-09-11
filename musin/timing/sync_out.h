@@ -3,6 +3,7 @@
 
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
+#include "musin/timing/clock_event.h"
 #include "musin/timing/tempo_event.h"
 #include "pico/time.h" // For alarm_id_t, absolute_time_t
 #include <cstdint>
@@ -15,7 +16,8 @@ namespace musin::timing {
  * The SyncOut driver observes TempoHandler and triggers a pulse of
  * configurable duration after a configurable number of tempo ticks.
  */
-class SyncOut : public etl::observer<musin::timing::TempoEvent> {
+class SyncOut : public etl::observer<musin::timing::TempoEvent>,
+                public etl::observer<musin::timing::ClockEvent> {
 public:
   /**
    * @brief Constructor for SyncOut.
@@ -25,6 +27,7 @@ public:
    * @param pulse_duration_ms The duration of the sync pulse in milliseconds.
    * Default is 10ms.
    */
+  // Default to 12 raw ticks per pulse => 2 PPQN
   SyncOut(std::uint32_t gpio_pin, std::uint32_t ticks_per_pulse = 12,
           std::uint32_t pulse_duration_ms = 10);
 
@@ -41,6 +44,9 @@ public:
    * @param event The tempo event (not used for data, only as a trigger).
    */
   void notification(musin::timing::TempoEvent event) override;
+
+  // Raw 24 PPQN clock input (independent of speed modifiers)
+  void notification(musin::timing::ClockEvent event) override;
 
   /**
    * @brief Enables the sync pulse generation.
@@ -60,9 +66,13 @@ public:
    */
   [[nodiscard]] bool is_enabled() const;
 
+  // Reset internal tick counters to align pulses to next boundary
+  void resync();
+
 private:
   static int64_t pulse_off_alarm_callback(alarm_id_t id, void *user_data);
   void trigger_pulse_off();
+  void reset_counters();
 
   musin::hal::GpioPin _gpio;
   const std::uint32_t _ticks_per_pulse;
@@ -70,6 +80,9 @@ private:
   bool _is_enabled;
   bool _pulse_active;
   alarm_id_t _pulse_alarm_id;
+
+  // Raw tick accumulator for 24 PPQN clocking
+  uint32_t _raw_tick_mod_counter = 0; // counts modulo _ticks_per_pulse
 };
 
 } // namespace musin::timing

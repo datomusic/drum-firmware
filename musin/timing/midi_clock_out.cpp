@@ -36,4 +36,3 @@ void MidiClockOut::notification(musin::timing::ClockEvent event) {
 }
 
 } // namespace musin::timing
-

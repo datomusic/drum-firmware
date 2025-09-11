@@ -27,7 +27,8 @@ class SpeedAdapter
                              MAX_SPEED_ADAPTER_OBSERVERS> {
 public:
   explicit SpeedAdapter(SpeedModifier initial = SpeedModifier::NORMAL_SPEED)
-      : modifier_(initial) {}
+      : modifier_(initial) {
+  }
 
   void set_modifier(SpeedModifier m) {
     if (modifier_ == m)
@@ -40,7 +41,9 @@ public:
     next_insert_time_ = nil_time;
   }
 
-  [[nodiscard]] SpeedModifier get_modifier() const { return modifier_; }
+  [[nodiscard]] SpeedModifier get_modifier() const {
+    return modifier_;
+  }
 
   void notification(musin::timing::ClockEvent event) override;
 
@@ -62,4 +65,3 @@ private:
 } // namespace musin::timing
 
 #endif // MUSIN_TIMING_SPEED_ADAPTER_H
-

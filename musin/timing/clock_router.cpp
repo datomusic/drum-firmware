@@ -8,8 +8,7 @@ ClockRouter::ClockRouter(InternalClock &internal_clock_ref,
                          ClockSource initial_source)
     : internal_clock_(internal_clock_ref),
       midi_clock_processor_(midi_clock_processor_ref),
-      clock_multiplier_(clock_multiplier_ref),
-      current_source_(initial_source) {
+      clock_multiplier_(clock_multiplier_ref), current_source_(initial_source) {
   set_clock_source(initial_source);
 }
 
@@ -74,4 +73,3 @@ void ClockRouter::attach_source(ClockSource source) {
 }
 
 } // namespace musin::timing
-

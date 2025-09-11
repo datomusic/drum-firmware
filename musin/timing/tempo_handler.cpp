@@ -22,16 +22,15 @@ constexpr uint8_t wrap24(int v) noexcept {
 
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
-                           SyncIn &sync_in_ref,
-                           ClockRouter &clock_router_ref,
+                           SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
                            SpeedAdapter &speed_adapter_ref,
                            bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref),
       _midi_clock_processor_ref(midi_clock_processor_ref),
       _sync_in_ref(sync_in_ref), _clock_router_ref(clock_router_ref),
-      _speed_adapter_ref(speed_adapter_ref),
-      current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
+      _speed_adapter_ref(speed_adapter_ref), current_source_(initial_source),
+      _playback_state(PlaybackState::STOPPED),
       current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_24_(0),
       tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
@@ -93,12 +92,13 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     // If a manual anchor was requested for MIDI, anchor on this tick
     if (pending_anchor_on_next_external_tick_) {
       tick_count_++;
-      phase_24_ = external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT
-                                             : PHASE_DOWNBEAT;
+      phase_24_ =
+          external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
       external_align_to_12_next_ = !external_align_to_12_next_;
       musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
                                             .phase_24 = wrap24(phase_24_),
-                                            .is_resync = pending_manual_resync_flag_};
+                                            .is_resync =
+                                                pending_manual_resync_flag_};
       pending_anchor_on_next_external_tick_ = false;
       pending_manual_resync_flag_ = false;
       notify_observers(tempo_event);
@@ -107,13 +107,16 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   }
 
   // External sync: anchor on physical pulses to 0/12, else advance normally
-  if (current_source_ == ClockSource::EXTERNAL_SYNC && event.is_physical_pulse) {
+  if (current_source_ == ClockSource::EXTERNAL_SYNC &&
+      event.is_physical_pulse) {
     tick_count_++;
-    phase_24_ = external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
+    phase_24_ =
+        external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
     external_align_to_12_next_ = !external_align_to_12_next_;
     musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
                                           .phase_24 = wrap24(phase_24_),
-                                          .is_resync = pending_manual_resync_flag_};
+                                          .is_resync =
+                                              pending_manual_resync_flag_};
     pending_manual_resync_flag_ = false;
     notify_observers(tempo_event);
     return;

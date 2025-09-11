@@ -26,4 +26,3 @@ private:
 } // namespace musin::timing
 
 #endif // MUSIN_TIMING_MIDI_CLOCK_OUT_H
-

@@ -3,10 +3,10 @@
 
 #include "etl/observer.h"
 #include "musin/timing/clock_event.h"
-#include "musin/timing/internal_clock.h"
-#include "musin/timing/tempo_event.h"
 #include "musin/timing/clock_router.h"
+#include "musin/timing/internal_clock.h"
 #include "musin/timing/speed_adapter.h"
+#include "musin/timing/tempo_event.h"
 #include <cstdint>
 
 namespace musin::timing {
@@ -51,8 +51,7 @@ public:
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         MidiClockProcessor &midi_clock_processor_ref,
-                        SyncIn &sync_in_ref,
-                        ClockRouter &clock_router_ref,
+                        SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
                         SpeedAdapter &speed_adapter_ref,
                         bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);

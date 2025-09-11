@@ -3,9 +3,9 @@
 
 #include "etl/observer.h"
 #include "musin/timing/clock_event.h"
+#include "musin/timing/clock_multiplier.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
-#include "musin/timing/clock_multiplier.h"
 #include <cstdint>
 
 namespace musin::timing {
@@ -28,7 +28,9 @@ public:
               ClockSource initial_source = ClockSource::INTERNAL);
 
   void set_clock_source(ClockSource source);
-  [[nodiscard]] ClockSource get_clock_source() const { return current_source_; }
+  [[nodiscard]] ClockSource get_clock_source() const {
+    return current_source_;
+  }
 
   // From selected upstream source
   void notification(musin::timing::ClockEvent event) override;
@@ -47,4 +49,3 @@ private:
 } // namespace musin::timing
 
 #endif // MUSIN_TIMING_CLOCK_ROUTER_H
-

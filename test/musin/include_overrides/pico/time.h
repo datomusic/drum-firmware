@@ -84,8 +84,4 @@ static inline absolute_time_t delayed_by_us(absolute_time_t t, uint64_t us) {
   return static_cast<absolute_time_t>(t + us);
 }
 
-static inline absolute_time_t delayed_by_us(absolute_time_t t, int64_t us) {
-  return static_cast<absolute_time_t>(static_cast<int64_t>(t) + us);
-}
-
 #endif // TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_TIME_H_

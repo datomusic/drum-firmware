@@ -1,4 +1,5 @@
 #include "musin/timing/clock_router.h"
+#include "pico/time.h"
 
 namespace musin::timing {
 
@@ -34,6 +35,8 @@ void ClockRouter::set_clock_source(ClockSource source) {
   musin::timing::ClockEvent resync_event{source};
   resync_event.is_resync = true;
   resync_event.is_physical_pulse = false;
+  resync_event.timestamp_us =
+      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   notify_observers(resync_event);
 }
 

@@ -70,10 +70,9 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     return;
   }
 
-  // Capture timing for MIDI look-behind anchoring
+  // Capture timing for MIDI look-behind anchoring (prefer upstream timestamp)
   if (current_source_ == ClockSource::MIDI) {
-    uint32_t now_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+    uint32_t now_us = event.timestamp_us;
     if (last_external_tick_us_ != 0) {
       last_external_tick_interval_us_ = now_us - last_external_tick_us_;
     }

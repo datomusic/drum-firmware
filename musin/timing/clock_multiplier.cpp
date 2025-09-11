@@ -37,6 +37,10 @@ void ClockMultiplier::notification(musin::timing::ClockEvent event) {
   // whether this was a physical pulse
   ClockEvent multiplied_event{current_source_, send_resync};
   multiplied_event.is_physical_pulse = is_physical;
+  // Propagate timestamp if provided, else approximate with now
+  multiplied_event.timestamp_us =
+      (event.timestamp_us != 0) ? event.timestamp_us
+                                : static_cast<uint32_t>(to_us_since_boot(now));
   notify_observers(multiplied_event);
   pulse_counter_++;
   if (pulse_interval_us_ > 0) {
@@ -56,6 +60,9 @@ void ClockMultiplier::update(absolute_time_t now) {
     ClockEvent interp_event{current_source_};
     // Interpolated ticks are not physical pulses
     interp_event.is_physical_pulse = false;
+    // Stamp with scheduled time for this interpolated pulse
+    interp_event.timestamp_us =
+        static_cast<uint32_t>(to_us_since_boot(next_pulse_time_));
     notify_observers(interp_event);
     pulse_counter_++;
     next_pulse_time_ = delayed_by_us(next_pulse_time_, pulse_interval_us_);

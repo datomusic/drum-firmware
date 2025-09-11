@@ -32,6 +32,7 @@ void SyncIn::update(absolute_time_t now) {
       // Fire the event immediately, marking it as a physical pulse
       ClockEvent event{ClockSource::EXTERNAL_SYNC};
       event.is_physical_pulse = true;
+      event.timestamp_us = static_cast<uint32_t>(to_us_since_boot(now));
       notify_observers(event);
 
       // Transition to the next state to wait for a stable low

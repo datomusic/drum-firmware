@@ -10,6 +10,7 @@ jobs:
   Build:
     runs-on: ubuntu-latest
     steps:
+      # Required for GitHub Actions cache to work with root-owned directories in containers
       - name: Allow caching of root-owned directories
         run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
 
@@ -28,7 +29,7 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
 
       - if: ${{ steps.cache-pico-sdk.outputs.cache-hit != 'true' }}
-        name: Checkout pico SDk
+        name: Checkout pico SDK
         run: git submodule update --init --recursive musin/ports/pico/pico-sdk
 
       - id: cache-extras
@@ -104,3 +105,16 @@ jobs:
       - name: Build firmware
         working-directory: drum
         run: cmake -S . -B build -DPICO_BOARD=dato_submarine && cd build && make -j
+
+      # Cleanup build artifacts and cache on failure to prevent pollution
+      - name: Cleanup on failure
+        if: failure()
+        run: |
+          echo "Build failed, cleaning up artifacts and cache..."
+          # Remove build directory
+          rm -rf drum/build
+          # Clear any temporary cmake files
+          find . -name "CMakeCache.txt" -delete 2>/dev/null || true
+          find . -name "CMakeFiles" -type d -exec rm -rf {} + 2>/dev/null || true
+          # Remove any corrupted cache keys by invalidating them
+          echo "::warning::Build failed - cached dependencies may need to be refreshed on retry"

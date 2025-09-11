@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # Required for GitHub Actions cache to work with root-owned directories in containers
       - name: Allow caching of root-owned directories
         run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
 
@@ -105,16 +106,36 @@ jobs:
 
       - name: Get release tag
         id: get_release
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          
+          # Validate tag format is safe for filename
+          if [[ ! "$TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "Error: Release tag '$TAG' contains invalid characters for filename"
+            echo "Tag must only contain letters, numbers, dots, underscores, and hyphens"
+            exit 1
+          fi
 
       - name: Find and rename binary
         run: |
           cd drum/build
-          BINARY_FILE=$(find . -name "drum-*.uf2" -print -quit)
-          if [ ! -f "$BINARY_FILE" ]; then
+          BINARY_FILES=$(find . -name "drum-*.uf2")
+          BINARY_COUNT=$(echo "$BINARY_FILES" | wc -l)
+          
+          if [ -z "$BINARY_FILES" ]; then
             echo "Error: No .uf2 file found"
             exit 1
           fi
+          
+          if [ "$BINARY_COUNT" -gt 1 ]; then
+            echo "Error: Multiple .uf2 files found:"
+            echo "$BINARY_FILES"
+            echo "Expected exactly one drum-*.uf2 file"
+            exit 1
+          fi
+          
+          BINARY_FILE="$BINARY_FILES"
           TARGET_NAME="drum-${{ steps.get_release.outputs.tag }}.uf2"
           if [ "$(basename "$BINARY_FILE")" != "$TARGET_NAME" ]; then
             mv "$BINARY_FILE" "$TARGET_NAME"
@@ -132,3 +153,18 @@ jobs:
           asset_path: ./drum/build/drum-${{ steps.get_release.outputs.tag }}.uf2
           asset_name: drum-${{ steps.get_release.outputs.tag }}.uf2
           asset_content_type: application/octet-stream
+
+      # Cleanup build artifacts and cache on failure to prevent pollution
+      - name: Cleanup on failure
+        if: failure()
+        run: |
+          echo "Release build failed, cleaning up artifacts and cache..."
+          # Remove build directory
+          rm -rf drum/build
+          # Clear any temporary cmake files
+          find . -name "CMakeCache.txt" -delete 2>/dev/null || true
+          find . -name "CMakeFiles" -type d -exec rm -rf {} + 2>/dev/null || true
+          # Remove any partially created release assets
+          rm -f ./drum/build/drum-*.uf2 2>/dev/null || true
+          # Remove any corrupted cache keys by invalidating them
+          echo "::warning::Release build failed - cached dependencies may need to be refreshed on retry"

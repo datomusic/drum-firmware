@@ -171,7 +171,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
 
   _just_played_step_per_track.fill(std::nullopt);
 
-
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
 

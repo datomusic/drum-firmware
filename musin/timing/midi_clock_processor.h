@@ -8,9 +8,9 @@
 
 namespace musin::timing {
 
-// Maximum number of observers MidiClockProcessor can notify (e.g.,
-// TempoHandler)
-constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 1;
+// Maximum number of observers MidiClockProcessor can notify (TempoHandler +
+// SyncOut)
+constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 2;
 
 /**
  * @brief Processes raw incoming MIDI clock ticks, forwards them, and detects

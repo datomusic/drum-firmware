@@ -254,7 +254,14 @@ void SequencerController<NumTracks, NumSteps>::notification(
     } else if (mode == 2) {
       // Preserve existing contrast: triplets when swing ON; sixteenths when OFF
       if (swing_enabled_) {
-        due = (event.phase_24 % musical_timing::TRIPLET_SUBDIVISION) == 0;
+        if (swing_delays_odd_steps_) {
+          // Positive swing: use standard triplets
+          due = (event.phase_24 % musical_timing::TRIPLET_SUBDIVISION) == 0;
+        } else {
+          // Negative swing: offset triplets to align with swung even steps
+          due = ((event.phase_24 + musical_timing::TRIPLET_SUBDIVISION / 2) %
+                 musical_timing::TRIPLET_SUBDIVISION) == 0;
+        }
       } else {
         due = (event.phase_24 % musical_timing::SIXTEENTH_SUBDIVISION) == 0;
       }

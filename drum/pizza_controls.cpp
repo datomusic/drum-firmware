@@ -50,11 +50,21 @@ void PizzaControls::init() {
   drumpad_component.init();
   analog_component.init();
   playbutton_component.init();
+
+  // Track initial running state for edge detection
+  _was_running_ = is_running();
 }
 
 void PizzaControls::update(absolute_time_t now) {
   if (_message_router_ref.get_local_control_mode() ==
       drum::LocalControlMode::ON) {
+    // Detect transition from running -> stopped and clear repeat state
+    bool running_now = is_running();
+    if (_was_running_ && !running_now) {
+      analog_component.reset_repeat_state();
+    }
+    _was_running_ = running_now;
+
     _scanner.scan(); // Scan all analog inputs at once
 
     keypad_component.update();
@@ -438,6 +448,15 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
   }
 }
 
+void PizzaControls::AnalogControlComponent::reset_repeat_state() {
+  // Clear running repeat state and timing so next engagement starts fresh
+  repeat_running_state_ = RepeatRunningState::None;
+  repeat_running_last_transition_time_ = nil_time;
+  // Also ensure the engine isn't left with an active repeat intention
+  parent_controls->_sequencer_controller_ref.set_intended_repeat_state(
+      std::nullopt);
+}
+
 void PizzaControls::AnalogControlComponent::handle_control_change(
     uint16_t control_id, float value) {
   PizzaControls *controls = parent_controls;
@@ -516,7 +535,7 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
       return;
     }
 
-    // Running: hysteresis-based repeat mode selection with debounce
+    // Running: hysteresis-based repeat mode selection with selective debounce
     {
       const absolute_time_t now = get_absolute_time();
       const uint32_t debounce_us =
@@ -526,36 +545,45 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
           absolute_time_diff_us(repeat_running_last_transition_time_, now) >=
               static_cast<int64_t>(debounce_us);
 
-      if (debounce_ok) {
-        switch (repeat_running_state_) {
-        case RepeatRunningState::None:
-          if (value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
-            repeat_running_state_ = RepeatRunningState::Mode2;
-            repeat_running_last_transition_time_ = now;
-          } else if (value >=
-                     config::analog_controls::REPEAT_MODE1_ENTER_THRESHOLD) {
-            repeat_running_state_ = RepeatRunningState::Mode1;
-            repeat_running_last_transition_time_ = now;
-          }
-          break;
-        case RepeatRunningState::Mode1:
-          if (value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
-            repeat_running_state_ = RepeatRunningState::Mode2;
-            repeat_running_last_transition_time_ = now;
-          } else if (value <=
-                     config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
-            repeat_running_state_ = RepeatRunningState::None;
-            repeat_running_last_transition_time_ = now;
-          }
-          break;
-        case RepeatRunningState::Mode2:
-          if (value <= config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD) {
-            // Drop to Mode1 on falling below Mode2 exit threshold
-            repeat_running_state_ = RepeatRunningState::Mode1;
-            repeat_running_last_transition_time_ = now;
-          }
-          break;
+      switch (repeat_running_state_) {
+      case RepeatRunningState::None:
+        // Upward transitions only (debounced)
+        if (debounce_ok &&
+            value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::Mode2;
+          repeat_running_last_transition_time_ = now;
+        } else if (debounce_ok &&
+                   value >=
+                       config::analog_controls::REPEAT_MODE1_ENTER_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::Mode1;
+          repeat_running_last_transition_time_ = now;
         }
+        break;
+      case RepeatRunningState::Mode1:
+        // Upward transition debounced; exit is immediate (hysteresis handles
+        // noise)
+        if (debounce_ok &&
+            value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::Mode2;
+          repeat_running_last_transition_time_ = now;
+        } else if (value <=
+                   config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::None;
+          repeat_running_last_transition_time_ = now;
+        }
+        break;
+      case RepeatRunningState::Mode2:
+        // Allow collapsing directly to None if released far enough
+        if (value <= config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::None;
+          repeat_running_last_transition_time_ = now;
+        } else if (value <=
+                   config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD) {
+          // Drop to Mode1 on falling below Mode2 exit threshold
+          repeat_running_state_ = RepeatRunningState::Mode1;
+          repeat_running_last_transition_time_ = now;
+        }
+        break;
       }
     }
 

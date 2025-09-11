@@ -181,6 +181,7 @@ public:
     void init();
     void update(absolute_time_t now);
     void handle_control_change(uint16_t control_id, float value);
+    void reset_repeat_state();
 
   private:
     struct AnalogControlEventHandler
@@ -238,6 +239,9 @@ public:
   KeypadComponent keypad_component;
   DrumpadComponent drumpad_component;
   AnalogControlComponent analog_component;
+
+private:
+  bool _was_running_ = false;
   PlaybuttonComponent playbutton_component;
 
 public:

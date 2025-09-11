@@ -6,6 +6,7 @@
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/clock_router.h"
+#include "musin/timing/speed_adapter.h"
 #include <cstdint>
 
 namespace musin::timing {
@@ -52,6 +53,7 @@ public:
                         MidiClockProcessor &midi_clock_processor_ref,
                         SyncIn &sync_in_ref,
                         ClockRouter &clock_router_ref,
+                        SpeedAdapter &speed_adapter_ref,
                         bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
@@ -125,13 +127,6 @@ public:
 
 private:
   /**
-   * @brief Process external clock tick with speed modifier applied
-   * consistently. Consolidates MIDI and SYNC speed modifier logic for better
-   * phase alignment.
-   */
-  void process_external_tick_with_speed_modifier(bool is_physical_pulse);
-
-  /**
    * @brief Advance internal phase counter and emit tempo event.
    * This is the central method that advances phase_24_ and tick_count_,
    * then emits a TempoEvent with the current phase information.
@@ -142,6 +137,7 @@ private:
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;
   ClockRouter &_clock_router_ref;
+  SpeedAdapter &_speed_adapter_ref;
 
   ClockSource current_source_;
   PlaybackState _playback_state;
@@ -152,10 +148,6 @@ private:
   // For external sync alignment: alternate physical pulses between phases 0 and
   // 12
   bool external_align_to_12_next_ = false;
-
-  // Scaling state for external rate adapter (HALF/DOUBLE speed)
-  bool half_prescaler_toggle_ = false;  // toggles each raw 24 PPQN tick
-  uint32_t physical_pulse_counter_ = 0; // counts SyncIn physical pulses
 
   // Deferred anchoring for MIDI: when true, next external tick will anchor
   // phase_24_ to 0/12 and emit a resync-marked event.

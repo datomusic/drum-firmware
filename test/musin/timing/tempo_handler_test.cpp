@@ -6,6 +6,7 @@
 #include "musin/midi/midi_output_queue.h"
 #include "musin/timing/clock_multiplier.h"
 #include "musin/timing/clock_router.h"
+#include "musin/timing/speed_adapter.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h" // Test override provides stub
@@ -55,13 +56,16 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   musin::timing::ClockMultiplier clk_mult(24);
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
+  musin::timing::SpeedAdapter speed_adapter;
+  musin::timing::SpeedAdapter speed_adapter;
 
   // Send MIDI clock even when stopped for this test to simplify assertion
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ true, ClockSource::INTERNAL);
 
   musin::timing::MidiClockOut midi_out(th, /*send_when_stopped_as_master*/ true);
   clock_router.add_observer(midi_out);
+  clock_router.add_observer(speed_adapter);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
@@ -73,6 +77,7 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   // Generate 3 internal ticks
   for (int i = 0; i < 3; ++i) {
     internal_clock.update(get_absolute_time());
+    speed_adapter.update(get_absolute_time());
     // InternalClock schedules next tick, so advance time past interval
     advance_time_us(tick_us + 10);
     internal_clock.update(get_absolute_time());
@@ -111,12 +116,14 @@ TEST_CASE(
   musin::timing::ClockMultiplier clk_mult(24);
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::EXTERNAL_SYNC);
+  musin::timing::SpeedAdapter speed_adapter;
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::EXTERNAL_SYNC);
 
   th.set_speed_modifier(SpeedModifier::HALF_SPEED);
+  clock_router.add_observer(speed_adapter);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
@@ -126,14 +133,13 @@ TEST_CASE(
   for (int i = 0; i < 4; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_physical_pulse = true;
-    th.notification(e);
+    speed_adapter.notification(e);
   }
 
-  // With HALF speed, first pulse advances (no anchor), second pulse anchors to
-  // 12, third advances, fourth anchors to 0. Verify those anchored phases.
-  REQUIRE(rec.events.size() >= 4);
-  REQUIRE(rec.events[1].phase_24 == musin::timing::PHASE_EIGHTH_OFFBEAT);
-  REQUIRE(rec.events[3].phase_24 == musin::timing::PHASE_DOWNBEAT);
+  // With HALF speed, every other tick is forwarded; anchors alternate 12 then 0
+  REQUIRE(rec.events.size() >= 2);
+  REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_EIGHTH_OFFBEAT);
+  REQUIRE(rec.events[1].phase_24 == musin::timing::PHASE_DOWNBEAT);
 }
 
 TEST_CASE(
@@ -146,9 +152,12 @@ TEST_CASE(
   musin::timing::ClockMultiplier clk_mult(24);
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
+  musin::timing::SpeedAdapter speed_adapter;
+  musin::timing::SpeedAdapter speed_adapter;
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
+  clock_router.add_observer(speed_adapter);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
@@ -160,7 +169,7 @@ TEST_CASE(
   // Next MIDI tick should be anchored and marked as resync
   ClockEvent e{ClockSource::MIDI};
   e.is_physical_pulse = false;
-  th.notification(e);
+  speed_adapter.notification(e);
 
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
@@ -177,27 +186,27 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   th.set_speed_modifier(SpeedModifier::DOUBLE_SPEED);
+  clock_router.add_observer(speed_adapter);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Send 3 MIDI clock ticks
+  // Send 3 MIDI clock ticks, SpeedAdapter inserts mid ticks
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_physical_pulse = false;
-    th.notification(e);
+    speed_adapter.notification(e);
+    speed_adapter.update(get_absolute_time());
   }
 
-  REQUIRE(rec.events.size() >= 3);
-  // First tick: phase 0 -> 2, second tick: phase 2 -> 4, third tick: phase 4 ->
-  // 6
-  REQUIRE(rec.events[0].phase_24 == 2);
-  REQUIRE(rec.events[1].phase_24 == 4);
-  REQUIRE(rec.events[2].phase_24 == 6);
+  REQUIRE(rec.events.size() >= 4);
+  // Phases advance by 1 per adapter output
+  REQUIRE(rec.events[0].phase_24 == 1);
+  REQUIRE(rec.events[1].phase_24 == 2);
 }
 
 TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
@@ -210,7 +219,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   TempoEventRecorder rec;
@@ -220,7 +229,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_physical_pulse = false;
-    th.notification(e);
+    speed_adapter.notification(e);
   }
   rec.clear();
 
@@ -230,7 +239,8 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   // Send one more tick to see the aligned phase
   ClockEvent e{ClockSource::MIDI};
   e.is_physical_pulse = false;
-  th.notification(e);
+  speed_adapter.notification(e);
+  speed_adapter.update(get_absolute_time());
 
   REQUIRE(rec.events.size() >= 1);
   // Phase should be aligned to even (4, since 3+1=4 which is even)
@@ -247,7 +257,8 @@ TEST_CASE("TempoHandler auto-switches from INTERNAL to MIDI when active") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_auto;
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_auto,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::INTERNAL);
 
@@ -273,7 +284,8 @@ TEST_CASE("TempoHandler prefers EXTERNAL_SYNC over MIDI when cable connected") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_pref;
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_pref,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   // Make MIDI active
@@ -309,7 +321,8 @@ TEST_CASE("TempoHandler never switches directly from MIDI to INTERNAL") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_never;
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_never,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::INTERNAL);
 
@@ -339,7 +352,8 @@ TEST_CASE("TempoHandler manual sync look-behind within timing window") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::MIDI);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_lb;
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_lb,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   TempoEventRecorder rec;
@@ -348,7 +362,7 @@ TEST_CASE("TempoHandler manual sync look-behind within timing window") {
   // Send a MIDI tick to establish timing
   ClockEvent e{ClockSource::MIDI};
   e.is_physical_pulse = false;
-  th.notification(e);
+  speed_adapter_lb.notification(e);
   rec.clear();
 
   // Wait a short time (within look-behind window: < 12ms for 120 BPM)
@@ -372,7 +386,8 @@ TEST_CASE("TempoHandler manual sync defers when outside timing window") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_def;
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_def,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   TempoEventRecorder rec;
@@ -381,7 +396,7 @@ TEST_CASE("TempoHandler manual sync defers when outside timing window") {
   // Send a MIDI tick to establish timing
   ClockEvent e{ClockSource::MIDI};
   e.is_physical_pulse = false;
-  th.notification(e);
+  speed_adapter_def.notification(e);
   rec.clear();
 
   // Wait too long (outside look-behind window: > 12ms for 120 BPM)
@@ -394,7 +409,7 @@ TEST_CASE("TempoHandler manual sync defers when outside timing window") {
   // Send next MIDI tick - should be anchored and marked as resync
   ClockEvent next_e{ClockSource::MIDI};
   next_e.is_physical_pulse = false;
-  th.notification(next_e);
+  speed_adapter_def.notification(next_e);
 
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
@@ -411,7 +426,8 @@ TEST_CASE("TempoHandler set_bpm only affects internal clock source") {
   musin::timing::ClockRouter clock_router(internal_clock, midi_proc, clk_mult,
                                           ClockSource::INTERNAL);
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_bpm;
+  TempoHandler th(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_bpm,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::INTERNAL);
 
@@ -445,7 +461,8 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
                                           ClockSource::INTERNAL);
 
   // Test with send_midi_clock_when_stopped = false
-  TempoHandler th_stopped(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_stopped;
+  TempoHandler th_stopped(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_stopped,
                           /*send_midi_clock_when_stopped*/ false,
                           ClockSource::INTERNAL);
   musin::timing::MidiClockOut midi_out_stopped(
@@ -458,7 +475,8 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
   midi_out_stopped.notification(e);
 
   // Test with send_midi_clock_when_stopped = true
-  TempoHandler th_always(internal_clock, midi_proc, sync_in, clock_router,
+  musin::timing::SpeedAdapter speed_adapter_always;
+  TempoHandler th_always(internal_clock, midi_proc, sync_in, clock_router, speed_adapter_always,
                          /*send_midi_clock_when_stopped*/ true,
                          ClockSource::INTERNAL);
   musin::timing::MidiClockOut midi_out_always(

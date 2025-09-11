@@ -7,6 +7,7 @@
 #include "musin/timing/clock_router.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
+#include "musin/timing/speed_adapter.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/midi_clock_out.h"
@@ -65,8 +66,10 @@ static_assert(SYNC_TO_MIDI_CLOCK_MULTIPLIER > 0,
 static musin::timing::ClockRouter clock_router(
     internal_clock, midi_clock_processor, clock_multiplier,
     musin::timing::ClockSource::INTERNAL);
+static musin::timing::SpeedAdapter speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
 static musin::timing::TempoHandler
     tempo_handler(internal_clock, midi_clock_processor, sync_in, clock_router,
+                  speed_adapter,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static musin::timing::MidiClockOut midi_clock_out(
@@ -162,6 +165,7 @@ int main() {
 
   clock_router.add_observer(sync_out);
   clock_router.add_observer(midi_clock_out);
+  clock_router.add_observer(speed_adapter);
 
   // SystemStateMachine automatically starts in Boot state
   // No initialization_complete() call needed
@@ -224,6 +228,7 @@ int main() {
       pizza_controls.update(now);
       sync_in.update(now);
       clock_multiplier.update(now);
+      speed_adapter.update(now);
       sequencer_controller
           .update(); // Checks if a step is due and queues NoteEvents
       message_router

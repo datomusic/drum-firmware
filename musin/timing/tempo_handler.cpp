@@ -85,12 +85,21 @@ ClockSource TempoHandler::get_clock_source() const {
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
-  if (event.source == ClockSource::INTERNAL &&
-      current_source_ == ClockSource::INTERNAL) {
-    if (_playback_state == PlaybackState::PLAYING ||
-        _send_midi_clock_when_stopped) {
-      // Send MIDI realtime clock on every internal tick (24 PPQN)
-      MIDI::sendRealTime(midi::Clock);
+  // Emit MIDI realtime clock (0xF8)
+  if (event.source == current_source_) {
+    if (current_source_ == ClockSource::INTERNAL) {
+      // As clock sender, only send when playing or when explicitly configured
+      if ((_playback_state == PlaybackState::PLAYING ||
+           _send_midi_clock_when_stopped) &&
+          !event.is_resync) {
+        MIDI::sendRealTime(midi::Clock);
+      }
+    } else {
+      // As clock receiver (MIDI or EXT sync), echo incoming clock regardless
+      // of playback state so downstream devices receive clock
+      if (!event.is_resync) {
+        MIDI::sendRealTime(midi::Clock);
+      }
     }
   }
 

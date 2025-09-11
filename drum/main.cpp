@@ -302,7 +302,7 @@ int main() {
     }
     }
 
-    // Respect SyncOut behavior when stopped as master (internal clock)
+    // Respect SyncOut behavior when stopped as clock sender (internal clock)
     bool allow_sync_out = true;
     if (tempo_handler.get_clock_source() ==
         musin::timing::ClockSource::INTERNAL) {

@@ -50,11 +50,21 @@ void PizzaControls::init() {
   drumpad_component.init();
   analog_component.init();
   playbutton_component.init();
+
+  // Track initial running state for edge detection
+  _was_running_ = is_running();
 }
 
 void PizzaControls::update(absolute_time_t now) {
   if (_message_router_ref.get_local_control_mode() ==
       drum::LocalControlMode::ON) {
+    // Detect transition from running -> stopped and clear repeat state
+    bool running_now = is_running();
+    if (_was_running_ && !running_now) {
+      analog_component.reset_repeat_state();
+    }
+    _was_running_ = running_now;
+
     _scanner.scan(); // Scan all analog inputs at once
 
     keypad_component.update();
@@ -255,12 +265,18 @@ void PizzaControls::DrumpadComponent::update() {
       if (current_mode == musin::ui::RetriggerMode::Single) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
             static_cast<uint8_t>(i), 1);
+        controls->_sequencer_controller_ref.set_pad_pressed_state(
+            static_cast<uint8_t>(i), true);
       } else if (current_mode == musin::ui::RetriggerMode::Double) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
             static_cast<uint8_t>(i), 2);
+        controls->_sequencer_controller_ref.set_pad_pressed_state(
+            static_cast<uint8_t>(i), true);
       } else {
         controls->_sequencer_controller_ref.deactivate_play_on_every_step(
             static_cast<uint8_t>(i));
+        controls->_sequencer_controller_ref.set_pad_pressed_state(
+            static_cast<uint8_t>(i), false);
       }
     }
     _last_known_retrigger_mode_per_pad[i] = current_mode;
@@ -322,7 +338,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
   if (event.pad_index < config::NUM_DRUMPADS) {
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       logger.debug("PRESSED ", static_cast<uint32_t>(event.pad_index));
-      seq_controller.set_pad_pressed_state(event.pad_index, true);
       if (event.velocity.has_value()) {
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
@@ -330,7 +345,6 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
       logger.debug("RELEASED ", static_cast<uint32_t>(event.pad_index));
-      seq_controller.set_pad_pressed_state(event.pad_index, false);
       uint8_t note = parent->get_note_for_pad(event.pad_index);
       seq_controller.trigger_note_off(event.pad_index, note);
     } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
@@ -434,6 +448,15 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
   }
 }
 
+void PizzaControls::AnalogControlComponent::reset_repeat_state() {
+  // Clear running repeat state and timing so next engagement starts fresh
+  repeat_running_state_ = RepeatRunningState::None;
+  repeat_running_last_transition_time_ = nil_time;
+  // Also ensure the engine isn't left with an active repeat intention
+  parent_controls->_sequencer_controller_ref.set_intended_repeat_state(
+      std::nullopt);
+}
+
 void PizzaControls::AnalogControlComponent::handle_control_change(
     uint16_t control_id, float value) {
   PizzaControls *controls = parent_controls;
@@ -482,11 +505,94 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
         drum::Parameter::CRUSH_EFFECT, value);
     break;
   case REPEAT: {
+    // When stopped: treat REPEAT as one-shot advance & play
+    if (!controls->is_running()) {
+      const absolute_time_t now = get_absolute_time();
+      const uint32_t debounce_us =
+          config::analog_controls::REPEAT_EDGE_DEBOUNCE_MS * 1000u;
+      const bool debounce_ok =
+          is_nil_time(repeat_last_transition_time_) ||
+          absolute_time_diff_us(repeat_last_transition_time_, now) >=
+              static_cast<int64_t>(debounce_us);
+
+      if (!repeat_pressed_edge_) {
+        // Currently released: require ON threshold to trigger press
+        if (debounce_ok &&
+            value >= config::analog_controls::REPEAT_EDGE_ON_THRESHOLD) {
+          repeat_pressed_edge_ = true;
+          repeat_last_transition_time_ = now;
+          controls->_sequencer_controller_ref.advance_step();
+        }
+      } else {
+        // Currently pressed: require OFF threshold to release
+        if (debounce_ok &&
+            value <= config::analog_controls::REPEAT_EDGE_OFF_THRESHOLD) {
+          repeat_pressed_edge_ = false;
+          repeat_last_transition_time_ = now;
+        }
+      }
+      // Do not modify repeat effect state while stopped
+      return;
+    }
+
+    // Running: hysteresis-based repeat mode selection with selective debounce
+    {
+      const absolute_time_t now = get_absolute_time();
+      const uint32_t debounce_us =
+          config::analog_controls::REPEAT_RUNNING_DEBOUNCE_MS * 1000u;
+      const bool debounce_ok =
+          is_nil_time(repeat_running_last_transition_time_) ||
+          absolute_time_diff_us(repeat_running_last_transition_time_, now) >=
+              static_cast<int64_t>(debounce_us);
+
+      switch (repeat_running_state_) {
+      case RepeatRunningState::None:
+        // Upward transitions only (debounced)
+        if (debounce_ok &&
+            value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::Mode2;
+          repeat_running_last_transition_time_ = now;
+        } else if (debounce_ok &&
+                   value >=
+                       config::analog_controls::REPEAT_MODE1_ENTER_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::Mode1;
+          repeat_running_last_transition_time_ = now;
+        }
+        break;
+      case RepeatRunningState::Mode1:
+        // Upward transition debounced; exit is immediate (hysteresis handles
+        // noise)
+        if (debounce_ok &&
+            value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::Mode2;
+          repeat_running_last_transition_time_ = now;
+        } else if (value <=
+                   config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::None;
+          repeat_running_last_transition_time_ = now;
+        }
+        break;
+      case RepeatRunningState::Mode2:
+        // Allow collapsing directly to None if released far enough
+        if (value <= config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
+          repeat_running_state_ = RepeatRunningState::None;
+          repeat_running_last_transition_time_ = now;
+        } else if (value <=
+                   config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD) {
+          // Drop to Mode1 on falling below Mode2 exit threshold
+          repeat_running_state_ = RepeatRunningState::Mode1;
+          repeat_running_last_transition_time_ = now;
+        }
+        break;
+      }
+    }
+
     std::optional<uint32_t> intended_length = std::nullopt;
-    if (value >= config::analog_controls::REPEAT_MODE_2_THRESHOLD)
+    if (repeat_running_state_ == RepeatRunningState::Mode2) {
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
-    else if (value >= config::analog_controls::REPEAT_MODE_1_THRESHOLD)
+    } else if (repeat_running_state_ == RepeatRunningState::Mode1) {
       intended_length = config::analog_controls::REPEAT_LENGTH_MODE_1;
+    }
     controls->_sequencer_controller_ref.set_intended_repeat_state(
         intended_length);
     parent_controls->_message_router_ref.set_parameter(

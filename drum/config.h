@@ -179,6 +179,18 @@ constexpr float REPEAT_MODE_1_THRESHOLD = 0.3f;
 constexpr float REPEAT_MODE_2_THRESHOLD = 0.7f;
 constexpr uint32_t REPEAT_LENGTH_MODE_1 = 3;
 constexpr uint32_t REPEAT_LENGTH_MODE_2 = 1;
+// Hysteresis and debounce for REPEAT one-shot while stopped
+constexpr float REPEAT_EDGE_ON_THRESHOLD =
+    REPEAT_MODE_1_THRESHOLD + 0.05f; // Press threshold
+constexpr float REPEAT_EDGE_OFF_THRESHOLD =
+    REPEAT_MODE_1_THRESHOLD - 0.05f;             // Release threshold
+constexpr uint32_t REPEAT_EDGE_DEBOUNCE_MS = 30; // Minimum time between edges
+// Hysteresis and debounce for REPEAT while running
+constexpr float REPEAT_MODE1_ENTER_THRESHOLD = REPEAT_MODE_1_THRESHOLD + 0.05f;
+constexpr float REPEAT_MODE1_EXIT_THRESHOLD = REPEAT_MODE_1_THRESHOLD - 0.05f;
+constexpr float REPEAT_MODE2_ENTER_THRESHOLD = REPEAT_MODE_2_THRESHOLD + 0.05f;
+constexpr float REPEAT_MODE2_EXIT_THRESHOLD = REPEAT_MODE_2_THRESHOLD - 0.05f;
+constexpr uint32_t REPEAT_RUNNING_DEBOUNCE_MS = 30;
 constexpr float MIN_BPM_ADJUST = 60.0f;
 constexpr float MAX_BPM_ADJUST = 360.0f;
 } // namespace analog_controls

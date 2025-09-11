@@ -181,6 +181,7 @@ public:
     void init();
     void update(absolute_time_t now);
     void handle_control_change(uint16_t control_id, float value);
+    void reset_repeat_state();
 
   private:
     struct AnalogControlEventHandler
@@ -207,6 +208,19 @@ public:
     float filter_current_value_{1.0f}; // Smoothed value sent to the engine
     absolute_time_t last_smoothing_time_ = nil_time;
     bool filter_smoothing_enabled_ = false; // Enable after first FILTER event
+
+    // Edge detection for REPEAT one-shot when stopped
+    bool repeat_pressed_edge_ = false;
+    absolute_time_t repeat_last_transition_time_ = nil_time;
+
+    // Hysteresis state for REPEAT while running
+    enum class RepeatRunningState : uint8_t {
+      None = 0,
+      Mode1 = 1,
+      Mode2 = 2
+    };
+    RepeatRunningState repeat_running_state_ = RepeatRunningState::None;
+    absolute_time_t repeat_running_last_transition_time_ = nil_time;
   };
 
 private:
@@ -225,6 +239,9 @@ public:
   KeypadComponent keypad_component;
   DrumpadComponent drumpad_component;
   AnalogControlComponent analog_component;
+
+private:
+  bool _was_running_ = false;
   PlaybuttonComponent playbutton_component;
 
 public:

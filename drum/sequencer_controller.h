@@ -239,6 +239,8 @@ private:
   void initialize_all_sequencers();
   void initialize_timing_and_random();
 
+  void update_mode2_mask();
+
   musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
@@ -266,6 +268,8 @@ private:
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
+
+  std::uint32_t mode2_phase_mask_ = 0;
 
   // Persistence management (optional until filesystem is ready)
   std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;

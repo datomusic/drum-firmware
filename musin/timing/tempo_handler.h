@@ -5,6 +5,7 @@
 #include "musin/timing/clock_event.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/tempo_event.h"
+#include "musin/timing/clock_router.h"
 #include <cstdint>
 
 namespace musin::timing {
@@ -50,7 +51,7 @@ public:
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         MidiClockProcessor &midi_clock_processor_ref,
                         SyncIn &sync_in_ref,
-                        ClockMultiplier &clock_multiplier_ref,
+                        ClockRouter &clock_router_ref,
                         bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
@@ -88,6 +89,13 @@ public:
    * @param modifier The speed modifier to apply (half, normal, double speed).
    */
   void set_speed_modifier(SpeedModifier modifier);
+
+  /**
+   * @brief Get the current speed modifier.
+   */
+  [[nodiscard]] SpeedModifier get_speed_modifier() const {
+    return current_speed_modifier_;
+  }
 
   /**
    * @brief Set the current playback state.
@@ -133,7 +141,7 @@ private:
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;
-  ClockMultiplier &_clock_multiplier_ref;
+  ClockRouter &_clock_router_ref;
 
   ClockSource current_source_;
   PlaybackState _playback_state;

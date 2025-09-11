@@ -2,7 +2,7 @@
 #include "midi_Defs.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/timing/clock_event.h"
-#include "musin/timing/clock_multiplier.h"
+#include "musin/timing/clock_router.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"
@@ -23,17 +23,17 @@ constexpr uint8_t wrap24(int v) noexcept {
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
                            SyncIn &sync_in_ref,
-                           ClockMultiplier &clock_multiplier_ref,
+                           ClockRouter &clock_router_ref,
                            bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref),
       _midi_clock_processor_ref(midi_clock_processor_ref),
-      _sync_in_ref(sync_in_ref), _clock_multiplier_ref(clock_multiplier_ref),
+      _sync_in_ref(sync_in_ref), _clock_router_ref(clock_router_ref),
       current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
       current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_24_(0),
       tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
-
+  _clock_router_ref.add_observer(*this);
   set_clock_source(initial_source);
 }
 
@@ -41,21 +41,6 @@ void TempoHandler::set_clock_source(ClockSource source) {
   // If already set and initialized, nothing to do
   if (source == current_source_ && initialized_) {
     return;
-  }
-
-  // Cleanup for the old source only if we had previously initialized
-  if (initialized_) {
-    if (current_source_ == ClockSource::INTERNAL) {
-      _internal_clock_ref.remove_observer(*this);
-      _internal_clock_ref.stop();
-    } else if (current_source_ == ClockSource::MIDI) {
-      _midi_clock_processor_ref.remove_observer(*this);
-      _midi_clock_processor_ref.reset();
-      _midi_clock_processor_ref.set_forward_echo_enabled(false);
-    } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-      _clock_multiplier_ref.remove_observer(*this);
-      _clock_multiplier_ref.reset();
-    }
   }
 
   current_source_ = source;
@@ -69,17 +54,8 @@ void TempoHandler::set_clock_source(ClockSource source) {
   last_external_tick_us_ = 0;
   last_external_tick_interval_us_ = 0;
 
-  // Setup for the new source
-  if (current_source_ == ClockSource::INTERNAL) {
-    _internal_clock_ref.add_observer(*this);
-    _internal_clock_ref.start();
-  } else if (current_source_ == ClockSource::MIDI) {
-    _midi_clock_processor_ref.add_observer(*this);
-    // Enable immediate clock forwarding in processor while receiving MIDI
-    _midi_clock_processor_ref.set_forward_echo_enabled(true);
-  } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _clock_multiplier_ref.add_observer(*this);
-  }
+  // Route raw 24 PPQN through ClockRouter
+  _clock_router_ref.set_clock_source(current_source_);
   initialized_ = true;
 }
 

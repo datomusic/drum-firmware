@@ -1,0 +1,50 @@
+#ifndef MUSIN_TIMING_CLOCK_ROUTER_H
+#define MUSIN_TIMING_CLOCK_ROUTER_H
+
+#include "etl/observer.h"
+#include "musin/timing/clock_event.h"
+#include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_processor.h"
+#include "musin/timing/clock_multiplier.h"
+#include <cstdint>
+
+namespace musin::timing {
+
+constexpr size_t MAX_CLOCK_ROUTER_OBSERVERS = 3;
+
+/**
+ * Selects the active raw 24 PPQN clock source and fans it out to observers.
+ * Starts/stops internal clock, enables/disables MIDI forward echo,
+ * and resets external multipliers on source changes.
+ */
+class ClockRouter
+    : public etl::observer<musin::timing::ClockEvent>,
+      public etl::observable<etl::observer<musin::timing::ClockEvent>,
+                             MAX_CLOCK_ROUTER_OBSERVERS> {
+public:
+  ClockRouter(InternalClock &internal_clock_ref,
+              MidiClockProcessor &midi_clock_processor_ref,
+              ClockMultiplier &clock_multiplier_ref,
+              ClockSource initial_source = ClockSource::INTERNAL);
+
+  void set_clock_source(ClockSource source);
+  [[nodiscard]] ClockSource get_clock_source() const { return current_source_; }
+
+  // From selected upstream source
+  void notification(musin::timing::ClockEvent event) override;
+
+private:
+  void detach_current_source();
+  void attach_source(ClockSource source);
+
+  InternalClock &internal_clock_;
+  MidiClockProcessor &midi_clock_processor_;
+  ClockMultiplier &clock_multiplier_;
+  ClockSource current_source_;
+  bool initialized_ = false;
+};
+
+} // namespace musin::timing
+
+#endif // MUSIN_TIMING_CLOCK_ROUTER_H
+

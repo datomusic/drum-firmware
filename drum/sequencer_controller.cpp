@@ -220,11 +220,17 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  // Simple anchors per mode; no recompute or downbeat gating
+  // Simple anchors per mode; extend anchors for Double Speed to even spacing
   bool on_anchor = false;
   if (!swing_enabled_) {
-    on_anchor = (event.phase_24 == musical_timing::DOWNBEAT) ||
-                (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
+    if (tempo_source.get_speed_modifier() ==
+        musin::timing::SpeedModifier::DOUBLE_SPEED) {
+      // Evenly spaced at 0,6,12,18 using 24 PPQN
+      on_anchor = (event.phase_24 % musical_timing::SIXTEENTH_SUBDIVISION) == 0;
+    } else {
+      on_anchor = (event.phase_24 == musical_timing::DOWNBEAT) ||
+                  (event.phase_24 == musical_timing::STRAIGHT_OFFBEAT);
+    }
   } else if (swing_delays_odd_steps_) {
     on_anchor =
         (event.phase_24 == musical_timing::DOWNBEAT) || (event.phase_24 == 16);

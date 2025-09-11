@@ -19,6 +19,8 @@ SyncOut::SyncOut(std::uint32_t gpio_pin, std::uint32_t ticks_per_pulse,
       _is_enabled(false), _pulse_active(false), _pulse_alarm_id(0) {
   _gpio.set_direction(musin::hal::GpioDirection::OUT);
   _gpio.write(false); // Ensure output is initially low
+  // Initialize countdown so first pulse happens after _ticks_per_pulse ticks
+  _ticks_until_pulse = _ticks_per_pulse;
 }
 
 SyncOut::~SyncOut() {
@@ -34,9 +36,11 @@ void SyncOut::notification(musin::timing::ClockEvent event) {
     reset_counters();
   }
 
-  // Count raw 24 PPQN ticks and pulse every _ticks_per_pulse
-  _raw_tick_mod_counter++;
-  if ((_raw_tick_mod_counter % _ticks_per_pulse) == 0) {
+  // Countdown raw 24 PPQN ticks and pulse when reaching zero
+  if (_ticks_until_pulse > 0) {
+    _ticks_until_pulse--;
+  }
+  if (_ticks_until_pulse == 0) {
     if (!_pulse_active) {
       _gpio.write(true);
       _pulse_active = true;
@@ -51,6 +55,8 @@ void SyncOut::notification(musin::timing::ClockEvent event) {
         trigger_pulse_off();
       }
     }
+    // Reset countdown for the next pulse window
+    _ticks_until_pulse = _ticks_per_pulse;
   }
 }
 
@@ -100,7 +106,8 @@ void SyncOut::trigger_pulse_off() {
 }
 
 void SyncOut::reset_counters() {
-  _raw_tick_mod_counter = 0;
+  // Align countdown so next pulse is after a full window
+  _ticks_until_pulse = _ticks_per_pulse;
 }
 
 void SyncOut::resync() {

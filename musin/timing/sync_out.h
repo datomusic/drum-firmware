@@ -73,8 +73,8 @@ private:
   bool _pulse_active;
   alarm_id_t _pulse_alarm_id;
 
-  // Raw tick accumulator for 24 PPQN clocking
-  uint32_t _raw_tick_mod_counter = 0; // counts modulo _ticks_per_pulse
+  // Countdown ticks until next pulse (avoids modulo on every tick)
+  uint32_t _ticks_until_pulse = 0;
 };
 
 } // namespace musin::timing

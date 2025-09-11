@@ -492,8 +492,7 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
         fabsf(value - config::analog_controls::SWING_KNOB_CENTER_VALUE);
     bool swing_on = (distance_from_center >=
                      config::analog_controls::SWING_ON_OFF_DEADBAND);
-    bool delay_odd =
-        (value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
+    bool delay_odd = (value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
     // Remember the sign regardless of ON/OFF, so toggling later is stable
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
     controls->_sequencer_controller_ref.set_swing_enabled(swing_on);

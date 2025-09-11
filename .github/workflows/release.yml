@@ -145,14 +145,9 @@ jobs:
         run: test -f ./drum/build/drum-${{ steps.get_release.outputs.tag }}.uf2
 
       - name: Upload release asset
-        uses: actions/upload-release-asset@v1
+        run: gh release upload ${{ steps.get_release.outputs.tag }} ./drum/build/drum-${{ steps.get_release.outputs.tag }}.uf2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./drum/build/drum-${{ steps.get_release.outputs.tag }}.uf2
-          asset_name: drum-${{ steps.get_release.outputs.tag }}.uf2
-          asset_content_type: application/octet-stream
 
       # Cleanup build artifacts and cache on failure to prevent pollution
       - name: Cleanup on failure

@@ -241,6 +241,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
   //   - Mode 1: trigger exactly on expected_phase (same as main step)
   //   - Mode 2: swing ON => triplets (phase % 8 == 0); swing OFF =>
   //             sixteenths (phase % 6 == 0)
+  uint8_t local_retrigger_mask = 0;
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint8_t mode = _retrigger_mode_per_track[track_idx];
     if (mode == 0) {
@@ -268,8 +269,12 @@ void SequencerController<NumTracks, NumSteps>::notification(
     }
 
     if (due) {
-      _retrigger_due_mask |= (1 << track_idx);
+      local_retrigger_mask |= (1u << track_idx);
     }
+  }
+  if (local_retrigger_mask != 0) {
+    _retrigger_due_mask.fetch_or(local_retrigger_mask,
+                                 std::memory_order_relaxed);
   }
 }
 

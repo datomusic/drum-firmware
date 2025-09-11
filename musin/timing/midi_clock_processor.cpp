@@ -1,4 +1,5 @@
 #include "midi_clock_processor.h"
+#include "musin/midi/midi_wrapper.h"
 #include <cstdio> // For printf (optional debugging)
 
 namespace musin::timing {
@@ -30,6 +31,13 @@ void MidiClockProcessor::on_midi_clock_tick_received() {
   // Always forward raw MIDI clock ticks immediately for minimal latency.
   musin::timing::ClockEvent raw_tick_event{
       .source = musin::timing::ClockSource::MIDI, .is_resync = false};
+
+  // Echo incoming MIDI clock to output immediately when enabled. This keeps
+  // the forwarded clock timing independent from higher-level processing such
+  // as speed modifiers and UI work.
+  if (forward_echo_enabled_) {
+    MIDI::sendRealTime(midi::Clock);
+  }
   notify_observers(raw_tick_event);
 }
 

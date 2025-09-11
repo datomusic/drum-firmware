@@ -51,6 +51,7 @@ void TempoHandler::set_clock_source(ClockSource source) {
     } else if (current_source_ == ClockSource::MIDI) {
       _midi_clock_processor_ref.remove_observer(*this);
       _midi_clock_processor_ref.reset();
+      _midi_clock_processor_ref.set_forward_echo_enabled(false);
     } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
       _clock_multiplier_ref.remove_observer(*this);
       _clock_multiplier_ref.reset();
@@ -74,6 +75,8 @@ void TempoHandler::set_clock_source(ClockSource source) {
     _internal_clock_ref.start();
   } else if (current_source_ == ClockSource::MIDI) {
     _midi_clock_processor_ref.add_observer(*this);
+    // Enable immediate clock forwarding in processor while receiving MIDI
+    _midi_clock_processor_ref.set_forward_echo_enabled(true);
   } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
     _clock_multiplier_ref.add_observer(*this);
   }
@@ -94,13 +97,9 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
           !event.is_resync) {
         MIDI::sendRealTime(midi::Clock);
       }
-    } else {
-      // As clock receiver (MIDI or EXT sync), echo incoming clock regardless
-      // of playback state so downstream devices receive clock
-      if (!event.is_resync) {
-        MIDI::sendRealTime(midi::Clock);
-      }
     }
+    // For MIDI or EXT sync sources, forwarding is handled earlier at
+    // reception time by the respective processor to minimize jitter.
   }
 
   if (event.source != current_source_) {

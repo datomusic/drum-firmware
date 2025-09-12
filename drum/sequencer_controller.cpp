@@ -20,6 +20,14 @@ constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 8
 constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 6
 } // namespace musical_timing
 
+namespace {
+constexpr std::uint32_t SIXTEENTH_MASK =
+    (1u << 0) | (1u << 6) | (1u << 12) | (1u << 18);
+constexpr std::uint32_t TRIPLET_MASK = (1u << 0) | (1u << 8) | (1u << 16);
+constexpr std::uint32_t TRIPLET_OFFSET_MASK =
+    (1u << 4) | (1u << 12) | (1u << 20);
+} // namespace
+
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
@@ -32,8 +40,6 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
   initialize_active_notes();
   initialize_all_sequencers();
   initialize_timing_and_random();
-
-  update_mode2_mask();
 
   // Note: Persistence initialization deferred until filesystem is ready
   // Call init_persistence() after filesystem.init() succeeds
@@ -106,7 +112,6 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
   if (swing_enabled_ != enabled) {
     swing_enabled_ = enabled;
-    update_mode2_mask();
   }
 }
 
@@ -115,7 +120,6 @@ void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
   if (swing_delays_odd_steps_ != delay_odd) {
     swing_delays_odd_steps_ = delay_odd;
-    update_mode2_mask();
   }
 }
 
@@ -154,8 +158,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
-
-  update_mode2_mask();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -235,25 +237,31 @@ void SequencerController<NumTracks, NumSteps>::notification(
         musical_timing::PPQN);
   }
 
-  const bool due_mode1 = (event.phase_24 == expected_phase);
-  if (due_mode1) {
+  const bool is_step_due = (event.phase_24 == expected_phase);
+  if (is_step_due) {
     _step_is_due = true;
   }
 
   // Process retrigger logic based on phases
-  // Retrigger behavior:
-  //   - Mode 1: trigger exactly on expected_phase (same as main step)
-  //   - Mode 2: swing ON => triplets (phase % 8 == 0); swing OFF =>
-  //             sixteenths (phase % 6 == 0)
-  const bool due_mode2 = ((mode2_phase_mask_ >> event.phase_24) & 1u) != 0u;
+  // Mode 1 follows expected_phase; Mode 2 uses grid selected by swing/parity
+  const std::uint32_t substep_grid_mask =
+      (!swing_enabled_)
+          ? SIXTEENTH_MASK
+          : (swing_delays_odd_steps_
+                 ? (next_is_even ? TRIPLET_MASK : TRIPLET_OFFSET_MASK)
+                 : (next_is_even ? TRIPLET_OFFSET_MASK : TRIPLET_MASK));
+  const bool is_substep_due =
+      ((substep_grid_mask >> event.phase_24) & 1u) != 0u;
   uint8_t local_retrigger_mask = 0;
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    uint8_t mode = _retrigger_mode_per_track[track_idx];
-    if (mode == 0) {
+    RetriggerMode mode = _retrigger_mode_per_track[track_idx];
+    if (mode == RetriggerMode::Off) {
       continue;
     }
 
-    bool due = (mode == 1) ? due_mode1 : (mode == 2) ? due_mode2 : false;
+    bool due = (mode == RetriggerMode::Step)       ? is_step_due
+               : (mode == RetriggerMode::Substeps) ? is_substep_due
+                                                   : false;
 
     if (due) {
       local_retrigger_mask |= (1u << track_idx);
@@ -523,7 +531,7 @@ template <size_t NumTracks, size_t NumSteps>
 uint8_t SequencerController<NumTracks, NumSteps>::get_retrigger_mode_for_track(
     uint8_t track_index) const {
   if (track_index < NumTracks) {
-    return _retrigger_mode_per_track[track_index];
+    return static_cast<uint8_t>(_retrigger_mode_per_track[track_index]);
   }
   return 0;
 }
@@ -532,6 +540,15 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
     uint8_t track_index, uint8_t mode) {
   if (track_index < NumTracks && (mode == 1 || mode == 2)) {
+    _retrigger_mode_per_track[track_index] =
+        (mode == 1) ? RetriggerMode::Step : RetriggerMode::Substeps;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
+    uint8_t track_index, RetriggerMode mode) {
+  if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = mode;
   }
 }
@@ -540,7 +557,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(
     uint8_t track_index) {
   if (track_index < NumTracks) {
-    _retrigger_mode_per_track[track_index] = 0;
+    _retrigger_mode_per_track[track_index] = RetriggerMode::Off;
   }
 }
 
@@ -590,7 +607,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
     process_track_step(track_idx, step_index_to_play_for_track);
 
     // Handle the first retrigger note for the main step event
-    if (_retrigger_mode_per_track[track_idx] > 0) {
+    if (_retrigger_mode_per_track[track_idx] != RetriggerMode::Off) {
       uint8_t note_to_play =
           get_active_note_for_track(static_cast<uint8_t>(track_idx));
       trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
@@ -816,27 +833,7 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
   }
 }
 
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::update_mode2_mask() {
-  using namespace musical_timing;
-  std::uint32_t mask = 0u;
-  if (!swing_enabled_) {
-    constexpr uint8_t sixteenth = SIXTEENTH_SUBDIVISION; // 6
-    for (uint8_t p = 0; p < PPQN; p += sixteenth) {
-      mask |= (1u << p);
-    }
-  } else {
-    constexpr uint8_t triplet = TRIPLET_SUBDIVISION; // 8
-    const uint8_t offset = swing_delays_odd_steps_
-                               ? 0u
-                               : static_cast<uint8_t>(triplet / 2); // 0 or 4
-    for (uint8_t i = 0; i < 3; ++i) {
-      uint8_t p = static_cast<uint8_t>((i * triplet + offset) % PPQN);
-      mask |= (1u << p);
-    }
-  }
-  mode2_phase_mask_ = mask;
-}
+// removed: update_mode2_mask (no longer used)
 
 // Explicit template instantiation for 4 tracks, 8 steps
 template class SequencerController<4, 8>;

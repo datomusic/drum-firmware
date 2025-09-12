@@ -264,12 +264,12 @@ void PizzaControls::DrumpadComponent::update() {
     if (current_mode != _last_known_retrigger_mode_per_pad[i]) {
       if (current_mode == musin::ui::RetriggerMode::Single) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
-            static_cast<uint8_t>(i), 1);
+            static_cast<uint8_t>(i), drum::RetriggerMode::Step);
         controls->_sequencer_controller_ref.set_pad_pressed_state(
             static_cast<uint8_t>(i), true);
       } else if (current_mode == musin::ui::RetriggerMode::Double) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
-            static_cast<uint8_t>(i), 2);
+            static_cast<uint8_t>(i), drum::RetriggerMode::Substeps);
         controls->_sequencer_controller_ref.set_pad_pressed_state(
             static_cast<uint8_t>(i), true);
       } else {

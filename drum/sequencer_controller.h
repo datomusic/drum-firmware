@@ -23,6 +23,12 @@
 
 namespace drum {
 
+enum class RetriggerMode : uint8_t {
+  Off = 0,
+  Step = 1,
+  Substeps = 2
+};
+
 // Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
 
@@ -239,8 +245,6 @@ private:
   void initialize_all_sequencers();
   void initialize_timing_and_random();
 
-  void update_mode2_mask();
-
   musin::timing::Sequencer<NumTracks, NumSteps> main_sequencer_;
   musin::timing::Sequencer<NumTracks, NumSteps> random_sequencer_;
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
@@ -267,9 +271,7 @@ private:
   bool continuous_randomization_active_ = false;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
-  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-
-  std::uint32_t mode2_phase_mask_ = 0;
+  etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};
 
   // Persistence management (optional until filesystem is ready)
   std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;
@@ -294,6 +296,7 @@ public:
    * step.
    */
   void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
+  void activate_play_on_every_step(uint8_t track_index, RetriggerMode mode);
   /**
    * @brief Deactivates retriggering for a specific track.
    * @param track_index The track to deactivate retriggering on.

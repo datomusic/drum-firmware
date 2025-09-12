@@ -225,7 +225,11 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Determine expected phase for the next step using fixed anchors (0,12),
   // applying +SWING_OFFSET_PHASES only when the next step is marked as swung.
   const size_t next_index = calculate_base_step_index();
-  const bool next_is_even = (next_index % 2 == 0);
+  // Preserve existing swing behavior when not repeating. While repeat is
+  // active, drive swing parity from the absolute transport step to ensure
+  // alternating swung/straight timing within the repeat and seamless release.
+  const bool next_is_even = repeat_active_ ? ((current_step_counter & 1u) == 0)
+                                           : ((next_index & 1u) == 0);
   const bool delay_this_step =
       swing_enabled_ && ((swing_delays_odd_steps_ && !next_is_even) ||
                          (!swing_delays_odd_steps_ && next_is_even));

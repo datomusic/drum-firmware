@@ -24,17 +24,18 @@ public:
   void update(absolute_time_t now);
   void reset();
 
-  void set_speed_modifier(SpeedModifier modifier);
+  // Speed modification is handled by TempoHandler; ClockMultiplier is a fixed
+  // 2→24 PPQN converter and does not expose speed controls.
 
 private:
-  uint8_t calculate_effective_multiplier() const;
-
   uint8_t base_multiplication_factor_;
-  SpeedModifier current_speed_modifier_ = SpeedModifier::NORMAL_SPEED;
   uint8_t pulse_counter_ = 0;
   uint64_t pulse_interval_us_ = 0;
   absolute_time_t last_pulse_time_ = nil_time;
   absolute_time_t next_pulse_time_ = nil_time;
+  ClockSource current_source_ = ClockSource::INTERNAL;
+  // Alternate anchors 0/12 on each physical pulse; start at 12 after reset
+  bool next_anchor_is_12_ = true;
 };
 
 } // namespace musin::timing

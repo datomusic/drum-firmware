@@ -1,6 +1,7 @@
 #ifndef DRUM_SEQUENCER_CONTROLLER_H
 #define DRUM_SEQUENCER_CONTROLLER_H
 
+#include "drum/config.h"
 #include "etl/array.h"
 #include "etl/observer.h"
 #include "events.h"
@@ -15,13 +16,18 @@
 #include <functional>
 #include <optional>
 
-#include "config.h"
 #include "musin/hal/logger.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
 #include <cstddef>
 
 namespace drum {
+
+enum class RetriggerMode : uint8_t {
+  Off = 0,
+  Step = 1,
+  Substeps = 2
+};
 
 // Forward declare the specific Sequencer instantiation from its new namespace
 template <size_t NumTracks, size_t NumSteps> class Sequencer;
@@ -42,8 +48,6 @@ class SequencerController
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
-  static constexpr uint32_t CLOCK_PPQN = 24;
-  static constexpr uint8_t SEQUENCER_RESOLUTION = 16; // e.g., 16th notes
   static constexpr etl::array<size_t, 4> RANDOM_STEP_OFFSETS = {3, 5, 7, 4};
 
   /**
@@ -60,9 +64,9 @@ public:
 
   /**
    * @brief Notification handler called when a TempoEvent is received.
-   * Implements the etl::observer interface. This is expected to be called
-   * at the high resolution defined by CLOCK_PPQN.
-   * @param event The received tempo event.
+   * Implements the etl::observer interface. This is called on every
+   * 24 PPQN tick with phase-based timing information.
+   * @param event The received tempo event containing phase_24 (0-23).
    */
   void notification(musin::timing::TempoEvent event);
 
@@ -143,20 +147,27 @@ public:
   void toggle();
 
   /**
-   * @brief Set the swing amount.
-   * @param percent Percentage (50-67) of the two-step duration allocated to the
-   *                first step of the pair. 50 means no swing, while ~67 gives a
-   *                triplet feel. Clamped internally.
+   * @brief Enable or disable swing timing.
+   * When enabled, steps marked as "swung" are delayed by
+   * config::timing::SWING_OFFSET_PHASES from the straight eighth anchors
+   * (phases 0 and 12). When disabled, all steps use straight timing (0 and 12).
+   * @param enabled true to enable swing, false for straight timing
    */
-  void set_swing_percent(uint8_t percent);
+  void set_swing_enabled(bool enabled);
 
   /**
    * @brief Set whether swing delay applies to odd steps.
-   * @param delay_odd If true, odd steps (1, 3, ...) are delayed/longer.
-   *                  If false (default), even steps (0, 2, ...) are
-   * delayed/longer.
+   * @param delay_odd If true, odd steps (1, 3, ...) are delayed (placed at
+   *                  anchor + SWING_OFFSET_PHASES). If false, even steps
+   *                  (0, 2, ...) are delayed.
    */
   void set_swing_target(bool delay_odd);
+
+  /**
+   * @brief Check if swing timing is currently enabled.
+   * @return true if swing is enabled, false for straight timing
+   */
+  [[nodiscard]] bool is_swing_enabled() const;
 
   /**
    * @brief Generate a random pattern once for the random sequencer.
@@ -227,10 +238,8 @@ public:
   }
 
 private:
-  void calculate_timing_params();
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
-  [[nodiscard]] uint32_t calculate_next_trigger_interval() const;
 
   void initialize_active_notes();
   void initialize_all_sequencers();
@@ -248,11 +257,11 @@ private:
   std::atomic<bool> _step_is_due = false;
   std::atomic<uint8_t> _retrigger_due_mask{0};
 
-  uint8_t swing_percent_ = 50;
+  bool swing_enabled_ = false;
+  // Swing target: true = delay odd steps; false = delay even steps.
+  // Anchors are always 0 and 12; the controller applies
+  // config::timing::SWING_OFFSET_PHASES to the step that is marked as swung.
   bool swing_delays_odd_steps_ = false;
-  uint32_t high_res_ticks_per_step_ = 0;
-  std::atomic<uint64_t> high_res_tick_counter_ = 0;
-  std::atomic<uint64_t> next_trigger_tick_target_ = 0;
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;
@@ -262,9 +271,7 @@ private:
   bool continuous_randomization_active_ = false;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
-  etl::array<uint8_t, NumTracks> _retrigger_mode_per_track{};
-  etl::array<std::optional<uint64_t>, NumTracks>
-      _retrigger_target_tick_per_track{};
+  etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};
 
   // Persistence management (optional until filesystem is ready)
   std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;
@@ -289,6 +296,7 @@ public:
    * step.
    */
   void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
+  void activate_play_on_every_step(uint8_t track_index, RetriggerMode mode);
   /**
    * @brief Deactivates retriggering for a specific track.
    * @param track_index The track to deactivate retriggering on.
@@ -297,12 +305,6 @@ public:
   void set_repeat_length(uint32_t length);
   [[nodiscard]] bool is_repeat_active() const;
   [[nodiscard]] uint32_t get_repeat_length() const;
-
-  /**
-   * @brief Get the number of high-resolution SequencerTickEvents that form one
-   * musical step (e.g., a 16th note) of this sequencer.
-   */
-  [[nodiscard]] uint32_t get_ticks_per_musical_step() const noexcept;
 
   /**
    * @brief Copy the main pattern to the random pattern.

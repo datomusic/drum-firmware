@@ -72,7 +72,7 @@ SequencerDisplayMode::SequencerDisplayMode(
 }
 
 void SequencerDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
-  sync_highlight_phase_with_step(display);
+  sync_highlight_phase_with_step();
   draw_base_elements(display, now);
   draw_animations(display, now);
 }
@@ -135,12 +135,18 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
       final_color = apply_visual_effects(final_color, display._filter_value,
                                          display._crush_value, now);
 
-      bool is_cursor_step =
-          (is_running &&
-           controller.get_last_played_step_for_track(track_idx).has_value() &&
-           step_idx ==
-               controller.get_last_played_step_for_track(track_idx).value()) ||
-          (!is_running && step_idx == controller.get_current_step());
+      bool is_cursor_step = false;
+      if (is_running) {
+        auto last_played = controller.get_last_played_step_for_track(track_idx);
+        if (last_played.has_value()) {
+          is_cursor_step = (step_idx == last_played.value());
+        } else {
+          // Fallback while running but no tick yet: use current step
+          is_cursor_step = (step_idx == controller.get_current_step());
+        }
+      } else {
+        is_cursor_step = (step_idx == controller.get_current_step());
+      }
 
       if (is_cursor_step) {
         bool bright_now = is_highlight_bright(display);
@@ -270,15 +276,14 @@ Color SequencerDisplayMode::apply_pulsing_highlight(Color base_color,
   return base_color.brighter(amount, PizzaDisplay::MAX_BRIGHTNESS);
 }
 
-void SequencerDisplayMode::sync_highlight_phase_with_step(
-    PizzaDisplay &display) {
-  // Phase-lock to step boundaries and toggle brightness only on step changes
-  // to achieve a blink that spans two steps (half the previous speed).
+void SequencerDisplayMode::sync_highlight_phase_with_step() {
+  // Phase-based highlighting is now managed by the PizzaDisplay's notification
+  // method based on phases 0 and 12 for consistent blinking. This method
+  // maintains the step-based repeat length behavior overlay.
   uint32_t current_step = _sequencer_controller_ref.get_current_step();
   if (!_last_synced_step_index.has_value() ||
       _last_synced_step_index.value() != current_step) {
     _last_synced_step_index = current_step;
-    display._last_tick_count_for_highlight = display._clock_tick_counter;
 
     if (_sequencer_controller_ref.is_running()) {
       bool repeat_alt = _sequencer_controller_ref.is_repeat_active() &&
@@ -296,12 +301,6 @@ void SequencerDisplayMode::sync_highlight_phase_with_step(
 
 bool SequencerDisplayMode::is_highlight_bright(
     const PizzaDisplay &display) const {
-  uint32_t ticks_per_step =
-      _sequencer_controller_ref.get_ticks_per_musical_step();
-  if (ticks_per_step == 0) {
-    return true;
-  }
-
   if (_sequencer_controller_ref.is_running()) {
     // While running: alternate only if repeat length == 1; else steady bright.
     bool repeat_alt = _sequencer_controller_ref.is_repeat_active() &&
@@ -309,12 +308,9 @@ bool SequencerDisplayMode::is_highlight_bright(
     return repeat_alt ? _bright_phase_for_current_step : true;
   }
 
-  // When stopped: free-run pulse at half speed (one full cycle over 2 steps).
-  uint32_t period = ticks_per_step * 2;
-  uint32_t elapsed =
-      display._clock_tick_counter - display._last_tick_count_for_highlight;
-  uint32_t phase = elapsed % period;
-  return phase < ticks_per_step;
+  // When stopped: use phase-based blinking managed by PizzaDisplay
+  // This provides consistent blinking on phases 0 and 12
+  return display._highlight_is_bright.load(std::memory_order_relaxed);
 }
 
 // --- FileTransferDisplayMode Implementation ---

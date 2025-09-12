@@ -70,4 +70,18 @@ static inline void set_mock_time_us(uint64_t us) {
   mock_current_time = us;
 }
 
+// Additional helpers commonly provided by Pico SDK headers
+static inline uint64_t to_us_since_boot(absolute_time_t t) {
+  return static_cast<uint64_t>(t);
+}
+
+static inline bool time_reached(absolute_time_t t) {
+  // Reached if now >= t
+  return absolute_time_diff_us(t, get_absolute_time()) <= 0;
+}
+
+static inline absolute_time_t delayed_by_us(absolute_time_t t, uint64_t us) {
+  return static_cast<absolute_time_t>(t + us);
+}
+
 #endif // TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_TIME_H_

@@ -1,0 +1,6 @@
+#ifndef TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_STDLIB_H_
+#define TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_STDLIB_H_
+
+#include "pico/time.h" // Reuse mock time primitives and helpers
+
+#endif // TEST_MUSIN_INCLUDE_OVERRIDES_MOCK_PICO_STDLIB_H_

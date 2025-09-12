@@ -2,59 +2,51 @@
 #include "midi_Defs.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/timing/clock_event.h"
-#include "musin/timing/clock_multiplier.h"
+#include "musin/timing/clock_router.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/tempo_event.h"
+#include "musin/timing/timing_constants.h"
+#include "pico/time.h"
 
 namespace musin::timing {
 
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
-                           SyncIn &sync_in_ref,
-                           ClockMultiplier &clock_multiplier_ref,
+                           SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
+                           SpeedAdapter &speed_adapter_ref,
                            bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref),
       _midi_clock_processor_ref(midi_clock_processor_ref),
-      _sync_in_ref(sync_in_ref), _clock_multiplier_ref(clock_multiplier_ref),
-      current_source_(initial_source), _playback_state(PlaybackState::STOPPED),
-      current_speed_modifier_(SpeedModifier::NORMAL_SPEED),
-      midi_tick_counter_(0), _send_this_internal_tick_as_midi_clock(true),
+      _sync_in_ref(sync_in_ref), _clock_router_ref(clock_router_ref),
+      _speed_adapter_ref(speed_adapter_ref), current_source_(initial_source),
+      _playback_state(PlaybackState::STOPPED),
+      current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_24_(0),
+      tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
-
+  _speed_adapter_ref.add_observer(*this);
   set_clock_source(initial_source);
 }
 
 void TempoHandler::set_clock_source(ClockSource source) {
-  if (source == current_source_) {
+  // If already set and initialized, nothing to do
+  if (source == current_source_ && initialized_) {
     return;
   }
 
-  // Cleanup for the old source
-  if (current_source_ == ClockSource::INTERNAL) {
-    _internal_clock_ref.remove_observer(*this);
-    _internal_clock_ref.stop();
-  } else if (current_source_ == ClockSource::MIDI) {
-    _midi_clock_processor_ref.remove_observer(*this);
-    _midi_clock_processor_ref.reset();
-  } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _clock_multiplier_ref.remove_observer(*this);
-    _clock_multiplier_ref.reset();
-  }
-
   current_source_ = source;
+  phase_24_ = 0; // Reset phase on source change
+  external_align_to_12_next_ = (current_source_ == ClockSource::EXTERNAL_SYNC);
+  // Clear any deferred anchoring state when switching sources
+  pending_anchor_on_next_external_tick_ = false;
+  pending_manual_resync_flag_ = false;
+  last_external_tick_us_ = 0;
+  last_external_tick_interval_us_ = 0;
 
-  // Setup for the new source
-  if (current_source_ == ClockSource::INTERNAL) {
-    _internal_clock_ref.add_observer(*this);
-    _send_this_internal_tick_as_midi_clock = true;
-    _internal_clock_ref.start();
-  } else if (current_source_ == ClockSource::MIDI) {
-    _midi_clock_processor_ref.add_observer(*this);
-  } else if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-    _clock_multiplier_ref.add_observer(*this);
-  }
+  // Route raw 24 PPQN through ClockRouter
+  _clock_router_ref.set_clock_source(current_source_);
+  initialized_ = true;
 }
 
 ClockSource TempoHandler::get_clock_source() const {
@@ -62,60 +54,62 @@ ClockSource TempoHandler::get_clock_source() const {
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
-  if (event.source == ClockSource::INTERNAL &&
-      current_source_ == ClockSource::INTERNAL) {
-    if (_playback_state == PlaybackState::PLAYING ||
-        _send_midi_clock_when_stopped) {
-      if (_send_this_internal_tick_as_midi_clock) {
-        MIDI::sendRealTime(midi::Clock);
-      }
-      _send_this_internal_tick_as_midi_clock =
-          !_send_this_internal_tick_as_midi_clock;
-    } else {
-      _send_this_internal_tick_as_midi_clock = true;
-    }
-  }
-
   if (event.source != current_source_) {
     return;
   }
 
+  // Handle resync events immediately for all sources
+  bool input_resync = event.is_resync;
+
+  // Capture timing for MIDI look-behind anchoring (prefer upstream timestamp)
   if (current_source_ == ClockSource::MIDI) {
-    // Handle resync events immediately regardless of speed modifier
-    if (event.is_resync) {
-      musin::timing::TempoEvent resync_tempo_event{.tick_count = 0,
-                                                   .is_resync = true};
-      notify_observers(resync_tempo_event);
+    uint32_t now_us = event.timestamp_us;
+    if (last_external_tick_us_ != 0) {
+      last_external_tick_interval_us_ = now_us - last_external_tick_us_;
+    }
+    last_external_tick_us_ = now_us;
+
+    // If a manual anchor was requested for MIDI, anchor on this tick
+    if (pending_anchor_on_next_external_tick_) {
+      tick_count_++;
+      phase_24_ =
+          external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
+      external_align_to_12_next_ = !external_align_to_12_next_;
+      musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
+                                            .phase_24 = phase_24_,
+                                            .is_resync =
+                                                pending_manual_resync_flag_};
+      pending_anchor_on_next_external_tick_ = false;
+      pending_manual_resync_flag_ = false;
+      notify_observers(tempo_event);
       return;
     }
-
-    switch (current_speed_modifier_) {
-    case SpeedModifier::NORMAL_SPEED: {
-      musin::timing::TempoEvent tempo_tick_event{};
-      notify_observers(tempo_tick_event);
-      break;
-    }
-    case SpeedModifier::HALF_SPEED: {
-      midi_tick_counter_++;
-      if (midi_tick_counter_ >= 2) {
-        musin::timing::TempoEvent tempo_tick_event{};
-        notify_observers(tempo_tick_event);
-        midi_tick_counter_ = 0;
-      }
-      break;
-    }
-    case SpeedModifier::DOUBLE_SPEED: {
-      musin::timing::TempoEvent tempo_tick_event{};
-      notify_observers(tempo_tick_event);
-      notify_observers(tempo_tick_event);
-      break;
-    }
-    }
-  } else {
-    musin::timing::TempoEvent tempo_tick_event{};
-    notify_observers(tempo_tick_event);
   }
+
+  // Determine phase for this tick:
+  // - If this is a resync without an explicit anchor, set to downbeat (0).
+  // - If anchor is present, honor it.
+  // - Otherwise, advance by one.
+  uint8_t next_phase = phase_24_;
+  if (input_resync && event.anchor_to_phase == ClockEvent::ANCHOR_PHASE_NONE) {
+    next_phase = PHASE_DOWNBEAT;
+  } else if (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE) {
+    next_phase = event.anchor_to_phase;
+  } else {
+    next_phase = (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
+  }
+
+  tick_count_++;
+  phase_24_ = next_phase;
+  musin::timing::TempoEvent tempo_event{
+      .tick_count = tick_count_,
+      .phase_24 = phase_24_,
+      .is_resync = (input_resync || pending_manual_resync_flag_)};
+  pending_manual_resync_flag_ = false;
+  notify_observers(tempo_event);
 }
+
+// Removed: speed scaling and tick selection is handled by SpeedAdapter
 
 void TempoHandler::set_bpm(float bpm) {
   if (current_source_ == ClockSource::INTERNAL) {
@@ -125,16 +119,11 @@ void TempoHandler::set_bpm(float bpm) {
 
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
-  _clock_multiplier_ref.set_speed_modifier(modifier);
-  midi_tick_counter_ = 0;
+  _speed_adapter_ref.set_modifier(modifier);
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
-  if (current_source_ == ClockSource::INTERNAL &&
-      _playback_state == PlaybackState::STOPPED) {
-    _send_this_internal_tick_as_midi_clock = true;
-  }
 }
 
 /**
@@ -166,6 +155,79 @@ void TempoHandler::update() {
       }
     }
   }
+}
+
+void TempoHandler::trigger_manual_sync() {
+  switch (current_source_) {
+  case ClockSource::INTERNAL:
+    // No-op for internal clock; phase advances locally.
+    break;
+  case ClockSource::MIDI:
+    // Attempt look-behind: if the press is shortly after a MIDI tick, treat
+    // that last tick as the anchor boundary (0/12). Otherwise, defer to the
+    // next tick.
+    {
+      uint32_t now_us =
+          static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+      bool have_last_tick = (last_external_tick_us_ != 0);
+      // Define a window as half of the last tick interval, with a reasonable
+      // upper bound to avoid overly long windows at slow tempos.
+      uint32_t interval_us = last_external_tick_interval_us_;
+      if (interval_us == 0 && have_last_tick) {
+        // Fallback estimate: assume 120 BPM -> ~20.8ms per 24ppqn tick
+        interval_us = 20833u;
+      }
+      uint32_t window_us = interval_us / 2u;
+      if (window_us > 12000u) {
+        window_us = 12000u; // cap at 12ms
+      }
+
+      if (have_last_tick && (now_us - last_external_tick_us_) <= window_us) {
+        // Backdate anchor to the last MIDI tick: emit resync at anchor phase
+        // (0 or 12), then advance locally if that tick would have advanced.
+        uint8_t anchor_phase =
+            external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
+
+        // After an anchor we flip the 0/12 toggle.
+        external_align_to_12_next_ = !external_align_to_12_next_;
+
+        // Emit resync at the anchor phase first
+        phase_24_ = anchor_phase;
+        musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
+                                                     .phase_24 = phase_24_,
+                                                     .is_resync = true};
+        notify_observers(resync_tempo_event);
+
+        // No additional local advancement; SpeedAdapter governs cadence
+      } else {
+        // Defer anchoring to the next incoming MIDI tick
+        pending_anchor_on_next_external_tick_ = true;
+        pending_manual_resync_flag_ = true; // mark the anchored tick as resync
+      }
+    }
+    break;
+  case ClockSource::EXTERNAL_SYNC:
+    // Immediate resync for SyncIn
+    phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
+    musin::timing::TempoEvent resync_tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+    notify_observers(resync_tempo_event);
+    break;
+  }
+}
+
+void TempoHandler::advance_phase_and_emit_event() {
+  // Advance the 24 PPQN phase counter (0..DEFAULT_PPQN-1)
+  phase_24_ = (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
+
+  // Advance the running tick count
+  tick_count_++;
+
+  // Emit tempo event with current phase information
+  musin::timing::TempoEvent tempo_event{
+      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+
+  notify_observers(tempo_event);
 }
 
 } // namespace musin::timing

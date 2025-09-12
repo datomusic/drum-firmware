@@ -29,6 +29,18 @@ enum class SpeedModifier : uint8_t {
 struct ClockEvent {
   musin::timing::ClockSource source;
   bool is_resync = false; // True when clock resumes after timeout
+  // True for a physical SyncIn rising edge (base 2 PPQN pulse).
+  // ClockMultiplier should propagate this flag for the immediate tick it emits
+  // at the pulse time, and clear it for interpolated ticks.
+  bool is_physical_pulse = false;
+  // Timestamp in microseconds since boot when the source tick occurred.
+  // 0 means unset; consumers may fall back to local time if needed.
+  uint32_t timestamp_us = 0;
+  // Optional anchor instruction for this tick. When set, TempoHandler should
+  // set its phase to this exact value (0..23) on this tick. A sentinel value
+  // indicates that no anchoring is requested.
+  static constexpr uint8_t ANCHOR_PHASE_NONE = 0xFF;
+  uint8_t anchor_to_phase = ANCHOR_PHASE_NONE;
 };
 
 } // namespace musin::timing

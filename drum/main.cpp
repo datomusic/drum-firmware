@@ -4,8 +4,11 @@
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/clock_multiplier.h"
+#include "musin/timing/clock_router.h"
 #include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_out.h"
 #include "musin/timing/midi_clock_processor.h"
+#include "musin/timing/speed_adapter.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_handler.h"
@@ -54,12 +57,25 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
                                      DATO_SUBMARINE_SYNC_DETECT_PIN);
-static musin::timing::ClockMultiplier clock_multiplier(12); // 2 PPQN to 24 PPQN
+// External SyncIn is 2 PPQN; convert to 24 PPQN via x12
+constexpr uint8_t SYNC_TO_MIDI_CLOCK_MULTIPLIER = 12;
+static musin::timing::ClockMultiplier
+    clock_multiplier(SYNC_TO_MIDI_CLOCK_MULTIPLIER); // 2 PPQN to 24 PPQN
+static_assert(SYNC_TO_MIDI_CLOCK_MULTIPLIER > 0,
+              "Clock multiplication factor cannot be zero");
+static musin::timing::ClockRouter
+    clock_router(internal_clock, midi_clock_processor, clock_multiplier,
+                 musin::timing::ClockSource::INTERNAL);
+static musin::timing::SpeedAdapter
+    speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
 static musin::timing::TempoHandler
-    tempo_handler(internal_clock, midi_clock_processor, sync_in,
-                  clock_multiplier,
+    tempo_handler(internal_clock, midi_clock_processor, sync_in, clock_router,
+                  speed_adapter,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
+static musin::timing::MidiClockOut
+    midi_clock_out(tempo_handler,
+                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER);
 static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler, logger);
@@ -86,8 +102,7 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
                                           sequencer_controller, message_router,
                                           system_state_machine, logger);
 
-static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN,
-                                       internal_clock);
+static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN);
 
 int main() {
   stdio_usb_init();
@@ -132,6 +147,7 @@ int main() {
       pizza_display); // PizzaDisplay needs tempo events for pulsing
   tempo_handler.add_observer(
       pizza_controls); // PizzaControls needs tempo events for sample cycling
+  // SyncOut observes ClockRouter for raw 24 PPQN ticks
 
   // SequencerController notifies MessageRouter, which queues the events
   // internally.
@@ -148,6 +164,10 @@ int main() {
   message_router.add_note_event_observer(audio_engine);
 
   sync_out.enable();
+
+  clock_router.add_observer(sync_out);
+  clock_router.add_observer(midi_clock_out);
+  clock_router.add_observer(speed_adapter);
 
   // SystemStateMachine automatically starts in Boot state
   // No initialization_complete() call needed
@@ -210,6 +230,7 @@ int main() {
       pizza_controls.update(now);
       sync_in.update(now);
       clock_multiplier.update(now);
+      speed_adapter.update(now);
       sequencer_controller
           .update(); // Checks if a step is due and queues NoteEvents
       message_router
@@ -219,6 +240,8 @@ int main() {
       midi_manager.process_input();
       internal_clock.update(now);
       tempo_handler.update();
+
+      // ClockRouter handles raw clock routing; SyncOut remains attached
       musin::midi::process_midi_output_queue(
           null_logger); // Pass logger to queue processing
       sleep_us(10);
@@ -247,6 +270,22 @@ int main() {
       // SleepState::update()
       break;
     }
+    }
+
+    // Respect SyncOut behavior when stopped as clock sender (internal clock)
+    bool allow_sync_out = true;
+    if (tempo_handler.get_clock_source() ==
+        musin::timing::ClockSource::INTERNAL) {
+      if (tempo_handler.get_playback_state() ==
+              musin::timing::PlaybackState::STOPPED &&
+          !drum::config::SEND_SYNC_CLOCK_WHEN_STOPPED_AS_MASTER) {
+        allow_sync_out = false;
+      }
+    }
+    if (allow_sync_out) {
+      sync_out.enable();
+    } else {
+      sync_out.disable();
     }
 
 #ifndef VERBOSE

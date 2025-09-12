@@ -8,9 +8,9 @@
 
 namespace musin::timing {
 
-// Maximum number of observers MidiClockProcessor can notify (e.g.,
-// TempoHandler)
-constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 1;
+// Maximum number of observers MidiClockProcessor can notify (TempoHandler +
+// SyncOut)
+constexpr size_t MAX_MIDI_CLOCK_PROCESSOR_OBSERVERS = 2;
 
 /**
  * @brief Processes raw incoming MIDI clock ticks, forwards them, and detects
@@ -44,8 +44,18 @@ public:
    */
   void reset();
 
+  // Enable/disable immediate forwarding of incoming MIDI clock (0xF8) to
+  // output. Used when this device is a clock receiver.
+  void set_forward_echo_enabled(bool enabled) {
+    forward_echo_enabled_ = enabled;
+  }
+  [[nodiscard]] bool is_forward_echo_enabled() const {
+    return forward_echo_enabled_;
+  }
+
 private:
   absolute_time_t _last_raw_tick_time;
+  bool forward_echo_enabled_ = false;
 
   // Timeout for considering MIDI clock inactive.
   static constexpr uint32_t MIDI_CLOCK_TIMEOUT_US = 500000; // 500ms

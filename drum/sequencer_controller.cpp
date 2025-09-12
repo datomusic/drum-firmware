@@ -12,17 +12,31 @@
 
 namespace drum {
 
+namespace musical_timing {
+constexpr uint8_t PPQN = 24;
+constexpr uint8_t DOWNBEAT = 0;
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 12
+constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 8
+constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 6
+} // namespace musical_timing
+
+namespace {
+constexpr std::uint32_t SIXTEENTH_MASK =
+    (1u << 0) | (1u << 6) | (1u << 12) | (1u << 18);
+constexpr std::uint32_t TRIPLET_MASK = (1u << 0) | (1u << 8) | (1u << 16);
+constexpr std::uint32_t TRIPLET_OFFSET_MASK =
+    (1u << 4) | (1u << 12) | (1u << 20);
+constexpr std::uint32_t MASK24 = (1u << 24) - 1u;
+} // namespace
+
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
     : sequencer_(main_sequencer_), current_step_counter{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
-      swing_percent_(50), swing_delays_odd_steps_(false),
-      high_res_tick_counter_{0}, next_trigger_tick_target_{0},
       continuous_randomization_active_(false), _active_note_per_track{},
-      _pad_pressed_state{}, _retrigger_mode_per_track{},
-      _retrigger_target_tick_per_track{}, logger_(logger) {
+      _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -96,73 +110,23 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
 }
 
 template <size_t NumTracks, size_t NumSteps>
-uint32_t
-SequencerController<NumTracks, NumSteps>::calculate_next_trigger_interval()
-    const {
-  uint32_t total_ticks_for_two_steps = 2 * high_res_ticks_per_step_;
-  if (total_ticks_for_two_steps == 0)
-    return 1;
-
-  uint32_t duration1 = (total_ticks_for_two_steps * swing_percent_) / 100;
-  duration1 = std::max(uint32_t{1}, duration1);
-
-  uint32_t duration2 = total_ticks_for_two_steps - duration1;
-  if (duration1 >= total_ticks_for_two_steps) {
-    duration2 = 1;
-    duration1 =
-        total_ticks_for_two_steps > 0 ? total_ticks_for_two_steps - 1 : 0;
-  } else {
-    duration2 = std::max(uint32_t{1}, duration2);
+void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
+  if (swing_enabled_ != enabled) {
+    swing_enabled_ = enabled;
   }
-
-  while (duration1 + duration2 > total_ticks_for_two_steps &&
-         total_ticks_for_two_steps > 0) {
-    if (duration1 > 1)
-      duration1--;
-    else if (duration2 > 1)
-      duration2--;
-    else
-      break;
-  }
-
-  bool current_step_is_odd = (current_step_counter % 2) != 0;
-  uint32_t interval;
-
-  if (swing_delays_odd_steps_) {
-    interval = current_step_is_odd ? duration1 : duration2;
-  } else {
-    interval = current_step_is_odd ? duration2 : duration1;
-  }
-
-  return std::max(uint32_t{1}, interval);
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::calculate_timing_params() {
-  if constexpr (SEQUENCER_RESOLUTION > 0) {
-    uint8_t steps_per_eight = SEQUENCER_RESOLUTION / 8;
-    if (steps_per_eight > 0) {
-      high_res_ticks_per_step_ = CLOCK_PPQN / steps_per_eight;
-    } else {
-      high_res_ticks_per_step_ = CLOCK_PPQN;
-    }
-  } else {
-    high_res_ticks_per_step_ = 24;
-  }
-  high_res_ticks_per_step_ = std::max(uint32_t{1}, high_res_ticks_per_step_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_swing_percent(
-    uint8_t percent) {
-  swing_percent_ =
-      std::clamp(percent, static_cast<uint8_t>(50), static_cast<uint8_t>(67));
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
-  swing_delays_odd_steps_ = delay_odd;
+  if (swing_delays_odd_steps_ != delay_odd) {
+    swing_delays_odd_steps_ = delay_odd;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::is_swing_enabled() const {
+  return swing_enabled_;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -179,18 +143,22 @@ void SequencerController<NumTracks, NumSteps>::reset() {
     }
   }
   current_step_counter = 0;
-  high_res_tick_counter_ = 0;
 
   _just_played_step_per_track.fill(std::nullopt);
+
+  // Pre-populate last-played step indices so the UI has a cursor immediately
+  // after starting, even before the first incoming tick.
+  size_t base_step_index = calculate_base_step_index();
+  size_t num_tracks = sequencer_.get().get_num_tracks();
+  for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+    _just_played_step_per_track[track_idx] = base_step_index;
+  }
 
   deactivate_repeat();
   stop_continuous_randomization();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
-
-  uint32_t first_interval = calculate_next_trigger_interval();
-  next_trigger_tick_target_ = first_interval;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -205,11 +173,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
   }
 
   _just_played_step_per_track.fill(std::nullopt);
-
-  // Reset timing base so we don't wait for an old target accumulated
-  // during manual advances while stopped.
-  high_res_tick_counter_.store(0);
-  next_trigger_tick_target_.store(0);
 
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
@@ -246,34 +209,72 @@ void SequencerController<NumTracks, NumSteps>::stop() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::notification(
-    [[maybe_unused]] musin::timing::TempoEvent event) {
+    musin::timing::TempoEvent event) {
   if (!_running) {
     return;
   }
 
+  // event.phase_24 is guaranteed in [0, PPQN-1] by TempoHandler
+
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
-    // Reset the timebase. The target is set to the current counter value (0)
-    // so that the main update() function can correctly calculate the *next*
-    // target after this forced step is played.
-    high_res_tick_counter_.store(0);
-    next_trigger_tick_target_.store(high_res_tick_counter_.load());
     advance_step();
     return;
   }
 
-  uint64_t current_tick = ++high_res_tick_counter_;
+  // Determine expected phase for the next step using fixed anchors (0,12),
+  // applying +SWING_OFFSET_PHASES only when the next step is marked as swung.
+  const size_t next_index = calculate_base_step_index();
+  // Preserve existing swing behavior when not repeating. While repeat is
+  // active, drive swing parity from the absolute transport step to ensure
+  // alternating swung/straight timing within the repeat and seamless release.
+  const bool next_is_even = repeat_active_ ? ((current_step_counter & 1u) == 0)
+                                           : ((next_index & 1u) == 0);
+  const bool delay_this_step =
+      swing_enabled_ && ((swing_delays_odd_steps_ && !next_is_even) ||
+                         (!swing_delays_odd_steps_ && next_is_even));
 
-  // Process per-tick retrigger logic for swing-aware double mode
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (_retrigger_target_tick_per_track[track_idx].has_value() &&
-        current_tick >= _retrigger_target_tick_per_track[track_idx].value()) {
-      _retrigger_due_mask |= (1 << track_idx);
-    }
+  uint8_t expected_phase = next_is_even ? musical_timing::DOWNBEAT
+                                        : musical_timing::STRAIGHT_OFFBEAT;
+  if (delay_this_step) {
+    expected_phase = static_cast<uint8_t>(
+        (expected_phase + drum::config::timing::SWING_OFFSET_PHASES) %
+        musical_timing::PPQN);
   }
 
-  if (current_tick >= next_trigger_tick_target_) {
+  const bool is_step_due = (event.phase_24 == expected_phase);
+  if (is_step_due) {
     _step_is_due = true;
+  }
+
+  // Process retrigger logic based on phases
+  // Mode 1 follows expected_phase; Mode 2 uses a grid anchored to
+  // expected_phase
+  const std::uint32_t base_mask =
+      swing_enabled_ ? TRIPLET_MASK : SIXTEENTH_MASK;
+  const uint8_t r = expected_phase; // rotation amount in [0,23]
+  const std::uint32_t substep_grid_mask =
+      ((base_mask << r) | (base_mask >> (24 - r))) & MASK24;
+  const bool is_substep_due =
+      ((substep_grid_mask >> event.phase_24) & 1u) != 0u;
+  uint8_t local_retrigger_mask = 0;
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    RetriggerMode mode = _retrigger_mode_per_track[track_idx];
+    if (mode == RetriggerMode::Off) {
+      continue;
+    }
+
+    bool due = (mode == RetriggerMode::Step)       ? is_step_due
+               : (mode == RetriggerMode::Substeps) ? is_substep_due
+                                                   : false;
+
+    if (due) {
+      local_retrigger_mask |= (1u << track_idx);
+    }
+  }
+  if (local_retrigger_mask != 0) {
+    _retrigger_due_mask.fetch_or(local_retrigger_mask,
+                                 std::memory_order_relaxed);
   }
 }
 
@@ -437,13 +438,6 @@ void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(
 }
 
 template <size_t NumTracks, size_t NumSteps>
-[[nodiscard]] uint32_t
-SequencerController<NumTracks, NumSteps>::get_ticks_per_musical_step()
-    const noexcept {
-  return high_res_ticks_per_step_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::toggle() {
   if (is_running()) {
     stop();
@@ -542,7 +536,7 @@ template <size_t NumTracks, size_t NumSteps>
 uint8_t SequencerController<NumTracks, NumSteps>::get_retrigger_mode_for_track(
     uint8_t track_index) const {
   if (track_index < NumTracks) {
-    return _retrigger_mode_per_track[track_index];
+    return static_cast<uint8_t>(_retrigger_mode_per_track[track_index]);
   }
   return 0;
 }
@@ -551,8 +545,16 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
     uint8_t track_index, uint8_t mode) {
   if (track_index < NumTracks && (mode == 1 || mode == 2)) {
+    _retrigger_mode_per_track[track_index] =
+        (mode == 1) ? RetriggerMode::Step : RetriggerMode::Substeps;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
+    uint8_t track_index, RetriggerMode mode) {
+  if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = mode;
-    _retrigger_target_tick_per_track[track_index] = std::nullopt;
   }
 }
 
@@ -560,8 +562,7 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(
     uint8_t track_index) {
   if (track_index < NumTracks) {
-    _retrigger_mode_per_track[track_index] = 0;
-    _retrigger_target_tick_per_track[track_index] = std::nullopt;
+    _retrigger_mode_per_track[track_index] = RetriggerMode::Off;
   }
 }
 
@@ -587,7 +588,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
             get_active_note_for_track(static_cast<uint8_t>(track_idx));
         trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
                         drum::config::drumpad::RETRIGGER_VELOCITY);
-        _retrigger_target_tick_per_track[track_idx] = std::nullopt;
         processed_mask |= (1 << track_idx);
       }
     }
@@ -612,7 +612,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
     process_track_step(track_idx, step_index_to_play_for_track);
 
     // Handle the first retrigger note for the main step event
-    if (_retrigger_mode_per_track[track_idx] > 0) {
+    // Simple guard: only add explicit boundary retrigger for Step mode
+    if (_retrigger_mode_per_track[track_idx] == RetriggerMode::Step) {
       uint8_t note_to_play =
           get_active_note_for_track(static_cast<uint8_t>(track_idx));
       trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
@@ -647,28 +648,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
     }
   }
 
-  // --- Prepare for the next step ---
-  uint32_t interval_to_next_trigger = calculate_next_trigger_interval();
-  uint64_t step_trigger_tick = next_trigger_tick_target_.load();
-
-  // Set up swing-aware retrigger targets for the next step interval
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (_retrigger_mode_per_track[track_idx] == 2) {
-      bool is_eligible_for_retrigger =
-          interval_to_next_trigger >= high_res_ticks_per_step_;
-      if (is_eligible_for_retrigger) {
-        uint64_t retrigger_offset = interval_to_next_trigger / 2;
-        _retrigger_target_tick_per_track[track_idx] =
-            step_trigger_tick + retrigger_offset;
-      } else {
-        _retrigger_target_tick_per_track[track_idx] = std::nullopt;
-      }
-    } else {
-      _retrigger_target_tick_per_track[track_idx] = std::nullopt;
-    }
-  }
-
-  next_trigger_tick_target_ += interval_to_next_trigger;
   current_step_counter++;
 }
 
@@ -717,7 +696,6 @@ void SequencerController<NumTracks, NumSteps>::initialize_all_sequencers() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
-  calculate_timing_params();
   srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
@@ -860,6 +838,8 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
     storage_->mark_state_dirty();
   }
 }
+
+// removed: update_mode2_mask (no longer used)
 
 // Explicit template instantiation for 4 tracks, 8 steps
 template class SequencerController<4, 8>;

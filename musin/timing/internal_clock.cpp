@@ -2,6 +2,7 @@
 
 #include "musin/timing/clock_event.h"
 #include "pico/stdlib.h"
+#include "pico/time.h"
 #include <cstdio>
 
 namespace musin::timing {
@@ -65,6 +66,8 @@ void InternalClock::update(absolute_time_t now) {
   }
 
   musin::timing::ClockEvent tick_event{musin::timing::ClockSource::INTERNAL};
+  // Stamp with the scheduled tick time for determinism
+  tick_event.timestamp_us = to_us_since_boot(_next_tick_time);
   notify_observers(tick_event);
 
   // Schedule the next tick.

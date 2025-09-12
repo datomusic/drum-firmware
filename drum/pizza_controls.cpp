@@ -264,12 +264,12 @@ void PizzaControls::DrumpadComponent::update() {
     if (current_mode != _last_known_retrigger_mode_per_pad[i]) {
       if (current_mode == musin::ui::RetriggerMode::Single) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
-            static_cast<uint8_t>(i), 1);
+            static_cast<uint8_t>(i), drum::RetriggerMode::Step);
         controls->_sequencer_controller_ref.set_pad_pressed_state(
             static_cast<uint8_t>(i), true);
       } else if (current_mode == musin::ui::RetriggerMode::Double) {
         controls->_sequencer_controller_ref.activate_play_on_every_step(
-            static_cast<uint8_t>(i), 2);
+            static_cast<uint8_t>(i), drum::RetriggerMode::Substeps);
         controls->_sequencer_controller_ref.set_pad_pressed_state(
             static_cast<uint8_t>(i), true);
       } else {
@@ -487,16 +487,16 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
                                                        value);
     break;
   case SWING: {
+    // Swing is ON/OFF with deterministic sign: right of center delays odd steps
     float distance_from_center =
         fabsf(value - config::analog_controls::SWING_KNOB_CENTER_VALUE);
-    uint8_t swing_percent =
-        config::analog_controls::SWING_BASE_PERCENT +
-        static_cast<uint8_t>(
-            distance_from_center *
-            config::analog_controls::SWING_PERCENT_SENSITIVITY);
+    bool swing_on = (distance_from_center >=
+                     config::analog_controls::SWING_ON_OFF_DEADBAND);
     bool delay_odd = (value > config::analog_controls::SWING_KNOB_CENTER_VALUE);
+    // Remember the sign regardless of ON/OFF, so toggling later is stable
     controls->_sequencer_controller_ref.set_swing_target(delay_odd);
-    controls->_sequencer_controller_ref.set_swing_percent(swing_percent);
+    controls->_sequencer_controller_ref.set_swing_enabled(swing_on);
+    // Forward raw value for UI feedback/telemetry if needed.
     parent_controls->_message_router_ref.set_parameter(drum::Parameter::SWING,
                                                        value, 0);
   } break;
@@ -675,6 +675,11 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   if (event.type == musin::ui::DrumpadEvent::Type::Press) {
     logger.debug("PLAYBUTTON PRESSED");
     parent->parent_controls->_sequencer_controller_ref.toggle();
+
+    // If we just started, trigger sync behavior for better phase alignment
+    if (parent->parent_controls->_sequencer_controller_ref.is_running()) {
+      parent->parent_controls->_tempo_handler_ref.trigger_manual_sync();
+    }
   } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
     logger.debug("PLAYBUTTON RELEASED");
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {

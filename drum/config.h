@@ -24,6 +24,7 @@ constexpr uint8_t MIDI_IN_CHANNEL =
 constexpr uint8_t MIDI_OUT_CHANNEL =
     10; // Output MIDI Channel (GM Percussion Standard)
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = false;
+constexpr bool SEND_SYNC_CLOCK_WHEN_STOPPED_AS_MASTER = true;
 constexpr bool IGNORE_MIDI_NOTE_OFF = true;
 constexpr uint32_t COLOR_MIDI_CLOCK_LISTENER = 0xFFD700; // Gold
 
@@ -173,6 +174,9 @@ constexpr float FILTER_SMOOTHING_RATE =
     6.0f; // Lower is slower, higher is faster
 constexpr float RANDOM_ACTIVATION_THRESHOLD = 0.1f;
 constexpr float SWING_KNOB_CENTER_VALUE = 0.5f;
+// Swing on/off handling uses a deadband around center; beyond this, swing is ON
+constexpr float SWING_ON_OFF_DEADBAND =
+    0.12f; // ~12% away from center to enable
 constexpr uint8_t SWING_BASE_PERCENT = 50;
 constexpr float SWING_PERCENT_SENSITIVITY = 33.0f;
 constexpr float REPEAT_MODE_1_THRESHOLD = 0.3f;
@@ -194,6 +198,16 @@ constexpr uint32_t REPEAT_RUNNING_DEBOUNCE_MS = 30;
 constexpr float MIN_BPM_ADJUST = 60.0f;
 constexpr float MAX_BPM_ADJUST = 360.0f;
 } // namespace analog_controls
+
+// Timing configuration (musical policies)
+namespace timing {
+// Fixed swing offset in 24 PPQN phases applied to swung steps only.
+// Anchors remain at 0 and 12; the controller applies +SWING_OFFSET_PHASES
+// to the next step when that step is marked as swung.
+constexpr uint8_t SWING_OFFSET_PHASES = 4; // valid range: 1..11
+static_assert(SWING_OFFSET_PHASES > 0 && SWING_OFFSET_PHASES < 12,
+              "SWING_OFFSET_PHASES must be between 1 and 11 at 24 PPQN");
+} // namespace timing
 
 // PizzaControls specific
 namespace main_controls {

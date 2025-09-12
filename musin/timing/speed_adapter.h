@@ -60,6 +60,10 @@ private:
   uint32_t last_interval_us_ = 0; // measured between source ticks
   absolute_time_t next_insert_time_ = nil_time;
   ClockSource current_source_ = ClockSource::INTERNAL;
+
+  // For HALF mode: if an anchored tick would be dropped, defer its anchor
+  // to the next forwarded tick.
+  uint8_t pending_anchor_to_phase_ = ClockEvent::ANCHOR_PHASE_NONE;
 };
 
 } // namespace musin::timing

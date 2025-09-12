@@ -36,6 +36,11 @@ struct ClockEvent {
   // Timestamp in microseconds since boot when the source tick occurred.
   // 0 means unset; consumers may fall back to local time if needed.
   uint32_t timestamp_us = 0;
+  // Optional anchor instruction for this tick. When set, TempoHandler should
+  // set its phase to this exact value (0..23) on this tick. A sentinel value
+  // indicates that no anchoring is requested.
+  static constexpr uint8_t ANCHOR_PHASE_NONE = 0xFF;
+  uint8_t anchor_to_phase = ANCHOR_PHASE_NONE;
 };
 
 } // namespace musin::timing

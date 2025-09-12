@@ -12,6 +12,7 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
     last_tick_us_ = 0;
     last_interval_us_ = 0;
     next_insert_time_ = nil_time;
+    pending_anchor_to_phase_ = ClockEvent::ANCHOR_PHASE_NONE;
     return;
   }
 
@@ -29,11 +30,30 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
     break;
   }
   case SpeedModifier::HALF_SPEED: {
-    // Toggle and only forward on every other tick
+    // Drop every other tick. If an anchored tick would be dropped,
+    // defer its anchor to the next forwarded tick.
+    bool would_forward = !half_toggle_;
     half_toggle_ = !half_toggle_;
-    if (half_toggle_) {
-      notify_observers(event);
+
+    if (!would_forward) {
+      // This tick is to be dropped
+      if (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE) {
+        pending_anchor_to_phase_ = event.anchor_to_phase;
+      }
+      // Track timing regardless to keep continuity when switching modes
+      if (last_tick_us_ != 0) {
+        last_interval_us_ = now_us - last_tick_us_;
+      }
+      last_tick_us_ = now_us;
+      break;
     }
+
+    // We will forward this tick; apply any deferred anchor if present
+    if (pending_anchor_to_phase_ != ClockEvent::ANCHOR_PHASE_NONE) {
+      event.anchor_to_phase = pending_anchor_to_phase_;
+    }
+    pending_anchor_to_phase_ = ClockEvent::ANCHOR_PHASE_NONE;
+    notify_observers(event);
     // Track timing regardless to keep continuity when switching modes
     if (last_tick_us_ != 0) {
       last_interval_us_ = now_us - last_tick_us_;
@@ -80,6 +100,7 @@ void SpeedAdapter::update(absolute_time_t /*now*/) {
     ClockEvent interp{current_source_};
     interp.is_resync = false;
     interp.is_physical_pulse = false;
+    interp.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
     interp.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     notify_observers(interp);

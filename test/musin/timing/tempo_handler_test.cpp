@@ -129,14 +129,15 @@ TEST_CASE(
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Simulate 4 external physical pulses (24ppqn multiplied elsewhere),
-  // delivered as ClockEvents directly to TempoHandler.
+  // Simulate 4 external physical pulses. Feed them into the ClockMultiplier
+  // so it emits 24 PPQN ticks with anchor metadata on the first multiplied
+  // tick per pulse.
   for (int i = 0; i < 4; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_physical_pulse = true;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-    speed_adapter.notification(e);
+    clk_mult.notification(e);
   }
 
   // With HALF speed, every other tick is forwarded; anchors alternate 12 then 0

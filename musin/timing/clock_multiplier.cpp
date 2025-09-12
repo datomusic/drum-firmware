@@ -1,4 +1,5 @@
 #include "musin/timing/clock_multiplier.h"
+#include "musin/timing/timing_constants.h"
 #include "pico/time.h"
 #include <cassert>
 
@@ -41,6 +42,15 @@ void ClockMultiplier::notification(musin::timing::ClockEvent event) {
   multiplied_event.timestamp_us =
       (event.timestamp_us != 0) ? event.timestamp_us
                                 : static_cast<uint32_t>(to_us_since_boot(now));
+  // Emit anchor intent for the immediate tick of each physical pulse.
+  // Alternate between 12 and 0 to align eighth boundaries.
+  if (is_physical) {
+    multiplied_event.anchor_to_phase =
+        next_anchor_is_12_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
+    next_anchor_is_12_ = !next_anchor_is_12_;
+  } else {
+    multiplied_event.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
+  }
   notify_observers(multiplied_event);
   pulse_counter_++;
   if (pulse_interval_us_ > 0) {
@@ -60,6 +70,8 @@ void ClockMultiplier::update(absolute_time_t now) {
     ClockEvent interp_event{current_source_};
     // Interpolated ticks are not physical pulses
     interp_event.is_physical_pulse = false;
+    // Interpolated ticks must not carry anchoring intent
+    interp_event.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
     // Stamp with scheduled time for this interpolated pulse
     interp_event.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(next_pulse_time_));
@@ -74,6 +86,8 @@ void ClockMultiplier::reset() {
   pulse_interval_us_ = 0;
   last_pulse_time_ = nil_time;
   next_pulse_time_ = nil_time;
+  // After reset/source change, start with 12 as the first anchor
+  next_anchor_is_12_ = true;
 }
 
 // Note: Speed modification is handled by TempoHandler; no speed controls here.

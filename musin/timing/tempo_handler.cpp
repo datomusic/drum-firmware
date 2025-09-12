@@ -59,16 +59,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   }
 
   // Handle resync events immediately for all sources
-  if (event.is_resync) {
-    phase_24_ = 0; // Reset phase on resync
-    if (current_source_ == ClockSource::EXTERNAL_SYNC) {
-      external_align_to_12_next_ = true; // Next physical pulse aligns to 12
-    }
-    musin::timing::TempoEvent resync_tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
-    notify_observers(resync_tempo_event);
-    return;
-  }
+  bool input_resync = event.is_resync;
 
   // Capture timing for MIDI look-behind anchoring (prefer upstream timestamp)
   if (current_source_ == ClockSource::MIDI) {
@@ -95,24 +86,28 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     }
   }
 
-  // External sync: anchor on physical pulses to 0/12, else advance normally
-  if (current_source_ == ClockSource::EXTERNAL_SYNC &&
-      event.is_physical_pulse) {
-    tick_count_++;
-    phase_24_ =
-        external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
-    external_align_to_12_next_ = !external_align_to_12_next_;
-    musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                          .phase_24 = phase_24_,
-                                          .is_resync =
-                                              pending_manual_resync_flag_};
-    pending_manual_resync_flag_ = false;
-    notify_observers(tempo_event);
-    return;
+  // Determine phase for this tick:
+  // - If this is a resync without an explicit anchor, set to downbeat (0).
+  // - If anchor is present, honor it.
+  // - Otherwise, advance by one.
+  uint8_t next_phase = phase_24_;
+  if (input_resync && event.anchor_to_phase == ClockEvent::ANCHOR_PHASE_NONE) {
+    next_phase = PHASE_DOWNBEAT;
+  } else if (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE) {
+    next_phase = event.anchor_to_phase;
+  } else {
+    next_phase = (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
   }
 
-  // For all other ticks, advance phase and emit
-  advance_phase_and_emit_event();
+  tick_count_++;
+  phase_24_ = next_phase;
+  musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
+                                        .phase_24 = phase_24_,
+                                        .is_resync =
+                                            (input_resync ||
+                                             pending_manual_resync_flag_)};
+  pending_manual_resync_flag_ = false;
+  notify_observers(tempo_event);
 }
 
 // Removed: speed scaling and tick selection is handled by SpeedAdapter

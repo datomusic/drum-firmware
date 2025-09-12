@@ -101,11 +101,10 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
   tick_count_++;
   phase_24_ = next_phase;
-  musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                        .phase_24 = phase_24_,
-                                        .is_resync =
-                                            (input_resync ||
-                                             pending_manual_resync_flag_)};
+  musin::timing::TempoEvent tempo_event{
+      .tick_count = tick_count_,
+      .phase_24 = phase_24_,
+      .is_resync = (input_resync || pending_manual_resync_flag_)};
   pending_manual_resync_flag_ = false;
   notify_observers(tempo_event);
 }

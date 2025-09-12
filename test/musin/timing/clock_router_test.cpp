@@ -1,0 +1,155 @@
+#include "midi_test_support.h"
+#include "musin/timing/clock_multiplier.h"
+#include "musin/timing/clock_router.h"
+#include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_processor.h"
+#include "pico/time.h"
+#include "test_support.h"
+
+#include <etl/observer.h>
+#include <vector>
+
+using musin::timing::ClockEvent;
+using musin::timing::ClockMultiplier;
+using musin::timing::ClockRouter;
+using musin::timing::ClockSource;
+using musin::timing::InternalClock;
+using musin::timing::MidiClockProcessor;
+
+namespace {
+struct ClockEventRecorder : etl::observer<ClockEvent> {
+  std::vector<ClockEvent> events;
+  void notification(ClockEvent e) {
+    events.push_back(e);
+  }
+  void clear() {
+    events.clear();
+  }
+};
+
+static void advance_time_us(uint64_t us) {
+  advance_mock_time_us(us);
+}
+} // namespace
+
+TEST_CASE("ClockRouter emits resync on source change") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  ClockMultiplier clk_mult(24);
+  ClockRouter router(internal_clock, midi_proc, clk_mult,
+                     ClockSource::INTERNAL);
+
+  ClockEventRecorder rec;
+  router.add_observer(rec);
+
+  // Switch to MIDI -> resync
+  router.set_clock_source(ClockSource::MIDI);
+  REQUIRE(rec.events.size() == 1);
+  REQUIRE(rec.events[0].is_resync == true);
+  REQUIRE(rec.events[0].source == ClockSource::MIDI);
+
+  // Switch to EXTERNAL_SYNC -> another resync
+  router.set_clock_source(ClockSource::EXTERNAL_SYNC);
+  REQUIRE(rec.events.size() == 2);
+  REQUIRE(rec.events[1].is_resync == true);
+  REQUIRE(rec.events[1].source == ClockSource::EXTERNAL_SYNC);
+
+  // Switch back to INTERNAL -> resync
+  router.set_clock_source(ClockSource::INTERNAL);
+  REQUIRE(rec.events.size() == 3);
+  REQUIRE(rec.events[2].is_resync == true);
+  REQUIRE(rec.events[2].source == ClockSource::INTERNAL);
+
+  // Setting same source again should be a no-op (no additional resync)
+  router.set_clock_source(ClockSource::INTERNAL);
+  REQUIRE(rec.events.size() == 3);
+}
+
+TEST_CASE("ClockRouter forwards ticks only from selected source") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  ClockMultiplier clk_mult(24);
+  ClockRouter router(internal_clock, midi_proc, clk_mult,
+                     ClockSource::INTERNAL);
+
+  ClockEventRecorder rec;
+  router.add_observer(rec);
+
+  // Internal source should start; generate two internal ticks (~20833us apart)
+  constexpr uint64_t tick_us = 20833;
+  for (int i = 0; i < 2; ++i) {
+    internal_clock.update(get_absolute_time());
+    advance_time_us(tick_us + 10);
+    internal_clock.update(get_absolute_time());
+  }
+  REQUIRE(rec.events.size() >= 2);
+  for (const auto &e : rec.events) {
+    REQUIRE(e.source == ClockSource::INTERNAL);
+    REQUIRE(e.is_resync == false);
+  }
+
+  size_t count_after_internal = rec.events.size();
+
+  // Switch to MIDI; should emit a resync and stop internal clock
+  router.set_clock_source(ClockSource::MIDI);
+  REQUIRE(rec.events.size() == count_after_internal + 1);
+  REQUIRE(internal_clock.is_running() == false);
+  REQUIRE(midi_proc.is_forward_echo_enabled() == true);
+
+  size_t count_after_switch = rec.events.size();
+
+  // Attempt to generate internal tick — should have no effect now
+  internal_clock.update(get_absolute_time());
+  REQUIRE(rec.events.size() == count_after_switch);
+
+  // Now send a MIDI tick — should be forwarded
+  midi_proc.on_midi_clock_tick_received();
+  REQUIRE(rec.events.size() == count_after_switch + 1);
+  REQUIRE(rec.events.back().source == ClockSource::MIDI);
+}
+
+TEST_CASE("ClockRouter routes external sync via ClockMultiplier and preserves "
+          "physical flag") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  ClockMultiplier clk_mult(24);
+  ClockRouter router(internal_clock, midi_proc, clk_mult,
+                     ClockSource::INTERNAL);
+
+  ClockEventRecorder rec;
+  router.add_observer(rec);
+
+  // Switch to EXTERNAL_SYNC; MIDI echo should be disabled
+  router.set_clock_source(ClockSource::EXTERNAL_SYNC);
+  REQUIRE(midi_proc.is_forward_echo_enabled() == false);
+
+  size_t base_events = rec.events.size(); // includes resync from switch
+
+  // Simulate an external physical pulse arriving at ClockMultiplier
+  ClockEvent pulse{ClockSource::EXTERNAL_SYNC};
+  pulse.is_physical_pulse = true;
+  pulse.timestamp_us =
+      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+  clk_mult.notification(pulse);
+
+  // Router should forward the multiplied immediate event from ClockMultiplier
+  REQUIRE(rec.events.size() >= base_events + 1);
+
+  // Last or one of the new events should be EXTERNAL_SYNC and preserve physical
+  // flag
+  bool found_physical = false;
+  for (size_t i = base_events; i < rec.events.size(); ++i) {
+    if (rec.events[i].source == ClockSource::EXTERNAL_SYNC &&
+        rec.events[i].is_physical_pulse == true) {
+      found_physical = true;
+      break;
+    }
+  }
+  REQUIRE(found_physical);
+}

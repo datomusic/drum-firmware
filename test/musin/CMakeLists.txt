@@ -18,6 +18,7 @@ add_executable(${PROJECT_NAME}
   midi/midi_message_queue_test.cpp
   timing/tempo_handler_test.cpp
   timing/speed_adapter_test.cpp
+  timing/clock_router_test.cpp
 )
 
 if(${STATIC_TESTS})

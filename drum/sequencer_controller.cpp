@@ -26,6 +26,7 @@ constexpr std::uint32_t SIXTEENTH_MASK =
 constexpr std::uint32_t TRIPLET_MASK = (1u << 0) | (1u << 8) | (1u << 16);
 constexpr std::uint32_t TRIPLET_OFFSET_MASK =
     (1u << 4) | (1u << 12) | (1u << 20);
+constexpr std::uint32_t MASK24 = (1u << 24) - 1u;
 } // namespace
 
 template <size_t NumTracks, size_t NumSteps>
@@ -243,13 +244,13 @@ void SequencerController<NumTracks, NumSteps>::notification(
   }
 
   // Process retrigger logic based on phases
-  // Mode 1 follows expected_phase; Mode 2 uses grid selected by swing/parity
+  // Mode 1 follows expected_phase; Mode 2 uses a grid anchored to
+  // expected_phase
+  const std::uint32_t base_mask =
+      swing_enabled_ ? TRIPLET_MASK : SIXTEENTH_MASK;
+  const uint8_t r = expected_phase; // rotation amount in [0,23]
   const std::uint32_t substep_grid_mask =
-      (!swing_enabled_)
-          ? SIXTEENTH_MASK
-          : (swing_delays_odd_steps_
-                 ? (next_is_even ? TRIPLET_MASK : TRIPLET_OFFSET_MASK)
-                 : (next_is_even ? TRIPLET_OFFSET_MASK : TRIPLET_MASK));
+      ((base_mask << r) | (base_mask >> (24 - r))) & MASK24;
   const bool is_substep_due =
       ((substep_grid_mask >> event.phase_24) & 1u) != 0u;
   uint8_t local_retrigger_mask = 0;

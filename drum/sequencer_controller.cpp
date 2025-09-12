@@ -608,7 +608,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
     process_track_step(track_idx, step_index_to_play_for_track);
 
     // Handle the first retrigger note for the main step event
-    if (_retrigger_mode_per_track[track_idx] != RetriggerMode::Off) {
+    // Simple guard: only add explicit boundary retrigger for Step mode
+    if (_retrigger_mode_per_track[track_idx] == RetriggerMode::Step) {
       uint8_t note_to_play =
           get_active_note_for_track(static_cast<uint8_t>(track_idx));
       trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,

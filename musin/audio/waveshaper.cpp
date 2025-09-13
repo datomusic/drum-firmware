@@ -59,24 +59,15 @@ void Waveshaper::shape(const float *new_shape, size_t length) {
     lerpshift =
         16; // Avoid issues if length is somehow 1 (should be caught above)
   } else {
-    // Find the number of bits needed to represent the index range [0,
-    // length-2]. This is equivalent to floor(log2(index_range-1)) + 1 if
-    // index_range > 1, or simply finding the position of the most significant
-    // bit. lerpshift = 16 - (number of bits needed for index)
+    // Find the number of bits required to represent the maximum interpolation
+    // index, which is `length - 2`.
     size_t bits_needed = 0;
-    size_t temp_range = index_range; // Use index_range (length-1) here
+    size_t temp_range = length - 2;
     while (temp_range > 0) {
       temp_range >>= 1;
       bits_needed++;
     }
-    // If index_range is exactly power of 2 (e.g. 1024 for length 1025),
-    // bits_needed is correct. If not (e.g. 1000 for length 1001), we still need
-    // the same number of bits as the next power of 2.
     lerpshift = 16 - bits_needed;
-
-    // Original logic check: (length - 1) should be power of two for optimal
-    // lerp shift bool is_power_of_two = ((length - 1) > 0) && (((length - 1) &
-    // (length - 2)) == 0); if (!is_power_of_two) { /* maybe log warning */ }
   }
 }
 

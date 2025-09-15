@@ -352,15 +352,14 @@ void SequencerController<NumTracks, NumSteps>::generate_random_pattern() {
   // Generate random pattern: copy notes from main, randomize velocities and
   // enable states
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    auto &main_track = main_sequencer_.get_track(track_idx);
     auto &random_track = random_sequencer_.get_track(track_idx);
 
     for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      auto &main_step = main_track.get_step(step_idx);
       auto &random_step = random_track.get_step(step_idx);
 
-      // Copy note from main sequencer
-      random_step.note = main_step.note;
+      // Use track's active note instead of copying potentially null note
+      random_step.note =
+          get_active_note_for_track(static_cast<uint8_t>(track_idx));
 
       // Get one random value and extract both velocity and enabled from it
       uint32_t random_value = rand();
@@ -625,25 +624,27 @@ void SequencerController<NumTracks, NumSteps>::update() {
   if (continuous_randomization_active_ && !repeat_active_) {
     const size_t num_steps = sequencer_.get().get_num_steps();
     if (num_steps > 0) {
-      // Randomize each track at its own offset ahead
+      // Randomize each track at its own randomly-generated offset ahead
       for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-        size_t track_offset =
-            RANDOM_STEP_OFFSETS[track_idx % RANDOM_STEP_OFFSETS.size()];
+        // Generate random velocity and enable state
+        uint32_t random_value = rand();
+
+        // Extract offset from upper bits: use 3 bits shifted by track index
+        // to get different offset ranges per track (0-7)
+        size_t track_offset = (random_value >> (8 + track_idx * 3)) & 0x7;
         size_t steps_ahead_index =
             (current_step_counter + track_offset) % num_steps;
 
         auto &random_track = random_sequencer_.get_track(track_idx);
         auto &random_step = random_track.get_step(steps_ahead_index);
 
-        // Copy note from main sequencer if available
-        const auto &main_step =
-            main_sequencer_.get_track(track_idx).get_step(steps_ahead_index);
-        random_step.note = main_step.note;
+        // Use track's active note instead of copying potentially null note
+        random_step.note =
+            get_active_note_for_track(static_cast<uint8_t>(track_idx));
 
-        // Generate random velocity and enable state
-        uint32_t random_value = rand();
-        random_step.velocity = random_value & 0x7F;       // 0-127
-        random_step.enabled = (random_value & 0x40) != 0; // 50% chance
+        bool should_enable = (random_value & 0x01) != 0; // 50% chance
+        random_step.enabled = should_enable;
+        random_step.velocity = 100;
       }
     }
   }

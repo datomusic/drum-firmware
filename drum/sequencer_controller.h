@@ -48,8 +48,6 @@ class SequencerController
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
-  static constexpr etl::array<size_t, 4> RANDOM_STEP_OFFSETS = {3, 5, 7, 4};
-
   /**
    * @brief Constructor.
    * @param tempo_handler_ref A reference to the tempo handler.

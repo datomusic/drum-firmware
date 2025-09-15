@@ -250,6 +250,7 @@ private:
   bool _running = false;
   std::atomic<bool> _step_is_due = false;
   std::atomic<uint8_t> _retrigger_due_mask{0};
+  uint8_t last_phase_24_{0};
 
   bool swing_enabled_ = false;
   // Swing target: true = delay odd steps; false = delay even steps.

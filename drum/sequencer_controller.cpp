@@ -143,6 +143,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
     }
   }
   current_step_counter = 0;
+  last_phase_24_ = 0;
 
   _just_played_step_per_track.fill(std::nullopt);
 
@@ -173,6 +174,7 @@ void SequencerController<NumTracks, NumSteps>::start() {
   }
 
   _just_played_step_per_track.fill(std::nullopt);
+  last_phase_24_ = 0;
 
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
@@ -219,6 +221,12 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
     advance_step();
+    last_phase_24_ = 0; // Reset phase tracking on resync
+    return;
+  }
+
+  // If no time has passed, do nothing.
+  if (event.phase_24 == last_phase_24_) {
     return;
   }
 
@@ -242,21 +250,47 @@ void SequencerController<NumTracks, NumSteps>::notification(
         musical_timing::PPQN);
   }
 
-  const bool is_step_due = (event.phase_24 == expected_phase);
+  // --- Look-behind scheduling check for the main step ---
+  // Check if the expected_phase falls within the window between the last tick
+  // and the current tick.
+  bool is_step_due = false;
+  if (event.phase_24 < last_phase_24_) { // Phase wrapped around (e.g., 23 -> 0)
+    is_step_due =
+        (expected_phase > last_phase_24_) || (expected_phase <= event.phase_24);
+  } else { // Phase did not wrap
+    is_step_due =
+        (expected_phase > last_phase_24_) && (expected_phase <= event.phase_24);
+  }
+
   if (is_step_due) {
     _step_is_due = true;
   }
 
-  // Process retrigger logic based on phases
-  // Mode 1 follows expected_phase; Mode 2 uses a grid anchored to
-  // expected_phase
+  // --- Look-behind scheduling for retrigger substeps (Bitmask optimization)
+  // ---
   const std::uint32_t base_mask =
       swing_enabled_ ? TRIPLET_MASK : SIXTEENTH_MASK;
   const uint8_t r = expected_phase; // rotation amount in [0,23]
   const std::uint32_t substep_grid_mask =
       ((base_mask << r) | (base_mask >> (24 - r))) & MASK24;
-  const bool is_substep_due =
-      ((substep_grid_mask >> event.phase_24) & 1u) != 0u;
+
+  // Create a bitmask for the phase range that has passed since the last tick.
+  uint32_t range_mask = 0;
+  if (event.phase_24 < last_phase_24_) { // Phase wrapped
+    // Range: (last_phase_24_, 23]
+    uint32_t mask1 = ((1u << (23 - last_phase_24_)) - 1)
+                     << (last_phase_24_ + 1);
+    // Range: [0, event.phase_24]
+    uint32_t mask2 = (1u << (event.phase_24 + 1)) - 1;
+    range_mask = mask1 | mask2;
+  } else { // No wrap
+    // Range: (last_phase_24_, event.phase_24]
+    range_mask = ((1u << (event.phase_24 - last_phase_24_)) - 1)
+                 << (last_phase_24_ + 1);
+  }
+
+  const bool substep_is_due = (substep_grid_mask & range_mask) != 0;
+
   uint8_t local_retrigger_mask = 0;
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     RetriggerMode mode = _retrigger_mode_per_track[track_idx];
@@ -265,7 +299,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
     }
 
     bool due = (mode == RetriggerMode::Step)       ? is_step_due
-               : (mode == RetriggerMode::Substeps) ? is_substep_due
+               : (mode == RetriggerMode::Substeps) ? substep_is_due
                                                    : false;
 
     if (due) {
@@ -276,6 +310,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
     _retrigger_due_mask.fetch_or(local_retrigger_mask,
                                  std::memory_order_relaxed);
   }
+
+  last_phase_24_ = event.phase_24;
 }
 
 template <size_t NumTracks, size_t NumSteps>

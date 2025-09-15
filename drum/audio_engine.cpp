@@ -193,7 +193,14 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
 }
 void AudioEngine::set_crush_rate(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const float rate = map_value_filter_fast(normalized_value);
+  // const float rate = map_value_filter_fast(normalized_value);
+  float rate = 22100;
+  if (normalized_value > 0.8f) {
+    rate = 800;
+  } else if (normalized_value > 0.2f) {
+    rate = 2000;
+  }
+  // const float rate = map_value_linear(1.0f - normalized_value, 0, 22100);
   crusher_.sampleRate(rate);
 }
 

@@ -197,14 +197,6 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
       _audio_engine.set_volume(value);
       break;
     case Parameter::CRUSH_EFFECT: {
-      // AudioEngine::set_crush_depth expects a normalized value (0.0 to 1.0)
-      // It internally maps this to bit depth (5 to 16).
-      // Higher normalized value should mean more crush (lower bit depth).
-      // The map_value_linear in AudioEngine for crush_depth is
-      // (normalized_value, 5.0f, 16.0f) So a higher normalized_value gives a
-      // higher bit depth (less crush). This is inverted from typical "amount".
-      // To make higher CC value = more crush, we pass (1.0f - value) to
-      // set_crush_depth.
       _audio_engine.set_crush_depth(1.0f - value);
       _audio_engine.set_crush_rate(value);
       break;

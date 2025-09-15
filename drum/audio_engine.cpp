@@ -188,13 +188,9 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
   lowpass_.filter.resonance(resonance);
 }
 void AudioEngine::set_crush_rate(float normalized_value) {
-  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  float rate = 22100;
-  if (normalized_value > 0.8f) {
-    rate = 800;
-  } else if (normalized_value > 0.2f) {
-    rate = 2000;
-  }
+  const float inverted_value = 1.0f - std::clamp(normalized_value, 0.0f, 1.0f);
+  const float rate =
+      map_value_breakpoint(inverted_value, 882.0f, 2205.0f, 22050.0f);
   crusher_.sampleRate(rate);
 }
 

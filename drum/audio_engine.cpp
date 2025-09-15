@@ -17,29 +17,29 @@ float map_value_linear(float normalized_value, float min_val, float max_val) {
   return std::lerp(min_val, max_val, normalized_value);
 }
 
+float map_value_breakpoint(float normalized_value, float min_val,
+                           float breakpoint_val, float max_val) {
+  normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
+
+  constexpr float breakpoint_input = 0.5f;
+  if (normalized_value <= breakpoint_input) {
+    const float t = normalized_value / breakpoint_input;
+    return std::lerp(min_val, breakpoint_val, t);
+  } else {
+    const float t =
+        (normalized_value - breakpoint_input) / (1.0f - breakpoint_input);
+    return std::lerp(breakpoint_val, max_val, t);
+  }
+}
+
 float map_value_pitch_fast(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
   return 0.5f + normalized_value * (0.5f + normalized_value);
 }
 
 float map_value_filter_fast(float normalized_value) {
-  normalized_value = (1.0f - std::clamp(normalized_value, 0.0f, 1.0f));
-
-  const float breakpoint_input = 0.5f;
-  const float min_freq = 400.0f;
-  const float breakpoint_freq = 800.0f;
-  const float max_freq = 20000.0f;
-
-  if (normalized_value <= breakpoint_input) {
-    // Scale from [0.0, 0.5] to [400, 800]
-    const float t = normalized_value / breakpoint_input;
-    return std::lerp(min_freq, breakpoint_freq, t);
-  } else {
-    // Scale from (0.5, 1.0] to (800, 20000]
-    const float t =
-        (normalized_value - breakpoint_input) / (1.0f - breakpoint_input);
-    return std::lerp(breakpoint_freq, max_freq, t);
-  }
+  const float inverted_value = 1.0f - std::clamp(normalized_value, 0.0f, 1.0f);
+  return map_value_breakpoint(inverted_value, 400.0f, 800.0f, 20000.0f);
 }
 
 } // namespace
@@ -115,12 +115,8 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
 
   Voice &voice = voices_[voice_index];
 
-  // Get the file path from the repository for the given sample index.
   auto path_opt = sample_repository_.get_path(sample_index);
   if (!path_opt.has_value()) {
-    // No sample is mapped to this index, so we play silence by not loading
-    // anything. We could optionally stop the voice if it was playing something
-    // else. stop_voice(voice_index);
     return;
   }
 
@@ -193,14 +189,12 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
 }
 void AudioEngine::set_crush_rate(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  // const float rate = map_value_filter_fast(normalized_value);
   float rate = 22100;
   if (normalized_value > 0.8f) {
     rate = 800;
   } else if (normalized_value > 0.2f) {
     rate = 2000;
   }
-  // const float rate = map_value_linear(1.0f - normalized_value, 0, 22100);
   crusher_.sampleRate(rate);
 }
 

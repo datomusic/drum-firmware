@@ -64,7 +64,34 @@ target_link_libraries(drum-test-persister PRIVATE
     etl::etl
 )
 
+# Test target: Sequencer Effect Swing (unit tests for swing timing)
+add_executable(drum-test-swing
+    sequencer_effect_swing_test.cpp
+)
+
+target_sources(drum-test-swing PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_effect_swing.cpp
+)
+
+target_include_directories(drum-test-swing PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+)
+
+target_compile_definitions(drum-test-swing PRIVATE
+    AUDIO_BLOCK_SAMPLES=20
+)
+
+target_link_libraries(drum-test-swing PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
 catch_discover_tests(drum-test-persister)
+catch_discover_tests(drum-test-swing)

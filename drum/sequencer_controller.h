@@ -17,6 +17,7 @@
 #include <optional>
 
 #include "musin/hal/logger.h"
+#include "sequencer_effect_random.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
 #include <cstddef>
@@ -168,11 +169,6 @@ public:
   [[nodiscard]] bool is_swing_enabled() const;
 
   /**
-   * @brief Generate a random pattern once for the random sequencer.
-   */
-  void generate_random_pattern();
-
-  /**
    * @brief Start continuous 4-steps-ahead randomization.
    */
   void start_continuous_randomization();
@@ -267,6 +263,7 @@ private:
   uint64_t repeat_activation_step_counter_ = 0;
 
   bool continuous_randomization_active_ = false;
+  SequencerEffectRandom<NumTracks, NumSteps> random_effect_;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};

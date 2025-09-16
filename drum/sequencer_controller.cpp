@@ -348,32 +348,6 @@ SequencerController<NumTracks, NumSteps>::get_repeat_length() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::generate_random_pattern() {
-  // Generate random pattern: copy notes from main, randomize velocities and
-  // enable states
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    auto &random_track = random_sequencer_.get_track(track_idx);
-
-    for (size_t step_idx = 0; step_idx < NumSteps; ++step_idx) {
-      auto &random_step = random_track.get_step(step_idx);
-
-      // Use track's active note instead of copying potentially null note
-      random_step.note =
-          get_active_note_for_track(static_cast<uint8_t>(track_idx));
-
-      // Get one random value and extract both velocity and enabled from it
-      uint32_t random_value = rand();
-
-      // Extract velocity from lower 7 bits (0-127) for full MIDI range
-      random_step.velocity = random_value & 0x7F;
-
-      // Extract enabled from bit 6 (50% chance)
-      random_step.enabled = (random_value & 0x40) != 0;
-    }
-  }
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks,
                          NumSteps>::start_continuous_randomization() {
   continuous_randomization_active_ = true;
@@ -410,7 +384,8 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
     // Crossing from main to random - switch sequencer and generate fresh
     // pattern
     select_random_sequencer();
-    generate_random_pattern();
+    random_effect_.generate_full_pattern(random_sequencer_,
+                                         _active_note_per_track);
   }
 
   // Control continuous randomization separately for high values
@@ -622,31 +597,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
 
   // --- Random per-track-ahead logic ---
   if (continuous_randomization_active_ && !repeat_active_) {
-    const size_t num_steps = sequencer_.get().get_num_steps();
-    if (num_steps > 0) {
-      // Randomize each track at its own randomly-generated offset ahead
-      for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-        // Generate random velocity and enable state
-        uint32_t random_value = rand();
-
-        // Extract offset from upper bits: use 3 bits shifted by track index
-        // to get different offset ranges per track (0-7)
-        size_t track_offset = (random_value >> (8 + track_idx * 3)) & 0x7;
-        size_t steps_ahead_index =
-            (current_step_counter + track_offset) % num_steps;
-
-        auto &random_track = random_sequencer_.get_track(track_idx);
-        auto &random_step = random_track.get_step(steps_ahead_index);
-
-        // Use track's active note instead of copying potentially null note
-        random_step.note =
-            get_active_note_for_track(static_cast<uint8_t>(track_idx));
-
-        bool should_enable = (random_value & 0x01) != 0; // 50% chance
-        random_step.enabled = should_enable;
-        random_step.velocity = 100;
-      }
-    }
+    random_effect_.randomize_continuous_step(
+        random_sequencer_, _active_note_per_track, current_step_counter);
   }
 
   current_step_counter++;
@@ -840,9 +792,7 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
   }
 }
 
-// removed: update_mode2_mask (no longer used)
-
-// Explicit template instantiation for 4 tracks, 8 steps
-template class SequencerController<4, 8>;
+template class SequencerController<config::NUM_TRACKS,
+                                   config::NUM_STEPS_PER_TRACK>;
 
 } // namespace drum

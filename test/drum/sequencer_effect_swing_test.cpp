@@ -451,6 +451,41 @@ TEST_CASE("SequencerEffectSwing total time invariance",
       REQUIRE(total_cycle_duration(absolute_times) == CYCLE_PHASES);
     }
   }
+
+  SECTION("Rapid swing toggle at cycle boundary") {
+    // Reproduce pause when enabling swing just before the cycle repeats
+    const std::array<bool, 9> swing_enabled_sequence = {
+        false, false, false, false, false, false, false, false, true};
+    constexpr std::size_t start_step = 1; // Begin on an odd step
+
+    std::vector<uint32_t> absolute_times;
+    absolute_times.reserve(swing_enabled_sequence.size());
+
+    swing_effect.set_swing_target(true); // Delay odd steps when swing is on
+
+    for (std::size_t offset = 0; offset < swing_enabled_sequence.size();
+         ++offset) {
+      swing_effect.set_swing_enabled(swing_enabled_sequence[offset]);
+
+      const std::size_t pattern_step = (start_step + offset) % STEPS_PER_CYCLE;
+      const auto timing = swing_effect.calculate_step_timing(
+          pattern_step, false, start_step + offset);
+
+      const std::uint32_t beat_index =
+          static_cast<std::uint32_t>((start_step + offset) / 2);
+      absolute_times.push_back(beat_index * PHASES_PER_BEAT +
+                               timing.expected_phase);
+    }
+
+    REQUIRE(absolute_times.size() == swing_enabled_sequence.size());
+
+    std::uint32_t total_duration = 0;
+    for (std::size_t i = 1; i < absolute_times.size(); ++i) {
+      total_duration += absolute_times[i] - absolute_times[i - 1];
+    }
+
+    REQUIRE(total_duration == CYCLE_PHASES);
+  }
 }
 
 TEST_CASE("SequencerEffectSwing retrigger mask tests",

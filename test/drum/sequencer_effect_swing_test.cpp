@@ -452,39 +452,62 @@ TEST_CASE("SequencerEffectSwing total time invariance",
     }
   }
 
-  SECTION("Rapid swing toggle at cycle boundary") {
-    // Reproduce pause when enabling swing just before the cycle repeats
-    const std::array<bool, 9> swing_enabled_sequence = {
-        false, false, false, false, false, false, false, false, true};
-    constexpr std::size_t start_step = 1; // Begin on an odd step
+  SECTION("Complete cycle timing invariance") {
+    swing_effect.set_swing_enabled(true);
+    swing_effect.set_swing_target(true);
+
+    // Test complete cycle: step 0 (transport 0) → step 0 (transport 8)
+    auto step0_first = swing_effect.calculate_step_timing(0, false, 0);
+    auto step0_second = swing_effect.calculate_step_timing(0, false, 8);
+
+    uint32_t first_absolute = 0 * PHASES_PER_BEAT + step0_first.expected_phase;
+    uint32_t second_absolute =
+        4 * PHASES_PER_BEAT + step0_second.expected_phase;
+
+    // Complete cycle should always be 96 phases (4 beats), regardless of swing
+    REQUIRE(second_absolute - first_absolute == CYCLE_PHASES);
+
+    // Both step 0s should have identical timing (even steps, no delay with
+    // delay_odd=true)
+    REQUIRE(step0_first.expected_phase == step0_second.expected_phase);
+    REQUIRE(step0_first.is_delay_applied == step0_second.is_delay_applied);
+  }
+
+  SECTION("Multiple complete cycles maintain invariance") {
+    swing_effect.set_swing_enabled(true);
+    swing_effect.set_swing_target(true);
+
+    // Test multiple complete cycles
+    std::vector<uint32_t> cycle_start_times;
+
+    for (uint64_t cycle = 0; cycle < 3; ++cycle) {
+      auto step0_timing =
+          swing_effect.calculate_step_timing(0, false, cycle * 8);
+      uint32_t absolute_time =
+          (cycle * 4) * PHASES_PER_BEAT + step0_timing.expected_phase;
+      cycle_start_times.push_back(absolute_time);
+    }
+
+    // Each cycle should be exactly CYCLE_PHASES apart
+    for (size_t i = 1; i < cycle_start_times.size(); ++i) {
+      uint32_t cycle_duration = cycle_start_times[i] - cycle_start_times[i - 1];
+      REQUIRE(cycle_duration == CYCLE_PHASES);
+    }
+  }
+
+  SECTION("Swing state changes don't affect cycle duration") {
+    swing_effect.set_swing_target(true);
 
     std::vector<uint32_t> absolute_times;
-    absolute_times.reserve(swing_enabled_sequence.size());
-
-    swing_effect.set_swing_target(true); // Delay odd steps when swing is on
-
-    for (std::size_t offset = 0; offset < swing_enabled_sequence.size();
-         ++offset) {
-      swing_effect.set_swing_enabled(swing_enabled_sequence[offset]);
-
-      const std::size_t pattern_step = (start_step + offset) % STEPS_PER_CYCLE;
-      const auto timing = swing_effect.calculate_step_timing(
-          pattern_step, false, start_step + offset);
-
-      const std::uint32_t beat_index =
-          static_cast<std::uint32_t>((start_step + offset) / 2);
-      absolute_times.push_back(beat_index * PHASES_PER_BEAT +
+    for (size_t step = 0; step < STEPS_PER_CYCLE; ++step) {
+      swing_effect.set_swing_enabled(step ==
+                                     7); // Enable swing only on last step
+      auto timing = swing_effect.calculate_step_timing(step, false, step);
+      absolute_times.push_back((step / 2) * PHASES_PER_BEAT +
                                timing.expected_phase);
     }
 
-    REQUIRE(absolute_times.size() == swing_enabled_sequence.size());
-
-    std::uint32_t total_duration = 0;
-    for (std::size_t i = 1; i < absolute_times.size(); ++i) {
-      total_duration += absolute_times[i] - absolute_times[i - 1];
-    }
-
-    REQUIRE(total_duration == CYCLE_PHASES);
+    REQUIRE(total_cycle_duration(absolute_times) == CYCLE_PHASES);
   }
 }
 

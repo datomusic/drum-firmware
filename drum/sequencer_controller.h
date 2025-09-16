@@ -17,6 +17,7 @@
 #include <optional>
 
 #include "musin/hal/logger.h"
+#include "sequencer_effect_random.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
 #include <cstddef>
@@ -48,8 +49,6 @@ class SequencerController
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
                              drum::config::MAX_NOTE_EVENT_OBSERVERS> {
 public:
-  static constexpr etl::array<size_t, 4> RANDOM_STEP_OFFSETS = {3, 5, 7, 4};
-
   /**
    * @brief Constructor.
    * @param tempo_handler_ref A reference to the tempo handler.
@@ -170,11 +169,6 @@ public:
   [[nodiscard]] bool is_swing_enabled() const;
 
   /**
-   * @brief Generate a random pattern once for the random sequencer.
-   */
-  void generate_random_pattern();
-
-  /**
    * @brief Start continuous 4-steps-ahead randomization.
    */
   void start_continuous_randomization();
@@ -269,6 +263,7 @@ private:
   uint64_t repeat_activation_step_counter_ = 0;
 
   bool continuous_randomization_active_ = false;
+  SequencerEffectRandom<NumTracks, NumSteps> random_effect_;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};

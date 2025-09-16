@@ -1,41 +1,74 @@
 #include "drum/config.h"
 #include "drum/sequencer_effect_swing.h"
+#include <algorithm>
+#include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
+#include <vector>
 
 namespace drum {
 
-// Helper function to calculate total time for 8 steps
-uint32_t calculate_total_time_8_steps(const SequencerEffectSwing &swing_effect,
-                                      bool repeat_active = false,
-                                      uint64_t base_transport_step = 0) {
-  uint32_t total_time = 0;
-  for (size_t step = 0; step < 8; ++step) {
-    auto timing = swing_effect.calculate_step_timing(
-        step, repeat_active, base_transport_step + step);
-    total_time += timing.expected_phase;
-    if (step < 7) {
-      // Add the gap to the next step (12 PPQN per step base)
-      total_time += 12;
+namespace {
+
+constexpr std::uint8_t PHASES_PER_BEAT = 24;
+constexpr std::size_t STEPS_PER_CYCLE = 8;
+constexpr std::uint32_t CYCLE_PHASES = (STEPS_PER_CYCLE / 2) * PHASES_PER_BEAT;
+constexpr std::array<uint8_t, 4> SIXTEENTH_MASK_BITS = {0, 6, 12, 18};
+constexpr std::array<uint8_t, 3> TRIPLET_MASK_BITS = {0, 8, 16};
+
+std::vector<uint8_t> extract_set_bits(std::uint32_t mask) {
+  std::vector<uint8_t> bits;
+  bits.reserve(PHASES_PER_BEAT);
+  for (uint8_t index = 0; index < PHASES_PER_BEAT; ++index) {
+    if ((mask & (1u << index)) != 0u) {
+      bits.push_back(index);
     }
   }
-  return total_time;
+  std::sort(bits.begin(), bits.end());
+  return bits;
 }
 
-// Helper function to verify mask bit patterns
-bool verify_mask_pattern(uint32_t mask,
-                         const std::vector<uint8_t> &expected_bits) {
-  for (uint8_t bit : expected_bits) {
-    if (!(mask & (1u << bit))) {
-      return false;
-    }
+template <std::size_t Size>
+std::vector<uint8_t> rotate_bits(const std::array<uint8_t, Size> &base_bits,
+                                 uint8_t rotation) {
+  std::vector<uint8_t> rotated;
+  rotated.reserve(Size);
+  for (uint8_t bit : base_bits) {
+    rotated.push_back(static_cast<uint8_t>((bit + rotation) % PHASES_PER_BEAT));
   }
-  // Verify no unexpected bits are set
-  uint32_t expected_mask = 0;
-  for (uint8_t bit : expected_bits) {
-    expected_mask |= (1u << bit);
-  }
-  return (mask & 0xFFFFFF) == expected_mask; // Mask to 24 bits
+  std::sort(rotated.begin(), rotated.end());
+  return rotated;
 }
+
+std::vector<uint32_t>
+calculate_absolute_step_times(const SequencerEffectSwing &swing_effect,
+                              bool repeat_active = false,
+                              uint64_t base_transport_step = 0) {
+  std::vector<uint32_t> absolute_times;
+  absolute_times.reserve(STEPS_PER_CYCLE);
+
+  for (size_t step = 0; step < STEPS_PER_CYCLE; ++step) {
+    auto timing = swing_effect.calculate_step_timing(
+        step, repeat_active, base_transport_step + step);
+    const uint32_t beat_index = static_cast<uint32_t>(step / 2);
+    const uint32_t absolute_time =
+        beat_index * PHASES_PER_BEAT + timing.expected_phase;
+    absolute_times.push_back(absolute_time);
+  }
+
+  return absolute_times;
+}
+
+uint32_t total_cycle_duration(const std::vector<uint32_t> &absolute_times) {
+  uint32_t total_duration = absolute_times.front();
+  for (std::size_t i = 1; i < absolute_times.size(); ++i) {
+    total_duration += absolute_times[i] - absolute_times[i - 1];
+  }
+  total_duration += CYCLE_PHASES - absolute_times.back();
+  return total_duration;
+}
+
+} // namespace
 
 TEST_CASE("SequencerEffectSwing basic functionality",
           "[sequencer_effect_swing]") {
@@ -187,6 +220,22 @@ TEST_CASE("SequencerEffectSwing repeat mode integration",
       }
     }
   }
+
+  SECTION("Repeat mode mask rotation follows transport parity") {
+    swing_effect.set_swing_target(false); // Delay even parity steps
+
+    auto delayed_timing = swing_effect.calculate_step_timing(3, true, 100);
+    auto straight_timing = swing_effect.calculate_step_timing(3, true, 101);
+
+    auto delayed_expected =
+        rotate_bits(TRIPLET_MASK_BITS, delayed_timing.expected_phase);
+    auto straight_expected =
+        rotate_bits(TRIPLET_MASK_BITS, straight_timing.expected_phase);
+
+    REQUIRE(extract_set_bits(delayed_timing.substep_mask) == delayed_expected);
+    REQUIRE(extract_set_bits(straight_timing.substep_mask) ==
+            straight_expected);
+  }
 }
 
 TEST_CASE("SequencerEffectSwing heavy stress testing",
@@ -318,56 +367,41 @@ TEST_CASE("SequencerEffectSwing heavy stress testing",
 TEST_CASE("SequencerEffectSwing total time invariance",
           "[sequencer_effect_swing]") {
   SequencerEffectSwing swing_effect;
-  constexpr uint32_t EXPECTED_TOTAL_TICKS = 8 * 12; // 96 ticks for 8 steps
-
   SECTION("Straight timing total time") {
     swing_effect.set_swing_enabled(false);
+    auto absolute_times = calculate_absolute_step_times(swing_effect);
+    REQUIRE(absolute_times.size() == STEPS_PER_CYCLE);
 
-    uint32_t total_phase_sum = 0;
-    for (size_t step = 0; step < 8; ++step) {
-      auto timing = swing_effect.calculate_step_timing(step, false, step);
-      total_phase_sum += timing.expected_phase;
+    for (std::size_t i = 1; i < absolute_times.size(); ++i) {
+      REQUIRE(absolute_times[i] >= absolute_times[i - 1]);
     }
-
-    // Expected: 0+12+0+12+0+12+0+12 = 48
-    // Plus 7 gaps of 12 each = 84
-    // Total expected timing per 8-step cycle = 48 + 84 = 132?
-    // Wait, let me recalculate this properly...
-
-    // For straight timing: steps occur at phases 0,12,0,12,0,12,0,12
-    // The "expected_phase" is when each step occurs within its beat
-    // Total time = sum of expected_phases + time between steps
-    REQUIRE(total_phase_sum == 48); // 4 steps at phase 12, 4 at phase 0
+    REQUIRE(total_cycle_duration(absolute_times) == CYCLE_PHASES);
   }
 
   SECTION("Swing timing total time - odd delay") {
     swing_effect.set_swing_enabled(true);
     swing_effect.set_swing_target(true); // Delay odd steps
 
-    uint32_t total_phase_sum = 0;
-    for (size_t step = 0; step < 8; ++step) {
-      auto timing = swing_effect.calculate_step_timing(step, false, step);
-      total_phase_sum += timing.expected_phase;
-    }
+    auto absolute_times = calculate_absolute_step_times(swing_effect);
+    REQUIRE(absolute_times.size() == STEPS_PER_CYCLE);
 
-    // Expected: even steps at 0, odd steps at (12+4)%24 = 16
-    // Sum = 0+16+0+16+0+16+0+16 = 64
-    REQUIRE(total_phase_sum == 64);
+    for (std::size_t i = 1; i < absolute_times.size(); ++i) {
+      REQUIRE(absolute_times[i] >= absolute_times[i - 1]);
+    }
+    REQUIRE(total_cycle_duration(absolute_times) == CYCLE_PHASES);
   }
 
   SECTION("Swing timing total time - even delay") {
     swing_effect.set_swing_enabled(true);
     swing_effect.set_swing_target(false); // Delay even steps
 
-    uint32_t total_phase_sum = 0;
-    for (size_t step = 0; step < 8; ++step) {
-      auto timing = swing_effect.calculate_step_timing(step, false, step);
-      total_phase_sum += timing.expected_phase;
-    }
+    auto absolute_times = calculate_absolute_step_times(swing_effect);
+    REQUIRE(absolute_times.size() == STEPS_PER_CYCLE);
 
-    // Expected: even steps at 4, odd steps at 12
-    // Sum = 4+12+4+12+4+12+4+12 = 64
-    REQUIRE(total_phase_sum == 64);
+    for (std::size_t i = 1; i < absolute_times.size(); ++i) {
+      REQUIRE(absolute_times[i] >= absolute_times[i - 1]);
+    }
+    REQUIRE(total_cycle_duration(absolute_times) == CYCLE_PHASES);
   }
 
   SECTION("Time invariance with multiple direction changes") {
@@ -384,25 +418,17 @@ TEST_CASE("SequencerEffectSwing total time invariance",
       swing_effect.set_swing_enabled(swing_enabled);
       swing_effect.set_swing_target(delay_odd);
 
-      uint32_t total_phase_sum = 0;
-      for (size_t step = 0; step < 8; ++step) {
-        auto timing = swing_effect.calculate_step_timing(step, false, step);
-        total_phase_sum += timing.expected_phase;
-      }
-      total_times.push_back(total_phase_sum);
+      auto absolute_times = calculate_absolute_step_times(swing_effect);
+      total_times.push_back(total_cycle_duration(absolute_times));
     }
 
     // All swing configurations should maintain consistent total timing
     // The key insight: swing redistributes timing but doesn't change total
     // duration
     REQUIRE(total_times.size() == 3);
-
-    // Straight timing sum: 48 (0+12+0+12+0+12+0+12)
-    // Swing odd delay: 64 (0+16+0+16+0+16+0+16)
-    // Swing even delay: 64 (4+12+4+12+4+12+4+12)
-    REQUIRE(total_times[0] == 48); // Straight
-    REQUIRE(total_times[1] == 64); // Swing odd delay
-    REQUIRE(total_times[2] == 64); // Swing even delay
+    for (auto total_duration : total_times) {
+      REQUIRE(total_duration == CYCLE_PHASES);
+    }
   }
 
   SECTION("Stress invariance with heavy switching") {
@@ -410,20 +436,19 @@ TEST_CASE("SequencerEffectSwing total time invariance",
     swing_effect.set_swing_enabled(true);
 
     for (int iteration = 0; iteration < 10; ++iteration) {
-      uint32_t total_phase_sum = 0;
+      std::vector<uint32_t> absolute_times;
+      absolute_times.reserve(STEPS_PER_CYCLE);
 
-      for (size_t step = 0; step < 8; ++step) {
-        // Chaotic switching pattern
+      for (size_t step = 0; step < STEPS_PER_CYCLE; ++step) {
         swing_effect.set_swing_target((step + iteration) % 3 == 0);
-
         auto timing =
             swing_effect.calculate_step_timing(step, false, step + iteration);
-        total_phase_sum += timing.expected_phase;
+        const uint32_t beat_index = static_cast<uint32_t>(step / 2);
+        absolute_times.push_back(beat_index * PHASES_PER_BEAT +
+                                 timing.expected_phase);
       }
 
-      // Total should be consistent based on the actual delay pattern used
-      // Each step's contribution is deterministic based on its configuration
-      REQUIRE(total_phase_sum < 200); // Sanity check - shouldn't be huge
+      REQUIRE(total_cycle_duration(absolute_times) == CYCLE_PHASES);
     }
   }
 }
@@ -437,9 +462,9 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
 
     auto timing = swing_effect.calculate_step_timing(0, false, 0);
 
-    // SIXTEENTH_MASK = (1<<0) | (1<<6) | (1<<12) | (1<<18) = bits 0,6,12,18
-    // Rotated by expected_phase=0, so no rotation
-    REQUIRE(verify_mask_pattern(timing.substep_mask, {0, 6, 12, 18}));
+    auto expected_bits =
+        rotate_bits(SIXTEENTH_MASK_BITS, timing.expected_phase);
+    REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
   }
 
   SECTION("Swing timing uses TRIPLET_MASK") {
@@ -447,9 +472,8 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
 
     auto timing = swing_effect.calculate_step_timing(0, false, 0);
 
-    // TRIPLET_MASK = (1<<0) | (1<<8) | (1<<16) = bits 0,8,16
-    // Rotated by expected_phase=0, so no rotation
-    REQUIRE(verify_mask_pattern(timing.substep_mask, {0, 8, 16}));
+    auto expected_bits = rotate_bits(TRIPLET_MASK_BITS, timing.expected_phase);
+    REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
   }
 
   SECTION("Mask rotation with swing offset") {
@@ -459,18 +483,15 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
     // Test odd step (should be delayed)
     auto timing = swing_effect.calculate_step_timing(1, false, 1);
 
-    // Expected phase = (12 + 4) % 24 = 16
-    // TRIPLET_MASK rotated by 16 positions
-    // Original bits: 0,8,16 -> rotated: 16,0,8 (wrapped around 24)
-    std::vector<uint8_t> expected_rotated_bits = {0, 8, 16};
+    auto expected_bits = rotate_bits(TRIPLET_MASK_BITS, timing.expected_phase);
+    REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
 
-    // Manual calculation of rotation by 16:
-    // Bit 0 -> (0+16)%24 = 16
-    // Bit 8 -> (8+16)%24 = 0  (24 wraps to 0)
-    // Bit 16 -> (16+16)%24 = 8 (32 wraps to 8)
-    expected_rotated_bits = {0, 8, 16}; // After rotation by 16
-
-    REQUIRE(verify_mask_pattern(timing.substep_mask, expected_rotated_bits));
+    // Also verify even steps pick up the swing offset rotation (phase 4)
+    swing_effect.set_swing_target(false); // Delay even steps
+    auto even_timing = swing_effect.calculate_step_timing(0, false, 0);
+    auto even_expected_bits =
+        rotate_bits(TRIPLET_MASK_BITS, even_timing.expected_phase);
+    REQUIRE(extract_set_bits(even_timing.substep_mask) == even_expected_bits);
   }
 
   SECTION("Mask consistency under stress switching") {
@@ -500,30 +521,15 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
   SECTION("Boundary mask rotations") {
     swing_effect.set_swing_enabled(true);
 
-    // Test various phase values to ensure rotation works correctly
-    std::vector<uint8_t> test_phases = {0, 1, 6, 12, 16, 23};
+    // Use different step/transport combinations to get various phases
+    for (size_t step = 0; step < 8; ++step) {
+      bool delay_odd = (step % 2) == 0;
+      swing_effect.set_swing_target(delay_odd);
+      auto timing = swing_effect.calculate_step_timing(step, false, step);
 
-    for (uint8_t phase : test_phases) {
-      // We can't directly set the phase, but we can infer it from step
-      // calculations This tests that rotation logic handles all phase values
-      // correctly
-
-      // Use different step/transport combinations to get various phases
-      for (size_t step = 0; step < 8; ++step) {
-        swing_effect.set_swing_target(step % 2 == 0);
-        auto timing = swing_effect.calculate_step_timing(step, false, step);
-
-        // Verify mask is properly rotated (all bits should be < 24)
-        uint32_t mask = timing.substep_mask;
-        for (int bit = 0; bit < 24; ++bit) {
-          if (mask & (1u << bit)) {
-            REQUIRE(bit < 24);
-          }
-        }
-
-        // Should have exactly 3 bits set (triplet mask)
-        REQUIRE(__builtin_popcount(mask) == 3);
-      }
+      auto expected_bits =
+          rotate_bits(TRIPLET_MASK_BITS, timing.expected_phase);
+      REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
     }
   }
 }

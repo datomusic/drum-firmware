@@ -3,4 +3,4 @@
 set -e
 
 ./run_test_dir.sh musin
-# ./run_test_dir.sh drum
+./run_test_dir.sh drum

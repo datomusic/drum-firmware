@@ -48,7 +48,6 @@ SequencerEffectSwing::StepTiming SequencerEffectSwing::calculate_step_timing(
   const uint32_t substep_mask =
       ((base_mask << rotation) | (base_mask >> (24 - rotation))) & MASK24;
 
-  has_emitted_step_ = true;
   return {expected_phase, substep_mask, is_delay_applied};
 }
 

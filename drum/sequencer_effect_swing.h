@@ -57,8 +57,6 @@ public:
 private:
   bool swing_enabled_{false};
   bool swing_delays_odd_steps_{true};
-  mutable bool has_emitted_step_{false};
-  mutable bool suppress_next_delay_{false};
 };
 
 } // namespace drum

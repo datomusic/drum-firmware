@@ -48,10 +48,15 @@ SequencerEffectSwing::StepTiming SequencerEffectSwing::calculate_step_timing(
   const uint32_t substep_mask =
       ((base_mask << rotation) | (base_mask >> (24 - rotation))) & MASK24;
 
+  has_emitted_step_ = true;
   return {expected_phase, substep_mask, is_delay_applied};
 }
 
 void SequencerEffectSwing::set_swing_enabled(bool enabled) {
+  if (swing_enabled_ == enabled) {
+    return;
+  }
+
   swing_enabled_ = enabled;
 }
 
@@ -60,6 +65,10 @@ bool SequencerEffectSwing::is_swing_enabled() const {
 }
 
 void SequencerEffectSwing::set_swing_target(bool delay_odd) {
+  if (swing_delays_odd_steps_ == delay_odd) {
+    return;
+  }
+
   swing_delays_odd_steps_ = delay_odd;
 }
 

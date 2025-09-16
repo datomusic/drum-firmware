@@ -111,22 +111,18 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
-  if (swing_enabled_ != enabled) {
-    swing_enabled_ = enabled;
-  }
+  swing_effect_.set_swing_enabled(enabled);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
-  if (swing_delays_odd_steps_ != delay_odd) {
-    swing_delays_odd_steps_ = delay_odd;
-  }
+  swing_effect_.set_swing_target(delay_odd);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 bool SequencerController<NumTracks, NumSteps>::is_swing_enabled() const {
-  return swing_enabled_;
+  return swing_effect_.is_swing_enabled();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -230,25 +226,11 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
-  // Determine expected phase for the next step using fixed anchors (0,12),
-  // applying +SWING_OFFSET_PHASES only when the next step is marked as swung.
+  // Calculate swing timing using the dedicated effect
   const size_t next_index = calculate_base_step_index();
-  // Preserve existing swing behavior when not repeating. While repeat is
-  // active, drive swing parity from the absolute transport step to ensure
-  // alternating swung/straight timing within the repeat and seamless release.
-  const bool next_is_even = repeat_active_ ? ((current_step_counter & 1u) == 0)
-                                           : ((next_index & 1u) == 0);
-  const bool delay_this_step =
-      swing_enabled_ && ((swing_delays_odd_steps_ && !next_is_even) ||
-                         (!swing_delays_odd_steps_ && next_is_even));
-
-  uint8_t expected_phase = next_is_even ? musical_timing::DOWNBEAT
-                                        : musical_timing::STRAIGHT_OFFBEAT;
-  if (delay_this_step) {
-    expected_phase = static_cast<uint8_t>(
-        (expected_phase + drum::config::timing::SWING_OFFSET_PHASES) %
-        musical_timing::PPQN);
-  }
+  const auto timing = swing_effect_.calculate_step_timing(
+      next_index, repeat_active_, current_step_counter);
+  const uint8_t expected_phase = timing.expected_phase;
 
   // --- Look-behind scheduling check for the main step ---
   // Check if the expected_phase falls within the window between the last tick
@@ -266,13 +248,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
     _step_is_due = true;
   }
 
-  // --- Look-behind scheduling for retrigger substeps (Bitmask optimization)
-  // ---
-  const std::uint32_t base_mask =
-      swing_enabled_ ? TRIPLET_MASK : SIXTEENTH_MASK;
-  const uint8_t r = expected_phase; // rotation amount in [0,23]
-  const std::uint32_t substep_grid_mask =
-      ((base_mask << r) | (base_mask >> (24 - r))) & MASK24;
+  // --- Look-behind scheduling for retrigger substeps ---
+  const std::uint32_t substep_grid_mask = timing.substep_mask;
 
   // Create a bitmask for the phase range that has passed since the last tick.
   uint32_t range_mask = 0;

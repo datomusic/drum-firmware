@@ -18,6 +18,7 @@
 
 #include "musin/hal/logger.h"
 #include "sequencer_effect_random.h"
+#include "sequencer_effect_swing.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
 #include <cstddef>
@@ -252,12 +253,6 @@ private:
   std::atomic<uint8_t> _retrigger_due_mask{0};
   uint8_t last_phase_24_{0};
 
-  bool swing_enabled_ = false;
-  // Swing target: true = delay odd steps; false = delay even steps.
-  // Anchors are always 0 and 12; the controller applies
-  // config::timing::SWING_OFFSET_PHASES to the step that is marked as swung.
-  bool swing_delays_odd_steps_ = false;
-
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;
   uint32_t repeat_activation_step_index_ = 0;
@@ -265,6 +260,7 @@ private:
 
   bool continuous_randomization_active_ = false;
   SequencerEffectRandom<NumTracks, NumSteps> random_effect_;
+  SequencerEffectSwing swing_effect_;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};

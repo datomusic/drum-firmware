@@ -5,11 +5,11 @@
 #include "etl/optional.h"
 
 extern "C" {
+#include "boot/bootrom_constants.h"
+#include "boot/picobin.h"
 #include "hardware/flash.h"
 #include "hardware/regs/addressmap.h"
 #include "pico/bootrom.h"
-#include "boot/bootrom_constants.h"
-#include "boot/picobin.h"
 }
 
 namespace {
@@ -37,8 +37,8 @@ std::uint32_t low_word_from_id(std::uint32_t id_low, std::uint32_t id_high) {
 }
 
 etl::optional<std::uint32_t> to_storage_addr(std::uint32_t runtime_address) {
-  const intptr_t result =
-      rom_flash_runtime_to_storage_addr(static_cast<uintptr_t>(runtime_address));
+  const intptr_t result = rom_flash_runtime_to_storage_addr(
+      static_cast<uintptr_t>(runtime_address));
   if (result < 0) {
     return etl::nullopt;
   }
@@ -71,8 +71,7 @@ BootRomFirmwarePartitionManager::BootRomFirmwarePartitionManager(
     : logger_(logger) {
 }
 
-etl::optional<PartitionRegion>
-BootRomFirmwarePartitionManager::begin_staging(
+etl::optional<PartitionRegion> BootRomFirmwarePartitionManager::begin_staging(
     const FirmwareImageMetadata &metadata) {
   if (staging_active_) {
     logger_.warn("FirmwarePartitionManager: staging already active");
@@ -117,7 +116,8 @@ PartitionError BootRomFirmwarePartitionManager::commit_staging(
   }
 
   if (metadata.declared_size != staging_metadata_.declared_size) {
-    logger_.warn("FirmwarePartitionManager: metadata size changed during staging");
+    logger_.warn(
+        "FirmwarePartitionManager: metadata size changed during staging");
   }
 
   staging_active_ = false;
@@ -139,11 +139,11 @@ bool BootRomFirmwarePartitionManager::refresh_partition_layout() {
 }
 
 bool BootRomFirmwarePartitionManager::load_partition_table() {
-  const int rc = rom_load_partition_table(partition_table_work_area,
-                                          sizeof(partition_table_work_area),
-                                          false);
+  const int rc = rom_load_partition_table(
+      partition_table_work_area, sizeof(partition_table_work_area), false);
   if (rc < 0 && rc != BOOTROM_ERROR_INVALID_STATE) {
-    logger_.error("FirmwarePartitionManager: load_partition_table failed:", static_cast<std::int32_t>(rc));
+    logger_.error("FirmwarePartitionManager: load_partition_table failed:",
+                  static_cast<std::int32_t>(rc));
     return false;
   }
   return true;
@@ -154,9 +154,8 @@ bool BootRomFirmwarePartitionManager::parse_partition_table() {
                               PT_INFO_PARTITION_LOCATION_AND_FLAGS |
                               PT_INFO_PARTITION_ID;
 
-  const int words = rom_get_partition_table_info(partition_info_buffer,
-                                                 kPartitionInfoBufferWords,
-                                                 flags);
+  const int words = rom_get_partition_table_info(
+      partition_info_buffer, kPartitionInfoBufferWords, flags);
   if (words <= 0) {
     logger_.error("FirmwarePartitionManager: partition info query failed:",
                   static_cast<std::int32_t>(words));
@@ -181,11 +180,10 @@ bool BootRomFirmwarePartitionManager::parse_partition_table() {
   slot_a_ = SlotInfo{};
   slot_b_ = SlotInfo{};
 
-  for (std::uint32_t i = 0; i < partition_count && index < static_cast<std::size_t>(words);
-       ++i) {
+  for (std::uint32_t i = 0;
+       i < partition_count && index < static_cast<std::size_t>(words); ++i) {
     const std::uint32_t location = partition_info_buffer[index++];
-    const std::uint32_t flags_and_permissions =
-        partition_info_buffer[index++];
+    const std::uint32_t flags_and_permissions = partition_info_buffer[index++];
 
     const bool has_id =
         (flags_and_permissions & PICOBIN_PARTITION_FLAGS_HAS_ID_BITS) != 0U;
@@ -241,8 +239,7 @@ bool BootRomFirmwarePartitionManager::determine_active_slot() {
   return false;
 }
 
-BootRomPartitionFlashWriter::BootRomPartitionFlashWriter(
-    musin::Logger &logger)
+BootRomPartitionFlashWriter::BootRomPartitionFlashWriter(musin::Logger &logger)
     : logger_(logger) {
 }
 
@@ -255,7 +252,7 @@ std::size_t BootRomPartitionFlashWriter::max_chunk_size_bytes() const {
 }
 
 bool BootRomPartitionFlashWriter::begin(const PartitionRegion &region,
-                                         const FirmwareImageMetadata &metadata) {
+                                        const FirmwareImageMetadata &metadata) {
   if (busy_) {
     logger_.error("PartitionFlashWriter: begin called while busy");
     return false;
@@ -347,8 +344,8 @@ std::uint32_t BootRomPartitionFlashWriter::bytes_written() const {
 
 bool BootRomPartitionFlashWriter::ensure_erased(std::uint32_t relative_offset,
                                                 std::uint32_t length) {
-  const std::uint32_t required_end = align_up(relative_offset + length,
-                                              FLASH_SECTOR_SIZE);
+  const std::uint32_t required_end =
+      align_up(relative_offset + length, FLASH_SECTOR_SIZE);
 
   while (erased_bytes_ < required_end) {
     if (erased_bytes_ >= region_.length) {
@@ -360,7 +357,8 @@ bool BootRomPartitionFlashWriter::ensure_erased(std::uint32_t relative_offset,
         make_flash_flags(CFLASH_OP_VALUE_ERASE, CFLASH_ASPACE_VALUE_STORAGE);
     const int rc = rom_flash_op(flags, sector_addr, FLASH_SECTOR_SIZE, nullptr);
     if (rc != BOOTROM_OK) {
-      logger_.error("PartitionFlashWriter: erase failed:", static_cast<std::int32_t>(rc));
+      logger_.error("PartitionFlashWriter: erase failed:",
+                    static_cast<std::int32_t>(rc));
       return false;
     }
     erased_bytes_ += FLASH_SECTOR_SIZE;
@@ -379,18 +377,18 @@ bool BootRomPartitionFlashWriter::flush_buffer() {
   }
 
   const std::uint32_t absolute_offset = region_.offset + buffer_base_offset_;
-  if ((absolute_offset + buffer_.size()) >
-      (region_.offset + region_.length)) {
+  if ((absolute_offset + buffer_.size()) > (region_.offset + region_.length)) {
     logger_.error("PartitionFlashWriter: flush exceeds region bounds");
     return false;
   }
 
   const cflash_flags_t flags =
       make_flash_flags(CFLASH_OP_VALUE_PROGRAM, CFLASH_ASPACE_VALUE_STORAGE);
-  const int rc = rom_flash_op(flags, absolute_offset, buffer_.size(),
-                              buffer_.data());
+  const int rc =
+      rom_flash_op(flags, absolute_offset, buffer_.size(), buffer_.data());
   if (rc != BOOTROM_OK) {
-    logger_.error("PartitionFlashWriter: program failed:", static_cast<std::int32_t>(rc));
+    logger_.error("PartitionFlashWriter: program failed:",
+                  static_cast<std::int32_t>(rc));
     return false;
   }
 

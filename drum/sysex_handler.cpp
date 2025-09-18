@@ -79,19 +79,20 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   }
 
   // Check if this is a firmware update message (manufacturer-specific)
-  if (chunk.size() >= 6 &&
-      chunk[0] == drum::config::sysex::MANUFACTURER_ID_0 &&
+  if (chunk.size() >= 6 && chunk[0] == drum::config::sysex::MANUFACTURER_ID_0 &&
       chunk[1] == drum::config::sysex::MANUFACTURER_ID_1 &&
       chunk[2] == drum::config::sysex::MANUFACTURER_ID_2 &&
       chunk[3] == drum::config::sysex::DEVICE_ID &&
       (chunk[4] >= 0x10 && chunk[4] <= 0x14)) { // Firmware update message range
 
     if (!firmware_protocol_.has_value()) {
-      logger_.error("Firmware: Update message received but no firmware targets set");
+      logger_.error(
+          "Firmware: Update message received but no firmware targets set");
       return;
     }
 
-    logger_.info("Firmware update message detected, routing to firmware protocol");
+    logger_.info(
+        "Firmware update message detected, routing to firmware protocol");
     logger_.info("Firmware message type:", static_cast<uint32_t>(chunk[4]));
 
     auto firmware_sender = [this](uint8_t type, uint8_t packet_num) {
@@ -106,13 +107,14 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
       MIDI::sendSysEx(sizeof(msg), msg);
     };
 
-    // Extract firmware message type and payload (skip manufacturer IDs and device ID)
+    // Extract firmware message type and payload (skip manufacturer IDs and
+    // device ID)
     const uint8_t message_type = chunk[4];
     const auto firmware_payload =
         etl::span<const uint8_t>{chunk.cbegin() + 5, chunk.cend()};
 
-    auto result = firmware_protocol_->process_message(message_type, firmware_payload,
-                                                     firmware_sender, get_absolute_time());
+    auto result = firmware_protocol_->process_message(
+        message_type, firmware_payload, firmware_sender, get_absolute_time());
 
     switch (result) {
     case drum::firmware::UpdateResult::UpdateComplete:

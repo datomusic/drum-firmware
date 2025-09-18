@@ -12,8 +12,7 @@
 
 namespace drum::firmware {
 
-class BootRomFirmwarePartitionManager final
-    : public FirmwarePartitionManager {
+class BootRomFirmwarePartitionManager final : public FirmwarePartitionManager {
 public:
   explicit BootRomFirmwarePartitionManager(musin::Logger &logger);
 
@@ -22,8 +21,7 @@ public:
 
   void abort_staging() override;
 
-  PartitionError
-  commit_staging(const FirmwareImageMetadata &metadata) override;
+  PartitionError commit_staging(const FirmwareImageMetadata &metadata) override;
 
 private:
   struct SlotInfo {

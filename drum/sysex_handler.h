@@ -3,9 +3,9 @@
 
 #include "drum/configuration_manager.h"
 #include "drum/standard_file_ops.h"
+#include "drum/sysex/firmware_update_protocol.h"
 #include "drum/sysex/protocol.h"
 #include "drum/sysex/sds_protocol.h"
-#include "drum/sysex/firmware_update_protocol.h"
 #include "etl/observer.h"
 #include "etl/optional.h"
 #include "musin/hal/logger.h"

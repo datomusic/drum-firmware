@@ -65,20 +65,11 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
       logger_.info("SDS: Sample transfer completed successfully");
       on_file_received();
       break;
-    case sds::Result::FirmwareComplete:
-      logger_.info("SDS: Firmware transfer completed successfully");
-      break;
     case sds::Result::ChecksumError:
       logger_.warn("SDS: Checksum error in received packet");
       break;
     case sds::Result::FileError:
       logger_.error("SDS: File operation failed");
-      break;
-    case sds::Result::FlashError:
-      logger_.error("SDS: Flash programming failed");
-      break;
-    case sds::Result::PartitionError:
-      logger_.error("SDS: Partition manager failure");
       break;
     default:
       // Other results are handled internally
@@ -87,7 +78,63 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
     return;
   }
 
-  // Not an SDS message - route to existing custom protocol
+  // Check if this is a firmware update message (manufacturer-specific)
+  if (chunk.size() >= 6 &&
+      chunk[0] == drum::config::sysex::MANUFACTURER_ID_0 &&
+      chunk[1] == drum::config::sysex::MANUFACTURER_ID_1 &&
+      chunk[2] == drum::config::sysex::MANUFACTURER_ID_2 &&
+      chunk[3] == drum::config::sysex::DEVICE_ID &&
+      (chunk[4] >= 0x10 && chunk[4] <= 0x14)) { // Firmware update message range
+
+    if (!firmware_protocol_.has_value()) {
+      logger_.error("Firmware: Update message received but no firmware targets set");
+      return;
+    }
+
+    logger_.info("Firmware update message detected, routing to firmware protocol");
+    logger_.info("Firmware message type:", static_cast<uint32_t>(chunk[4]));
+
+    auto firmware_sender = [this](uint8_t type, uint8_t packet_num) {
+      uint8_t msg[] = {0xF0,
+                       drum::config::sysex::MANUFACTURER_ID_0,
+                       drum::config::sysex::MANUFACTURER_ID_1,
+                       drum::config::sysex::MANUFACTURER_ID_2,
+                       drum::config::sysex::DEVICE_ID,
+                       type,
+                       packet_num,
+                       0xF7};
+      MIDI::sendSysEx(sizeof(msg), msg);
+    };
+
+    // Extract firmware message type and payload (skip manufacturer IDs and device ID)
+    const uint8_t message_type = chunk[4];
+    const auto firmware_payload =
+        etl::span<const uint8_t>{chunk.cbegin() + 5, chunk.cend()};
+
+    auto result = firmware_protocol_->process_message(message_type, firmware_payload,
+                                                     firmware_sender, get_absolute_time());
+
+    switch (result) {
+    case drum::firmware::UpdateResult::UpdateComplete:
+      logger_.info("Firmware: Update completed successfully");
+      break;
+    case drum::firmware::UpdateResult::ChecksumError:
+      logger_.warn("Firmware: Checksum error in received packet");
+      break;
+    case drum::firmware::UpdateResult::FlashError:
+      logger_.error("Firmware: Flash programming failed");
+      break;
+    case drum::firmware::UpdateResult::PartitionError:
+      logger_.error("Firmware: Partition manager failure");
+      break;
+    default:
+      // Other results are handled internally
+      break;
+    }
+    return;
+  }
+
+  // Not an SDS or firmware message - route to existing custom protocol
   auto sender = [this](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {0xF0,
                      drum::config::sysex::MANUFACTURER_ID_0,
@@ -125,13 +172,15 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
 }
 
 bool SysExHandler::is_busy() const {
-  return protocol_.busy() || sds_protocol_.is_busy();
+  return protocol_.busy() || sds_protocol_.is_busy() ||
+         (firmware_protocol_.has_value() && firmware_protocol_->is_busy());
 }
 
 void SysExHandler::set_firmware_targets(
     drum::firmware::FirmwarePartitionManager &partition_manager,
     drum::firmware::PartitionFlashWriter &flash_writer) {
-  sds_protocol_.attach_firmware_targets(partition_manager, flash_writer);
+  // Initialize the firmware update protocol when targets are available
+  firmware_protocol_.emplace(partition_manager, flash_writer, logger_);
 }
 
 void SysExHandler::on_file_received() {

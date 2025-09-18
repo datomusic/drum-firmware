@@ -5,7 +5,9 @@
 #include "drum/standard_file_ops.h"
 #include "drum/sysex/protocol.h"
 #include "drum/sysex/sds_protocol.h"
+#include "drum/sysex/firmware_update_protocol.h"
 #include "etl/observer.h"
+#include "etl/optional.h"
 #include "musin/hal/logger.h"
 
 extern "C" {
@@ -57,6 +59,7 @@ private:
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;
   sds::Protocol<StandardFileOps> sds_protocol_;
+  etl::optional<drum::firmware::FirmwareUpdateProtocol> firmware_protocol_;
   bool new_file_received_ = false;
   bool was_busy_ = false;
 };

@@ -90,8 +90,31 @@ target_link_libraries(drum-test-swing PRIVATE
     etl::etl
 )
 
+# Test target: SDS Protocol (unit tests for SDS sample transfers)
+add_executable(drum-test-sds
+    sds_protocol_test.cpp
+)
+
+target_include_directories(drum-test-sds PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+)
+
+target_compile_definitions(drum-test-sds PRIVATE
+    AUDIO_BLOCK_SAMPLES=20
+)
+
+target_link_libraries(drum-test-sds PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
 catch_discover_tests(drum-test-persister)
 catch_discover_tests(drum-test-swing)
+catch_discover_tests(drum-test-sds)

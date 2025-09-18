@@ -65,11 +65,20 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
       logger_.info("SDS: Sample transfer completed successfully");
       on_file_received();
       break;
+    case sds::Result::FirmwareComplete:
+      logger_.info("SDS: Firmware transfer completed successfully");
+      break;
     case sds::Result::ChecksumError:
       logger_.warn("SDS: Checksum error in received packet");
       break;
     case sds::Result::FileError:
       logger_.error("SDS: File operation failed");
+      break;
+    case sds::Result::FlashError:
+      logger_.error("SDS: Flash programming failed");
+      break;
+    case sds::Result::PartitionError:
+      logger_.error("SDS: Partition manager failure");
       break;
     default:
       // Other results are handled internally
@@ -117,6 +126,12 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
 
 bool SysExHandler::is_busy() const {
   return protocol_.busy() || sds_protocol_.is_busy();
+}
+
+void SysExHandler::set_firmware_targets(
+    drum::firmware::FirmwarePartitionManager &partition_manager,
+    drum::firmware::PartitionFlashWriter &flash_writer) {
+  sds_protocol_.attach_firmware_targets(partition_manager, flash_writer);
 }
 
 void SysExHandler::on_file_received() {

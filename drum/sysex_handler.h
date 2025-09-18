@@ -39,6 +39,10 @@ public:
    */
   bool is_busy() const;
 
+  void set_firmware_targets(
+      drum::firmware::FirmwarePartitionManager &partition_manager,
+      drum::firmware::PartitionFlashWriter &flash_writer);
+
   void on_file_received();
 
 private:

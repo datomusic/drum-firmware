@@ -36,6 +36,7 @@ add_executable(${EXECUTABLE_NAME}
   save_timing_manager.cpp
   configuration_manager.cpp
   message_router.cpp
+  firmware/bootrom_services.cpp
   audio_engine.cpp
   sample_repository.cpp
   ui/display_mode.cpp

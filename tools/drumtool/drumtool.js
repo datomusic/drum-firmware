@@ -315,6 +315,10 @@ async function get_storage_info() {
   try {
     const reply = await waitForCustomReply();
     if (reply[5] === STORAGE_INFO_RESPONSE) {
+      // Bounds check: ensure reply has expected length for storage info
+      if (reply.length < 14) {
+        throw new Error(`Insufficient reply data: expected at least 14 bytes, got ${reply.length}`);
+      }
       // Parse storage info from reply - firmware uses 7-bit encoding across 4 bytes
       const total_bytes = ((reply[6] & 0x7F) << 21) | ((reply[7] & 0x7F) << 14) | ((reply[8] & 0x7F) << 7) | (reply[9] & 0x7F);
       const free_bytes = ((reply[10] & 0x7F) << 21) | ((reply[11] & 0x7F) << 14) | ((reply[12] & 0x7F) << 7) | (reply[13] & 0x7F);
@@ -1064,7 +1068,6 @@ async function main() {
       await get_storage_info();
     } else if (command === 'format') {
       await format_filesystem();
-      process.exit(0);
     } else if (command === 'reboot-bootloader') {
       await reboot_bootloader();
     } else if (command === 'identity') {

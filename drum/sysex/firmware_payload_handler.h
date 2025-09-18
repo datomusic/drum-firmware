@@ -40,7 +40,7 @@ public:
    * @param header_data Complete firmware dump header
    * @return true if header valid and transfer can begin
    */
-  constexpr bool begin_transfer(const etl::span<const uint8_t> &header_data) {
+  bool begin_transfer(const etl::span<const uint8_t> &header_data) {
     const auto metadata = parse_firmware_header(header_data);
     if (!metadata.has_value()) {
       logger_.error("FirmwarePayload: Invalid firmware header");
@@ -93,9 +93,9 @@ public:
    * @param packet_num Packet sequence number
    * @return Processing result
    */
-  constexpr PayloadProcessResult
+  PayloadProcessResult
   process_packet(const etl::span<const uint8_t> &packet_data,
-                 uint8_t packet_num) {
+                 [[maybe_unused]] uint8_t packet_num) {
     if (!has_active_transfer_) {
       logger_.error("FirmwarePayload: Data packet without active transfer");
       return PayloadProcessResult::Error;

@@ -134,7 +134,7 @@ private:
    */
   template <typename Sender>
   TransferResult handle_dump_header(const etl::span<const uint8_t> &message,
-                                    Sender send_response, absolute_time_t now) {
+                                    Sender send_response, [[maybe_unused]] absolute_time_t now) {
     if (message.size() < 16) { // Minimum size for dump header
       logger_.error("DataTransfer: Dump header too short:",
                     static_cast<uint32_t>(message.size()));
@@ -171,7 +171,7 @@ private:
    */
   template <typename Sender>
   TransferResult handle_data_packet(const etl::span<const uint8_t> &message,
-                                    Sender send_response, absolute_time_t now) {
+                                    Sender send_response, [[maybe_unused]] absolute_time_t now) {
     if (state_ != TransferState::ReceivingData) {
       logger_.error("DataTransfer: Data packet received in wrong state");
       send_response(0x7E, 0); // NAK

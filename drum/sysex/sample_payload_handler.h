@@ -122,7 +122,7 @@ public:
    */
   constexpr sysex::PayloadProcessResult
   process_packet(const etl::span<const uint8_t> &packet_data,
-                 uint8_t packet_num) {
+                 [[maybe_unused]] uint8_t packet_num) {
     if (!opened_file_ || !opened_file_->is_valid()) {
       logger_.error("SamplePayload: No file open for data packet");
       return sysex::PayloadProcessResult::Error;

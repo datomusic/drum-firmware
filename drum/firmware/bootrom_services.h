@@ -2,6 +2,7 @@
 #define DRUM_FIRMWARE_BOOTROM_SERVICES_H
 
 #include "drum/firmware/update_interfaces.h"
+#include "musin/filesystem/partition_manager.h"
 #include "musin/hal/logger.h"
 
 #include <cstddef>
@@ -14,7 +15,9 @@ namespace drum::firmware {
 
 class BootRomFirmwarePartitionManager final : public FirmwarePartitionManager {
 public:
-  explicit BootRomFirmwarePartitionManager(musin::Logger &logger);
+  explicit BootRomFirmwarePartitionManager(
+      musin::Logger &logger,
+      musin::filesystem::PartitionManager &partition_manager);
 
   etl::optional<PartitionRegion>
   begin_staging(const FirmwareImageMetadata &metadata) override;
@@ -24,17 +27,16 @@ public:
   PartitionError commit_staging(const FirmwareImageMetadata &metadata) override;
 
 private:
+  bool refresh_partition_layout();
+  bool load_partition_table();
+  bool determine_active_slot();
+
+  musin::Logger &logger_;
+  musin::filesystem::PartitionManager &partition_manager_;
   struct SlotInfo {
     PartitionRegion region{0U, 0U};
     bool valid = false;
   };
-
-  bool refresh_partition_layout();
-  bool load_partition_table();
-  bool parse_partition_table();
-  bool determine_active_slot();
-
-  musin::Logger &logger_;
   SlotInfo slot_a_;
   SlotInfo slot_b_;
   bool staging_active_ = false;

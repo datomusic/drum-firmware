@@ -5,6 +5,7 @@
 #include "etl/optional.h"
 
 extern "C" {
+#include "pico.h"
 #include "boot/bootrom_constants.h"
 #include "boot/picobin.h"
 #include "hardware/flash.h"
@@ -14,27 +15,9 @@ extern "C" {
 
 namespace {
 
-constexpr std::uint32_t kPartitionInfoBufferWords = 256U;
 constexpr std::uint32_t kPartitionTableWorkAreaBytes = 4096U;
-constexpr std::uint32_t kPartitionCountMask = 0x000000FFU;
-constexpr std::uint32_t kHasPartitionTableFlag = 0x00000100U;
 constexpr std::uint32_t kFirmwarePartitionIdA = 0U;
 constexpr std::uint32_t kFirmwarePartitionIdB = 1U;
-
-constexpr std::uint32_t extract_first_sector(std::uint32_t location) {
-  return (location & PICOBIN_PARTITION_LOCATION_FIRST_SECTOR_BITS) >>
-         PICOBIN_PARTITION_LOCATION_FIRST_SECTOR_LSB;
-}
-
-constexpr std::uint32_t extract_last_sector(std::uint32_t location) {
-  return (location & PICOBIN_PARTITION_LOCATION_LAST_SECTOR_BITS) >>
-         PICOBIN_PARTITION_LOCATION_LAST_SECTOR_LSB;
-}
-
-std::uint32_t low_word_from_id(std::uint32_t id_low, std::uint32_t id_high) {
-  (void)id_high;
-  return id_low;
-}
 
 etl::optional<std::uint32_t> to_storage_addr(std::uint32_t runtime_address) {
   const intptr_t result = rom_flash_runtime_to_storage_addr(
@@ -59,7 +42,6 @@ cflash_flags_t make_flash_flags(std::uint32_t op, std::uint32_t aspace) {
 namespace drum::firmware {
 
 namespace {
-uint32_t partition_info_buffer[kPartitionInfoBufferWords];
 uint8_t partition_table_work_area[kPartitionTableWorkAreaBytes];
 } // namespace
 
@@ -67,8 +49,9 @@ static_assert(BootRomPartitionFlashWriter::BUFFER_SIZE == FLASH_PAGE_SIZE,
               "Flash writer buffer must match flash page size");
 
 BootRomFirmwarePartitionManager::BootRomFirmwarePartitionManager(
-    musin::Logger &logger)
-    : logger_(logger) {
+    musin::Logger &logger,
+    musin::filesystem::PartitionManager &partition_manager)
+    : logger_(logger), partition_manager_(partition_manager) {
 }
 
 etl::optional<PartitionRegion> BootRomFirmwarePartitionManager::begin_staging(
@@ -131,9 +114,29 @@ bool BootRomFirmwarePartitionManager::refresh_partition_layout() {
     return false;
   }
 
-  if (!parse_partition_table()) {
+  slot_a_ = SlotInfo{};
+  slot_b_ = SlotInfo{};
+
+  const auto slot_a_info =
+      partition_manager_.find_partition(kFirmwarePartitionIdA);
+  if (!slot_a_info.has_value()) {
+    logger_.error("FirmwarePartitionManager: firmware slot A missing");
     return false;
   }
+
+  const auto slot_b_info =
+      partition_manager_.find_partition(kFirmwarePartitionIdB);
+  if (!slot_b_info.has_value()) {
+    logger_.error("FirmwarePartitionManager: firmware slot B missing");
+    return false;
+  }
+
+  slot_a_.region =
+      PartitionRegion{slot_a_info->offset, slot_a_info->size};
+  slot_a_.valid = true;
+  slot_b_.region =
+      PartitionRegion{slot_b_info->offset, slot_b_info->size};
+  slot_b_.valid = true;
 
   return determine_active_slot();
 }
@@ -149,75 +152,12 @@ bool BootRomFirmwarePartitionManager::load_partition_table() {
   return true;
 }
 
-bool BootRomFirmwarePartitionManager::parse_partition_table() {
-  const std::uint32_t flags = PT_INFO_PT_INFO |
-                              PT_INFO_PARTITION_LOCATION_AND_FLAGS |
-                              PT_INFO_PARTITION_ID;
-
-  const int words = rom_get_partition_table_info(
-      partition_info_buffer, kPartitionInfoBufferWords, flags);
-  if (words <= 0) {
-    logger_.error("FirmwarePartitionManager: partition info query failed:",
-                  static_cast<std::int32_t>(words));
-    return false;
-  }
-
-  std::size_t index = 0;
-  if (partition_info_buffer[index++] != flags) {
-    logger_.error("FirmwarePartitionManager: unexpected info flags");
-    return false;
-  }
-
-  const std::uint32_t table_status = partition_info_buffer[index++];
-  if ((table_status & kHasPartitionTableFlag) == 0U) {
-    logger_.error("FirmwarePartitionManager: partition table missing");
-    return false;
-  }
-
-  const std::uint32_t partition_count = table_status & kPartitionCountMask;
-  index += 2; // skip unpartitioned space info
-
-  slot_a_ = SlotInfo{};
-  slot_b_ = SlotInfo{};
-
-  for (std::uint32_t i = 0;
-       i < partition_count && index < static_cast<std::size_t>(words); ++i) {
-    const std::uint32_t location = partition_info_buffer[index++];
-    const std::uint32_t flags_and_permissions = partition_info_buffer[index++];
-
-    const bool has_id =
-        (flags_and_permissions & PICOBIN_PARTITION_FLAGS_HAS_ID_BITS) != 0U;
-    std::uint32_t partition_id = 0U;
-    if (has_id) {
-      const std::uint32_t id_low = partition_info_buffer[index++];
-      const std::uint32_t id_high = partition_info_buffer[index++];
-      partition_id = low_word_from_id(id_low, id_high);
-    }
-
-    const std::uint32_t first_sector = extract_first_sector(location);
-    const std::uint32_t last_sector = extract_last_sector(location);
-    const std::uint32_t offset = first_sector * FLASH_SECTOR_SIZE;
-    const std::uint32_t length =
-        (last_sector + 1U - first_sector) * FLASH_SECTOR_SIZE;
-
-    if (partition_id == kFirmwarePartitionIdA) {
-      slot_a_.region = PartitionRegion{offset, length};
-      slot_a_.valid = true;
-    } else if (partition_id == kFirmwarePartitionIdB) {
-      slot_b_.region = PartitionRegion{offset, length};
-      slot_b_.valid = true;
-    }
-  }
-
+bool BootRomFirmwarePartitionManager::determine_active_slot() {
   if (!slot_a_.valid || !slot_b_.valid) {
     logger_.error("FirmwarePartitionManager: firmware slots missing");
     return false;
   }
 
-  return true;
-}
-
-bool BootRomFirmwarePartitionManager::determine_active_slot() {
   const auto active_storage_base =
       to_storage_addr(static_cast<std::uint32_t>(XIP_BASE));
   if (!active_storage_base.has_value()) {

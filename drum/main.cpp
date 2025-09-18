@@ -53,8 +53,9 @@ static musin::NullLogger null_logger;
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static musin::filesystem::Filesystem filesystem(logger);
+static musin::filesystem::PartitionManager partition_manager(logger);
 static drum::firmware::BootRomFirmwarePartitionManager
-    firmware_partition_manager(logger);
+    firmware_partition_manager(logger, partition_manager);
 static drum::firmware::BootRomPartitionFlashWriter
     partition_flash_writer(logger);
 static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);

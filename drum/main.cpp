@@ -15,10 +15,12 @@
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
+#include "drum/firmware/bootrom_services.h"
 #include "drum/midi_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
+#include "version.h"
 
 extern "C" {
 #include "pico/stdio_usb.h"
@@ -51,6 +53,10 @@ static musin::NullLogger null_logger;
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static musin::filesystem::Filesystem filesystem(logger);
+static drum::firmware::BootRomFirmwarePartitionManager
+    firmware_partition_manager(logger);
+static drum::firmware::BootRomPartitionFlashWriter
+    partition_flash_writer(logger);
 static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);
 static drum::AudioEngine audio_engine(sample_repository, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
@@ -109,6 +115,10 @@ int main() {
 
 #ifdef VERBOSE
   musin::usb::init(true); // Wait for serial connection in debug builds
+
+  // Show startup message with firmware version and partition info
+  logger.info("Dato DRUM");
+  logger.info(FIRMWARE_VERSION);
 #else
   musin::usb::init(false); // Do not wait in release builds
   watchdog_enable(4000, false);
@@ -126,6 +136,9 @@ int main() {
     // Initialize persistence subsystem now that filesystem is ready
     sequencer_controller.init_persistence();
   }
+
+  sysex_handler.set_firmware_targets(firmware_partition_manager,
+                                     partition_flash_writer);
 
   midi_manager.init();
 

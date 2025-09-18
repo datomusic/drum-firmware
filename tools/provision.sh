@@ -157,10 +157,10 @@ echo "Firmware upload complete. Device is rebooting into main application."
 echo "
 --- Step 6: Formatting filesystem ---"
 wait_for_usb_device "$MIDI_DEVICE_NAME"
-sleep 2
+sleep 4
 echo "Device is running. Sending format command..."
-# The --no-input flag can be added to drumtool.js to skip the confirmation prompt
-node tools/drumtool/drumtool.js format --no-input
+# Automatically confirm the format prompt.
+echo 'y' | node tools/drumtool/drumtool.js format
 
 # 7. Upload samples
 echo "

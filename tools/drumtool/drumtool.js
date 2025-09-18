@@ -46,6 +46,8 @@ const SYSEX_DEVICE_ID = 0x65;                     // DRUM device ID
 
 // Custom Protocol Commands
 const REQUEST_FIRMWARE_VERSION = 0x01;
+const REQUEST_STORAGE_INFO = 0x03;
+const STORAGE_INFO_RESPONSE = 0x04;
 const REBOOT_BOOTLOADER = 0x0B;
 const FORMAT_FILESYSTEM = 0x15;
 const CUSTOM_ACK = 0x13;
@@ -303,6 +305,43 @@ async function get_firmware_version() {
     console.error(`Error requesting firmware version: ${e.message}`);
     throw e;
   }
+}
+
+// Get storage info
+async function get_storage_info() {
+  const tag = REQUEST_STORAGE_INFO;
+  const payload = [tag];
+  sendCustomMessage(payload);
+  try {
+    const reply = await waitForCustomReply();
+    if (reply[5] === STORAGE_INFO_RESPONSE) {
+      // Parse storage info from reply - firmware uses 7-bit encoding across 4 bytes
+      const total_bytes = ((reply[6] & 0x7F) << 21) | ((reply[7] & 0x7F) << 14) | ((reply[8] & 0x7F) << 7) | (reply[9] & 0x7F);
+      const free_bytes = ((reply[10] & 0x7F) << 21) | ((reply[11] & 0x7F) << 14) | ((reply[12] & 0x7F) << 7) | (reply[13] & 0x7F);
+      const used_bytes = total_bytes - free_bytes;
+
+      console.log(`Device storage info:`);
+      console.log(`  Total: ${formatBytes(total_bytes)}`);
+      console.log(`  Used:  ${formatBytes(used_bytes)} (${Math.round(used_bytes / total_bytes * 100)}%)`);
+      console.log(`  Free:  ${formatBytes(free_bytes)} (${Math.round(free_bytes / total_bytes * 100)}%)`);
+
+      return { total_bytes, used_bytes, free_bytes };
+    } else {
+      throw new Error(`Unexpected reply received. Tag: ${reply[5]}`);
+    }
+  } catch (e) {
+    console.error(`Error requesting storage info: ${e.message}`);
+    throw e;
+  }
+}
+
+// Format bytes for human-readable display
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 // Format filesystem
@@ -894,6 +933,7 @@ if (!command) {
   console.log("Usage:");
   console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
   console.log("  drumtool.js version");
+  console.log("  drumtool.js storage");
   console.log("  drumtool.js format");
   console.log("  drumtool.js reboot-bootloader");
   console.log("  drumtool.js identity");
@@ -901,6 +941,7 @@ if (!command) {
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
   console.log("  version        - Get device firmware version");
+  console.log("  storage        - Get device storage information");
   console.log("  format         - Format device filesystem");
   console.log("  reboot-bootloader - Reboot device into bootloader mode");
   console.log("  identity       - Test universal SysEx identity request");
@@ -924,6 +965,7 @@ if (!command) {
   console.log("  ");
   console.log("  # Cannot mix formats - use either all file:slot OR all filenames");
   console.log("  drumtool.js version                           # Check firmware version");
+  console.log("  drumtool.js storage                           # Check storage usage");
   console.log("  drumtool.js format                            # Format filesystem");
   console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
   console.log("");
@@ -989,8 +1031,8 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
-    } else if (command !== 'version' && command !== 'format' && command !== 'reboot-bootloader' && command !== 'identity') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'format', 'reboot-bootloader', or 'identity'.`);
+    } else if (command !== 'version' && command !== 'storage' && command !== 'format' && command !== 'reboot-bootloader' && command !== 'identity') {
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', or 'identity'.`);
       process.exit(1);
     }
 
@@ -1018,8 +1060,11 @@ async function main() {
       process.exitCode = success ? 0 : 1;
     } else if (command === 'version') {
       await get_firmware_version();
+    } else if (command === 'storage') {
+      await get_storage_info();
     } else if (command === 'format') {
       await format_filesystem();
+      process.exit(0);
     } else if (command === 'reboot-bootloader') {
       await reboot_bootloader();
     } else if (command === 'identity') {

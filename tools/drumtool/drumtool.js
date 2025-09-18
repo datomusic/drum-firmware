@@ -51,6 +51,17 @@ const FORMAT_FILESYSTEM = 0x15;
 const CUSTOM_ACK = 0x13;
 const CUSTOM_NACK = 0x14;
 
+// Firmware Update Message Tags
+const FIRMWARE_UPDATE_HEADER = 0x10;
+const FIRMWARE_UPDATE_DATA = 0x11;
+const FIRMWARE_UPDATE_CANCEL = 0x12;
+
+// Firmware Transfer Parameters
+const FIRMWARE_FORMAT_VERSION = 0x01;
+const FIRMWARE_PACKET_RAW_BYTES = 105;   // 15 groups * 7 decoded bytes
+const FIRMWARE_PACKET_ENCODED_BYTES = 120; // 15 groups * (7 data + 1 MSB)
+const FIRMWARE_METADATA_MAX21 = 0x1FFFFF;
+
 // Find and connect to DRUM device
 function find_dato_drum() {
   const output = new midi.Output();
@@ -259,6 +270,109 @@ async function sendCustomCommandAndWait(tag, body = []) {
   const payload = [tag, ...body];
   sendCustomMessage(payload);
   await waitForCustomAck();
+}
+
+function pack21Bits(value) {
+  if (value < 0 || value > FIRMWARE_METADATA_MAX21) {
+    throw new Error(`Value ${value} exceeds 21-bit range`);
+  }
+  return [
+    value & 0x7F,
+    (value >> 7) & 0x7F,
+    (value >> 14) & 0x7F
+  ];
+}
+
+function createFirmwareHeader({
+  formatVersion,
+  declaredSize,
+  checksum,
+  versionTag,
+  partitionHint
+}) {
+  if (declaredSize === 0) {
+    throw new Error('Firmware image must not be empty.');
+  }
+
+  if (declaredSize > FIRMWARE_METADATA_MAX21) {
+    throw new Error(`Firmware size ${declaredSize} exceeds 21-bit transport limit.`);
+  }
+
+  const checksumLow = checksum & FIRMWARE_METADATA_MAX21;
+  const checksumHigh = (checksum >> 21) & 0x7FF; // Only lower 11 bits used
+
+  const header = new Array(17).fill(0);
+  header[0] = FIRMWARE_UPDATE_HEADER;
+  header[1] = 0x7F; // 0x3FFF token (low 7 bits)
+  header[2] = 0x7F; // 0x3FFF token (high 7 bits)
+  header[3] = formatVersion & 0x7F;
+
+  const sizeFields = pack21Bits(declaredSize);
+  header[4] = sizeFields[0];
+  header[5] = sizeFields[1];
+  header[6] = sizeFields[2];
+
+  const checksumHighFields = pack21Bits(checksumHigh);
+  header[7] = checksumHighFields[0];
+  header[8] = checksumHighFields[1];
+  header[9] = checksumHighFields[2];
+
+  const checksumLowFields = pack21Bits(checksumLow);
+  header[10] = checksumLowFields[0];
+  header[11] = checksumLowFields[1];
+  header[12] = checksumLowFields[2];
+
+  const versionFields = pack21Bits(versionTag & FIRMWARE_METADATA_MAX21);
+  header[13] = versionFields[0];
+  header[14] = versionFields[1];
+  header[15] = versionFields[2];
+
+  header[16] = partitionHint & 0x7F;
+
+  return header;
+}
+
+function encodeFirmwareChunk(chunkBuffer) {
+  if (chunkBuffer.length !== FIRMWARE_PACKET_RAW_BYTES) {
+    throw new Error(`Expected ${FIRMWARE_PACKET_RAW_BYTES} raw bytes per packet, got ${chunkBuffer.length}.`);
+  }
+
+  const encoded = new Array(FIRMWARE_PACKET_ENCODED_BYTES);
+  let writeIndex = 0;
+
+  for (let i = 0; i < chunkBuffer.length; i += 7) {
+    let msbs = 0;
+    for (let j = 0; j < 7; j++) {
+      const byte = chunkBuffer[i + j];
+      encoded[writeIndex++] = byte & 0x7F;
+      if ((byte & 0x80) !== 0) {
+        msbs |= (1 << j);
+      }
+    }
+    encoded[writeIndex++] = msbs & 0x7F;
+  }
+
+  return encoded;
+}
+
+function computeFirmwareChecksum(buffer) {
+  let sum = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    sum = (sum + buffer[i]) >>> 0;
+  }
+  return sum >>> 0;
+}
+
+function padFirmwareData(buffer) {
+  const remainder = buffer.length % FIRMWARE_PACKET_RAW_BYTES;
+  if (remainder === 0) {
+    return Buffer.from(buffer);
+  }
+
+  const paddedLength = buffer.length + (FIRMWARE_PACKET_RAW_BYTES - remainder);
+  const padded = Buffer.alloc(paddedLength, 0xFF);
+  buffer.copy(padded, 0, 0, buffer.length);
+  return padded;
 }
 
 // Confirmation prompt for destructive operations
@@ -568,7 +682,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   
   try {
     isTransferActive = true;
-    currentTransferInfo = { sampleNumber };
+    currentTransferInfo = { type: 'sample', sampleNumber };
     deviceStatus = 'unknown';
     const transferStartTime = Date.now();
     
@@ -723,6 +837,108 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   }
 }
 
+async function transferFirmware(imagePath, { versionTag = 0, partitionHint = 0 }, verbose) {
+  let progressWritten = false;
+
+  try {
+    if (!fs.existsSync(imagePath)) {
+      throw new Error(`Firmware file not found: ${imagePath}`);
+    }
+
+    const originalBuffer = fs.readFileSync(imagePath);
+    const paddedBuffer = padFirmwareData(originalBuffer);
+    const declaredSize = paddedBuffer.length;
+    const checksum = computeFirmwareChecksum(paddedBuffer);
+
+    if (verbose) {
+      console.log(`Firmware size: ${originalBuffer.length} bytes (padded to ${declaredSize})`);
+      console.log(`Checksum (sum32): 0x${checksum.toString(16).padStart(8, '0')}`);
+      console.log(`Version tag: ${versionTag}`);
+      console.log(`Partition hint: ${partitionHint}`);
+    }
+
+    const headerPayload = createFirmwareHeader({
+      formatVersion: FIRMWARE_FORMAT_VERSION,
+      declaredSize,
+      checksum,
+      versionTag,
+      partitionHint
+    });
+
+    console.log('Sending firmware header...');
+    sendCustomMessage(headerPayload);
+    await waitForCustomAck(5000);
+
+    const totalPackets = Math.ceil(declaredSize / FIRMWARE_PACKET_RAW_BYTES);
+    const startTime = Date.now();
+
+    isTransferActive = true;
+    currentTransferInfo = { type: 'firmware' };
+
+    let offset = 0;
+    let packetNum = 0;
+    let lastProgress = -1;
+
+    while (offset < declaredSize) {
+      const chunk = paddedBuffer.subarray(offset, offset + FIRMWARE_PACKET_RAW_BYTES);
+      const encoded = encodeFirmwareChunk(chunk);
+      const checksumByte = calculateChecksum(packetNum & 0x7F, encoded);
+
+      const payload = [FIRMWARE_UPDATE_DATA, packetNum & 0x7F, ...encoded, checksumByte];
+
+      if (verbose && packetNum < 3) {
+        console.log(`Packet ${packetNum}: checksum 0x${checksumByte.toString(16).padStart(2, '0')}`);
+      }
+
+      sendCustomMessage(payload);
+      await waitForCustomAck(6000);
+
+      packetNum++;
+      offset += FIRMWARE_PACKET_RAW_BYTES;
+
+      const progress = Math.min(100, Math.floor((packetNum / totalPackets) * 100));
+      if (progress !== lastProgress) {
+        lastProgress = progress;
+        progressWritten = true;
+        if (process.stdout.clearLine) {
+          process.stdout.clearLine(0);
+          process.stdout.cursorTo(0);
+          process.stdout.write(`[FW] Progress: ${progress}% (${packetNum}/${totalPackets} packets)`);
+        } else {
+          console.log(`[FW] Progress: ${progress}% (${packetNum}/${totalPackets} packets)`);
+        }
+      }
+    }
+
+    if (progressWritten && process.stdout.clearLine) {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+    }
+
+    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`Firmware transfer complete in ${elapsedSeconds} s (${packetNum} packets).`);
+
+    if (declaredSize !== originalBuffer.length) {
+      console.log(`Note: ${declaredSize - originalBuffer.length} bytes of 0xFF padding appended for transport alignment.`);
+    }
+
+    return true;
+  } catch (error) {
+    if (progressWritten && process.stdout.clearLine) {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+    }
+    console.error(`Firmware transfer failed: ${error.message}`);
+    return false;
+  } finally {
+    if (progressWritten && process.stdout.clearLine) {
+      process.stdout.write('\n');
+    }
+    isTransferActive = false;
+    currentTransferInfo = null;
+  }
+}
+
 // Helper function to check if argument is a sample rate
 function isSampleRate(arg) {
   const rateMatch = arg.match(/^(\d+)$/);
@@ -770,7 +986,7 @@ function parseAutoIncrement(fileArgs, sampleRate) {
 // Parse file:slot arguments with auto-increment support
 function parseFileSlotArgs(args) {
   let sampleRate = 44100;
-  
+
   // Extract sample rate and filter file arguments
   const fileArgs = [];
   for (const arg of args) {
@@ -802,6 +1018,90 @@ function parseFileSlotArgs(args) {
   }
 }
 
+function parseFirmwareArgs(args) {
+  let imagePath = null;
+  let versionTag = 0;
+  let partitionHint = 0;
+  let pendingOption = null;
+
+  const applyOption = (option, value) => {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed)) {
+      throw new Error(`Option '${option}' requires an integer value.`);
+    }
+
+    if (option === 'versionTag') {
+      if (parsed < 0 || parsed > FIRMWARE_METADATA_MAX21) {
+        throw new Error(`Invalid --version-tag value '${value}'. Expected 0-${FIRMWARE_METADATA_MAX21}.`);
+      }
+      versionTag = parsed;
+    } else if (option === 'partitionHint') {
+      if (parsed < 0 || parsed > 127) {
+        throw new Error(`Invalid --partition-hint value '${value}'. Expected 0-127.`);
+      }
+      partitionHint = parsed;
+    } else {
+      throw new Error(`Unknown firmware option '${option}'.`);
+    }
+  };
+
+  for (const arg of args) {
+    if (arg === '--verbose' || arg === '-v') {
+      continue;
+    }
+
+    if (pendingOption) {
+      applyOption(pendingOption, arg);
+      pendingOption = null;
+      continue;
+    }
+
+    if (arg.startsWith('--version-tag=')) {
+      applyOption('versionTag', arg.split('=')[1]);
+      continue;
+    }
+
+    if (arg === '--version-tag') {
+      pendingOption = 'versionTag';
+      continue;
+    }
+
+    if (arg.startsWith('--partition-hint=')) {
+      applyOption('partitionHint', arg.split('=')[1]);
+      continue;
+    }
+
+    if (arg === '--partition-hint') {
+      pendingOption = 'partitionHint';
+      continue;
+    }
+
+    if (!imagePath) {
+      imagePath = arg;
+      continue;
+    }
+
+    throw new Error(`Unexpected argument '${arg}'.`);
+  }
+
+  if (pendingOption) {
+    const readable = pendingOption === 'versionTag' ? '--version-tag' : '--partition-hint';
+    throw new Error(`Missing value for ${readable}.`);
+  }
+
+  if (!imagePath) {
+    throw new Error('Firmware command requires a firmware image path.');
+  }
+
+  return {
+    imagePath,
+    options: {
+      versionTag,
+      partitionHint
+    }
+  };
+}
+
 // Command line interface
 const command = process.argv[2];
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
@@ -811,12 +1111,14 @@ if (!command) {
   console.log("");
   console.log("Usage:");
   console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  drumtool.js firmware <image> [--version-tag <n>] [--partition-hint <n>] [--verbose|-v]");
   console.log("  drumtool.js version");
   console.log("  drumtool.js format");
   console.log("  drumtool.js reboot-bootloader");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
+  console.log("  firmware       - Upload a firmware image using the new SysEx transport");
   console.log("  version        - Get device firmware version");
   console.log("  format         - Format device filesystem");
   console.log("  reboot-bootloader - Reboot device into bootloader mode");
@@ -827,6 +1129,11 @@ if (!command) {
   console.log("  sample_rate    - Sample rate in Hz for raw PCM files (default: 44100).");
   console.log("                   For WAV files, the sample rate is detected automatically.");
   console.log("  --verbose, -v  - Show detailed transfer information");
+  console.log("");
+  console.log("Firmware Arguments:");
+  console.log("  --version-tag   - 21-bit version identifier embedded in metadata (default 0)");
+  console.log("  --partition-hint - Preferred partition slot (0-127, default 0)");
+  console.log("  --verbose, -v   - Show detailed firmware transfer logs");
   console.log("");
   console.log("Examples:");
   console.log("  # Explicit slot assignment (WAV files are auto-converted):");
@@ -842,6 +1149,7 @@ if (!command) {
   console.log("  drumtool.js version                           # Check firmware version");
   console.log("  drumtool.js format                            # Format filesystem");
   console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
+  console.log("  drumtool.js firmware build/drum.uf2 --version-tag 42 --partition-hint 1");
   console.log("");
   process.exit(1);
 }
@@ -863,11 +1171,16 @@ function cleanup_and_exit() {
 process.on('SIGINT', () => {
   console.log('\n\nStopping transfer...');
   if (isTransferActive && currentTransferInfo && activeMidiOutput) {
-    const { sampleNumber } = currentTransferInfo;
-    const sampleNumBytes = [sampleNumber & 0x7F, (sampleNumber >> 7) & 0x7F];
-    const cancelMessage = [SDS_CANCEL, ...sampleNumBytes];
-    sendSysExMessage(cancelMessage);
-    console.log(`Cancel command sent for sample ${sampleNumber}.`);
+    if (currentTransferInfo.type === 'sample' && typeof currentTransferInfo.sampleNumber === 'number') {
+      const sampleNumber = currentTransferInfo.sampleNumber;
+      const sampleNumBytes = [sampleNumber & 0x7F, (sampleNumber >> 7) & 0x7F];
+      const cancelMessage = [SDS_CANCEL, ...sampleNumBytes];
+      sendSysExMessage(cancelMessage);
+      console.log(`Cancel command sent for sample ${sampleNumber}.`);
+    } else if (currentTransferInfo.type === 'firmware') {
+      sendCustomMessage([FIRMWARE_UPDATE_CANCEL]);
+      console.log('Cancel command sent for firmware update.');
+    }
   }
 
   if (pendingResponse) {
@@ -905,8 +1218,15 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
+    } else if (command === 'firmware') {
+      try {
+        parseFirmwareArgs(process.argv.slice(3));
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+        process.exit(1);
+      }
     } else if (command !== 'version' && command !== 'format' && command !== 'reboot-bootloader') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'format', or 'reboot-bootloader'.`);
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'firmware', 'version', 'format', or 'reboot-bootloader'.`);
       process.exit(1);
     }
 
@@ -931,6 +1251,11 @@ async function main() {
       const success = transfers.length === 1 
         ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
         : await transferMultipleSamples(transfers, verbose);
+      process.exitCode = success ? 0 : 1;
+    } else if (command === 'firmware') {
+      const args = process.argv.slice(3);
+      const { imagePath, options } = parseFirmwareArgs(args);
+      const success = await transferFirmware(imagePath, options, verbose);
       process.exitCode = success ? 0 : 1;
     } else if (command === 'version') {
       await get_firmware_version();

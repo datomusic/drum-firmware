@@ -16,10 +16,10 @@
  * implement the PayloadHandler concept.
  */
 
+#include "drum/sysex/payload_handler.h"
 #include "etl/optional.h"
 #include "etl/span.h"
 #include "musin/hal/logger.h"
-#include "drum/sysex/payload_handler.h"
 
 extern "C" {
 #include "pico/time.h"
@@ -33,22 +33,22 @@ namespace sysex {
  * @brief Transfer protocol state
  */
 enum class TransferState {
-  Idle,           ///< No active transfer
+  Idle,            ///< No active transfer
   ReceivingHeader, ///< Waiting for/processing transfer header
-  ReceivingData   ///< Receiving data packets
+  ReceivingData    ///< Receiving data packets
 };
 
 /**
  * @brief Transfer protocol results
  */
 enum class TransferResult {
-  OK,              ///< Operation successful, continue
+  OK,               ///< Operation successful, continue
   TransferComplete, ///< Transfer completed successfully
-  Cancelled,       ///< Transfer cancelled by sender
-  InvalidMessage,  ///< Malformed message received
-  ChecksumError,   ///< Packet checksum validation failed
-  StateError,      ///< Operation not valid in current state
-  PayloadError     ///< Payload handler reported error
+  Cancelled,        ///< Transfer cancelled by sender
+  InvalidMessage,   ///< Malformed message received
+  ChecksumError,    ///< Packet checksum validation failed
+  StateError,       ///< Operation not valid in current state
+  PayloadError      ///< Payload handler reported error
 };
 
 /**
@@ -68,8 +68,7 @@ enum class TransferResult {
  * @tparam PayloadHandler Type that handles transfer-specific data processing
  * @tparam Sender Function/callable for sending responses
  */
-template <typename PayloadHandler>
-class DataTransferProtocol {
+template <typename PayloadHandler> class DataTransferProtocol {
 public:
   /**
    * @brief Constructor
@@ -77,9 +76,10 @@ public:
    * @param logger Reference to logger instance
    */
   constexpr DataTransferProtocol(PayloadHandler &payload_handler,
-                                musin::Logger &logger)
+                                 musin::Logger &logger)
       : payload_handler_(payload_handler), logger_(logger),
-        state_(TransferState::Idle), expected_packet_num_(0) {}
+        state_(TransferState::Idle), expected_packet_num_(0) {
+  }
 
   /**
    * @brief Process incoming transfer message
@@ -91,9 +91,8 @@ public:
    */
   template <typename Sender>
   TransferResult process_message(uint8_t message_type,
-                                const etl::span<const uint8_t> &message_data,
-                                Sender send_response,
-                                absolute_time_t now) {
+                                 const etl::span<const uint8_t> &message_data,
+                                 Sender send_response, absolute_time_t now) {
     // Handle message based on type
     switch (message_type) {
     case 0x01: // DUMP_HEADER
@@ -135,9 +134,8 @@ private:
    */
   template <typename Sender>
   TransferResult handle_dump_header(const etl::span<const uint8_t> &message,
-                                   Sender send_response,
-                                   absolute_time_t now) {
-    if (message.size() < 17) { // Minimum size for dump header
+                                    Sender send_response, absolute_time_t now) {
+    if (message.size() < 16) { // Minimum size for dump header
       logger_.error("DataTransfer: Dump header too short:",
                     static_cast<uint32_t>(message.size()));
       send_response(0x7E, 0); // NAK
@@ -146,7 +144,8 @@ private:
 
     // Cancel any existing transfer
     if (state_ != TransferState::Idle) {
-      logger_.warn("DataTransfer: New header received during active transfer, cancelling previous");
+      logger_.warn("DataTransfer: New header received during active transfer, "
+                   "cancelling previous");
       payload_handler_.cancel_transfer();
     }
 
@@ -172,24 +171,23 @@ private:
    */
   template <typename Sender>
   TransferResult handle_data_packet(const etl::span<const uint8_t> &message,
-                                   Sender send_response,
-                                   absolute_time_t now) {
+                                    Sender send_response, absolute_time_t now) {
     if (state_ != TransferState::ReceivingData) {
       logger_.error("DataTransfer: Data packet received in wrong state");
       send_response(0x7E, 0); // NAK
       return TransferResult::StateError;
     }
 
-    if (message.size() != 123) { // Standard data packet size
+    if (message.size() != 122) { // Standard data packet size
       logger_.error("DataTransfer: Invalid data packet size:",
                     static_cast<uint32_t>(message.size()));
       send_response(0x7E, expected_packet_num_); // NAK with expected packet
       return TransferResult::InvalidMessage;
     }
 
-    const uint8_t packet_num = message[1];
-    const auto data_span = message.subspan(2, 120);
-    const uint8_t received_checksum = message[122];
+    const uint8_t packet_num = message[0];
+    const auto data_span = message.subspan(1, 120);
+    const uint8_t received_checksum = message[121];
 
     // Validate checksum using payload handler's algorithm
     const uint8_t calculated_checksum =
@@ -212,7 +210,8 @@ private:
     }
 
     // Delegate packet processing to payload handler
-    const auto process_result = payload_handler_.process_packet(data_span, packet_num);
+    const auto process_result =
+        payload_handler_.process_packet(data_span, packet_num);
     if (process_result == PayloadProcessResult::Error) {
       logger_.error("DataTransfer: Payload handler failed to process packet");
       payload_handler_.cancel_transfer();

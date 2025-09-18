@@ -47,36 +47,38 @@ struct SampleInfo {
  * @brief Payload handler for SDS 16-bit PCM sample transfers
  * @tparam FileOperations File operations interface type
  */
-template <typename FileOperations>
-class SamplePayloadHandler {
+template <typename FileOperations> class SamplePayloadHandler {
 public:
-  constexpr SamplePayloadHandler(FileOperations &file_ops, musin::Logger &logger)
-      : file_ops_(file_ops), logger_(logger), bytes_received_(0) {}
+  constexpr SamplePayloadHandler(FileOperations &file_ops,
+                                 musin::Logger &logger)
+      : file_ops_(file_ops), logger_(logger), bytes_received_(0) {
+  }
 
   /**
    * @brief Begin transfer with SDS dump header
-   * @param header_data Complete SDS dump header (17+ bytes)
+   * @param header_data Complete SDS dump header (16+ bytes, message type
+   * stripped)
    * @return true if header valid and transfer can begin
    */
   constexpr bool begin_transfer(const etl::span<const uint8_t> &header_data) {
-    if (header_data.size() < 17) {
+    if (header_data.size() < 16) {
       logger_.error("SamplePayload: Header too short:",
                     static_cast<uint32_t>(header_data.size()));
       return false;
     }
 
-    // Parse SDS dump header fields
-    current_sample_.sample_number = parse_14bit(header_data[1], header_data[2]);
-    current_sample_.bit_depth = header_data[3];
+    // Parse SDS dump header fields (message type byte already stripped)
+    current_sample_.sample_number = parse_14bit(header_data[0], header_data[1]);
+    current_sample_.bit_depth = header_data[2];
     current_sample_.sample_period_ns =
-        parse_21bit(header_data[4], header_data[5], header_data[6]);
+        parse_21bit(header_data[3], header_data[4], header_data[5]);
     current_sample_.length_words =
-        parse_21bit(header_data[7], header_data[8], header_data[9]);
+        parse_21bit(header_data[6], header_data[7], header_data[8]);
     current_sample_.loop_start =
-        parse_21bit(header_data[10], header_data[11], header_data[12]);
+        parse_21bit(header_data[9], header_data[10], header_data[11]);
     current_sample_.loop_end =
-        parse_21bit(header_data[13], header_data[14], header_data[15]);
-    current_sample_.loop_type = header_data[16];
+        parse_21bit(header_data[12], header_data[13], header_data[14]);
+    current_sample_.loop_type = header_data[15];
 
     logger_.info("SamplePayload: Dump Header received");
     logger_.info("Sample number:",
@@ -118,8 +120,9 @@ public:
    * @param packet_num Packet sequence number
    * @return Processing result
    */
-  constexpr sysex::PayloadProcessResult process_packet(const etl::span<const uint8_t> &packet_data,
-                                                      uint8_t packet_num) {
+  constexpr sysex::PayloadProcessResult
+  process_packet(const etl::span<const uint8_t> &packet_data,
+                 uint8_t packet_num) {
     if (!opened_file_ || !opened_file_->is_valid()) {
       logger_.error("SamplePayload: No file open for data packet");
       return sysex::PayloadProcessResult::Error;
@@ -138,9 +141,9 @@ public:
     for (size_t i = 0; i < 40 && output_pos < unpacked_data.size(); i++) {
       const size_t data_offset = i * 3;
       if (data_offset + 2 < packet_data.size()) {
-        const int16_t sample = unpack_16bit_sample(packet_data[data_offset],
-                                                   packet_data[data_offset + 1],
-                                                   packet_data[data_offset + 2]);
+        const int16_t sample = unpack_16bit_sample(
+            packet_data[data_offset], packet_data[data_offset + 1],
+            packet_data[data_offset + 2]);
 
         // Write as little-endian 16-bit (same as original)
         unpacked_data[output_pos++] = static_cast<uint8_t>(sample & 0xFF);
@@ -205,8 +208,9 @@ public:
    * @return 7-bit checksum value
    */
   constexpr uint8_t calculate_checksum(uint8_t packet_num,
-                                      const etl::span<const uint8_t> &data) {
-    // XOR of: 0x7E (non-realtime), 0x65 (DRUM channel), 0x02 (data packet), packet_num, and all data
+                                       const etl::span<const uint8_t> &data) {
+    // XOR of: 0x7E (non-realtime), 0x65 (DRUM channel), 0x02 (data packet),
+    // packet_num, and all data
     uint8_t checksum = 0x7E ^ 0x65 ^ 0x02 ^ packet_num;
     for (const uint8_t byte : data) {
       checksum ^= byte;
@@ -261,7 +265,8 @@ private:
   }
 
   // Unpack 16-bit sample from SDS 3-byte format - exact copy from original
-  static constexpr int16_t unpack_16bit_sample(uint8_t b0, uint8_t b1, uint8_t b2) {
+  static constexpr int16_t unpack_16bit_sample(uint8_t b0, uint8_t b1,
+                                               uint8_t b2) {
     // Reconstruct unsigned 16-bit value (left-justified in 3 bytes)
     const uint16_t unsigned_sample = ((static_cast<uint16_t>(b0) & 0x7F) << 9) |
                                      ((static_cast<uint16_t>(b1) & 0x7F) << 2) |

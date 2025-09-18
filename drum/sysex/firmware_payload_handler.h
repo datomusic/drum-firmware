@@ -10,9 +10,9 @@
  * existing firmware update implementation.
  */
 
-#include "drum/sysex/payload_handler.h"
-#include "drum/sysex/codec.h"
 #include "drum/firmware/update_interfaces.h"
+#include "drum/sysex/codec.h"
+#include "drum/sysex/payload_handler.h"
 #include "etl/array.h"
 #include "etl/optional.h"
 #include "etl/span.h"
@@ -29,11 +29,11 @@ class FirmwarePayloadHandler {
 public:
   constexpr FirmwarePayloadHandler(
       drum::firmware::FirmwarePartitionManager &partition_manager,
-      drum::firmware::PartitionFlashWriter &flash_writer,
-      musin::Logger &logger)
+      drum::firmware::PartitionFlashWriter &flash_writer, musin::Logger &logger)
       : partition_manager_(partition_manager), flash_writer_(flash_writer),
         logger_(logger), bytes_received_(0), has_active_transfer_(false),
-        firmware_checksum_accumulator_(0) {}
+        firmware_checksum_accumulator_(0) {
+  }
 
   /**
    * @brief Begin transfer with firmware dump header
@@ -48,7 +48,8 @@ public:
     }
 
     logger_.info("FirmwarePayload: Firmware Dump Header received");
-    logger_.info("Format version:", static_cast<uint32_t>(metadata->format_version));
+    logger_.info("Format version:",
+                 static_cast<uint32_t>(metadata->format_version));
     logger_.info("Declared size:", metadata->declared_size);
     logger_.info("Version tag:", metadata->version_tag);
 
@@ -92,8 +93,9 @@ public:
    * @param packet_num Packet sequence number
    * @return Processing result
    */
-  constexpr PayloadProcessResult process_packet(const etl::span<const uint8_t> &packet_data,
-                                               uint8_t packet_num) {
+  constexpr PayloadProcessResult
+  process_packet(const etl::span<const uint8_t> &packet_data,
+                 uint8_t packet_num) {
     if (!has_active_transfer_) {
       logger_.error("FirmwarePayload: Data packet without active transfer");
       return PayloadProcessResult::Error;
@@ -206,8 +208,9 @@ public:
    * @return 7-bit checksum value
    */
   constexpr uint8_t calculate_checksum(uint8_t packet_num,
-                                      const etl::span<const uint8_t> &data) {
-    // Same checksum algorithm as SDS (for compatibility when using DataTransferProtocol)
+                                       const etl::span<const uint8_t> &data) {
+    // Same checksum algorithm as SDS (for compatibility when using
+    // DataTransferProtocol)
     uint8_t checksum = 0x7E ^ 0x65 ^ 0x02 ^ packet_num;
     for (const uint8_t byte : data) {
       checksum ^= byte;
@@ -245,7 +248,8 @@ private:
   }
 
   // Combine checksum fields (same as original)
-  static constexpr uint32_t combine_checksum_fields(uint32_t high21, uint32_t low21) {
+  static constexpr uint32_t combine_checksum_fields(uint32_t high21,
+                                                    uint32_t low21) {
     const uint32_t high_bits = high21 & 0x7FFu; // lower 11 bits
     return (high_bits << 21) | (low21 & 0x1FFFFFu);
   }

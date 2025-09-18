@@ -18,9 +18,9 @@ namespace sysex {
  * @brief Result codes for payload processing operations
  */
 enum class PayloadProcessResult {
-  OK,                 ///< Packet processed successfully, continue transfer
-  TransferComplete,   ///< Transfer completed with this packet
-  Error              ///< Error processing packet, abort transfer
+  OK,               ///< Packet processed successfully, continue transfer
+  TransferComplete, ///< Transfer completed with this packet
+  Error             ///< Error processing packet, abort transfer
 };
 
 /**
@@ -50,7 +50,8 @@ public:
    * @param header_data Complete header message payload
    * @return true if header is valid and transfer can begin, false otherwise
    */
-  constexpr bool begin_transfer([[maybe_unused]] const etl::span<const uint8_t> &header_data) {
+  constexpr bool
+  begin_transfer([[maybe_unused]] const etl::span<const uint8_t> &header_data) {
     // Parse header, validate parameters, initialize resources
     // Return false if header is invalid or resources unavailable
     return true;
@@ -62,8 +63,9 @@ public:
    * @param packet_num Packet sequence number (0-127)
    * @return Processing result
    */
-  constexpr PayloadProcessResult process_packet([[maybe_unused]] const etl::span<const uint8_t> &packet_data,
-                                               [[maybe_unused]] uint8_t packet_num) {
+  constexpr PayloadProcessResult
+  process_packet([[maybe_unused]] const etl::span<const uint8_t> &packet_data,
+                 [[maybe_unused]] uint8_t packet_num) {
     // Process packet data according to transfer type
     // Return TransferComplete when all expected data received
     // Return Error if processing fails
@@ -93,7 +95,7 @@ public:
    * @return 7-bit checksum value
    */
   constexpr uint8_t calculate_checksum(uint8_t packet_num,
-                                      const etl::span<const uint8_t> &data) {
+                                       const etl::span<const uint8_t> &data) {
     // Implementation-specific checksum algorithm
     // For SDS: XOR of 0x7E ^ 0x65 ^ 0x02 ^ packet_num ^ all_data_bytes
     // For firmware: May use different algorithm

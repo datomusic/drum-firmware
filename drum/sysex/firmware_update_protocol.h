@@ -11,9 +11,9 @@
  * updates while maintaining the same reliable transfer mechanism.
  */
 
+#include "drum/firmware/update_interfaces.h"
 #include "drum/sysex/data_transfer_protocol.h"
 #include "drum/sysex/firmware_payload_handler.h"
-#include "drum/firmware/update_interfaces.h"
 #include "etl/span.h"
 #include "musin/hal/logger.h"
 
@@ -29,9 +29,9 @@ namespace drum::firmware {
  * @brief Firmware update protocol message types
  */
 enum class MessageType : uint8_t {
-  FirmwareUpdateHeader = 0x10,  ///< Begin firmware update with metadata
-  FirmwareData = 0x11,          ///< Firmware data packet
-  FirmwareCancel = 0x12,        ///< Cancel firmware update
+  FirmwareUpdateHeader = 0x10, ///< Begin firmware update with metadata
+  FirmwareData = 0x11,         ///< Firmware data packet
+  FirmwareCancel = 0x12,       ///< Cancel firmware update
   FirmwareAck = 0x13,          ///< Acknowledgment
   FirmwareNak = 0x14           ///< Negative acknowledgment
 };
@@ -40,22 +40,22 @@ enum class MessageType : uint8_t {
  * @brief Firmware update protocol states
  */
 enum class UpdateState {
-  Idle,              ///< No active update
-  ReceivingFirmware  ///< Receiving firmware data
+  Idle,             ///< No active update
+  ReceivingFirmware ///< Receiving firmware data
 };
 
 /**
  * @brief Firmware update protocol results
  */
 enum class UpdateResult {
-  OK,                ///< Operation successful
-  UpdateComplete,    ///< Firmware update completed successfully
-  Cancelled,         ///< Update cancelled by sender
-  InvalidMessage,    ///< Malformed message received
-  ChecksumError,     ///< Packet checksum validation failed
-  StateError,        ///< Operation not valid in current state
-  FlashError,        ///< Flash programming error
-  PartitionError     ///< Partition management error
+  OK,             ///< Operation successful
+  UpdateComplete, ///< Firmware update completed successfully
+  Cancelled,      ///< Update cancelled by sender
+  InvalidMessage, ///< Malformed message received
+  ChecksumError,  ///< Packet checksum validation failed
+  StateError,     ///< Operation not valid in current state
+  FlashError,     ///< Flash programming error
+  PartitionError  ///< Partition management error
 };
 
 /**
@@ -65,10 +65,10 @@ class FirmwareUpdateProtocol {
 public:
   constexpr FirmwareUpdateProtocol(
       drum::firmware::FirmwarePartitionManager &partition_manager,
-      drum::firmware::PartitionFlashWriter &flash_writer,
-      musin::Logger &logger)
+      drum::firmware::PartitionFlashWriter &flash_writer, musin::Logger &logger)
       : firmware_handler_(partition_manager, flash_writer, logger),
-        data_transfer_protocol_(firmware_handler_, logger) {}
+        data_transfer_protocol_(firmware_handler_, logger) {
+  }
 
   /**
    * @brief Process incoming firmware update message
@@ -79,10 +79,10 @@ public:
    * @return Update result
    */
   template <typename Sender>
-  constexpr UpdateResult process_message(uint8_t message_type,
-                                        const etl::span<const uint8_t> &message_data,
-                                        Sender send_response,
-                                        absolute_time_t now) {
+  constexpr UpdateResult
+  process_message(uint8_t message_type,
+                  const etl::span<const uint8_t> &message_data,
+                  Sender send_response, absolute_time_t now) {
     // Convert firmware message type to standard transfer protocol type
     uint8_t transfer_message_type;
     switch (static_cast<MessageType>(message_type)) {
@@ -101,10 +101,12 @@ public:
     }
 
     // Convert firmware response sender to DataTransferProtocol format
-    auto protocol_sender = [send_response](uint8_t response_type, uint8_t packet_num) {
+    auto protocol_sender = [send_response](uint8_t response_type,
+                                           uint8_t packet_num) {
       // Map DataTransferProtocol responses to firmware message types
-      const MessageType firmware_response = (response_type == 0x7F) ?
-          MessageType::FirmwareAck : MessageType::FirmwareNak;
+      const MessageType firmware_response = (response_type == 0x7F)
+                                                ? MessageType::FirmwareAck
+                                                : MessageType::FirmwareNak;
       send_response(static_cast<uint8_t>(firmware_response), packet_num);
     };
 
@@ -148,12 +150,14 @@ public:
 
 private:
   sysex::FirmwarePayloadHandler firmware_handler_;
-  sysex::DataTransferProtocol<sysex::FirmwarePayloadHandler> data_transfer_protocol_;
+  sysex::DataTransferProtocol<sysex::FirmwarePayloadHandler>
+      data_transfer_protocol_;
 
   /**
    * @brief Map DataTransferProtocol results to firmware update results
    */
-  constexpr UpdateResult map_transfer_result(sysex::TransferResult transfer_result) const {
+  constexpr UpdateResult
+  map_transfer_result(sysex::TransferResult transfer_result) const {
     switch (transfer_result) {
     case sysex::TransferResult::OK:
       return UpdateResult::OK;
@@ -187,8 +191,8 @@ namespace message_builder {
  * @param metadata Firmware image metadata
  * @return Header message payload
  */
-constexpr etl::array<uint8_t, 17> create_firmware_header(
-    const FirmwareImageMetadata &metadata) {
+constexpr etl::array<uint8_t, 17>
+create_firmware_header(const FirmwareImageMetadata &metadata) {
   etl::array<uint8_t, 17> header;
 
   // Use firmware-specific header format with special token

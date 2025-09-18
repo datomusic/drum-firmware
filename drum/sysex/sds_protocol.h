@@ -62,12 +62,12 @@ enum class Result {
  * @brief SDS protocol implementation using DataTransferProtocol
  * @tparam FileOperations File operations interface type
  */
-template <typename FileOperations>
-class Protocol {
+template <typename FileOperations> class Protocol {
 public:
   constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
       : sample_handler_(file_ops, logger),
-        data_transfer_protocol_(sample_handler_, logger) {}
+        data_transfer_protocol_(sample_handler_, logger) {
+  }
 
   /**
    * @brief Process incoming SDS message
@@ -78,7 +78,7 @@ public:
    */
   template <typename Sender>
   Result process_message(const etl::span<const uint8_t> &message,
-                        Sender send_reply, absolute_time_t now) {
+                         const Sender &send_reply, absolute_time_t now) {
     if (message.size() < 1) {
       return Result::InvalidMessage;
     }
@@ -86,10 +86,18 @@ public:
     const uint8_t message_type = message[0];
 
     // Pre-validate SDS-specific constraints before delegating
-    // (bit depth validation temporarily disabled for debugging)
+    if (message_type == DUMP_HEADER && message.size() >= 4) {
+      const uint8_t bit_depth =
+          message[3]; // Bit depth is at offset 3 in original message
+      if (bit_depth != 16) {
+        send_reply(NAK, 0);
+        return Result::InvalidMessage;
+      }
+    }
 
     // Convert SDS response sender to DataTransferProtocol format
-    auto protocol_sender = [&send_reply](uint8_t response_type, uint8_t packet_num) {
+    auto protocol_sender = [&send_reply](uint8_t response_type,
+                                         uint8_t packet_num) {
       // Map DataTransferProtocol responses to SDS message types
       const MessageType sds_response = (response_type == 0x7F) ? ACK : NAK;
       send_reply(sds_response, packet_num);
@@ -146,7 +154,8 @@ public:
 
 private:
   SamplePayloadHandler<FileOperations> sample_handler_;
-  sysex::DataTransferProtocol<SamplePayloadHandler<FileOperations>> data_transfer_protocol_;
+  sysex::DataTransferProtocol<SamplePayloadHandler<FileOperations>>
+      data_transfer_protocol_;
 };
 
 } // namespace sds

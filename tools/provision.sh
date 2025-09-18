@@ -15,6 +15,24 @@
 
 set -e # Exit immediately if a command exits with a non-zero status.
 
+# --- Platform and Tool Checks ---
+
+# Check if running on macOS
+if [[ "$OSTYPE" != "darwin"* ]]; then
+  echo "Error: This script is designed for macOS and uses macOS-specific commands." >&2
+  echo "Please run this script on macOS or modify it for your platform." >&2
+  exit 1
+fi
+
+# Check for required tools
+for tool in picotool node; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "Error: Required tool '$tool' not found in PATH." >&2
+    echo "Please install $tool and ensure it's in your PATH." >&2
+    exit 1
+  fi
+done
+
 # --- Configuration ---
 # Path to the firmware file to upload.
 FIRMWARE_UF2="drum/build/drum.uf2" 
@@ -107,6 +125,11 @@ cd "$SCRIPT_DIR/.."
 echo "Running from project root: $(pwd)"
 
 echo "--- Starting Dato DRUM Provisioning ---"
+echo ""
+echo "⚠️  WARNING: This script will completely erase and reprogram the connected device."
+echo "This process is destructive and irreversible."
+echo "Starting automatic provisioning in 3 seconds..."
+sleep 3
 
 # 1. Check for device in bootloader mode
 wait_for_bootsel
@@ -169,10 +192,19 @@ if [ ! -d "$SAMPLES_DIR" ]; then
     echo "Warning: Samples directory not found at $SAMPLES_DIR. Skipping sample upload." >&2
 else
     # This assumes drumtool.js can take multiple files and auto-assigns slots.
-    # The shell expands the glob into a list of files.
+    # Use array to handle filenames with spaces properly.
     echo "Uploading samples from $SAMPLES_DIR..."
-    node tools/drumtool/drumtool.js send ${SAMPLES_DIR}/*
-    echo "Sample upload complete."
+    files=("${SAMPLES_DIR}"/*)
+    if [ ${#files[@]} -eq 1 ] && [ ! -e "${files[0]}" ]; then
+        echo "Warning: No sample files found in $SAMPLES_DIR" >&2
+    else
+        node tools/drumtool/drumtool.js send "${files[@]}"
+        if [ $? -eq 0 ]; then
+            echo "Sample upload complete."
+        else
+            echo "Warning: Sample upload may have failed. Check device status." >&2
+        fi
+    fi
 fi
 
 # 8. Verify firmware and samples

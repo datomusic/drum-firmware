@@ -4,6 +4,14 @@ SOURCE_DIR="$1"
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# If SOURCE_DIR is not an absolute path, make it relative to the script directory
+if [[ "$SOURCE_DIR" != /* ]]; then
+  SOURCE_DIR="$SCRIPT_DIR/$SOURCE_DIR"
+fi
+
 cd "$SOURCE_DIR"
 
 echo "--------------------------"

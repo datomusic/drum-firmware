@@ -83,6 +83,7 @@ cd test && ./run_all_tests.sh
 
 ## Testing Philosophy
 Use dependency injection and abstractions to enable comprehensive testing of business logic.
+Always test behaviour. Never test implementation
 
 **Reference:** See CONVENTIONS.md for detailed C++/SDK interaction patterns.
 **Build details:** See README.md and drum/README.md for comprehensive build/MIDI specs.

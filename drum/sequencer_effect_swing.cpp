@@ -52,6 +52,10 @@ SequencerEffectSwing::StepTiming SequencerEffectSwing::calculate_step_timing(
 }
 
 void SequencerEffectSwing::set_swing_enabled(bool enabled) {
+  if (swing_enabled_ == enabled) {
+    return;
+  }
+
   swing_enabled_ = enabled;
 }
 
@@ -60,6 +64,10 @@ bool SequencerEffectSwing::is_swing_enabled() const {
 }
 
 void SequencerEffectSwing::set_swing_target(bool delay_odd) {
+  if (swing_delays_odd_steps_ == delay_odd) {
+    return;
+  }
+
   swing_delays_odd_steps_ = delay_odd;
 }
 

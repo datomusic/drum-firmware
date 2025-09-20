@@ -37,7 +37,7 @@ struct SampleConfig {
 class ConfigurationManager {
 public:
   static constexpr const char *CONFIG_PATH = "/kit.bin";
-  static constexpr size_t MAX_SAMPLES = 32;
+  static constexpr size_t MAX_SAMPLES = 128;
 
   explicit ConfigurationManager(musin::Logger &logger);
 

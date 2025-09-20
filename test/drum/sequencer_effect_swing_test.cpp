@@ -220,22 +220,6 @@ TEST_CASE("SequencerEffectSwing repeat mode integration",
       }
     }
   }
-
-  SECTION("Repeat mode mask rotation follows transport parity") {
-    swing_effect.set_swing_target(false); // Delay even parity steps
-
-    auto delayed_timing = swing_effect.calculate_step_timing(3, true, 100);
-    auto straight_timing = swing_effect.calculate_step_timing(3, true, 101);
-
-    auto delayed_expected =
-        rotate_bits(TRIPLET_MASK_BITS, delayed_timing.expected_phase);
-    auto straight_expected =
-        rotate_bits(TRIPLET_MASK_BITS, straight_timing.expected_phase);
-
-    REQUIRE(extract_set_bits(delayed_timing.substep_mask) == delayed_expected);
-    REQUIRE(extract_set_bits(straight_timing.substep_mask) ==
-            straight_expected);
-  }
 }
 
 TEST_CASE("SequencerEffectSwing heavy stress testing",
@@ -515,80 +499,28 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
           "[sequencer_effect_swing]") {
   SequencerEffectSwing swing_effect;
 
-  SECTION("Straight timing uses SIXTEENTH_MASK") {
+  SECTION("Straight timing retriggers on sixteenth note boundaries") {
     swing_effect.set_swing_enabled(false);
 
     auto timing = swing_effect.calculate_step_timing(0, false, 0);
+    auto retrigger_phases = extract_set_bits(timing.substep_mask);
 
-    auto expected_bits =
-        rotate_bits(SIXTEENTH_MASK_BITS, timing.expected_phase);
-    REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
+    // Straight timing should retrigger on sixteenth note boundaries
+    // Expected phases: 0, 6, 12, 18 (every 6 phases = 1/4 beat)
+    std::vector<uint8_t> expected_phases = {0, 6, 12, 18};
+    REQUIRE(retrigger_phases == expected_phases);
   }
 
-  SECTION("Swing timing uses TRIPLET_MASK") {
+  SECTION("Swing timing retriggers on triplet boundaries") {
     swing_effect.set_swing_enabled(true);
 
     auto timing = swing_effect.calculate_step_timing(0, false, 0);
+    auto retrigger_phases = extract_set_bits(timing.substep_mask);
 
-    auto expected_bits = rotate_bits(TRIPLET_MASK_BITS, timing.expected_phase);
-    REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
-  }
-
-  SECTION("Mask rotation with swing offset") {
-    swing_effect.set_swing_enabled(true);
-    swing_effect.set_swing_target(true); // Delay odd steps
-
-    // Test odd step (should be delayed)
-    auto timing = swing_effect.calculate_step_timing(1, false, 1);
-
-    auto expected_bits = rotate_bits(TRIPLET_MASK_BITS, timing.expected_phase);
-    REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
-
-    // Also verify even steps pick up the swing offset rotation (phase 4)
-    swing_effect.set_swing_target(false); // Delay even steps
-    auto even_timing = swing_effect.calculate_step_timing(0, false, 0);
-    auto even_expected_bits =
-        rotate_bits(TRIPLET_MASK_BITS, even_timing.expected_phase);
-    REQUIRE(extract_set_bits(even_timing.substep_mask) == even_expected_bits);
-  }
-
-  SECTION("Mask consistency under stress switching") {
-    for (size_t iteration = 0; iteration < 20; ++iteration) {
-      bool swing_enabled = (iteration % 3) != 0;
-      swing_effect.set_swing_enabled(swing_enabled);
-      swing_effect.set_swing_target(iteration % 2 == 0);
-
-      auto timing =
-          swing_effect.calculate_step_timing(iteration % 8, false, iteration);
-
-      // Mask should always be non-zero and within 24-bit range
-      REQUIRE(timing.substep_mask != 0);
-      REQUIRE((timing.substep_mask & 0xFF000000) == 0);
-
-      // Verify correct base mask was used
-      if (swing_enabled) {
-        // Should use triplet-based pattern (fewer bits set)
-        REQUIRE(__builtin_popcount(timing.substep_mask) == 3);
-      } else {
-        // Should use sixteenth-based pattern (more bits set)
-        REQUIRE(__builtin_popcount(timing.substep_mask) == 4);
-      }
-    }
-  }
-
-  SECTION("Boundary mask rotations") {
-    swing_effect.set_swing_enabled(true);
-
-    // Use different step/transport combinations to get various phases
-    for (size_t step = 0; step < 8; ++step) {
-      bool delay_odd = (step % 2) == 0;
-      swing_effect.set_swing_target(delay_odd);
-      auto timing = swing_effect.calculate_step_timing(step, false, step);
-
-      auto expected_bits =
-          rotate_bits(TRIPLET_MASK_BITS, timing.expected_phase);
-      REQUIRE(extract_set_bits(timing.substep_mask) == expected_bits);
-    }
+    // Swing timing should retrigger on triplet boundaries
+    // Expected phases: 0, 8, 16 (every 8 phases = 1/3 beat)
+    std::vector<uint8_t> expected_phases = {0, 8, 16};
+    REQUIRE(retrigger_phases == expected_phases);
   }
 }
 

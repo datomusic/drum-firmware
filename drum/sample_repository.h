@@ -21,7 +21,7 @@ namespace drum {
  */
 class SampleRepository {
 public:
-  static constexpr size_t MAX_SAMPLES = 32;
+  static constexpr size_t MAX_SAMPLES = 128;
   static constexpr size_t MAX_PATH_LENGTH = 16; // "/NN.pcm" is small
 
   explicit SampleRepository(musin::Logger &logger);

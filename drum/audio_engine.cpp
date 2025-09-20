@@ -201,16 +201,9 @@ void AudioEngine::set_crush_depth(float normalized_value) {
 }
 
 void AudioEngine::notification(drum::Events::NoteEvent event) {
-  const auto &defs = drum::config::global_note_definitions;
-  auto it = std::find_if(defs.begin(), defs.end(),
-                         [midi_note = event.note](const auto &def) {
-                           return def.midi_note_number == midi_note;
-                         });
-
-  if (it != defs.end()) {
-    size_t sample_id = std::distance(defs.begin(), it);
-    play_on_voice(event.track_index, sample_id, event.velocity);
-  }
+  // Direct mapping: MIDI note = sample slot
+  size_t sample_id = event.note;
+  play_on_voice(event.track_index, sample_id, event.velocity);
 }
 
 } // namespace drum

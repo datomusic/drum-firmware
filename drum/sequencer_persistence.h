@@ -39,10 +39,12 @@ struct SequencerPersistentState {
 
   SequencerPersistentState() : magic(MAGIC_NUMBER), version(FORMAT_VERSION) {
     // Initialize active notes with first note from each track's range
-    active_notes[0] = config::track_0_notes[0]; // Kick
-    active_notes[1] = config::track_1_notes[0]; // Snare
-    active_notes[2] = config::track_2_notes[0]; // Percussion
-    active_notes[3] = config::track_3_notes[0]; // Hi-Hat
+    active_notes[0] = config::track_ranges[0]
+                          .high_note; // Track 1: 37 Kick on old drumcomputers
+    active_notes[1] = config::track_ranges[1]
+                          .low_note; // Track 1: 38 Snare on old drumcomputers
+    active_notes[2] = config::track_ranges[2].low_note; // Track 2: 46
+    active_notes[3] = config::track_ranges[3].low_note; // Track 3: 54
 
     // Clear all pattern data
     for (auto &track : tracks) {

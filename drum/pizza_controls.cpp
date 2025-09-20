@@ -285,31 +285,26 @@ void PizzaControls::DrumpadComponent::update() {
 
 void PizzaControls::DrumpadComponent::select_note_for_pad(uint8_t pad_index,
                                                           int8_t offset) {
-  if (pad_index >= config::track_note_ranges.size())
-    return;
-  const auto &notes_for_pad = config::track_note_ranges[pad_index];
-  if (notes_for_pad.empty())
+  if (pad_index >= config::NUM_TRACKS)
     return;
 
+  const auto &track_range = config::track_ranges[pad_index];
   uint8_t current_note =
       parent_controls->_sequencer_controller_ref.get_active_note_for_track(
           pad_index);
-  size_t num_notes_in_list = notes_for_pad.size();
-  int32_t current_list_idx = -1;
 
-  for (size_t i = 0; i < num_notes_in_list; ++i) {
-    if (notes_for_pad[i] == current_note) {
-      current_list_idx = static_cast<int32_t>(i);
-      break;
-    }
+  // Calculate new note with wrapping within track range
+  int16_t new_note = current_note + offset;
+
+  // Wrap around within the track's note range
+  while (new_note < track_range.low_note) {
+    new_note += (track_range.high_note - track_range.low_note + 1);
   }
-  if (current_list_idx == -1)
-    current_list_idx = 0;
+  while (new_note > track_range.high_note) {
+    new_note -= (track_range.high_note - track_range.low_note + 1);
+  }
 
-  int32_t new_list_idx =
-      (current_list_idx + offset + num_notes_in_list) % num_notes_in_list;
-  uint8_t new_selected_note_value =
-      notes_for_pad[static_cast<size_t>(new_list_idx)];
+  uint8_t new_selected_note_value = static_cast<uint8_t>(new_note);
 
   parent_controls->_sequencer_controller_ref.set_active_note_for_track(
       pad_index, new_selected_note_value);

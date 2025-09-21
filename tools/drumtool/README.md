@@ -39,7 +39,7 @@ node drumtool.js <command> [options]
 
 **Auto-increment slots (recommended for new users):**
 ```bash
-# Transfer files to slots 0, 1, 2 automatically
+# Transfer files to slots 30, 31, 32 automatically
 node drumtool.js send kick.wav snare.wav hat.wav
 
 # With custom sample rate
@@ -79,7 +79,7 @@ node drumtool.js reboot-bootloader
 
 - `--verbose`, `-v` - Show detailed transfer information and debugging output
 - Sample rates: Specify as number (e.g., `44100`, `48000`) - applies to all files in the command
-- Slots: 0-127 (128 total slots available)
+- Slots: 0-127 (128 total slots available, auto-assignment starts at slot 30)
 
 ### File Format Requirements
 
@@ -94,10 +94,10 @@ node drumtool.js reboot-bootloader
 # Check if device is connected and get firmware version
 node drumtool.js version
 
-# Transfer your first sample to slot 0
-node drumtool.js send my-kick.wav:0
+# Transfer your first sample to slot 30
+node drumtool.js send my-kick.wav:30
 
-# Transfer a complete drum kit (auto-assigns slots 0-3)
+# Transfer a complete drum kit (auto-assigns slots 30-33)
 node drumtool.js send kick.wav snare.wav hat-closed.wav hat-open.wav
 ```
 
@@ -167,7 +167,8 @@ See `drumtool_test.md` for comprehensive test scenarios and expected outputs.
 
 ## Technical Notes
 
-- **Slot Range**: 0-127 (128 total slots)
+- **Slot Range**: 0-127 (128 total slots, auto-assignment starts at slot 30 for linear MIDI mapping)
+- **MIDI Mapping**: Slot N corresponds to MIDI note N (e.g., slot 36 = MIDI note 36)
 - **Sample Rate Encoding**: Automatic conversion to SDS nanosecond period format
 - **File Size Limits**: Determined by device storage capacity
 - **Concurrent Transfers**: Single-threaded for reliability

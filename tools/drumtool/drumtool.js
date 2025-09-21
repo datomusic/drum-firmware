@@ -756,14 +756,16 @@ function parseExplicitSlots(fileArgs, sampleRate) {
 // Parse auto-increment format (just filenames)
 function parseAutoIncrement(fileArgs, sampleRate) {
   const transfers = [];
-  
+  const AUTO_SLOT_OFFSET = 30; // Start auto-assignment from slot 30
+
   fileArgs.forEach((filePath, index) => {
-    if (index > 127) {
-      throw new Error(`Too many files. Maximum 128 slots (0-127).`);
+    const slot = index + AUTO_SLOT_OFFSET;
+    if (slot > 127) {
+      throw new Error(`Too many files. Maximum ${128 - AUTO_SLOT_OFFSET} files when auto-assigning from slot ${AUTO_SLOT_OFFSET}.`);
     }
-    transfers.push({ filePath, slot: index, sampleRate });
+    transfers.push({ filePath, slot, sampleRate });
   });
-  
+
   return transfers;
 }
 
@@ -823,7 +825,7 @@ if (!command) {
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127)");
-  console.log("  file           - Audio file path (auto-assigns slots 0,1,2... in order)");
+  console.log("  file           - Audio file path (auto-assigns slots 30,31,32... in order)");
   console.log("  sample_rate    - Sample rate in Hz for raw PCM files (default: 44100).");
   console.log("                   For WAV files, the sample rate is detected automatically.");
   console.log("  --verbose, -v  - Show detailed transfer information");
@@ -832,8 +834,8 @@ if (!command) {
   console.log("  # Explicit slot assignment (WAV files are auto-converted):");
   console.log("  drumtool.js send kick.wav:0 snare.wav:1");
   console.log("  ");
-  console.log("  # Auto-increment slots (starts from 0):");
-  console.log("  drumtool.js send kick.wav snare.wav hat.wav   # Slots 0,1,2 automatically");
+  console.log("  # Auto-increment slots (starts from 30):");
+  console.log("  drumtool.js send kick.wav snare.wav hat.wav   # Slots 30,31,32 automatically");
   console.log("  ");
   console.log("  # Transfer raw PCM data with a specific sample rate:");
   console.log("  drumtool.js send my_sample.pcm:10 22050 -v");

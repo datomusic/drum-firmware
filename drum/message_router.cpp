@@ -1,7 +1,8 @@
 #include "message_router.h"
-#include "config.h" // For drum::config::drumpad::track_note_ranges and NUM_TRACKS
+#include "config.h" // For drum::config::track_ranges and NUM_TRACKS
 #include "musin/midi/midi_wrapper.h" // For MIDI:: calls
 #include "musin/ports/pico/libraries/arduino_midi_library/src/midi_Defs.h"
+#include "sample_repository.h"    // For SampleRepository::MAX_SAMPLES
 #include "sequencer_controller.h" // For SequencerController
 #include <algorithm>              // For std::clamp, std::find
 #include <cmath>                  // For std::round
@@ -289,29 +290,27 @@ void MessageRouter::notification(
 }
 
 void MessageRouter::handle_incoming_note_on(uint8_t note, uint8_t velocity) {
-  for (size_t track_idx = 0; track_idx < drum::config::track_note_ranges.size();
+  // Find first track that contains this note (first match wins)
+  for (uint8_t track_idx = 0; track_idx < drum::config::NUM_TRACKS;
        ++track_idx) {
-    if (track_idx >= drum::config::NUM_TRACKS)
-      break; // Ensure we don't go out of bounds if config sizes differ
+    if (drum::config::track_ranges[track_idx].contains(note)) {
+      // Direct mapping: MIDI note = sample slot
+      uint8_t sample_slot = note;
 
-    const auto &notes_for_track = drum::config::track_note_ranges[track_idx];
-    auto it = std::find(notes_for_track.begin(), notes_for_track.end(), note);
+      // Validate sample slot is in range
+      if (sample_slot >= drum::SampleRepository::MAX_SAMPLES) {
+        return; // Out of range
+      }
 
-    if (it != notes_for_track.end()) {
-      // Note found for this track.
-      // Queue the event to be processed in the main loop.
-      drum::Events::NoteEvent event{.track_index =
-                                        static_cast<uint8_t>(track_idx),
-                                    .note = note,
-                                    .velocity = velocity};
+      // Queue the event to be processed in the main loop
+      drum::Events::NoteEvent event{
+          .track_index = track_idx, .note = note, .velocity = velocity};
       notification(event);
 
-      // Set the active note for that track in the sequencer controller.
-      _sequencer_controller.set_active_note_for_track(
-          static_cast<uint8_t>(track_idx), note);
-      // Assuming a note belongs to only one track's list for this purpose, so
-      // we can stop.
-      return;
+      // Set the active note for that track in the sequencer controller
+      _sequencer_controller.set_active_note_for_track(track_idx, note);
+
+      return; // First match wins - stop searching
     }
   }
 }

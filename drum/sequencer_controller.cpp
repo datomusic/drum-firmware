@@ -635,10 +635,9 @@ void SequencerController<NumTracks, NumSteps>::select_random_sequencer() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::initialize_active_notes() {
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    if (track_idx < config::track_note_ranges.size() &&
-        !config::track_note_ranges[track_idx].empty()) {
+    if (track_idx < config::track_ranges.size()) {
       _active_note_per_track[track_idx] =
-          config::track_note_ranges[track_idx][0];
+          config::track_ranges[track_idx].low_note;
     }
   }
 }

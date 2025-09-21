@@ -58,7 +58,7 @@ DRUM is a MIDI drum machine/sequencer running on RP2350 microcontroller. Feature
 
 ### Building & Testing
 ```bash
-./build.sh [options]  # See README.md for full options
+drum/build.sh [options]  # See README.md for full options
 cd test && ./run_all_tests.sh
 ```
 
@@ -85,5 +85,5 @@ cd test && ./run_all_tests.sh
 Use dependency injection and abstractions to enable comprehensive testing of business logic.
 Always test behaviour. Never test implementation
 
-**Reference:** See CONVENTIONS.md for detailed C++/SDK interaction patterns.
+**[Reference](Reference):** See CONVENTIONS.md for detailed C++/SDK interaction patterns.
 **Build details:** See README.md and drum/README.md for comprehensive build/MIDI specs.

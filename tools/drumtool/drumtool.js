@@ -255,10 +255,10 @@ function waitForCustomReply(timeout = 2000) {
 }
 
 // Send custom command and wait for ACK
-async function sendCustomCommandAndWait(tag, body = []) {
+async function sendCustomCommandAndWait(tag, body = [], timeout = 2000) {
   const payload = [tag, ...body];
   sendCustomMessage(payload);
-  await waitForCustomAck();
+  await waitForCustomAck(timeout);
 }
 
 // Confirmation prompt for destructive operations
@@ -303,15 +303,16 @@ async function get_firmware_version() {
 async function format_filesystem() {
   console.log("⚠️  WARNING: This will erase ALL files on the device filesystem!");
   const confirmed = await askConfirmation("Are you sure you want to format the filesystem?");
-  
+
   if (!confirmed) {
     console.log("Format cancelled.");
     return;
   }
-  
+
   console.log("Sending command to format filesystem...");
-  await sendCustomCommandAndWait(FORMAT_FILESYSTEM);
-  console.log("Successfully sent format command. The device will now re-initialize its filesystem.");
+  console.log("This may take up to 30 seconds depending on partition size...");
+  await sendCustomCommandAndWait(FORMAT_FILESYSTEM, [], 30000);
+  console.log("Successfully formatted filesystem.");
 }
 
 // Reboot to bootloader
@@ -945,12 +946,10 @@ async function main() {
     console.error(`\nError: ${error.message}`);
     process.exitCode = 1;
   } finally {
-    if (activeMidiOutput) {
-      activeMidiOutput.closePort();
-    }
-    if (activeMidiInput) {
-      activeMidiInput.closePort();
-    }
+    // Force exit immediately. The closePort() call from the midi library, 
+    // specifically for the input port, can hang indefinitely. The OS will 
+    // reclaim the MIDI resources when the process terminates.
+    process.exit();
   }
 }
 

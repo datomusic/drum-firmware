@@ -168,7 +168,8 @@ void SequencerDisplayMode::update_track_override_colors(PizzaDisplay &display) {
   for (uint8_t track_idx = 0;
        track_idx < PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
     if (_sequencer_controller_ref.is_pad_pressed(track_idx) ||
-        _sequencer_controller_ref.get_retrigger_mode_for_track(track_idx) > 0) {
+        _sequencer_controller_ref.get_retrigger_mode_for_track(track_idx) > 0 ||
+        _sequencer_controller_ref.has_recent_velocity_hit(track_idx)) {
       uint8_t active_note =
           _sequencer_controller_ref.get_active_note_for_track(track_idx);
       std::optional<Color> color_opt =

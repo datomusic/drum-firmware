@@ -529,6 +529,31 @@ uint8_t SequencerController<NumTracks, NumSteps>::get_retrigger_mode_for_track(
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::record_velocity_hit(
+    uint8_t track_index) {
+  if (track_index < NumTracks) {
+    _has_active_velocity_hit[track_index] = true;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::clear_velocity_hit(
+    uint8_t track_index) {
+  if (track_index < NumTracks) {
+    _has_active_velocity_hit[track_index] = false;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::has_recent_velocity_hit(
+    uint8_t track_index) const {
+  if (track_index < NumTracks) {
+    return _has_active_velocity_hit[track_index];
+  }
+  return false;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
     uint8_t track_index, uint8_t mode) {
   if (track_index < NumTracks && (mode == 1 || mode == 2)) {
@@ -664,6 +689,7 @@ void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
   _pad_pressed_state.fill(false);
+  _has_active_velocity_hit.fill(false);
 }
 
 template <size_t NumTracks, size_t NumSteps>

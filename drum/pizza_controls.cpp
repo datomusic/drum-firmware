@@ -337,11 +337,13 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
         uint8_t note = parent->get_note_for_pad(event.pad_index);
         uint8_t velocity = event.velocity.value();
         seq_controller.trigger_note_on(event.pad_index, note, velocity);
+        seq_controller.record_velocity_hit(event.pad_index);
       }
     } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
       logger.debug("RELEASED ", static_cast<uint32_t>(event.pad_index));
       uint8_t note = parent->get_note_for_pad(event.pad_index);
       seq_controller.trigger_note_off(event.pad_index, note);
+      seq_controller.clear_velocity_hit(event.pad_index);
     } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
       logger.debug("HELD ", static_cast<uint32_t>(event.pad_index));
     }

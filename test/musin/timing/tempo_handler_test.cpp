@@ -105,8 +105,7 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   REQUIRE(rt_count >= 3);
 }
 
-TEST_CASE(
-    "TempoHandler external sync half-speed anchors on every second pulse") {
+TEST_CASE("TempoHandler external sync half-speed forwards every other tick") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -126,20 +125,19 @@ TEST_CASE(
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Simulate 4 external physical pulses. Feed them into SyncIn which now
-  // emits 24 PPQN ticks with anchor metadata directly.
+  // Simulate 4 external physical pulses by feeding the router.
   for (int i = 0; i < 4; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_physical_pulse = true;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-    sync_in.notification(e); // SyncIn is now the observer
+    clock_router.notification(e);
   }
 
-  // With HALF speed, every other tick is forwarded; anchors alternate 12 then 0
-  REQUIRE(rec.events.size() >= 2);
-  REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_EIGHTH_OFFBEAT);
-  REQUIRE(rec.events[1].phase_24 == musin::timing::PHASE_DOWNBEAT);
+  // With HALF speed, every other tick is forwarded; phases advance sequentially
+  REQUIRE(rec.events.size() == 2);
+  REQUIRE(rec.events[0].phase_24 == 1);
+  REQUIRE(rec.events[1].phase_24 == 2);
 }
 
 TEST_CASE(

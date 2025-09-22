@@ -34,8 +34,6 @@ private:
   absolute_time_t last_pulse_time_ = nil_time;
   absolute_time_t next_pulse_time_ = nil_time;
   ClockSource current_source_ = ClockSource::INTERNAL;
-  // Alternate anchors 0/12 on each physical pulse; start at 12 after reset
-  bool next_anchor_is_12_ = true;
 };
 
 } // namespace musin::timing

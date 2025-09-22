@@ -168,7 +168,7 @@ void SleepState::update(musin::Logger &logger,
       logger.debug("Button released - now monitoring for wake press");
     }
     // Don't check for wake press while waiting for release
-    sleep_us(1000);
+    sleep_us(10000);
     watchdog_update();
     return;
   }

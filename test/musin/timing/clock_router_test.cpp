@@ -1,8 +1,8 @@
 #include "midi_test_support.h"
-#include "musin/timing/clock_multiplier.h"
 #include "musin/timing/clock_router.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
+#include "musin/timing/sync_in.h"
 #include "pico/time.h"
 #include "test_support.h"
 
@@ -10,11 +10,11 @@
 #include <vector>
 
 using musin::timing::ClockEvent;
-using musin::timing::ClockMultiplier;
 using musin::timing::ClockRouter;
 using musin::timing::ClockSource;
 using musin::timing::InternalClock;
 using musin::timing::MidiClockProcessor;
+using musin::timing::SyncIn;
 
 namespace {
 struct ClockEventRecorder : etl::observer<ClockEvent> {
@@ -37,9 +37,8 @@ TEST_CASE("ClockRouter emits resync on source change") {
 
   InternalClock internal_clock(120.0f);
   MidiClockProcessor midi_proc;
-  ClockMultiplier clk_mult(24);
-  ClockRouter router(internal_clock, midi_proc, clk_mult,
-                     ClockSource::INTERNAL);
+  SyncIn sync_in(0, 1); // dummy pin numbers for test
+  ClockRouter router(internal_clock, midi_proc, sync_in, ClockSource::INTERNAL);
 
   ClockEventRecorder rec;
   router.add_observer(rec);
@@ -72,9 +71,8 @@ TEST_CASE("ClockRouter forwards ticks only from selected source") {
 
   InternalClock internal_clock(120.0f);
   MidiClockProcessor midi_proc;
-  ClockMultiplier clk_mult(24);
-  ClockRouter router(internal_clock, midi_proc, clk_mult,
-                     ClockSource::INTERNAL);
+  SyncIn sync_in(0, 1); // dummy pin numbers for test
+  ClockRouter router(internal_clock, midi_proc, sync_in, ClockSource::INTERNAL);
 
   ClockEventRecorder rec;
   router.add_observer(rec);
@@ -112,15 +110,14 @@ TEST_CASE("ClockRouter forwards ticks only from selected source") {
   REQUIRE(rec.events.back().source == ClockSource::MIDI);
 }
 
-TEST_CASE("ClockRouter routes external sync via ClockMultiplier and preserves "
+TEST_CASE("ClockRouter routes external sync directly and preserves "
           "physical flag") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
   MidiClockProcessor midi_proc;
-  ClockMultiplier clk_mult(24);
-  ClockRouter router(internal_clock, midi_proc, clk_mult,
-                     ClockSource::INTERNAL);
+  SyncIn sync_in(0, 1); // dummy pin numbers for test
+  ClockRouter router(internal_clock, midi_proc, sync_in, ClockSource::INTERNAL);
 
   ClockEventRecorder rec;
   router.add_observer(rec);
@@ -131,14 +128,15 @@ TEST_CASE("ClockRouter routes external sync via ClockMultiplier and preserves "
 
   size_t base_events = rec.events.size(); // includes resync from switch
 
-  // Simulate an external physical pulse arriving at ClockMultiplier
+  // Simulate an external physical pulse arriving directly via SyncIn
   ClockEvent pulse{ClockSource::EXTERNAL_SYNC};
   pulse.is_physical_pulse = true;
   pulse.timestamp_us =
       static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-  clk_mult.notification(pulse);
+  router.notification(
+      pulse); // Direct notification since SyncIn connects to router
 
-  // Router should forward the multiplied immediate event from ClockMultiplier
+  // Router should forward the event directly
   REQUIRE(rec.events.size() >= base_events + 1);
 
   // Last or one of the new events should be EXTERNAL_SYNC and preserve physical

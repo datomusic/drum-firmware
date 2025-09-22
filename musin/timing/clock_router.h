@@ -3,9 +3,9 @@
 
 #include "etl/observer.h"
 #include "musin/timing/clock_event.h"
-#include "musin/timing/clock_multiplier.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_processor.h"
+#include "musin/timing/sync_in.h"
 #include <cstdint>
 
 namespace musin::timing {
@@ -15,7 +15,7 @@ constexpr size_t MAX_CLOCK_ROUTER_OBSERVERS = 3;
 /**
  * Selects the active raw 24 PPQN clock source and fans it out to observers.
  * Starts/stops internal clock, enables/disables MIDI forward echo,
- * and resets external multipliers on source changes.
+ * and handles sync source management on source changes.
  */
 class ClockRouter
     : public etl::observer<musin::timing::ClockEvent>,
@@ -23,8 +23,7 @@ class ClockRouter
                              MAX_CLOCK_ROUTER_OBSERVERS> {
 public:
   ClockRouter(InternalClock &internal_clock_ref,
-              MidiClockProcessor &midi_clock_processor_ref,
-              ClockMultiplier &clock_multiplier_ref,
+              MidiClockProcessor &midi_clock_processor_ref, SyncIn &sync_in_ref,
               ClockSource initial_source = ClockSource::INTERNAL);
 
   void set_clock_source(ClockSource source);
@@ -41,7 +40,7 @@ private:
 
   InternalClock &internal_clock_;
   MidiClockProcessor &midi_clock_processor_;
-  ClockMultiplier &clock_multiplier_;
+  SyncIn &sync_in_;
   ClockSource current_source_;
   bool initialized_ = false;
 };

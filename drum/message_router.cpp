@@ -309,6 +309,7 @@ void MessageRouter::handle_incoming_note_on(uint8_t note, uint8_t velocity) {
 
       // Set the active note for that track in the sequencer controller
       _sequencer_controller.set_active_note_for_track(track_idx, note);
+      _sequencer_controller.get_sequencer().get_track(track_idx).set_note(note);
 
       return; // First match wins - stop searching
     }

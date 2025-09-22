@@ -412,7 +412,8 @@ void SleepDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
     // Delegate drawing to the previous mode with new brightness
     _previous_mode->get().draw(display, now);
   } else {
-    // Dimming complete - clear display and deinit immediately
+    // We turn off at brightness 1 and below to prevent bright flash
+    // Dimming complete - deinit() before clear to prevent bright flash
     display.deinit();
     display.clear();
   }

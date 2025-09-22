@@ -12,6 +12,17 @@ namespace musin::timing {
 
 constexpr size_t MAX_SYNC_IN_OBSERVERS = 1;
 
+/**
+ * Handles external sync input, providing three main functions:
+ * 1. Debounces the incoming physical sync pulse (2 PPQN).
+ * 2. Detects whether the sync cable is connected (active-low).
+ * 3. Converts the 2 PPQN signal to a 24 PPQN clock signal by emitting 11
+ *    interpolated ticks between each physical pulse.
+ *
+ * Note on initial sync: A timing interval cannot be established until two
+ * physical pulses have been received. Therefore, full 24 PPQN clock output
+ * begins after the second physical pulse.
+ */
 class SyncIn : public etl::observable<etl::observer<musin::timing::ClockEvent>,
                                       MAX_SYNC_IN_OBSERVERS> {
 public:

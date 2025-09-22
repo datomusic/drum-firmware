@@ -27,7 +27,6 @@ SyncIn::SyncIn(uint32_t sync_pin, uint32_t detect_pin)
   tick_interval_us_ = 0;
   interpolated_tick_counter_ = 0;
   next_tick_time_ = nil_time;
-  next_anchor_is_12_ = true;
 }
 
 void SyncIn::update(absolute_time_t now) {
@@ -45,11 +44,8 @@ void SyncIn::update(absolute_time_t now) {
       }
       last_physical_pulse_time_ = now;
 
-      // Emit immediate physical pulse tick with anchor
-      uint8_t anchor_phase =
-          next_anchor_is_12_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
-      emit_clock_event(now, true, anchor_phase);
-      next_anchor_is_12_ = !next_anchor_is_12_;
+      // Emit immediate physical pulse tick
+      emit_clock_event(now, true);
 
       // Schedule next 11 interpolated ticks if we have timing
       if (tick_interval_us_ > 0) {
@@ -105,12 +101,10 @@ bool SyncIn::is_cable_connected() const {
   return !current_detect_state_; // Active low: true when pin is low
 }
 
-void SyncIn::emit_clock_event(absolute_time_t timestamp, bool is_physical,
-                              uint8_t anchor_phase) {
+void SyncIn::emit_clock_event(absolute_time_t timestamp, bool is_physical) {
   ClockEvent event{ClockSource::EXTERNAL_SYNC};
   event.is_physical_pulse = is_physical;
   event.timestamp_us = static_cast<uint32_t>(to_us_since_boot(timestamp));
-  event.anchor_to_phase = anchor_phase;
   notify_observers(event);
 }
 
@@ -129,8 +123,8 @@ void SyncIn::emit_scheduled_ticks(absolute_time_t now) {
   }
 
   if (time_reached(next_tick_time_)) {
-    // Emit interpolated tick (not physical, no anchor)
-    emit_clock_event(next_tick_time_, false, ClockEvent::ANCHOR_PHASE_NONE);
+    // Emit interpolated tick (not physical)
+    emit_clock_event(next_tick_time_, false);
 
     interpolated_tick_counter_++;
 

@@ -4,6 +4,7 @@
 #include "etl/observer.h"
 #include "musin/hal/gpio.h"
 #include "musin/timing/clock_event.h"
+#include "musin/timing/timing_constants.h"
 #include "pico/time.h" // For absolute_time_t and nil_time
 #include <cstdint>
 
@@ -37,8 +38,21 @@ private:
   mutable absolute_time_t last_detect_change_time_ = nil_time;
   mutable bool current_detect_state_ = false;
 
+  // For 24 PPQN conversion from 2 PPQN physical pulses
+  absolute_time_t last_physical_pulse_time_ = nil_time;
+  uint64_t tick_interval_us_ = 0;         // Interval for 24 PPQN ticks
+  uint8_t interpolated_tick_counter_ = 0; // 0-11, tracks interpolated ticks
+  absolute_time_t next_tick_time_ = nil_time;
+  bool next_anchor_is_12_ = true; // Alternate anchors between 0 and 12
+
   static constexpr uint32_t PULSE_DEBOUNCE_US = 5000;   // 5ms
   static constexpr uint32_t DETECT_DEBOUNCE_US = 50000; // 50ms
+  static constexpr uint8_t PPQN_MULTIPLIER = 12;        // 2 PPQN to 24 PPQN
+
+  void emit_clock_event(absolute_time_t timestamp, bool is_physical,
+                        uint8_t anchor_phase = ClockEvent::ANCHOR_PHASE_NONE);
+  void schedule_interpolated_ticks(absolute_time_t now);
+  void emit_scheduled_ticks(absolute_time_t now);
 };
 
 } // namespace musin::timing

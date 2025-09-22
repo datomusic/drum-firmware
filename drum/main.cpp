@@ -3,7 +3,6 @@
 #include "musin/hal/pico_logger.h"
 #include "musin/midi/midi_output_queue.h"
 #include "musin/midi/midi_sender.h"
-#include "musin/timing/clock_multiplier.h"
 #include "musin/timing/clock_router.h"
 #include "musin/timing/internal_clock.h"
 #include "musin/timing/midi_clock_out.h"
@@ -57,14 +56,9 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
                                      DATO_SUBMARINE_SYNC_DETECT_PIN);
-// External SyncIn is 2 PPQN; convert to 24 PPQN via x12
-constexpr uint8_t SYNC_TO_MIDI_CLOCK_MULTIPLIER = 12;
-static musin::timing::ClockMultiplier
-    clock_multiplier(SYNC_TO_MIDI_CLOCK_MULTIPLIER); // 2 PPQN to 24 PPQN
-static_assert(SYNC_TO_MIDI_CLOCK_MULTIPLIER > 0,
-              "Clock multiplication factor cannot be zero");
+// SyncIn now handles 2 PPQN to 24 PPQN conversion internally
 static musin::timing::ClockRouter
-    clock_router(internal_clock, midi_clock_processor, clock_multiplier,
+    clock_router(internal_clock, midi_clock_processor, sync_in,
                  musin::timing::ClockSource::INTERNAL);
 static musin::timing::SpeedAdapter
     speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
@@ -140,8 +134,7 @@ int main() {
 
   // --- Initialize Clocking System ---
   // TempoHandler's constructor calls set_clock_source, which handles initial
-  // observation.
-  sync_in.add_observer(clock_multiplier);
+  // observation. SyncIn is now connected directly via ClockRouter.
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(
       pizza_display); // PizzaDisplay needs tempo events for pulsing
@@ -229,7 +222,6 @@ int main() {
       sysex_handler.update(now);
       pizza_controls.update(now);
       sync_in.update(now);
-      clock_multiplier.update(now);
       speed_adapter.update(now);
       sequencer_controller
           .update(); // Checks if a step is due and queues NoteEvents

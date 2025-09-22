@@ -5,11 +5,10 @@ namespace musin::timing {
 
 ClockRouter::ClockRouter(InternalClock &internal_clock_ref,
                          MidiClockProcessor &midi_clock_processor_ref,
-                         ClockMultiplier &clock_multiplier_ref,
-                         ClockSource initial_source)
+                         SyncIn &sync_in_ref, ClockSource initial_source)
     : internal_clock_(internal_clock_ref),
-      midi_clock_processor_(midi_clock_processor_ref),
-      clock_multiplier_(clock_multiplier_ref), current_source_(initial_source) {
+      midi_clock_processor_(midi_clock_processor_ref), sync_in_(sync_in_ref),
+      current_source_(initial_source) {
   set_clock_source(initial_source);
 }
 
@@ -51,8 +50,7 @@ void ClockRouter::detach_current_source() {
     midi_clock_processor_.set_forward_echo_enabled(false);
     break;
   case ClockSource::EXTERNAL_SYNC:
-    clock_multiplier_.remove_observer(*this);
-    clock_multiplier_.reset();
+    sync_in_.remove_observer(*this);
     break;
   }
 }
@@ -69,8 +67,7 @@ void ClockRouter::attach_source(ClockSource source) {
     midi_clock_processor_.set_forward_echo_enabled(true);
     break;
   case ClockSource::EXTERNAL_SYNC:
-    clock_multiplier_.add_observer(*this);
-    clock_multiplier_.reset();
+    sync_in_.add_observer(*this);
     break;
   }
 }

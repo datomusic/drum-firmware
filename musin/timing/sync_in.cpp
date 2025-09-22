@@ -1,4 +1,5 @@
 #include "musin/timing/sync_in.h"
+#include "musin/timing/timing_constants.h"
 #include "pico/time.h"
 
 namespace musin::timing {
@@ -20,6 +21,13 @@ SyncIn::SyncIn(uint32_t sync_pin, uint32_t detect_pin)
   pulse_state_ = sync_pin_.read() ? PulseDebounceState::WAITING_FOR_STABLE_LOW
                                   : PulseDebounceState::WAITING_FOR_RISING_EDGE;
   falling_edge_time_ = nil_time;
+
+  // Initialize 24 PPQN generation state
+  last_physical_pulse_time_ = nil_time;
+  tick_interval_us_ = 0;
+  interpolated_tick_counter_ = 0;
+  next_tick_time_ = nil_time;
+  next_anchor_is_12_ = true;
 }
 
 void SyncIn::update(absolute_time_t now) {
@@ -29,11 +37,25 @@ void SyncIn::update(absolute_time_t now) {
   switch (pulse_state_) {
   case PulseDebounceState::WAITING_FOR_RISING_EDGE:
     if (current_pulse_pin_state) { // Rising edge detected
-      // Fire the event immediately, marking it as a physical pulse
-      ClockEvent event{ClockSource::EXTERNAL_SYNC};
-      event.is_physical_pulse = true;
-      event.timestamp_us = static_cast<uint32_t>(to_us_since_boot(now));
-      notify_observers(event);
+      // Calculate 24 PPQN tick interval from 2 PPQN physical pulses
+      if (!is_nil_time(last_physical_pulse_time_)) {
+        uint64_t physical_interval_us =
+            absolute_time_diff_us(last_physical_pulse_time_, now);
+        tick_interval_us_ = physical_interval_us / PPQN_MULTIPLIER;
+      }
+      last_physical_pulse_time_ = now;
+
+      // Emit immediate physical pulse tick with anchor
+      uint8_t anchor_phase =
+          next_anchor_is_12_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
+      emit_clock_event(now, true, anchor_phase);
+      next_anchor_is_12_ = !next_anchor_is_12_;
+
+      // Schedule next 11 interpolated ticks if we have timing
+      if (tick_interval_us_ > 0) {
+        interpolated_tick_counter_ = 0;
+        schedule_interpolated_ticks(now);
+      }
 
       // Transition to the next state to wait for a stable low
       pulse_state_ = PulseDebounceState::WAITING_FOR_STABLE_LOW;
@@ -59,6 +81,9 @@ void SyncIn::update(absolute_time_t now) {
     break;
   }
 
+  // --- Emit scheduled interpolated ticks ---
+  emit_scheduled_ticks(now);
+
   // --- Cable Detection Debouncing Logic ---
   if (is_nil_time(last_detect_change_time_)) {
     last_detect_change_time_ = now;
@@ -78,6 +103,45 @@ void SyncIn::update(absolute_time_t now) {
 
 bool SyncIn::is_cable_connected() const {
   return !current_detect_state_; // Active low: true when pin is low
+}
+
+void SyncIn::emit_clock_event(absolute_time_t timestamp, bool is_physical,
+                              uint8_t anchor_phase) {
+  ClockEvent event{ClockSource::EXTERNAL_SYNC};
+  event.is_physical_pulse = is_physical;
+  event.timestamp_us = static_cast<uint32_t>(to_us_since_boot(timestamp));
+  event.anchor_to_phase = anchor_phase;
+  notify_observers(event);
+}
+
+void SyncIn::schedule_interpolated_ticks(absolute_time_t now) {
+  if (tick_interval_us_ > 0) {
+    next_tick_time_ = delayed_by_us(now, tick_interval_us_);
+  } else {
+    next_tick_time_ = nil_time;
+  }
+}
+
+void SyncIn::emit_scheduled_ticks(absolute_time_t now) {
+  if (is_nil_time(next_tick_time_) ||
+      interpolated_tick_counter_ >= (PPQN_MULTIPLIER - 1)) {
+    return;
+  }
+
+  if (time_reached(next_tick_time_)) {
+    // Emit interpolated tick (not physical, no anchor)
+    emit_clock_event(next_tick_time_, false, ClockEvent::ANCHOR_PHASE_NONE);
+
+    interpolated_tick_counter_++;
+
+    // Schedule next interpolated tick if more are needed
+    if (interpolated_tick_counter_ < (PPQN_MULTIPLIER - 1) &&
+        tick_interval_us_ > 0) {
+      next_tick_time_ = delayed_by_us(next_tick_time_, tick_interval_us_);
+    } else {
+      next_tick_time_ = nil_time;
+    }
+  }
 }
 
 } // namespace musin::timing

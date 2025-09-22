@@ -97,15 +97,15 @@ bool FileTransferState::is_transfer_active() const {
 void FallingAsleepState::enter(musin::Logger &logger) {
   logger.debug("Entering FallingAsleep state");
   fallback_timeout_ =
-      make_timeout_time_ms(750); // 750ms fallback (longer than 500ms fadeout)
+      make_timeout_time_ms(500); // 500ms to match SleepDisplayMode dimming
 }
 
 void FallingAsleepState::update(musin::Logger &logger,
                                 SystemStateMachine &state_machine,
                                 absolute_time_t now) {
-  // Check timeout (750ms fallback)
+  // Check timeout (500ms to match display dimming)
   if (absolute_time_diff_us(now, fallback_timeout_) <= 0) {
-    logger.debug("Timeout reached - transitioning to Sleep");
+    logger.debug("Display dimming complete - transitioning to Sleep");
     state_machine.transition_to(SystemStateId::Sleep);
     return;
   }
@@ -151,20 +151,28 @@ void SleepState::enter(musin::Logger &logger) {
 
   set_sys_clock_48mhz();
 
-  logger.debug(
-      "MUX configured for playbutton wake - waiting for button release first");
-
-  // Wait for button release first
-  while (!gpio_get(MUX_IO_PIN)) {
-    sleep_us(10000);
-    watchdog_update();
-  }
+  // Initialize button release detection state
+  waiting_for_button_release_ = true;
+  logger.debug("MUX configured - will wait for button release in update loop");
 }
 
 void SleepState::update(musin::Logger &logger,
                         [[maybe_unused]] SystemStateMachine &state_machine,
                         [[maybe_unused]] absolute_time_t now) {
   constexpr uint32_t MUX_IO_PIN = DATO_SUBMARINE_ADC_PIN;
+
+  if (waiting_for_button_release_) {
+    // Non-blocking wait for button release
+    if (gpio_get(MUX_IO_PIN)) {
+      waiting_for_button_release_ = false;
+      logger.debug("Button released - now monitoring for wake press");
+    }
+    // Don't check for wake press while waiting for release
+    sleep_us(1000);
+    watchdog_update();
+    return;
+  }
+
   // Now check for button press to wake
   if (!gpio_get(MUX_IO_PIN)) {
     logger.debug("Playbutton pressed - triggering reset");

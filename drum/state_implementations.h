@@ -101,6 +101,9 @@ public:
   SystemStateId get_id() const override {
     return SystemStateId::Sleep;
   }
+
+private:
+  bool waiting_for_button_release_ = true;
 };
 
 } // namespace drum

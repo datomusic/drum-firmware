@@ -40,6 +40,9 @@ void SyncIn::update(absolute_time_t now) {
       if (!is_nil_time(last_physical_pulse_time_)) {
         uint64_t physical_interval_us =
             absolute_time_diff_us(last_physical_pulse_time_, now);
+        // Note: Integer division truncates fractional microseconds, causing minor
+        // timing drift for interpolated ticks. This error is reset on each
+        // physical pulse and does not accumulate.
         tick_interval_us_ = physical_interval_us / PPQN_MULTIPLIER;
       }
       last_physical_pulse_time_ = now;

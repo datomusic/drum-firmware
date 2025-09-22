@@ -408,11 +408,12 @@ void SleepDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   const uint8_t current_brightness = calculate_brightness(now);
   display.set_brightness(current_brightness);
 
-  if (current_brightness > 0 && _previous_mode.has_value()) {
+  if (current_brightness > 1 && _previous_mode.has_value()) {
     // Delegate drawing to the previous mode with new brightness
     _previous_mode->get().draw(display, now);
   } else {
-    // Dimming complete - clear display
+    // Dimming complete - clear display and deinit immediately
+    display.deinit();
     display.clear();
   }
 }

@@ -331,16 +331,6 @@ public:
   void copy_to_random();
 
   /**
-   * @brief Set the main sequencer as active.
-   */
-  void set_main_active();
-
-  /**
-   * @brief Set the random sequencer as active.
-   */
-  void select_random_sequencer();
-
-  /**
    * @brief Save the current sequencer state to persistent storage.
    * @return true if save was successful, false otherwise
    */

@@ -400,7 +400,6 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
 
   // Use main sequencer and disable random offset mode for low values
   if (value < 0.2f) {
-    set_main_active();
     disable_random_offset_mode();
     stop_continuous_randomization();
     return;
@@ -409,7 +408,6 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   // Enable random offset mode for values >= 0.2
   if (!random_offset_mode_active_) {
     enable_random_offset_mode(value);
-    set_main_active(); // Use main sequencer with offset mode
   } else {
     // Update randomness level if already active
     current_randomness_level_ = value;
@@ -670,8 +668,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
 
   // --- Random per-track-ahead logic ---
   if (continuous_randomization_active_ && !repeat_active_) {
-    random_effect_.randomize_continuous_step(
-        random_sequencer_, _active_note_per_track, current_step_counter);
+    random_effect_.randomize_continuous_step(sequencer_, _active_note_per_track,
+                                             current_step_counter);
   }
 
   // Advance random offset indices when REPEAT + RANDOM are both active
@@ -688,16 +686,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::copy_to_random() {
   random_sequencer_ = main_sequencer_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_main_active() {
-  sequencer_ = std::ref(main_sequencer_);
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::select_random_sequencer() {
-  sequencer_ = std::ref(random_sequencer_);
 }
 
 template <size_t NumTracks, size_t NumSteps>

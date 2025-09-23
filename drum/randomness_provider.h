@@ -25,9 +25,7 @@ public:
                                     float probability = 0.5f) const;
 
 private:
-  uint32_t generate_seed(size_t base_step, size_t track_idx,
-                         std::uint64_t extra_entropy = 0) const;
-  size_t max_offset(size_t num_steps) const;
+  // All methods now use simple rand() calls
 };
 
 } // namespace drum

@@ -415,13 +415,6 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
 
   // Always regenerate new random offsets when RANDOM is engaged
   regenerate_random_offsets();
-
-  // Control continuous randomization separately for high values
-  if (value > 0.8f) {
-    start_continuous_randomization();
-  } else {
-    stop_continuous_randomization();
-  }
 }
 
 template <size_t NumTracks, size_t NumSteps>

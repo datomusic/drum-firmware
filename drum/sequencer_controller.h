@@ -280,6 +280,7 @@ private:
   float current_randomness_level_ = 0.0f;
   etl::array<etl::array<size_t, 3>, NumTracks> random_offsets_per_track_;
   etl::array<size_t, NumTracks> current_offset_index_per_track_{};
+  uint32_t offset_generation_counter_ = 0;
   RandomnessProvider randomness_provider_;
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};

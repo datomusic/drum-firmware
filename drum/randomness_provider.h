@@ -15,7 +15,13 @@ public:
                           float randomness_level, size_t num_steps) const;
 
   etl::array<size_t, 3> generate_repeat_offsets(size_t track_idx,
-                                                size_t num_steps) const;
+                                                size_t num_steps,
+                                                float randomness_level) const;
+
+  etl::array<size_t, 3>
+  generate_repeat_offsets_with_seed(size_t track_idx, size_t num_steps,
+                                    float randomness_level,
+                                    uint32_t seed_modifier) const;
 
   bool should_flip_step_probability(size_t base_step, size_t track_idx,
                                     float probability = 0.5f) const;

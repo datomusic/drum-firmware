@@ -880,10 +880,13 @@ void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode(
   current_randomness_level_ = std::clamp(randomness_level, 0.0f, 1.0f);
 
   // Generate offsets for each track when offset mode is enabled
+  offset_generation_counter_++;
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets(track_idx, num_steps);
+        randomness_provider_.generate_repeat_offsets_with_seed(
+            track_idx, num_steps, current_randomness_level_,
+            offset_generation_counter_);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -911,10 +914,15 @@ void SequencerController<NumTracks, NumSteps>::regenerate_random_offsets() {
     return;
   }
 
+  // Increment counter to ensure different offsets each time
+  offset_generation_counter_++;
+
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets(track_idx, num_steps);
+        randomness_provider_.generate_repeat_offsets_with_seed(
+            track_idx, num_steps, current_randomness_level_,
+            offset_generation_counter_);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }

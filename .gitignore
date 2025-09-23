@@ -17,3 +17,4 @@ ai-code/*
 node_modules/
 support/
 package-lock.json
+drum/*.bin

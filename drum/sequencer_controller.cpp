@@ -647,7 +647,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
       } else {
         // Calculate dynamic offset based on current step and randomness level
         offset = randomness_provider_.calculate_offset(
-            base_step_index, track_idx, current_randomness_level_, num_steps);
+            base_step_index, track_idx, current_randomness_level_, num_steps,
+            static_cast<std::uint64_t>(current_step_counter.load()));
       }
 
       step_index_to_play_for_track = (base_step_index + offset) % num_steps;

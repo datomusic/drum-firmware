@@ -4,14 +4,16 @@
 
 namespace drum {
 
-size_t RandomnessProvider::calculate_offset(size_t base_step, size_t track_idx,
-                                            float randomness_level,
-                                            size_t num_steps) const {
+size_t
+RandomnessProvider::calculate_offset(size_t base_step, size_t track_idx,
+                                     float randomness_level, size_t num_steps,
+                                     std::uint64_t global_step_counter) const {
   if (randomness_level <= 0.0f || num_steps == 0) {
     return 0;
   }
 
-  uint32_t seed = generate_seed(base_step, track_idx, randomness_level);
+  uint32_t seed = generate_seed(base_step, track_idx, randomness_level,
+                                global_step_counter);
   size_t max_offset = max_offset_for_level(randomness_level, num_steps);
 
   return seed % (max_offset + 1);
@@ -63,10 +65,14 @@ bool RandomnessProvider::should_flip_step_probability(size_t base_step,
 }
 
 uint32_t RandomnessProvider::generate_seed(size_t base_step, size_t track_idx,
-                                           float level) const {
+                                           float level,
+                                           std::uint64_t extra_entropy) const {
   uint32_t seed = static_cast<uint32_t>(base_step);
   seed = seed * 31 + static_cast<uint32_t>(track_idx);
   seed = seed * 31 + static_cast<uint32_t>(level * 1000.0f);
+
+  seed = seed * 31 + static_cast<uint32_t>(extra_entropy & 0xFFFFFFFFu);
+  seed = seed * 31 + static_cast<uint32_t>((extra_entropy >> 32) & 0xFFFFFFFFu);
 
   seed ^= (seed >> 16);
   seed *= 0x85ebca6b;

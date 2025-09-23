@@ -101,11 +101,8 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
 
   // Apply probability flip for hard press random mode
   if (random_probability_active_) {
-    // Fixed 40% chance of flipping any step's enabled state
-    constexpr float FLIP_PROBABILITY = 0.4f;
-    float random_value =
-        static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    if (random_value < FLIP_PROBABILITY) {
+    // 50% chance of flipping any step's enabled state using lowest bit
+    if (rand() & 1) {
       actually_enabled = !actually_enabled;
     }
   }

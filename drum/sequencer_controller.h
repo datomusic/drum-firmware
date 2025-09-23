@@ -187,6 +187,7 @@ public:
   void enable_random_offset_mode(float randomness_level);
   void disable_random_offset_mode();
   [[nodiscard]] bool is_random_offset_mode_active() const;
+  void regenerate_random_offsets();
 
   void trigger_random_hard_press_behavior();
   void trigger_random_steps_when_stopped();

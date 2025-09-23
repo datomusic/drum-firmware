@@ -92,6 +92,14 @@ public:
   void set_speed_modifier(SpeedModifier modifier);
 
   /**
+   * @brief Set tempo control value from knob position (0.0-1.0).
+   * Automatically applies appropriate BPM or speed modifier based on current
+   * clock source.
+   * @param knob_value Normalized knob position (0.0-1.0).
+   */
+  void set_tempo_control_value(float knob_value);
+
+  /**
    * @brief Get the current speed modifier.
    */
   [[nodiscard]] SpeedModifier get_speed_modifier() const {
@@ -160,6 +168,9 @@ private:
 
   // Tracks whether set_clock_source has performed initial attachment/setup.
   bool initialized_ = false;
+
+  // Last tempo knob position for re-evaluation on clock source changes
+  float last_tempo_knob_value_ = 0.5f;
 };
 
 } // namespace musin::timing

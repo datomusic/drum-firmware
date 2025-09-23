@@ -49,6 +49,29 @@ void SequencerEffectRandom<NumTracks, NumSteps>::randomize_continuous_step(
   }
 }
 
+template <size_t NumTracks, size_t NumSteps>
+void SequencerEffectRandom<NumTracks, NumSteps>::
+    randomize_single_step_per_track(
+        musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
+        const etl::array<uint8_t, NumTracks> &active_notes) {
+  const size_t num_steps = sequencer.get_num_steps();
+  if (num_steps > 0) {
+    for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+      uint32_t random_value = rand();
+
+      // Pick a random step index for this track
+      size_t random_step_index = random_value % num_steps;
+
+      auto &track = sequencer.get_track(track_idx);
+      auto &step = track.get_step(random_step_index);
+
+      step.note = active_notes[track_idx];
+      step.velocity = (random_value >> 7) & 0x7F;
+      step.enabled = (random_value & 0x40) != 0;
+    }
+  }
+}
+
 template class SequencerEffectRandom<config::NUM_TRACKS,
                                      config::NUM_STEPS_PER_TRACK>;
 

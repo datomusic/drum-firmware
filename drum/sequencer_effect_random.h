@@ -19,6 +19,10 @@ public:
       musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
       const etl::array<uint8_t, NumTracks> &active_notes,
       uint64_t current_step_counter);
+
+  void randomize_single_step_per_track(
+      musin::timing::Sequencer<NumTracks, NumSteps> &sequencer,
+      const etl::array<uint8_t, NumTracks> &active_notes);
 };
 
 } // namespace drum

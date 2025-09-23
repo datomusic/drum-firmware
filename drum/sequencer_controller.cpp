@@ -398,23 +398,21 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
 
-  bool was_using_random = (&sequencer_.get() == &random_sequencer_);
-
-  // Use main sequencer for low values
+  // Use main sequencer and disable random offset mode for low values
   if (value < 0.2f) {
     set_main_active();
+    disable_random_offset_mode();
     stop_continuous_randomization();
     return;
   }
 
-  // Switch to random sequencer and generate new pattern every time we cross
-  // 0.2f threshold
-  if (!was_using_random) {
-    // Crossing from main to random - switch sequencer and generate fresh
-    // pattern
-    select_random_sequencer();
-    random_effect_.generate_full_pattern(random_sequencer_,
-                                         _active_note_per_track);
+  // Enable random offset mode for values >= 0.2
+  if (!random_offset_mode_active_) {
+    enable_random_offset_mode(value);
+    set_main_active(); // Use main sequencer with offset mode
+  } else {
+    // Update randomness level if already active
+    current_randomness_level_ = value;
   }
 
   // Control continuous randomization separately for high values
@@ -636,6 +634,24 @@ void SequencerController<NumTracks, NumSteps>::update() {
   for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
     size_t step_index_to_play_for_track = base_step_index;
 
+    // Apply random offset if random offset mode is active
+    if (random_offset_mode_active_) {
+      const size_t num_steps = sequencer_.get().get_num_steps();
+      size_t offset = 0;
+
+      if (repeat_active_) {
+        // When REPEAT is active, cycle through the stored offsets
+        offset = random_offsets_per_track_
+            [track_idx][current_offset_index_per_track_[track_idx]];
+      } else {
+        // Calculate dynamic offset based on current step and randomness level
+        offset = randomness_provider_.calculate_offset(
+            base_step_index, track_idx, current_randomness_level_, num_steps);
+      }
+
+      step_index_to_play_for_track = (base_step_index + offset) % num_steps;
+    }
+
     _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
     process_track_step(track_idx, step_index_to_play_for_track);
 
@@ -653,6 +669,14 @@ void SequencerController<NumTracks, NumSteps>::update() {
   if (continuous_randomization_active_ && !repeat_active_) {
     random_effect_.randomize_continuous_step(
         random_sequencer_, _active_note_per_track, current_step_counter);
+  }
+
+  // Advance random offset indices when REPEAT + RANDOM are both active
+  if (random_offset_mode_active_ && repeat_active_) {
+    for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
+      current_offset_index_per_track_[track_idx] =
+          (current_offset_index_per_track_[track_idx] + 1) % 3;
+    }
   }
 
   current_step_counter++;
@@ -843,6 +867,72 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
   if (storage_.has_value()) {
     storage_->mark_state_dirty();
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode(
+    float randomness_level) {
+  random_offset_mode_active_ = true;
+  current_randomness_level_ = std::clamp(randomness_level, 0.0f, 1.0f);
+
+  // Generate offsets for each track when offset mode is enabled
+  const size_t num_steps = main_sequencer_.get_num_steps();
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    random_offsets_per_track_[track_idx] =
+        randomness_provider_.generate_repeat_offsets(track_idx, num_steps);
+    current_offset_index_per_track_[track_idx] = 0;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::disable_random_offset_mode() {
+  random_offset_mode_active_ = false;
+  current_randomness_level_ = 0.0f;
+
+  // Reset offset indices
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    current_offset_index_per_track_[track_idx] = 0;
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] bool
+SequencerController<NumTracks, NumSteps>::is_random_offset_mode_active() const {
+  return random_offset_mode_active_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks,
+                         NumSteps>::trigger_random_hard_press_behavior() {
+  // Option B: Randomize one step per track (current behavior)
+  random_effect_.randomize_single_step_per_track(main_sequencer_,
+                                                 _active_note_per_track);
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks,
+                         NumSteps>::trigger_random_steps_when_stopped() {
+  if (is_running()) {
+    return; // Only trigger when stopped
+  }
+
+  // Play random steps on all tracks
+  const size_t num_steps = main_sequencer_.get_num_steps();
+  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
+    uint32_t random_value = rand();
+    size_t random_step_index = random_value % num_steps;
+
+    auto &track = main_sequencer_.get_track(track_idx);
+    auto &step = track.get_step(random_step_index);
+
+    if (step.enabled && step.note.has_value() && step.velocity.has_value()) {
+      uint8_t track_index_u8 = static_cast<uint8_t>(track_idx);
+      drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
+                                            .note = step.note.value(),
+                                            .velocity = step.velocity.value()};
+      this->notify_observers(note_on_event);
+    }
   }
 }
 

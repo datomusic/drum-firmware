@@ -478,6 +478,18 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
     controls->_sequencer_controller_ref.set_random(value);
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::RANDOM_EFFECT, value, 0);
+
+    // Check for hard press behavior
+    if (mux_controls[RANDOM].is_hard_pressed()) {
+      if (controls->is_running()) {
+        // When running: randomize steps
+        controls->_sequencer_controller_ref
+            .trigger_random_hard_press_behavior();
+      } else {
+        // When stopped: play random steps
+        controls->_sequencer_controller_ref.trigger_random_steps_when_stopped();
+      }
+    }
   } break;
   case VOLUME:
     parent_controls->_message_router_ref.set_parameter(drum::Parameter::VOLUME,

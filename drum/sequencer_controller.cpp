@@ -98,20 +98,24 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
   const musin::timing::Step &step =
       sequencer_.get().get_track(track_idx).get_step(wrapped_step);
   bool actually_enabled = step.enabled;
+  uint8_t effective_velocity = step.velocity.value_or(0);
 
   // Apply probability flip for hard press random mode
   if (random_probability_active_) {
     // 50% chance of flipping any step's enabled state using lowest bit
     if (rand() & 1) {
       actually_enabled = !actually_enabled;
+      // If flipping a disabled step to enabled, ensure it has velocity
+      if (actually_enabled && effective_velocity == 0) {
+        effective_velocity = drum::config::keypad::DEFAULT_STEP_VELOCITY;
+      }
     }
   }
 
-  if (actually_enabled && step.note.has_value() && step.velocity.has_value() &&
-      step.velocity.value() > 0) {
+  if (actually_enabled && step.note.has_value() && effective_velocity > 0) {
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
                                           .note = step.note.value(),
-                                          .velocity = step.velocity.value()};
+                                          .velocity = effective_velocity};
     this->notify_observers(note_on_event);
     last_played_note_per_track[track_idx] = step.note.value();
   }

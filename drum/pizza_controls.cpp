@@ -594,10 +594,10 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
   if (event.button_id == RANDOM) {
     if (event.state == musin::ui::PressureState::LightPress &&
         event.previous_state == musin::ui::PressureState::Released) {
-      // Light press: existing random behavior
+      // Light press: light random behavior (offset only)
       if (controls->is_running()) {
-        controls->_sequencer_controller_ref
-            .trigger_random_hard_press_behavior();
+        controls->_sequencer_controller_ref.set_random(
+            1.0f); // Just needs to be >= 0.2f
       } else {
         controls->_sequencer_controller_ref.trigger_random_steps_when_stopped();
         controls->_sequencer_controller_ref.start_random_step_highlighting();
@@ -609,7 +609,11 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
       }
     } else if (event.state == musin::ui::PressureState::HardPress &&
                event.previous_state == musin::ui::PressureState::LightPress) {
-      // Hard press: TODO - implement new behavior
+      // Hard press: add probability behavior on top of offset behavior
+      if (controls->is_running()) {
+        controls->_sequencer_controller_ref
+            .trigger_random_hard_press_behavior();
+      }
     }
   } else if (event.button_id == REPEAT) {
     if (!controls->is_running()) {

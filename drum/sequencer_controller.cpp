@@ -99,6 +99,17 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
       sequencer_.get().get_track(track_idx).get_step(wrapped_step);
   bool actually_enabled = step.enabled;
 
+  // Apply probability flip for hard press random mode
+  if (random_probability_active_) {
+    // Fixed 40% chance of flipping any step's enabled state
+    constexpr float FLIP_PROBABILITY = 0.4f;
+    float random_value =
+        static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    if (random_value < FLIP_PROBABILITY) {
+      actually_enabled = !actually_enabled;
+    }
+  }
+
   if (actually_enabled && step.note.has_value() && step.velocity.has_value() &&
       step.velocity.value() > 0) {
     drum::Events::NoteEvent note_on_event{.track_index = track_index_u8,
@@ -385,13 +396,13 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
     return;
   }
 
-  // Enable random offset mode for values >= 0.2
+  // Enable random offset mode for values >= 0.2 (light press behavior)
   if (!random_offset_mode_active_) {
-    enable_random_offset_mode(value);
-  } else {
-    // Update randomness level if already active
-    current_randomness_level_ = value;
+    enable_random_offset_mode();
   }
+
+  // Light press only enables offset mode, not probability mode
+  random_probability_active_ = false;
 
   // Always regenerate new random offsets when RANDOM is engaged
   regenerate_random_offsets();
@@ -618,9 +629,9 @@ void SequencerController<NumTracks, NumSteps>::update() {
         offset = random_offsets_per_track_
             [track_idx][current_offset_index_per_track_[track_idx]];
       } else {
-        // Calculate dynamic offset based on current step and randomness level
+        // Calculate dynamic offset based on current step
         offset = randomness_provider_.calculate_offset(
-            base_step_index, track_idx, current_randomness_level_, num_steps,
+            base_step_index, track_idx, num_steps,
             static_cast<std::uint64_t>(current_step_counter.load()));
       }
 
@@ -833,10 +844,8 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode(
-    float randomness_level) {
+void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode() {
   random_offset_mode_active_ = true;
-  current_randomness_level_ = std::clamp(randomness_level, 0.0f, 1.0f);
 
   // Generate offsets for each track when offset mode is enabled
   offset_generation_counter_++;
@@ -844,8 +853,7 @@ void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode(
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
         randomness_provider_.generate_repeat_offsets_with_seed(
-            track_idx, num_steps, current_randomness_level_,
-            offset_generation_counter_);
+            track_idx, num_steps, offset_generation_counter_);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -853,7 +861,7 @@ void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode(
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::disable_random_offset_mode() {
   random_offset_mode_active_ = false;
-  current_randomness_level_ = 0.0f;
+  random_probability_active_ = false;
 
   // Reset offset indices
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
@@ -880,8 +888,7 @@ void SequencerController<NumTracks, NumSteps>::regenerate_random_offsets() {
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
         randomness_provider_.generate_repeat_offsets_with_seed(
-            track_idx, num_steps, current_randomness_level_,
-            offset_generation_counter_);
+            track_idx, num_steps, offset_generation_counter_);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -889,9 +896,15 @@ void SequencerController<NumTracks, NumSteps>::regenerate_random_offsets() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks,
                          NumSteps>::trigger_random_hard_press_behavior() {
-  // Option B: Randomize one step per track (current behavior)
-  random_effect_.randomize_single_step_per_track(main_sequencer_,
-                                                 _active_note_per_track);
+  // Do everything light press does: enable random offset mode
+  if (!random_offset_mode_active_) {
+    enable_random_offset_mode();
+  } else {
+    regenerate_random_offsets();
+  }
+
+  // Additionally enable probability flipping for hard press
+  random_probability_active_ = true;
 }
 
 template <size_t NumTracks, size_t NumSteps>

@@ -18,7 +18,6 @@
 
 #include "musin/hal/logger.h"
 #include "randomness_provider.h"
-#include "sequencer_effect_random.h"
 #include "sequencer_effect_swing.h"
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
@@ -172,7 +171,7 @@ public:
 
   void set_random(float value);
 
-  void enable_random_offset_mode(float randomness_level);
+  void enable_random_offset_mode();
   void disable_random_offset_mode();
   [[nodiscard]] bool is_random_offset_mode_active() const;
   void regenerate_random_offsets();
@@ -265,12 +264,11 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  SequencerEffectRandom<NumTracks, NumSteps> random_effect_;
   SequencerEffectSwing swing_effect_;
 
   // Random offset mode state
   bool random_offset_mode_active_ = false;
-  float current_randomness_level_ = 0.0f;
+  bool random_probability_active_ = false;
   etl::array<etl::array<size_t, 3>, NumTracks> random_offsets_per_track_;
   etl::array<size_t, NumTracks> current_offset_index_per_track_{};
   uint32_t offset_generation_counter_ = 0;

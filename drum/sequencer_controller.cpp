@@ -111,13 +111,15 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_enabled(bool enabled) {
-  swing_effect_.set_swing_enabled(enabled);
+  pending_swing_enabled_ = enabled;
+  swing_enabled_update_pending_ = true;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_swing_target(
     bool delay_odd) {
-  swing_effect_.set_swing_target(delay_odd);
+  pending_swing_target_delays_odd_ = delay_odd;
+  swing_target_update_pending_ = true;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -210,6 +212,20 @@ void SequencerController<NumTracks, NumSteps>::notification(
     musin::timing::TempoEvent event) {
   if (!_running) {
     return;
+  }
+
+  // Apply pending swing changes on the downbeat to ensure timing stability
+  if (event.phase_24 == 0) { // Downbeat
+    if (swing_enabled_update_pending_.load(std::memory_order_relaxed)) {
+      swing_effect_.set_swing_enabled(
+          pending_swing_enabled_.load(std::memory_order_relaxed));
+      swing_enabled_update_pending_.store(false, std::memory_order_relaxed);
+    }
+    if (swing_target_update_pending_.load(std::memory_order_relaxed)) {
+      swing_effect_.set_swing_target(
+          pending_swing_target_delays_odd_.load(std::memory_order_relaxed));
+      swing_target_update_pending_.store(false, std::memory_order_relaxed);
+    }
   }
 
   // event.phase_24 is guaranteed in [0, PPQN-1] by TempoHandler

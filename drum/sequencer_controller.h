@@ -276,6 +276,11 @@ private:
   // Logger reference
   musin::Logger &logger_;
 
+  std::atomic<bool> swing_enabled_update_pending_{false};
+  std::atomic<bool> pending_swing_enabled_{false};
+  std::atomic<bool> swing_target_update_pending_{false};
+  std::atomic<bool> pending_swing_target_delays_odd_{false};
+
   void create_persistent_state(SequencerPersistentState &state) const;
   void apply_persistent_state(const SequencerPersistentState &state);
 

@@ -630,9 +630,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
             [track_idx][current_offset_index_per_track_[track_idx]];
       } else {
         // Calculate dynamic offset based on current step
-        offset = randomness_provider_.calculate_offset(
-            base_step_index, track_idx, num_steps,
-            static_cast<std::uint64_t>(current_step_counter.load()));
+        offset = randomness_provider_.calculate_offset(num_steps);
       }
 
       step_index_to_play_for_track = (base_step_index + offset) % num_steps;
@@ -852,8 +850,7 @@ void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode() {
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets_with_seed(
-            track_idx, num_steps, offset_generation_counter_);
+        randomness_provider_.generate_repeat_offsets_with_seed(num_steps);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -887,8 +884,7 @@ void SequencerController<NumTracks, NumSteps>::regenerate_random_offsets() {
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets_with_seed(
-            track_idx, num_steps, offset_generation_counter_);
+        randomness_provider_.generate_repeat_offsets_with_seed(num_steps);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }

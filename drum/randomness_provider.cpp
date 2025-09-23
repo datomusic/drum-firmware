@@ -4,10 +4,7 @@
 
 namespace drum {
 
-size_t RandomnessProvider::calculate_offset(
-    [[maybe_unused]] size_t base_step, [[maybe_unused]] size_t track_idx,
-    size_t num_steps,
-    [[maybe_unused]] std::uint64_t global_step_counter) const {
+size_t RandomnessProvider::calculate_offset(size_t num_steps) const {
   if (num_steps == 0) {
     return 0;
   }
@@ -16,8 +13,7 @@ size_t RandomnessProvider::calculate_offset(
 }
 
 etl::array<size_t, 3>
-RandomnessProvider::generate_repeat_offsets([[maybe_unused]] size_t track_idx,
-                                            size_t num_steps) const {
+RandomnessProvider::generate_repeat_offsets(size_t num_steps) const {
   etl::array<size_t, 3> offsets{};
 
   if (num_steps == 0) {
@@ -31,9 +27,8 @@ RandomnessProvider::generate_repeat_offsets([[maybe_unused]] size_t track_idx,
   return offsets;
 }
 
-etl::array<size_t, 3> RandomnessProvider::generate_repeat_offsets_with_seed(
-    [[maybe_unused]] size_t track_idx, size_t num_steps,
-    [[maybe_unused]] uint32_t seed_modifier) const {
+etl::array<size_t, 3>
+RandomnessProvider::generate_repeat_offsets_with_seed(size_t num_steps) const {
   etl::array<size_t, 3> offsets{};
 
   if (num_steps == 0) {
@@ -47,9 +42,7 @@ etl::array<size_t, 3> RandomnessProvider::generate_repeat_offsets_with_seed(
   return offsets;
 }
 
-bool RandomnessProvider::should_flip_step_probability(
-    [[maybe_unused]] size_t base_step, [[maybe_unused]] size_t track_idx,
-    float probability) const {
+bool RandomnessProvider::should_flip_step_probability(float probability) const {
   return (rand() % 100) < static_cast<int>(probability * 100.0f);
 }
 

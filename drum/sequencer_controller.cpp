@@ -674,7 +674,10 @@ void SequencerController<NumTracks, NumSteps>::update() {
   }
 
   // Advance random offset indices when REPEAT + RANDOM are both active
-  if (random_offset_mode_active_ && repeat_active_) {
+  // Only cycle through offsets for light press (mode 1), freeze on hard press
+  // (mode 2)
+  if (random_offset_mode_active_ && repeat_active_ &&
+      repeat_length_ == config::analog_controls::REPEAT_LENGTH_MODE_1) {
     for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
       current_offset_index_per_track_[track_idx] =
           (current_offset_index_per_track_[track_idx] + 1) % 3;

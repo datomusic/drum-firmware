@@ -35,8 +35,8 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     : sequencer_(main_sequencer_), current_step_counter{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
-      continuous_randomization_active_(false), _active_note_per_track{},
-      _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
+      _active_note_per_track{}, _pad_pressed_state{},
+      _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -154,7 +154,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
 
   deactivate_repeat();
-  stop_continuous_randomization();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
@@ -377,31 +376,12 @@ SequencerController<NumTracks, NumSteps>::get_repeat_length() const {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks,
-                         NumSteps>::start_continuous_randomization() {
-  continuous_randomization_active_ = true;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::stop_continuous_randomization() {
-  continuous_randomization_active_ = false;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-[[nodiscard]] bool
-SequencerController<NumTracks, NumSteps>::is_continuous_randomization_active()
-    const {
-  return continuous_randomization_active_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
   value = std::clamp(value, 0.0f, 1.0f);
 
   // Use main sequencer and disable random offset mode for low values
   if (value < 0.2f) {
     disable_random_offset_mode();
-    stop_continuous_randomization();
     return;
   }
 
@@ -658,12 +638,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
       trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
                       drum::config::drumpad::RETRIGGER_VELOCITY);
     }
-  }
-
-  // --- Random per-track-ahead logic ---
-  if (continuous_randomization_active_ && !repeat_active_) {
-    random_effect_.randomize_continuous_step(sequencer_, _active_note_per_track,
-                                             current_step_counter);
   }
 
   // Advance random offset indices when REPEAT + RANDOM are both active

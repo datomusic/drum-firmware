@@ -603,16 +603,13 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
         controls->_sequencer_controller_ref.start_random_step_highlighting();
       }
     } else if (event.state == musin::ui::PressureState::Released) {
-      // Button released: stop highlighting random steps and continuous
-      // randomization
+      // Button released: stop highlighting random steps
       if (!controls->is_running()) {
         controls->_sequencer_controller_ref.stop_random_step_highlighting();
       }
-      controls->_sequencer_controller_ref.stop_continuous_randomization();
     } else if (event.state == musin::ui::PressureState::HardPress &&
                event.previous_state == musin::ui::PressureState::LightPress) {
-      // Hard press: start continuous randomization
-      controls->_sequencer_controller_ref.start_continuous_randomization();
+      // Hard press: TODO - implement new behavior
     }
   } else if (event.button_id == REPEAT) {
     if (!controls->is_running()) {

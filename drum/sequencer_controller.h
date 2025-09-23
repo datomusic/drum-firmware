@@ -170,19 +170,7 @@ public:
    */
   [[nodiscard]] bool is_swing_enabled() const;
 
-  /**
-   * @brief Start continuous 4-steps-ahead randomization.
-   */
-  void start_continuous_randomization();
-
-  /**
-   * @brief Stop continuous 4-steps-ahead randomization.
-   */
-  void stop_continuous_randomization();
-
   void set_random(float value);
-
-  [[nodiscard]] bool is_continuous_randomization_active() const;
 
   void enable_random_offset_mode(float randomness_level);
   void disable_random_offset_mode();
@@ -277,7 +265,6 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  bool continuous_randomization_active_ = false;
   SequencerEffectRandom<NumTracks, NumSteps> random_effect_;
   SequencerEffectSwing swing_effect_;
 

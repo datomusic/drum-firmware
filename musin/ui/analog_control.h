@@ -36,9 +36,6 @@ public:
     _threshold = threshold;
   }
 
-  bool is_hard_pressed(float threshold = 0.8f) const;
-  float get_press_velocity() const;
-
 private:
   uint16_t _id;
   bool _invert_mapping;
@@ -49,7 +46,6 @@ private:
   float _threshold;
 
   float _last_notified_value = -1.0f;
-  float _last_change_velocity = 0.0f;
 };
 
 } // namespace musin::ui

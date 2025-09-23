@@ -55,23 +55,12 @@ bool AnalogControl::update(uint16_t raw_value) {
   }
 
   if (std::abs(value_to_check - _last_notified_value) > _threshold) {
-    // Calculate velocity of change for hard press detection
-    _last_change_velocity = std::abs(value_to_check - _last_notified_value);
-
     this->notify_observers(
         AnalogControlEvent{_id, value_to_check, _current_raw});
     _last_notified_value = value_to_check;
     return true;
   }
   return false;
-}
-
-bool AnalogControl::is_hard_pressed(float threshold) const {
-  return get_value() >= threshold && _last_change_velocity > 0.1f;
-}
-
-float AnalogControl::get_press_velocity() const {
-  return _last_change_velocity;
 }
 
 } // namespace musin::ui

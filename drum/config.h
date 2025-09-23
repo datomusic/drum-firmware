@@ -6,6 +6,11 @@
 #include <cstddef>
 #include <cstdint>
 
+// Forward declaration for pressure button config
+namespace musin::ui {
+struct PressureSensitiveButtonConfig;
+}
+
 namespace drum {
 namespace config {
 
@@ -197,6 +202,7 @@ constexpr float REPEAT_MODE2_EXIT_THRESHOLD = REPEAT_MODE_2_THRESHOLD - 0.05f;
 constexpr uint32_t REPEAT_RUNNING_DEBOUNCE_MS = 30;
 constexpr float MIN_BPM_ADJUST = 60.0f;
 constexpr float MAX_BPM_ADJUST = 360.0f;
+
 } // namespace analog_controls
 
 // Timing configuration (musical policies)

@@ -1,4 +1,5 @@
 #include "musin/timing/tempo_handler.h"
+#include "drum/config.h"
 #include "midi_Defs.h"
 #include "musin/midi/midi_wrapper.h"
 #include "musin/timing/clock_event.h"
@@ -46,6 +47,12 @@ void TempoHandler::set_clock_source(ClockSource source) {
 
   // Route raw 24 PPQN through ClockRouter
   _clock_router_ref.set_clock_source(current_source_);
+
+  // Re-evaluate tempo knob position for the new clock source
+  // This fixes issue #486: tempo knob position is now applied when switching
+  // sources
+  set_tempo_control_value(last_tempo_knob_value_);
+
   initialized_ = true;
 }
 
@@ -120,6 +127,28 @@ void TempoHandler::set_bpm(float bpm) {
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
   _speed_adapter_ref.set_modifier(modifier);
+}
+
+void TempoHandler::set_tempo_control_value(float knob_value) {
+  // Store the knob value for re-evaluation on clock source changes
+  last_tempo_knob_value_ = knob_value;
+
+  if (current_source_ == ClockSource::INTERNAL) {
+    // Internal clock: knob controls BPM
+    float bpm = drum::config::analog_controls::MIN_BPM_ADJUST +
+                knob_value * (drum::config::analog_controls::MAX_BPM_ADJUST -
+                              drum::config::analog_controls::MIN_BPM_ADJUST);
+    set_bpm(bpm);
+  } else {
+    // External clock: knob controls speed modifier
+    SpeedModifier modifier = SpeedModifier::NORMAL_SPEED;
+    if (knob_value < 0.1f) {
+      modifier = SpeedModifier::HALF_SPEED;
+    } else if (knob_value > 0.9f) {
+      modifier = SpeedModifier::DOUBLE_SPEED;
+    }
+    set_speed_modifier(modifier);
+  }
 }
 
 void TempoHandler::set_playback_state(PlaybackState new_state) {

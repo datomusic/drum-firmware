@@ -192,6 +192,12 @@ public:
   void trigger_random_hard_press_behavior();
   void trigger_random_steps_when_stopped();
 
+  void start_random_step_highlighting();
+  void stop_random_step_highlighting();
+  [[nodiscard]] bool are_random_steps_highlighted() const;
+  [[nodiscard]] size_t
+  get_highlighted_random_step_for_track(size_t track_idx) const;
+
   /**
    * @brief Sets the intended state of the repeat effect.
    * Compares the intended state with the current state and performs necessary
@@ -282,6 +288,12 @@ private:
   etl::array<size_t, NumTracks> current_offset_index_per_track_{};
   uint32_t offset_generation_counter_ = 0;
   RandomnessProvider randomness_provider_;
+
+  // Random step highlighting state (for display when stopped)
+  bool random_steps_highlighted_ = false;
+  etl::array<size_t, NumTracks> highlighted_random_steps_{};
+  size_t saved_current_step_ = 0;
+
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};

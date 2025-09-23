@@ -145,7 +145,14 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
           is_cursor_step = (step_idx == controller.get_current_step());
         }
       } else {
-        is_cursor_step = (step_idx == controller.get_current_step());
+        // When stopped: check if random steps are highlighted for this track
+        if (controller.are_random_steps_highlighted()) {
+          size_t random_step =
+              controller.get_highlighted_random_step_for_track(track_idx);
+          is_cursor_step = (step_idx == random_step);
+        } else {
+          is_cursor_step = (step_idx == controller.get_current_step());
+        }
       }
 
       if (is_cursor_step) {

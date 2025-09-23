@@ -931,11 +931,14 @@ void SequencerController<NumTracks,
     return; // Only trigger when stopped
   }
 
-  // Play random steps on all tracks
+  // Play random steps on all tracks and store them for highlighting
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     uint32_t random_value = rand();
     size_t random_step_index = random_value % num_steps;
+
+    // Store the random step for highlighting
+    highlighted_random_steps_[track_idx] = random_step_index;
 
     auto &track = main_sequencer_.get_track(track_idx);
     auto &step = track.get_step(random_step_index);
@@ -948,6 +951,43 @@ void SequencerController<NumTracks,
       this->notify_observers(note_on_event);
     }
   }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks,
+                         NumSteps>::start_random_step_highlighting() {
+  if (is_running()) {
+    return; // Only highlight when stopped
+  }
+
+  // Save current step so we can restore it later
+  saved_current_step_ = get_current_step();
+  random_steps_highlighted_ = true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::stop_random_step_highlighting() {
+  if (random_steps_highlighted_) {
+    random_steps_highlighted_ = false;
+    // Note: We don't restore the current step since it's calculated from
+    // current_step_counter The saved step is only used for display purposes
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] bool
+SequencerController<NumTracks, NumSteps>::are_random_steps_highlighted() const {
+  return random_steps_highlighted_;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+[[nodiscard]] size_t
+SequencerController<NumTracks, NumSteps>::get_highlighted_random_step_for_track(
+    size_t track_idx) const {
+  if (track_idx < NumTracks && random_steps_highlighted_) {
+    return highlighted_random_steps_[track_idx];
+  }
+  return saved_current_step_; // Fallback to saved current step
 }
 
 template class SequencerController<config::NUM_TRACKS,

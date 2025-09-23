@@ -600,6 +600,12 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
             .trigger_random_hard_press_behavior();
       } else {
         controls->_sequencer_controller_ref.trigger_random_steps_when_stopped();
+        controls->_sequencer_controller_ref.start_random_step_highlighting();
+      }
+    } else if (event.state == musin::ui::PressureState::Released) {
+      // Button released: stop highlighting random steps
+      if (!controls->is_running()) {
+        controls->_sequencer_controller_ref.stop_random_step_highlighting();
       }
     } else if (event.state == musin::ui::PressureState::HardPress &&
                event.previous_state == musin::ui::PressureState::LightPress) {

@@ -2,7 +2,6 @@
 #define DRUM_SEQUENCER_EFFECT_RANDOM_H
 
 #include "etl/array.h"
-#include "randomness_provider.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -46,7 +45,9 @@ private:
   static constexpr size_t MAX_TRACKS = 4;
   static constexpr size_t MAX_OFFSETS_PER_TRACK = 3;
 
-  RandomnessProvider randomness_provider_;
+  size_t calculate_offset(size_t num_steps) const;
+  etl::array<size_t, MAX_OFFSETS_PER_TRACK>
+  generate_repeat_offsets(size_t num_steps) const;
 
   bool random_offset_mode_active_{false};
   bool random_probability_active_{false};

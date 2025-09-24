@@ -33,7 +33,7 @@ SequencerEffectRandom::calculate_randomized_step(
           random_offsets_per_track_[track_idx]
                                    [current_offset_index_per_track_[track_idx]];
     } else {
-      offset = randomness_provider_.calculate_offset(num_steps);
+      offset = calculate_offset(num_steps);
     }
 
     result.effective_step_index = (base_step_index + offset) % num_steps;
@@ -88,8 +88,7 @@ void SequencerEffectRandom::regenerate_offsets(size_t num_steps,
 
   const size_t tracks_to_generate = std::min(num_tracks, MAX_TRACKS);
   for (size_t track_idx = 0; track_idx < tracks_to_generate; ++track_idx) {
-    random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets(num_steps);
+    random_offsets_per_track_[track_idx] = generate_repeat_offsets(num_steps);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -136,6 +135,29 @@ void SequencerEffectRandom::stop_step_highlighting() {
   if (random_steps_highlighted_) {
     random_steps_highlighted_ = false;
   }
+}
+
+size_t SequencerEffectRandom::calculate_offset(size_t num_steps) const {
+  if (num_steps == 0) {
+    return 0;
+  }
+
+  return rand() % num_steps;
+}
+
+etl::array<size_t, SequencerEffectRandom::MAX_OFFSETS_PER_TRACK>
+SequencerEffectRandom::generate_repeat_offsets(size_t num_steps) const {
+  etl::array<size_t, MAX_OFFSETS_PER_TRACK> offsets{};
+
+  if (num_steps == 0) {
+    return offsets;
+  }
+
+  for (size_t i = 0; i < MAX_OFFSETS_PER_TRACK; ++i) {
+    offsets[i] = rand() % num_steps;
+  }
+
+  return offsets;
 }
 
 } // namespace drum

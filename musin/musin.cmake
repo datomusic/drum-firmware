@@ -220,6 +220,7 @@ macro(musin_setup_ui_target)
         ${MUSIN_UI}/adaptive_filter.cpp
         ${MUSIN_UI}/analog_control.cpp
         ${MUSIN_UI}/button.cpp
+        ${MUSIN_UI}/pressure_sensitive_button.cpp
         ${MUSIN_UI}/drumpad.cpp
     )
 

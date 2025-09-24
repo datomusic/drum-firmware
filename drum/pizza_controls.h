@@ -8,6 +8,7 @@
 #include "musin/ui/analog_control.h"
 #include "musin/ui/drumpad.h"
 #include "musin/ui/keypad_hc138.h"
+#include "musin/ui/pressure_sensitive_button.h"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -196,6 +197,18 @@ public:
       void notification(musin::ui::AnalogControlEvent event);
     };
 
+    struct PressureButtonEventHandler
+        : public etl::observer<musin::ui::PressureSensitiveButtonEvent> {
+      AnalogControlComponent *parent;
+      const uint16_t button_id;
+
+      constexpr PressureButtonEventHandler(AnalogControlComponent *p,
+                                           uint16_t id)
+          : parent(p), button_id(id) {
+      }
+      void notification(musin::ui::PressureSensitiveButtonEvent event);
+    };
+
     PizzaControls *parent_controls;
     etl::array<musin::ui::AnalogControl, config::NUM_ANALOG_MUX_CONTROLS>
         mux_controls;
@@ -209,18 +222,14 @@ public:
     absolute_time_t last_smoothing_time_ = nil_time;
     bool filter_smoothing_enabled_ = false; // Enable after first FILTER event
 
-    // Edge detection for REPEAT one-shot when stopped
-    bool repeat_pressed_edge_ = false;
-    absolute_time_t repeat_last_transition_time_ = nil_time;
+    // Pressure-sensitive buttons for RANDOM and REPEAT
+    musin::ui::PressureSensitiveButton random_button_;
+    musin::ui::PressureSensitiveButton repeat_button_;
+    PressureButtonEventHandler random_button_observer_;
+    PressureButtonEventHandler repeat_button_observer_;
 
-    // Hysteresis state for REPEAT while running
-    enum class RepeatRunningState : uint8_t {
-      None = 0,
-      Mode1 = 1,
-      Mode2 = 2
-    };
-    RepeatRunningState repeat_running_state_ = RepeatRunningState::None;
-    absolute_time_t repeat_running_last_transition_time_ = nil_time;
+    // Context state for REPEAT button behavior
+    bool repeat_stopped_mode_active_ = false;
   };
 
 private:

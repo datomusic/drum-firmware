@@ -14,6 +14,27 @@
 #include <cstddef>
 #include <cstdio>
 
+// Pressure-sensitive button configurations
+namespace {
+constexpr musin::ui::PressureSensitiveButtonConfig RANDOM_BUTTON_CONFIG = {
+    .light_press_threshold = 0.2f,
+    .hard_press_threshold = 0.7f,
+    .light_release_threshold = 0.15f,
+    .hard_release_threshold = 0.65f,
+    .debounce_ms = 30};
+
+constexpr musin::ui::PressureSensitiveButtonConfig REPEAT_BUTTON_CONFIG = {
+    .light_press_threshold =
+        drum::config::analog_controls::REPEAT_MODE_1_THRESHOLD,
+    .hard_press_threshold =
+        drum::config::analog_controls::REPEAT_MODE_2_THRESHOLD,
+    .light_release_threshold =
+        drum::config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD,
+    .hard_release_threshold =
+        drum::config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD,
+    .debounce_ms = drum::config::analog_controls::REPEAT_RUNNING_DEBOUNCE_MS};
+} // namespace
+
 namespace drum {
 
 using musin::ui::AnalogControl;
@@ -372,7 +393,11 @@ PizzaControls::AnalogControlComponent::AnalogControlComponent(
                         AnalogControlEventHandler{this, CRUSH},
                         AnalogControlEventHandler{this, REPEAT},
                         AnalogControlEventHandler{this, SPEED},
-                        AnalogControlEventHandler{this, PITCH4}} {
+                        AnalogControlEventHandler{this, PITCH4}},
+      random_button_(RANDOM, RANDOM_BUTTON_CONFIG),
+      repeat_button_(REPEAT, REPEAT_BUTTON_CONFIG),
+      random_button_observer_(this, RANDOM),
+      repeat_button_observer_(this, REPEAT) {
 }
 
 void PizzaControls::AnalogControlComponent::init() {
@@ -408,6 +433,10 @@ void PizzaControls::AnalogControlComponent::init() {
     mux_controls[i].add_observer(control_observers[i]);
   }
 
+  // Initialize pressure-sensitive buttons
+  random_button_.add_observer(random_button_observer_);
+  repeat_button_.add_observer(repeat_button_observer_);
+
   parent_controls->_logger_ref.info(
       "AnalogControlComponent: Initialization complete");
 }
@@ -418,6 +447,14 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
     uint16_t raw_value =
         parent_controls->_scanner.get_raw_value(control.get_id());
     control.update(raw_value);
+
+    // Update pressure-sensitive buttons for RANDOM and REPEAT
+    if (control.get_id() == RANDOM) {
+      random_button_.update(control.get_value(), now);
+    } else if (control.get_id() == REPEAT) {
+      repeat_button_.update(control.get_value(), now);
+    }
+
     _next_analog_control_to_update_idx =
         (_next_analog_control_to_update_idx + 1) % mux_controls.size();
   }
@@ -446,9 +483,8 @@ void PizzaControls::AnalogControlComponent::update(absolute_time_t now) {
 }
 
 void PizzaControls::AnalogControlComponent::reset_repeat_state() {
-  // Clear running repeat state and timing so next engagement starts fresh
-  repeat_running_state_ = RepeatRunningState::None;
-  repeat_running_last_transition_time_ = nil_time;
+  // Clear repeat button state when transitioning from running to stopped
+  repeat_stopped_mode_active_ = false;
   // Also ensure the engine isn't left with an active repeat intention
   parent_controls->_sequencer_controller_ref.set_intended_repeat_state(
       std::nullopt);
@@ -474,11 +510,11 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::FILTER_RESONANCE, (1.0f - value));
     break;
-  case RANDOM: {
-    controls->_sequencer_controller_ref.set_random(value);
+  case RANDOM:
+    // This is now handled by the pressure-sensitive button logic
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::RANDOM_EFFECT, value, 0);
-  } break;
+    break;
   case VOLUME:
     parent_controls->_message_router_ref.set_parameter(drum::Parameter::VOLUME,
                                                        value);
@@ -501,100 +537,10 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::CRUSH_EFFECT, value);
     break;
-  case REPEAT: {
-    // When stopped: treat REPEAT as one-shot advance & play
-    if (!controls->is_running()) {
-      const absolute_time_t now = get_absolute_time();
-      const uint32_t debounce_us =
-          config::analog_controls::REPEAT_EDGE_DEBOUNCE_MS * 1000u;
-      const bool debounce_ok =
-          is_nil_time(repeat_last_transition_time_) ||
-          absolute_time_diff_us(repeat_last_transition_time_, now) >=
-              static_cast<int64_t>(debounce_us);
-
-      if (!repeat_pressed_edge_) {
-        // Currently released: require ON threshold to trigger press
-        if (debounce_ok &&
-            value >= config::analog_controls::REPEAT_EDGE_ON_THRESHOLD) {
-          repeat_pressed_edge_ = true;
-          repeat_last_transition_time_ = now;
-          controls->_sequencer_controller_ref.advance_step();
-        }
-      } else {
-        // Currently pressed: require OFF threshold to release
-        if (debounce_ok &&
-            value <= config::analog_controls::REPEAT_EDGE_OFF_THRESHOLD) {
-          repeat_pressed_edge_ = false;
-          repeat_last_transition_time_ = now;
-        }
-      }
-      // Do not modify repeat effect state while stopped
-      return;
-    }
-
-    // Running: hysteresis-based repeat mode selection with selective debounce
-    {
-      const absolute_time_t now = get_absolute_time();
-      const uint32_t debounce_us =
-          config::analog_controls::REPEAT_RUNNING_DEBOUNCE_MS * 1000u;
-      const bool debounce_ok =
-          is_nil_time(repeat_running_last_transition_time_) ||
-          absolute_time_diff_us(repeat_running_last_transition_time_, now) >=
-              static_cast<int64_t>(debounce_us);
-
-      switch (repeat_running_state_) {
-      case RepeatRunningState::None:
-        // Upward transitions only (debounced)
-        if (debounce_ok &&
-            value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
-          repeat_running_state_ = RepeatRunningState::Mode2;
-          repeat_running_last_transition_time_ = now;
-        } else if (debounce_ok &&
-                   value >=
-                       config::analog_controls::REPEAT_MODE1_ENTER_THRESHOLD) {
-          repeat_running_state_ = RepeatRunningState::Mode1;
-          repeat_running_last_transition_time_ = now;
-        }
-        break;
-      case RepeatRunningState::Mode1:
-        // Upward transition debounced; exit is immediate (hysteresis handles
-        // noise)
-        if (debounce_ok &&
-            value >= config::analog_controls::REPEAT_MODE2_ENTER_THRESHOLD) {
-          repeat_running_state_ = RepeatRunningState::Mode2;
-          repeat_running_last_transition_time_ = now;
-        } else if (value <=
-                   config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
-          repeat_running_state_ = RepeatRunningState::None;
-          repeat_running_last_transition_time_ = now;
-        }
-        break;
-      case RepeatRunningState::Mode2:
-        // Allow collapsing directly to None if released far enough
-        if (value <= config::analog_controls::REPEAT_MODE1_EXIT_THRESHOLD) {
-          repeat_running_state_ = RepeatRunningState::None;
-          repeat_running_last_transition_time_ = now;
-        } else if (value <=
-                   config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD) {
-          // Drop to Mode1 on falling below Mode2 exit threshold
-          repeat_running_state_ = RepeatRunningState::Mode1;
-          repeat_running_last_transition_time_ = now;
-        }
-        break;
-      }
-    }
-
-    std::optional<uint32_t> intended_length = std::nullopt;
-    if (repeat_running_state_ == RepeatRunningState::Mode2) {
-      intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
-    } else if (repeat_running_state_ == RepeatRunningState::Mode1) {
-      intended_length = config::analog_controls::REPEAT_LENGTH_MODE_1;
-    }
-    controls->_sequencer_controller_ref.set_intended_repeat_state(
-        intended_length);
+  case REPEAT:
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::REPEAT_EFFECT, value);
-  } break;
+    break;
   case PITCH1:
     parent_controls->_message_router_ref.set_parameter(drum::Parameter::PITCH,
                                                        value, 0);
@@ -624,6 +570,66 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
 void PizzaControls::AnalogControlComponent::AnalogControlEventHandler::
     notification(musin::ui::AnalogControlEvent event) {
   parent->handle_control_change(event.control_id, event.value);
+}
+
+void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
+    notification(musin::ui::PressureSensitiveButtonEvent event) {
+  PizzaControls *controls = parent->parent_controls;
+
+  if (event.button_id == RANDOM) {
+    if (event.state == musin::ui::PressureState::LightPress &&
+        event.previous_state == musin::ui::PressureState::Released) {
+      // Light press: light random behavior (offset only)
+      if (controls->is_running()) {
+        if (controls->_sequencer_controller_ref
+                .is_random_offset_mode_active()) {
+          controls->_sequencer_controller_ref.regenerate_random_offsets();
+        } else {
+          controls->_sequencer_controller_ref.enable_random_offset_mode();
+        }
+      } else {
+        controls->_sequencer_controller_ref.trigger_random_steps_when_stopped();
+        controls->_sequencer_controller_ref.start_random_step_highlighting();
+      }
+    } else if (event.state == musin::ui::PressureState::Released) {
+      // Button released: stop highlighting random steps and probability mode
+      if (!controls->is_running()) {
+        controls->_sequencer_controller_ref.stop_random_step_highlighting();
+      } else {
+        // Turn off probability flipping when button is released while running
+        controls->_sequencer_controller_ref.disable_random_probability_mode();
+        controls->_sequencer_controller_ref.disable_random_offset_mode();
+      }
+    } else if (event.state == musin::ui::PressureState::HardPress &&
+               event.previous_state == musin::ui::PressureState::LightPress) {
+      // Hard press: add probability behavior on top of offset behavior
+      if (controls->is_running()) {
+        controls->_sequencer_controller_ref
+            .trigger_random_hard_press_behavior();
+      }
+    }
+  } else if (event.button_id == REPEAT) {
+    if (!controls->is_running()) {
+      // When stopped: light press advances step
+      if (event.state == musin::ui::PressureState::LightPress &&
+          event.previous_state == musin::ui::PressureState::Released) {
+        controls->_sequencer_controller_ref.advance_step();
+        parent->repeat_stopped_mode_active_ = true;
+      } else if (event.state == musin::ui::PressureState::Released) {
+        parent->repeat_stopped_mode_active_ = false;
+      }
+    } else {
+      // When running: set repeat mode based on pressure state
+      std::optional<uint32_t> intended_length = std::nullopt;
+      if (event.state == musin::ui::PressureState::HardPress) {
+        intended_length = config::analog_controls::REPEAT_LENGTH_MODE_2;
+      } else if (event.state == musin::ui::PressureState::LightPress) {
+        intended_length = config::analog_controls::REPEAT_LENGTH_MODE_1;
+      }
+      controls->_sequencer_controller_ref.set_intended_repeat_state(
+          intended_length);
+    }
+  }
 }
 
 // --- PlaybuttonComponent ---

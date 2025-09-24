@@ -169,19 +169,22 @@ public:
    */
   [[nodiscard]] bool is_swing_enabled() const;
 
-  /**
-   * @brief Start continuous 4-steps-ahead randomization.
-   */
-  void start_continuous_randomization();
-
-  /**
-   * @brief Stop continuous 4-steps-ahead randomization.
-   */
-  void stop_continuous_randomization();
-
   void set_random(float value);
 
-  [[nodiscard]] bool is_continuous_randomization_active() const;
+  void enable_random_offset_mode();
+  void disable_random_offset_mode();
+  [[nodiscard]] bool is_random_offset_mode_active() const;
+  void regenerate_random_offsets();
+
+  void trigger_random_hard_press_behavior();
+  void disable_random_probability_mode();
+  void trigger_random_steps_when_stopped();
+
+  void start_random_step_highlighting();
+  void stop_random_step_highlighting();
+  [[nodiscard]] bool are_random_steps_highlighted() const;
+  [[nodiscard]] size_t
+  get_highlighted_random_step_for_track(size_t track_idx) const;
 
   /**
    * @brief Sets the intended state of the repeat effect.
@@ -262,9 +265,9 @@ private:
   uint32_t repeat_activation_step_index_ = 0;
   uint64_t repeat_activation_step_counter_ = 0;
 
-  bool continuous_randomization_active_ = false;
-  SequencerEffectRandom<NumTracks, NumSteps> random_effect_;
   SequencerEffectSwing swing_effect_;
+  SequencerEffectRandom random_effect_;
+
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};
@@ -312,16 +315,6 @@ public:
    * @brief Copy the main pattern to the random pattern.
    */
   void copy_to_random();
-
-  /**
-   * @brief Set the main sequencer as active.
-   */
-  void set_main_active();
-
-  /**
-   * @brief Set the random sequencer as active.
-   */
-  void select_random_sequencer();
 
   /**
    * @brief Save the current sequencer state to persistent storage.

@@ -861,6 +861,7 @@ void SequencerController<NumTracks,
   // Generate random steps and store them for highlighting
   const size_t num_steps = main_sequencer_.get_num_steps();
   random_effect_.trigger_step_highlighting(num_steps, NumTracks);
+  random_effect_.start_step_highlighting();
 
   // Play the generated random steps
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {

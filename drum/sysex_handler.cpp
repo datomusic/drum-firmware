@@ -18,18 +18,49 @@ SysExHandler::SysExHandler(ConfigurationManager &config_manager,
 void SysExHandler::update(absolute_time_t now) {
   protocol_.check_timeout(now);
   bool current_busy_state = is_busy();
+
+  // Get current sample slot if SDS transfer is active
+  std::optional<uint8_t> current_sample_slot;
+  if (sds_protocol_.is_busy()) {
+    auto sample_number_opt = sds_protocol_.get_current_sample_number();
+    if (sample_number_opt.has_value()) {
+      uint16_t sample_number = sample_number_opt.value();
+      // Ensure sample number is in valid range (30-61)
+      if (sample_number >= 30 && sample_number <= 61) {
+        current_sample_slot = static_cast<uint8_t>(sample_number);
+      }
+    }
+  }
+
+  // Check for state changes or sample slot changes
+  bool should_notify = false;
+  drum::Events::SysExTransferStateChangeEvent event{
+      .is_active = current_busy_state,
+      .current_sample_slot = current_sample_slot};
+
   if (current_busy_state != was_busy_) {
+    should_notify = true;
     if (current_busy_state) {
       logger_.info("SysEx file transfer started.");
-      drum::Events::SysExTransferStateChangeEvent event{.is_active = true};
-      this->notify_observers(event);
     } else {
       logger_.info("SysEx file transfer finished.");
-      drum::Events::SysExTransferStateChangeEvent event{.is_active = false};
-      this->notify_observers(event);
+      last_sample_slot_.reset();
     }
     was_busy_ = current_busy_state;
+  } else if (current_sample_slot != last_sample_slot_ && current_busy_state) {
+    // Sample slot changed during active transfer
+    should_notify = true;
+    if (current_sample_slot.has_value()) {
+      logger_.info("SDS: Sample slot changed to:",
+                   static_cast<uint32_t>(current_sample_slot.value()));
+    }
   }
+
+  if (should_notify) {
+    this->notify_observers(event);
+  }
+
+  last_sample_slot_ = current_sample_slot;
 
   if (new_file_received_) {
     logger_.info("SysExHandler: New file received, reloading configuration.");
@@ -45,9 +76,6 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   // Check if this is an SDS message (starts with 0x7E)
   if (chunk.size() >= 3 && chunk[0] == 0x7E && chunk[1] == 0x65) {
     // SDS message - route to SDS protocol
-    logger_.info("SDS message detected, routing to SDS protocol");
-    logger_.info("SDS message type:", static_cast<uint32_t>(chunk[2]));
-
     auto sds_sender = [this](sds::MessageType type, uint8_t packet_num) {
       uint8_t msg[] = {0xF0,       0x7E, 0x65, static_cast<uint8_t>(type),
                        packet_num, 0xF7};

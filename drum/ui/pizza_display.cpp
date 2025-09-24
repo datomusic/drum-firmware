@@ -43,7 +43,11 @@ void PizzaDisplay::notification(musin::timing::TempoEvent event) {
 }
 
 void PizzaDisplay::notification(
-    [[maybe_unused]] drum::Events::SysExTransferStateChangeEvent event) {
+    drum::Events::SysExTransferStateChangeEvent event) {
+  // Update file transfer mode with current sample slot if provided
+  if (event.current_sample_slot.has_value()) {
+    transfer_mode_.set_current_sample_slot(event.current_sample_slot.value());
+  }
 }
 
 void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {

@@ -55,10 +55,12 @@ class FileTransferDisplayMode : public DisplayMode {
 public:
   void draw(PizzaDisplay &display, absolute_time_t now) override;
   void on_enter(PizzaDisplay &display) override;
+  void set_current_sample_slot(uint8_t sample_slot);
 
 private:
   absolute_time_t _last_update_time = nil_time;
   uint8_t _chaser_position = 0;
+  uint8_t _current_sample_slot = 30;
 };
 
 // --- Concrete Strategy for Boot Animation ---

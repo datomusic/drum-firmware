@@ -327,15 +327,43 @@ void FileTransferDisplayMode::on_enter(PizzaDisplay &display) {
   display.clear();
   _chaser_position = 0;
   _last_update_time = nil_time;
+  _current_sample_slot = 30;
+}
+
+void FileTransferDisplayMode::set_current_sample_slot(uint8_t sample_slot) {
+  _current_sample_slot = sample_slot;
 }
 
 void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   display.clear();
-  // Flash the play button green
+
   uint32_t time_ms = to_ms_since_boot(now);
-  Color pulse_color =
-      (time_ms / 250) % 2 == 0 ? PizzaDisplay::COLOR_GREEN : Color(0);
+  bool blink_on = (time_ms / 250) % 2 == 0;
+
+  // Flash the play button green
+  Color pulse_color = blink_on ? PizzaDisplay::COLOR_GREEN : Color(0);
   display.set_play_button_led(pulse_color);
+
+  // Show current sample slot being transferred
+  if (_current_sample_slot >= 30 && _current_sample_slot <= 61) {
+    uint8_t slot_offset = _current_sample_slot - 30;
+    uint8_t track_idx = slot_offset / 8;
+    uint8_t step_idx = slot_offset % 8;
+
+    // Get color from global note definitions
+    Color slot_color(config::global_note_definitions[slot_offset].color);
+
+    // Apply blinking effect
+    Color final_color = blink_on ? slot_color : Color(0);
+
+    std::optional<uint32_t> led_index_opt =
+        display.get_sequencer_led_index(track_idx, step_idx);
+
+    if (led_index_opt.has_value()) {
+      display._leds.set_pixel(led_index_opt.value(),
+                              static_cast<uint32_t>(final_color));
+    }
+  }
 }
 
 // --- BootAnimationMode Implementation ---

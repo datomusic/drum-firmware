@@ -82,7 +82,7 @@ template <typename FileOperations> class Protocol {
 public:
   constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
       : file_ops_(file_ops), logger_(logger), state_(State::Idle),
-        expected_packet_num_(0), bytes_received_(0) {
+        expected_packet_num_(0), bytes_received_(0), current_sample_{} {
   }
 
   // Process incoming SDS message
@@ -115,6 +115,13 @@ public:
   }
   constexpr bool is_busy() const {
     return state_ != State::Idle;
+  }
+  constexpr etl::optional<uint16_t> get_current_sample_number() const {
+    // Only return valid sample number if we're receiving data (after dump
+    // header)
+    return (state_ == State::ReceivingData)
+               ? etl::optional<uint16_t>{current_sample_.sample_number}
+               : etl::nullopt;
   }
 
 private:

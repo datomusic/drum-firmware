@@ -33,7 +33,15 @@ void SyncOut::notification(musin::timing::ClockEvent event) {
   }
 
   if (event.is_resync) {
-    reset_counters();
+    if (_pulse_active) {
+      if (_pulse_alarm_id > 0) {
+        cancel_alarm(_pulse_alarm_id);
+        _pulse_alarm_id = 0;
+      }
+      trigger_pulse_off();
+    }
+    // Treat the resync tick as an immediate downbeat pulse
+    _ticks_until_pulse = 0;
   }
 
   // Countdown raw 24 PPQN ticks and pulse when reaching zero

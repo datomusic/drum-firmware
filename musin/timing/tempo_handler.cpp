@@ -187,26 +187,23 @@ void TempoHandler::update() {
 }
 
 void TempoHandler::trigger_manual_sync() {
-  // Trigger sync out resync if configured to do so
-  if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-    _clock_router_ref.trigger_resync();
-  }
-
   switch (current_source_) {
   case ClockSource::INTERNAL:
-    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      // Immediate resync for VOLCA behavior
-      tick_count_++;
-      phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
-      musin::timing::TempoEvent resync_tempo_event{
-          .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
-      notify_observers(resync_tempo_event);
-      // Reset internal clock timing to avoid conflict with next scheduled tick
-      _internal_clock_ref.resync();
+    if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      break;
     }
-    // Otherwise no-op for internal clock; phase advances locally.
+
+    // Reset internal clock timing so the next automatic tick lands one
+    // interval after the manual downbeat we emit below.
+    _internal_clock_ref.resync();
+
+    // Emit an immediate downbeat tick so sequencer + sync out align.
+    _clock_router_ref.emit_manual_tick(true);
     break;
   case ClockSource::MIDI:
+    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      _clock_router_ref.trigger_resync();
+    }
     // Attempt look-behind: if the press is shortly after a MIDI tick, treat
     // that last tick as the anchor boundary (0/12). Otherwise, defer to the
     // next tick.
@@ -251,6 +248,9 @@ void TempoHandler::trigger_manual_sync() {
     }
     break;
   case ClockSource::EXTERNAL_SYNC:
+    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      _clock_router_ref.trigger_resync();
+    }
     // Immediate resync for SyncIn
     phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
     musin::timing::TempoEvent resync_tempo_event{

@@ -81,4 +81,14 @@ void ClockRouter::trigger_resync() {
   notify_observers(resync_event);
 }
 
+void ClockRouter::emit_manual_tick(bool is_resync, uint8_t anchor_phase) {
+  musin::timing::ClockEvent tick_event{current_source_};
+  tick_event.is_resync = is_resync;
+  tick_event.is_physical_pulse = false;
+  tick_event.anchor_to_phase = anchor_phase;
+  tick_event.timestamp_us =
+      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+  notify_observers(tick_event);
+}
+
 } // namespace musin::timing

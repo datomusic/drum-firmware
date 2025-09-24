@@ -221,7 +221,7 @@ constexpr uint8_t RETRIGGER_DIVISOR_FOR_DOUBLE_MODE = 2;
 }
 
 constexpr size_t MAX_NOTE_EVENT_OBSERVERS = 4;
-constexpr size_t MAX_SYSEX_EVENT_OBSERVERS = 4;
+constexpr size_t MAX_SYSEX_EVENT_OBSERVERS = 6;
 
 // MessageRouter debounce configuration
 namespace message_router {

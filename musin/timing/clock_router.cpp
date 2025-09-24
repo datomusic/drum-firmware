@@ -72,4 +72,13 @@ void ClockRouter::attach_source(ClockSource source) {
   }
 }
 
+void ClockRouter::trigger_resync() {
+  musin::timing::ClockEvent resync_event{current_source_};
+  resync_event.is_resync = true;
+  resync_event.is_physical_pulse = false;
+  resync_event.timestamp_us =
+      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+  notify_observers(resync_event);
+}
+
 } // namespace musin::timing

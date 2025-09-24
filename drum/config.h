@@ -30,6 +30,7 @@ constexpr uint8_t MIDI_OUT_CHANNEL =
     10; // Output MIDI Channel (GM Percussion Standard)
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = true;
 constexpr bool SEND_SYNC_CLOCK_WHEN_STOPPED_AS_MASTER = true;
+constexpr bool RETRIGGER_SYNC_ON_PLAYBUTTON = true;
 constexpr bool IGNORE_MIDI_NOTE_OFF = true;
 constexpr uint32_t COLOR_MIDI_CLOCK_LISTENER = 0xFFD700; // Gold
 

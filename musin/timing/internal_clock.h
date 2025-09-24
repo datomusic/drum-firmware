@@ -73,6 +73,13 @@ public:
    */
   void update(absolute_time_t now);
 
+  /**
+   * @brief Reset the clock timing to align with current time.
+   * This should be called when manually injecting ticks to avoid timing
+   * conflicts.
+   */
+  void resync();
+
 private:
   /**
    * @brief Calculate the timer interval in microseconds for a given BPM and

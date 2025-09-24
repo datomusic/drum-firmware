@@ -34,6 +34,11 @@ public:
   // From selected upstream source
   void notification(musin::timing::ClockEvent event) override;
 
+  /**
+   * @brief Trigger a manual resync event to all observers.
+   */
+  void trigger_resync();
+
 private:
   void detach_current_source();
   void attach_source(ClockSource source);

@@ -101,7 +101,7 @@ void SequencerController<NumTracks, NumSteps>::process_track_step(
   uint8_t effective_velocity = step.velocity.value_or(0);
 
   // Apply probability flip for hard press random mode
-  if (random_probability_active_) {
+  if (random_effect_.is_probability_mode_enabled()) {
     // 50% chance of flipping any step's enabled state using lowest bit
     if (rand() & 1) {
       actually_enabled = !actually_enabled;
@@ -389,24 +389,11 @@ SequencerController<NumTracks, NumSteps>::get_repeat_length() const {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::set_random(float value) {
-  value = std::clamp(value, 0.0f, 1.0f);
-
-  // Use main sequencer and disable random offset mode for low values
-  if (value < 0.2f) {
-    disable_random_offset_mode();
-    return;
+  random_effect_.set_random_intensity(value);
+  if (value >= 0.2f) {
+    random_effect_.regenerate_offsets(sequencer_.get().get_num_steps(),
+                                      NumTracks);
   }
-
-  // Enable random offset mode for values >= 0.2 (light press behavior)
-  if (!random_offset_mode_active_) {
-    enable_random_offset_mode();
-  }
-
-  // Note: random_probability_active_ is controlled by pressure-sensitive button
-  // events Don't reset it here as it would cancel hard press behavior
-
-  // Always regenerate new random offsets when RANDOM is engaged
-  regenerate_random_offsets();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -618,24 +605,13 @@ void SequencerController<NumTracks, NumSteps>::update() {
   size_t num_tracks = sequencer_.get().get_num_tracks();
 
   for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-    size_t step_index_to_play_for_track = base_step_index;
+    // Calculate randomized step using the effect
+    const size_t num_steps = sequencer_.get().get_num_steps();
+    auto randomized_step = random_effect_.calculate_randomized_step(
+        base_step_index, track_idx, num_steps, repeat_active_,
+        current_step_counter);
 
-    // Apply random offset if random offset mode is active
-    if (random_offset_mode_active_) {
-      const size_t num_steps = sequencer_.get().get_num_steps();
-      size_t offset = 0;
-
-      if (repeat_active_) {
-        // When REPEAT is active, cycle through the stored offsets
-        offset = random_offsets_per_track_
-            [track_idx][current_offset_index_per_track_[track_idx]];
-      } else {
-        // Calculate dynamic offset based on current step
-        offset = randomness_provider_.calculate_offset(num_steps);
-      }
-
-      step_index_to_play_for_track = (base_step_index + offset) % num_steps;
-    }
+    size_t step_index_to_play_for_track = randomized_step.effective_step_index;
 
     _just_played_step_per_track[track_idx] = step_index_to_play_for_track;
     process_track_step(track_idx, step_index_to_play_for_track);
@@ -653,12 +629,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
   // Advance random offset indices when REPEAT + RANDOM are both active
   // Only cycle through offsets for light press (mode 1), freeze on hard press
   // (mode 2)
-  if (random_offset_mode_active_ && repeat_active_ &&
-      repeat_length_ == config::analog_controls::REPEAT_LENGTH_MODE_1) {
-    for (size_t track_idx = 0; track_idx < num_tracks; ++track_idx) {
-      current_offset_index_per_track_[track_idx] =
-          (current_offset_index_per_track_[track_idx] + 1) % 3;
-    }
+  if (repeat_active_) {
+    random_effect_.advance_offset_indices(num_tracks, repeat_length_);
   }
 
   current_step_counter++;
@@ -839,70 +811,44 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode() {
-  random_offset_mode_active_ = true;
-
-  // Generate offsets for each track when offset mode is enabled
-  offset_generation_counter_++;
-  const size_t num_steps = main_sequencer_.get_num_steps();
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets(num_steps);
-    current_offset_index_per_track_[track_idx] = 0;
-  }
+  random_effect_.enable_offset_mode(true);
+  random_effect_.regenerate_offsets(main_sequencer_.get_num_steps(), NumTracks);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::disable_random_offset_mode() {
-  random_offset_mode_active_ = false;
-  random_probability_active_ = false;
-
-  // Reset offset indices
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    current_offset_index_per_track_[track_idx] = 0;
-  }
+  random_effect_.enable_offset_mode(false);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool
 SequencerController<NumTracks, NumSteps>::is_random_offset_mode_active() const {
-  return random_offset_mode_active_;
+  return random_effect_.is_offset_mode_enabled();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::regenerate_random_offsets() {
-  if (!random_offset_mode_active_) {
-    return;
-  }
-
-  // Increment counter to ensure different offsets each time
-  offset_generation_counter_++;
-
-  const size_t num_steps = main_sequencer_.get_num_steps();
-  for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets(num_steps);
-    current_offset_index_per_track_[track_idx] = 0;
-  }
+  random_effect_.regenerate_offsets(main_sequencer_.get_num_steps(), NumTracks);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks,
                          NumSteps>::trigger_random_hard_press_behavior() {
   // Do everything light press does: enable random offset mode
-  if (!random_offset_mode_active_) {
+  if (!random_effect_.is_offset_mode_enabled()) {
     enable_random_offset_mode();
   } else {
     regenerate_random_offsets();
   }
 
   // Additionally enable probability flipping for hard press
-  random_probability_active_ = true;
+  random_effect_.enable_probability_mode(true);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks,
                          NumSteps>::disable_random_probability_mode() {
-  random_probability_active_ = false;
+  random_effect_.enable_probability_mode(false);
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -912,15 +858,19 @@ void SequencerController<NumTracks,
     return; // Only trigger when stopped
   }
 
-  // Play random steps on all tracks and store them for highlighting
+  // Generate random steps and store them for highlighting
   const size_t num_steps = main_sequencer_.get_num_steps();
+  random_effect_.trigger_step_highlighting(num_steps, NumTracks);
+
+  // Play the generated random steps
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
-    uint32_t random_value = rand();
-    size_t random_step_index = random_value % num_steps;
+    auto random_step_opt =
+        random_effect_.get_highlighted_step_for_track(track_idx);
+    if (!random_step_opt.has_value()) {
+      continue;
+    }
 
-    // Store the random step for highlighting
-    highlighted_random_steps_[track_idx] = random_step_index;
-
+    size_t random_step_index = random_step_opt.value();
     auto &track = main_sequencer_.get_track(track_idx);
     auto &step = track.get_step(random_step_index);
 
@@ -941,34 +891,26 @@ void SequencerController<NumTracks,
     return; // Only highlight when stopped
   }
 
-  // Save current step so we can restore it later
-  saved_current_step_ = get_current_step();
-  random_steps_highlighted_ = true;
+  random_effect_.start_step_highlighting();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::stop_random_step_highlighting() {
-  if (random_steps_highlighted_) {
-    random_steps_highlighted_ = false;
-    // Note: We don't restore the current step since it's calculated from
-    // current_step_counter The saved step is only used for display purposes
-  }
+  random_effect_.stop_step_highlighting();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] bool
 SequencerController<NumTracks, NumSteps>::are_random_steps_highlighted() const {
-  return random_steps_highlighted_;
+  return random_effect_.are_steps_highlighted();
 }
 
 template <size_t NumTracks, size_t NumSteps>
 [[nodiscard]] size_t
 SequencerController<NumTracks, NumSteps>::get_highlighted_random_step_for_track(
     size_t track_idx) const {
-  if (track_idx < NumTracks && random_steps_highlighted_) {
-    return highlighted_random_steps_[track_idx];
-  }
-  return saved_current_step_; // Fallback to saved current step
+  auto step_opt = random_effect_.get_highlighted_step_for_track(track_idx);
+  return step_opt.value_or(get_current_step());
 }
 
 template class SequencerController<config::NUM_TRACKS,

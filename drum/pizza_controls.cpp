@@ -511,7 +511,7 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
         drum::Parameter::FILTER_RESONANCE, (1.0f - value));
     break;
   case RANDOM:
-    controls->_sequencer_controller_ref.set_random(value);
+    // This is now handled by the pressure-sensitive button logic
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::RANDOM_EFFECT, value, 0);
     break;
@@ -596,8 +596,12 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
         event.previous_state == musin::ui::PressureState::Released) {
       // Light press: light random behavior (offset only)
       if (controls->is_running()) {
-        controls->_sequencer_controller_ref.set_random(
-            1.0f); // Just needs to be >= 0.2f
+        if (controls->_sequencer_controller_ref
+                .is_random_offset_mode_active()) {
+          controls->_sequencer_controller_ref.regenerate_random_offsets();
+        } else {
+          controls->_sequencer_controller_ref.enable_random_offset_mode();
+        }
       } else {
         controls->_sequencer_controller_ref.trigger_random_steps_when_stopped();
         controls->_sequencer_controller_ref.start_random_step_highlighting();
@@ -609,6 +613,7 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
       } else {
         // Turn off probability flipping when button is released while running
         controls->_sequencer_controller_ref.disable_random_probability_mode();
+        controls->_sequencer_controller_ref.disable_random_offset_mode();
       }
     } else if (event.state == musin::ui::PressureState::HardPress &&
                event.previous_state == musin::ui::PressureState::LightPress) {

@@ -166,6 +166,8 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
 
   deactivate_repeat();
+  disable_random_offset_mode();
+  disable_random_probability_mode();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }

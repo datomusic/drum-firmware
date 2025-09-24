@@ -15,11 +15,6 @@ public:
 
   etl::array<size_t, 3> generate_repeat_offsets(size_t num_steps) const;
 
-  etl::array<size_t, 3>
-  generate_repeat_offsets_with_seed(size_t num_steps) const;
-
-  bool should_flip_step_probability(float probability = 0.5f) const;
-
 private:
   // All methods now use simple rand() calls
 };

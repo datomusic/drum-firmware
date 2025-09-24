@@ -27,23 +27,4 @@ RandomnessProvider::generate_repeat_offsets(size_t num_steps) const {
   return offsets;
 }
 
-etl::array<size_t, 3>
-RandomnessProvider::generate_repeat_offsets_with_seed(size_t num_steps) const {
-  etl::array<size_t, 3> offsets{};
-
-  if (num_steps == 0) {
-    return offsets;
-  }
-
-  for (size_t i = 0; i < 3; ++i) {
-    offsets[i] = rand() % num_steps;
-  }
-
-  return offsets;
-}
-
-bool RandomnessProvider::should_flip_step_probability(float probability) const {
-  return (rand() % 100) < static_cast<int>(probability * 100.0f);
-}
-
 } // namespace drum

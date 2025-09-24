@@ -177,6 +177,7 @@ public:
   void regenerate_random_offsets();
 
   void trigger_random_hard_press_behavior();
+  void disable_random_probability_mode();
   void trigger_random_steps_when_stopped();
 
   void start_random_step_highlighting();

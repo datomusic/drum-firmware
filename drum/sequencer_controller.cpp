@@ -402,8 +402,8 @@ void SequencerController<NumTracks, NumSteps>::set_random(float value) {
     enable_random_offset_mode();
   }
 
-  // Light press only enables offset mode, not probability mode
-  random_probability_active_ = false;
+  // Note: random_probability_active_ is controlled by pressure-sensitive button
+  // events Don't reset it here as it would cancel hard press behavior
 
   // Always regenerate new random offsets when RANDOM is engaged
   regenerate_random_offsets();
@@ -665,11 +665,6 @@ void SequencerController<NumTracks, NumSteps>::update() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::copy_to_random() {
-  random_sequencer_ = main_sequencer_;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::initialize_active_notes() {
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     if (track_idx < config::track_ranges.size()) {
@@ -851,7 +846,7 @@ void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode() {
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets_with_seed(num_steps);
+        randomness_provider_.generate_repeat_offsets(num_steps);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -885,7 +880,7 @@ void SequencerController<NumTracks, NumSteps>::regenerate_random_offsets() {
   const size_t num_steps = main_sequencer_.get_num_steps();
   for (size_t track_idx = 0; track_idx < NumTracks; ++track_idx) {
     random_offsets_per_track_[track_idx] =
-        randomness_provider_.generate_repeat_offsets_with_seed(num_steps);
+        randomness_provider_.generate_repeat_offsets(num_steps);
     current_offset_index_per_track_[track_idx] = 0;
   }
 }
@@ -902,6 +897,12 @@ void SequencerController<NumTracks,
 
   // Additionally enable probability flipping for hard press
   random_probability_active_ = true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks,
+                         NumSteps>::disable_random_probability_mode() {
+  random_probability_active_ = false;
 }
 
 template <size_t NumTracks, size_t NumSteps>

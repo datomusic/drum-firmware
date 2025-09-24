@@ -39,6 +39,15 @@ public:
    */
   void trigger_resync();
 
+  /**
+   * @brief Emit a synthetic tick to all observers using the active source.
+   * @param is_resync When true the tick is marked as a resync event.
+   * @param anchor_phase Optional phase anchor to forward with the tick.
+   */
+  void emit_manual_tick(
+      bool is_resync,
+      uint8_t anchor_phase = musin::timing::ClockEvent::ANCHOR_PHASE_NONE);
+
 private:
   void detach_current_source();
   void attach_source(ClockSource source);

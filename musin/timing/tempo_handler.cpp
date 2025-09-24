@@ -187,9 +187,24 @@ void TempoHandler::update() {
 }
 
 void TempoHandler::trigger_manual_sync() {
+  // Trigger sync out resync if configured to do so
+  if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+    _clock_router_ref.trigger_resync();
+  }
+
   switch (current_source_) {
   case ClockSource::INTERNAL:
-    // No-op for internal clock; phase advances locally.
+    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      // Immediate resync for VOLCA behavior
+      tick_count_++;
+      phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
+      musin::timing::TempoEvent resync_tempo_event{
+          .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+      notify_observers(resync_tempo_event);
+      // Reset internal clock timing to avoid conflict with next scheduled tick
+      _internal_clock_ref.resync();
+    }
+    // Otherwise no-op for internal clock; phase advances locally.
     break;
   case ClockSource::MIDI:
     // Attempt look-behind: if the press is shortly after a MIDI tick, treat

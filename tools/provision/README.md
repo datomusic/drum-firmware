@@ -5,7 +5,7 @@ TypeScript tool for automating the manufacturing flow of blank RP2350 devices. H
 ## Prerequisites
 
 ### System Requirements
-- **macOS host** (uses macOS-specific USB detection)
+- **Cross-platform** (macOS, Linux, Windows experimental)
 - **Node.js 18+** and **npm** in `$PATH`
 - **picotool** in `$PATH` for RP2350 operations
 - **TypeScript** for building (installed via npm)
@@ -72,3 +72,4 @@ The process takes 2-3 minutes and reboots the device several times. Exit codes i
 - **Permission errors**: Check that `picotool` has proper USB access
 - **Build failures**: Verify Node.js 18+ and TypeScript are installed
 - **Missing files**: Check that firmware UF2 and sample files exist
+- **Windows**: Volume detection may fail; tool will warn but continue operation

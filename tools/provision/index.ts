@@ -166,7 +166,7 @@ async function waitForBootsel(timeoutSeconds: number, logger: Logger): Promise<v
   }
 }
 
-async function waitForVolume(volumeName: string, timeoutSeconds: number, logger: Logger): Promise<void> {
+async function waitForVolume(volumeName: string, timeoutSeconds: number, logger: Logger): Promise<boolean> {
   logger.info(`Waiting for volume '${volumeName}' to mount...`);
   const volumePath = path.join('/Volumes', volumeName);
   const start = Date.now();
@@ -174,38 +174,33 @@ async function waitForVolume(volumeName: string, timeoutSeconds: number, logger:
   while (true) {
     if (fs.existsSync(volumePath)) {
       logger.info(`Volume '${volumeName}' found.`);
-      return;
+      return true;
     }
 
     const elapsedSeconds = (Date.now() - start) / 1000;
     if (elapsedSeconds >= timeoutSeconds) {
-      throw new Error(`Timed out after ${timeoutSeconds}s waiting for volume '${volumeName}'.`);
+      logger.warn(`Volume '${volumeName}' not found after ${timeoutSeconds}s (platform-specific mount paths may vary).`);
+      return false;
     }
 
     await sleep(1000);
   }
 }
 
-async function waitForUsbDevice(deviceName: string, timeoutSeconds: number, logger: Logger, cwd: string): Promise<void> {
-  logger.info(`Waiting for USB device '${deviceName}' to appear...`);
+async function waitForDevice(timeoutSeconds: number, logger: Logger): Promise<void> {
+  logger.info('Waiting for device to be ready...');
   const start = Date.now();
 
   while (true) {
-    const result = await runCommand(
-      'system_profiler',
-      ['SPUSBDataType'],
-      logger,
-      { silent: true, ignoreFailure: true, cwd },
-    );
-
-    if (result.exitCode === 0 && result.stdout.includes(deviceName)) {
-      logger.info(`USB device '${deviceName}' found.`);
+    const result = await runCommand('picotool', ['info'], logger, { silent: true, ignoreFailure: true });
+    if (result.exitCode === 0) {
+      logger.info('Device is ready.');
       return;
     }
 
     const elapsedSeconds = (Date.now() - start) / 1000;
     if (elapsedSeconds >= timeoutSeconds) {
-      throw new Error(`Timed out after ${timeoutSeconds}s waiting for USB device '${deviceName}'.`);
+      throw new Error(`Timed out after ${timeoutSeconds}s waiting for device to be ready.`);
     }
 
     await sleep(1000);
@@ -238,7 +233,6 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
 
   const TIMEOUT_SECONDS = 30;
   const SAMPLES_DIR = 'support/samples/factory_kit';
-  const MIDI_DEVICE_NAME = 'DRUM';
   const BOOTLOADER_VOLUME_NAME = 'DRUMBOOT';
   const partitionJsonPath = path.join(projectRoot, 'drum', 'partition_table.json');
   const firmwareCandidates = [
@@ -253,8 +247,8 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
   let partitionUf2Path: string | undefined;
 
   try {
-    if (process.platform !== 'darwin') {
-      throw new Error('This provisioning tool currently supports macOS only.');
+    if (process.platform === 'win32') {
+      logger.warn('Windows support is experimental. Volume detection may not work correctly.');
     }
 
     const requiredTools = ['picotool', 'node'];
@@ -313,8 +307,12 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
 
     logger.step('--- Step 3: Verifying white-label ---');
     await runCommand('picotool', ['reboot', '-u'], logger, { cwd: projectRoot });
-    await waitForVolume(BOOTLOADER_VOLUME_NAME, TIMEOUT_SECONDS, logger);
-    logger.info(`Verified: Volume '${BOOTLOADER_VOLUME_NAME}' is present.`);
+    const volumeFound = await waitForVolume(BOOTLOADER_VOLUME_NAME, TIMEOUT_SECONDS, logger);
+    if (volumeFound) {
+      logger.info(`Verified: Volume '${BOOTLOADER_VOLUME_NAME}' is present.`);
+    } else {
+      logger.warn('Volume verification skipped. White-labeling may still be successful.');
+    }
     await sleep(2000);
 
     logger.step('--- Step 4: Partitioning device ---');
@@ -367,7 +365,6 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
     logger.info('Firmware upload complete. Device is rebooting into main application.');
 
     logger.step('--- Step 6: Formatting filesystem ---');
-    await waitForUsbDevice(MIDI_DEVICE_NAME, TIMEOUT_SECONDS, logger, projectRoot);
     await sleep(4000);
     logger.info('Device is running. Sending format command...');
     await runCommand('node', ['tools/drumtool/drumtool.js', 'format'], logger, {

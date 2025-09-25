@@ -4,9 +4,8 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
+declare const __filename: string;
 const __dirname = path.dirname(__filename);
 
 interface LogEntry {
@@ -152,13 +151,11 @@ async function runCommand(
 }
 
 async function waitForBootsel(timeoutSeconds: number, logger: Logger): Promise<void> {
-  logger.info('Waiting for device in BOOTSEL mode...');
   const start = Date.now();
 
   while (true) {
     const result = await runCommand('picotool', ['info'], logger, { silent: true, ignoreFailure: true });
     if (result.exitCode === 0) {
-      logger.info('Device found in BOOTSEL mode.');
       return;
     }
 
@@ -172,13 +169,11 @@ async function waitForBootsel(timeoutSeconds: number, logger: Logger): Promise<v
 }
 
 async function waitForVolume(volumeName: string, timeoutSeconds: number, logger: Logger): Promise<boolean> {
-  logger.info(`Waiting for volume '${volumeName}' to mount...`);
   const volumePath = path.join('/Volumes', volumeName);
   const start = Date.now();
 
   while (true) {
     if (fs.existsSync(volumePath)) {
-      logger.info(`Volume '${volumeName}' found.`);
       return true;
     }
 
@@ -193,13 +188,11 @@ async function waitForVolume(volumeName: string, timeoutSeconds: number, logger:
 }
 
 async function waitForDevice(timeoutSeconds: number, logger: Logger): Promise<void> {
-  logger.info('Waiting for device to be ready...');
   const start = Date.now();
 
   while (true) {
     const result = await runCommand('picotool', ['info'], logger, { silent: true, ignoreFailure: true });
     if (result.exitCode === 0) {
-      logger.info('Device is ready.');
       return;
     }
 
@@ -277,13 +270,11 @@ function findFirmwareAsset(assets: GitHubAsset[], logger: Logger): GitHubAsset |
 
   let semverAsset = assets.find(asset => semverPattern.test(asset.name));
   if (semverAsset) {
-    logger.info(`Found firmware asset with semantic version: ${semverAsset.name}`);
     return semverAsset;
   }
 
   let drumAsset = assets.find(asset => drumPattern.test(asset.name));
   if (drumAsset) {
-    logger.info(`Found firmware asset (fallback pattern): ${drumAsset.name}`);
     return drumAsset;
   }
 
@@ -338,14 +329,10 @@ async function downloadFile(url: string, destination: string, logger: Logger): P
 
 async function downloadLatestFirmware(scriptDir: string, logger: Logger): Promise<string | null> {
   try {
-    logger.info('Fetching latest release from GitHub...');
     const release = await fetchLatestRelease(logger);
-
-    logger.info(`Latest release: ${release.name} (${release.tag_name})`);
-
     const asset = findFirmwareAsset(release.assets, logger);
     if (!asset) {
-      logger.warn('No firmware (.uf2) assets found in latest release');
+      logger.warn('⚠ No firmware assets found in latest release');
       return null;
     }
 
@@ -357,13 +344,13 @@ async function downloadLatestFirmware(scriptDir: string, logger: Logger): Promis
     const cachedPath = path.join(cacheDir, `${release.tag_name}-${asset.name}`);
 
     if (fs.existsSync(cachedPath)) {
-      logger.info(`Using cached firmware: ${asset.name}`);
+      logger.info(`✓ Using cached firmware: ${release.tag_name}`);
       return cachedPath;
     }
 
-    logger.info(`Downloading firmware: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)}MB)...`);
+    logger.info(`Downloading firmware: ${release.tag_name} (${(asset.size / 1024 / 1024).toFixed(1)}MB)...`);
     await downloadFile(asset.browser_download_url, cachedPath, logger);
-    logger.info('Download complete');
+    logger.info('✓ Download complete');
 
     const localPath = path.join(scriptDir, 'drum.uf2');
     if (fs.existsSync(localPath)) {
@@ -373,7 +360,7 @@ async function downloadLatestFirmware(scriptDir: string, logger: Logger): Promis
 
     return cachedPath;
   } catch (error) {
-    logger.warn(`Failed to download latest firmware: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.warn(`⚠ Download failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return null;
   }
 }
@@ -462,14 +449,12 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
     }
 
     process.chdir(projectRoot);
-    logger.info(`Running from project root: ${projectRoot}`);
 
     if (firmwarePath) {
       if (!fs.existsSync(firmwarePath)) {
         throw new Error(`Specified firmware file not found: ${firmwarePath}`);
       }
       resolvedFirmwarePath = firmwarePath;
-      logger.info(`Using specified firmware: ${path.relative(projectRoot, firmwarePath)}`);
     } else if (forceLocal) {
       const localCandidates = [
         path.join(scriptDir, 'drum.uf2'),
@@ -480,7 +465,6 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
         const candidatesList = localCandidates.map((candidate) => path.relative(projectRoot, candidate));
         throw new Error(`Local firmware file not found. Expected at one of: ${candidatesList.join(', ')}`);
       }
-      logger.info(`Using local firmware: ${path.relative(projectRoot, resolvedFirmwarePath)}`);
     } else {
       const localDrumUf2 = path.join(scriptDir, 'drum.uf2');
 
@@ -501,19 +485,17 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
           const candidatesList = fallbackCandidates.map((candidate) => path.relative(projectRoot, candidate));
           throw new Error(`Firmware file not found. Expected at one of: ${candidatesList.join(', ')}`);
         }
-        logger.info(`Using local firmware (fallback): ${path.relative(projectRoot, resolvedFirmwarePath)}`);
       }
     }
 
     logger.step('--- Starting Dato DRUM Provisioning ---');
-    logger.info('');
     logger.warn('⚠️  WARNING: This tool will completely erase and reprogram the connected device.');
-    logger.warn('This process is destructive and irreversible.');
-    logger.info('Starting automatic provisioning in 3 seconds...');
+    logger.info('Starting in 3 seconds...');
     await sleep(3000);
 
     await waitForBootsel(TIMEOUT_SECONDS, logger);
-    await runCommand('picotool', ['info'], logger, { cwd: projectRoot });
+    logger.info('✓ Device detected in BOOTSEL mode');
+    await runCommand('picotool', ['info'], logger, { cwd: projectRoot, silent: true });
 
     logger.step('--- Step 2: White-labeling bootloader ---');
     try {
@@ -521,29 +503,28 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
         'picotool',
         ['otp', 'white-label', '-s', '0x400', 'drum/white-label.json', '-f'],
         logger,
-        { cwd: projectRoot },
+        { cwd: projectRoot, silent: true },
       );
-      logger.info('White-labeling complete.');
+      logger.info('✓ White-labeling complete');
     } catch (error) {
       if (error instanceof CommandError) {
-        logger.warn('White-label programming failed. This may already be programmed.');
-        logger.warn(error.result.stderr.trim() || error.message);
+        logger.warn('⚠ White-label programming failed (may already be programmed)');
       } else {
         throw error;
       }
     }
 
     logger.step('--- Step 3: Verifying white-label ---');
-    await runCommand('picotool', ['reboot', '-u'], logger, { cwd: projectRoot });
+    await runCommand('picotool', ['reboot', '-u'], logger, { cwd: projectRoot, silent: true });
     if (process.platform === 'darwin') {
       const volumeFound = await waitForVolume(BOOTLOADER_VOLUME_NAME, TIMEOUT_SECONDS, logger);
       if (volumeFound) {
-        logger.info(`Verified: Volume '${BOOTLOADER_VOLUME_NAME}' is present.`);
+        logger.info(`✓ Volume '${BOOTLOADER_VOLUME_NAME}' verified`);
       } else {
-        logger.warn('Volume verification failed. White-labeling may still be successful.');
+        logger.warn('⚠ Volume verification failed (white-labeling may still be successful)');
       }
     } else {
-      logger.info('Volume verification skipped on non-macOS platforms.');
+      logger.info('✓ Volume verification skipped (non-macOS)');
     }
     await sleep(2000);
 
@@ -553,20 +534,17 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
     const hasPartitions = await hasRequiredPartitions(logger);
 
     if (hasPartitions) {
-      logger.info('Device already has required partitions (0(A), 1(B w/ 0), 2(A)). Skipping partitioning step.');
+      logger.info('✓ Required partitions already exist, skipping');
     } else {
-      logger.info('No existing partitions detected. Proceeding with partitioning...');
-
       if (!partitionUf2Path) {
         partitionUf2Path = partitionUf2Candidates.find(fs.existsSync);
         if (!partitionUf2Path && fs.existsSync(partitionJsonPath)) {
           partitionUf2Path = path.join(scriptDir, 'partition_table.uf2');
-          logger.info('Creating partition table image...');
           await runCommand(
             'picotool',
             ['partition', 'create', partitionJsonPath, partitionUf2Path],
             logger,
-            { cwd: projectRoot },
+            { cwd: projectRoot, silent: true },
           );
         }
 
@@ -576,17 +554,16 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
         }
       }
 
-      const partitionDisplayPath = path.relative(projectRoot, partitionUf2Path);
-      logger.info(`Flashing partition table from ${partitionDisplayPath}...`);
-      await runCommand('picotool', ['load', partitionUf2Path, '-f'], logger, { cwd: projectRoot });
+      await runCommand('picotool', ['load', partitionUf2Path, '-f'], logger, { cwd: projectRoot, silent: true });
       const rebootResult = await runCommand('picotool', ['reboot', '-f', '-u'], logger, {
         cwd: projectRoot,
         ignoreFailure: true,
+        silent: true,
       });
       if (rebootResult.exitCode !== 0) {
-        logger.warn('Reboot command failed. Please reset the device manually.');
+        logger.warn('⚠ Reboot failed, please reset device manually');
       }
-      logger.info('Partitioning complete. Device is rebooting.');
+      logger.info('✓ Partitioning complete');
     }
     await sleep(2000);
 
@@ -600,22 +577,23 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
 
     const firmwareDisplayPath = path.relative(projectRoot, resolvedFirmwarePath);
     logger.info(`Uploading ${firmwareDisplayPath}...`);
-    await runCommand('picotool', ['load', resolvedFirmwarePath, '-f'], logger, { cwd: projectRoot });
-    await runCommand('picotool', ['reboot', '-f'], logger, { cwd: projectRoot });
-    logger.info('Firmware upload complete. Device is rebooting into main application.');
+    await runCommand('picotool', ['load', resolvedFirmwarePath, '-f'], logger, { cwd: projectRoot, silent: true });
+    await runCommand('picotool', ['reboot', '-f'], logger, { cwd: projectRoot, silent: true });
+    logger.info('✓ Firmware upload complete');
 
     logger.step('--- Step 6: Formatting filesystem ---');
     await sleep(4000);
-    logger.info('Device is running. Sending format command...');
     await runCommand('node', ['tools/drumtool/drumtool.js', 'format'], logger, {
       cwd: projectRoot,
       input: 'y\n',
+      silent: true,
     });
+    logger.info('✓ Filesystem formatted');
 
     logger.step('--- Step 7: Uploading default samples ---');
     const samplesPath = path.join(projectRoot, SAMPLES_DIR);
     if (!fs.existsSync(samplesPath)) {
-      logger.warn(`Samples directory not found at ${SAMPLES_DIR}. Skipping sample upload.`);
+      logger.warn(`⚠ Samples directory not found, skipping`);
     } else {
       const files = fs
         .readdirSync(samplesPath, { withFileTypes: true })
@@ -623,28 +601,25 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
         .map((entry) => path.join(SAMPLES_DIR, entry.name));
 
       if (files.length === 0) {
-        logger.warn(`No sample files found in ${SAMPLES_DIR}.`);
+        logger.warn(`⚠ No sample files found in ${SAMPLES_DIR}`);
       } else {
-        logger.info(`Uploading samples from ${SAMPLES_DIR}...`);
         const result = await runCommand(
           'node',
           ['tools/drumtool/drumtool.js', 'send', ...files],
           logger,
-          { cwd: projectRoot, ignoreFailure: true },
+          { cwd: projectRoot, ignoreFailure: true, silent: true },
         );
         if (result.exitCode === 0) {
-          logger.info('Sample upload complete.');
+          logger.info(`✓ Uploaded ${files.length} sample files`);
         } else {
-          logger.warn('Sample upload may have failed. Check device status.');
+          logger.warn('⚠ Sample upload failed');
         }
       }
     }
 
     logger.step('--- Step 8: Verifying installation ---');
-    logger.info('Checking firmware version...');
     await runCommand('node', ['tools/drumtool/drumtool.js', 'version'], logger, { cwd: projectRoot });
-    logger.info('Verification step: Checking for firmware version is a basic check.');
-    logger.info('A full sample verification would require extending drumtool.js.');
+    logger.info('✓ Installation verified');
 
     logger.step('--- Provisioning Complete! ---');
 

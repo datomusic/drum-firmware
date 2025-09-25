@@ -5,7 +5,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 
-declare const __filename: string;
 const __dirname = path.dirname(__filename);
 
 interface LogEntry {
@@ -202,6 +201,28 @@ async function waitForDevice(timeoutSeconds: number, logger: Logger): Promise<vo
     }
 
     await sleep(1000);
+  }
+}
+
+async function waitForDeviceOverMidi(timeoutSeconds: number, intervalMs: number, logger: Logger): Promise<boolean> {
+  const start = Date.now();
+
+  while (true) {
+    const result = await runCommand('node', ['tools/drumtool/drumtool.js', 'version'], logger, {
+      silent: true,
+      ignoreFailure: true
+    });
+
+    if (result.exitCode === 0) {
+      return true;
+    }
+
+    const elapsedSeconds = (Date.now() - start) / 1000;
+    if (elapsedSeconds >= timeoutSeconds) {
+      return false;
+    }
+
+    await sleep(intervalMs);
   }
 }
 
@@ -416,6 +437,8 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
   })();
 
   const TIMEOUT_SECONDS = 30;
+  const MIDI_POLL_TIMEOUT_SECONDS = 30;
+  const MIDI_POLL_INTERVAL_MS = 1000;
   const SAMPLES_DIR = 'support/samples/factory_kit';
   const BOOTLOADER_VOLUME_NAME = 'DRUMBOOT';
   const partitionJsonPath = path.join(projectRoot, 'drum', 'partition_table.json');
@@ -583,6 +606,14 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
 
     logger.step('--- Step 6: Formatting filesystem ---');
     await sleep(4000);
+
+    logger.info('Verifying device is responsive over MIDI before formatting...');
+    const deviceReady = await waitForDeviceOverMidi(MIDI_POLL_TIMEOUT_SECONDS, MIDI_POLL_INTERVAL_MS, logger);
+    if (!deviceReady) {
+      throw new Error(`Device is not responding over MIDI after firmware upload. Please manually reset the device and try again.`);
+    }
+    logger.info('✓ Device confirmed responsive over MIDI');
+
     await runCommand('node', ['tools/drumtool/drumtool.js', 'format'], logger, {
       cwd: projectRoot,
       input: 'y\n',

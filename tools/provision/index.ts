@@ -3,6 +3,11 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as https from 'https';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'step';
@@ -207,6 +212,172 @@ async function waitForDevice(timeoutSeconds: number, logger: Logger): Promise<vo
   }
 }
 
+interface GitHubAsset {
+  name: string;
+  browser_download_url: string;
+  size: number;
+}
+
+interface GitHubRelease {
+  tag_name: string;
+  name: string;
+  assets: GitHubAsset[];
+}
+
+async function fetchLatestRelease(logger: Logger): Promise<GitHubRelease> {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/datomusic/drum-firmware/releases/latest',
+      method: 'GET',
+      headers: {
+        'User-Agent': 'drum-provision-tool',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`GitHub API request failed with status ${res.statusCode}: ${data}`));
+          return;
+        }
+
+        try {
+          const release = JSON.parse(data) as GitHubRelease;
+          resolve(release);
+        } catch (error) {
+          reject(new Error(`Failed to parse GitHub API response: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(new Error(`GitHub API request failed: ${error.message}`));
+    });
+
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('GitHub API request timed out'));
+    });
+
+    req.end();
+  });
+}
+
+function findFirmwareAsset(assets: GitHubAsset[], logger: Logger): GitHubAsset | null {
+  const semverPattern = /^drum-v?\d+\.\d+\.\d+\.uf2$/;
+  const drumPattern = /^drum.*\.uf2$/;
+
+  let semverAsset = assets.find(asset => semverPattern.test(asset.name));
+  if (semverAsset) {
+    logger.info(`Found firmware asset with semantic version: ${semverAsset.name}`);
+    return semverAsset;
+  }
+
+  let drumAsset = assets.find(asset => drumPattern.test(asset.name));
+  if (drumAsset) {
+    logger.info(`Found firmware asset (fallback pattern): ${drumAsset.name}`);
+    return drumAsset;
+  }
+
+  return null;
+}
+
+async function downloadFile(url: string, destination: string, logger: Logger): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destination);
+
+    function makeRequest(requestUrl: string, redirectCount = 0) {
+      if (redirectCount > 5) {
+        fs.unlinkSync(destination);
+        reject(new Error('Too many redirects'));
+        return;
+      }
+
+      https.get(requestUrl, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          const newUrl = response.headers.location;
+          if (!newUrl) {
+            fs.unlinkSync(destination);
+            reject(new Error('Redirect without location header'));
+            return;
+          }
+          response.destroy();
+          makeRequest(newUrl, redirectCount + 1);
+          return;
+        }
+
+        if (response.statusCode !== 200) {
+          fs.unlinkSync(destination);
+          reject(new Error(`Download failed with status ${response.statusCode}`));
+          return;
+        }
+
+        response.pipe(file);
+
+        file.on('finish', () => {
+          file.close();
+          resolve();
+        });
+      }).on('error', (error) => {
+        fs.unlinkSync(destination);
+        reject(error);
+      });
+    }
+
+    makeRequest(url);
+  });
+}
+
+async function downloadLatestFirmware(scriptDir: string, logger: Logger): Promise<string | null> {
+  try {
+    logger.info('Fetching latest release from GitHub...');
+    const release = await fetchLatestRelease(logger);
+
+    logger.info(`Latest release: ${release.name} (${release.tag_name})`);
+
+    const asset = findFirmwareAsset(release.assets, logger);
+    if (!asset) {
+      logger.warn('No firmware (.uf2) assets found in latest release');
+      return null;
+    }
+
+    const cacheDir = path.join(scriptDir, '.cache');
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+
+    const cachedPath = path.join(cacheDir, `${release.tag_name}-${asset.name}`);
+
+    if (fs.existsSync(cachedPath)) {
+      logger.info(`Using cached firmware: ${asset.name}`);
+      return cachedPath;
+    }
+
+    logger.info(`Downloading firmware: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)}MB)...`);
+    await downloadFile(asset.browser_download_url, cachedPath, logger);
+    logger.info('Download complete');
+
+    const localPath = path.join(scriptDir, 'drum.uf2');
+    if (fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath);
+    }
+    fs.copyFileSync(cachedPath, localPath);
+
+    return cachedPath;
+  } catch (error) {
+    logger.warn(`Failed to download latest firmware: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return null;
+  }
+}
+
 async function hasRequiredPartitions(logger: Logger): Promise<boolean> {
   try {
     const result = await runCommand('picotool', ['partition', 'info', '-f'], logger, {
@@ -232,9 +403,12 @@ async function hasRequiredPartitions(logger: Logger): Promise<boolean> {
 
 interface ProvisionOptions {
   useJson: boolean;
+  forceLocal: boolean;
+  forceDownload: boolean;
+  firmwarePath?: string;
 }
 
-async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
+async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }: ProvisionOptions): Promise<number> {
   const logger = new Logger(useJson);
   const scriptDir = path.resolve(__dirname);
 
@@ -258,15 +432,11 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
   const SAMPLES_DIR = 'support/samples/factory_kit';
   const BOOTLOADER_VOLUME_NAME = 'DRUMBOOT';
   const partitionJsonPath = path.join(projectRoot, 'drum', 'partition_table.json');
-  const firmwareCandidates = [
-    path.join(scriptDir, 'drum.uf2'),
-    path.join(projectRoot, 'drum', 'build', 'drum.uf2'),
-  ];
   const partitionUf2Candidates = [
     path.join(scriptDir, 'partition_table.uf2'),
     path.join(projectRoot, 'drum', 'build', 'partition_table.uf2'),
   ];
-  let firmwarePath: string | undefined;
+  let resolvedFirmwarePath: string | undefined;
   let partitionUf2Path: string | undefined;
 
   try {
@@ -294,10 +464,45 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
     process.chdir(projectRoot);
     logger.info(`Running from project root: ${projectRoot}`);
 
-    firmwarePath = firmwareCandidates.find(fs.existsSync);
-    if (!firmwarePath) {
-      const candidatesList = firmwareCandidates.map((candidate) => path.relative(projectRoot, candidate));
-      throw new Error(`Firmware file not found. Expected at one of: ${candidatesList.join(', ')}`);
+    if (firmwarePath) {
+      if (!fs.existsSync(firmwarePath)) {
+        throw new Error(`Specified firmware file not found: ${firmwarePath}`);
+      }
+      resolvedFirmwarePath = firmwarePath;
+      logger.info(`Using specified firmware: ${path.relative(projectRoot, firmwarePath)}`);
+    } else if (forceLocal) {
+      const localCandidates = [
+        path.join(scriptDir, 'drum.uf2'),
+        path.join(projectRoot, 'drum', 'build', 'drum.uf2'),
+      ];
+      resolvedFirmwarePath = localCandidates.find(fs.existsSync);
+      if (!resolvedFirmwarePath) {
+        const candidatesList = localCandidates.map((candidate) => path.relative(projectRoot, candidate));
+        throw new Error(`Local firmware file not found. Expected at one of: ${candidatesList.join(', ')}`);
+      }
+      logger.info(`Using local firmware: ${path.relative(projectRoot, resolvedFirmwarePath)}`);
+    } else {
+      const localDrumUf2 = path.join(scriptDir, 'drum.uf2');
+
+      if (forceDownload || !fs.existsSync(localDrumUf2)) {
+        const downloadedPath = await downloadLatestFirmware(scriptDir, logger);
+        if (downloadedPath) {
+          resolvedFirmwarePath = downloadedPath;
+        }
+      }
+
+      if (!resolvedFirmwarePath) {
+        const fallbackCandidates = [
+          localDrumUf2,
+          path.join(projectRoot, 'drum', 'build', 'drum.uf2'),
+        ];
+        resolvedFirmwarePath = fallbackCandidates.find(fs.existsSync);
+        if (!resolvedFirmwarePath) {
+          const candidatesList = fallbackCandidates.map((candidate) => path.relative(projectRoot, candidate));
+          throw new Error(`Firmware file not found. Expected at one of: ${candidatesList.join(', ')}`);
+        }
+        logger.info(`Using local firmware (fallback): ${path.relative(projectRoot, resolvedFirmwarePath)}`);
+      }
     }
 
     logger.step('--- Starting Dato DRUM Provisioning ---');
@@ -389,13 +594,13 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
     await waitForBootsel(TIMEOUT_SECONDS, logger);
     await sleep(2000);
 
-    if (!firmwarePath) {
+    if (!resolvedFirmwarePath) {
       throw new Error('Firmware path resolution failed unexpectedly.');
     }
 
-    const firmwareDisplayPath = path.relative(projectRoot, firmwarePath);
+    const firmwareDisplayPath = path.relative(projectRoot, resolvedFirmwarePath);
     logger.info(`Uploading ${firmwareDisplayPath}...`);
-    await runCommand('picotool', ['load', firmwarePath, '-f'], logger, { cwd: projectRoot });
+    await runCommand('picotool', ['load', resolvedFirmwarePath, '-f'], logger, { cwd: projectRoot });
     await runCommand('picotool', ['reboot', '-f'], logger, { cwd: projectRoot });
     logger.info('Firmware upload complete. Device is rebooting into main application.');
 
@@ -455,9 +660,62 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const useJson = args.includes('--json');
 
-  const exitCode = await runProvision({ useJson });
+  let useJson = false;
+  let forceLocal = false;
+  let forceDownload = false;
+  let firmwarePath: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '--json') {
+      useJson = true;
+    } else if (arg === '--local') {
+      forceLocal = true;
+    } else if (arg === '--download') {
+      forceDownload = true;
+    } else if (arg === '--firmware-path') {
+      if (i + 1 >= args.length) {
+        console.error('Error: --firmware-path requires a value');
+        process.exit(1);
+      }
+      firmwarePath = args[i + 1];
+      i++; // Skip the next argument since we consumed it
+    } else if (arg === '--help' || arg === '-h') {
+      console.log(`
+DRUM Provisioning Tool
+
+Usage: node index.js [options]
+
+Options:
+  --json              Output in JSON format
+  --local             Force use of local build only
+  --download          Force download latest release from GitHub
+  --firmware-path <path>  Specify custom firmware file path
+  --help, -h          Show this help message
+
+By default, the tool will attempt to download the latest release from GitHub,
+falling back to local builds if the download fails.
+`);
+      process.exit(0);
+    } else {
+      console.error(`Error: Unknown argument: ${arg}`);
+      process.exit(1);
+    }
+  }
+
+  if (forceLocal && forceDownload) {
+    console.error('Error: --local and --download options are mutually exclusive');
+    process.exit(1);
+  }
+
+  if (firmwarePath && (forceLocal || forceDownload)) {
+    console.error('Error: --firmware-path cannot be used with --local or --download');
+    process.exit(1);
+  }
+
+  const exitCode = await runProvision({ useJson, forceLocal, forceDownload, firmwarePath });
   process.exit(exitCode);
 }
 

@@ -140,8 +140,7 @@ TEST_CASE("TempoHandler external sync half-speed forwards every other tick") {
   REQUIRE(rec.events[1].phase_24 == 2);
 }
 
-TEST_CASE(
-    "TempoHandler manual sync in MIDI defers to next tick and flags resync") {
+TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -159,16 +158,8 @@ TEST_CASE(
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // No recent MIDI tick -> manual sync should defer
+  // Manual sync should immediately emit resync event (no deferral)
   th.trigger_manual_sync();
-  REQUIRE(rec.events.empty());
-
-  // Next MIDI tick should be anchored and marked as resync
-  ClockEvent e{ClockSource::MIDI};
-  e.is_physical_pulse = false;
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-  speed_adapter.notification(e);
-
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
   REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_DOWNBEAT);
@@ -353,7 +344,8 @@ TEST_CASE("TempoHandler never switches directly from MIDI to INTERNAL") {
   REQUIRE(th.get_clock_source() == ClockSource::MIDI);
 }
 
-TEST_CASE("TempoHandler manual sync look-behind within timing window") {
+TEST_CASE(
+    "TempoHandler manual sync emits immediate resync regardless of timing") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -366,21 +358,22 @@ TEST_CASE("TempoHandler manual sync look-behind within timing window") {
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
                   speed_adapter_lb,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
+  clock_router.add_observer(speed_adapter_lb);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Send a MIDI tick to establish timing
+  // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
   e.is_physical_pulse = false;
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter_lb.notification(e);
   rec.clear();
 
-  // Wait a short time (within look-behind window: < 12ms for 120 BPM)
+  // Wait some time - timing no longer matters with new behavior
   advance_time_us(5000); // 5ms
 
-  // Trigger manual sync - should immediately anchor to last tick
+  // Trigger manual sync - should immediately emit resync (no look-behind)
   th.trigger_manual_sync();
 
   REQUIRE(rec.events.size() >= 1);
@@ -388,7 +381,7 @@ TEST_CASE("TempoHandler manual sync look-behind within timing window") {
   REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_DOWNBEAT);
 }
 
-TEST_CASE("TempoHandler manual sync defers when outside timing window") {
+TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -401,31 +394,23 @@ TEST_CASE("TempoHandler manual sync defers when outside timing window") {
   TempoHandler th(internal_clock, midi_proc, sync_in, clock_router,
                   speed_adapter_def,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
+  clock_router.add_observer(speed_adapter_def);
 
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Send a MIDI tick to establish timing
+  // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
   e.is_physical_pulse = false;
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter_def.notification(e);
   rec.clear();
 
-  // Wait too long (outside look-behind window: > 12ms for 120 BPM)
-  advance_time_us(15000); // 15ms > 12ms window
+  // Wait any amount of time - timing no longer matters
+  advance_time_us(15000); // 15ms
 
-  // Trigger manual sync - should defer to next MIDI tick
+  // Trigger manual sync - should immediately emit resync (no deferral)
   th.trigger_manual_sync();
-  REQUIRE(rec.events.empty()); // No immediate event
-
-  // Send next MIDI tick - should be anchored and marked as resync
-  ClockEvent next_e{ClockSource::MIDI};
-  next_e.is_physical_pulse = false;
-  next_e.timestamp_us =
-      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-  speed_adapter_def.notification(next_e);
-
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
   REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_DOWNBEAT);

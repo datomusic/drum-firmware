@@ -152,19 +152,6 @@ private:
   uint8_t phase_24_;    // 24 PPQN phase counter (0-23)
   uint64_t tick_count_; // Running tick count
   const bool _send_midi_clock_when_stopped;
-  // For external sync alignment: alternate physical pulses between phases 0 and
-  // 12
-  bool external_align_to_12_next_ = false;
-
-  // Deferred anchoring for MIDI: when true, next external tick will anchor
-  // phase_24_ to 0/12 and emit a resync-marked event.
-  bool pending_anchor_on_next_external_tick_ = false;
-  bool pending_manual_resync_flag_ = false;
-
-  // Timing for look-behind MIDI anchoring (lower 32 bits of us counter).
-  // Unsigned subtraction handles rollover naturally.
-  uint32_t last_external_tick_us_ = 0;
-  uint32_t last_external_tick_interval_us_ = 0;
 
   // Tracks whether set_clock_source has performed initial attachment/setup.
   bool initialized_ = false;

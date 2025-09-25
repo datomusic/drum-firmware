@@ -38,12 +38,6 @@ void TempoHandler::set_clock_source(ClockSource source) {
 
   current_source_ = source;
   phase_24_ = 0; // Reset phase on source change
-  external_align_to_12_next_ = (current_source_ == ClockSource::EXTERNAL_SYNC);
-  // Clear any deferred anchoring state when switching sources
-  pending_anchor_on_next_external_tick_ = false;
-  pending_manual_resync_flag_ = false;
-  last_external_tick_us_ = 0;
-  last_external_tick_interval_us_ = 0;
 
   // Route raw 24 PPQN through ClockRouter
   _clock_router_ref.set_clock_source(current_source_);
@@ -65,54 +59,28 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     return;
   }
 
-  // Handle resync events immediately for all sources
-  bool input_resync = event.is_resync;
-
-  // Capture timing for MIDI look-behind anchoring (prefer upstream timestamp)
-  if (current_source_ == ClockSource::MIDI) {
-    uint32_t now_us = event.timestamp_us;
-    if (last_external_tick_us_ != 0) {
-      last_external_tick_interval_us_ = now_us - last_external_tick_us_;
-    }
-    last_external_tick_us_ = now_us;
-
-    // If a manual anchor was requested for MIDI, anchor on this tick
-    if (pending_anchor_on_next_external_tick_) {
-      tick_count_++;
-      phase_24_ =
-          external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
-      external_align_to_12_next_ = !external_align_to_12_next_;
-      musin::timing::TempoEvent tempo_event{.tick_count = tick_count_,
-                                            .phase_24 = phase_24_,
-                                            .is_resync =
-                                                pending_manual_resync_flag_};
-      pending_anchor_on_next_external_tick_ = false;
-      pending_manual_resync_flag_ = false;
-      notify_observers(tempo_event);
-      return;
-    }
+  if (event.is_resync) {
+    // Handle resync: set phase to anchor or 0, increment tick, emit resync
+    // event, return
+    phase_24_ = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
+                    ? event.anchor_to_phase
+                    : 0;
+    tick_count_++;
+    musin::timing::TempoEvent tempo_event{
+        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+    notify_observers(tempo_event);
+    return;
   }
 
-  // Determine phase for this tick:
-  // - If this is a resync without an explicit anchor, set to downbeat (0).
-  // - If anchor is present, honor it.
-  // - Otherwise, advance by one.
-  uint8_t next_phase = phase_24_;
-  if (input_resync && event.anchor_to_phase == ClockEvent::ANCHOR_PHASE_NONE) {
-    next_phase = PHASE_DOWNBEAT;
-  } else if (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE) {
-    next_phase = event.anchor_to_phase;
-  } else {
-    next_phase = (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
-  }
+  // Handle normal tick: advance phase normally or honor anchor if present
+  uint8_t next_phase = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
+                           ? event.anchor_to_phase
+                           : (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
 
   tick_count_++;
   phase_24_ = next_phase;
   musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_,
-      .phase_24 = phase_24_,
-      .is_resync = (input_resync || pending_manual_resync_flag_)};
-  pending_manual_resync_flag_ = false;
+      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
   notify_observers(tempo_event);
 }
 
@@ -198,64 +166,14 @@ void TempoHandler::trigger_manual_sync() {
     _internal_clock_ref.resync();
 
     // Emit an immediate downbeat tick so sequencer + sync out align.
-    _clock_router_ref.emit_manual_tick(true);
+    _clock_router_ref.emit_manual_tick(true, 0);
     break;
   case ClockSource::MIDI:
-    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      _clock_router_ref.trigger_resync();
-    }
-    // Attempt look-behind: if the press is shortly after a MIDI tick, treat
-    // that last tick as the anchor boundary (0/12). Otherwise, defer to the
-    // next tick.
-    {
-      uint32_t now_us =
-          static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-      bool have_last_tick = (last_external_tick_us_ != 0);
-      // Define a window as half of the last tick interval, with a reasonable
-      // upper bound to avoid overly long windows at slow tempos.
-      uint32_t interval_us = last_external_tick_interval_us_;
-      if (interval_us == 0 && have_last_tick) {
-        // Fallback estimate: assume 120 BPM -> ~20.8ms per 24ppqn tick
-        interval_us = 20833u;
-      }
-      uint32_t window_us = interval_us / 2u;
-      if (window_us > 12000u) {
-        window_us = 12000u; // cap at 12ms
-      }
-
-      if (have_last_tick && (now_us - last_external_tick_us_) <= window_us) {
-        // Backdate anchor to the last MIDI tick: emit resync at anchor phase
-        // (0 or 12), then advance locally if that tick would have advanced.
-        uint8_t anchor_phase =
-            external_align_to_12_next_ ? PHASE_EIGHTH_OFFBEAT : PHASE_DOWNBEAT;
-
-        // After an anchor we flip the 0/12 toggle.
-        external_align_to_12_next_ = !external_align_to_12_next_;
-
-        // Emit resync at the anchor phase first
-        phase_24_ = anchor_phase;
-        musin::timing::TempoEvent resync_tempo_event{.tick_count = tick_count_,
-                                                     .phase_24 = phase_24_,
-                                                     .is_resync = true};
-        notify_observers(resync_tempo_event);
-
-        // No additional local advancement; SpeedAdapter governs cadence
-      } else {
-        // Defer anchoring to the next incoming MIDI tick
-        pending_anchor_on_next_external_tick_ = true;
-        pending_manual_resync_flag_ = true; // mark the anchored tick as resync
-      }
-    }
-    break;
   case ClockSource::EXTERNAL_SYNC:
     if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      _clock_router_ref.trigger_resync();
+      // Emit immediate resync tick anchored to downbeat (Volca behavior)
+      _clock_router_ref.emit_manual_tick(true, 0);
     }
-    // Immediate resync for SyncIn
-    phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
-    musin::timing::TempoEvent resync_tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
-    notify_observers(resync_tempo_event);
     break;
   }
 }

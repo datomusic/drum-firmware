@@ -207,6 +207,29 @@ async function waitForDevice(timeoutSeconds: number, logger: Logger): Promise<vo
   }
 }
 
+async function hasRequiredPartitions(logger: Logger): Promise<boolean> {
+  try {
+    const result = await runCommand('picotool', ['partition', 'info', '-f'], logger, {
+      silent: true,
+      ignoreFailure: true
+    });
+
+    if (result.exitCode !== 0) {
+      return false;
+    }
+
+    const output = result.stdout;
+    const hasPartition0A = /0\(A\)[\s\S]*?"Firmware A"/.test(output);
+    const hasPartition1B = /1\(B w\/ 0\)[\s\S]*?"Firmware B"/.test(output);
+    const hasPartition2A = /2\(A\)[\s\S]*?"Data"/.test(output);
+
+    return hasPartition0A && hasPartition1B && hasPartition2A;
+  } catch (error) {
+    logger.warn(`Failed to check partition info: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return false;
+  }
+}
+
 interface ProvisionOptions {
   useJson: boolean;
 }
@@ -307,47 +330,59 @@ async function runProvision({ useJson }: ProvisionOptions): Promise<number> {
 
     logger.step('--- Step 3: Verifying white-label ---');
     await runCommand('picotool', ['reboot', '-u'], logger, { cwd: projectRoot });
-    const volumeFound = await waitForVolume(BOOTLOADER_VOLUME_NAME, TIMEOUT_SECONDS, logger);
-    if (volumeFound) {
-      logger.info(`Verified: Volume '${BOOTLOADER_VOLUME_NAME}' is present.`);
+    if (process.platform === 'darwin') {
+      const volumeFound = await waitForVolume(BOOTLOADER_VOLUME_NAME, TIMEOUT_SECONDS, logger);
+      if (volumeFound) {
+        logger.info(`Verified: Volume '${BOOTLOADER_VOLUME_NAME}' is present.`);
+      } else {
+        logger.warn('Volume verification failed. White-labeling may still be successful.');
+      }
     } else {
-      logger.warn('Volume verification skipped. White-labeling may still be successful.');
+      logger.info('Volume verification skipped on non-macOS platforms.');
     }
     await sleep(2000);
 
     logger.step('--- Step 4: Partitioning device ---');
 
-    if (!partitionUf2Path) {
-      partitionUf2Path = partitionUf2Candidates.find(fs.existsSync);
-      if (!partitionUf2Path && fs.existsSync(partitionJsonPath)) {
-        partitionUf2Path = path.join(scriptDir, 'partition_table.uf2');
-        logger.info('Creating partition table image...');
-        await runCommand(
-          'picotool',
-          ['partition', 'create', partitionJsonPath, partitionUf2Path],
-          logger,
-          { cwd: projectRoot },
-        );
-      }
+    await waitForBootsel(TIMEOUT_SECONDS, logger);
+    const hasPartitions = await hasRequiredPartitions(logger);
+
+    if (hasPartitions) {
+      logger.info('Device already has required partitions (0(A), 1(B w/ 0), 2(A)). Skipping partitioning step.');
+    } else {
+      logger.info('No existing partitions detected. Proceeding with partitioning...');
 
       if (!partitionUf2Path) {
-        const candidatesList = partitionUf2Candidates.map((candidate) => path.relative(projectRoot, candidate));
-        throw new Error(`Partition table UF2 not found. Expected at one of: ${candidatesList.join(', ')}`);
-      }
-    }
+        partitionUf2Path = partitionUf2Candidates.find(fs.existsSync);
+        if (!partitionUf2Path && fs.existsSync(partitionJsonPath)) {
+          partitionUf2Path = path.join(scriptDir, 'partition_table.uf2');
+          logger.info('Creating partition table image...');
+          await runCommand(
+            'picotool',
+            ['partition', 'create', partitionJsonPath, partitionUf2Path],
+            logger,
+            { cwd: projectRoot },
+          );
+        }
 
-    await waitForBootsel(TIMEOUT_SECONDS, logger);
-    const partitionDisplayPath = path.relative(projectRoot, partitionUf2Path);
-    logger.info(`Flashing partition table from ${partitionDisplayPath}...`);
-    await runCommand('picotool', ['load', partitionUf2Path, '-f'], logger, { cwd: projectRoot });
-    const rebootResult = await runCommand('picotool', ['reboot', '-f', '-u'], logger, {
-      cwd: projectRoot,
-      ignoreFailure: true,
-    });
-    if (rebootResult.exitCode !== 0) {
-      logger.warn('Reboot command failed. Please reset the device manually.');
+        if (!partitionUf2Path) {
+          const candidatesList = partitionUf2Candidates.map((candidate) => path.relative(projectRoot, candidate));
+          throw new Error(`Partition table UF2 not found. Expected at one of: ${candidatesList.join(', ')}`);
+        }
+      }
+
+      const partitionDisplayPath = path.relative(projectRoot, partitionUf2Path);
+      logger.info(`Flashing partition table from ${partitionDisplayPath}...`);
+      await runCommand('picotool', ['load', partitionUf2Path, '-f'], logger, { cwd: projectRoot });
+      const rebootResult = await runCommand('picotool', ['reboot', '-f', '-u'], logger, {
+        cwd: projectRoot,
+        ignoreFailure: true,
+      });
+      if (rebootResult.exitCode !== 0) {
+        logger.warn('Reboot command failed. Please reset the device manually.');
+      }
+      logger.info('Partitioning complete. Device is rebooting.');
     }
-    logger.info('Partitioning complete. Device is rebooting.');
     await sleep(2000);
 
     logger.step('--- Step 5: Uploading firmware ---');

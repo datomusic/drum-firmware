@@ -2,6 +2,7 @@
   "name": "drum-provision-tool",
   "version": "1.0.0",
   "description": "TypeScript provisioning tool for DRUM hardware",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "drum-provision": "dist/index.js"
@@ -9,7 +10,8 @@
   "scripts": {
     "build": "tsc --module commonjs --target ES2020 --outDir dist index.ts",
     "build:watch": "tsc --module commonjs --target ES2020 --outDir dist --watch index.ts",
-    "start": "npm run build && node dist/index.js",
+    "start": "node --experimental-strip-types index.ts",
+    "start:compiled": "npm run build && node dist/index.js",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

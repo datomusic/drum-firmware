@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'step';

@@ -202,8 +202,14 @@ function handleMidiMessage(deltaTime, message) {
   }
 }
 
-// Send SysEx message (for SDS protocol)
+// Send universal SysEx message without SDS wrapping
 function sendSysExMessage(data) {
+  const message = [SYSEX_START, ...data, SYSEX_END];
+  activeMidiOutput.sendMessage(message);
+}
+
+// Send SysEx message (for SDS protocol)
+function sendSDSMessage(data) {
   const message = [SYSEX_START, MIDI_NON_REALTIME_ID, SYSEX_CHANNEL, ...data, SYSEX_END];
   activeMidiOutput.sendMessage(message);
 }
@@ -331,6 +337,79 @@ async function reboot_bootloader() {
   sendCustomMessage(payload);
   // Note: Device will reboot immediately, so we don't wait for ACK
   console.log("Reboot command sent. Device should now enter bootloader mode.");
+}
+
+// Test universal SysEx identity request
+async function test_universal_identity() {
+  console.log("Testing universal SysEx identity request...");
+
+  // Send universal identity request: F0 7E 7F 06 01 F7
+  const identityRequest = [MIDI_NON_REALTIME_ID, 0x7F, 0x06, 0x01];
+
+  console.log("Sending universal identity request: F0 7E 7F 06 01 F7");
+  sendSysExMessage(identityRequest);
+
+  // Listen for identity response
+  let responseReceived = false;
+  const originalHandler = activeMidiInput.listeners('message')[0];
+
+  const identityHandler = (deltaTime, message) => {
+    if (message[0] === SYSEX_START) {
+      const sysexData = message.slice(1, -1); // Remove F0 and F7
+
+      if (sysexData.length >= 5 &&
+          sysexData[0] === 0x7E && sysexData[1] === 0x7F &&
+          sysexData[2] === 0x06 && sysexData[3] === 0x02) {
+
+        responseReceived = true;
+        console.log("\n✅ Universal identity response received!");
+        console.log("Raw message:", message.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
+
+        if (sysexData.length >= 8) {
+          const manufacturerId = sysexData.slice(4, 7);
+          console.log("Manufacturer ID:", manufacturerId.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
+
+          if (sysexData.length >= 10) {
+            const deviceFamily = (sysexData[8] | (sysexData[9] << 8));
+            console.log("Device Family:", `0x${deviceFamily.toString(16).padStart(4, '0')}`);
+          }
+
+          if (sysexData.length >= 12) {
+            const deviceMember = (sysexData[10] | (sysexData[11] << 8));
+            console.log("Device Member:", `0x${deviceMember.toString(16).padStart(4, '0')}`);
+          }
+
+          if (sysexData.length >= 15) {
+            const softwareRev = sysexData.slice(12, sysexData.length);
+            console.log("Software Revision:", softwareRev.map(v => v.toString()).join('.'));
+          }
+        }
+      }
+    }
+
+    // Also call original handler for other messages
+    if (originalHandler) {
+      originalHandler(deltaTime, message);
+    }
+  };
+
+  // Replace message handler temporarily
+  activeMidiInput.removeAllListeners('message');
+  activeMidiInput.on('message', identityHandler);
+
+  // Wait for response
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Restore original handler
+  activeMidiInput.removeAllListeners('message');
+  if (originalHandler) {
+    activeMidiInput.on('message', originalHandler);
+  }
+
+  if (!responseReceived) {
+    console.log("❌ No universal identity response received within timeout");
+    console.log("This may indicate the device doesn't support universal identity requests");
+  }
 }
 
 // Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
@@ -579,14 +658,14 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
       console.log("\n1. Sending Dump Header...");
       console.log("Header bytes:", header.length, ">", header.map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '));
     }
-    sendSysExMessage(header);
+    sendSDSMessage(header);
     
     const headerResponse = await waitForResponse(HEADER_TIMEOUT);
     if (headerResponse.type === SDS_NAK) {
       if (verbose) {
         console.log("Header NAK received, retrying...");
       }
-      sendSysExMessage(createDumpHeader(sampleNumber, 16, finalSampleRate, pcmData.length));
+      sendSDSMessage(createDumpHeader(sampleNumber, 16, finalSampleRate, pcmData.length));
       const retryResponse = await waitForResponse(HEADER_TIMEOUT);
       if (retryResponse.type !== SDS_ACK && retryResponse.type !== 'timeout') {
         throw new Error("Header rejected twice");
@@ -611,7 +690,7 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
       if (verbose && packetNum < 5) { // Debug first few packets
         console.log(`Packet ${packetNum} size:`, packet.length, "checksum:", `0x${packet[packet.length-1].toString(16)}`);
       }
-      sendSysExMessage(packet);
+      sendSDSMessage(packet);
       
       if (handshaking) {
         const response = await waitForResponse(PACKET_TIMEOUT, packetNum & 0x7F);
@@ -817,12 +896,14 @@ if (!command) {
   console.log("  drumtool.js version");
   console.log("  drumtool.js format");
   console.log("  drumtool.js reboot-bootloader");
+  console.log("  drumtool.js identity");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
   console.log("  version        - Get device firmware version");
   console.log("  format         - Format device filesystem");
   console.log("  reboot-bootloader - Reboot device into bootloader mode");
+  console.log("  identity       - Test universal SysEx identity request");
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127)");
@@ -869,7 +950,7 @@ process.on('SIGINT', () => {
     const { sampleNumber } = currentTransferInfo;
     const sampleNumBytes = [sampleNumber & 0x7F, (sampleNumber >> 7) & 0x7F];
     const cancelMessage = [SDS_CANCEL, ...sampleNumBytes];
-    sendSysExMessage(cancelMessage);
+    sendSDSMessage(cancelMessage);
     console.log(`Cancel command sent for sample ${sampleNumber}.`);
   }
 
@@ -908,8 +989,8 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
-    } else if (command !== 'version' && command !== 'format' && command !== 'reboot-bootloader') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'format', or 'reboot-bootloader'.`);
+    } else if (command !== 'version' && command !== 'format' && command !== 'reboot-bootloader' && command !== 'identity') {
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'format', 'reboot-bootloader', or 'identity'.`);
       process.exit(1);
     }
 
@@ -941,6 +1022,8 @@ async function main() {
       await format_filesystem();
     } else if (command === 'reboot-bootloader') {
       await reboot_bootloader();
+    } else if (command === 'identity') {
+      await test_universal_identity();
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);

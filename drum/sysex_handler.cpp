@@ -42,6 +42,14 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   logger_.debug("SysEx: Received message, size:",
                 static_cast<uint32_t>(chunk.size()));
 
+  // Check if this is a universal SysEx identity request (0x7E 0x7F 0x06 0x01)
+  if (chunk.size() >= 4 && chunk[0] == 0x7E && chunk[1] == 0x7F &&
+      chunk[2] == 0x06 && chunk[3] == 0x01) {
+    logger_.info("Universal SysEx identity request received");
+    send_universal_identity_response();
+    return;
+  }
+
   // Check if this is an SDS message (starts with 0x7E)
   if (chunk.size() >= 3 && chunk[0] == 0x7E && chunk[1] == 0x65) {
     // SDS message - route to SDS protocol
@@ -195,6 +203,33 @@ void SysExHandler::send_storage_info() const {
   sysex[14] = 0;
   sysex[15] = 0xF7;
 
+  MIDI::sendSysEx(sizeof(sysex), sysex);
+}
+
+void SysExHandler::send_universal_identity_response() const {
+  logger_.info("Sending universal SysEx identity response");
+
+  // MIDI Universal Identity Response format:
+  // F0 7E 7F 06 02 <manufacturer_id> <device_family_LSB> <device_family_MSB>
+  // <device_member_LSB> <device_member_MSB> <software_revision> F7
+  static constexpr uint8_t sysex[] = {
+      0xF0,                                   // SysEx start
+      0x7E,                                   // Universal Non-Real Time
+      0x7F,                                   // Device ID (7F = all devices)
+      0x06,                                   // General Information sub-ID1
+      0x02,                                   // Identity Response sub-ID2
+      drum::config::sysex::MANUFACTURER_ID_0, // Dato manufacturer ID
+      drum::config::sysex::MANUFACTURER_ID_1,
+      drum::config::sysex::MANUFACTURER_ID_2,
+      0x02, // Device family LSB (2nd product family)
+      0x00, // Device family MSB
+      0x01, // Device family member LSB (1st product)
+      0x00, // Device family member MSB
+      (uint8_t)(FIRMWARE_MAJOR & 0x7F), // Software revision (firmware version)
+      (uint8_t)(FIRMWARE_MINOR & 0x7F),
+      (uint8_t)(FIRMWARE_PATCH & 0x7F),
+      0xF7 // SysEx end
+  };
   MIDI::sendSysEx(sizeof(sysex), sysex);
 }
 

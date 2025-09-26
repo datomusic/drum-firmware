@@ -56,6 +56,7 @@ void SequencerEffectRandom::set_random_intensity(float intensity) {
 }
 
 void SequencerEffectRandom::enable_probability_mode(bool enabled) {
+  // Internal toggle; does not modify current_state_.
   random_probability_active_ = enabled;
 }
 
@@ -64,8 +65,9 @@ bool SequencerEffectRandom::is_probability_mode_enabled() const {
 }
 
 void SequencerEffectRandom::enable_offset_mode(bool enabled) {
+  // Internal toggle; does not modify current_state_. Also clears probability
+  // when disabling.
   random_offset_mode_active_ = enabled;
-
   if (!enabled) {
     random_probability_active_ = false;
     for (size_t track_idx = 0; track_idx < MAX_TRACKS; ++track_idx) {
@@ -129,10 +131,15 @@ void SequencerEffectRandom::trigger_step_highlighting(size_t num_steps,
 
 void SequencerEffectRandom::start_step_highlighting() {
   random_steps_highlighted_ = true;
+  // StepPreview is only meaningful when stopped; repeat flag irrelevant.
+  request_state(RandomEffectState::StepPreview, /*repeat_active=*/false);
 }
 
 void SequencerEffectRandom::stop_step_highlighting() {
   random_steps_highlighted_ = false;
+  if (current_state_ == RandomEffectState::StepPreview) {
+    request_state(RandomEffectState::Inactive, /*repeat_active=*/false);
+  }
 }
 
 size_t SequencerEffectRandom::calculate_offset(size_t num_steps) {
@@ -156,6 +163,65 @@ SequencerEffectRandom::generate_repeat_offsets(size_t num_steps) {
   }
 
   return offsets;
+}
+
+void SequencerEffectRandom::reset_to_inactive() {
+  transition_to(RandomEffectState::Inactive, /*repeat_active=*/false);
+}
+
+RandomEffectState SequencerEffectRandom::get_current_state() const {
+  return current_state_;
+}
+
+void SequencerEffectRandom::request_state(RandomEffectState new_state,
+                                          bool repeat_active) {
+  transition_to(new_state, repeat_active);
+}
+
+void SequencerEffectRandom::transition_to(RandomEffectState new_state,
+                                          bool repeat_active) {
+  // Enforce REPEAT constraint: no OffsetWithFlip while repeating
+  if (repeat_active && new_state == RandomEffectState::OffsetWithFlip) {
+    new_state = RandomEffectState::OffsetActive;
+  }
+
+  if (current_state_ == new_state) {
+    return;
+  }
+
+  // Exit current state
+  switch (current_state_) {
+  case RandomEffectState::OffsetActive:
+  case RandomEffectState::OffsetWithFlip:
+    enable_probability_mode(false);
+    enable_offset_mode(false);
+    break;
+  case RandomEffectState::StepPreview:
+    // We are already in StepPreview; ensure preview flag off
+    random_steps_highlighted_ = false;
+    break;
+  case RandomEffectState::Inactive:
+    break;
+  }
+
+  // Enter new state
+  switch (new_state) {
+  case RandomEffectState::OffsetActive:
+    enable_offset_mode(true);
+    break;
+  case RandomEffectState::OffsetWithFlip:
+    enable_offset_mode(true);
+    enable_probability_mode(true);
+    break;
+  case RandomEffectState::StepPreview:
+    // Preview is controlled by start/stop_step_highlighting
+    break;
+  case RandomEffectState::Inactive:
+    // Already cleaned up in exit logic
+    break;
+  }
+
+  current_state_ = new_state;
 }
 
 } // namespace drum

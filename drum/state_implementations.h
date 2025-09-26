@@ -67,8 +67,8 @@ public:
   bool is_transfer_active() const;
 
 private:
-  absolute_time_t last_transfer_activity_;
-  bool transfer_active_;
+  absolute_time_t last_transfer_activity_{};
+  bool transfer_active_{false};
   static constexpr uint32_t TIMEOUT_MS = 1000; // 1 second timeout
 };
 

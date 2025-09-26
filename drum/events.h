@@ -52,6 +52,8 @@ struct ParameterChangeEvent {
  */
 struct SysExTransferStateChangeEvent {
   bool is_active; // true when transfer starts, false when it ends
+  // Optional active sample slot (SDS). Present when known and transfer active.
+  std::optional<uint8_t> sample_slot;
 };
 
 } // namespace drum::Events

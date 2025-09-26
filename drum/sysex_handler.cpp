@@ -21,11 +21,18 @@ void SysExHandler::update(absolute_time_t now) {
   if (current_busy_state != was_busy_) {
     if (current_busy_state) {
       logger_.info("SysEx file transfer started.");
-      drum::Events::SysExTransferStateChangeEvent event{.is_active = true};
+      drum::Events::SysExTransferStateChangeEvent event{
+          .is_active = true, .sample_slot = std::nullopt};
+      // If SDS transfer, include current sample slot when known
+      if (auto slot_opt = sds_protocol_.current_sample_number_opt();
+          slot_opt.has_value()) {
+        event.sample_slot = static_cast<uint8_t>(slot_opt.value() & 0x7F);
+      }
       this->notify_observers(event);
     } else {
       logger_.info("SysEx file transfer finished.");
-      drum::Events::SysExTransferStateChangeEvent event{.is_active = false};
+      drum::Events::SysExTransferStateChangeEvent event{
+          .is_active = false, .sample_slot = std::nullopt};
       this->notify_observers(event);
     }
     was_busy_ = current_busy_state;

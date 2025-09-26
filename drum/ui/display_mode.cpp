@@ -330,12 +330,29 @@ void FileTransferDisplayMode::on_enter(PizzaDisplay &display) {
   _last_update_time = nil_time;
 }
 
+void FileTransferDisplayMode::set_sample_slot(
+    std::optional<uint8_t> sample_slot) {
+  _current_sample_slot = sample_slot;
+}
+
 void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   display.clear();
-  // Flash the play button green
+  // Flash the play button in sample color or green as fallback
   uint32_t time_ms = to_ms_since_boot(now);
-  Color pulse_color =
-      (time_ms / 250) % 2 == 0 ? PizzaDisplay::COLOR_GREEN : Color(0);
+  bool is_on_phase = (time_ms / 250) % 2 == 0;
+
+  Color pulse_color = Color(0); // Off phase is black
+  if (is_on_phase) {
+    // Try to get color for current sample slot, fallback to green
+    if (_current_sample_slot.has_value()) {
+      auto color_opt =
+          display.get_color_for_midi_note(_current_sample_slot.value());
+      pulse_color = color_opt.value_or(PizzaDisplay::COLOR_GREEN);
+    } else {
+      pulse_color = PizzaDisplay::COLOR_GREEN;
+    }
+  }
+
   display.set_play_button_led(pulse_color);
 }
 

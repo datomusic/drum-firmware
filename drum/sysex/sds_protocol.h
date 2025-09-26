@@ -117,6 +117,14 @@ public:
     return state_ != State::Idle;
   }
 
+  // Expose current sample number (if any) without leaking internal state
+  constexpr etl::optional<uint16_t> current_sample_number_opt() const {
+    if (state_ == State::ReceivingData) {
+      return current_sample_.sample_number;
+    }
+    return etl::nullopt;
+  }
+
 private:
   FileOperations &file_ops_;
   musin::Logger &logger_;

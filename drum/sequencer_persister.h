@@ -20,8 +20,8 @@ public:
    * @param state The state data to save
    * @return true if save was successful, false otherwise
    */
-  static bool save_to_file(const char *filepath,
-                           const SequencerPersistentState &state);
+  bool save_to_file(const char *filepath,
+                    const SequencerPersistentState &state);
 
   /**
    * @brief Load sequencer state from a file.
@@ -29,8 +29,7 @@ public:
    * @param state Output parameter to receive the loaded state
    * @return true if load was successful, false otherwise
    */
-  static bool load_from_file(const char *filepath,
-                             SequencerPersistentState &state);
+  bool load_from_file(const char *filepath, SequencerPersistentState &state);
 };
 
 } // namespace drum

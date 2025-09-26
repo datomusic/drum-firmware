@@ -27,7 +27,7 @@ public:
   /**
    * @brief Constructs a Chunk from an etl::span.
    */
-  constexpr Chunk(etl::span<const uint8_t> view) : view_(view) {
+  explicit constexpr Chunk(etl::span<const uint8_t> view) : view_(view) {
   }
 
   constexpr const uint8_t &operator[](size_t i) const {

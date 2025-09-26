@@ -218,6 +218,9 @@ void SequencerController<NumTracks, NumSteps>::stop() {
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
+
+  disable_random_offset_mode();
+  disable_random_probability_mode();
 }
 
 template <size_t NumTracks, size_t NumSteps>

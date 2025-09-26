@@ -105,7 +105,7 @@ constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {
     {default_drumpad_config, default_drumpad_config, default_drumpad_config,
      default_drumpad_config}};
 
-}
+} // namespace drumpad
 // Linear MIDI note to sample slot mapping
 // Each track has a contiguous range of MIDI notes that map directly to sample
 // slots

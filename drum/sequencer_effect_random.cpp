@@ -132,9 +132,7 @@ void SequencerEffectRandom::start_step_highlighting() {
 }
 
 void SequencerEffectRandom::stop_step_highlighting() {
-  if (random_steps_highlighted_) {
-    random_steps_highlighted_ = false;
-  }
+  random_steps_highlighted_ = false;
 }
 
 size_t SequencerEffectRandom::calculate_offset(size_t num_steps) {

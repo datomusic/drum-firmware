@@ -347,11 +347,11 @@ PizzaControls::DrumpadComponent::get_note_for_pad(uint8_t pad_index) const {
 void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
     musin::ui::DrumpadEvent event) {
   logger.debug("Drumpad ", static_cast<uint32_t>(event.pad_index));
-  auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
   if (event.velocity.has_value()) {
     logger.debug("Velocity ", static_cast<uint32_t>(event.velocity.value()));
   }
   if (event.pad_index < config::NUM_DRUMPADS) {
+    auto &seq_controller = parent->parent_controls->_sequencer_controller_ref;
     if (event.type == musin::ui::DrumpadEvent::Type::Press) {
       logger.debug("PRESSED ", static_cast<uint32_t>(event.pad_index));
       if (event.velocity.has_value()) {

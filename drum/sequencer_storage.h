@@ -68,7 +68,6 @@ private:
       30000; // Maximum 30s between saves when dirty
 
   // Composed architecture - testable components with dependency injection
-  SequencerPersister persister_;
   PicoTimeSource pico_time_;
   SaveTimingManager timing_manager_;
 };

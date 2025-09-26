@@ -61,8 +61,7 @@ template <size_t MaxSections> class SectionProfiler {
 public:
   explicit SectionProfiler(uint32_t print_interval_ms = 2000)
       : _print_interval_us(static_cast<uint64_t>(print_interval_ms) * 1000),
-        _current_section_count(0) {
-    _last_print_time = get_absolute_time();
+        _current_section_count(0), _last_print_time(get_absolute_time()) {
   }
 
   size_t add_section(const char *name) {
@@ -197,8 +196,8 @@ private:
 template <size_t MaxSections> class ScopedProfile {
 public:
   ScopedProfile(SectionProfiler<MaxSections> &profiler, size_t section_index)
-      : _profiler(profiler), _section_index(section_index) {
-    _start_time = get_absolute_time();
+      : _profiler(profiler), _section_index(section_index),
+        _start_time(get_absolute_time()) {
   }
 
   ~ScopedProfile() {
@@ -267,9 +266,9 @@ class LoopTimer {
 public:
   explicit LoopTimer(uint32_t print_interval_ms = 1000)
       : _accumulated_loop_time_us(0), _loop_count(0),
-        _print_interval_us(static_cast<uint64_t>(print_interval_ms) * 1000) {
-    _last_print_time = get_absolute_time();
-    _last_loop_end_time = _last_print_time;
+        _print_interval_us(static_cast<uint64_t>(print_interval_ms) * 1000),
+        _last_print_time(get_absolute_time()),
+        _last_loop_end_time(get_absolute_time()) {
   }
 
   void record_iteration_end() {

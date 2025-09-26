@@ -1035,7 +1035,8 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
-    } else if (command !== 'version' && command !== 'storage' && command !== 'format' && command !== 'reboot-bootloader' && command !== 'identity') {
+    } else if (command !== 'version' && command !== 'storage' && command !== 'format' &&
+               command !== 'reboot-bootloader' && command !== 'identity') {
       console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', or 'identity'.`);
       process.exit(1);
     }

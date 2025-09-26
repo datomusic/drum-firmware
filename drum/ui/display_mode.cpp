@@ -171,7 +171,8 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
   }
 }
 
-void SequencerDisplayMode::update_track_override_colors(PizzaDisplay &display) const {
+void SequencerDisplayMode::update_track_override_colors(
+    PizzaDisplay &display) const {
   for (uint8_t track_idx = 0;
        track_idx < PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
     if (_sequencer_controller_ref.is_pad_pressed(track_idx) ||

@@ -37,7 +37,8 @@ struct SequencerPersistentState {
   // Active note assignments per track (for drumpad triggering)
   etl::array<uint8_t, config::NUM_TRACKS> active_notes;
 
-  SequencerPersistentState() : magic(MAGIC_NUMBER), version(FORMAT_VERSION) {
+  SequencerPersistentState()
+      : magic(MAGIC_NUMBER), version(FORMAT_VERSION), reserved{} {
     // Initialize active notes with first note from each track's range
     active_notes[0] = config::track_ranges[0]
                           .high_note; // Track 1: 37 Kick on old drumcomputers

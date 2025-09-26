@@ -146,7 +146,7 @@ public:
    * @param note The MIDI note number.
    * @param velocity The MIDI velocity.
    */
-  void handle_incoming_note_off(uint8_t note, uint8_t velocity);
+  void handle_incoming_note_off(uint8_t note, uint8_t velocity) const;
 
   /**
    * @brief Handles an incoming MIDI Control Change message.

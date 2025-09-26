@@ -316,7 +316,8 @@ void MessageRouter::handle_incoming_note_on(uint8_t note, uint8_t velocity) {
   }
 }
 
-void MessageRouter::handle_incoming_note_off(uint8_t note, uint8_t velocity) {
+void MessageRouter::handle_incoming_note_off(uint8_t note,
+                                             uint8_t velocity) const {
   // Currently, we do nothing for note-off messages.
   // This is where logic to mute a voice would go if desired.
   (void)note;

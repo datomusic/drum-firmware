@@ -16,6 +16,9 @@ struct StandardFileOps {
   static const unsigned BlockSize = 256;
 
   struct Handle {
+    // Non-copyable RAII wrapper for file handles
+    Handle(const Handle &) = delete;
+    Handle &operator=(const Handle &) = delete;
 
     Handle(const etl::string_view &path, musin::Logger &logger)
         : logger(logger) {
@@ -30,6 +33,10 @@ struct StandardFileOps {
       if (!file_pointer) {
         logger.error("Failed opening file");
       }
+    }
+
+    ~Handle() {
+      close();
     }
 
     void close() {

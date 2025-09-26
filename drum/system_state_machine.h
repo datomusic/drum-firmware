@@ -33,7 +33,7 @@ public:
    * @brief Construct a new SystemStateMachine.
    * @param logger Reference to the logging system
    */
-  SystemStateMachine(musin::Logger &logger);
+  explicit SystemStateMachine(musin::Logger &logger);
 
   /**
    * @brief Update the current state.

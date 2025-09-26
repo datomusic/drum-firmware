@@ -289,11 +289,7 @@ struct PitchShifter : SampleReader {
       this->speed = new_speed;
     }
 
-    if (this->speed < 1.0f) {
-      m_interpolate_fn = &QuadraticInterpolator::interpolate;
-    } else {
-      m_interpolate_fn = &QuadraticInterpolator::interpolate;
-    }
+    m_interpolate_fn = &QuadraticInterpolator::interpolate;
   }
 
   constexpr void set_interpolator(InterpolateFn fn) {

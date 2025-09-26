@@ -125,7 +125,7 @@ public:
     void update();
     void select_note_for_pad(uint8_t pad_index, int8_t offset);
     uint8_t get_note_for_pad(uint8_t pad_index) const;
-    [[nodiscard]] size_t get_num_drumpads() const {
+    [[nodiscard]] static constexpr size_t get_num_drumpads() {
       return config::NUM_DRUMPADS;
     }
     [[nodiscard]] const musin::ui::Drumpad &get_drumpad(size_t index) const {

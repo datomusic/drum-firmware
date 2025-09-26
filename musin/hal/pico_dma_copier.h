@@ -7,8 +7,12 @@ namespace musin::hal {
 struct PicoDmaCopier {
   // init() must be called once at startup from non-ISR context.
   static void init() {
-    // 'true' = panic if no channel is available. This is safe at startup.
-    dma_channel_ = dma_claim_unused_channel(true);
+    // Try to claim a channel, but don't panic if none available
+    dma_channel_ = dma_claim_unused_channel(false);
+    if (dma_channel_ < 0) {
+      // No DMA channels available, will fall back to CPU copy
+      dma_channel_ = -1;
+    }
   }
 
   // deinit() can be called at shutdown.

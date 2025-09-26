@@ -35,12 +35,12 @@ public:
 
 private:
   void draw_base_elements(PizzaDisplay &display, absolute_time_t now);
-  void draw_animations(PizzaDisplay &display, absolute_time_t now);
+  void draw_animations(PizzaDisplay &display, absolute_time_t now) const;
   void draw_sequencer_state(PizzaDisplay &display, absolute_time_t now);
-  void update_track_override_colors(PizzaDisplay &display);
-  Color calculate_step_color(PizzaDisplay &display,
-                             const musin::timing::Step &step) const;
-  Color apply_pulsing_highlight(Color base_color, bool bright_phase) const;
+  void update_track_override_colors(PizzaDisplay &display) const;
+  static Color calculate_step_color(const PizzaDisplay &display,
+                                    const musin::timing::Step &step);
+  static Color apply_pulsing_highlight(Color base_color, bool bright_phase);
   void sync_highlight_phase_with_step();
   bool is_highlight_bright(const PizzaDisplay &display) const;
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>

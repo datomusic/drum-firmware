@@ -45,7 +45,8 @@ enum class RGBOrder {
 };
 
 /**
- * @brief Driver for WS2812/NeoPixel addressable LEDs using Raspberry Pi Pico PIO and DMA.
+ * @brief Driver for WS2812/NeoPixel addressable LEDs using Raspberry Pi Pico
+ * PIO and DMA.
  *
  * Manages a strip of LEDs, handling color setting, brightness, optional color
  * correction, and communication via a PIO state machine using DMA for efficient
@@ -65,7 +66,8 @@ public:
    * @param data_pin The GPIO pin connected to the WS2812 data input.
    * @param order The color order of the LEDs (e.g., RGBOrder::GRB).
    * @param initial_brightness Optional initial brightness (0-255, default 255).
-   * @param color_correction Optional color correction value (e.g., 0xFFB0F0, default none).
+   * @param color_correction Optional color correction value (e.g., 0xFFB0F0,
+   * default none).
    */
   WS2812_DMA(unsigned int data_pin, RGBOrder order = RGBOrder::GRB,
              uint8_t initial_brightness = 255,
@@ -81,12 +83,12 @@ public:
   ~WS2812_DMA();
 
   /**
-   * @brief Initialize the PIO state machine and DMA channel for WS2812 communication.
-   * Must be called once before using the driver.
-   * Loads the PIO program if not already loaded on this PIO instance.
-   * Claims and configures the specified state machine.
-   * Claims and configures a DMA channel.
-   * @return true if initialization was successful, false otherwise (e.g., SM or DMA unavailable).
+   * @brief Initialize the PIO state machine and DMA channel for WS2812
+   * communication. Must be called once before using the driver. Loads the PIO
+   * program if not already loaded on this PIO instance. Claims and configures
+   * the specified state machine. Claims and configures a DMA channel.
+   * @return true if initialization was successful, false otherwise (e.g., SM or
+   * DMA unavailable).
    */
   bool init();
 
@@ -96,11 +98,11 @@ public:
   void set_pixel(unsigned int index, uint32_t color);
 
   /**
-   * @brief Initiate sending the current pixel buffer data to the LED strip via DMA.
-   * Waits for any previous DMA transfer on this channel to complete and ensures
-   * the required latch delay has passed before starting the new transfer.
-   * Returns immediately after starting the DMA transfer. The transfer happens
-   * in the background.
+   * @brief Initiate sending the current pixel buffer data to the LED strip via
+   * DMA. Waits for any previous DMA transfer on this channel to complete and
+   * ensures the required latch delay has passed before starting the new
+   * transfer. Returns immediately after starting the DMA transfer. The transfer
+   * happens in the background.
    */
   void show();
 
@@ -110,14 +112,17 @@ public:
   uint8_t get_brightness() const;
   constexpr size_t get_num_leds() const;
 
-  uint32_t adjust_color_brightness(uint32_t base_color, uint8_t brightness) const;
+  uint32_t adjust_color_brightness(uint32_t base_color,
+                                   uint8_t brightness) const;
 
 private:
   // --- Helper methods (identical signatures and implementation to WS2812) ---
-  void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b, uint8_t &out_r,
-                                       uint8_t &out_g, uint8_t &out_b) const;
+  void apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
+                                       uint8_t &out_r, uint8_t &out_g,
+                                       uint8_t &out_b) const;
   uint32_t pack_color(uint8_t r, uint8_t g, uint8_t b) const;
-  void unpack_color(uint32_t packed_color, uint8_t &r, uint8_t &g, uint8_t &b) const;
+  void unpack_color(uint32_t packed_color, uint8_t &r, uint8_t &g,
+                    uint8_t &b) const;
 
   // --- Configuration ---
   PIO _pio;               // Assigned during init()
@@ -132,7 +137,8 @@ private:
   // --- State ---
   // Consider alignas(4) if issues arise, but start without it.
   std::array<uint32_t, NUM_LEDS> _buffers[2];
-  uint8_t _draw_buffer_index; // Index of the buffer currently being drawn to (0 or 1)
+  uint8_t _draw_buffer_index; // Index of the buffer currently being drawn to (0
+                              // or 1)
   unsigned int _pio_program_offset = 0;
   bool _initialized = false;
   absolute_time_t _last_show_time;
@@ -150,11 +156,12 @@ private:
 // =============================================================================
 
 template <size_t NUM_LEDS>
-WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order, uint8_t initial_brightness,
+WS2812_DMA<NUM_LEDS>::WS2812_DMA(unsigned int data_pin, RGBOrder order,
+                                 uint8_t initial_brightness,
                                  std::optional<uint32_t> color_correction)
     : _pio(nullptr), _sm_index(UINT_MAX), _data_pin(data_pin), _order(order),
-      _brightness(initial_brightness), _color_correction(color_correction), _buffers{},
-      _draw_buffer_index(0), _last_show_time(nil_time) {
+      _brightness(initial_brightness), _color_correction(color_correction),
+      _buffers{}, _draw_buffer_index(0), _last_show_time(nil_time) {
 }
 
 template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
@@ -162,8 +169,9 @@ template <size_t NUM_LEDS> WS2812_DMA<NUM_LEDS>::~WS2812_DMA() {
     dma_channel_unclaim(_dma_channel);
     _dma_channel = -1;
   }
-  // Note: PIO SM is not unclaimed here, assuming pio_claim_free_sm manages it globally.
-  // If specific unclaiming logic is needed, it would go here or require shared ownership tracking.
+  // Note: PIO SM is not unclaimed here, assuming pio_claim_free_sm manages it
+  // globally. If specific unclaiming logic is needed, it would go here or
+  // require shared ownership tracking.
 }
 
 template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
@@ -181,7 +189,9 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
       &ws2812_program, &pio_instance, &sm_idx, &offset, _data_pin, 1, true);
 
   if (!success) {
-    printf("WS2812_DMA Error: Failed to claim PIO/SM or load program for pin %u\n", _data_pin);
+    printf(
+        "WS2812_DMA Error: Failed to claim PIO/SM or load program for pin %u\n",
+        _data_pin);
     return false;
   }
 
@@ -191,7 +201,8 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
 
   // --- Initialize State Machine using C-SDK Helper ---
   // Configure PIO SM to auto-pull and shift right, 24 bits
-  ws2812_program_init(_pio, _sm_index, _pio_program_offset, _data_pin, 800000, false /* IS_RGBW */);
+  ws2812_program_init(_pio, _sm_index, _pio_program_offset, _data_pin, 800000,
+                      false /* IS_RGBW */);
 
   // --- Claim DMA Channel for this instance ---
   _dma_channel = dma_claim_unused_channel(true); // Panic if none available
@@ -218,10 +229,13 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
     irq_set_exclusive_handler(DMA_IRQ_1, dma_complete_handler);
     irq_set_enabled(DMA_IRQ_1, true);
     g_handlers_initialized = true;
-    printf("WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n", g_dma_channel);
+    printf(
+        "WS2812_DMA Info: Shared resources initialized for DMA channel %d.\n",
+        g_dma_channel);
   } else {
     if (g_dma_channel != _dma_channel) {
-      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 with different channels "
+      printf("WS2812_DMA Error: Multiple instances trying to use DMA_IRQ_1 "
+             "with different channels "
              "(%d vs %d).\n",
              g_dma_channel, _dma_channel);
       dma_channel_unclaim(_dma_channel);
@@ -232,13 +246,15 @@ template <size_t NUM_LEDS> bool WS2812_DMA<NUM_LEDS>::init() {
   }
 
   _initialized = true;
-  printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u using DMA%d\n",
+  printf("WS2812_DMA Info: Instance initialized %u LEDs on PIO%u SM%u Pin%u "
+         "using DMA%d\n",
          NUM_LEDS, pio_get_index(_pio), _sm_index, _data_pin, _dma_channel);
   return true;
 }
 
 template <size_t NUM_LEDS>
-void WS2812_DMA<NUM_LEDS>::set_pixel(unsigned int index, uint8_t r, uint8_t g, uint8_t b) {
+void WS2812_DMA<NUM_LEDS>::set_pixel(unsigned int index, uint8_t r, uint8_t g,
+                                     uint8_t b) {
   if (!_initialized || index >= NUM_LEDS) {
     assert(index < NUM_LEDS && _initialized);
     return;
@@ -246,7 +262,8 @@ void WS2812_DMA<NUM_LEDS>::set_pixel(unsigned int index, uint8_t r, uint8_t g, u
   uint8_t final_r, final_g, final_b;
   apply_brightness_and_correction(r, g, b, final_r, final_g, final_b);
   // Pack color directly into the buffer in the format PIO expects (shifted)
-  _buffers[_draw_buffer_index][index] = pack_color(final_r, final_g, final_b) << 8;
+  _buffers[_draw_buffer_index][index] = pack_color(final_r, final_g, final_b)
+                                        << 8;
 }
 
 template <size_t NUM_LEDS>
@@ -297,7 +314,8 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
 
 // --- Namespace-level Static Handler Implementations ---
 
-static int64_t reset_delay_complete(alarm_id_t id, [[maybe_unused]] void *user_data) {
+static int64_t reset_delay_complete(alarm_id_t id,
+                                    [[maybe_unused]] void *user_data) {
   if (id == g_reset_delay_alarm_id) {
     g_reset_delay_alarm_id = 0;
     sem_release(&g_reset_delay_complete_sem);
@@ -306,15 +324,17 @@ static int64_t reset_delay_complete(alarm_id_t id, [[maybe_unused]] void *user_d
 }
 
 static void dma_complete_handler() {
-  if (g_dma_channel != -1 && (dma_hw->ints1 & (1u << g_dma_channel))) {
-    dma_hw->ints1 = (1u << g_dma_channel);
+  if (g_dma_channel >= 0 &&
+      (dma_hw->ints1 & (1u << static_cast<uint32_t>(g_dma_channel)))) {
+    dma_hw->ints1 = (1u << static_cast<uint32_t>(g_dma_channel));
 
     alarm_id_t current_alarm = g_reset_delay_alarm_id;
     if (current_alarm > 0) {
       cancel_alarm(current_alarm);
     }
 
-    g_reset_delay_alarm_id = add_alarm_in_us(G_LATCH_DELAY_US, reset_delay_complete, NULL, true);
+    g_reset_delay_alarm_id =
+        add_alarm_in_us(G_LATCH_DELAY_US, reset_delay_complete, NULL, true);
     if (g_reset_delay_alarm_id <= 0) {
       busy_wait_us_32(G_LATCH_DELAY_US);
       sem_release(&g_reset_delay_complete_sem);
@@ -328,10 +348,12 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::clear() {
     return;
   }
   // Fill buffer with 0 (already shifted left by 8, so 0 is still 0)
-  std::fill(_buffers[_draw_buffer_index].begin(), _buffers[_draw_buffer_index].end(), 0);
+  std::fill(_buffers[_draw_buffer_index].begin(),
+            _buffers[_draw_buffer_index].end(), 0);
 }
 
-template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amount) {
+template <size_t NUM_LEDS>
+void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amount) {
   if (!_initialized) {
     assert(_initialized);
     return;
@@ -358,7 +380,8 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::fade_by(uint8_t fade_amoun
   }
 }
 
-template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::set_brightness(uint8_t brightness) {
+template <size_t NUM_LEDS>
+void WS2812_DMA<NUM_LEDS>::set_brightness(uint8_t brightness) {
   _brightness = brightness;
   // Note: Unlike the non-DMA version, changing brightness here doesn't
   // immediately affect the buffer. The buffer stores pre-calculated,
@@ -369,20 +392,22 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::set_brightness(uint8_t bri
   // re-apply brightness/correction, and repack+shift, but that's slow.
 }
 
-template <size_t NUM_LEDS> uint8_t WS2812_DMA<NUM_LEDS>::get_brightness() const {
+template <size_t NUM_LEDS>
+uint8_t WS2812_DMA<NUM_LEDS>::get_brightness() const {
   return _brightness;
 }
 
-template <size_t NUM_LEDS> constexpr size_t WS2812_DMA<NUM_LEDS>::get_num_leds() const {
+template <size_t NUM_LEDS>
+constexpr size_t WS2812_DMA<NUM_LEDS>::get_num_leds() const {
   return NUM_LEDS;
 }
 
 // --- Private Helper Method Implementations (copied verbatim) ---
 
 template <size_t NUM_LEDS>
-void WS2812_DMA<NUM_LEDS>::apply_brightness_and_correction(uint8_t r, uint8_t g, uint8_t b,
-                                                           uint8_t &out_r, uint8_t &out_g,
-                                                           uint8_t &out_b) const {
+void WS2812_DMA<NUM_LEDS>::apply_brightness_and_correction(
+    uint8_t r, uint8_t g, uint8_t b, uint8_t &out_r, uint8_t &out_g,
+    uint8_t &out_b) const {
   uint16_t brightness_scale = _brightness + (_brightness == 255 ? 0 : 1);
   r = (uint8_t)(((uint16_t)r * brightness_scale) >> 8);
   g = (uint8_t)(((uint16_t)g * brightness_scale) >> 8);
@@ -394,9 +419,12 @@ void WS2812_DMA<NUM_LEDS>::apply_brightness_and_correction(uint8_t r, uint8_t g,
     uint8_t correct_g = (correction >> 8) & 0xFF;
     uint8_t correct_b = correction & 0xFF;
 
-    r = (uint8_t)(((uint16_t)r * (correct_r + (correct_r == 255 ? 0 : 1))) >> 8);
-    g = (uint8_t)(((uint16_t)g * (correct_g + (correct_g == 255 ? 0 : 1))) >> 8);
-    b = (uint8_t)(((uint16_t)b * (correct_b + (correct_b == 255 ? 0 : 1))) >> 8);
+    r = (uint8_t)(((uint16_t)r * (correct_r + (correct_r == 255 ? 0 : 1))) >>
+                  8);
+    g = (uint8_t)(((uint16_t)g * (correct_g + (correct_g == 255 ? 0 : 1))) >>
+                  8);
+    b = (uint8_t)(((uint16_t)b * (correct_b + (correct_b == 255 ? 0 : 1))) >>
+                  8);
   }
 
   out_r = r;
@@ -405,7 +433,8 @@ void WS2812_DMA<NUM_LEDS>::apply_brightness_and_correction(uint8_t r, uint8_t g,
 }
 
 template <size_t NUM_LEDS>
-uint32_t WS2812_DMA<NUM_LEDS>::pack_color(uint8_t r, uint8_t g, uint8_t b) const {
+uint32_t WS2812_DMA<NUM_LEDS>::pack_color(uint8_t r, uint8_t g,
+                                          uint8_t b) const {
   uint32_t packed = 0;
   switch (_order) {
   case RGBOrder::RGB:
@@ -431,8 +460,8 @@ uint32_t WS2812_DMA<NUM_LEDS>::pack_color(uint8_t r, uint8_t g, uint8_t b) const
 }
 
 template <size_t NUM_LEDS>
-void WS2812_DMA<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t &r, uint8_t &g,
-                                        uint8_t &b) const {
+void WS2812_DMA<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t &r,
+                                        uint8_t &g, uint8_t &b) const {
   // This unpacks the 24-bit color value, assuming it's NOT shifted.
   // Methods calling this (like fade_by) need to handle the shift.
   switch (_order) {
@@ -473,8 +502,9 @@ void WS2812_DMA<NUM_LEDS>::unpack_color(uint32_t packed_color, uint8_t &r, uint8
 }
 
 template <size_t NUM_LEDS>
-uint32_t WS2812_DMA<NUM_LEDS>::adjust_color_brightness(uint32_t base_color,
-                                                       uint8_t brightness) const {
+uint32_t
+WS2812_DMA<NUM_LEDS>::adjust_color_brightness(uint32_t base_color,
+                                              uint8_t brightness) const {
   if (base_color == 0) {
     return 0;
   }

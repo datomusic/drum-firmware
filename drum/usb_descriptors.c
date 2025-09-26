@@ -146,7 +146,8 @@ const uint16_t *tud_descriptor_string_cb(uint8_t index,
                                          __unused uint16_t langid) {
 #ifndef USBD_DESC_STR_MAX
 #define USBD_DESC_STR_MAX (20)
-#elif USBD_DESC_STR_MAX > 127
+#endif
+#if USBD_DESC_STR_MAX > 127
 #error USBD_DESC_STR_MAX too high (max is 127).
 #elif USBD_DESC_STR_MAX < 17
 #error USBD_DESC_STR_MAX too low (min is 17).

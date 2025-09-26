@@ -28,8 +28,9 @@ public:
    * @param save_debounce_ms Minimum time between state changes and save
    * @param max_save_interval_ms Maximum time between saves when dirty
    */
-  SaveTimingManager(TimeSource &time_source, uint32_t save_debounce_ms = 10000,
-                    uint32_t max_save_interval_ms = 30000);
+  explicit SaveTimingManager(TimeSource &time_source,
+                             uint32_t save_debounce_ms = 10000,
+                             uint32_t max_save_interval_ms = 30000);
 
   /**
    * @brief Mark that state has changed (needs saving).

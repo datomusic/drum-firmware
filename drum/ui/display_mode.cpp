@@ -171,7 +171,8 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
   }
 }
 
-void SequencerDisplayMode::update_track_override_colors(PizzaDisplay &display) {
+void SequencerDisplayMode::update_track_override_colors(
+    PizzaDisplay &display) const {
   for (uint8_t track_idx = 0;
        track_idx < PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
     if (_sequencer_controller_ref.is_pad_pressed(track_idx) ||
@@ -193,7 +194,7 @@ void SequencerDisplayMode::update_track_override_colors(PizzaDisplay &display) {
 }
 
 void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
-                                           absolute_time_t now) {
+                                           absolute_time_t now) const {
   for (uint8_t i = 0; i < config::NUM_DRUMPADS; ++i) {
     uint8_t active_note =
         _sequencer_controller_ref.get_active_note_for_track(i);
@@ -245,7 +246,7 @@ void SequencerDisplayMode::draw_animations(PizzaDisplay &display,
 }
 
 Color SequencerDisplayMode::calculate_step_color(
-    PizzaDisplay &display, const musin::timing::Step &step) const {
+    const PizzaDisplay &display, const musin::timing::Step &step) {
   Color color(0);
 
   if (step.enabled && step.note.has_value()) {
@@ -274,7 +275,7 @@ Color SequencerDisplayMode::calculate_step_color(
 }
 
 Color SequencerDisplayMode::apply_pulsing_highlight(Color base_color,
-                                                    bool bright_phase) const {
+                                                    bool bright_phase) {
   uint8_t amount =
       bright_phase
           ? PizzaDisplay::HIGHLIGHT_BLEND_AMOUNT

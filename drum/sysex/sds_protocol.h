@@ -82,7 +82,7 @@ template <typename FileOperations> class Protocol {
 public:
   constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
       : file_ops_(file_ops), logger_(logger), state_(State::Idle),
-        expected_packet_num_(0), bytes_received_(0) {
+        expected_packet_num_(0), bytes_received_(0), current_sample_{} {
   }
 
   // Process incoming SDS message

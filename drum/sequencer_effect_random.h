@@ -45,9 +45,9 @@ private:
   static constexpr size_t MAX_TRACKS = 4;
   static constexpr size_t MAX_OFFSETS_PER_TRACK = 3;
 
-  size_t calculate_offset(size_t num_steps) const;
-  etl::array<size_t, MAX_OFFSETS_PER_TRACK>
-  generate_repeat_offsets(size_t num_steps) const;
+  static size_t calculate_offset(size_t num_steps);
+  static etl::array<size_t, MAX_OFFSETS_PER_TRACK>
+  generate_repeat_offsets(size_t num_steps);
 
   bool random_offset_mode_active_{false};
   bool random_probability_active_{false};

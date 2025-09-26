@@ -178,7 +178,7 @@ template <typename FileOperations> struct Protocol {
     FileTransfer,
   };
 
-  constexpr State get_state() {
+  constexpr State get_state() const {
     return state;
   }
 

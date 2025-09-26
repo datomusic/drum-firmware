@@ -137,7 +137,7 @@ void SequencerEffectRandom::stop_step_highlighting() {
   }
 }
 
-size_t SequencerEffectRandom::calculate_offset(size_t num_steps) const {
+size_t SequencerEffectRandom::calculate_offset(size_t num_steps) {
   if (num_steps == 0) {
     return 0;
   }
@@ -146,7 +146,7 @@ size_t SequencerEffectRandom::calculate_offset(size_t num_steps) const {
 }
 
 etl::array<size_t, SequencerEffectRandom::MAX_OFFSETS_PER_TRACK>
-SequencerEffectRandom::generate_repeat_offsets(size_t num_steps) const {
+SequencerEffectRandom::generate_repeat_offsets(size_t num_steps) {
   etl::array<size_t, MAX_OFFSETS_PER_TRACK> offsets{};
 
   if (num_steps == 0) {

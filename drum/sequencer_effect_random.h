@@ -9,6 +9,13 @@
 
 namespace drum {
 
+enum class RandomEffectState {
+  Inactive,       // No random effects active
+  OffsetActive,   // Running + light press: offset randomization only
+  OffsetWithFlip, // Running + hard press: offset + probability flipping
+  StepPreview     // Stopped + any press: step highlighting for preview
+};
+
 class SequencerEffectRandom {
 public:
   struct RandomizedStep {
@@ -25,10 +32,7 @@ public:
 
   void set_random_intensity(float intensity);
 
-  void enable_probability_mode(bool enabled);
   bool is_probability_mode_enabled() const;
-
-  void enable_offset_mode(bool enabled);
   bool is_offset_mode_enabled() const;
 
   void regenerate_offsets(size_t num_steps, size_t num_tracks);
@@ -41,6 +45,12 @@ public:
   void start_step_highlighting();
   void stop_step_highlighting();
 
+  // Centralized state management
+  // Enforce state transitions via this API only.
+  void request_state(RandomEffectState new_state, bool repeat_active);
+  void reset_to_inactive();
+  RandomEffectState get_current_state() const;
+
 private:
   static constexpr size_t MAX_TRACKS = 4;
   static constexpr size_t MAX_OFFSETS_PER_TRACK = 3;
@@ -49,6 +59,13 @@ private:
   static etl::array<size_t, MAX_OFFSETS_PER_TRACK>
   generate_repeat_offsets(size_t num_steps);
 
+  // Internal helpers
+  void enable_probability_mode(bool enabled);
+  void enable_offset_mode(bool enabled);
+
+  void transition_to(RandomEffectState new_state, bool repeat_active);
+
+  RandomEffectState current_state_{RandomEffectState::Inactive};
   bool random_offset_mode_active_{false};
   bool random_probability_active_{false};
 

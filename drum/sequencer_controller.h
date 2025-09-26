@@ -267,6 +267,8 @@ private:
 
   SequencerEffectSwing swing_effect_;
   SequencerEffectRandom random_effect_;
+  // User intent: true when RANDOM is held hard-press while running.
+  bool random_intends_flip_{false};
 
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};

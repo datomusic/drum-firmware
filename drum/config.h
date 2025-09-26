@@ -105,10 +105,7 @@ constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {
     {default_drumpad_config, default_drumpad_config, default_drumpad_config,
      default_drumpad_config}};
 
-constexpr uint8_t RANDOM_PROBABILITY_DEFAULT =
-    75; // chance to flip steps when random is active
 } // namespace drumpad
-
 // Linear MIDI note to sample slot mapping
 // Each track has a contiguous range of MIDI notes that map directly to sample
 // slots

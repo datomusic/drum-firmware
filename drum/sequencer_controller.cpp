@@ -218,6 +218,9 @@ void SequencerController<NumTracks, NumSteps>::stop() {
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
+
+  random_effect_.reset_to_inactive();
+  random_intends_flip_ = false;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -406,10 +409,21 @@ void SequencerController<NumTracks, NumSteps>::set_intended_repeat_state(
 
   if (should_be_active && !was_active) {
     activate_repeat(intended_length.value());
+    // Enforce random-effect constraints under REPEAT
+    random_effect_.request_state(random_effect_.get_current_state(),
+                                 /*repeat_active=*/true);
   } else if (!should_be_active && was_active) {
     deactivate_repeat();
+    // REPEAT released: if user intends flip and random is active, upgrade
+    if (random_effect_.is_offset_mode_enabled() && random_intends_flip_) {
+      random_effect_.request_state(RandomEffectState::OffsetWithFlip,
+                                   /*repeat_active=*/false);
+    }
   } else if (should_be_active && was_active) {
     set_repeat_length(intended_length.value());
+    // Re-assert constraints in case state needs downgrading
+    random_effect_.request_state(random_effect_.get_current_state(),
+                                 /*repeat_active=*/true);
   }
 }
 
@@ -813,13 +827,15 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode() {
-  random_effect_.enable_offset_mode(true);
+  random_effect_.request_state(RandomEffectState::OffsetActive,
+                               is_repeat_active());
   random_effect_.regenerate_offsets(main_sequencer_.get_num_steps(), NumTracks);
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::disable_random_offset_mode() {
-  random_effect_.enable_offset_mode(false);
+  random_effect_.request_state(RandomEffectState::Inactive, is_repeat_active());
+  random_intends_flip_ = false;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -844,13 +860,17 @@ void SequencerController<NumTracks,
   }
 
   // Additionally enable probability flipping for hard press
-  random_effect_.enable_probability_mode(true);
+  random_effect_.request_state(RandomEffectState::OffsetWithFlip,
+                               is_repeat_active());
+  random_intends_flip_ = true;
 }
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks,
                          NumSteps>::disable_random_probability_mode() {
-  random_effect_.enable_probability_mode(false);
+  // Simplify: return to inactive when probability is being disabled by UI
+  random_effect_.request_state(RandomEffectState::Inactive, is_repeat_active());
+  random_intends_flip_ = false;
 }
 
 template <size_t NumTracks, size_t NumSteps>

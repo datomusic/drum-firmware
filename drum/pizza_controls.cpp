@@ -596,8 +596,7 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
       if (!controls->is_running()) {
         controls->_sequencer_controller_ref.stop_random_step_highlighting();
       } else {
-        // Turn off probability flipping when button is released while running
-        controls->_sequencer_controller_ref.disable_random_probability_mode();
+        // Release while running: return random effect to Inactive
         controls->_sequencer_controller_ref.disable_random_offset_mode();
       }
     } else if (event.state == musin::ui::PressureState::HardPress &&

@@ -45,6 +45,7 @@ private:
   void print_firmware_version() const;
   void print_serial_number() const;
   void send_storage_info() const;
+  void send_universal_identity_response() const;
 
   ConfigurationManager &config_manager_;
   musin::Logger &logger_;

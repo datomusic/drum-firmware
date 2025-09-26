@@ -40,13 +40,14 @@ static inline void *get_current_sp() {
 }
 
 /**
- * @brief Measures and reports the average execution time of registered code sections.
+ * @brief Measures and reports the average execution time of registered code
+ * sections.
  *
- * When ENABLE_PROFILING is defined, this class collects timing data for different
- * code sections identified by an index. It periodically prints a report to the
- * console showing the average execution time and call count for each section.
- * If ENABLE_PROFILING is not defined, this class compiles to empty stubs,
- * incurring no runtime overhead.
+ * When ENABLE_PROFILING is defined, this class collects timing data for
+ * different code sections identified by an index. It periodically prints a
+ * report to the console showing the average execution time and call count for
+ * each section. If ENABLE_PROFILING is not defined, this class compiles to
+ * empty stubs, incurring no runtime overhead.
  *
  * @tparam MaxSections The maximum number of code sections that can be profiled.
  */
@@ -71,7 +72,8 @@ public:
       _sections[_current_section_count].call_count = 0;
       return _current_section_count++;
     }
-    printf("Error: Exceeded maximum number of profiled sections (%u)\n", MaxSections);
+    printf("Error: Exceeded maximum number of profiled sections (%u)\n",
+           MaxSections);
     return MaxSections;
   }
 
@@ -84,8 +86,8 @@ public:
 
   void check_and_print_report() {
     absolute_time_t current_time = get_absolute_time();
-    if (static_cast<uint64_t>(absolute_time_diff_us(_last_print_time, current_time)) >=
-        _print_interval_us) {
+    if (static_cast<uint64_t>(absolute_time_diff_us(
+            _last_print_time, current_time)) >= _print_interval_us) {
       print_report();
       _last_print_time = current_time;
     }
@@ -96,12 +98,14 @@ private:
     printf("--- Profiling Report ---\n");
     for (size_t i = 0; i < _current_section_count; ++i) {
       if (_sections[i].call_count > 0) {
-        uint64_t avg_time_us = _sections[i].accumulated_time_us / _sections[i].call_count;
+        uint64_t avg_time_us =
+            _sections[i].accumulated_time_us / _sections[i].call_count;
         printf("Section '%s': Avg %llu us (%lu calls)\n",
                _sections[i].name ? _sections[i].name : "Unnamed", avg_time_us,
                _sections[i].call_count);
       } else {
-        printf("Section '%s': (No calls)\n", _sections[i].name ? _sections[i].name : "Unnamed");
+        printf("Section '%s': (No calls)\n",
+               _sections[i].name ? _sections[i].name : "Unnamed");
       }
       _sections[i].accumulated_time_us = 0;
       _sections[i].call_count = 0;
@@ -114,7 +118,8 @@ private:
     // Heap statistics
     char *heap_start_addr = __end__;
     char *heap_limit_addr = __HeapLimit; // Use the provided __HeapLimit
-    size_t total_heap_size = static_cast<size_t>(heap_limit_addr - heap_start_addr);
+    size_t total_heap_size =
+        static_cast<size_t>(heap_limit_addr - heap_start_addr);
 
     char *current_break = static_cast<char *>(sbrk(0));
     size_t used_heap_size = 0;
@@ -127,12 +132,14 @@ private:
       // Report used_heap_size as 0 or an error indicator.
       // For now, we'll stick to 0 if current_break is out of expected range.
     }
-    // Ensure used_heap_size does not exceed total_heap_size in case of sbrk anomalies
+    // Ensure used_heap_size does not exceed total_heap_size in case of sbrk
+    // anomalies
     if (used_heap_size > total_heap_size) {
       used_heap_size = total_heap_size;
     }
 
-    printf("Heap: Total %u B, Used %u B, Free %u B\n", static_cast<unsigned int>(total_heap_size),
+    printf("Heap: Total %u B, Used %u B, Free %u B\n",
+           static_cast<unsigned int>(total_heap_size),
            static_cast<unsigned int>(used_heap_size),
            static_cast<unsigned int>(total_heap_size - used_heap_size));
 
@@ -142,11 +149,13 @@ private:
     size_t total_stack_size = static_cast<size_t>(stack_top - stack_limit);
     char *current_stack_pointer = static_cast<char *>(get_current_sp());
     size_t used_stack_size = 0;
-    if (current_stack_pointer >= stack_limit && current_stack_pointer <= stack_top) {
+    if (current_stack_pointer >= stack_limit &&
+        current_stack_pointer <= stack_top) {
       used_stack_size = static_cast<size_t>(stack_top - current_stack_pointer);
     }
 
-    printf("Stack: Total %u B, Used %u B, Free %u B\n", static_cast<unsigned int>(total_stack_size),
+    printf("Stack: Total %u B, Used %u B, Free %u B\n",
+           static_cast<unsigned int>(total_stack_size),
            static_cast<unsigned int>(used_stack_size),
            static_cast<unsigned int>(total_stack_size - used_stack_size));
     printf("------------------------\n");
@@ -154,12 +163,13 @@ private:
     // Underrun report
     printf("--- Underrun Report ---\n");
     uint32_t audio_output_underruns = g_audio_output_underruns.exchange(0);
-    uint32_t attack_buffer_underruns = g_attack_buffer_reader_underruns.exchange(0);
+    uint32_t attack_buffer_underruns =
+        g_attack_buffer_reader_underruns.exchange(0);
     uint32_t pitch_shifter_underruns = g_pitch_shifter_underruns.exchange(0);
 
-    printf("AudioOutput Underruns: %lu\n", audio_output_underruns);
-    printf("AttackBufferReader Underruns: %lu\n", attack_buffer_underruns);
-    printf("PitchShifter Underruns: %lu\n", pitch_shifter_underruns);
+    printf("AudioOutput Underruns: %u\n", audio_output_underruns);
+    printf("AttackBufferReader Underruns: %u\n", attack_buffer_underruns);
+    printf("PitchShifter Underruns: %u\n", pitch_shifter_underruns);
     printf("------------------------\n");
   }
 
@@ -172,15 +182,17 @@ private:
 };
 
 /**
- * @brief A RAII helper to automatically record the duration of a scope for SectionProfiler.
+ * @brief A RAII helper to automatically record the duration of a scope for
+ * SectionProfiler.
  *
- * Create an instance of this class at the beginning of a scope you want to profile.
- * When the instance goes out of scope (e.g., at the end of a function or block),
- * its destructor records the elapsed time using the provided SectionProfiler instance
- * and section index.
- * If ENABLE_PROFILING is not defined, this class compiles to an empty stub.
+ * Create an instance of this class at the beginning of a scope you want to
+ * profile. When the instance goes out of scope (e.g., at the end of a function
+ * or block), its destructor records the elapsed time using the provided
+ * SectionProfiler instance and section index. If ENABLE_PROFILING is not
+ * defined, this class compiles to an empty stub.
  *
- * @tparam MaxSections The maximum number of sections supported by the associated SectionProfiler.
+ * @tparam MaxSections The maximum number of sections supported by the
+ * associated SectionProfiler.
  */
 template <size_t MaxSections> class ScopedProfile {
 public:
@@ -205,7 +217,8 @@ private:
 };
 
 // Define the number of sections for the global profiler
-constexpr size_t kGlobalProfilerMaxSections = 2; // Matches AudioEngine's previous usage
+constexpr size_t kGlobalProfilerMaxSections =
+    2; // Matches AudioEngine's previous usage
 inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
 
 #else // ENABLE_PROFILING not defined
@@ -227,13 +240,15 @@ public:
 // Stub for ScopedProfile class
 template <size_t MaxSections> class ScopedProfile {
 public:
-  ScopedProfile(SectionProfiler<MaxSections> & /*profiler*/, size_t /*section_index*/) {
+  ScopedProfile(SectionProfiler<MaxSections> & /*profiler*/,
+                size_t /*section_index*/) {
   }
   ScopedProfile(const ScopedProfile &) = delete;
   ScopedProfile &operator=(const ScopedProfile &) = delete;
 };
 
-// Define the number of sections for the global profiler (must match ENABLE_PROFILING case)
+// Define the number of sections for the global profiler (must match
+// ENABLE_PROFILING case)
 constexpr size_t kGlobalProfilerMaxSections = 2;
 // Stub for the global profiler instance
 inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
@@ -241,7 +256,8 @@ inline SectionProfiler<kGlobalProfilerMaxSections> g_section_profiler;
 #endif // ENABLE_PROFILING
 
 /**
- * @brief Calculates and prints the average duration of a loop over a specified interval.
+ * @brief Calculates and prints the average duration of a loop over a specified
+ * interval.
  *
  * This utility helps monitor the performance of a main loop or other recurring
  * task by periodically printing the average time taken per iteration.
@@ -259,18 +275,21 @@ public:
   void record_iteration_end() {
     absolute_time_t current_time = get_absolute_time();
 
-    uint64_t loop_duration_us = absolute_time_diff_us(_last_loop_end_time, current_time);
+    uint64_t loop_duration_us =
+        absolute_time_diff_us(_last_loop_end_time, current_time);
     _last_loop_end_time = current_time;
 
     _accumulated_loop_time_us += loop_duration_us;
     _loop_count++;
 
-    // Cast the result of absolute_time_diff_us to uint64_t to match _print_interval_us type
-    if (static_cast<uint64_t>(absolute_time_diff_us(_last_print_time, current_time)) >=
-        _print_interval_us) {
+    // Cast the result of absolute_time_diff_us to uint64_t to match
+    // _print_interval_us type
+    if (static_cast<uint64_t>(absolute_time_diff_us(
+            _last_print_time, current_time)) >= _print_interval_us) {
       if (_loop_count > 0) {
         uint64_t average_loop_time_us = _accumulated_loop_time_us / _loop_count;
-        printf("Avg loop time: %llu us (%lu loops)\n", average_loop_time_us, _loop_count);
+        printf("Avg loop time: %llu us (%u loops)\n", average_loop_time_us,
+               _loop_count);
       }
 
       _last_print_time = current_time;

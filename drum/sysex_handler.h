@@ -56,6 +56,7 @@ private:
   sds::Protocol<StandardFileOps> sds_protocol_;
   bool new_file_received_ = false;
   bool was_busy_ = false;
+  std::optional<uint8_t> last_notified_sample_slot_ = std::nullopt;
 };
 
 } // namespace drum

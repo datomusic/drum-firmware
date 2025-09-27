@@ -49,27 +49,6 @@ public:
   SystemStateId get_id() const override {
     return SystemStateId::FileTransfer;
   }
-
-  /**
-   * @brief Reset the inactivity timeout when file transfer activity occurs.
-   */
-  void reset_timeout();
-
-  /**
-   * @brief Mark transfer as inactive and start timeout countdown.
-   */
-  void mark_transfer_inactive();
-
-  /**
-   * @brief Check if file transfer is currently active.
-   * @return true if actively transferring, false if in timeout period
-   */
-  bool is_transfer_active() const;
-
-private:
-  absolute_time_t last_transfer_activity_{};
-  bool transfer_active_{false};
-  static constexpr uint32_t TIMEOUT_MS = 1000; // 1 second timeout
 };
 
 /**

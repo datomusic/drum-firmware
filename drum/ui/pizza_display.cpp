@@ -43,7 +43,12 @@ void PizzaDisplay::notification(musin::timing::TempoEvent event) {
 }
 
 void PizzaDisplay::notification(
-    [[maybe_unused]] drum::Events::SysExTransferStateChangeEvent event) {
+    drum::Events::SysExTransferStateChangeEvent event) {
+  if (event.is_active) {
+    transfer_mode_.set_sample_slot(event.sample_slot);
+  } else {
+    transfer_mode_.set_sample_slot(std::nullopt);
+  }
 }
 
 void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {

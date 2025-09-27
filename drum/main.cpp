@@ -150,6 +150,7 @@ int main() {
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(sequencer_controller);
   sysex_handler.add_observer(system_state_machine);
+  sysex_handler.add_observer(pizza_display);
 
   // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);

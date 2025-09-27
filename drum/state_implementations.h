@@ -50,26 +50,13 @@ public:
     return SystemStateId::FileTransfer;
   }
 
-  /**
-   * @brief Reset the inactivity timeout when file transfer activity occurs.
-   */
-  void reset_timeout();
-
-  /**
-   * @brief Mark transfer as inactive and start timeout countdown.
-   */
-  void mark_transfer_inactive();
-
-  /**
-   * @brief Check if file transfer is currently active.
-   * @return true if actively transferring, false if in timeout period
-   */
-  bool is_transfer_active() const;
+  void on_transfer_complete();
+  void on_transfer_start();
 
 private:
-  absolute_time_t last_transfer_activity_{};
-  bool transfer_active_{false};
-  static constexpr uint32_t TIMEOUT_MS = 1000; // 1 second timeout
+  static constexpr uint32_t DEBOUNCE_MS = 500;
+  absolute_time_t completion_time_;
+  bool in_debounce_period_ = false;
 };
 
 /**

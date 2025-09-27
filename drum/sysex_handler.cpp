@@ -18,17 +18,49 @@ SysExHandler::SysExHandler(ConfigurationManager &config_manager,
 void SysExHandler::update(absolute_time_t now) {
   protocol_.check_timeout(now);
   bool current_busy_state = is_busy();
+
+  // Get current sample slot if available
+  std::optional<uint8_t> current_sample_slot = std::nullopt;
+  if (auto slot_opt = sds_protocol_.current_sample_number_opt();
+      slot_opt.has_value()) {
+    current_sample_slot = static_cast<uint8_t>(slot_opt.value() & 0x7F);
+  }
+
+  // Check for busy state changes (transfer start/stop)
   if (current_busy_state != was_busy_) {
     if (current_busy_state) {
-      logger_.info("SysEx file transfer started.");
-      drum::Events::SysExTransferStateChangeEvent event{.is_active = true};
+      if (current_sample_slot.has_value()) {
+        logger_.info("SysEx file transfer started, sample slot:",
+                     static_cast<uint32_t>(current_sample_slot.value()));
+      } else {
+        logger_.info("SysEx file transfer started.");
+      }
+      drum::Events::SysExTransferStateChangeEvent event{
+          .is_active = true, .sample_slot = current_sample_slot};
       this->notify_observers(event);
+      last_notified_sample_slot_ = current_sample_slot;
     } else {
       logger_.info("SysEx file transfer finished.");
-      drum::Events::SysExTransferStateChangeEvent event{.is_active = false};
+      drum::Events::SysExTransferStateChangeEvent event{
+          .is_active = false, .sample_slot = std::nullopt};
       this->notify_observers(event);
+      last_notified_sample_slot_ = std::nullopt;
     }
     was_busy_ = current_busy_state;
+  }
+  // Check for sample slot changes during active transfer
+  else if (current_busy_state &&
+           current_sample_slot != last_notified_sample_slot_) {
+    if (current_sample_slot.has_value()) {
+      logger_.info("SysEx sample slot updated:",
+                   static_cast<uint32_t>(current_sample_slot.value()));
+    } else {
+      logger_.info("SysEx sample slot cleared");
+    }
+    drum::Events::SysExTransferStateChangeEvent event{
+        .is_active = true, .sample_slot = current_sample_slot};
+    this->notify_observers(event);
+    last_notified_sample_slot_ = current_sample_slot;
   }
 
   if (new_file_received_) {
@@ -53,9 +85,6 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   // Check if this is an SDS message (starts with 0x7E)
   if (chunk.size() >= 3 && chunk[0] == 0x7E && chunk[1] == 0x65) {
     // SDS message - route to SDS protocol
-    logger_.info("SDS message detected, routing to SDS protocol");
-    logger_.info("SDS message type:", static_cast<uint32_t>(chunk[2]));
-
     auto sds_sender = [this](sds::MessageType type, uint8_t packet_num) {
       uint8_t msg[] = {0xF0,       0x7E, 0x65, static_cast<uint8_t>(type),
                        packet_num, 0xF7};

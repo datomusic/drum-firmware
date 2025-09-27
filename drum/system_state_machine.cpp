@@ -51,21 +51,18 @@ void SystemStateMachine::notification(
     drum::Events::SysExTransferStateChangeEvent event) {
   // Handle SysEx transfer state changes
   if (event.is_active) {
-    if (get_current_state() == SystemStateId::FileTransfer) {
-      // Reset timeout if already in FileTransfer state
-      FileTransferState *ft_state =
-          static_cast<FileTransferState *>(current_state_.get());
-      ft_state->reset_timeout();
-    } else {
-      // Transition to FileTransfer state
+    // Transition to FileTransfer state (or stay if already there)
+    if (get_current_state() != SystemStateId::FileTransfer) {
       transition_to(SystemStateId::FileTransfer);
+    } else {
+      // If already in FileTransfer state, this is a new transfer starting
+      // during debounce period - cancel debounce
+      notify_file_transfer_start();
     }
   } else {
-    // Mark transfer as inactive - let FileTransferState handle timeout
+    // Transfer ended - start debounce period instead of immediate transition
     if (get_current_state() == SystemStateId::FileTransfer) {
-      FileTransferState *ft_state =
-          static_cast<FileTransferState *>(current_state_.get());
-      ft_state->mark_transfer_inactive();
+      notify_file_transfer_complete();
     }
   }
 }
@@ -117,6 +114,23 @@ SystemStateMachine::create_state(SystemStateId state_id) const {
   default:
     logger_.error("Unknown state ID");
     return std::make_unique<BootState>(); // Fallback to Boot
+  }
+}
+
+void SystemStateMachine::notify_file_transfer_complete() {
+  if (current_state_ &&
+      current_state_->get_id() == SystemStateId::FileTransfer) {
+    // We know it's a FileTransferState since we checked the ID
+    static_cast<FileTransferState *>(current_state_.get())
+        ->on_transfer_complete();
+  }
+}
+
+void SystemStateMachine::notify_file_transfer_start() {
+  if (current_state_ &&
+      current_state_->get_id() == SystemStateId::FileTransfer) {
+    // We know it's a FileTransferState since we checked the ID
+    static_cast<FileTransferState *>(current_state_.get())->on_transfer_start();
   }
 }
 

@@ -78,6 +78,16 @@ private:
    * @return std::unique_ptr<SystemState> The created state object
    */
   std::unique_ptr<SystemState> create_state(SystemStateId state_id) const;
+
+  /**
+   * @brief Notify FileTransferState of transfer completion (starts debounce).
+   */
+  void notify_file_transfer_complete();
+
+  /**
+   * @brief Notify FileTransferState of new transfer start (cancels debounce).
+   */
+  void notify_file_transfer_start();
 };
 
 } // namespace drum

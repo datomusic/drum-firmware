@@ -56,18 +56,34 @@ void SequencerState::exit(musin::Logger &logger) {
 
 void FileTransferState::enter(musin::Logger &logger) {
   logger.debug("Entering FileTransfer state");
+  in_debounce_period_ = false;
 }
 
-void FileTransferState::update(
-    [[maybe_unused]] musin::Logger &logger,
-    [[maybe_unused]] SystemStateMachine &state_machine,
-    [[maybe_unused]] absolute_time_t now) {
-  // No timeout logic - rely on SysExHandler to manage transfer lifecycle
-  // and fire appropriate events to transition back to Sequencer
+void FileTransferState::update(musin::Logger &logger,
+                               SystemStateMachine &state_machine,
+                               absolute_time_t now) {
+  // Check if we're in debounce period and should transition back to Sequencer
+  if (in_debounce_period_) {
+    if (absolute_time_diff_us(completion_time_, now) > DEBOUNCE_MS * 1000) {
+      logger.debug(
+          "FileTransfer debounce expired - transitioning to Sequencer");
+      state_machine.transition_to(SystemStateId::Sequencer);
+    }
+  }
 }
 
 void FileTransferState::exit(musin::Logger &logger) {
   logger.debug("Exiting FileTransfer state");
+  in_debounce_period_ = false;
+}
+
+void FileTransferState::on_transfer_complete() {
+  completion_time_ = get_absolute_time();
+  in_debounce_period_ = true;
+}
+
+void FileTransferState::on_transfer_start() {
+  in_debounce_period_ = false;
 }
 
 // --- FallingAsleepState Implementation ---

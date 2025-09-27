@@ -49,6 +49,14 @@ public:
   SystemStateId get_id() const override {
     return SystemStateId::FileTransfer;
   }
+
+  void on_transfer_complete();
+  void on_transfer_start();
+
+private:
+  static constexpr uint32_t DEBOUNCE_MS = 500;
+  absolute_time_t completion_time_;
+  bool in_debounce_period_ = false;
 };
 
 /**

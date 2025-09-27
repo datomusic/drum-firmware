@@ -46,11 +46,8 @@ void PizzaDisplay::notification(
     drum::Events::SysExTransferStateChangeEvent event) {
   if (event.is_active) {
     transfer_mode_.set_sample_slot(event.sample_slot);
-    switch_to_file_transfer_mode();
   } else {
-    // Clear sample slot when transfer ends
     transfer_mode_.set_sample_slot(std::nullopt);
-    switch_to_sequencer_mode();
   }
 }
 

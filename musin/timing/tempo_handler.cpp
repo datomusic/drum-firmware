@@ -189,9 +189,21 @@ void TempoHandler::update() {
 void TempoHandler::trigger_manual_sync() {
   switch (current_source_) {
   case ClockSource::INTERNAL:
-    // No-op for internal clock; phase advances locally.
+    if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      break;
+    }
+
+    // Reset internal clock timing so the next automatic tick lands one
+    // interval after the manual downbeat we emit below.
+    _internal_clock_ref.resync();
+
+    // Emit an immediate downbeat tick so sequencer + sync out align.
+    _clock_router_ref.emit_manual_tick(true);
     break;
   case ClockSource::MIDI:
+    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      _clock_router_ref.trigger_resync();
+    }
     // Attempt look-behind: if the press is shortly after a MIDI tick, treat
     // that last tick as the anchor boundary (0/12). Otherwise, defer to the
     // next tick.
@@ -236,6 +248,9 @@ void TempoHandler::trigger_manual_sync() {
     }
     break;
   case ClockSource::EXTERNAL_SYNC:
+    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+      _clock_router_ref.trigger_resync();
+    }
     // Immediate resync for SyncIn
     phase_24_ = PHASE_DOWNBEAT; // Reset phase on manual sync
     musin::timing::TempoEvent resync_tempo_event{

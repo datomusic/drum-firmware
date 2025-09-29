@@ -113,7 +113,21 @@ void TempoHandler::set_bpm(float bpm) {
 
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
-  _speed_adapter_ref.set_modifier(modifier);
+
+  // Route speed changes to individual external clock sources
+  _sync_in_ref.set_speed_modifier(modifier);
+  _midi_clock_processor_ref.set_speed_modifier(modifier);
+
+  // Handle SpeedAdapter: force to NORMAL_SPEED for HALF_SPEED to prevent double
+  // modification, otherwise pass through for DOUBLE_SPEED or other cases
+  if (modifier == SpeedModifier::HALF_SPEED) {
+    // External sources handle half-speed internally, ensure SpeedAdapter
+    // doesn't also halve
+    _speed_adapter_ref.set_modifier(SpeedModifier::NORMAL_SPEED);
+  } else {
+    // For DOUBLE_SPEED or NORMAL_SPEED, pass through to SpeedAdapter
+    _speed_adapter_ref.set_modifier(modifier);
+  }
 }
 
 void TempoHandler::set_tempo_control_value(float knob_value) {

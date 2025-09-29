@@ -105,8 +105,8 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   REQUIRE(rt_count >= 3);
 }
 
-TEST_CASE(
-    "TempoHandler external sync direct half-speed forwards every other tick") {
+TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
+          "handled by SyncIn)") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -135,10 +135,10 @@ TEST_CASE(
     clock_router.notification(e);
   }
 
-  // With HALF speed, every other tick is forwarded; external physical pulses
-  // get phase alignment
-  REQUIRE(rec.events.size() == 2);
-  // External physical pulses now get phase alignment instead of sequential
+  // In new architecture: SpeedAdapter passes through, SyncIn would handle
+  // half-speed but test stub doesn't implement it, so all 4 ticks are forwarded
+  REQUIRE(rec.events.size() == 4);
+  // External physical pulses get phase alignment instead of sequential
   // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
   // for first few pulses
   REQUIRE(rec.events[0].phase_24 == 0);

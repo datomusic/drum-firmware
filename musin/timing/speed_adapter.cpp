@@ -8,11 +8,9 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
   if (event.is_resync) {
     // Forward resync immediately and reset internal state
     notify_observers(event);
-    half_toggle_ = false;
     last_tick_us_ = 0;
     last_interval_us_ = 0;
     next_insert_time_ = nil_time;
-    pending_anchor_to_phase_ = ClockEvent::ANCHOR_PHASE_NONE;
     return;
   }
 
@@ -20,41 +18,12 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
   uint32_t now_us = event.timestamp_us;
 
   switch (modifier_) {
-  case SpeedModifier::NORMAL_SPEED: {
+  case SpeedModifier::NORMAL_SPEED:
+  case SpeedModifier::HALF_SPEED: {
+    // HALF_SPEED is now handled by individual clock sources,
+    // so just pass through like NORMAL_SPEED
     notify_observers(event);
     // Track interval for potential future DOUBLE transitions
-    if (last_tick_us_ != 0) {
-      last_interval_us_ = now_us - last_tick_us_;
-    }
-    last_tick_us_ = now_us;
-    break;
-  }
-  case SpeedModifier::HALF_SPEED: {
-    // Drop every other tick. If an anchored tick would be dropped,
-    // defer its anchor to the next forwarded tick.
-    bool would_forward = !half_toggle_;
-    half_toggle_ = !half_toggle_;
-
-    if (!would_forward) {
-      // This tick is to be dropped
-      if (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE) {
-        pending_anchor_to_phase_ = event.anchor_to_phase;
-      }
-      // Track timing regardless to keep continuity when switching modes
-      if (last_tick_us_ != 0) {
-        last_interval_us_ = now_us - last_tick_us_;
-      }
-      last_tick_us_ = now_us;
-      break;
-    }
-
-    // We will forward this tick; apply any deferred anchor if present
-    if (pending_anchor_to_phase_ != ClockEvent::ANCHOR_PHASE_NONE) {
-      event.anchor_to_phase = pending_anchor_to_phase_;
-    }
-    pending_anchor_to_phase_ = ClockEvent::ANCHOR_PHASE_NONE;
-    notify_observers(event);
-    // Track timing regardless to keep continuity when switching modes
     if (last_tick_us_ != 0) {
       last_interval_us_ = now_us - last_tick_us_;
     }

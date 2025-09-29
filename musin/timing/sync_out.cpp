@@ -44,6 +44,11 @@ void SyncOut::notification(musin::timing::ClockEvent event) {
     _ticks_until_pulse = 0;
   }
 
+  // Align SyncOut pulse timing to physical sync boundaries
+  if (event.is_physical_pulse) {
+    _ticks_until_pulse = 0;
+  }
+
   // Countdown raw 24 PPQN ticks and pulse when reaching zero
   if (_ticks_until_pulse > 0) {
     _ticks_until_pulse--;

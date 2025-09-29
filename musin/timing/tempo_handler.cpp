@@ -169,11 +169,13 @@ void TempoHandler::trigger_manual_sync() {
     _clock_router_ref.emit_manual_tick(true, 0);
     break;
   case ClockSource::MIDI:
-  case ClockSource::EXTERNAL_SYNC:
     if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
       // Emit immediate resync tick anchored to downbeat (Volca behavior)
       _clock_router_ref.emit_manual_tick(true, 0);
     }
+    break;
+  case ClockSource::EXTERNAL_SYNC:
+    // No immediate realignment - respect external timing reference
     break;
   }
 }

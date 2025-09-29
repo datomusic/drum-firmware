@@ -147,6 +147,12 @@ private:
    */
   void advance_phase_and_emit_event();
 
+  /**
+   * @brief Emit a manual resync event directly to observers.
+   * @param anchor_phase The phase to align to.
+   */
+  void emit_manual_resync_event(uint8_t anchor_phase);
+
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;

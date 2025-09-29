@@ -184,13 +184,13 @@ void TempoHandler::trigger_manual_sync() {
     // interval after the manual downbeat we emit below.
     _internal_clock_ref.resync();
 
-    // Emit an immediate resync tick with phase alignment
-    _clock_router_ref.emit_manual_tick(true, calculate_aligned_phase());
+    // Emit an immediate resync event directly
+    emit_manual_resync_event(calculate_aligned_phase());
     break;
   case ClockSource::MIDI:
     if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      // Emit immediate resync tick with phase alignment
-      _clock_router_ref.emit_manual_tick(true, calculate_aligned_phase());
+      // Emit immediate resync event directly
+      emit_manual_resync_event(calculate_aligned_phase());
     }
     break;
   case ClockSource::EXTERNAL_SYNC:
@@ -210,6 +210,17 @@ void TempoHandler::advance_phase_and_emit_event() {
   musin::timing::TempoEvent tempo_event{
       .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
 
+  notify_observers(tempo_event);
+}
+
+void TempoHandler::emit_manual_resync_event(uint8_t anchor_phase) {
+  // Set phase to anchor and increment tick count
+  phase_24_ = anchor_phase;
+  tick_count_++;
+
+  // Emit resync tempo event
+  musin::timing::TempoEvent tempo_event{
+      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
   notify_observers(tempo_event);
 }
 

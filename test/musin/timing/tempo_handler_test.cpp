@@ -105,7 +105,8 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   REQUIRE(rt_count >= 3);
 }
 
-TEST_CASE("TempoHandler external sync half-speed forwards every other tick") {
+TEST_CASE(
+    "TempoHandler external sync direct half-speed forwards every other tick") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -134,10 +135,14 @@ TEST_CASE("TempoHandler external sync half-speed forwards every other tick") {
     clock_router.notification(e);
   }
 
-  // With HALF speed, every other tick is forwarded; phases advance sequentially
+  // With HALF speed, every other tick is forwarded; external physical pulses
+  // get phase alignment
   REQUIRE(rec.events.size() == 2);
-  REQUIRE(rec.events[0].phase_24 == 1);
-  REQUIRE(rec.events[1].phase_24 == 2);
+  // External physical pulses now get phase alignment instead of sequential
+  // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
+  // for first few pulses
+  REQUIRE(rec.events[0].phase_24 == 0);
+  REQUIRE(rec.events[1].phase_24 == 0);
 }
 
 TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {

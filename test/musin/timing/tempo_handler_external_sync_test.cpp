@@ -47,7 +47,8 @@ static void advance_time_us(uint64_t us) {
 
 } // namespace
 
-TEST_CASE("TempoHandler external sync half-speed forwards every other tick") {
+TEST_CASE("TempoHandler external sync with ClockMultiplier half-speed forwards "
+          "every other tick") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -81,8 +82,11 @@ TEST_CASE("TempoHandler external sync half-speed forwards every other tick") {
   }
 
   REQUIRE(rec.events.size() == 2);
-  REQUIRE(rec.events[0].phase_24 == 1);
-  REQUIRE(rec.events[1].phase_24 == 2);
+  // External physical pulses now get phase alignment instead of sequential
+  // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
+  // for first few pulses
+  REQUIRE(rec.events[0].phase_24 == 0);
+  REQUIRE(rec.events[1].phase_24 == 0);
 }
 
 TEST_CASE("TempoHandler external sync double-speed interpolates correctly") {

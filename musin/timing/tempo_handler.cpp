@@ -54,9 +54,28 @@ ClockSource TempoHandler::get_clock_source() const {
   return current_source_;
 }
 
+uint8_t TempoHandler::calculate_aligned_phase() const {
+  constexpr uint8_t half_cycle = musin::timing::DEFAULT_PPQN / 2;
+  constexpr uint8_t quarter_cycle = musin::timing::DEFAULT_PPQN / 4;
+
+  // Use quarter-cycle thresholds so we pick the closest half-cycle anchor
+  // without large backward jumps near wrap-around.
+  uint8_t target_phase = 0;
+  if (phase_24_ >= quarter_cycle &&
+      phase_24_ < static_cast<uint8_t>(half_cycle + quarter_cycle)) {
+    target_phase = half_cycle;
+  }
+  return target_phase;
+}
+
 void TempoHandler::notification(musin::timing::ClockEvent event) {
   if (event.source != current_source_) {
     return;
+  }
+
+  // Always realign on external physical pulses
+  if (event.source == ClockSource::EXTERNAL_SYNC && event.is_physical_pulse) {
+    event.anchor_to_phase = calculate_aligned_phase();
   }
 
   if (event.is_resync) {
@@ -165,13 +184,13 @@ void TempoHandler::trigger_manual_sync() {
     // interval after the manual downbeat we emit below.
     _internal_clock_ref.resync();
 
-    // Emit an immediate downbeat tick so sequencer + sync out align.
-    _clock_router_ref.emit_manual_tick(true, 0);
+    // Emit an immediate resync tick with phase alignment
+    _clock_router_ref.emit_manual_tick(true, calculate_aligned_phase());
     break;
   case ClockSource::MIDI:
     if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      // Emit immediate resync tick anchored to downbeat (Volca behavior)
-      _clock_router_ref.emit_manual_tick(true, 0);
+      // Emit immediate resync tick with phase alignment
+      _clock_router_ref.emit_manual_tick(true, calculate_aligned_phase());
     }
     break;
   case ClockSource::EXTERNAL_SYNC:

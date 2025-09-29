@@ -134,6 +134,13 @@ public:
 
 private:
   /**
+   * @brief Calculate aligned phase for musical boundary snapping.
+   * @return Target phase (0 or 12) closest to current phase without large
+   * jumps.
+   */
+  [[nodiscard]] uint8_t calculate_aligned_phase() const;
+
+  /**
    * @brief Advance internal phase counter and emit tempo event.
    * This is the central method that advances phase_24_ and tick_count_,
    * then emits a TempoEvent with the current phase information.

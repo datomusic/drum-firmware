@@ -58,9 +58,6 @@ void SyncIn::update(absolute_time_t now) {
       // Emit immediate physical pulse tick (always forward physical pulses)
       emit_clock_event(now, true);
 
-      // Reset half-speed toggle on each physical pulse for consistent alignment
-      half_speed_toggle_ = false;
-
       // Schedule interpolated ticks if we have timing
       if (tick_interval_us_ > 0) {
         interpolated_tick_counter_ = 0;
@@ -116,12 +113,7 @@ bool SyncIn::is_cable_connected() const {
 }
 
 void SyncIn::set_speed_modifier(SpeedModifier modifier) {
-  if (speed_modifier_ == modifier) {
-    return;
-  }
   speed_modifier_ = modifier;
-  // Reset toggle state when speed mode changes
-  half_speed_toggle_ = false;
 }
 
 SpeedModifier SyncIn::get_speed_modifier() const {
@@ -155,18 +147,9 @@ void SyncIn::emit_scheduled_ticks(absolute_time_t now) {
   }
 
   if (time_reached(next_tick_time_)) {
-    bool should_emit_tick = true;
-
-    // In half speed mode, use toggle to drop every other interpolated tick
-    if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
-      should_emit_tick = !half_speed_toggle_;
-      half_speed_toggle_ = !half_speed_toggle_;
-    }
-
-    if (should_emit_tick) {
-      // Emit interpolated tick (not physical)
-      emit_clock_event(next_tick_time_, false);
-    }
+    // Always emit interpolated tick (not physical)
+    // Half-speed is handled by interval calculation, not tick dropping
+    emit_clock_event(next_tick_time_, false);
 
     interpolated_tick_counter_++;
 

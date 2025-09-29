@@ -1,10 +1,10 @@
 # DRUM Firmware Repository
 
-This repository contains the firmware and related code for the DRUM project.
+This repository contains the firmware and related code for the Dato DRUM
 
-## What is Dato DRUM?
+## Dato DRUM?
 
-Dato DRUM is a circular drum machine with 4 drum voices, each with pressure-sensitive pads and 8-step sequencers. The octagonal design allows multiple users to access controls from different positions.
+Dato DRUM is a circular drum machine with 4 drum voices, each with pressure-sensitive pads and an 8-step sequencer. The octagonal design allows multiple users to access controls from different positions.
 
 **Features:**
 - 4 drum voices with individual sequencers and pitch controls

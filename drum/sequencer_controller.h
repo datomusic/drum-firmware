@@ -119,6 +119,13 @@ public:
   void advance_step();
 
   /**
+   * @brief Manually advance the sequencer to the next step.
+   * Used for manual step advances like REPEAT button when stopped.
+   * Increments both step_is_due flag and scheduled_step_counter.
+   */
+  void advance_step_manual();
+
+  /**
    * @brief Start the sequencer by connecting to the tempo source.
    * Does not reset the step index.
    */

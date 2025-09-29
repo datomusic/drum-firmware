@@ -612,7 +612,7 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
       // When stopped: light press advances step
       if (event.state == musin::ui::PressureState::LightPress &&
           event.previous_state == musin::ui::PressureState::Released) {
-        controls->_sequencer_controller_ref.advance_step();
+        controls->_sequencer_controller_ref.advance_step_manual();
         parent->repeat_stopped_mode_active_ = true;
       } else if (event.state == musin::ui::PressureState::Released) {
         parent->repeat_stopped_mode_active_ = false;

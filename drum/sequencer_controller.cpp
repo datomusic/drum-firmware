@@ -180,6 +180,12 @@ void SequencerController<NumTracks, NumSteps>::advance_step() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::advance_step_manual() {
+  _step_is_due = true;
+  scheduled_step_counter_++;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::start() {
   if (_running) {
     return;

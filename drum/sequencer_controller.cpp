@@ -33,10 +33,10 @@ template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
     : sequencer_(main_sequencer_), current_step_counter{0},
-      last_played_note_per_track{}, _just_played_step_per_track{},
-      tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
-      _active_note_per_track{}, _pad_pressed_state{},
-      _retrigger_mode_per_track{}, logger_(logger) {
+      scheduled_step_counter_{0}, last_played_note_per_track{},
+      _just_played_step_per_track{}, tempo_source(tempo_handler_ref),
+      _running(false), _step_is_due{false}, _active_note_per_track{},
+      _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -62,11 +62,11 @@ SequencerController<NumTracks, NumSteps>::calculate_base_step_index() const {
 
   if (repeat_active_ && repeat_length_ > 0) {
     uint64_t steps_since_activation =
-        current_step_counter - repeat_activation_step_counter_;
+        scheduled_step_counter_ - repeat_activation_step_counter_;
     uint64_t loop_position = steps_since_activation % repeat_length_;
     return (repeat_activation_step_index_ + loop_position) % num_steps;
   } else {
-    return current_step_counter % num_steps;
+    return scheduled_step_counter_ % num_steps;
   }
 }
 
@@ -153,6 +153,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
     }
   }
   current_step_counter = 0;
+  scheduled_step_counter_ = 0;
   last_phase_24_ = 0;
 
   _just_played_step_per_track.fill(std::nullopt);
@@ -249,6 +250,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
     advance_step();
+    scheduled_step_counter_++;
     last_phase_24_ = 0; // Reset phase tracking on resync
     return;
   }
@@ -261,7 +263,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Calculate swing timing using the dedicated effect
   const size_t next_index = calculate_base_step_index();
   const auto timing = swing_effect_.calculate_step_timing(
-      next_index, repeat_active_, current_step_counter);
+      next_index, repeat_active_, scheduled_step_counter_);
   const uint8_t expected_phase = timing.expected_phase;
 
   // --- Look-behind scheduling check for the main step ---
@@ -278,6 +280,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   if (is_step_due) {
     _step_is_due = true;
+    scheduled_step_counter_++;
   }
 
   // --- Look-behind scheduling for retrigger substeps ---
@@ -356,8 +359,8 @@ void SequencerController<NumTracks, NumSteps>::activate_repeat(
     repeat_length_ = std::max(uint32_t{1}, length);
     const size_t num_steps = sequencer_.get().get_num_steps();
     repeat_activation_step_index_ =
-        (num_steps > 0) ? (current_step_counter % num_steps) : 0;
-    repeat_activation_step_counter_ = current_step_counter;
+        (num_steps > 0) ? (scheduled_step_counter_ % num_steps) : 0;
+    repeat_activation_step_counter_ = scheduled_step_counter_;
   }
 }
 
@@ -625,7 +628,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
     const size_t num_steps = sequencer_.get().get_num_steps();
     auto randomized_step = random_effect_.calculate_randomized_step(
         base_step_index, track_idx, num_steps, repeat_active_,
-        current_step_counter);
+        scheduled_step_counter_);
 
     size_t step_index_to_play_for_track = randomized_step.effective_step_index;
 
@@ -649,7 +652,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
     random_effect_.advance_offset_indices(num_tracks, repeat_length_);
   }
 
-  current_step_counter++;
+  // Synchronize current_step_counter with scheduled_step_counter
+  current_step_counter.store(scheduled_step_counter_.load());
 }
 
 template <size_t NumTracks, size_t NumSteps>

@@ -252,6 +252,7 @@ private:
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
       sequencer_;
   std::atomic<uint32_t> current_step_counter;
+  std::atomic<uint32_t> scheduled_step_counter_;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   musin::timing::TempoHandler &tempo_source;

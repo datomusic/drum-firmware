@@ -2,6 +2,23 @@
 
 This repository contains the firmware and related code for the DRUM project.
 
+## What is Dato DRUM?
+
+Dato DRUM is a circular drum machine with 4 drum voices, each with pressure-sensitive pads and 8-step sequencers. The octagonal design allows multiple users to access controls from different positions.
+
+**Features:**
+- 4 drum voices with individual sequencers and pitch controls
+- Sample-based synthesis with user-replaceable samples
+- Real-time effects and tempo/swing controls
+- MIDI I/O and sync connections
+- USB-C for power and sample management
+
+![Dato DRUM Faceplate](docs/dato-drum-faceplate-drawing.svg)
+
+## Hardware & Firmware Architecture
+
+The device runs on an RP2350 microcontroller with dual-partition firmware (A/B) for safe updates. The codebase is written in C++20 using the Pico SDK with hardware abstraction layers. Audio processing operates in real-time with MIDI support over both DIN and USB connections.
+
 ## Directory Structure:
 - `drum/`: Application C++ source code
 - `musin/`: Core C++ library source code.

@@ -197,6 +197,9 @@ void SequencerController<NumTracks, NumSteps>::start() {
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
 
+  // Resync the clock on start for better phase alignment
+  tempo_source.trigger_manual_sync();
+
   _running = true;
 
   // Trigger the first step immediately upon start

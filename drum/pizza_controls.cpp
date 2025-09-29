@@ -662,11 +662,6 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   if (event.type == musin::ui::DrumpadEvent::Type::Press) {
     logger.debug("PLAYBUTTON PRESSED");
     parent->parent_controls->_sequencer_controller_ref.toggle();
-
-    // If we just started, trigger sync behavior for better phase alignment
-    if (parent->parent_controls->_sequencer_controller_ref.is_running()) {
-      parent->parent_controls->_tempo_handler_ref.trigger_manual_sync();
-    }
   } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
     logger.debug("PLAYBUTTON RELEASED");
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {

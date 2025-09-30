@@ -1,7 +1,6 @@
 #include "sequencer_controller.h"
 #include "config.h"
 #include "events.h"
-#include "musin/timing/sync_out.h"
 #include "pico/time.h"
 #include "pizza_controls.h" // For config constants
 #include "sequencer_persistence.h"
@@ -199,12 +198,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
 
   // Resync the clock on start for better phase alignment
   tempo_source.trigger_manual_sync();
-
-  // TODO: Remove once ClockRouter properly routes resync to SyncOut
-  if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-    extern musin::timing::SyncOut sync_out;
-    sync_out.trigger_immediate_pulse();
-  }
 
   _running = true;
 
@@ -667,8 +660,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
     random_effect_.advance_offset_indices(num_tracks, repeat_length_);
   }
 
-  // Synchronize current_step_counter with scheduled_step_counter
-  current_step_counter.store(scheduled_step_counter_.load());
+  uint32_t scheduled = scheduled_step_counter_;
+  current_step_counter.store(scheduled, std::memory_order_release);
 }
 
 template <size_t NumTracks, size_t NumSteps>

@@ -40,9 +40,11 @@ void SyncIn::update(absolute_time_t now) {
       if (!is_nil_time(last_physical_pulse_time_)) {
         uint64_t physical_interval_us =
             absolute_time_diff_us(last_physical_pulse_time_, now);
-        // Note: Integer division truncates fractional microseconds, causing
-        // minor timing drift for interpolated ticks. This error is reset on
-        // each physical pulse and does not accumulate.
+        // Integer division truncates fractional microseconds, which could
+        // cause timing drift for interpolated ticks. However, this is not an
+        // issue in practice because each physical pulse (every eighth note)
+        // re-aligns the clock, preventing drift accumulation. The truncation
+        // error is bounded and does not compound over time.
         if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
           // In half speed: generate 6 ticks per physical pulse (1 physical + 5
           // interpolated)

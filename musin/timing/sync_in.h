@@ -66,8 +66,9 @@ private:
   static constexpr uint32_t PULSE_DEBOUNCE_US = 5000;   // 5ms
   static constexpr uint32_t DETECT_DEBOUNCE_US = 50000; // 50ms
   static constexpr uint8_t PPQN_MULTIPLIER = 12;        // 2 PPQN to 24 PPQN
-  static constexpr uint8_t PPQN_MULTIPLIER_HALF =
-      6; // 2 PPQN to 12 PPQN (half speed)
+  // Half speed: machine runs at 24 PPQN, normal speed converts 2 PPQN input
+  // to 24 PPQN (×12), half speed converts to 12 PPQN (24/2/2 = 6)
+  static constexpr uint8_t PPQN_MULTIPLIER_HALF = PPQN_MULTIPLIER / 2;
 
   void emit_clock_event(absolute_time_t timestamp, bool is_physical);
   void schedule_interpolated_ticks(absolute_time_t now);

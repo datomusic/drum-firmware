@@ -175,13 +175,12 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::advance_step() {
+void SequencerController<NumTracks, NumSteps>::mark_step_due() {
   _step_is_due = true;
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::advance_step_manual() {
-  _step_is_due = true;
+void SequencerController<NumTracks, NumSteps>::increment_step_position() {
   scheduled_step_counter_++;
 }
 
@@ -203,7 +202,7 @@ void SequencerController<NumTracks, NumSteps>::start() {
   _running = true;
 
   // Trigger the first step immediately upon start
-  advance_step();
+  mark_step_due();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -258,8 +257,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
-    advance_step();
-    scheduled_step_counter_++;
+    mark_step_due();
+    increment_step_position();
     last_phase_24_ = 0; // Reset phase tracking on resync
     return;
   }
@@ -288,8 +287,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
   }
 
   if (is_step_due) {
-    _step_is_due = true;
-    scheduled_step_counter_++;
+    mark_step_due();
+    increment_step_position();
   }
 
   // --- Look-behind scheduling for retrigger substeps ---

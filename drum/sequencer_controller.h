@@ -113,17 +113,16 @@ public:
   void reset();
 
   /**
-   * @brief Immediately advance the sequencer to the next step.
-   * Used for synchronization when external clock resumes after a timeout.
+   * @brief Mark that a step should be processed on the next update().
+   * Used when tempo events trigger step playback while running.
    */
-  void advance_step();
+  void mark_step_due();
 
   /**
-   * @brief Manually advance the sequencer to the next step.
-   * Used for manual step advances like REPEAT button when stopped.
-   * Increments both step_is_due flag and scheduled_step_counter.
+   * @brief Increment the step position counter.
+   * Advances scheduled_step_counter_ to move to the next step.
    */
-  void advance_step_manual();
+  void increment_step_position();
 
   /**
    * @brief Start the sequencer by connecting to the tempo source.

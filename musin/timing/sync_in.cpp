@@ -55,8 +55,16 @@ void SyncIn::update(absolute_time_t now) {
       }
       last_physical_pulse_time_ = now;
 
-      // Emit immediate physical pulse tick (always forward physical pulses)
-      emit_clock_event(now, true);
+      // Emit physical pulse tick
+      bool mark_as_physical = true;
+      if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
+        // In half-speed mode, only mark every other physical pulse as
+        // is_physical_pulse to prevent TempoHandler from pulling sequencer back
+        // to normal speed grid
+        mark_as_physical = physical_pulse_toggle_;
+        physical_pulse_toggle_ = !physical_pulse_toggle_;
+      }
+      emit_clock_event(now, mark_as_physical);
 
       // Schedule interpolated ticks if we have timing
       if (tick_interval_us_ > 0) {
@@ -113,7 +121,12 @@ bool SyncIn::is_cable_connected() const {
 }
 
 void SyncIn::set_speed_modifier(SpeedModifier modifier) {
+  if (speed_modifier_ == modifier) {
+    return;
+  }
   speed_modifier_ = modifier;
+  // Reset physical pulse toggle when speed mode changes
+  physical_pulse_toggle_ = false;
 }
 
 SpeedModifier SyncIn::get_speed_modifier() const {

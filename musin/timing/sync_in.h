@@ -60,6 +60,8 @@ private:
 
   // Speed modification
   SpeedModifier speed_modifier_ = SpeedModifier::NORMAL_SPEED;
+  bool physical_pulse_toggle_ =
+      false; // For marking only half of physical pulses in half-speed
 
   static constexpr uint32_t PULSE_DEBOUNCE_US = 5000;   // 5ms
   static constexpr uint32_t DETECT_DEBOUNCE_US = 50000; // 50ms

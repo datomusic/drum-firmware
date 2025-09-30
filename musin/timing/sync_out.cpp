@@ -127,4 +127,18 @@ void SyncOut::resync() {
   reset_counters();
 }
 
+void SyncOut::trigger_immediate_pulse() {
+  if (!_is_enabled) {
+    return;
+  }
+  if (_pulse_active) {
+    if (_pulse_alarm_id > 0) {
+      cancel_alarm(_pulse_alarm_id);
+      _pulse_alarm_id = 0;
+    }
+    trigger_pulse_off();
+  }
+  _ticks_until_pulse = 0;
+}
+
 } // namespace musin::timing

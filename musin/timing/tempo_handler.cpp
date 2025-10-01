@@ -188,24 +188,28 @@ void TempoHandler::update() {
 }
 
 void TempoHandler::trigger_manual_sync() {
+  if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+    return;
+  }
+
   switch (current_source_) {
   case ClockSource::INTERNAL:
-    if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      break;
-    }
-
     // Reset internal clock timing so the next automatic tick lands one
     // interval after the manual downbeat we emit below.
     _internal_clock_ref.resync();
 
-    // Emit an immediate resync event directly
+    // Emit resync event to TempoHandler observers for phase alignment
     emit_manual_resync_event(calculate_aligned_phase());
+
+    // Propagate resync to ClockRouter observers (including SyncOut)
+    _clock_router_ref.trigger_resync();
     break;
   case ClockSource::MIDI:
-    if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-      // Emit immediate resync event directly
-      emit_manual_resync_event(calculate_aligned_phase());
-    }
+    // Emit resync event to TempoHandler observers for phase alignment
+    emit_manual_resync_event(calculate_aligned_phase());
+
+    // Propagate resync to ClockRouter observers (including SyncOut)
+    _clock_router_ref.trigger_resync();
     break;
   case ClockSource::EXTERNAL_SYNC:
     // No immediate realignment - respect external timing reference

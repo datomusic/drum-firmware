@@ -61,10 +61,6 @@ public:
   // Reset internal tick counters to align pulses to next boundary
   void resync();
 
-  // Trigger an immediate pulse on the next tick (for manual play button
-  // retrigger)
-  void trigger_immediate_pulse();
-
 private:
   static int64_t pulse_off_alarm_callback(alarm_id_t id, void *user_data);
   void trigger_pulse_off();

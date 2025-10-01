@@ -17,6 +17,12 @@ void ClockRouter::notification(musin::timing::ClockEvent event) {
   notify_observers(event);
 }
 
+void ClockRouter::trigger_resync() {
+  musin::timing::ClockEvent resync_event{.source = current_source_,
+                                         .is_resync = true};
+  notify_observers(resync_event);
+}
+
 void ClockRouter::set_clock_source(ClockSource source) {
   if (initialized_ && source == current_source_) {
     return;

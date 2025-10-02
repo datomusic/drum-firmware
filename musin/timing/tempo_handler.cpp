@@ -196,7 +196,7 @@ void TempoHandler::trigger_manual_sync() {
   case ClockSource::INTERNAL:
     // Reset internal clock timing so the next automatic tick lands one
     // interval after the manual downbeat we emit below.
-    _internal_clock_ref.resync();
+    _internal_clock_ref.reset();
 
     // Emit resync event to TempoHandler observers for phase alignment
     emit_manual_resync_event(calculate_aligned_phase());

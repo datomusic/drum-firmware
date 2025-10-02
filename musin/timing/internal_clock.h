@@ -78,7 +78,7 @@ public:
    * This should be called when manually injecting ticks to avoid timing
    * conflicts.
    */
-  void resync();
+  void reset();
 
 private:
   /**

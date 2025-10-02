@@ -76,7 +76,7 @@ void InternalClock::update(absolute_time_t now) {
   _next_tick_time = delayed_by_us(_next_tick_time, _tick_interval_us);
 }
 
-void InternalClock::resync() {
+void InternalClock::reset() {
   if (_is_running && _tick_interval_us > 0) {
     _next_tick_time = delayed_by_us(get_absolute_time(), _tick_interval_us);
   }

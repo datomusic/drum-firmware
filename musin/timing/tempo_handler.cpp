@@ -6,6 +6,7 @@
 #include "musin/timing/clock_router.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/sync_in.h"
+#include "musin/timing/sync_out.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/timing_constants.h"
 #include "pico/time.h"
@@ -14,13 +15,15 @@ namespace musin::timing {
 
 TempoHandler::TempoHandler(InternalClock &internal_clock_ref,
                            MidiClockProcessor &midi_clock_processor_ref,
-                           SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
+                           SyncIn &sync_in_ref, SyncOut &sync_out_ref,
+                           ClockRouter &clock_router_ref,
                            SpeedAdapter &speed_adapter_ref,
                            bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
     : _internal_clock_ref(internal_clock_ref),
       _midi_clock_processor_ref(midi_clock_processor_ref),
-      _sync_in_ref(sync_in_ref), _clock_router_ref(clock_router_ref),
+      _sync_in_ref(sync_in_ref), _sync_out_ref(sync_out_ref),
+      _clock_router_ref(clock_router_ref),
       _speed_adapter_ref(speed_adapter_ref), current_source_(initial_source),
       _playback_state(PlaybackState::STOPPED),
       current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_24_(0),
@@ -201,15 +204,15 @@ void TempoHandler::trigger_manual_sync() {
     // Emit resync event to TempoHandler observers for phase alignment
     emit_manual_resync_event(calculate_aligned_phase());
 
-    // Propagate resync to ClockRouter observers (including SyncOut)
-    _clock_router_ref.trigger_resync();
+    // Resync SyncOut to align pulse timing
+    _sync_out_ref.resync();
     break;
   case ClockSource::MIDI:
     // Emit resync event to TempoHandler observers for phase alignment
     emit_manual_resync_event(calculate_aligned_phase());
 
-    // Propagate resync to ClockRouter observers (including SyncOut)
-    _clock_router_ref.trigger_resync();
+    // Resync SyncOut to align pulse timing
+    _sync_out_ref.resync();
     break;
   case ClockSource::EXTERNAL_SYNC:
     // No immediate realignment - respect external timing reference

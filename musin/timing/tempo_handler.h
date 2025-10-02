@@ -14,6 +14,7 @@ namespace musin::timing {
 // Forward declarations
 class MidiClockProcessor;
 class SyncIn;
+class SyncOut;
 
 /**
  * @brief Defines the playback state of the sequencer.
@@ -44,13 +45,15 @@ public:
    * @param internal_clock_ref Reference to the InternalClock instance.
    * @param midi_clock_processor_ref Reference to the MidiClockProcessor.
    * @param sync_in_ref Reference to the SyncIn instance.
+   * @param sync_out_ref Reference to the SyncOut instance.
    * @param send_midi_clock_when_stopped If true, MIDI clock is sent even when
    * stopped.
    * @param initial_source The clock source to use initially.
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         MidiClockProcessor &midi_clock_processor_ref,
-                        SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
+                        SyncIn &sync_in_ref, SyncOut &sync_out_ref,
+                        ClockRouter &clock_router_ref,
                         SpeedAdapter &speed_adapter_ref,
                         bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
@@ -155,6 +158,7 @@ private:
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;
+  SyncOut &_sync_out_ref;
   ClockRouter &_clock_router_ref;
   SpeedAdapter &_speed_adapter_ref;
 

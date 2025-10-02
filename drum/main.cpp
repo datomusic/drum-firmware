@@ -62,9 +62,10 @@ static musin::timing::ClockRouter
                  musin::timing::ClockSource::INTERNAL);
 static musin::timing::SpeedAdapter
     speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
+static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN);
 static musin::timing::TempoHandler
-    tempo_handler(internal_clock, midi_clock_processor, sync_in, clock_router,
-                  speed_adapter,
+    tempo_handler(internal_clock, midi_clock_processor, sync_in, sync_out,
+                  clock_router, speed_adapter,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static musin::timing::MidiClockOut
@@ -95,8 +96,6 @@ static drum::SystemStateMachine system_state_machine(logger);
 static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
                                           sequencer_controller, message_router,
                                           system_state_machine, logger);
-
-static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN);
 
 int main() {
   stdio_usb_init();

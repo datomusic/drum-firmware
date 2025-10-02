@@ -258,7 +258,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
     mark_step_due();
-    increment_step_position();
     last_phase_24_ = 0; // Reset phase tracking on resync
     return;
   }

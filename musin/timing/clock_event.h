@@ -30,8 +30,6 @@ struct ClockEvent {
   musin::timing::ClockSource source;
   bool is_resync = false; // True when clock resumes after timeout
   // True for a physical SyncIn rising edge (base 2 PPQN pulse).
-  // ClockMultiplier should propagate this flag for the immediate tick it emits
-  // at the pulse time, and clear it for interpolated ticks.
   bool is_physical_pulse = false;
   // Timestamp in microseconds since boot when the source tick occurred.
   // 0 means unset; consumers may fall back to local time if needed.

@@ -14,7 +14,6 @@ namespace musin::timing {
 // Forward declarations
 class MidiClockProcessor;
 class SyncIn;
-class ClockMultiplier;
 
 /**
  * @brief Defines the playback state of the sequencer.

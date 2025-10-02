@@ -196,13 +196,11 @@ void SequencerController<NumTracks, NumSteps>::start() {
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
 
-  // Resync the clock on start for better phase alignment
-  tempo_source.trigger_manual_sync();
-
   _running = true;
 
-  // Trigger the first step immediately upon start
-  mark_step_due();
+  // Resync the clock on start for better phase alignment
+  // This will trigger a resync event that marks the first step due
+  tempo_source.trigger_manual_sync();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -258,7 +256,8 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Handle resync events by immediately advancing a step
   if (event.is_resync) {
     mark_step_due();
-    last_phase_24_ = 0; // Reset phase tracking on resync
+    increment_step_position();
+    last_phase_24_ = event.phase_24; // Track resync phase for next tick
     return;
   }
 

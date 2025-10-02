@@ -29,8 +29,8 @@ enum class SpeedModifier : uint8_t {
 struct ClockEvent {
   musin::timing::ClockSource source;
   bool is_resync = false; // True when clock resumes after timeout
-  // True for a physical SyncIn rising edge (base 2 PPQN pulse).
-  bool is_physical_pulse = false;
+  // True for a SyncIn rising edge that aligns to the external downbeat.
+  bool is_downbeat = false;
   // Timestamp in microseconds since boot when the source tick occurred.
   // 0 means unset; consumers may fall back to local time if needed.
   uint32_t timestamp_us = 0;

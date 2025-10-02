@@ -21,7 +21,7 @@ constexpr size_t MAX_SPEED_ADAPTER_OBSERVERS = 2;
  * (SyncIn and MidiClockProcessor) for better musical alignment.
  *
  * Resets on incoming resync. Interpolated ticks are marked as
- * is_physical_pulse=false.
+ * is_downbeat=false.
  */
 class SpeedAdapter
     : public etl::observer<musin::timing::ClockEvent>,

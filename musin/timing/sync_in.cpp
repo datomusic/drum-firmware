@@ -61,7 +61,7 @@ void SyncIn::update(absolute_time_t now) {
       bool mark_as_physical = true;
       if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
         // In half-speed mode, only mark every other physical pulse as
-        // is_physical_pulse to prevent TempoHandler from pulling sequencer back
+        // is_downbeat to prevent TempoHandler from pulling sequencer back
         // to normal speed grid
         mark_as_physical = physical_pulse_toggle_;
         physical_pulse_toggle_ = !physical_pulse_toggle_;
@@ -137,7 +137,7 @@ SpeedModifier SyncIn::get_speed_modifier() const {
 
 void SyncIn::emit_clock_event(absolute_time_t timestamp, bool is_physical) {
   ClockEvent event{ClockSource::EXTERNAL_SYNC};
-  event.is_physical_pulse = is_physical;
+  event.is_downbeat = is_physical;
   event.timestamp_us = static_cast<uint32_t>(to_us_since_boot(timestamp));
   notify_observers(event);
 }

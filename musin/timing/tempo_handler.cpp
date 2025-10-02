@@ -77,7 +77,7 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   }
 
   // Always realign on external physical pulses
-  if (event.source == ClockSource::EXTERNAL_SYNC && event.is_physical_pulse) {
+  if (event.source == ClockSource::EXTERNAL_SYNC && event.is_downbeat) {
     event.anchor_to_phase = calculate_aligned_phase();
   }
 

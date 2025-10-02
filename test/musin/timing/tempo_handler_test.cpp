@@ -132,7 +132,7 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
   // Simulate 4 external physical pulses by feeding the router.
   for (int i = 0; i < 4; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
-    e.is_physical_pulse = true;
+    e.is_downbeat = true;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     clock_router.notification(e);
@@ -199,7 +199,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
   // can emit inserted mid-ticks at half-interval.
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_physical_pulse = false;
+    e.is_downbeat = false;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     speed_adapter.notification(e);
@@ -242,7 +242,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   // Advance to an odd phase (phase 3)
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_physical_pulse = false;
+    e.is_downbeat = false;
     speed_adapter.notification(e);
   }
   rec.clear();
@@ -252,7 +252,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
 
   // Send one more tick to see the aligned phase
   ClockEvent e{ClockSource::MIDI};
-  e.is_physical_pulse = false;
+  e.is_downbeat = false;
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter.notification(e);
   speed_adapter.update(get_absolute_time());
@@ -382,7 +382,7 @@ TEST_CASE(
 
   // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
-  e.is_physical_pulse = false;
+  e.is_downbeat = false;
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter_lb.notification(e);
   rec.clear();
@@ -419,7 +419,7 @@ TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
 
   // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
-  e.is_physical_pulse = false;
+  e.is_downbeat = false;
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter_def.notification(e);
   rec.clear();

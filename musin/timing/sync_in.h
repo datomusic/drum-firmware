@@ -70,7 +70,7 @@ private:
   // to 24 PPQN (×12), half speed converts to 12 PPQN (24/2/2 = 6)
   static constexpr uint8_t PPQN_MULTIPLIER_HALF = PPQN_MULTIPLIER / 2;
 
-  void emit_clock_event(absolute_time_t timestamp, bool is_physical);
+  void emit_clock_event(absolute_time_t timestamp, bool is_downbeat);
   void schedule_interpolated_ticks(absolute_time_t now);
   void emit_scheduled_ticks(absolute_time_t now);
 };

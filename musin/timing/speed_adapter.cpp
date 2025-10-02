@@ -68,7 +68,7 @@ void SpeedAdapter::update(absolute_time_t /*now*/) {
     // Emit an interpolated tick
     ClockEvent interp{current_source_};
     interp.is_resync = false;
-    interp.is_physical_pulse = false;
+    interp.is_downbeat = false;
     interp.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
     interp.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));

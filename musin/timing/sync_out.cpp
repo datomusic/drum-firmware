@@ -45,7 +45,7 @@ void SyncOut::notification(musin::timing::ClockEvent event) {
   }
 
   // Align SyncOut pulse timing to physical sync boundaries
-  if (event.is_physical_pulse) {
+  if (event.is_downbeat) {
     _ticks_until_pulse = 0;
   }
 

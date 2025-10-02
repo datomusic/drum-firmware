@@ -253,12 +253,12 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   // event.phase_24 is guaranteed in [0, PPQN-1] by TempoHandler
 
-  // Handle resync events by immediately advancing a step
+  // Handle resync events by setting up the look-behind window
+  // This makes the next expected phase catchable by normal scheduling
   if (event.is_resync) {
-    mark_step_due();
-    increment_step_position();
-    last_phase_24_ = event.phase_24; // Track resync phase for next tick
-    return;
+    last_phase_24_ = (event.phase_24 + musin::timing::DEFAULT_PPQN - 1) %
+                     musin::timing::DEFAULT_PPQN;
+    // Don't return - fall through to normal look-behind logic
   }
 
   // If no time has passed, do nothing.

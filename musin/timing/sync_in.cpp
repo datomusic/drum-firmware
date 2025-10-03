@@ -45,28 +45,12 @@ void SyncIn::update(absolute_time_t now) {
         // issue in practice because each physical pulse (every eighth note)
         // re-aligns the clock, preventing drift accumulation. The truncation
         // error is bounded and does not compound over time.
-        if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
-          // In half speed: generate 6 ticks per physical pulse (1 physical + 5
-          // interpolated)
-          tick_interval_us_ = physical_interval_us / PPQN_MULTIPLIER_HALF;
-        } else {
-          // Normal speed: generate 12 ticks per physical pulse (1 physical + 11
-          // interpolated)
-          tick_interval_us_ = physical_interval_us / PPQN_MULTIPLIER;
-        }
+        tick_interval_us_ = physical_interval_us / PPQN_MULTIPLIER;
       }
       last_physical_pulse_time_ = now;
 
-      // Emit physical pulse tick
-      bool mark_as_physical = true;
-      if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
-        // In half-speed mode, only mark every other physical pulse as
-        // is_downbeat to prevent TempoHandler from pulling sequencer back
-        // to normal speed grid
-        mark_as_physical = physical_pulse_toggle_;
-        physical_pulse_toggle_ = !physical_pulse_toggle_;
-      }
-      emit_clock_event(now, mark_as_physical);
+      // Emit physical pulse tick marked as downbeat
+      emit_clock_event(now, true);
 
       // Schedule interpolated ticks if we have timing
       if (tick_interval_us_ > 0) {
@@ -122,19 +106,6 @@ bool SyncIn::is_cable_connected() const {
   return !current_detect_state_; // Active low: true when pin is low
 }
 
-void SyncIn::set_speed_modifier(SpeedModifier modifier) {
-  if (speed_modifier_ == modifier) {
-    return;
-  }
-  speed_modifier_ = modifier;
-  // Reset physical pulse toggle when speed mode changes
-  physical_pulse_toggle_ = false;
-}
-
-SpeedModifier SyncIn::get_speed_modifier() const {
-  return speed_modifier_;
-}
-
 void SyncIn::emit_clock_event(absolute_time_t timestamp, bool is_physical) {
   ClockEvent event{ClockSource::EXTERNAL_SYNC};
   event.is_downbeat = is_physical;
@@ -151,10 +122,7 @@ void SyncIn::schedule_interpolated_ticks(absolute_time_t now) {
 }
 
 void SyncIn::emit_scheduled_ticks(absolute_time_t now) {
-  uint8_t max_interpolated_ticks =
-      (speed_modifier_ == SpeedModifier::HALF_SPEED)
-          ? (PPQN_MULTIPLIER_HALF - 1) // 5 interpolated ticks for half speed
-          : (PPQN_MULTIPLIER - 1);     // 11 interpolated ticks for normal speed
+  constexpr uint8_t max_interpolated_ticks = PPQN_MULTIPLIER - 1;
 
   if (is_nil_time(next_tick_time_) ||
       interpolated_tick_counter_ >= max_interpolated_ticks) {
@@ -162,13 +130,10 @@ void SyncIn::emit_scheduled_ticks(absolute_time_t now) {
   }
 
   if (time_reached(next_tick_time_)) {
-    // Always emit interpolated tick (not physical)
-    // Half-speed is handled by interval calculation, not tick dropping
     emit_clock_event(next_tick_time_, false);
 
     interpolated_tick_counter_++;
 
-    // Schedule next interpolated tick if more are needed
     if (interpolated_tick_counter_ < max_interpolated_ticks &&
         tick_interval_us_ > 0) {
       next_tick_time_ = delayed_by_us(next_tick_time_, tick_interval_us_);

@@ -10,6 +10,8 @@
 
 namespace musin::timing {
 
+class SyncOut;
+
 constexpr size_t MAX_CLOCK_ROUTER_OBSERVERS = 3;
 
 /**
@@ -31,6 +33,16 @@ public:
     return current_source_;
   }
 
+  // Control API
+  void set_bpm(float bpm);
+  void trigger_resync();
+  void resync_sync_output();
+  void set_sync_out(SyncOut *sync_out_ptr);
+
+  // Auto source switching
+  void update_auto_source_switching();
+  void set_auto_switching_enabled(bool enabled);
+
   // From selected upstream source
   void notification(musin::timing::ClockEvent event) override;
 
@@ -43,6 +55,8 @@ private:
   SyncIn &sync_in_;
   ClockSource current_source_;
   bool initialized_ = false;
+  bool auto_switching_enabled_ = true;
+  SyncOut *sync_out_ = nullptr;
 };
 
 } // namespace musin::timing

@@ -59,8 +59,7 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   musin::timing::SpeedAdapter speed_adapter;
 
   // Send MIDI clock even when stopped for this test to simplify assertion
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter,
+  TempoHandler th(clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ true, ClockSource::INTERNAL);
 
   musin::timing::MidiClockOut midi_out(th,
@@ -119,9 +118,9 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
                                           ClockSource::EXTERNAL_SYNC);
   musin::timing::SpeedAdapter speed_adapter;
 
-  TempoHandler th(
-      internal_clock, midi_proc, sync_in, sync_out, clock_router, speed_adapter,
-      /*send_midi_clock_when_stopped*/ false, ClockSource::EXTERNAL_SYNC);
+  TempoHandler th(clock_router, speed_adapter,
+                  /*send_midi_clock_when_stopped*/ false,
+                  ClockSource::EXTERNAL_SYNC);
 
   th.set_speed_modifier(SpeedModifier::HALF_SPEED);
   clock_router.add_observer(speed_adapter);
@@ -138,14 +137,11 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
     clock_router.notification(e);
   }
 
-  // In new architecture: SpeedAdapter passes through, SyncIn would handle
-  // half-speed but test stub doesn't implement it, so all 4 ticks are forwarded
-  REQUIRE(rec.events.size() == 4);
+  // SpeedAdapter now handles HALF_SPEED, emitting every 2nd tick
+  REQUIRE(rec.events.size() == 2);
   // External physical pulses get phase alignment instead of sequential
   // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
-  // for first few pulses
   REQUIRE(rec.events[0].phase_24 == 0);
-  REQUIRE(rec.events[1].phase_24 == 0);
 }
 
 TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {
@@ -159,8 +155,7 @@ TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {
                                           ClockSource::MIDI);
   musin::timing::SpeedAdapter speed_adapter;
 
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter,
+  TempoHandler th(clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
   clock_router.add_observer(speed_adapter);
 
@@ -185,8 +180,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
                                           ClockSource::MIDI);
 
   musin::timing::SpeedAdapter speed_adapter;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter,
+  TempoHandler th(clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   th.set_speed_modifier(SpeedModifier::DOUBLE_SPEED);
@@ -232,8 +226,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
                                           ClockSource::INTERNAL);
 
   musin::timing::SpeedAdapter speed_adapter;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter,
+  TempoHandler th(clock_router, speed_adapter,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   TempoEventRecorder rec;
@@ -273,8 +266,7 @@ TEST_CASE("TempoHandler auto-switches from INTERNAL to MIDI when active") {
                                           ClockSource::INTERNAL);
 
   musin::timing::SpeedAdapter speed_adapter_auto;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter_auto,
+  TempoHandler th(clock_router, speed_adapter_auto,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::INTERNAL);
 
@@ -286,7 +278,7 @@ TEST_CASE("TempoHandler auto-switches from INTERNAL to MIDI when active") {
   REQUIRE(midi_proc.is_active() == true);
 
   // Call update() - should switch to MIDI
-  th.update();
+  clock_router.update_auto_source_switching();
   REQUIRE(th.get_clock_source() == ClockSource::MIDI);
 }
 
@@ -301,8 +293,7 @@ TEST_CASE("TempoHandler prefers EXTERNAL_SYNC over MIDI when cable connected") {
                                           ClockSource::MIDI);
 
   musin::timing::SpeedAdapter speed_adapter_pref;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter_pref,
+  TempoHandler th(clock_router, speed_adapter_pref,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
 
   // Make MIDI active
@@ -310,12 +301,12 @@ TEST_CASE("TempoHandler prefers EXTERNAL_SYNC over MIDI when cable connected") {
   REQUIRE(midi_proc.is_active() == true);
 
   // Initially should be MIDI
-  th.update();
+  clock_router.update_auto_source_switching();
   REQUIRE(th.get_clock_source() == ClockSource::MIDI);
 
   // Connect sync cable - should switch to EXTERNAL_SYNC
   sync_in.set_cable_connected(true);
-  th.update();
+  clock_router.update_auto_source_switching();
   REQUIRE(th.get_clock_source() == ClockSource::EXTERNAL_SYNC);
 
   // Make MIDI inactive by advancing time past timeout (500ms)
@@ -324,11 +315,12 @@ TEST_CASE("TempoHandler prefers EXTERNAL_SYNC over MIDI when cable connected") {
 
   // Disconnect cable - should switch to INTERNAL (no cable, MIDI inactive)
   sync_in.set_cable_connected(false);
-  th.update();
+  clock_router.update_auto_source_switching();
   REQUIRE(th.get_clock_source() == ClockSource::INTERNAL);
 }
 
-TEST_CASE("TempoHandler never switches directly from MIDI to INTERNAL") {
+TEST_CASE("ClockRouter switches from MIDI to INTERNAL when MIDI becomes "
+          "inactive") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -339,14 +331,13 @@ TEST_CASE("TempoHandler never switches directly from MIDI to INTERNAL") {
                                           ClockSource::MIDI);
 
   musin::timing::SpeedAdapter speed_adapter_never;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter_never,
+  TempoHandler th(clock_router, speed_adapter_never,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::INTERNAL);
 
   // Start with MIDI active, switch to it
   midi_proc.on_midi_clock_tick_received();
-  th.update();
+  clock_router.update_auto_source_switching();
   REQUIRE(th.get_clock_source() == ClockSource::MIDI);
 
   // Advance time to make MIDI inactive (timeout: 500ms)
@@ -354,10 +345,10 @@ TEST_CASE("TempoHandler never switches directly from MIDI to INTERNAL") {
 
   REQUIRE(midi_proc.is_active() == false);
 
-  // Call update() - should NOT switch to INTERNAL, stays MIDI
-  // This validates the restriction in lines 277-281 of tempo_handler.cpp
-  th.update();
-  REQUIRE(th.get_clock_source() == ClockSource::MIDI);
+  // ClockRouter now uses simple priority switching: EXTERNAL_SYNC > MIDI >
+  // INTERNAL When MIDI becomes inactive, it falls back to INTERNAL
+  clock_router.update_auto_source_switching();
+  REQUIRE(th.get_clock_source() == ClockSource::INTERNAL);
 }
 
 TEST_CASE(
@@ -372,8 +363,7 @@ TEST_CASE(
                                           ClockSource::MIDI);
 
   musin::timing::SpeedAdapter speed_adapter_lb;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter_lb,
+  TempoHandler th(clock_router, speed_adapter_lb,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
   clock_router.add_observer(speed_adapter_lb);
 
@@ -409,8 +399,7 @@ TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
                                           ClockSource::INTERNAL);
 
   musin::timing::SpeedAdapter speed_adapter_def;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter_def,
+  TempoHandler th(clock_router, speed_adapter_def,
                   /*send_midi_clock_when_stopped*/ false, ClockSource::MIDI);
   clock_router.add_observer(speed_adapter_def);
 
@@ -445,8 +434,7 @@ TEST_CASE("TempoHandler set_bpm only affects internal clock source") {
                                           ClockSource::INTERNAL);
 
   musin::timing::SpeedAdapter speed_adapter_bpm;
-  TempoHandler th(internal_clock, midi_proc, sync_in, sync_out, clock_router,
-                  speed_adapter_bpm,
+  TempoHandler th(clock_router, speed_adapter_bpm,
                   /*send_midi_clock_when_stopped*/ false,
                   ClockSource::INTERNAL);
 
@@ -481,8 +469,7 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
 
   // Test with send_midi_clock_when_stopped = false
   musin::timing::SpeedAdapter speed_adapter_stopped;
-  TempoHandler th_stopped(internal_clock, midi_proc, sync_in, sync_out,
-                          clock_router, speed_adapter_stopped,
+  TempoHandler th_stopped(clock_router, speed_adapter_stopped,
                           /*send_midi_clock_when_stopped*/ false,
                           ClockSource::INTERNAL);
   musin::timing::MidiClockOut midi_out_stopped(
@@ -496,8 +483,7 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
 
   // Test with send_midi_clock_when_stopped = true
   musin::timing::SpeedAdapter speed_adapter_always;
-  TempoHandler th_always(internal_clock, midi_proc, sync_in, sync_out,
-                         clock_router, speed_adapter_always,
+  TempoHandler th_always(clock_router, speed_adapter_always,
                          /*send_midi_clock_when_stopped*/ true,
                          ClockSource::INTERNAL);
   musin::timing::MidiClockOut midi_out_always(

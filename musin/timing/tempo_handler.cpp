@@ -45,6 +45,13 @@ void TempoHandler::set_clock_source(ClockSource source) {
   // Route raw 24 PPQN through ClockRouter
   _clock_router_ref.set_clock_source(current_source_);
 
+  // When switching to internal clock, the speed modifier should not apply.
+  // Reset it to normal to avoid carrying over double/half speed from an
+  // external source.
+  if (current_source_ == ClockSource::INTERNAL) {
+    set_speed_modifier(SpeedModifier::NORMAL_SPEED);
+  }
+
   // Re-evaluate tempo knob position for the new clock source
   // This fixes issue #486: tempo knob position is now applied when switching
   // sources

@@ -128,7 +128,7 @@ void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
 }
 
-void TempoHandler::trigger_manual_sync() {
+void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
   if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
     return;
   }
@@ -137,7 +137,7 @@ void TempoHandler::trigger_manual_sync() {
   case ClockSource::INTERNAL:
   case ClockSource::MIDI:
     _clock_router_ref.trigger_resync();
-    emit_manual_resync_event(calculate_aligned_phase());
+    emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:
     break;

@@ -191,7 +191,6 @@ void SequencerController<NumTracks, NumSteps>::start() {
   }
 
   _just_played_step_per_track.fill(std::nullopt);
-  last_phase_12_ = 0;
 
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
@@ -199,8 +198,10 @@ void SequencerController<NumTracks, NumSteps>::start() {
   _running = true;
 
   // Resync the clock on start for better phase alignment
-  // This will trigger a resync event that marks the first step due
-  tempo_source.trigger_manual_sync();
+  // Use the last played anchor phase (0 or 6) to maintain swing timing
+  uint8_t anchor_phase = (last_phase_12_ < 6) ? 0 : 6;
+  last_phase_12_ = (anchor_phase == 0) ? 11 : 5;
+  tempo_source.trigger_manual_sync(anchor_phase);
 }
 
 template <size_t NumTracks, size_t NumSteps>

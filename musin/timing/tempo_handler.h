@@ -56,7 +56,7 @@ public:
   void set_playback_state(PlaybackState new_state);
   [[nodiscard]] PlaybackState get_playback_state() const;
 
-  void trigger_manual_sync();
+  void trigger_manual_sync(uint8_t target_phase = 0);
 
   void notification(musin::timing::ClockEvent event) override;
 

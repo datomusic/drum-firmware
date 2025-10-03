@@ -208,7 +208,7 @@ namespace timing {
 // Fixed swing offset in 12 PPQN phases applied to swung steps only.
 // Anchors remain at 0 and 6; the controller applies +SWING_OFFSET_PHASES
 // to the next step when that step is marked as swung.
-constexpr uint8_t SWING_OFFSET_PHASES = 4; // valid range: 1..5
+constexpr uint8_t SWING_OFFSET_PHASES = 2; // valid range: 1..5
 static_assert(SWING_OFFSET_PHASES > 0 && SWING_OFFSET_PHASES < 6,
               "SWING_OFFSET_PHASES must be between 1 and 5 at 12 PPQN");
 } // namespace timing

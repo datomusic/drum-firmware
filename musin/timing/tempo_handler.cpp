@@ -69,8 +69,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
                     ? event.anchor_to_phase
                     : 0;
     tick_count_++;
-    musin::timing::TempoEvent tempo_event{
-        .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = true};
+    musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                          .is_resync = true};
     notify_observers(tempo_event);
     return;
   }
@@ -81,8 +81,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
   tick_count_++;
   phase_12_ = next_phase;
-  musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = false};
+  musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                        .is_resync = false};
   notify_observers(tempo_event);
 }
 
@@ -147,8 +147,8 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
 void TempoHandler::emit_manual_resync_event(uint8_t anchor_phase) {
   phase_12_ = anchor_phase;
   tick_count_++;
-  musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = true};
+  musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                        .is_resync = true};
   notify_observers(tempo_event);
 }
 

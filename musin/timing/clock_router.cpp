@@ -85,7 +85,6 @@ void ClockRouter::trigger_resync() {
 
   ClockEvent resync_event{current_source_};
   resync_event.is_resync = true;
-  resync_event.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
   notify_observers(resync_event);
 
   if (sync_out_ != nullptr) {

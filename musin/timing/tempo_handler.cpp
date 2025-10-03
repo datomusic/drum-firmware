@@ -60,14 +60,15 @@ uint8_t TempoHandler::calculate_aligned_phase() const {
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
+  constexpr uint8_t NO_ANCHOR = 0xFF;
+  uint8_t anchor_phase = NO_ANCHOR;
+
   if (event.source == ClockSource::EXTERNAL_SYNC && event.is_downbeat) {
-    event.anchor_to_phase = calculate_aligned_phase();
+    anchor_phase = calculate_aligned_phase();
   }
 
   if (event.is_resync) {
-    phase_12_ = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
-                    ? event.anchor_to_phase
-                    : 0;
+    phase_12_ = (anchor_phase != NO_ANCHOR) ? anchor_phase : 0;
     tick_count_++;
     musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
                                           .is_resync = true};
@@ -75,8 +76,8 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
     return;
   }
 
-  uint8_t next_phase = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
-                           ? event.anchor_to_phase
+  uint8_t next_phase = (anchor_phase != NO_ANCHOR)
+                           ? anchor_phase
                            : (phase_12_ + 1) % musin::timing::DEFAULT_PPQN;
 
   tick_count_++;

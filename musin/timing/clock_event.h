@@ -31,11 +31,6 @@ struct ClockEvent {
   bool is_resync = false; // True when clock resumes after timeout
   // True for a SyncIn rising edge that aligns to the external downbeat.
   bool is_downbeat = false;
-  // Optional anchor instruction for this tick. When set, TempoHandler should
-  // set its phase to this exact value (0..23) on this tick. A sentinel value
-  // indicates that no anchoring is requested.
-  static constexpr uint8_t ANCHOR_PHASE_NONE = 0xFF;
-  uint8_t anchor_to_phase = ANCHOR_PHASE_NONE;
 };
 
 } // namespace musin::timing

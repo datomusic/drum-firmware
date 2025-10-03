@@ -24,7 +24,6 @@ void TempoHandler::set_clock_source(ClockSource source) {
     return;
   }
 
-<<<<<<< HEAD
   phase_12_ = 0; // Reset phase on source change
   _clock_router_ref.set_clock_source(source);
 
@@ -38,7 +37,6 @@ void TempoHandler::set_clock_source(ClockSource source) {
   // Re-evaluate tempo knob position for the new clock source
   // This fixes issue #486: tempo knob position is now applied when switching
   // sources
->>>>>>> eed2482 (refactor: migrate sequencer to 12 PPQN internal timing)
   set_tempo_control_value(last_tempo_knob_value_);
   initialized_ = true;
 }

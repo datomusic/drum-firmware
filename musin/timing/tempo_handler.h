@@ -14,7 +14,7 @@ namespace musin::timing {
 // Forward declarations
 class MidiClockProcessor;
 class SyncIn;
-class ClockMultiplier;
+class SyncOut;
 
 /**
  * @brief Defines the playback state of the sequencer.
@@ -45,13 +45,15 @@ public:
    * @param internal_clock_ref Reference to the InternalClock instance.
    * @param midi_clock_processor_ref Reference to the MidiClockProcessor.
    * @param sync_in_ref Reference to the SyncIn instance.
+   * @param sync_out_ref Reference to the SyncOut instance.
    * @param send_midi_clock_when_stopped If true, MIDI clock is sent even when
    * stopped.
    * @param initial_source The clock source to use initially.
    */
   explicit TempoHandler(InternalClock &internal_clock_ref,
                         MidiClockProcessor &midi_clock_processor_ref,
-                        SyncIn &sync_in_ref, ClockRouter &clock_router_ref,
+                        SyncIn &sync_in_ref, SyncOut &sync_out_ref,
+                        ClockRouter &clock_router_ref,
                         SpeedAdapter &speed_adapter_ref,
                         bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
@@ -134,15 +136,29 @@ public:
 
 private:
   /**
+   * @brief Calculate aligned phase for musical boundary snapping.
+   * @return Target phase (0 or 12) closest to current phase without large
+   * jumps.
+   */
+  [[nodiscard]] uint8_t calculate_aligned_phase() const;
+
+  /**
    * @brief Advance internal phase counter and emit tempo event.
    * This is the central method that advances phase_24_ and tick_count_,
    * then emits a TempoEvent with the current phase information.
    */
   void advance_phase_and_emit_event();
 
+  /**
+   * @brief Emit a manual resync event directly to observers.
+   * @param anchor_phase The phase to align to.
+   */
+  void emit_manual_resync_event(uint8_t anchor_phase);
+
   InternalClock &_internal_clock_ref;
   MidiClockProcessor &_midi_clock_processor_ref;
   SyncIn &_sync_in_ref;
+  SyncOut &_sync_out_ref;
   ClockRouter &_clock_router_ref;
   SpeedAdapter &_speed_adapter_ref;
 
@@ -152,19 +168,6 @@ private:
   uint8_t phase_24_;    // 24 PPQN phase counter (0-23)
   uint64_t tick_count_; // Running tick count
   const bool _send_midi_clock_when_stopped;
-  // For external sync alignment: alternate physical pulses between phases 0 and
-  // 12
-  bool external_align_to_12_next_ = false;
-
-  // Deferred anchoring for MIDI: when true, next external tick will anchor
-  // phase_24_ to 0/12 and emit a resync-marked event.
-  bool pending_anchor_on_next_external_tick_ = false;
-  bool pending_manual_resync_flag_ = false;
-
-  // Timing for look-behind MIDI anchoring (lower 32 bits of us counter).
-  // Unsigned subtraction handles rollover naturally.
-  uint32_t last_external_tick_us_ = 0;
-  uint32_t last_external_tick_interval_us_ = 0;
 
   // Tracks whether set_clock_source has performed initial attachment/setup.
   bool initialized_ = false;

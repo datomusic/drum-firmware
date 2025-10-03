@@ -32,40 +32,6 @@ static void advance_time_us(uint64_t us) {
 }
 } // namespace
 
-TEST_CASE("ClockRouter emits resync on source change") {
-  reset_test_state();
-
-  InternalClock internal_clock(120.0f);
-  MidiClockProcessor midi_proc;
-  SyncIn sync_in(0, 1); // dummy pin numbers for test
-  ClockRouter router(internal_clock, midi_proc, sync_in, ClockSource::INTERNAL);
-
-  ClockEventRecorder rec;
-  router.add_observer(rec);
-
-  // Switch to MIDI -> resync
-  router.set_clock_source(ClockSource::MIDI);
-  REQUIRE(rec.events.size() == 1);
-  REQUIRE(rec.events[0].is_resync == true);
-  REQUIRE(rec.events[0].source == ClockSource::MIDI);
-
-  // Switch to EXTERNAL_SYNC -> another resync
-  router.set_clock_source(ClockSource::EXTERNAL_SYNC);
-  REQUIRE(rec.events.size() == 2);
-  REQUIRE(rec.events[1].is_resync == true);
-  REQUIRE(rec.events[1].source == ClockSource::EXTERNAL_SYNC);
-
-  // Switch back to INTERNAL -> resync
-  router.set_clock_source(ClockSource::INTERNAL);
-  REQUIRE(rec.events.size() == 3);
-  REQUIRE(rec.events[2].is_resync == true);
-  REQUIRE(rec.events[2].source == ClockSource::INTERNAL);
-
-  // Setting same source again should be a no-op (no additional resync)
-  router.set_clock_source(ClockSource::INTERNAL);
-  REQUIRE(rec.events.size() == 3);
-}
-
 TEST_CASE("ClockRouter forwards ticks only from selected source") {
   reset_test_state();
 
@@ -92,9 +58,8 @@ TEST_CASE("ClockRouter forwards ticks only from selected source") {
 
   size_t count_after_internal = rec.events.size();
 
-  // Switch to MIDI; should emit a resync and stop internal clock
+  // Switch to MIDI; should stop internal clock and enable MIDI echo
   router.set_clock_source(ClockSource::MIDI);
-  REQUIRE(rec.events.size() == count_after_internal + 1);
   REQUIRE(internal_clock.is_running() == false);
   REQUIRE(midi_proc.is_forward_echo_enabled() == true);
 
@@ -130,7 +95,7 @@ TEST_CASE("ClockRouter routes external sync directly and preserves "
 
   // Simulate an external physical pulse arriving directly via SyncIn
   ClockEvent pulse{ClockSource::EXTERNAL_SYNC};
-  pulse.is_physical_pulse = true;
+  pulse.is_downbeat = true;
   pulse.timestamp_us =
       static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   router.notification(
@@ -144,7 +109,7 @@ TEST_CASE("ClockRouter routes external sync directly and preserves "
   bool found_physical = false;
   for (size_t i = base_events; i < rec.events.size(); ++i) {
     if (rec.events[i].source == ClockSource::EXTERNAL_SYNC &&
-        rec.events[i].is_physical_pulse == true) {
+        rec.events[i].is_downbeat == true) {
       found_physical = true;
       break;
     }

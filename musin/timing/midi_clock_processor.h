@@ -53,9 +53,16 @@ public:
     return forward_echo_enabled_;
   }
 
+  void set_speed_modifier(SpeedModifier modifier);
+  [[nodiscard]] SpeedModifier get_speed_modifier() const;
+
 private:
   absolute_time_t _last_raw_tick_time;
   bool forward_echo_enabled_ = false;
+
+  // Speed modification
+  SpeedModifier speed_modifier_ = SpeedModifier::NORMAL_SPEED;
+  bool half_speed_toggle_ = false; // For dropping every other MIDI tick
 
   // Timeout for considering MIDI clock inactive.
   static constexpr uint32_t MIDI_CLOCK_TIMEOUT_US = 500000; // 500ms

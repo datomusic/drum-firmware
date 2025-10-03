@@ -29,14 +29,6 @@ void ClockRouter::set_clock_source(ClockSource source) {
   current_source_ = source;
   attach_source(source);
   initialized_ = true;
-
-  // Emit a resync event on source change to align downstream consumers
-  musin::timing::ClockEvent resync_event{source};
-  resync_event.is_resync = true;
-  resync_event.is_physical_pulse = false;
-  resync_event.timestamp_us =
-      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-  notify_observers(resync_event);
 }
 
 void ClockRouter::detach_current_source() {

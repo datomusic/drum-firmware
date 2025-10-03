@@ -35,7 +35,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   # Timing sources needed by TempoHandler tests
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/internal_clock.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_processor.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/clock_multiplier.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/clock_router.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/speed_adapter.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_out.cpp

@@ -113,10 +113,16 @@ public:
   void reset();
 
   /**
-   * @brief Immediately advance the sequencer to the next step.
-   * Used for synchronization when external clock resumes after a timeout.
+   * @brief Mark that a step should be processed on the next update().
+   * Used when tempo events trigger step playback while running.
    */
-  void advance_step();
+  void mark_step_due();
+
+  /**
+   * @brief Increment the step position counter.
+   * Advances scheduled_step_counter_ to move to the next step.
+   */
+  void increment_step_position();
 
   /**
    * @brief Start the sequencer by connecting to the tempo source.
@@ -252,6 +258,7 @@ private:
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
       sequencer_;
   std::atomic<uint32_t> current_step_counter;
+  uint32_t scheduled_step_counter_;
   etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
   etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
   musin::timing::TempoHandler &tempo_source;

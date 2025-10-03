@@ -14,12 +14,14 @@ constexpr size_t MAX_SPEED_ADAPTER_OBSERVERS = 2;
  * and downstream consumers.
  *
  * - NORMAL: pass-through.
- * - HALF: drop every other incoming tick.
  * - DOUBLE: pass through incoming ticks and insert an interpolated tick midway
  *   between them using the previous measured interval.
  *
+ * Note: HALF_SPEED is now handled directly by individual clock sources
+ * (SyncIn and MidiClockProcessor) for better musical alignment.
+ *
  * Resets on incoming resync. Interpolated ticks are marked as
- * is_physical_pulse=false.
+ * is_downbeat=false.
  */
 class SpeedAdapter
     : public etl::observer<musin::timing::ClockEvent>,
@@ -34,8 +36,7 @@ public:
     if (modifier_ == m)
       return;
     modifier_ = m;
-    // Reset internal scheduling/toggling state when mode changes
-    half_toggle_ = false;
+    // Reset internal scheduling state when mode changes
     last_tick_us_ = 0;
     last_interval_us_ = 0;
     next_insert_time_ = nil_time;
@@ -53,17 +54,12 @@ private:
   void schedule_double_insert_after(absolute_time_t now);
 
   SpeedModifier modifier_;
-  bool half_toggle_ = false;
 
   // Timing for DOUBLE mode
   uint32_t last_tick_us_ = 0;     // timestamp of last source tick
   uint32_t last_interval_us_ = 0; // measured between source ticks
   absolute_time_t next_insert_time_ = nil_time;
   ClockSource current_source_ = ClockSource::INTERNAL;
-
-  // For HALF mode: if an anchored tick would be dropped, defer its anchor
-  // to the next forwarded tick.
-  uint8_t pending_anchor_to_phase_ = ClockEvent::ANCHOR_PHASE_NONE;
 };
 
 } // namespace musin::timing

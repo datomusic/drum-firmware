@@ -612,7 +612,8 @@ void PizzaControls::AnalogControlComponent::PressureButtonEventHandler::
       // When stopped: light press advances step
       if (event.state == musin::ui::PressureState::LightPress &&
           event.previous_state == musin::ui::PressureState::Released) {
-        controls->_sequencer_controller_ref.advance_step();
+        controls->_sequencer_controller_ref.mark_step_due();
+        controls->_sequencer_controller_ref.increment_step_position();
         parent->repeat_stopped_mode_active_ = true;
       } else if (event.state == musin::ui::PressureState::Released) {
         parent->repeat_stopped_mode_active_ = false;
@@ -662,11 +663,6 @@ void PizzaControls::PlaybuttonComponent::PlaybuttonEventHandler::notification(
   if (event.type == musin::ui::DrumpadEvent::Type::Press) {
     logger.debug("PLAYBUTTON PRESSED");
     parent->parent_controls->_sequencer_controller_ref.toggle();
-
-    // If we just started, trigger sync behavior for better phase alignment
-    if (parent->parent_controls->_sequencer_controller_ref.is_running()) {
-      parent->parent_controls->_tempo_handler_ref.trigger_manual_sync();
-    }
   } else if (event.type == musin::ui::DrumpadEvent::Type::Release) {
     logger.debug("PLAYBUTTON RELEASED");
   } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {

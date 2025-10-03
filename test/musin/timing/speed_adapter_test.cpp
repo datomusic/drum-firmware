@@ -39,7 +39,7 @@ TEST_CASE("SpeedAdapter NORMAL forwards all ticks") {
   // Generate 5 ticks 10ms apart
   for (int i = 0; i < 5; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_physical_pulse = false;
+    e.is_downbeat = false;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
@@ -53,7 +53,8 @@ TEST_CASE("SpeedAdapter NORMAL forwards all ticks") {
   }
 }
 
-TEST_CASE("SpeedAdapter HALF drops every other tick") {
+TEST_CASE("SpeedAdapter HALF passes through all ticks (half-speed now handled "
+          "by sources)") {
   reset_test_state();
 
   SpeedAdapter adapter(SpeedModifier::HALF_SPEED);
@@ -63,15 +64,16 @@ TEST_CASE("SpeedAdapter HALF drops every other tick") {
   // Send 6 ticks at regular intervals
   for (int i = 0; i < 6; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
-    e.is_physical_pulse = (i % 3) == 0; // mix of physical/non-physical
+    e.is_downbeat = (i % 3) == 0; // mix of physical/non-physical
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
     advance_time_us(8000);
   }
 
-  // Expect 3 forwarded ticks (1st, 3rd, 5th)
-  REQUIRE(rec.events.size() == 3);
+  // Expect all 6 ticks forwarded (half-speed is now handled by individual
+  // sources)
+  REQUIRE(rec.events.size() == 6);
 }
 
 TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {
@@ -84,7 +86,7 @@ TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {
   // First tick at t=0us -> forwarded, no insert scheduled yet
   {
     ClockEvent e{ClockSource::MIDI};
-    e.is_physical_pulse = false;
+    e.is_downbeat = false;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
@@ -94,7 +96,7 @@ TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {
   advance_time_us(10000);
   {
     ClockEvent e{ClockSource::MIDI};
-    e.is_physical_pulse = false;
+    e.is_downbeat = false;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
@@ -109,7 +111,7 @@ TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {
   advance_time_us(5000);
   {
     ClockEvent e{ClockSource::MIDI};
-    e.is_physical_pulse = false;
+    e.is_downbeat = false;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
@@ -121,7 +123,7 @@ TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {
   // Inserted event must be non-physical
   bool found_non_physical_insert = false;
   for (const auto &e : rec.events) {
-    if (e.is_physical_pulse == false) {
+    if (e.is_downbeat == false) {
       found_non_physical_insert = true;
       break;
     }

@@ -31,6 +31,13 @@ public:
     cable_connected_ = connected;
   }
 
+  // Speed modifier interface (test stub)
+  void set_speed_modifier([[maybe_unused]] SpeedModifier modifier) {
+  }
+  [[nodiscard]] SpeedModifier get_speed_modifier() const {
+    return SpeedModifier::NORMAL_SPEED;
+  }
+
 private:
   bool cable_connected_ = false;
 };

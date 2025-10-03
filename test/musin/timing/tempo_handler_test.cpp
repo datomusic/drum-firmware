@@ -73,8 +73,6 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   // Generate 6 internal ticks; SpeedAdapter in NORMAL emits every 2nd tick
   for (int i = 0; i < 6; ++i) {
     ClockEvent tick{ClockSource::INTERNAL};
-    tick.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     clock_router.notification(tick);
   }
 
@@ -127,8 +125,6 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
   for (int i = 0; i < 8; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_downbeat = true;
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     clock_router.notification(e);
   }
 
@@ -188,8 +184,6 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source forwards every tick") {
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_downbeat = false;
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     speed_adapter.notification(e);
   }
 
@@ -232,7 +226,6 @@ TEST_CASE("TempoHandler DOUBLE_SPEED maintains phase progression") {
   // Send one more tick to see the aligned phase
   ClockEvent e{ClockSource::MIDI};
   e.is_downbeat = false;
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter.notification(e);
 
   REQUIRE(rec.events.size() >= 1);
@@ -357,7 +350,6 @@ TEST_CASE(
   // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
   e.is_downbeat = false;
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter_lb.notification(e);
   rec.clear();
 
@@ -393,7 +385,6 @@ TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
   // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
   e.is_downbeat = false;
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter_def.notification(e);
   rec.clear();
 

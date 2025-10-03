@@ -39,8 +39,6 @@ void MidiClockProcessor::on_midi_clock_tick_received() {
   // Forward MIDI clock tick to observers
   musin::timing::ClockEvent raw_tick_event{
       .source = musin::timing::ClockSource::MIDI, .is_resync = false};
-  raw_tick_event.timestamp_us =
-      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   notify_observers(raw_tick_event);
 
   if (forward_echo_enabled_) {

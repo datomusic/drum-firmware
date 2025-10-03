@@ -12,7 +12,7 @@ TempoHandler::TempoHandler(ClockRouter &clock_router_ref,
     : _clock_router_ref(clock_router_ref),
       _speed_adapter_ref(speed_adapter_ref),
       _playback_state(PlaybackState::STOPPED),
-      current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_24_(0),
+      current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_12_(0),
       tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
   _speed_adapter_ref.add_observer(*this);
@@ -24,22 +24,21 @@ void TempoHandler::set_clock_source(ClockSource source) {
     return;
   }
 
-  current_source_ = source;
-  phase_24_ = 0; // Reset phase on source change
-
-  // Route raw 24 PPQN through ClockRouter
-  _clock_router_ref.set_clock_source(current_source_);
+<<<<<<< HEAD
+  phase_12_ = 0; // Reset phase on source change
+  _clock_router_ref.set_clock_source(source);
 
   // When switching to internal clock, the speed modifier should not apply.
   // Reset it to normal to avoid carrying over double/half speed from an
   // external source.
-  if (current_source_ == ClockSource::INTERNAL) {
+  if (source == ClockSource::INTERNAL) {
     set_speed_modifier(SpeedModifier::NORMAL_SPEED);
   }
 
   // Re-evaluate tempo knob position for the new clock source
   // This fixes issue #486: tempo knob position is now applied when switching
   // sources
+>>>>>>> eed2482 (refactor: migrate sequencer to 12 PPQN internal timing)
   set_tempo_control_value(last_tempo_knob_value_);
   initialized_ = true;
 }
@@ -55,8 +54,8 @@ uint8_t TempoHandler::calculate_aligned_phase() const {
   // Use quarter-cycle thresholds so we pick the closest half-cycle anchor
   // without large backward jumps near wrap-around.
   uint8_t target_phase = 0;
-  if (phase_24_ >= quarter_cycle &&
-      phase_24_ < static_cast<uint8_t>(half_cycle + quarter_cycle)) {
+  if (phase_12_ >= quarter_cycle &&
+      phase_12_ < static_cast<uint8_t>(half_cycle + quarter_cycle)) {
     target_phase = half_cycle;
   }
   return target_phase;
@@ -68,24 +67,24 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   }
 
   if (event.is_resync) {
-    phase_24_ = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
+    phase_12_ = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
                     ? event.anchor_to_phase
                     : 0;
     tick_count_++;
     musin::timing::TempoEvent tempo_event{
-        .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+        .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = true};
     notify_observers(tempo_event);
     return;
   }
 
   uint8_t next_phase = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
                            ? event.anchor_to_phase
-                           : (phase_24_ + 1) % musin::timing::DEFAULT_PPQN;
+                           : (phase_12_ + 1) % musin::timing::DEFAULT_PPQN;
 
   tick_count_++;
-  phase_24_ = next_phase;
+  phase_12_ = next_phase;
   musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = false};
+      .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = false};
   notify_observers(tempo_event);
 }
 
@@ -146,10 +145,10 @@ void TempoHandler::trigger_manual_sync() {
 }
 
 void TempoHandler::emit_manual_resync_event(uint8_t anchor_phase) {
-  phase_24_ = anchor_phase;
+  phase_12_ = anchor_phase;
   tick_count_++;
   musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_24 = phase_24_, .is_resync = true};
+      .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = true};
   notify_observers(tempo_event);
 }
 

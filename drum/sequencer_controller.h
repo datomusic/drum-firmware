@@ -65,8 +65,8 @@ public:
   /**
    * @brief Notification handler called when a TempoEvent is received.
    * Implements the etl::observer interface. This is called on every
-   * 24 PPQN tick with phase-based timing information.
-   * @param event The received tempo event containing phase_24 (0-23).
+   * 12 PPQN tick with phase-based timing information.
+   * @param event The received tempo event containing phase_12 (0-11).
    */
   void notification(musin::timing::TempoEvent event);
 
@@ -156,7 +156,7 @@ public:
    * @brief Enable or disable swing timing.
    * When enabled, steps marked as "swung" are delayed by
    * config::timing::SWING_OFFSET_PHASES from the straight eighth anchors
-   * (phases 0 and 12). When disabled, all steps use straight timing (0 and 12).
+   * (phases 0 and 6). When disabled, all steps use straight timing (0 and 6).
    * @param enabled true to enable swing, false for straight timing
    */
   void set_swing_enabled(bool enabled);
@@ -265,7 +265,7 @@ private:
   bool _running = false;
   std::atomic<bool> _step_is_due = false;
   std::atomic<uint8_t> _retrigger_due_mask{0};
-  uint8_t last_phase_24_{0};
+  uint8_t last_phase_12_{0};
 
   bool repeat_active_ = false;
   uint32_t repeat_length_ = 0;

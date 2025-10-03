@@ -91,9 +91,9 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
 
   REQUIRE(rec.events.size() >= 3);
   // First few phases should advance by 1 per tick (starting from 0 -> 1,2,3)
-  REQUIRE(rec.events[0].phase_24 == 1);
-  REQUIRE(rec.events[1].phase_24 == 2);
-  REQUIRE(rec.events[2].phase_24 == 3);
+  REQUIRE(rec.events[0].phase_12 == 1);
+  REQUIRE(rec.events[1].phase_12 == 2);
+  REQUIRE(rec.events[2].phase_12 == 3);
 
   // Expect at least 3 MIDI realtime Clock messages
   size_t rt_count = 0;
@@ -128,8 +128,8 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Simulate 4 external physical pulses by feeding the router.
-  for (int i = 0; i < 4; ++i) {
+  // Simulate 8 external physical pulses by feeding the router.
+  for (int i = 0; i < 8; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_downbeat = true;
     e.timestamp_us =
@@ -137,11 +137,11 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
     clock_router.notification(e);
   }
 
-  // SpeedAdapter now handles HALF_SPEED, emitting every 2nd tick
+  // SpeedAdapter now handles HALF_SPEED, emitting every 4th tick (8→2)
   REQUIRE(rec.events.size() == 2);
   // External physical pulses get phase alignment instead of sequential
   // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
-  REQUIRE(rec.events[0].phase_24 == 0);
+  REQUIRE(rec.events[0].phase_12 == 0);
 }
 
 TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {
@@ -166,7 +166,7 @@ TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {
   th.trigger_manual_sync();
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
-  REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_DOWNBEAT);
+  REQUIRE(rec.events[0].phase_12 == musin::timing::PHASE_DOWNBEAT);
 }
 
 TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
@@ -211,8 +211,8 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
 
   REQUIRE(rec.events.size() >= 3);
   // Phases advance by 1 per adapter output
-  REQUIRE(rec.events[0].phase_24 == 1);
-  REQUIRE(rec.events[1].phase_24 == 2);
+  REQUIRE(rec.events[0].phase_12 == 1);
+  REQUIRE(rec.events[1].phase_12 == 2);
 }
 
 TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
@@ -252,7 +252,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
 
   REQUIRE(rec.events.size() >= 1);
   // Phase should be aligned to even (4, since 3+1=4 which is even)
-  REQUIRE((rec.events[0].phase_24 & 1u) == 0u);
+  REQUIRE((rec.events[0].phase_12 & 1u) == 0u);
 }
 
 TEST_CASE("TempoHandler auto-switches from INTERNAL to MIDI when active") {
@@ -385,7 +385,7 @@ TEST_CASE(
 
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
-  REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_DOWNBEAT);
+  REQUIRE(rec.events[0].phase_12 == musin::timing::PHASE_DOWNBEAT);
 }
 
 TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
@@ -420,7 +420,7 @@ TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
   th.trigger_manual_sync();
   REQUIRE(rec.events.size() >= 1);
   REQUIRE(rec.events[0].is_resync == true);
-  REQUIRE(rec.events[0].phase_24 == musin::timing::PHASE_DOWNBEAT);
+  REQUIRE(rec.events[0].phase_12 == musin::timing::PHASE_DOWNBEAT);
 }
 
 TEST_CASE("TempoHandler set_bpm only affects internal clock source") {

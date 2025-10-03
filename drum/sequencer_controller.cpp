@@ -13,20 +13,20 @@
 namespace drum {
 
 namespace musical_timing {
-constexpr uint8_t PPQN = 24;
+constexpr uint8_t PPQN = 12;
 constexpr uint8_t DOWNBEAT = 0;
-constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 12
-constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 8
-constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 6
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 6
+constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 4
+constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 3
 } // namespace musical_timing
 
 namespace {
 constexpr std::uint32_t SIXTEENTH_MASK =
-    (1u << 0) | (1u << 6) | (1u << 12) | (1u << 18);
-constexpr std::uint32_t TRIPLET_MASK = (1u << 0) | (1u << 8) | (1u << 16);
+    (1u << 0) | (1u << 3) | (1u << 6) | (1u << 9);
+constexpr std::uint32_t TRIPLET_MASK = (1u << 0) | (1u << 4) | (1u << 8);
 constexpr std::uint32_t TRIPLET_OFFSET_MASK =
-    (1u << 4) | (1u << 12) | (1u << 20);
-constexpr std::uint32_t MASK24 = (1u << 24) - 1u;
+    (1u << 2) | (1u << 6) | (1u << 10);
+constexpr std::uint32_t MASK12 = (1u << 12) - 1u;
 } // namespace
 
 template <size_t NumTracks, size_t NumSteps>
@@ -154,7 +154,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   }
   current_step_counter = 0;
   scheduled_step_counter_ = 0;
-  last_phase_24_ = 0;
+  last_phase_12_ = 0;
 
   _just_played_step_per_track.fill(std::nullopt);
 
@@ -191,7 +191,7 @@ void SequencerController<NumTracks, NumSteps>::start() {
   }
 
   _just_played_step_per_track.fill(std::nullopt);
-  last_phase_24_ = 0;
+  last_phase_12_ = 0;
 
   tempo_source.add_observer(*this);
   tempo_source.set_playback_state(musin::timing::PlaybackState::PLAYING);
@@ -238,7 +238,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
   }
 
   // Apply pending swing changes on the downbeat to ensure timing stability
-  if (event.phase_24 == 0) { // Downbeat
+  if (event.phase_12 == 0) { // Downbeat
     if (swing_enabled_update_pending_.load(std::memory_order_relaxed)) {
       swing_effect_.set_swing_enabled(
           pending_swing_enabled_.load(std::memory_order_relaxed));
@@ -251,18 +251,18 @@ void SequencerController<NumTracks, NumSteps>::notification(
     }
   }
 
-  // event.phase_24 is guaranteed in [0, PPQN-1] by TempoHandler
+  // event.phase_12 is guaranteed in [0, PPQN-1] by TempoHandler
 
   // Handle resync events by setting up the look-behind window
   // This makes the next expected phase catchable by normal scheduling
   if (event.is_resync) {
-    last_phase_24_ = (event.phase_24 + musin::timing::DEFAULT_PPQN - 1) %
+    last_phase_12_ = (event.phase_12 + musin::timing::DEFAULT_PPQN - 1) %
                      musin::timing::DEFAULT_PPQN;
     // Don't return - fall through to normal look-behind logic
   }
 
   // If no time has passed, do nothing.
-  if (event.phase_24 == last_phase_24_) {
+  if (event.phase_12 == last_phase_12_) {
     return;
   }
 
@@ -276,12 +276,12 @@ void SequencerController<NumTracks, NumSteps>::notification(
   // Check if the expected_phase falls within the window between the last tick
   // and the current tick.
   bool is_step_due = false;
-  if (event.phase_24 < last_phase_24_) { // Phase wrapped around (e.g., 23 -> 0)
+  if (event.phase_12 < last_phase_12_) { // Phase wrapped around (e.g., 11 -> 0)
     is_step_due =
-        (expected_phase > last_phase_24_) || (expected_phase <= event.phase_24);
+        (expected_phase > last_phase_12_) || (expected_phase <= event.phase_12);
   } else { // Phase did not wrap
     is_step_due =
-        (expected_phase > last_phase_24_) && (expected_phase <= event.phase_24);
+        (expected_phase > last_phase_12_) && (expected_phase <= event.phase_12);
   }
 
   if (is_step_due) {
@@ -294,17 +294,17 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   // Create a bitmask for the phase range that has passed since the last tick.
   uint32_t range_mask = 0;
-  if (event.phase_24 < last_phase_24_) { // Phase wrapped
-    // Range: (last_phase_24_, 23]
-    uint32_t mask1 = ((1u << (23 - last_phase_24_)) - 1)
-                     << (last_phase_24_ + 1);
-    // Range: [0, event.phase_24]
-    uint32_t mask2 = (1u << (event.phase_24 + 1)) - 1;
+  if (event.phase_12 < last_phase_12_) { // Phase wrapped
+    // Range: (last_phase_12_, 11]
+    uint32_t mask1 = ((1u << (11 - last_phase_12_)) - 1)
+                     << (last_phase_12_ + 1);
+    // Range: [0, event.phase_12]
+    uint32_t mask2 = (1u << (event.phase_12 + 1)) - 1;
     range_mask = mask1 | mask2;
   } else { // No wrap
-    // Range: (last_phase_24_, event.phase_24]
-    range_mask = ((1u << (event.phase_24 - last_phase_24_)) - 1)
-                 << (last_phase_24_ + 1);
+    // Range: (last_phase_12_, event.phase_12]
+    range_mask = ((1u << (event.phase_12 - last_phase_12_)) - 1)
+                 << (last_phase_12_ + 1);
   }
 
   const bool substep_is_due = (substep_grid_mask & range_mask) != 0;
@@ -329,7 +329,7 @@ void SequencerController<NumTracks, NumSteps>::notification(
                                  std::memory_order_relaxed);
   }
 
-  last_phase_24_ = event.phase_24;
+  last_phase_12_ = event.phase_12;
 }
 
 template <size_t NumTracks, size_t NumSteps>

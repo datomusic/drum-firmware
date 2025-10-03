@@ -10,16 +10,15 @@ namespace musin::timing {
 constexpr size_t MAX_SPEED_ADAPTER_OBSERVERS = 2;
 
 /**
- * Inserts a reusable speed-scaling stage between raw 24 PPQN clock sources
- * and downstream consumers.
+ * Downsamples raw 24 PPQN clock sources to variable-rate output for
+ * downstream 12-PPQN consumers.
  *
- * - NORMAL: pass-through.
- * - HALF_SPEED: emit every 2nd tick.
- * - DOUBLE: pass through incoming ticks and insert an interpolated tick midway
- *   between them using the previous measured interval.
+ * - NORMAL: emit every 2nd tick (24→12 PPQN).
+ * - HALF_SPEED: emit every 4th tick (24→6 PPQN).
+ * - DOUBLE: pass through all ticks (24 PPQN output, phase wraps 0→11
+ * twice/quarter).
  *
- * Resets on incoming resync. Interpolated ticks are marked as
- * is_downbeat=false.
+ * Resets divider on incoming resync. DOUBLE mode ticks maintain physical flag.
  */
 class SpeedAdapter
     : public etl::observer<musin::timing::ClockEvent>,

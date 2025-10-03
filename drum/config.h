@@ -205,12 +205,12 @@ constexpr float MAX_BPM_ADJUST = 360.0f;
 
 // Timing configuration (musical policies)
 namespace timing {
-// Fixed swing offset in 24 PPQN phases applied to swung steps only.
-// Anchors remain at 0 and 12; the controller applies +SWING_OFFSET_PHASES
+// Fixed swing offset in 12 PPQN phases applied to swung steps only.
+// Anchors remain at 0 and 6; the controller applies +SWING_OFFSET_PHASES
 // to the next step when that step is marked as swung.
-constexpr uint8_t SWING_OFFSET_PHASES = 4; // valid range: 1..11
-static_assert(SWING_OFFSET_PHASES > 0 && SWING_OFFSET_PHASES < 12,
-              "SWING_OFFSET_PHASES must be between 1 and 11 at 24 PPQN");
+constexpr uint8_t SWING_OFFSET_PHASES = 4; // valid range: 1..5
+static_assert(SWING_OFFSET_PHASES > 0 && SWING_OFFSET_PHASES < 6,
+              "SWING_OFFSET_PHASES must be between 1 and 5 at 12 PPQN");
 } // namespace timing
 
 // PizzaControls specific

@@ -11,7 +11,7 @@ namespace musin::timing {
  */
 struct TempoEvent {
   uint64_t tick_count;
-  uint8_t phase_24 = 0;
+  uint8_t phase_12 = 0; // Phase value 0-11 at 12 PPQN
   bool is_resync = false;
 };
 

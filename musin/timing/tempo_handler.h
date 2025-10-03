@@ -69,7 +69,7 @@ private:
 
   PlaybackState _playback_state;
   SpeedModifier current_speed_modifier_;
-  uint8_t phase_24_;
+  uint8_t phase_12_;
   uint64_t tick_count_;
   const bool _send_midi_clock_when_stopped;
   bool initialized_ = false;

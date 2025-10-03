@@ -5,15 +5,15 @@ namespace drum {
 
 namespace {
 // Musical timing constants
-constexpr uint8_t PPQN = 24;
+constexpr uint8_t PPQN = 12;
 constexpr uint8_t DOWNBEAT = 0;
-constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2; // 12
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2; // 6
 
 // Retrigger masks for different subdivisions
 constexpr uint32_t SIXTEENTH_MASK =
-    (1u << 0) | (1u << 6) | (1u << 12) | (1u << 18);
-constexpr uint32_t TRIPLET_MASK = (1u << 0) | (1u << 8) | (1u << 16);
-constexpr uint32_t MASK24 = (1u << 24) - 1u;
+    (1u << 0) | (1u << 3) | (1u << 6) | (1u << 9);
+constexpr uint32_t TRIPLET_MASK = (1u << 0) | (1u << 4) | (1u << 8);
+constexpr uint32_t MASK12 = (1u << 12) - 1u;
 } // namespace
 
 SequencerEffectSwing::StepTiming SequencerEffectSwing::calculate_step_timing(
@@ -46,7 +46,7 @@ SequencerEffectSwing::StepTiming SequencerEffectSwing::calculate_step_timing(
   // step
   const uint8_t rotation = expected_phase;
   const uint32_t substep_mask =
-      ((base_mask << rotation) | (base_mask >> (24 - rotation))) & MASK24;
+      ((base_mask << rotation) | (base_mask >> (12 - rotation))) & MASK12;
 
   return {expected_phase, substep_mask, is_delay_applied};
 }

@@ -10,11 +10,13 @@ namespace drum {
 
 namespace {
 
-constexpr std::uint8_t PHASES_PER_BEAT = 24;
+constexpr std::uint8_t PHASES_PER_BEAT = 12;
+constexpr std::uint8_t DOWNBEAT = 0;
+constexpr std::uint8_t OFFBEAT = PHASES_PER_BEAT / 2; // 6 at 12 PPQN
 constexpr std::size_t STEPS_PER_CYCLE = 8;
 constexpr std::uint32_t CYCLE_PHASES = (STEPS_PER_CYCLE / 2) * PHASES_PER_BEAT;
-constexpr std::array<uint8_t, 4> SIXTEENTH_MASK_BITS = {0, 6, 12, 18};
-constexpr std::array<uint8_t, 3> TRIPLET_MASK_BITS = {0, 8, 16};
+constexpr std::array<uint8_t, 4> SIXTEENTH_MASK_BITS = {0, 3, 6, 9};
+constexpr std::array<uint8_t, 3> TRIPLET_MASK_BITS = {0, 4, 8};
 
 std::vector<uint8_t> extract_set_bits(std::uint32_t mask) {
   std::vector<uint8_t> bits;
@@ -96,7 +98,7 @@ TEST_CASE("SequencerEffectSwing basic functionality",
     // Step 0 (even) should not be delayed, step 1 (odd) should be delayed
     REQUIRE(timing_step_0.expected_phase == 0);
     REQUIRE(timing_step_1.expected_phase ==
-            (12 + config::timing::SWING_OFFSET_PHASES));
+            (OFFBEAT + config::timing::SWING_OFFSET_PHASES));
     REQUIRE_FALSE(timing_step_0.is_delay_applied);
     REQUIRE(timing_step_1.is_delay_applied);
 
@@ -109,7 +111,7 @@ TEST_CASE("SequencerEffectSwing basic functionality",
     // Step 0 (even) should be delayed, step 1 (odd) should not be delayed
     REQUIRE(timing_step_0.expected_phase ==
             config::timing::SWING_OFFSET_PHASES);
-    REQUIRE(timing_step_1.expected_phase == 12);
+    REQUIRE(timing_step_1.expected_phase == OFFBEAT);
     REQUIRE(timing_step_0.is_delay_applied);
     REQUIRE_FALSE(timing_step_1.is_delay_applied);
   }
@@ -124,7 +126,7 @@ TEST_CASE("SequencerEffectSwing timing precision", "[sequencer_effect_swing]") {
     for (size_t step = 0; step < 8; ++step) {
       auto timing = swing_effect.calculate_step_timing(step, false, step);
       uint8_t expected_phase =
-          (step & 1) ? 12 : 0; // Alternating 0, 12, 0, 12...
+          (step & 1) ? OFFBEAT : DOWNBEAT; // Alternating 0, 6, 0, 6...
 
       REQUIRE(timing.expected_phase == expected_phase);
       REQUIRE_FALSE(timing.is_delay_applied);
@@ -141,11 +143,11 @@ TEST_CASE("SequencerEffectSwing timing precision", "[sequencer_effect_swing]") {
 
       if (is_odd) {
         uint8_t expected_phase =
-            (12 + config::timing::SWING_OFFSET_PHASES) % 24;
+            (OFFBEAT + config::timing::SWING_OFFSET_PHASES) % PHASES_PER_BEAT;
         REQUIRE(timing.expected_phase == expected_phase);
         REQUIRE(timing.is_delay_applied);
       } else {
-        REQUIRE(timing.expected_phase == 0);
+        REQUIRE(timing.expected_phase == DOWNBEAT);
         REQUIRE_FALSE(timing.is_delay_applied);
       }
     }
@@ -163,7 +165,7 @@ TEST_CASE("SequencerEffectSwing timing precision", "[sequencer_effect_swing]") {
         REQUIRE(timing.expected_phase == config::timing::SWING_OFFSET_PHASES);
         REQUIRE(timing.is_delay_applied);
       } else {
-        REQUIRE(timing.expected_phase == 12);
+        REQUIRE(timing.expected_phase == OFFBEAT);
         REQUIRE_FALSE(timing.is_delay_applied);
       }
     }
@@ -197,12 +199,12 @@ TEST_CASE("SequencerEffectSwing repeat mode integration",
 
     // With even transport step, should not be delayed (delay_odd=true)
     REQUIRE_FALSE(timing_even_transport.is_delay_applied);
-    REQUIRE(timing_even_transport.expected_phase == 0);
+    REQUIRE(timing_even_transport.expected_phase == DOWNBEAT);
 
     // With odd transport step, should be delayed
     REQUIRE(timing_odd_transport.is_delay_applied);
     REQUIRE(timing_odd_transport.expected_phase ==
-            (12 + config::timing::SWING_OFFSET_PHASES) % 24);
+            (OFFBEAT + config::timing::SWING_OFFSET_PHASES) % PHASES_PER_BEAT);
   }
 
   SECTION("Transport step boundary testing") {
@@ -506,8 +508,8 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
     auto retrigger_phases = extract_set_bits(timing.substep_mask);
 
     // Straight timing should retrigger on sixteenth note boundaries
-    // Expected phases: 0, 6, 12, 18 (every 6 phases = 1/4 beat)
-    std::vector<uint8_t> expected_phases = {0, 6, 12, 18};
+    // Expected phases: 0, 3, 6, 9 (every 3 phases = 1/4 beat at 12 PPQN)
+    std::vector<uint8_t> expected_phases = {0, 3, 6, 9};
     REQUIRE(retrigger_phases == expected_phases);
   }
 
@@ -518,8 +520,8 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
     auto retrigger_phases = extract_set_bits(timing.substep_mask);
 
     // Swing timing should retrigger on triplet boundaries
-    // Expected phases: 0, 8, 16 (every 8 phases = 1/3 beat)
-    std::vector<uint8_t> expected_phases = {0, 8, 16};
+    // Expected phases: 0, 4, 8 (every 4 phases = 1/3 beat at 12 PPQN)
+    std::vector<uint8_t> expected_phases = {0, 4, 8};
     REQUIRE(retrigger_phases == expected_phases);
   }
 }

@@ -31,9 +31,6 @@ public:
   void update(absolute_time_t now);
   [[nodiscard]] bool is_cable_connected() const;
 
-  void set_speed_modifier(SpeedModifier modifier);
-  [[nodiscard]] SpeedModifier get_speed_modifier() const;
-
 private:
   enum class PulseDebounceState {
     WAITING_FOR_RISING_EDGE,
@@ -58,17 +55,9 @@ private:
   uint8_t interpolated_tick_counter_ = 0; // 0-11, tracks interpolated ticks
   absolute_time_t next_tick_time_ = nil_time;
 
-  // Speed modification
-  SpeedModifier speed_modifier_ = SpeedModifier::NORMAL_SPEED;
-  bool physical_pulse_toggle_ =
-      false; // For marking only half of physical pulses in half-speed
-
   static constexpr uint32_t PULSE_DEBOUNCE_US = 5000;   // 5ms
   static constexpr uint32_t DETECT_DEBOUNCE_US = 50000; // 50ms
   static constexpr uint8_t PPQN_MULTIPLIER = 12;        // 2 PPQN to 24 PPQN
-  // Half speed: machine runs at 24 PPQN, normal speed converts 2 PPQN input
-  // to 24 PPQN (×12), half speed converts to 12 PPQN (24/2/2 = 6)
-  static constexpr uint8_t PPQN_MULTIPLIER_HALF = PPQN_MULTIPLIER / 2;
 
   void emit_clock_event(absolute_time_t timestamp, bool is_downbeat);
   void schedule_interpolated_ticks(absolute_time_t now);

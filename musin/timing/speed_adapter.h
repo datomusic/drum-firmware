@@ -10,18 +10,15 @@ namespace musin::timing {
 constexpr size_t MAX_SPEED_ADAPTER_OBSERVERS = 2;
 
 /**
- * Inserts a reusable speed-scaling stage between raw 24 PPQN clock sources
- * and downstream consumers.
+ * Downsamples raw 24 PPQN clock sources to variable-rate output for
+ * downstream 12-PPQN consumers.
  *
- * - NORMAL: pass-through.
- * - DOUBLE: pass through incoming ticks and insert an interpolated tick midway
- *   between them using the previous measured interval.
+ * - NORMAL: emit every 2nd tick (24→12 PPQN).
+ * - HALF_SPEED: emit every 4th tick (24→6 PPQN).
+ * - DOUBLE: pass through all ticks (24 PPQN output, phase wraps 0→11
+ * twice/quarter).
  *
- * Note: HALF_SPEED is now handled directly by individual clock sources
- * (SyncIn and MidiClockProcessor) for better musical alignment.
- *
- * Resets on incoming resync. Interpolated ticks are marked as
- * is_downbeat=false.
+ * Resets divider on incoming resync. DOUBLE mode ticks maintain physical flag.
  */
 class SpeedAdapter
     : public etl::observer<musin::timing::ClockEvent>,
@@ -36,10 +33,7 @@ public:
     if (modifier_ == m)
       return;
     modifier_ = m;
-    // Reset internal scheduling state when mode changes
-    last_tick_us_ = 0;
-    last_interval_us_ = 0;
-    next_insert_time_ = nil_time;
+    tick_counter_ = 0;
   }
 
   [[nodiscard]] SpeedModifier get_modifier() const {
@@ -48,17 +42,9 @@ public:
 
   void notification(musin::timing::ClockEvent event) override;
 
-  void update(absolute_time_t now);
-
 private:
-  void schedule_double_insert_after(absolute_time_t now);
-
   SpeedModifier modifier_;
-
-  // Timing for DOUBLE mode
-  uint32_t last_tick_us_ = 0;     // timestamp of last source tick
-  uint32_t last_interval_us_ = 0; // measured between source ticks
-  absolute_time_t next_insert_time_ = nil_time;
+  uint32_t tick_counter_ = 0;
   ClockSource current_source_ = ClockSource::INTERNAL;
 };
 

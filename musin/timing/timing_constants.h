@@ -6,16 +6,19 @@
 namespace musin::timing {
 
 /**
- * @brief Default Pulses Per Quarter Note (PPQN) used for high-resolution
- * timing. Standard MIDI clock is 24, common sequencer resolution is 96.
+ * @brief Default Pulses Per Quarter Note (PPQN) used for sequencer timing.
+ * Set to 12 PPQN for efficient processing while maintaining musical resolution.
+ * All clock sources (INTERNAL, MIDI, EXTERNAL_SYNC) operate at 24 PPQN and are
+ * downsampled by SpeedAdapter to 12 PPQN (NORMAL), 6 PPQN (HALF), or 24 PPQN
+ * (DOUBLE).
  */
-constexpr uint32_t DEFAULT_PPQN = 24;
+constexpr uint32_t DEFAULT_PPQN = 12;
 
-// Common 24-PPQN phase markers for clarity at call sites
+// Common 12-PPQN phase markers for clarity at call sites
 constexpr uint8_t PHASE_DOWNBEAT = 0;                      // quarter start
-constexpr uint8_t PHASE_EIGHTH_OFFBEAT = DEFAULT_PPQN / 2; // 12
-constexpr uint8_t PHASE_TRIPLET_STEP = DEFAULT_PPQN / 3;   // 8
-constexpr uint8_t PHASE_SIXTEENTH_STEP = DEFAULT_PPQN / 4; // 6
+constexpr uint8_t PHASE_EIGHTH_OFFBEAT = DEFAULT_PPQN / 2; // 6
+constexpr uint8_t PHASE_TRIPLET_STEP = DEFAULT_PPQN / 3;   // 4
+constexpr uint8_t PHASE_SIXTEENTH_STEP = DEFAULT_PPQN / 4; // 3
 
 } // namespace musin::timing
 

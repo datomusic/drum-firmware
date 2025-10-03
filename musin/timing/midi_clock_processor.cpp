@@ -13,41 +13,36 @@ void MidiClockProcessor::on_midi_clock_tick_received() {
   absolute_time_t now = get_absolute_time();
   bool is_first_tick = is_nil_time(_last_raw_tick_time);
 
-  if (!is_first_tick) {
+  if (is_first_tick) {
+    // Mark as active BEFORE notifying observers so auto-switching can detect it
+    _last_raw_tick_time = now;
+    // Send resync event for first tick to initialize phase
+    musin::timing::ClockEvent resync_event{
+        .source = musin::timing::ClockSource::MIDI, .is_resync = true};
+    notify_observers(resync_event);
+  } else {
     uint32_t current_interval_us =
         absolute_time_diff_us(_last_raw_tick_time, now);
 
     if (current_interval_us > MIDI_CLOCK_TIMEOUT_US) {
       // Timeout detected, clock might have stopped and restarted.
       reset();
-      // Send resync event immediately.
-      musin::timing::ClockEvent re_sync_tick_event{
+      // Mark active and send resync event
+      _last_raw_tick_time = now;
+      musin::timing::ClockEvent resync_event{
           .source = musin::timing::ClockSource::MIDI, .is_resync = true};
-      notify_observers(re_sync_tick_event);
+      notify_observers(resync_event);
     }
+    _last_raw_tick_time = now;
   }
 
-  _last_raw_tick_time = now;
+  // Forward MIDI clock tick to observers
+  musin::timing::ClockEvent raw_tick_event{
+      .source = musin::timing::ClockSource::MIDI, .is_resync = false};
+  raw_tick_event.timestamp_us =
+      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+  notify_observers(raw_tick_event);
 
-  // Apply speed modification: in half-speed mode, drop every other tick
-  bool should_forward_tick = true;
-  if (speed_modifier_ == SpeedModifier::HALF_SPEED) {
-    should_forward_tick = !half_speed_toggle_;
-    half_speed_toggle_ = !half_speed_toggle_;
-  }
-
-  if (should_forward_tick) {
-    // Forward MIDI clock tick to observers
-    musin::timing::ClockEvent raw_tick_event{
-        .source = musin::timing::ClockSource::MIDI, .is_resync = false};
-    raw_tick_event.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-    notify_observers(raw_tick_event);
-  }
-
-  // Always echo incoming MIDI clock to output regardless of speed modification.
-  // This keeps the forwarded clock timing independent from higher-level
-  // processing.
   if (forward_echo_enabled_) {
     MIDI::sendRealTime(midi::Clock);
   }
@@ -64,21 +59,6 @@ bool MidiClockProcessor::is_active() const {
 
 void MidiClockProcessor::reset() {
   _last_raw_tick_time = nil_time;
-  // Reset speed modifier toggle on resync for consistent behavior
-  half_speed_toggle_ = false;
-}
-
-void MidiClockProcessor::set_speed_modifier(SpeedModifier modifier) {
-  if (speed_modifier_ == modifier) {
-    return;
-  }
-  speed_modifier_ = modifier;
-  // Reset toggle state when speed mode changes
-  half_speed_toggle_ = false;
-}
-
-SpeedModifier MidiClockProcessor::get_speed_modifier() const {
-  return speed_modifier_;
 }
 
 } // namespace musin::timing

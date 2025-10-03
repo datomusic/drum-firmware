@@ -19,7 +19,7 @@ public:
    * @brief Complete timing decision for a sequencer step.
    */
   struct StepTiming {
-    uint8_t expected_phase; // Phase in 24 PPQN when step should occur
+    uint8_t expected_phase; // Phase in 12 PPQN when step should occur
     uint32_t substep_mask;  // Rotated mask for retrigger scheduling
     bool is_delay_applied;  // True if swing delay was applied to this step
   };

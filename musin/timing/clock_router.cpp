@@ -1,4 +1,5 @@
 #include "musin/timing/clock_router.h"
+#include "musin/timing/sync_out.h"
 #include "pico/time.h"
 
 namespace musin::timing {
@@ -15,6 +16,10 @@ ClockRouter::ClockRouter(InternalClock &internal_clock_ref,
 void ClockRouter::notification(musin::timing::ClockEvent event) {
   // Forward the event as-is; sources already tag their origin
   notify_observers(event);
+
+  if (awaiting_first_tick_after_switch_ && event.source == current_source_) {
+    awaiting_first_tick_after_switch_ = false;
+  }
 }
 
 void ClockRouter::set_clock_source(ClockSource source) {
@@ -52,16 +57,84 @@ void ClockRouter::attach_source(ClockSource source) {
   case ClockSource::INTERNAL:
     internal_clock_.add_observer(*this);
     internal_clock_.start();
+    awaiting_first_tick_after_switch_ = false;
     break;
   case ClockSource::MIDI:
     midi_clock_processor_.add_observer(*this);
     midi_clock_processor_.reset();
     midi_clock_processor_.set_forward_echo_enabled(true);
+    awaiting_first_tick_after_switch_ = true;
     break;
   case ClockSource::EXTERNAL_SYNC:
     sync_in_.add_observer(*this);
+    awaiting_first_tick_after_switch_ = true;
     break;
   }
+}
+
+void ClockRouter::set_bpm(float bpm) {
+  if (current_source_ == ClockSource::INTERNAL) {
+    internal_clock_.set_bpm(bpm);
+  }
+}
+
+void ClockRouter::trigger_resync() {
+  if (current_source_ == ClockSource::INTERNAL) {
+    internal_clock_.reset();
+  }
+
+  ClockEvent resync_event{current_source_};
+  resync_event.is_resync = true;
+  resync_event.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
+  notify_observers(resync_event);
+
+  if (sync_out_ != nullptr) {
+    sync_out_->resync();
+  }
+}
+
+void ClockRouter::set_sync_out(SyncOut *sync_out_ptr) {
+  sync_out_ = sync_out_ptr;
+}
+
+void ClockRouter::resync_sync_output() {
+  if (sync_out_ != nullptr) {
+    sync_out_->resync();
+  }
+}
+
+void ClockRouter::update_auto_source_switching() {
+  if (!auto_switching_enabled_) {
+    return;
+  }
+
+  if (sync_in_.is_cable_connected()) {
+    if (current_source_ != ClockSource::EXTERNAL_SYNC) {
+      set_clock_source(ClockSource::EXTERNAL_SYNC);
+    }
+    return;
+  }
+
+  const bool awaiting_midi_tick =
+      awaiting_first_tick_after_switch_ && current_source_ == ClockSource::MIDI;
+
+  if (current_source_ == ClockSource::MIDI) {
+    return;
+  }
+
+  if (midi_clock_processor_.is_active() || awaiting_midi_tick) {
+    if (current_source_ != ClockSource::MIDI) {
+      set_clock_source(ClockSource::MIDI);
+    }
+  } else {
+    if (current_source_ != ClockSource::INTERNAL) {
+      set_clock_source(ClockSource::INTERNAL);
+    }
+  }
+}
+
+void ClockRouter::set_auto_switching_enabled(bool enabled) {
+  auto_switching_enabled_ = enabled;
 }
 
 } // namespace musin::timing

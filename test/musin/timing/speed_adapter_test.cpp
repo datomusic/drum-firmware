@@ -29,15 +29,15 @@ static void advance_time_us(uint64_t us) {
 }
 } // namespace
 
-TEST_CASE("SpeedAdapter NORMAL forwards all ticks") {
+TEST_CASE("SpeedAdapter NORMAL emits every 2nd tick (24→12 PPQN)") {
   reset_test_state();
 
   SpeedAdapter adapter(SpeedModifier::NORMAL_SPEED);
   ClockEventRecorder rec;
   adapter.add_observer(rec);
 
-  // Generate 5 ticks 10ms apart
-  for (int i = 0; i < 5; ++i) {
+  // Generate 6 ticks 10ms apart (simulating 24 PPQN source)
+  for (int i = 0; i < 6; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_downbeat = false;
     e.timestamp_us =
@@ -46,23 +46,23 @@ TEST_CASE("SpeedAdapter NORMAL forwards all ticks") {
     advance_time_us(10000);
   }
 
-  REQUIRE(rec.events.size() == 5);
+  // NORMAL mode drops every other tick: 6→3
+  REQUIRE(rec.events.size() == 3);
   for (const auto &e : rec.events) {
     REQUIRE(e.source == ClockSource::MIDI);
     REQUIRE(e.is_resync == false);
   }
 }
 
-TEST_CASE("SpeedAdapter HALF passes through all ticks (half-speed now handled "
-          "by sources)") {
+TEST_CASE("SpeedAdapter HALF emits every 4th tick (24→6 PPQN)") {
   reset_test_state();
 
   SpeedAdapter adapter(SpeedModifier::HALF_SPEED);
   ClockEventRecorder rec;
   adapter.add_observer(rec);
 
-  // Send 6 ticks at regular intervals
-  for (int i = 0; i < 6; ++i) {
+  // Send 8 ticks at regular intervals (simulating 24 PPQN source)
+  for (int i = 0; i < 8; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_downbeat = (i % 3) == 0; // mix of physical/non-physical
     e.timestamp_us =
@@ -71,93 +71,60 @@ TEST_CASE("SpeedAdapter HALF passes through all ticks (half-speed now handled "
     advance_time_us(8000);
   }
 
-  // Expect all 6 ticks forwarded (half-speed is now handled by individual
-  // sources)
-  REQUIRE(rec.events.size() == 6);
+  // HALF_SPEED emits every 4th tick: 8→2
+  REQUIRE(rec.events.size() == 2);
 }
 
-TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {
+TEST_CASE("SpeedAdapter DOUBLE passes through all ticks (24 PPQN)") {
   reset_test_state();
 
   SpeedAdapter adapter(SpeedModifier::DOUBLE_SPEED);
   ClockEventRecorder rec;
   adapter.add_observer(rec);
 
-  // First tick at t=0us -> forwarded, no insert scheduled yet
-  {
+  // Generate 5 ticks 10ms apart
+  for (int i = 0; i < 5; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = false;
+    e.is_downbeat = (i % 2) == 0;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
+    advance_time_us(10000);
   }
 
-  // Advance 10ms, second tick -> forwarded, schedules insert at +5ms
-  advance_time_us(10000);
-  {
-    ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = false;
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-    adapter.notification(e);
-  }
-
-  // Advance 5ms -> hit mid insert
-  advance_time_us(5000);
-  adapter.update(get_absolute_time());
-
-  // Advance another 5ms, third tick arrives -> forwarded, may schedule next
-  // insert
-  advance_time_us(5000);
-  {
-    ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = false;
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-    adapter.notification(e);
-  }
-
-  // We should have: pass-through first, pass-through second, inserted mid,
-  // pass-through third => 4 events
-  REQUIRE(rec.events.size() == 4);
-  // Inserted event must be non-physical
-  bool found_non_physical_insert = false;
+  // DOUBLE mode passes all ticks through (24 PPQN output)
+  REQUIRE(rec.events.size() == 5);
   for (const auto &e : rec.events) {
-    if (e.is_downbeat == false) {
-      found_non_physical_insert = true;
-      break;
-    }
+    REQUIRE(e.source == ClockSource::MIDI);
+    REQUIRE(e.is_resync == false);
   }
-  REQUIRE(found_non_physical_insert);
 }
 
-TEST_CASE("SpeedAdapter resync forwards and clears scheduling") {
+TEST_CASE("SpeedAdapter resync forwards and clears counter") {
   reset_test_state();
 
-  SpeedAdapter adapter(SpeedModifier::DOUBLE_SPEED);
+  SpeedAdapter adapter(SpeedModifier::NORMAL_SPEED);
   ClockEventRecorder rec;
   adapter.add_observer(rec);
 
-  // Prime interval with two ticks
+  // Send one tick (odd counter, won't emit)
   ClockEvent e{ClockSource::MIDI};
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   adapter.notification(e);
-  advance_time_us(12000);
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
-  adapter.notification(e);
 
-  // Instead of waiting for the mid insert, send a resync event
+  // Send resync event - should forward and reset counter
   ClockEvent res{ClockSource::MIDI};
   res.is_resync = true;
   res.timestamp_us =
       static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   adapter.notification(res);
 
-  // Advance time past where an insert would have occurred; none should fire
+  // After resync, counter is reset, so next tick should emit (even counter)
   advance_time_us(8000);
-  adapter.update(get_absolute_time());
+  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+  adapter.notification(e);
 
-  // Events seen: first pass-through, second pass-through, resync
-  REQUIRE(rec.events.size() == 3);
-  REQUIRE(rec.events[2].is_resync == true);
+  // Events seen: resync, then nothing on first post-resync tick
+  REQUIRE(rec.events.size() == 1);
+  REQUIRE(rec.events[0].is_resync == true);
 }

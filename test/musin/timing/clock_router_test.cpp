@@ -69,10 +69,13 @@ TEST_CASE("ClockRouter forwards ticks only from selected source") {
   internal_clock.update(get_absolute_time());
   REQUIRE(rec.events.size() == count_after_switch);
 
-  // Now send a MIDI tick — should be forwarded
+  // Now send a MIDI tick — first tick emits a resync then the raw tick
   midi_proc.on_midi_clock_tick_received();
-  REQUIRE(rec.events.size() == count_after_switch + 1);
+  REQUIRE(rec.events.size() == count_after_switch + 2);
+  REQUIRE(rec.events[count_after_switch].is_resync == true);
+  REQUIRE(rec.events[count_after_switch].source == ClockSource::MIDI);
   REQUIRE(rec.events.back().source == ClockSource::MIDI);
+  REQUIRE(rec.events.back().is_resync == false);
 }
 
 TEST_CASE("ClockRouter routes external sync directly and preserves "
@@ -115,4 +118,33 @@ TEST_CASE("ClockRouter routes external sync directly and preserves "
     }
   }
   REQUIRE(found_physical);
+}
+
+TEST_CASE("ClockRouter auto switching stays on MIDI once selected") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  SyncIn sync_in(0, 1);
+  ClockRouter router(internal_clock, midi_proc, sync_in,
+                     ClockSource::INTERNAL);
+
+  REQUIRE(router.get_clock_source() == ClockSource::INTERNAL);
+
+  midi_proc.on_midi_clock_tick_received();
+  REQUIRE(midi_proc.is_active());
+
+  router.update_auto_source_switching();
+  REQUIRE(router.get_clock_source() == ClockSource::MIDI);
+
+  router.update_auto_source_switching();
+  REQUIRE(router.get_clock_source() == ClockSource::MIDI);
+
+  advance_time_us(21000);
+  midi_proc.on_midi_clock_tick_received();
+  REQUIRE(router.get_clock_source() == ClockSource::MIDI);
+
+  advance_time_us(600000);
+  router.update_auto_source_switching();
+  REQUIRE(router.get_clock_source() == ClockSource::MIDI);
 }

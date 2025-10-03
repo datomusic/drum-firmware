@@ -35,8 +35,8 @@ PizzaDisplay::PizzaDisplay(
 
 void PizzaDisplay::notification(musin::timing::TempoEvent event) {
   // Update highlight state based on downbeat and eighth offbeat for blinking
-  if (event.phase_24 == musin::timing::PHASE_DOWNBEAT ||
-      event.phase_24 == musin::timing::PHASE_EIGHTH_OFFBEAT) {
+  if (event.phase_12 == musin::timing::PHASE_DOWNBEAT ||
+      event.phase_12 == musin::timing::PHASE_EIGHTH_OFFBEAT) {
     bool prev = _highlight_is_bright.load(std::memory_order_relaxed);
     _highlight_is_bright.store(!prev, std::memory_order_relaxed);
   }

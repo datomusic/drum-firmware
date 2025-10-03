@@ -70,17 +70,12 @@ TEST_CASE("TempoHandler internal clock emits tempo events and MIDI clock") {
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // InternalClock starts in set_clock_source; tick interval at 120 BPM is
-  // ~20833us per 24ppqn
-  constexpr uint64_t tick_us = 20833;
-
-  // Generate 3 internal ticks
-  for (int i = 0; i < 3; ++i) {
-    internal_clock.update(get_absolute_time());
-    speed_adapter.update(get_absolute_time());
-    // InternalClock schedules next tick, so advance time past interval
-    advance_time_us(tick_us + 10);
-    internal_clock.update(get_absolute_time());
+  // Generate 6 internal ticks; SpeedAdapter in NORMAL emits every 2nd tick
+  for (int i = 0; i < 6; ++i) {
+    ClockEvent tick{ClockSource::INTERNAL};
+    tick.timestamp_us =
+        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
+    clock_router.notification(tick);
   }
 
   // Flush MIDI queue to collect all realtime clocks
@@ -169,7 +164,7 @@ TEST_CASE("TempoHandler manual sync in MIDI emits immediate resync") {
   REQUIRE(rec.events[0].phase_12 == musin::timing::PHASE_DOWNBEAT);
 }
 
-TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
+TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source forwards every tick") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -189,33 +184,22 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source advances by 2") {
   TempoEventRecorder rec;
   th.add_observer(rec);
 
-  // Send 3 MIDI clock ticks, advancing mock time between ticks so DOUBLE
-  // can emit inserted mid-ticks at half-interval.
+  // Send 3 MIDI clock ticks; DOUBLE_SPEED now forwards every tick
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_downbeat = false;
     e.timestamp_us =
         static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     speed_adapter.notification(e);
-    if (i == 1) {
-      // After the second tick, the adapter schedules a mid insert at +1/2
-      advance_time_us(5000);
-      speed_adapter.update(get_absolute_time()); // insert at half interval
-      advance_time_us(5000);
-      speed_adapter.update(get_absolute_time()); // move to next boundary
-    } else {
-      advance_time_us(10000);
-      speed_adapter.update(get_absolute_time());
-    }
   }
 
-  REQUIRE(rec.events.size() >= 3);
-  // Phases advance by 1 per adapter output
+  REQUIRE(rec.events.size() == 3);
   REQUIRE(rec.events[0].phase_12 == 1);
   REQUIRE(rec.events[1].phase_12 == 2);
+  REQUIRE(rec.events[2].phase_12 == 3);
 }
 
-TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
+TEST_CASE("TempoHandler DOUBLE_SPEED maintains phase progression") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -233,14 +217,16 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   th.add_observer(rec);
 
   // Advance to an odd phase (phase 3)
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 6; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_downbeat = false;
     speed_adapter.notification(e);
   }
+  REQUIRE(rec.events.size() == 3);
+  uint8_t previous_phase = rec.events.back().phase_12;
   rec.clear();
 
-  // Now switch to DOUBLE_SPEED - should align phase to even number
+  // Switch to DOUBLE_SPEED - tempo events should continue sequentially
   th.set_speed_modifier(SpeedModifier::DOUBLE_SPEED);
 
   // Send one more tick to see the aligned phase
@@ -248,11 +234,11 @@ TEST_CASE("TempoHandler DOUBLE_SPEED phase alignment on odd phases") {
   e.is_downbeat = false;
   e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   speed_adapter.notification(e);
-  speed_adapter.update(get_absolute_time());
 
   REQUIRE(rec.events.size() >= 1);
-  // Phase should be aligned to even (4, since 3+1=4 which is even)
-  REQUIRE((rec.events[0].phase_12 & 1u) == 0u);
+  uint8_t expected_phase =
+      static_cast<uint8_t>((previous_phase + 1) % musin::timing::DEFAULT_PPQN);
+  REQUIRE(rec.events[0].phase_12 == expected_phase);
 }
 
 TEST_CASE("TempoHandler auto-switches from INTERNAL to MIDI when active") {
@@ -319,8 +305,7 @@ TEST_CASE("TempoHandler prefers EXTERNAL_SYNC over MIDI when cable connected") {
   REQUIRE(th.get_clock_source() == ClockSource::INTERNAL);
 }
 
-TEST_CASE("ClockRouter switches from MIDI to INTERNAL when MIDI becomes "
-          "inactive") {
+TEST_CASE("ClockRouter stays on MIDI even after inactivity") {
   reset_test_state();
 
   InternalClock internal_clock(120.0f);
@@ -345,10 +330,9 @@ TEST_CASE("ClockRouter switches from MIDI to INTERNAL when MIDI becomes "
 
   REQUIRE(midi_proc.is_active() == false);
 
-  // ClockRouter now uses simple priority switching: EXTERNAL_SYNC > MIDI >
-  // INTERNAL When MIDI becomes inactive, it falls back to INTERNAL
+  // With sticky MIDI auto-switching, inactivity alone should not change source
   clock_router.update_auto_source_switching();
-  REQUIRE(th.get_clock_source() == ClockSource::INTERNAL);
+  REQUIRE(th.get_clock_source() == ClockSource::MIDI);
 }
 
 TEST_CASE(

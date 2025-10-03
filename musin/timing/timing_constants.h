@@ -8,8 +8,9 @@ namespace musin::timing {
 /**
  * @brief Default Pulses Per Quarter Note (PPQN) used for sequencer timing.
  * Set to 12 PPQN for efficient processing while maintaining musical resolution.
- * Raw clock sources (MIDI, SYNC) operate at 24 PPQN and are downsampled by
- * SpeedAdapter.
+ * All clock sources (INTERNAL, MIDI, EXTERNAL_SYNC) operate at 24 PPQN and are
+ * downsampled by SpeedAdapter to 12 PPQN (NORMAL), 6 PPQN (HALF), or 24 PPQN
+ * (DOUBLE).
  */
 constexpr uint32_t DEFAULT_PPQN = 12;
 

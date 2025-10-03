@@ -222,7 +222,6 @@ int main() {
       sysex_handler.update(now);
       pizza_controls.update(now);
       sync_in.update(now);
-      speed_adapter.update(now);
       sequencer_controller
           .update(); // Checks if a step is due and queues NoteEvents
       message_router

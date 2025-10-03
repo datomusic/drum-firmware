@@ -34,9 +34,6 @@ public:
       return;
     modifier_ = m;
     tick_counter_ = 0;
-    last_tick_us_ = 0;
-    last_interval_us_ = 0;
-    next_insert_time_ = nil_time;
   }
 
   [[nodiscard]] SpeedModifier get_modifier() const {
@@ -45,18 +42,9 @@ public:
 
   void notification(musin::timing::ClockEvent event) override;
 
-  void update(absolute_time_t now);
-
 private:
-  void schedule_double_insert_after(absolute_time_t now);
-
   SpeedModifier modifier_;
   uint32_t tick_counter_ = 0;
-
-  // Timing for DOUBLE mode
-  uint32_t last_tick_us_ = 0;     // timestamp of last source tick
-  uint32_t last_interval_us_ = 0; // measured between source ticks
-  absolute_time_t next_insert_time_ = nil_time;
   ClockSource current_source_ = ClockSource::INTERNAL;
 };
 

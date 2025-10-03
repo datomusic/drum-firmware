@@ -13,21 +13,28 @@ void MidiClockProcessor::on_midi_clock_tick_received() {
   absolute_time_t now = get_absolute_time();
   bool is_first_tick = is_nil_time(_last_raw_tick_time);
 
-  if (!is_first_tick) {
+  if (is_first_tick) {
+    // Mark as active BEFORE notifying observers so auto-switching can detect it
+    _last_raw_tick_time = now;
+    // Send resync event for first tick to initialize phase
+    musin::timing::ClockEvent resync_event{
+        .source = musin::timing::ClockSource::MIDI, .is_resync = true};
+    notify_observers(resync_event);
+  } else {
     uint32_t current_interval_us =
         absolute_time_diff_us(_last_raw_tick_time, now);
 
     if (current_interval_us > MIDI_CLOCK_TIMEOUT_US) {
       // Timeout detected, clock might have stopped and restarted.
       reset();
-      // Send resync event immediately.
-      musin::timing::ClockEvent re_sync_tick_event{
+      // Mark active and send resync event
+      _last_raw_tick_time = now;
+      musin::timing::ClockEvent resync_event{
           .source = musin::timing::ClockSource::MIDI, .is_resync = true};
-      notify_observers(re_sync_tick_event);
+      notify_observers(resync_event);
     }
+    _last_raw_tick_time = now;
   }
-
-  _last_raw_tick_time = now;
 
   // Forward MIDI clock tick to observers
   musin::timing::ClockEvent raw_tick_event{

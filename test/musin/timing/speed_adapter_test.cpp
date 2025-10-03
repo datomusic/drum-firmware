@@ -53,8 +53,7 @@ TEST_CASE("SpeedAdapter NORMAL forwards all ticks") {
   }
 }
 
-TEST_CASE("SpeedAdapter HALF passes through all ticks (half-speed now handled "
-          "by sources)") {
+TEST_CASE("SpeedAdapter HALF emits every 2nd tick") {
   reset_test_state();
 
   SpeedAdapter adapter(SpeedModifier::HALF_SPEED);
@@ -71,9 +70,8 @@ TEST_CASE("SpeedAdapter HALF passes through all ticks (half-speed now handled "
     advance_time_us(8000);
   }
 
-  // Expect all 6 ticks forwarded (half-speed is now handled by individual
-  // sources)
-  REQUIRE(rec.events.size() == 6);
+  // SpeedAdapter now handles HALF_SPEED by emitting every 2nd tick
+  REQUIRE(rec.events.size() == 3);
 }
 
 TEST_CASE("SpeedAdapter DOUBLE inserts mid ticks with non-physical flag") {

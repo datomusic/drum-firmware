@@ -1,4 +1,5 @@
 #include "musin/timing/clock_router.h"
+#include "musin/timing/sync_out.h"
 #include "pico/time.h"
 
 namespace musin::timing {
@@ -62,6 +63,61 @@ void ClockRouter::attach_source(ClockSource source) {
     sync_in_.add_observer(*this);
     break;
   }
+}
+
+void ClockRouter::set_bpm(float bpm) {
+  if (current_source_ == ClockSource::INTERNAL) {
+    internal_clock_.set_bpm(bpm);
+  }
+}
+
+void ClockRouter::trigger_resync() {
+  if (current_source_ == ClockSource::INTERNAL) {
+    internal_clock_.reset();
+  }
+
+  ClockEvent resync_event{current_source_};
+  resync_event.is_resync = true;
+  resync_event.anchor_to_phase = ClockEvent::ANCHOR_PHASE_NONE;
+  notify_observers(resync_event);
+
+  if (sync_out_ != nullptr) {
+    sync_out_->resync();
+  }
+}
+
+void ClockRouter::set_sync_out(SyncOut *sync_out_ptr) {
+  sync_out_ = sync_out_ptr;
+}
+
+void ClockRouter::resync_sync_output() {
+  if (sync_out_ != nullptr) {
+    sync_out_->resync();
+  }
+}
+
+void ClockRouter::update_auto_source_switching() {
+  if (!auto_switching_enabled_) {
+    return;
+  }
+
+  if (sync_in_.is_cable_connected()) {
+    if (current_source_ != ClockSource::EXTERNAL_SYNC) {
+      set_clock_source(ClockSource::EXTERNAL_SYNC);
+    }
+  } else if (midi_clock_processor_.is_active()) {
+    if (current_source_ != ClockSource::MIDI) {
+      set_clock_source(ClockSource::MIDI);
+    }
+  } else {
+    if (current_source_ != ClockSource::INTERNAL) {
+      set_clock_source(ClockSource::INTERNAL);
+    }
+  }
+}
+
+void ClockRouter::set_auto_switching_enabled(bool enabled) {
+  auto_switching_enabled_ = enabled;
 }
 
 } // namespace musin::timing

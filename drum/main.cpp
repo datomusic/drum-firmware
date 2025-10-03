@@ -64,8 +64,7 @@ static musin::timing::SpeedAdapter
     speed_adapter(musin::timing::SpeedModifier::NORMAL_SPEED);
 static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN);
 static musin::timing::TempoHandler
-    tempo_handler(internal_clock, midi_clock_processor, sync_in, sync_out,
-                  clock_router, speed_adapter,
+    tempo_handler(clock_router, speed_adapter,
                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static musin::timing::MidiClockOut
@@ -158,6 +157,7 @@ int main() {
 
   sync_out.enable();
 
+  clock_router.set_sync_out(&sync_out);
   clock_router.add_observer(sync_out);
   clock_router.add_observer(midi_clock_out);
   clock_router.add_observer(speed_adapter);
@@ -231,7 +231,7 @@ int main() {
       pizza_display.update(now);
       midi_manager.process_input();
       internal_clock.update(now);
-      tempo_handler.update();
+      clock_router.update_auto_source_switching();
 
       // ClockRouter handles raw clock routing; SyncOut remains attached
       musin::midi::process_midi_output_queue(

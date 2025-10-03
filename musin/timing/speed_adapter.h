@@ -14,11 +14,9 @@ constexpr size_t MAX_SPEED_ADAPTER_OBSERVERS = 2;
  * and downstream consumers.
  *
  * - NORMAL: pass-through.
+ * - HALF_SPEED: emit every 2nd tick.
  * - DOUBLE: pass through incoming ticks and insert an interpolated tick midway
  *   between them using the previous measured interval.
- *
- * Note: HALF_SPEED is now handled directly by individual clock sources
- * (SyncIn and MidiClockProcessor) for better musical alignment.
  *
  * Resets on incoming resync. Interpolated ticks are marked as
  * is_downbeat=false.
@@ -36,7 +34,7 @@ public:
     if (modifier_ == m)
       return;
     modifier_ = m;
-    // Reset internal scheduling state when mode changes
+    tick_counter_ = 0;
     last_tick_us_ = 0;
     last_interval_us_ = 0;
     next_insert_time_ = nil_time;
@@ -54,6 +52,7 @@ private:
   void schedule_double_insert_after(absolute_time_t now);
 
   SpeedModifier modifier_;
+  uint32_t tick_counter_ = 0;
 
   // Timing for DOUBLE mode
   uint32_t last_tick_us_ = 0;     // timestamp of last source tick

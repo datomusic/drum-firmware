@@ -111,6 +111,8 @@ void TempoHandler::set_tempo_control_value(float knob_value) {
                 knob_value * (drum::config::analog_controls::MAX_BPM_ADJUST -
                               drum::config::analog_controls::MIN_BPM_ADJUST);
     set_bpm(bpm);
+    // Ensure speed modifier is always normal when on internal clock
+    set_speed_modifier(SpeedModifier::NORMAL_SPEED);
   } else {
     SpeedModifier modifier = SpeedModifier::NORMAL_SPEED;
     if (knob_value < 0.1f) {

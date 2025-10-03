@@ -57,6 +57,7 @@ private:
   bool initialized_ = false;
   bool auto_switching_enabled_ = true;
   SyncOut *sync_out_ = nullptr;
+  bool awaiting_first_tick_after_switch_ = false;
 };
 
 } // namespace musin::timing

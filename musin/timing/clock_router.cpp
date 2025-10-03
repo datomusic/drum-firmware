@@ -16,6 +16,10 @@ ClockRouter::ClockRouter(InternalClock &internal_clock_ref,
 void ClockRouter::notification(musin::timing::ClockEvent event) {
   // Forward the event as-is; sources already tag their origin
   notify_observers(event);
+
+  if (awaiting_first_tick_after_switch_ && event.source == current_source_) {
+    awaiting_first_tick_after_switch_ = false;
+  }
 }
 
 void ClockRouter::set_clock_source(ClockSource source) {
@@ -53,14 +57,17 @@ void ClockRouter::attach_source(ClockSource source) {
   case ClockSource::INTERNAL:
     internal_clock_.add_observer(*this);
     internal_clock_.start();
+    awaiting_first_tick_after_switch_ = false;
     break;
   case ClockSource::MIDI:
     midi_clock_processor_.add_observer(*this);
     midi_clock_processor_.reset();
     midi_clock_processor_.set_forward_echo_enabled(true);
+    awaiting_first_tick_after_switch_ = true;
     break;
   case ClockSource::EXTERNAL_SYNC:
     sync_in_.add_observer(*this);
+    awaiting_first_tick_after_switch_ = true;
     break;
   }
 }
@@ -105,7 +112,17 @@ void ClockRouter::update_auto_source_switching() {
     if (current_source_ != ClockSource::EXTERNAL_SYNC) {
       set_clock_source(ClockSource::EXTERNAL_SYNC);
     }
-  } else if (midi_clock_processor_.is_active()) {
+    return;
+  }
+
+  const bool awaiting_midi_tick =
+      awaiting_first_tick_after_switch_ && current_source_ == ClockSource::MIDI;
+
+  if (current_source_ == ClockSource::MIDI) {
+    return;
+  }
+
+  if (midi_clock_processor_.is_active() || awaiting_midi_tick) {
     if (current_source_ != ClockSource::MIDI) {
       set_clock_source(ClockSource::MIDI);
     }

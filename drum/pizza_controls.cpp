@@ -1,5 +1,4 @@
 #include "pizza_controls.h"
-#include "drum/drumpad_factory.h"
 #include "drum/ui/pizza_display.h"
 #include "message_router.h"
 #include "musin/hal/analog_mux_scanner.h"
@@ -33,6 +32,16 @@ constexpr musin::ui::PressureSensitiveButtonConfig REPEAT_BUTTON_CONFIG = {
     .hard_release_threshold =
         drum::config::analog_controls::REPEAT_MODE2_EXIT_THRESHOLD,
     .debounce_ms = drum::config::analog_controls::REPEAT_RUNNING_DEBOUNCE_MS};
+
+std::array<musin::ui::Drumpad, drum::config::NUM_DRUMPADS>
+create_default_drumpads() {
+  return {{
+      musin::ui::Drumpad(0, drum::config::drumpad::drumpad_configs[0]),
+      musin::ui::Drumpad(1, drum::config::drumpad::drumpad_configs[1]),
+      musin::ui::Drumpad(2, drum::config::drumpad::drumpad_configs[2]),
+      musin::ui::Drumpad(3, drum::config::drumpad::drumpad_configs[3]),
+  }};
+}
 } // namespace
 
 namespace drum {
@@ -263,7 +272,7 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::notification(
 
 // --- DrumpadComponent ---
 PizzaControls::DrumpadComponent::DrumpadComponent(PizzaControls *parent_ptr)
-    : parent_controls(parent_ptr), drumpads(DrumpadFactory::create_drumpads()),
+    : parent_controls(parent_ptr), drumpads(create_default_drumpads()),
       drumpad_observer{this, parent_ptr->_logger_ref} {
 }
 

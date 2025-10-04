@@ -12,14 +12,6 @@
 
 namespace drum {
 
-namespace musical_timing {
-constexpr uint8_t PPQN = 12;
-constexpr uint8_t DOWNBEAT = 0;
-constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 6
-constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 4
-constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 3
-} // namespace musical_timing
-
 namespace {
 constexpr std::uint32_t SIXTEENTH_MASK =
     (1u << 0) | (1u << 3) | (1u << 6) | (1u << 9);
@@ -197,10 +189,10 @@ void SequencerController<NumTracks, NumSteps>::start() {
 
   _running = true;
 
-  // Resync the clock on start for better phase alignment
-  // Use the last played anchor phase (0 or 6) to maintain swing timing
-  uint8_t anchor_phase = (last_phase_12_ < 6) ? 0 : 6;
-  last_phase_12_ = (anchor_phase == 0) ? 11 : 5;
+  // To maintain swing timing, align the clock phase on restart.
+  const auto [anchor_phase, primed_phase] =
+      align_to_last_anchor(last_phase_12_);
+  last_phase_12_ = primed_phase;
   tempo_source.trigger_manual_sync(anchor_phase);
 }
 

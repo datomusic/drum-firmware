@@ -25,6 +25,14 @@
 
 namespace drum {
 
+namespace musical_timing {
+constexpr uint8_t PPQN = 12;
+constexpr uint8_t DOWNBEAT = 0;
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 6
+constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 4
+constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 3
+} // namespace musical_timing
+
 enum class RetriggerMode : uint8_t {
   Off = 0,
   Step = 1,
@@ -246,6 +254,28 @@ public:
   }
 
 private:
+  /**
+   * @brief Calculates the anchor phase and primed last_phase to maintain swing
+   * timing on restart.
+   *
+   * @param current_last_phase_12 The last phase recorded by the sequencer.
+   * @return A pair containing:
+   *         - first: The anchor_phase to sync the tempo source to.
+   *         - second: The "primed" last_phase_12 value to ensure the first step
+   * triggers.
+   */
+  [[nodiscard]] static constexpr std::pair<uint8_t, uint8_t>
+  align_to_last_anchor(uint8_t current_last_phase_12) {
+    const uint8_t anchor_phase =
+        (current_last_phase_12 < musical_timing::STRAIGHT_OFFBEAT)
+            ? musical_timing::DOWNBEAT
+            : musical_timing::STRAIGHT_OFFBEAT;
+    const uint8_t primed_phase = (anchor_phase == musical_timing::DOWNBEAT)
+                                     ? (musical_timing::PPQN - 1)
+                                     : (musical_timing::STRAIGHT_OFFBEAT - 1);
+    return {anchor_phase, primed_phase};
+  }
+
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
 

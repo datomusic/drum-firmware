@@ -40,8 +40,6 @@ TEST_CASE("SpeedAdapter NORMAL emits every 2nd tick (24→12 PPQN)") {
   for (int i = 0; i < 6; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_downbeat = false;
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
     advance_time_us(10000);
   }
@@ -65,8 +63,6 @@ TEST_CASE("SpeedAdapter HALF emits every 4th tick (24→6 PPQN)") {
   for (int i = 0; i < 8; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
     e.is_downbeat = (i % 3) == 0; // mix of physical/non-physical
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
     advance_time_us(8000);
   }
@@ -86,8 +82,6 @@ TEST_CASE("SpeedAdapter DOUBLE passes through all ticks (24 PPQN)") {
   for (int i = 0; i < 5; ++i) {
     ClockEvent e{ClockSource::MIDI};
     e.is_downbeat = (i % 2) == 0;
-    e.timestamp_us =
-        static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
     adapter.notification(e);
     advance_time_us(10000);
   }
@@ -109,19 +103,15 @@ TEST_CASE("SpeedAdapter resync forwards and clears counter") {
 
   // Send one tick (odd counter, won't emit)
   ClockEvent e{ClockSource::MIDI};
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   adapter.notification(e);
 
   // Send resync event - should forward and reset counter
   ClockEvent res{ClockSource::MIDI};
   res.is_resync = true;
-  res.timestamp_us =
-      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   adapter.notification(res);
 
   // After resync, counter is reset, so next tick should emit (even counter)
   advance_time_us(8000);
-  e.timestamp_us = static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   adapter.notification(e);
 
   // Events seen: resync, then nothing on first post-resync tick

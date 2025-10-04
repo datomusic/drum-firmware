@@ -99,8 +99,6 @@ TEST_CASE("ClockRouter routes external sync directly and preserves "
   // Simulate an external physical pulse arriving directly via SyncIn
   ClockEvent pulse{ClockSource::EXTERNAL_SYNC};
   pulse.is_downbeat = true;
-  pulse.timestamp_us =
-      static_cast<uint32_t>(to_us_since_boot(get_absolute_time()));
   router.notification(
       pulse); // Direct notification since SyncIn connects to router
 
@@ -126,8 +124,7 @@ TEST_CASE("ClockRouter auto switching stays on MIDI once selected") {
   InternalClock internal_clock(120.0f);
   MidiClockProcessor midi_proc;
   SyncIn sync_in(0, 1);
-  ClockRouter router(internal_clock, midi_proc, sync_in,
-                     ClockSource::INTERNAL);
+  ClockRouter router(internal_clock, midi_proc, sync_in, ClockSource::INTERNAL);
 
   REQUIRE(router.get_clock_source() == ClockSource::INTERNAL);
 

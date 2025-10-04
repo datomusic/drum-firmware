@@ -60,29 +60,30 @@ uint8_t TempoHandler::calculate_aligned_phase() const {
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {
+  constexpr uint8_t NO_ANCHOR = 0xFF;
+  uint8_t anchor_phase = NO_ANCHOR;
+
   if (event.source == ClockSource::EXTERNAL_SYNC && event.is_downbeat) {
-    event.anchor_to_phase = calculate_aligned_phase();
+    anchor_phase = calculate_aligned_phase();
   }
 
   if (event.is_resync) {
-    phase_12_ = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
-                    ? event.anchor_to_phase
-                    : 0;
+    phase_12_ = (anchor_phase != NO_ANCHOR) ? anchor_phase : 0;
     tick_count_++;
-    musin::timing::TempoEvent tempo_event{
-        .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = true};
+    musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                          .is_resync = true};
     notify_observers(tempo_event);
     return;
   }
 
-  uint8_t next_phase = (event.anchor_to_phase != ClockEvent::ANCHOR_PHASE_NONE)
-                           ? event.anchor_to_phase
+  uint8_t next_phase = (anchor_phase != NO_ANCHOR)
+                           ? anchor_phase
                            : (phase_12_ + 1) % musin::timing::DEFAULT_PPQN;
 
   tick_count_++;
   phase_12_ = next_phase;
-  musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = false};
+  musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                        .is_resync = false};
   notify_observers(tempo_event);
 }
 
@@ -128,7 +129,7 @@ void TempoHandler::set_playback_state(PlaybackState new_state) {
   _playback_state = new_state;
 }
 
-void TempoHandler::trigger_manual_sync() {
+void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
   if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
     return;
   }
@@ -137,7 +138,7 @@ void TempoHandler::trigger_manual_sync() {
   case ClockSource::INTERNAL:
   case ClockSource::MIDI:
     _clock_router_ref.trigger_resync();
-    emit_manual_resync_event(calculate_aligned_phase());
+    emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:
     break;
@@ -147,8 +148,8 @@ void TempoHandler::trigger_manual_sync() {
 void TempoHandler::emit_manual_resync_event(uint8_t anchor_phase) {
   phase_12_ = anchor_phase;
   tick_count_++;
-  musin::timing::TempoEvent tempo_event{
-      .tick_count = tick_count_, .phase_12 = phase_12_, .is_resync = true};
+  musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                        .is_resync = true};
   notify_observers(tempo_event);
 }
 

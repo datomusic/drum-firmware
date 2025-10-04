@@ -10,7 +10,6 @@ namespace musin::timing {
  * This is emitted by TempoHandler and potentially consumed by TempoMultiplier.
  */
 struct TempoEvent {
-  uint64_t tick_count;
   uint8_t phase_12 = 0; // Phase value 0-11 at 12 PPQN
   bool is_resync = false;
 };

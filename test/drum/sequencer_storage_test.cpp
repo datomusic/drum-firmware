@@ -15,89 +15,7 @@ absolute_time_t mock_current_time = 0;
 
 namespace drum {
 
-// Include component implementations inline for integration testing
-// (avoiding duplicate symbol issues with individual test files)
-
 static const char *kTestStatePath = "/tmp/test_sequencer_state.dat";
-
-template <size_t NumTracks, size_t NumSteps>
-SequencerStorage<NumTracks, NumSteps>::SequencerStorage(const char *state_path)
-    : pico_time_(),
-      timing_manager_(pico_time_, SAVE_DEBOUNCE_MS, MAX_SAVE_INTERVAL_MS),
-      state_path_(state_path) {
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerStorage<NumTracks, NumSteps>::save_state_to_flash(
-    const SequencerPersistentState &state) {
-  bool success = save_to_file(state_path_, state);
-  if (success) {
-    timing_manager_.mark_clean();
-  }
-  return success;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerStorage<NumTracks, NumSteps>::load_state_from_flash(
-    SequencerPersistentState &state) {
-  bool success = load_from_file(state_path_, state);
-  if (success) {
-    timing_manager_.mark_clean();
-  }
-  return success;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerStorage<NumTracks, NumSteps>::mark_state_dirty() {
-  timing_manager_.mark_dirty();
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerStorage<NumTracks, NumSteps>::should_save_now() const {
-  return timing_manager_.should_save_now();
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerStorage<NumTracks, NumSteps>::mark_state_clean() {
-  timing_manager_.mark_clean();
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerStorage<NumTracks, NumSteps>::is_dirty() const {
-  return timing_manager_.is_dirty();
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerStorage<NumTracks, NumSteps>::save_to_file(
-    const char *filepath, const SequencerPersistentState &state) {
-  FILE *file = fopen(filepath, "wb");
-  if (!file) {
-    return false;
-  }
-
-  size_t written = fwrite(&state, sizeof(SequencerPersistentState), 1, file);
-  fclose(file);
-
-  return written == 1;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerStorage<NumTracks, NumSteps>::load_from_file(
-    const char *filepath, SequencerPersistentState &state) {
-  FILE *file = fopen(filepath, "rb");
-  if (!file) {
-    return false;
-  }
-
-  size_t read_size = fread(&state, sizeof(SequencerPersistentState), 1, file);
-  fclose(file);
-
-  if (read_size != 1 || !state.is_valid()) {
-    return false;
-  }
-
-  return true;
-}
 
 // SaveTimingManager implementation
 SaveTimingManager::SaveTimingManager(TimeSource &time_source,
@@ -140,10 +58,6 @@ bool SaveTimingManager::should_save_now() const {
 uint32_t PicoTimeSource::get_time_ms() const {
   return time_us_32() / 1000;
 }
-
-// For testing, we know SequencerStorage tries to use "/sequencer_state.dat"
-// which will fail due to permissions. Let's create a symlink or just accept
-// the failure and focus on testing the orchestration logic
 
 // Helper class to manage temporary test files
 class TempFileManager {
@@ -468,12 +382,12 @@ TEST_CASE("SequencerStorage integration - composed architecture verification",
     storage.mark_state_dirty();
     REQUIRE(storage.is_dirty());
 
-    // Save should delegate to SequencerPersister and clean timing manager
+    // Save should clean timing manager
     REQUIRE(storage.save_state_to_flash(state));
     REQUIRE_FALSE(storage.is_dirty());
     REQUIRE(temp_file.exists());
 
-    // Load should delegate to SequencerPersister
+    // Load should persist and restore state
     SequencerPersistentState loaded_state;
     REQUIRE(storage.load_state_from_flash(loaded_state));
     REQUIRE(states_equal(state, loaded_state));
@@ -528,7 +442,6 @@ TEST_CASE("SequencerStorage integration - file path consistency",
   REQUIRE(storage.save_state_to_flash(state));
   REQUIRE(temp_file.exists());
 
-  // The file should be exactly what SequencerPersister would create
   // Verify by loading it back
   SequencerPersistentState loaded_state;
   REQUIRE(storage.load_state_from_flash(loaded_state));

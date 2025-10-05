@@ -73,6 +73,32 @@ jobs:
         name: Checkout etl
         run: git submodule update --init lib/etl
 
+      - id: cache-arduino-midi
+        name: Cache Arduino MIDI Library
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-arduino-midi
+        with:
+          path: musin/ports/pico/libraries/arduino_midi_library
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+
+      - if: ${{ steps.cache-arduino-midi.outputs.cache-hit != 'true' }}
+        name: Checkout Arduino MIDI Library
+        run: git submodule update --init musin/ports/pico/libraries/arduino_midi_library
+
+      - id: cache-usb-midi
+        name: Cache Arduino USB-MIDI Library
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-usb-midi
+        with:
+          path: musin/ports/pico/libraries/Arduino-USBMIDI
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+
+      - if: ${{ steps.cache-usb-midi.outputs.cache-hit != 'true' }}
+        name: Checkout Arduino USB-MIDI Library
+        run: git submodule update --init musin/ports/pico/libraries/Arduino-USBMIDI
+
       - name: Install gcc-arm
         uses: carlosperate/arm-none-eabi-gcc-action@v1
         with:

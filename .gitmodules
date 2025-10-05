@@ -13,3 +13,9 @@
 [submodule "test/musin/Catch2/Catch2"]
 	path = lib/test/Catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "musin/ports/pico/libraries/arduino_midi_library"]
+	path = musin/ports/pico/libraries/arduino_midi_library
+	url = https://github.com/FortySevenEffects/arduino_midi_library
+[submodule "musin/ports/pico/libraries/Arduino-USBMIDI"]
+	path = musin/ports/pico/libraries/Arduino-USBMIDI
+	url = https://github.com/lathoub/Arduino-USBMIDI

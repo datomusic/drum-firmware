@@ -18,17 +18,59 @@ namespace drum {
 // Include component implementations inline for integration testing
 // (avoiding duplicate symbol issues with individual test files)
 
-// Redirect production path to a writable test path
-static const char *kTestRedirectPath = "/tmp/test_sequencer_state.dat";
+static const char *kTestStatePath = "/tmp/test_sequencer_state.dat";
 
-// SequencerPersister implementation
-bool SequencerPersister::save_to_file(const char *filepath,
-                                      const SequencerPersistentState &state) {
-  const char *target = filepath;
-  if (std::string(filepath) == "/sequencer_state.dat") {
-    target = kTestRedirectPath;
+template <size_t NumTracks, size_t NumSteps>
+SequencerStorage<NumTracks, NumSteps>::SequencerStorage(const char *state_path)
+    : pico_time_(),
+      timing_manager_(pico_time_, SAVE_DEBOUNCE_MS, MAX_SAVE_INTERVAL_MS),
+      state_path_(state_path) {
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerStorage<NumTracks, NumSteps>::save_state_to_flash(
+    const SequencerPersistentState &state) {
+  bool success = save_to_file(state_path_, state);
+  if (success) {
+    timing_manager_.mark_clean();
   }
-  FILE *file = fopen(target, "wb");
+  return success;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerStorage<NumTracks, NumSteps>::load_state_from_flash(
+    SequencerPersistentState &state) {
+  bool success = load_from_file(state_path_, state);
+  if (success) {
+    timing_manager_.mark_clean();
+  }
+  return success;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerStorage<NumTracks, NumSteps>::mark_state_dirty() {
+  timing_manager_.mark_dirty();
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerStorage<NumTracks, NumSteps>::should_save_now() const {
+  return timing_manager_.should_save_now();
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerStorage<NumTracks, NumSteps>::mark_state_clean() {
+  timing_manager_.mark_clean();
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerStorage<NumTracks, NumSteps>::is_dirty() const {
+  return timing_manager_.is_dirty();
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerStorage<NumTracks, NumSteps>::save_to_file(
+    const char *filepath, const SequencerPersistentState &state) {
+  FILE *file = fopen(filepath, "wb");
   if (!file) {
     return false;
   }
@@ -39,22 +81,19 @@ bool SequencerPersister::save_to_file(const char *filepath,
   return written == 1;
 }
 
-bool SequencerPersister::load_from_file(const char *filepath,
-                                        SequencerPersistentState &state) {
-  const char *target = filepath;
-  if (std::string(filepath) == "/sequencer_state.dat") {
-    target = kTestRedirectPath;
-  }
-  FILE *file = fopen(target, "rb");
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerStorage<NumTracks, NumSteps>::load_from_file(
+    const char *filepath, SequencerPersistentState &state) {
+  FILE *file = fopen(filepath, "rb");
   if (!file) {
-    return false; // File doesn't exist, not an error
+    return false;
   }
 
   size_t read_size = fread(&state, sizeof(SequencerPersistentState), 1, file);
   fclose(file);
 
   if (read_size != 1 || !state.is_valid()) {
-    return false; // Corrupted or invalid file
+    return false;
   }
 
   return true;
@@ -109,7 +148,7 @@ uint32_t PicoTimeSource::get_time_ms() const {
 // Helper class to manage temporary test files
 class TempFileManager {
 public:
-  TempFileManager(const std::string &filename) : filepath_(filename) {
+  TempFileManager() : filepath_(kTestStatePath) {
     cleanup();
   }
 
@@ -117,7 +156,7 @@ public:
     cleanup();
   }
 
-  const std::string &path() const {
+  const char *path() const {
     return filepath_;
   }
 
@@ -132,7 +171,7 @@ public:
   }
 
 private:
-  std::string filepath_;
+  const char *filepath_;
 };
 
 // Helper function to create a test state with known pattern
@@ -200,8 +239,8 @@ TEST_CASE("SequencerPersistentState validation", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage basic round-trip", "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Save and load valid state") {
     SequencerPersistentState original_state = create_test_state();
@@ -250,8 +289,8 @@ TEST_CASE("SequencerStorage basic round-trip", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("All track data preservation") {
     SequencerPersistentState state;
@@ -320,8 +359,8 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage file system edge cases", "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Non-existent file load returns false") {
     SequencerPersistentState state;
@@ -367,7 +406,8 @@ TEST_CASE("SequencerStorage file system edge cases", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Initial state is clean") {
     REQUIRE_FALSE(storage.is_dirty());
@@ -387,7 +427,6 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
   }
 
   SECTION("Successful save cleans state") {
-    TempFileManager temp_file(kTestRedirectPath);
     SequencerPersistentState state;
 
     storage.mark_state_dirty();
@@ -398,7 +437,6 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
   }
 
   SECTION("Load clears dirty flag") {
-    TempFileManager temp_file(kTestRedirectPath);
     SequencerPersistentState state = create_test_state();
 
     // Save a valid state first
@@ -416,8 +454,8 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
 
 TEST_CASE("SequencerStorage integration - composed architecture verification",
           "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Orchestrator correctly delegates to components") {
     SequencerPersistentState state = create_test_state();
@@ -481,8 +519,8 @@ TEST_CASE("SequencerStorage integration - composed architecture verification",
 TEST_CASE("SequencerStorage integration - file path consistency",
           "[sequencer_storage]") {
   // Verify that the orchestrator uses the correct file path consistently
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SequencerPersistentState state = create_test_state();
 

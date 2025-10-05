@@ -19,8 +19,9 @@ template <size_t NumTracks, size_t NumSteps> class SequencerStorage {
 public:
   /**
    * @brief Constructor
+   * @param state_path Path to state file (defaults to production path)
    */
-  SequencerStorage();
+  SequencerStorage(const char *state_path = "/sequencer_state.dat");
 
   /**
    * @brief Save sequencer state to persistent storage.
@@ -61,7 +62,6 @@ public:
   bool is_dirty() const;
 
 private:
-  static constexpr const char *SEQUENCER_STATE_FILE = "/sequencer_state.dat";
   static constexpr uint32_t SAVE_DEBOUNCE_MS = 10000; // 10 second debounce
   static constexpr uint32_t MAX_SAVE_INTERVAL_MS =
       30000; // Maximum 30s between saves when dirty
@@ -74,6 +74,7 @@ private:
   // Composed architecture - testable components with dependency injection
   PicoTimeSource pico_time_;
   SaveTimingManager timing_manager_;
+  const char *state_path_;
 };
 
 } // namespace drum

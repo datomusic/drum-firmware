@@ -490,3 +490,48 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
   }
   REQUIRE(rt_count >= 1);
 }
+
+TEST_CASE("TempoHandler alignment hint enables phase sync at HALF_SPEED") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  musin::timing::SyncIn sync_in(0, 1);
+  musin::timing::SyncOut sync_out(0);
+  musin::timing::ClockRouter clock_router(internal_clock, midi_proc, sync_in,
+                                          ClockSource::EXTERNAL_SYNC);
+  musin::timing::SpeedAdapter speed_adapter;
+
+  TempoHandler th(clock_router, speed_adapter,
+                  /*send_midi_clock_when_stopped*/ false,
+                  ClockSource::EXTERNAL_SYNC);
+
+  th.set_speed_modifier(SpeedModifier::HALF_SPEED);
+  clock_router.add_observer(speed_adapter);
+
+  TempoEventRecorder rec;
+  th.add_observer(rec);
+
+  // Advance phase away from 0 to simulate running sequencer
+  for (int i = 0; i < 4; ++i) {
+    ClockEvent e{ClockSource::EXTERNAL_SYNC};
+    e.is_downbeat = false;
+    e.is_alignment_hint = false;
+    speed_adapter.notification(e);
+  }
+  REQUIRE(rec.events.size() == 1);
+  rec.clear();
+
+  // Simulate physical pulse (downbeat + alignment hint)
+  // SpeedAdapter at HALF_SPEED should drop tick 5 but forward hint-only event
+  ClockEvent physical_pulse{ClockSource::EXTERNAL_SYNC};
+  physical_pulse.is_downbeat = true;
+  physical_pulse.is_alignment_hint = true;
+  speed_adapter.notification(physical_pulse);
+
+  // TempoHandler should receive hint-only event and emit aligned TempoEvent
+  REQUIRE(rec.events.size() == 1);
+  REQUIRE(rec.events[0].is_resync == false);
+  // Phase should be aligned to nearest anchor (0 or 6)
+  REQUIRE((rec.events[0].phase_12 == 0 || rec.events[0].phase_12 == 6));
+}

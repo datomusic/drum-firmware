@@ -31,6 +31,9 @@ struct ClockEvent {
   bool is_resync = false; // True when clock resumes after timeout
   // True for a SyncIn rising edge that aligns to the external downbeat.
   bool is_downbeat = false;
+  // Set when this event should be used to align phase, even if the tick is
+  // being dropped or treated specially downstream.
+  bool is_alignment_hint = false;
 };
 
 } // namespace musin::timing

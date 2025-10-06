@@ -52,9 +52,8 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
   InternalClock internal_clock(120.0f);
   MidiClockProcessor midi_processor;
   musin::timing::SyncIn sync_in_stub(0, 1);
-  musin::timing::ClockRouter clock_router(internal_clock, midi_processor,
-                                          sync_in_stub,
-                                          ClockSource::EXTERNAL_SYNC);
+  musin::timing::ClockRouter clock_router(
+      internal_clock, midi_processor, sync_in_stub, ClockSource::EXTERNAL_SYNC);
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
@@ -73,6 +72,7 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
 
   ClockEvent physical_pulse{ClockSource::EXTERNAL_SYNC};
   physical_pulse.is_downbeat = true;
+  physical_pulse.is_alignment_hint = true;
   clock_router.notification(physical_pulse);
 
   REQUIRE_FALSE(recorder.events.empty());

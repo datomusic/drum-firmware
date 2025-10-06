@@ -63,15 +63,31 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   constexpr uint8_t NO_ANCHOR = 0xFF;
   uint8_t anchor_phase = NO_ANCHOR;
 
-  if (event.source == ClockSource::EXTERNAL_SYNC && event.is_downbeat) {
+  if (event.source == ClockSource::EXTERNAL_SYNC &&
+      (event.is_downbeat || event.is_alignment_hint)) {
     anchor_phase = calculate_aligned_phase();
   }
 
-  if (event.is_resync) {
+  bool should_emit_resync = event.is_resync;
+  if (pending_external_sync_ && event.is_alignment_hint) {
+    should_emit_resync = true;
+    pending_external_sync_ = false;
+  }
+
+  if (should_emit_resync) {
     phase_12_ = (anchor_phase != NO_ANCHOR) ? anchor_phase : 0;
     tick_count_++;
     musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
                                           .is_resync = true};
+    notify_observers(tempo_event);
+    return;
+  }
+
+  if (event.is_alignment_hint && !event.is_downbeat) {
+    phase_12_ = (anchor_phase != NO_ANCHOR) ? anchor_phase : phase_12_;
+    tick_count_++;
+    musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
+                                          .is_resync = false};
     notify_observers(tempo_event);
     return;
   }
@@ -141,6 +157,7 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
     emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:
+    pending_external_sync_ = true;
     break;
   }
 }

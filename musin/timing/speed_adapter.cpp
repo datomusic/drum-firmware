@@ -18,6 +18,10 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
     // Emit every 4th tick: 24→6 PPQN
     if (tick_counter_ % 4 == 0) {
       notify_observers(event);
+    } else if (event.is_alignment_hint) {
+      ClockEvent hint_event = event;
+      hint_event.is_downbeat = false;
+      notify_observers(hint_event);
     }
     break;
 
@@ -25,6 +29,10 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
     // Emit every 2nd tick: 24→12 PPQN
     if (tick_counter_ % 2 == 0) {
       notify_observers(event);
+    } else if (event.is_alignment_hint) {
+      ClockEvent hint_event = event;
+      hint_event.is_downbeat = false;
+      notify_observers(hint_event);
     }
     break;
 

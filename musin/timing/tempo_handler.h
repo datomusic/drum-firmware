@@ -74,6 +74,7 @@ private:
   const bool _send_midi_clock_when_stopped;
   bool initialized_ = false;
   float last_tempo_knob_value_ = 0.5f;
+  bool pending_external_sync_ = false;
 };
 
 } // namespace musin::timing

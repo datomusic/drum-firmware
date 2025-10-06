@@ -45,3 +45,37 @@ static void advance_time_us(uint64_t us) {
 }
 
 } // namespace
+
+TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_processor;
+  musin::timing::SyncIn sync_in_stub(0, 1);
+  musin::timing::ClockRouter clock_router(internal_clock, midi_processor,
+                                          sync_in_stub,
+                                          ClockSource::EXTERNAL_SYNC);
+
+  musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
+  TempoHandler tempo_handler(clock_router, speed_adapter,
+                             /*send_midi_clock_when_stopped*/ false,
+                             ClockSource::EXTERNAL_SYNC);
+
+  clock_router.add_observer(speed_adapter);
+
+  TempoEventRecorder recorder;
+  tempo_handler.add_observer(recorder);
+
+  // Simulate pressing PLAY: manual sync intent should prime the next SyncIn
+  // downbeat even when the adapter's divider would otherwise drop it.
+  tempo_handler.trigger_manual_sync();
+  REQUIRE(recorder.events.empty());
+
+  ClockEvent physical_pulse{ClockSource::EXTERNAL_SYNC};
+  physical_pulse.is_downbeat = true;
+  clock_router.notification(physical_pulse);
+
+  REQUIRE_FALSE(recorder.events.empty());
+  REQUIRE(recorder.events.front().is_resync == true);
+  REQUIRE(recorder.events.front().phase_12 == musin::timing::PHASE_DOWNBEAT);
+}

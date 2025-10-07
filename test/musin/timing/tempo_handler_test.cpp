@@ -128,8 +128,9 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
     clock_router.notification(e);
   }
 
-  // SpeedAdapter now handles HALF_SPEED, emitting every 4th tick (8→2)
-  REQUIRE(rec.events.size() == 2);
+  // All downbeat events pass through immediately (no speed division on
+  // downbeats)
+  REQUIRE(rec.events.size() == 8);
   // External physical pulses get phase alignment instead of sequential
   // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
   REQUIRE(rec.events[0].phase_12 == 0);

@@ -49,10 +49,14 @@ ClockSource TempoHandler::get_clock_source() const {
 
 uint8_t TempoHandler::calculate_aligned_phase() const {
   switch (current_speed_modifier_) {
-  case SpeedModifier::HALF_SPEED:
-  case SpeedModifier::NORMAL_SPEED: {
+  case SpeedModifier::HALF_SPEED: {
     // Align to quarter-note grid (0, 3, 6, 9)
     constexpr uint8_t alignment_lut[12] = {0, 0, 3, 3, 3, 6, 6, 6, 9, 9, 9, 0};
+    return alignment_lut[phase_12_];
+  }
+  case SpeedModifier::NORMAL_SPEED: {
+    // Align to half-note grid (0, 6)
+    constexpr uint8_t alignment_lut[12] = {0, 0, 0, 6, 6, 6, 6, 6, 6, 0, 0, 0};
     return alignment_lut[phase_12_];
   }
   case SpeedModifier::DOUBLE_SPEED:

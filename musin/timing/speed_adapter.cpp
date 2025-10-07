@@ -11,6 +11,12 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
     return;
   }
 
+  if (event.is_downbeat) {
+    notify_observers(event);
+    tick_counter_ = 0;
+    return;
+  }
+
   tick_counter_++;
 
   switch (modifier_) {

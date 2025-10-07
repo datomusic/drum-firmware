@@ -52,7 +52,8 @@ TEST_CASE("SpeedAdapter NORMAL emits every 2nd tick (24→12 PPQN)") {
   }
 }
 
-TEST_CASE("SpeedAdapter HALF emits every 4th tick (24→6 PPQN)") {
+TEST_CASE(
+    "SpeedAdapter HALF passes through all downbeats regardless of count") {
   reset_test_state();
 
   SpeedAdapter adapter(SpeedModifier::HALF_SPEED);

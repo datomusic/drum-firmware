@@ -108,7 +108,7 @@ bool SyncIn::is_cable_connected() const {
 
 void SyncIn::emit_clock_event(absolute_time_t timestamp, bool is_physical) {
   ClockEvent event{ClockSource::EXTERNAL_SYNC};
-  event.is_downbeat = is_physical;
+  event.is_beat = is_physical;
   notify_observers(event);
 }
 

@@ -98,7 +98,7 @@ TEST_CASE("ClockRouter routes external sync directly and preserves "
 
   // Simulate an external physical pulse arriving directly via SyncIn
   ClockEvent pulse{ClockSource::EXTERNAL_SYNC};
-  pulse.is_downbeat = true;
+  pulse.is_beat = true;
   router.notification(
       pulse); // Direct notification since SyncIn connects to router
 
@@ -110,7 +110,7 @@ TEST_CASE("ClockRouter routes external sync directly and preserves "
   bool found_physical = false;
   for (size_t i = base_events; i < rec.events.size(); ++i) {
     if (rec.events[i].source == ClockSource::EXTERNAL_SYNC &&
-        rec.events[i].is_downbeat == true) {
+        rec.events[i].is_beat == true) {
       found_physical = true;
       break;
     }

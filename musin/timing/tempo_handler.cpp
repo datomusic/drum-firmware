@@ -46,10 +46,22 @@ ClockSource TempoHandler::get_clock_source() const {
 }
 
 uint8_t TempoHandler::calculate_aligned_phase() const {
-  // Use quarter-cycle thresholds so we pick the closest half-cycle anchor
-  // without large backward jumps near wrap-around.
-  constexpr uint8_t alignment_lut[12] = {0, 0, 3, 3, 3, 6, 6, 6, 9, 9, 9, 0};
-  return alignment_lut[phase_12_];
+  switch (current_speed_modifier_) {
+  case SpeedModifier::HALF_SPEED: {
+    // Align to quarter-note grid (0, 3, 6, 9)
+    constexpr uint8_t alignment_lut[12] = {0, 0, 3, 3, 3, 6, 6, 6, 9, 9, 9, 0};
+    return alignment_lut[phase_12_];
+  }
+  case SpeedModifier::NORMAL_SPEED: {
+    // Align to eighth-note grid (0, 6)
+    constexpr uint8_t alignment_lut[12] = {0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6};
+    return alignment_lut[phase_12_];
+  }
+  case SpeedModifier::DOUBLE_SPEED:
+    // Always align to downbeat (0)
+    return 0;
+  }
+  return 0;
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {

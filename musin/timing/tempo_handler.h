@@ -79,8 +79,8 @@ private:
   [[nodiscard]] uint8_t calculate_aligned_phase() const;
   void emit_manual_resync_event(uint8_t anchor_phase);
 
-  ClockRouter &_clock_router_ref;
-  SpeedAdapter &_speed_adapter_ref;
+  ClockRouter &clock_router_ref_;
+  SpeedAdapter &speed_adapter_ref_;
 
   PlaybackState _playback_state;
   SpeedModifier current_speed_modifier_;

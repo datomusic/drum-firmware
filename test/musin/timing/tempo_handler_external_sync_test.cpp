@@ -71,7 +71,7 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
   REQUIRE(recorder.events.empty());
 
   ClockEvent physical_pulse{ClockSource::EXTERNAL_SYNC};
-  physical_pulse.is_downbeat = true;
+  physical_pulse.is_beat = true;
   clock_router.notification(physical_pulse);
 
   REQUIRE_FALSE(recorder.events.empty());

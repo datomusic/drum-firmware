@@ -59,7 +59,7 @@ private:
   static constexpr uint32_t DETECT_DEBOUNCE_US = 50000; // 50ms
   static constexpr uint8_t PPQN_MULTIPLIER = 12;        // 2 PPQN to 24 PPQN
 
-  void emit_clock_event(absolute_time_t timestamp, bool is_downbeat);
+  void emit_clock_event(absolute_time_t timestamp, bool is_beat);
   void schedule_interpolated_ticks(absolute_time_t now);
   void emit_scheduled_ticks(absolute_time_t now);
 };

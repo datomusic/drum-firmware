@@ -30,7 +30,7 @@ struct ClockEvent {
   musin::timing::ClockSource source;
   bool is_resync = false; // True when clock resumes after timeout
   // True for a SyncIn rising edge that aligns to the external downbeat.
-  bool is_downbeat = false;
+  bool is_beat = false;
 };
 
 } // namespace musin::timing

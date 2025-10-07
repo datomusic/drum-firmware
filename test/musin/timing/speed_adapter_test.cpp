@@ -39,7 +39,7 @@ TEST_CASE("SpeedAdapter NORMAL emits every 2nd tick (24→12 PPQN)") {
   // Generate 6 ticks 10ms apart (simulating 24 PPQN source)
   for (int i = 0; i < 6; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = false;
+    e.is_beat = false;
     adapter.notification(e);
     advance_time_us(10000);
   }
@@ -62,7 +62,7 @@ TEST_CASE("SpeedAdapter HALF emits every 4th tick (24→6 PPQN)") {
   // Send 8 ticks at regular intervals (simulating 24 PPQN source)
   for (int i = 0; i < 8; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
-    e.is_downbeat = (i % 3) == 0; // mix of physical/non-physical
+    e.is_beat = (i % 3) == 0; // mix of physical/non-physical
     adapter.notification(e);
     advance_time_us(8000);
   }
@@ -82,7 +82,7 @@ TEST_CASE("SpeedAdapter DOUBLE passes through all ticks (24 PPQN)") {
   // Generate 5 ticks 10ms apart
   for (int i = 0; i < 5; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = (i % 2) == 0;
+    e.is_beat = (i % 2) == 0;
     adapter.notification(e);
     advance_time_us(10000);
   }

@@ -46,17 +46,10 @@ ClockSource TempoHandler::get_clock_source() const {
 }
 
 uint8_t TempoHandler::calculate_aligned_phase() const {
-  constexpr uint8_t half_cycle = musin::timing::DEFAULT_PPQN / 2;
-  constexpr uint8_t quarter_cycle = musin::timing::DEFAULT_PPQN / 4;
-
   // Use quarter-cycle thresholds so we pick the closest half-cycle anchor
   // without large backward jumps near wrap-around.
-  uint8_t target_phase = 0;
-  if (phase_12_ >= quarter_cycle &&
-      phase_12_ < static_cast<uint8_t>(half_cycle + quarter_cycle)) {
-    target_phase = half_cycle;
-  }
-  return target_phase;
+  constexpr uint8_t alignment_lut[12] = {0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6};
+  return alignment_lut[phase_12_];
 }
 
 void TempoHandler::notification(musin::timing::ClockEvent event) {

@@ -67,8 +67,9 @@ TEST_CASE("SpeedAdapter HALF emits every 4th tick (24→6 PPQN)") {
     advance_time_us(8000);
   }
 
-  // HALF_SPEED emits every 4th tick: 8→2
-  REQUIRE(rec.events.size() == 2);
+  // Downbeats pass through immediately (ticks 0,3,6), plus tick 4 from divider:
+  // 3+1=4
+  REQUIRE(rec.events.size() == 4);
 }
 
 TEST_CASE("SpeedAdapter DOUBLE passes through all ticks (24 PPQN)") {

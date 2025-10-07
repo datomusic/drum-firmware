@@ -52,9 +52,8 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
   InternalClock internal_clock(120.0f);
   MidiClockProcessor midi_processor;
   musin::timing::SyncIn sync_in_stub(0, 1);
-  musin::timing::ClockRouter clock_router(internal_clock, midi_processor,
-                                          sync_in_stub,
-                                          ClockSource::EXTERNAL_SYNC);
+  musin::timing::ClockRouter clock_router(
+      internal_clock, midi_processor, sync_in_stub, ClockSource::EXTERNAL_SYNC);
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
@@ -67,7 +66,7 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
   tempo_handler.add_observer(recorder);
 
   // Simulate pressing PLAY: manual sync intent should prime the next SyncIn
-  // downbeat even when the adapter's divider would otherwise drop it.
+  // downbeat to pass through (clearing waiting_for_external_downbeat_).
   tempo_handler.trigger_manual_sync();
   REQUIRE(recorder.events.empty());
 
@@ -76,6 +75,8 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
   clock_router.notification(physical_pulse);
 
   REQUIRE_FALSE(recorder.events.empty());
-  REQUIRE(recorder.events.front().is_resync == true);
+  // Manual sync primes the downbeat but doesn't mark as resync for external
+  // sync
+  REQUIRE(recorder.events.front().is_resync == false);
   REQUIRE(recorder.events.front().phase_12 == musin::timing::PHASE_DOWNBEAT);
 }

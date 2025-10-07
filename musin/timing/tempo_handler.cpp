@@ -9,53 +9,42 @@ TempoHandler::TempoHandler(ClockRouter &clock_router_ref,
                            SpeedAdapter &speed_adapter_ref,
                            bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
-    : _clock_router_ref(clock_router_ref),
-      _speed_adapter_ref(speed_adapter_ref),
+    : clock_router_ref_(clock_router_ref),
+      speed_adapter_ref_(speed_adapter_ref),
       _playback_state(PlaybackState::STOPPED),
       current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_12_(0),
       tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
-  _clock_router_ref.set_source_change_listener(this);
-  _speed_adapter_ref.add_observer(*this);
+  clock_router_ref_.set_source_change_listener(this);
+  speed_adapter_ref_.add_observer(*this);
   set_clock_source(initial_source);
 }
 
 void TempoHandler::set_clock_source(ClockSource source) {
-  if (source == _clock_router_ref.get_clock_source() && initialized_) {
+  if (source == clock_router_ref_.get_clock_source() && initialized_) {
     return;
   }
 
   phase_12_ = 0; // Reset phase on source change
-  _clock_router_ref.set_clock_source(
+  clock_router_ref_.set_clock_source(
       source); // Triggers on_clock_source_changed
 
-  // When switching to internal clock, the speed modifier should not apply.
-  // Reset it to normal to avoid carrying over double/half speed from an
-  // external source.
-  if (source == ClockSource::INTERNAL) {
-    set_speed_modifier(SpeedModifier::NORMAL_SPEED);
-  }
-
-  // Re-evaluate tempo knob position for the new clock source
-  // This fixes issue #486: tempo knob position is now applied when switching
-  // sources
-  set_tempo_control_value(last_tempo_knob_value_);
   initialized_ = true;
 }
 
 ClockSource TempoHandler::get_clock_source() const {
-  return _clock_router_ref.get_clock_source();
+  return clock_router_ref_.get_clock_source();
 }
 
 uint8_t TempoHandler::calculate_aligned_phase() const {
   switch (current_speed_modifier_) {
   case SpeedModifier::HALF_SPEED: {
-    // Align to quarter-note grid (0, 3, 6, 9)
+    // Align to nearest quarter-note boundary (0, 3, 6, 9)
     constexpr uint8_t alignment_lut[12] = {0, 0, 3, 3, 3, 6, 6, 6, 9, 9, 9, 0};
     return alignment_lut[phase_12_];
   }
   case SpeedModifier::NORMAL_SPEED: {
-    // Align to half-note grid (0, 6)
+    // Align to nearest half-note boundary  (0, 6)
     constexpr uint8_t alignment_lut[12] = {0, 0, 0, 6, 6, 6, 6, 6, 6, 0, 0, 0};
     return alignment_lut[phase_12_];
   }
@@ -70,13 +59,13 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   constexpr uint8_t NO_ANCHOR = 0xFF;
   uint8_t anchor_phase = NO_ANCHOR;
 
+  if (sync_state_ == SyncState::WAITING_FOR_BEAT) {
+    return;
+  }
+
   if (event.source == ClockSource::EXTERNAL_SYNC && event.is_beat) {
     anchor_phase = calculate_aligned_phase();
     sync_state_ = SyncState::RUNNING;
-  }
-
-  if (sync_state_ == SyncState::WAITING_FOR_BEAT) {
-    return;
   }
 
   if (event.is_resync) {
@@ -100,12 +89,12 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 }
 
 void TempoHandler::set_bpm(float bpm) {
-  _clock_router_ref.set_bpm(bpm);
+  clock_router_ref_.set_bpm(bpm);
 }
 
 void TempoHandler::set_speed_modifier(SpeedModifier modifier) {
   current_speed_modifier_ = modifier;
-  _speed_adapter_ref.set_modifier(modifier);
+  speed_adapter_ref_.set_modifier(modifier);
 }
 
 SpeedModifier TempoHandler::get_speed_modifier() const {
@@ -149,7 +138,7 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
   switch (get_clock_source()) {
   case ClockSource::INTERNAL:
   case ClockSource::MIDI:
-    _clock_router_ref.trigger_resync();
+    clock_router_ref_.trigger_resync();
     emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:
@@ -171,6 +160,18 @@ void TempoHandler::on_clock_source_changed(ClockSource old_source,
   if (new_source != ClockSource::EXTERNAL_SYNC) {
     sync_state_ = SyncState::RUNNING;
   }
+
+  // When switching to internal clock, the speed modifier should not apply.
+  // Reset it to normal to avoid carrying over double/half speed from an
+  // external source.
+  if (new_source == ClockSource::INTERNAL) {
+    set_speed_modifier(SpeedModifier::NORMAL_SPEED);
+  }
+
+  // Re-evaluate tempo knob position for the new clock source
+  // This fixes issue #486: tempo knob position is now applied when switching
+  // sources
+  set_tempo_control_value(last_tempo_knob_value_);
 }
 
 } // namespace musin::timing

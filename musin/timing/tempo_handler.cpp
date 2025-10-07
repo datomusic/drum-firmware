@@ -48,7 +48,7 @@ ClockSource TempoHandler::get_clock_source() const {
 uint8_t TempoHandler::calculate_aligned_phase() const {
   // Use quarter-cycle thresholds so we pick the closest half-cycle anchor
   // without large backward jumps near wrap-around.
-  constexpr uint8_t alignment_lut[12] = {0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6};
+  constexpr uint8_t alignment_lut[12] = {0, 0, 3, 3, 3, 6, 6, 6, 9, 9, 9, 0};
   return alignment_lut[phase_12_];
 }
 
@@ -58,6 +58,11 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
   if (event.source == ClockSource::EXTERNAL_SYNC && event.is_downbeat) {
     anchor_phase = calculate_aligned_phase();
+    waiting_for_external_downbeat_ = false;
+  }
+
+  if (waiting_for_external_downbeat_) {
+    return;
   }
 
   if (event.is_resync) {
@@ -134,6 +139,7 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
     emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:
+    waiting_for_external_downbeat_ = true;
     break;
   }
 }

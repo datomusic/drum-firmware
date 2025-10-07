@@ -28,6 +28,7 @@ void ClockRouter::set_clock_source(ClockSource source) {
   }
 
   ClockSource old_source = current_source_;
+  bool was_initialized = initialized_;
 
   if (initialized_) {
     detach_current_source();
@@ -40,6 +41,14 @@ void ClockRouter::set_clock_source(ClockSource source) {
   // Notify listener after source is fully changed
   if (source_change_listener_) {
     source_change_listener_->on_clock_source_changed(old_source, source);
+  }
+
+  // Emit resync event when switching to non-EXTERNAL_SYNC sources
+  // to immediately reset phase and clear any pending state
+  if (was_initialized && source != ClockSource::EXTERNAL_SYNC) {
+    ClockEvent resync_event{source};
+    resync_event.is_resync = true;
+    notify_observers(resync_event);
   }
 }
 

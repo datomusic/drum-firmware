@@ -15,6 +15,19 @@ class SyncOut;
 constexpr size_t MAX_CLOCK_ROUTER_OBSERVERS = 3;
 
 /**
+ * @brief Interface for receiving clock source change notifications.
+ *
+ * Implement this interface to be notified when ClockRouter switches between
+ * INTERNAL, MIDI, or EXTERNAL_SYNC sources.
+ */
+class ISourceChangeListener {
+public:
+  virtual ~ISourceChangeListener() = default;
+  virtual void on_clock_source_changed(ClockSource old_source,
+                                       ClockSource new_source) = 0;
+};
+
+/**
  * Selects the active raw 24 PPQN clock source and fans it out to observers.
  * Starts/stops internal clock, enables/disables MIDI forward echo,
  * and handles sync source management on source changes.
@@ -43,6 +56,9 @@ public:
   void update_auto_source_switching();
   void set_auto_switching_enabled(bool enabled);
 
+  // Source change notification
+  void set_source_change_listener(ISourceChangeListener *listener);
+
   // From selected upstream source
   void notification(musin::timing::ClockEvent event) override;
 
@@ -57,6 +73,7 @@ private:
   bool initialized_ = false;
   bool auto_switching_enabled_ = true;
   SyncOut *sync_out_ = nullptr;
+  ISourceChangeListener *source_change_listener_ = nullptr;
   bool awaiting_first_tick_after_switch_ = false;
 };
 

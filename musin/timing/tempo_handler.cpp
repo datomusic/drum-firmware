@@ -59,13 +59,13 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   constexpr uint8_t NO_ANCHOR = 0xFF;
   uint8_t anchor_phase = NO_ANCHOR;
 
-  if (sync_state_ == SyncState::WAITING_FOR_BEAT) {
-    return;
-  }
-
   if (event.source == ClockSource::EXTERNAL_SYNC && event.is_beat) {
     anchor_phase = calculate_aligned_phase();
     sync_state_ = SyncState::RUNNING;
+  }
+
+  if (sync_state_ == SyncState::WAITING_FOR_BEAT) {
+    return;
   }
 
   if (event.is_resync) {

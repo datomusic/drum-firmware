@@ -15,6 +15,7 @@ TempoHandler::TempoHandler(ClockRouter &clock_router_ref,
       current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_12_(0),
       tick_count_(0),
       _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
+  _clock_router_ref.set_source_change_listener(this);
   _speed_adapter_ref.add_observer(*this);
   set_clock_source(initial_source);
 }
@@ -25,7 +26,8 @@ void TempoHandler::set_clock_source(ClockSource source) {
   }
 
   phase_12_ = 0; // Reset phase on source change
-  _clock_router_ref.set_clock_source(source);
+  _clock_router_ref.set_clock_source(
+      source); // Triggers on_clock_source_changed
 
   // When switching to internal clock, the speed modifier should not apply.
   // Reset it to normal to avoid carrying over double/half speed from an
@@ -66,10 +68,10 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
 
   if (event.source == ClockSource::EXTERNAL_SYNC && event.is_beat) {
     anchor_phase = calculate_aligned_phase();
-    waiting_for_external_downbeat_ = false;
+    sync_state_ = SyncState::RUNNING;
   }
 
-  if (waiting_for_external_downbeat_) {
+  if (sync_state_ == SyncState::WAITING_FOR_BEAT) {
     return;
   }
 
@@ -147,7 +149,7 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
     emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:
-    waiting_for_external_downbeat_ = true;
+    sync_state_ = SyncState::WAITING_FOR_BEAT;
     break;
   }
 }
@@ -158,6 +160,13 @@ void TempoHandler::emit_manual_resync_event(uint8_t anchor_phase) {
   musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
                                         .is_resync = true};
   notify_observers(tempo_event);
+}
+
+void TempoHandler::on_clock_source_changed(ClockSource old_source,
+                                           ClockSource new_source) {
+  if (new_source != ClockSource::EXTERNAL_SYNC) {
+    sync_state_ = SyncState::RUNNING;
+  }
 }
 
 } // namespace musin::timing

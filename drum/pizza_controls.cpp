@@ -285,7 +285,7 @@ void PizzaControls::DrumpadComponent::init() {
 
 void PizzaControls::DrumpadComponent::update() {
   PizzaControls *controls = parent_controls;
-  for (size_t i = 0; i < drumpads.size(); ++i) {
+  for (uint8_t i = 0; i < drumpads.size(); ++i) {
     uint16_t raw_value = controls->_scanner.get_raw_value(
         drumpad_addresses[(drumpads[i].get_id())]);
     drumpads[i].update(raw_value);
@@ -293,19 +293,15 @@ void PizzaControls::DrumpadComponent::update() {
     musin::ui::RetriggerMode current_mode = drumpads[i].get_retrigger_mode();
     if (current_mode == musin::ui::RetriggerMode::Single) {
       controls->_sequencer_controller_ref.activate_play_on_every_step(
-          static_cast<uint8_t>(i), drum::RetriggerMode::Step);
-      controls->_sequencer_controller_ref.set_pad_pressed_state(
-          static_cast<uint8_t>(i), true);
+          i, drum::RetriggerMode::Step);
+      controls->_sequencer_controller_ref.set_pad_pressed_state(i, true);
     } else if (current_mode == musin::ui::RetriggerMode::Double) {
       controls->_sequencer_controller_ref.activate_play_on_every_step(
-          static_cast<uint8_t>(i), drum::RetriggerMode::Substeps);
-      controls->_sequencer_controller_ref.set_pad_pressed_state(
-          static_cast<uint8_t>(i), true);
+          i, drum::RetriggerMode::Substeps);
+      controls->_sequencer_controller_ref.set_pad_pressed_state(i, true);
     } else {
-      controls->_sequencer_controller_ref.deactivate_play_on_every_step(
-          static_cast<uint8_t>(i));
-      controls->_sequencer_controller_ref.set_pad_pressed_state(
-          static_cast<uint8_t>(i), false);
+      controls->_sequencer_controller_ref.deactivate_play_on_every_step(i);
+      controls->_sequencer_controller_ref.set_pad_pressed_state(i, false);
     }
   }
 }

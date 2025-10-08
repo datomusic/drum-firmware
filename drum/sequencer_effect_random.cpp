@@ -16,9 +16,10 @@ SequencerEffectRandom::SequencerEffectRandom() {
 }
 
 SequencerEffectRandom::RandomizedStep
-SequencerEffectRandom::calculate_randomized_step(
-    size_t base_step_index, size_t track_idx, size_t num_steps,
-    bool repeat_active, [[maybe_unused]] uint64_t transport_step) const {
+SequencerEffectRandom::calculate_randomized_step(size_t base_step_index,
+                                                 size_t track_idx,
+                                                 size_t num_steps,
+                                                 bool repeat_active) const {
   RandomizedStep result{base_step_index, false};
 
   if (track_idx >= MAX_TRACKS || num_steps == 0) {

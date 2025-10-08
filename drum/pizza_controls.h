@@ -147,8 +147,6 @@ public:
     PizzaControls *parent_controls;
     std::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
     DrumpadEventHandler drumpad_observer;
-    etl::array<musin::ui::RetriggerMode, config::NUM_DRUMPADS>
-        _last_known_retrigger_mode_per_pad{};
   };
 
   class PlaybuttonComponent {

@@ -336,10 +336,8 @@ public:
   /**
    * @brief Activates retriggering for a specific track.
    * @param track_index The track to activate retriggering on.
-   * @param mode 1 for single retrigger per step, 2 for double retrigger per
-   * step.
+   * @param mode The retrigger mode (Step or Substeps).
    */
-  void activate_play_on_every_step(uint8_t track_index, uint8_t mode);
   void activate_play_on_every_step(uint8_t track_index, RetriggerMode mode);
   /**
    * @brief Deactivates retriggering for a specific track.

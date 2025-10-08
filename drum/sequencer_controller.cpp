@@ -24,11 +24,11 @@ constexpr std::uint32_t MASK12 = (1u << 12) - 1u;
 template <size_t NumTracks, size_t NumSteps>
 SequencerController<NumTracks, NumSteps>::SequencerController(
     musin::timing::TempoHandler &tempo_handler_ref, musin::Logger &logger)
-    : sequencer_(main_sequencer_), current_step_counter{0},
-      scheduled_step_counter_{0}, last_played_note_per_track{},
-      _just_played_step_per_track{}, tempo_source(tempo_handler_ref),
-      _running(false), _step_is_due{false}, _active_note_per_track{},
-      _pad_pressed_state{}, _retrigger_mode_per_track{}, logger_(logger) {
+    : sequencer_(main_sequencer_), scheduled_step_counter_{0},
+      last_played_note_per_track{}, _just_played_step_per_track{},
+      tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
+      _active_note_per_track{}, _pad_pressed_state{},
+      _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -144,7 +144,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
       last_played_note_per_track[track_idx] = std::nullopt;
     }
   }
-  current_step_counter = 0;
   scheduled_step_counter_ = 0;
   last_phase_12_ = 0;
 
@@ -169,11 +168,6 @@ void SequencerController<NumTracks, NumSteps>::reset() {
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::mark_step_due() {
   _step_is_due = true;
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::increment_step_position() {
-  scheduled_step_counter_++;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -279,7 +273,6 @@ void SequencerController<NumTracks, NumSteps>::notification(
 
   if (is_step_due) {
     mark_step_due();
-    increment_step_position();
   }
 
   // --- Look-behind scheduling for retrigger substeps ---
@@ -331,7 +324,7 @@ SequencerController<NumTracks, NumSteps>::get_current_step() const noexcept {
   const size_t num_steps = sequencer_.get().get_num_steps();
   if (num_steps == 0)
     return 0;
-  return current_step_counter % num_steps;
+  return scheduled_step_counter_ % num_steps;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -607,9 +600,9 @@ void SequencerController<NumTracks, NumSteps>::update() {
   }
   _step_is_due = false;
 
-  _just_played_step_per_track.fill(std::nullopt);
-
   size_t base_step_index = calculate_base_step_index();
+
+  _just_played_step_per_track.fill(std::nullopt);
 
   size_t num_tracks = sequencer_.get().get_num_tracks();
 
@@ -617,8 +610,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
     // Calculate randomized step using the effect
     const size_t num_steps = sequencer_.get().get_num_steps();
     auto randomized_step = random_effect_.calculate_randomized_step(
-        base_step_index, track_idx, num_steps, repeat_active_,
-        scheduled_step_counter_);
+        base_step_index, track_idx, num_steps, repeat_active_);
 
     size_t step_index_to_play_for_track = randomized_step.effective_step_index;
 
@@ -642,8 +634,8 @@ void SequencerController<NumTracks, NumSteps>::update() {
     random_effect_.advance_offset_indices(num_tracks, repeat_length_);
   }
 
-  uint32_t scheduled = scheduled_step_counter_;
-  current_step_counter.store(scheduled, std::memory_order_release);
+  // Increment scheduled_step_counter_ AFTER processing the step
+  scheduled_step_counter_++;
 }
 
 template <size_t NumTracks, size_t NumSteps>

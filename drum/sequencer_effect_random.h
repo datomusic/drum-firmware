@@ -27,8 +27,7 @@ public:
 
   RandomizedStep calculate_randomized_step(size_t base_step_index,
                                            size_t track_idx, size_t num_steps,
-                                           bool repeat_active,
-                                           uint64_t transport_step) const;
+                                           bool repeat_active) const;
 
   void set_random_intensity(float intensity);
 

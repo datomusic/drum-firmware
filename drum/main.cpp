@@ -229,12 +229,12 @@ int main() {
       audio_engine.process();
       pizza_display.update(now);
       midi_manager.process_input();
+      musin::midi::process_midi_output_queue(null_logger);
       internal_clock.update(now);
       clock_router.update_auto_source_switching();
 
       // ClockRouter handles raw clock routing; SyncOut remains attached
-      musin::midi::process_midi_output_queue(
-          null_logger); // Pass logger to queue processing
+      musin::midi::process_midi_output_queue(null_logger);
       sleep_us(10);
       break;
     }

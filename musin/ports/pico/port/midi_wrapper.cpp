@@ -160,7 +160,18 @@ void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
 // --- Internal Actual Send Functions (Called by Queue Processor) ---
 
 void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
-  ALL_TRANSPORTS(sendRealTime(message));
+  // USB MIDI always non-blocking
+  usb_midi.sendRealTime(message);
+
+  // DIN MIDI: use non-blocking write to prevent jitter
+  // Real-time messages are single-byte, so we can write directly
+  if (midi_uart.write_nonblocking(static_cast<byte>(message))) {
+    // Successfully sent via DIN MIDI
+  } else {
+    // FIFO full - skip this clock tick rather than block
+    // This is acceptable for real-time messages as the next tick will arrive
+    // soon
+  }
 }
 
 void MIDI::internal::_sendControlChange_actual(const byte channel,

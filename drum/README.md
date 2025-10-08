@@ -8,53 +8,53 @@
 
 ## MIDI Note Numbers (Sample Mapping)
 
-### Track 1 - Kick/Bass Drums
+### Track 1
 | Sample # | MIDI Note | GM Percussion Name |
 |----------|-----------|-------------------|
-| 1 | 35 | Acoustic Bass Drum |
-| 2 | 36 | Bass Drum 1 |
-| 3 | 37 | Side Stick |
-| 4 | 41 | Low Floor Tom |
-| 5 | 43 | High Floor Tom |
-| 6 | 47 | Low-Mid Tom |
-| 7 | 48 | Hi-Mid Tom |
-| 8 | 50 | High Tom |
+| 1 | 30 | - |
+| 2 | 31 | - |
+| 3 | 32 | - |
+| 4 | 33 | - |
+| 5 | 34 | - |
+| 6 | 35 | Acoustic Bass Drum |
+| 7 | 36 | Bass Drum |
+| 8 | 37 | Side Stick |
 
-### Track 2 - Snare Drums
+### Track 2
 | Sample # | MIDI Note | GM Percussion Name |
 |----------|-----------|-------------------|
 | 1 | 38 | Acoustic Snare |
-| 2 | 40 | Electric Snare |
-| 3 | 39 | Hand Clap |
-| 4 | 54 | Tambourine |
-| 5 | 56 | Cowbell |
-| 6 | 75 | Claves |
-| 7 | 76 | Hi Wood Block |
-| 8 | 77 | Low Wood Block |
+| 2 | 39 | Hand Clap |
+| 3 | 40 | Electric Snare |
+| 4 | 41 | Low Floor Tom |
+| 5 | 42 | Closed Hi Hat |
+| 6 | 43 | High Floor Tom |
+| 7 | 44 | Pedal Hi-Hat |
+| 8 | 45 | Low Tom |
 
-### Track 3 - Percussion
+### Track 3
 | Sample # | MIDI Note | GM Percussion Name |
 |----------|-----------|-------------------|
-| 1 | 45 | Low Tom |
-| 2 | 58 | Vibraslap |
-| 3 | 59 | Ride Cymbal 2 |
-| 4 | 60 | Hi Bongo |
-| 5 | 61 | Low Bongo |
-| 6 | 62 | Mute Hi Conga |
-| 7 | 63 | Open Hi Conga |
-| 8 | 64 | Low Conga |
-
-### Track 4 - Hi-Hats & Cymbals
-| Sample # | MIDI Note | GM Percussion Name |
-|----------|-----------|-------------------|
-| 1 | 42 | Closed Hi-Hat |
-| 2 | 44 | Pedal Hi-Hat |
-| 3 | 46 | Open Hi-Hat |
+| 1 | 46 | Open Hi-Hat |
+| 2 | 47 | Low-Mid Tom |
+| 3 | 48 | Hi-Mid Tom |
 | 4 | 49 | Crash Cymbal 1 |
-| 5 | 51 | Ride Cymbal 1 |
-| 6 | 52 | Chinese Cymbal |
-| 7 | 53 | Ride Bell |
-| 8 | 57 | Crash Cymbal 2 |
+| 5 | 50 | High Tom |
+| 6 | 51 | Ride Cymbal 1 |
+| 7 | 52 | Chinese Cymbal |
+| 8 | 53 | Ride Bell |
+
+### Track 4
+| Sample # | MIDI Note | GM Percussion Name |
+|----------|-----------|-------------------|
+| 1 | 54 | Tambourine |
+| 2 | 55 | Splash Cymbal |
+| 3 | 56 | Cowbell |
+| 4 | 57 | Crash Cymbal 2 |
+| 5 | 58 | Vibraslap |
+| 6 | 59 | Ride Cymbal 2 |
+| 7 | 60 | Hi Bongo |
+| 8 | 61 | Low Bongo |
 
 ## MIDI Control Change (CC) Assignments
 

@@ -165,13 +165,9 @@ void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
 
   // DIN MIDI: use non-blocking write to prevent jitter
   // Real-time messages are single-byte, so we can write directly
-  if (midi_uart.write_nonblocking(static_cast<byte>(message))) {
-    // Successfully sent via DIN MIDI
-  } else {
-    // FIFO full - skip this clock tick rather than block
-    // This is acceptable for real-time messages as the next tick will arrive
-    // soon
-  }
+  // If FIFO is full, skip this clock tick rather than block (acceptable for
+  // real-time messages as the next tick will arrive soon)
+  midi_uart.write_nonblocking(static_cast<byte>(message));
 }
 
 void MIDI::internal::_sendControlChange_actual(const byte channel,

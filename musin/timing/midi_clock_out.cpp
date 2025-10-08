@@ -24,14 +24,16 @@ void MidiClockOut::notification(musin::timing::ClockEvent event) {
     // As clock sender, respect playback policy
     if (tempo_handler_.get_playback_state() == PlaybackState::PLAYING ||
         send_when_stopped_) {
-      MIDI::sendRealTime(midi::Clock);
+      // Direct send bypasses queue to minimize jitter
+      MIDI::internal::_sendRealTime_actual(midi::Clock);
     }
     return;
   }
 
   // Bridge EXTERNAL_SYNC to MIDI clock output
   if (event.source == ClockSource::EXTERNAL_SYNC) {
-    MIDI::sendRealTime(midi::Clock);
+    // Direct send bypasses queue to minimize jitter
+    MIDI::internal::_sendRealTime_actual(midi::Clock);
   }
 }
 

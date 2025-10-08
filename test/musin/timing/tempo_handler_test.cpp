@@ -491,3 +491,86 @@ TEST_CASE("TempoHandler playback state affects MIDI clock transmission") {
   }
   REQUIRE(rt_count >= 1);
 }
+
+TEST_CASE("MidiClockOut uses direct send bypassing queue") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  musin::timing::SyncIn sync_in(0, 1);
+  musin::timing::SyncOut sync_out(0);
+  musin::timing::ClockRouter clock_router(internal_clock, midi_proc, sync_in,
+                                          ClockSource::INTERNAL);
+  musin::timing::SpeedAdapter speed_adapter;
+
+  TempoHandler th(clock_router, speed_adapter, true, ClockSource::INTERNAL);
+  musin::timing::MidiClockOut midi_out(th, true);
+
+  clock_router.add_observer(midi_out);
+  clock_router.add_observer(speed_adapter);
+
+  th.set_playback_state(PlaybackState::PLAYING);
+
+  // Clear any initial state
+  reset_test_state();
+
+  // Generate clock events
+  for (int i = 0; i < 3; ++i) {
+    ClockEvent tick{ClockSource::INTERNAL};
+    clock_router.notification(tick);
+  }
+
+  // Verify MIDI clock was sent directly (without queue processing)
+  // The direct send path calls _sendRealTime_actual immediately
+  size_t rt_count = 0;
+  for (const auto &call : mock_midi_calls) {
+    if (call.function_name == std::string("_sendRealTime_actual") &&
+        call.rt_type == ::midi::Clock) {
+      ++rt_count;
+    }
+  }
+
+  // Should have at least 3 clock messages sent directly
+  REQUIRE(rt_count >= 3);
+
+  // Queue should remain empty since we bypassed it
+  REQUIRE(musin::midi::midi_output_queue.empty());
+}
+
+TEST_CASE("MidiClockOut direct send works for EXTERNAL_SYNC source") {
+  reset_test_state();
+
+  InternalClock internal_clock(120.0f);
+  MidiClockProcessor midi_proc;
+  musin::timing::SyncIn sync_in(0, 1);
+  musin::timing::SyncOut sync_out(0);
+  musin::timing::ClockRouter clock_router(internal_clock, midi_proc, sync_in,
+                                          ClockSource::EXTERNAL_SYNC);
+  musin::timing::SpeedAdapter speed_adapter;
+
+  TempoHandler th(clock_router, speed_adapter, true,
+                  ClockSource::EXTERNAL_SYNC);
+  musin::timing::MidiClockOut midi_out(th, true);
+
+  clock_router.add_observer(midi_out);
+
+  reset_test_state();
+
+  // Generate EXTERNAL_SYNC clock events
+  for (int i = 0; i < 3; ++i) {
+    ClockEvent tick{ClockSource::EXTERNAL_SYNC};
+    clock_router.notification(tick);
+  }
+
+  // Verify MIDI clock was sent directly
+  size_t rt_count = 0;
+  for (const auto &call : mock_midi_calls) {
+    if (call.function_name == std::string("_sendRealTime_actual") &&
+        call.rt_type == ::midi::Clock) {
+      ++rt_count;
+    }
+  }
+
+  REQUIRE(rt_count >= 3);
+  REQUIRE(musin::midi::midi_output_queue.empty());
+}

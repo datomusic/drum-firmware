@@ -24,24 +24,26 @@ constexpr etl::array<std::uint32_t, 4> uart1_rx_pins = {5, 9, 21, 25};
 
 #elif PICO_RP2350
 // UART0 valid pins (TX)
-constexpr etl::array<std::uint32_t, 11> uart0_tx_pins = {0, 2, 12, 14, 16, 18, 28, 30, 32, 34, 46};
+constexpr etl::array<std::uint32_t, 11> uart0_tx_pins = {0,  2,  12, 14, 16, 18,
+                                                         28, 30, 32, 34, 46};
 // UART0 valid pins (RX)
-constexpr etl::array<std::uint32_t, 11> uart0_rx_pins = {1, 3, 13, 15, 17, 19, 29, 31, 33, 35, 47};
+constexpr etl::array<std::uint32_t, 11> uart0_rx_pins = {1,  3,  13, 15, 17, 19,
+                                                         29, 31, 33, 35, 47};
 // UART1 valid pins (TX)
-constexpr etl::array<std::uint32_t, 12> uart1_tx_pins = {4,  6,  8,  10, 20, 22,
-                                                         24, 26, 36, 38, 40, 42};
+constexpr etl::array<std::uint32_t, 12> uart1_tx_pins = {
+    4, 6, 8, 10, 20, 22, 24, 26, 36, 38, 40, 42};
 // UART1 valid pins (RX)
-constexpr etl::array<std::uint32_t, 12> uart1_rx_pins = {5,  7,  9,  11, 21, 23,
-                                                         25, 27, 37, 39, 41, 43};
+constexpr etl::array<std::uint32_t, 12> uart1_rx_pins = {
+    5, 7, 9, 11, 21, 23, 25, 27, 37, 39, 41, 43};
 #else
 #error "Unsupported target platform for UART HAL pin validation"
 #endif
 
 // Enum to identify UART instances in a constexpr-friendly way
 enum class UartId {
-    UART0,
-    UART1,
-    NONE
+  UART0,
+  UART1,
+  NONE
 };
 
 // Generic pin checker
@@ -54,21 +56,24 @@ template <std::uint32_t Pin, const auto &ValidPins> constexpr bool check_pin() {
 }
 
 // UART instance determination
-template <std::uint32_t Tx, std::uint32_t Rx, typename = void> struct uart_instance {
-    static constexpr UartId value = UartId::NONE;
+template <std::uint32_t Tx, std::uint32_t Rx, typename = void>
+struct uart_instance {
+  static constexpr UartId value = UartId::NONE;
 };
 
 // UART0 specialization
 template <std::uint32_t Tx, std::uint32_t Rx>
-struct uart_instance<
-    Tx, Rx, std::enable_if_t<check_pin<Tx, uart0_tx_pins>() && check_pin<Rx, uart0_rx_pins>()>> {
+struct uart_instance<Tx, Rx,
+                     std::enable_if_t<check_pin<Tx, uart0_tx_pins>() &&
+                                      check_pin<Rx, uart0_rx_pins>()>> {
   static constexpr UartId value = UartId::UART0;
 };
 
 // UART1 specialization
 template <std::uint32_t Tx, std::uint32_t Rx>
-struct uart_instance<
-    Tx, Rx, std::enable_if_t<check_pin<Tx, uart1_tx_pins>() && check_pin<Rx, uart1_rx_pins>()>> {
+struct uart_instance<Tx, Rx,
+                     std::enable_if_t<check_pin<Tx, uart1_tx_pins>() &&
+                                      check_pin<Rx, uart1_rx_pins>()>> {
   static constexpr UartId value = UartId::UART1;
 };
 
@@ -156,6 +161,29 @@ public:
   }
 
   /**
+   * @brief Writes a single byte to the UART transmit buffer without blocking.
+   *
+   * Checks if there is space in the TX FIFO before writing. If the FIFO is
+   * full, the function returns immediately without writing the byte.
+   *
+   * @param byte The byte to write.
+   * @return true if the byte was written successfully, false if FIFO was full
+   * or UART not initialized.
+   */
+  bool write_nonblocking(std::uint8_t byte) {
+    if (!_initialized) {
+      return false;
+    }
+    // Check if TX FIFO has space
+    if (!uart_is_writable(get_uart_instance())) {
+      return false;
+    }
+    // Write directly to data register without blocking
+    uart_putc_raw(get_uart_instance(), byte);
+    return true;
+  }
+
+  /**
    * @brief Checks if there is data available to read from the UART.
    * @return true if data is available, false otherwise or if not initialized.
    */
@@ -168,12 +196,12 @@ public:
 
 private:
   // Helper to get the uart_inst_t* at runtime
-  static uart_inst_t* get_uart_instance() {
-      if constexpr (uart_id == detail::UartId::UART0) {
-          return uart0;
-      } else {
-          return uart1;
-      }
+  static uart_inst_t *get_uart_instance() {
+    if constexpr (uart_id == detail::UartId::UART0) {
+      return uart0;
+    } else {
+      return uart1;
+    }
   }
 
   bool _initialized;

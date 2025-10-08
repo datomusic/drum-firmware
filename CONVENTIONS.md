@@ -7,6 +7,7 @@ These guidelines ensure code is consistent and maintainable while keeping good i
 - Primarily use C++20
 - Follow consistent naming conventions:
   - `snake_case` for functions, methods, and variables (common in embedded C++)
+  - `member_` with trailing underscore for class/struct member variables (avoids reserved identifier conflicts)
   - `UPPER_SNAKE_CASE` for macros and compile-time constants (`enum class` members can be `PascalCase` or `UPPER_SNAKE_CASE`)
   - Avoid `_t` suffix for types; use direct class/struct names
 - Use namespaces to prevent naming collisions

@@ -30,10 +30,19 @@ public:
   }
 
   void set_modifier(SpeedModifier m) {
-    if (modifier_ == m)
+    if (modifier_ == m && !has_pending_modifier_)
       return;
-    modifier_ = m;
-    tick_counter_ = 0;
+
+    // For EXTERNAL_SYNC, defer the modifier change until next downbeat
+    if (current_source_ == ClockSource::EXTERNAL_SYNC) {
+      pending_modifier_ = m;
+      has_pending_modifier_ = true;
+    } else {
+      // For INTERNAL/MIDI, apply immediately
+      modifier_ = m;
+      tick_counter_ = 0;
+      has_pending_modifier_ = false;
+    }
   }
 
   [[nodiscard]] SpeedModifier get_modifier() const {
@@ -46,6 +55,8 @@ private:
   SpeedModifier modifier_;
   uint32_t tick_counter_ = 0;
   ClockSource current_source_ = ClockSource::INTERNAL;
+  SpeedModifier pending_modifier_ = SpeedModifier::NORMAL_SPEED;
+  bool has_pending_modifier_ = false;
 };
 
 } // namespace musin::timing

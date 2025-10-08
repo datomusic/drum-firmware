@@ -124,12 +124,13 @@ TEST_CASE("TempoHandler external sync passes through ticks (half-speed now "
   // Simulate 8 external physical pulses by feeding the router.
   for (int i = 0; i < 8; ++i) {
     ClockEvent e{ClockSource::EXTERNAL_SYNC};
-    e.is_downbeat = true;
+    e.is_beat = true;
     clock_router.notification(e);
   }
 
-  // SpeedAdapter now handles HALF_SPEED, emitting every 4th tick (8→2)
-  REQUIRE(rec.events.size() == 2);
+  // All downbeat events pass through immediately (no speed division on
+  // downbeats)
+  REQUIRE(rec.events.size() == 8);
   // External physical pulses get phase alignment instead of sequential
   // advancement Since we start at phase 0, calculate_aligned_phase() returns 0
   REQUIRE(rec.events[0].phase_12 == 0);
@@ -183,7 +184,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED with MIDI source forwards every tick") {
   // Send 3 MIDI clock ticks; DOUBLE_SPEED now forwards every tick
   for (int i = 0; i < 3; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = false;
+    e.is_beat = false;
     speed_adapter.notification(e);
   }
 
@@ -213,7 +214,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED maintains phase progression") {
   // Advance to an odd phase (phase 3)
   for (int i = 0; i < 6; ++i) {
     ClockEvent e{ClockSource::MIDI};
-    e.is_downbeat = false;
+    e.is_beat = false;
     speed_adapter.notification(e);
   }
   REQUIRE(rec.events.size() == 3);
@@ -225,7 +226,7 @@ TEST_CASE("TempoHandler DOUBLE_SPEED maintains phase progression") {
 
   // Send one more tick to see the aligned phase
   ClockEvent e{ClockSource::MIDI};
-  e.is_downbeat = false;
+  e.is_beat = false;
   speed_adapter.notification(e);
 
   REQUIRE(rec.events.size() >= 1);
@@ -349,7 +350,7 @@ TEST_CASE(
 
   // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
-  e.is_downbeat = false;
+  e.is_beat = false;
   speed_adapter_lb.notification(e);
   rec.clear();
 
@@ -384,7 +385,7 @@ TEST_CASE("TempoHandler manual sync with MIDI emits immediate resync") {
 
   // Send a MIDI tick to establish some history
   ClockEvent e{ClockSource::MIDI};
-  e.is_downbeat = false;
+  e.is_beat = false;
   speed_adapter_def.notification(e);
   rec.clear();
 

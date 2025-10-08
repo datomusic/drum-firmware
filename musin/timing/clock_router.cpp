@@ -27,6 +27,9 @@ void ClockRouter::set_clock_source(ClockSource source) {
     return;
   }
 
+  ClockSource old_source = current_source_;
+  bool was_initialized = initialized_;
+
   if (initialized_) {
     detach_current_source();
   }
@@ -34,6 +37,19 @@ void ClockRouter::set_clock_source(ClockSource source) {
   current_source_ = source;
   attach_source(source);
   initialized_ = true;
+
+  // Notify listener after source is fully changed
+  if (source_change_listener_) {
+    source_change_listener_->on_clock_source_changed(old_source, source);
+  }
+
+  // Emit resync event when switching to non-EXTERNAL_SYNC sources
+  // to immediately reset phase and clear any pending state
+  if (was_initialized && source != ClockSource::EXTERNAL_SYNC) {
+    ClockEvent resync_event{source};
+    resync_event.is_resync = true;
+    notify_observers(resync_event);
+  }
 }
 
 void ClockRouter::detach_current_source() {
@@ -134,6 +150,10 @@ void ClockRouter::update_auto_source_switching() {
 
 void ClockRouter::set_auto_switching_enabled(bool enabled) {
   auto_switching_enabled_ = enabled;
+}
+
+void ClockRouter::set_source_change_listener(ISourceChangeListener *listener) {
+  source_change_listener_ = listener;
 }
 
 } // namespace musin::timing

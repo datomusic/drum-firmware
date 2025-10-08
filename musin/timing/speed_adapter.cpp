@@ -11,6 +11,17 @@ void SpeedAdapter::notification(musin::timing::ClockEvent event) {
     return;
   }
 
+  if (event.is_beat) {
+    // Apply pending modifier on downbeat for external sync alignment
+    if (has_pending_modifier_) {
+      modifier_ = pending_modifier_;
+      has_pending_modifier_ = false;
+    }
+    notify_observers(event);
+    tick_counter_ = 0;
+    return;
+  }
+
   tick_counter_++;
 
   switch (modifier_) {

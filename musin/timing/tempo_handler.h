@@ -19,6 +19,18 @@ enum class PlaybackState : uint8_t {
   PLAYING
 };
 
+/**
+ * @brief Defines synchronization state for external sync.
+ *
+ * Controls event processing when using external sync clock source:
+ * - RUNNING: Normal operation, process all events
+ * - WAITING_FOR_BEAT: Suppress events until next is_beat=true arrives
+ */
+enum class SyncState : uint8_t {
+  RUNNING,
+  WAITING_FOR_BEAT
+};
+
 // Maximum number of observers TempoHandler can notify (e.g.,
 // SequencerController)
 constexpr size_t MAX_TEMPO_OBSERVERS = 4;
@@ -32,6 +44,7 @@ constexpr size_t MAX_TEMPO_OBSERVERS = 4;
  */
 class TempoHandler
     : public etl::observer<musin::timing::ClockEvent>,
+      public ISourceChangeListener,
       public etl::observable<etl::observer<musin::timing::TempoEvent>,
                              MAX_TEMPO_OBSERVERS> {
 public:
@@ -59,13 +72,15 @@ public:
   void trigger_manual_sync(uint8_t target_phase = 0);
 
   void notification(musin::timing::ClockEvent event) override;
+  void on_clock_source_changed(ClockSource old_source,
+                               ClockSource new_source) override;
 
 private:
   [[nodiscard]] uint8_t calculate_aligned_phase() const;
   void emit_manual_resync_event(uint8_t anchor_phase);
 
-  ClockRouter &_clock_router_ref;
-  SpeedAdapter &_speed_adapter_ref;
+  ClockRouter &clock_router_ref_;
+  SpeedAdapter &speed_adapter_ref_;
 
   PlaybackState _playback_state;
   SpeedModifier current_speed_modifier_;
@@ -74,6 +89,7 @@ private:
   const bool _send_midi_clock_when_stopped;
   bool initialized_ = false;
   float last_tempo_knob_value_ = 0.5f;
+  SyncState sync_state_ = SyncState::RUNNING;
 };
 
 } // namespace musin::timing

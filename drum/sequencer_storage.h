@@ -4,24 +4,24 @@
 #include "config.h"
 #include "save_timing_manager.h"
 #include "sequencer_persistence.h"
-#include "sequencer_persister.h"
 #include <cstdint>
 
 namespace drum {
 
 /**
- * @brief Orchestrates sequencer state persistence using composed architecture.
+ * @brief Orchestrates sequencer state persistence.
  *
- * This class maintains the same public API as before but internally composes
- * SequencerPersister (for file I/O) and SaveTimingManager (for timing logic)
+ * This class composes SaveTimingManager (for timing logic)
  * to provide a testable, modular architecture following SOLID principles.
+ * The file I/O operations are handled internally.
  */
 template <size_t NumTracks, size_t NumSteps> class SequencerStorage {
 public:
   /**
    * @brief Constructor
+   * @param state_path Path to state file (defaults to production path)
    */
-  SequencerStorage();
+  SequencerStorage(const char *state_path = "/sequencer_state.dat");
 
   /**
    * @brief Save sequencer state to persistent storage.
@@ -62,15 +62,19 @@ public:
   bool is_dirty() const;
 
 private:
-  static constexpr const char *SEQUENCER_STATE_FILE = "/sequencer_state.dat";
   static constexpr uint32_t SAVE_DEBOUNCE_MS = 10000; // 10 second debounce
   static constexpr uint32_t MAX_SAVE_INTERVAL_MS =
       30000; // Maximum 30s between saves when dirty
 
+  // File I/O operations
+  bool save_to_file(const char *filepath,
+                    const SequencerPersistentState &state);
+  bool load_from_file(const char *filepath, SequencerPersistentState &state);
+
   // Composed architecture - testable components with dependency injection
-  SequencerPersister persister_;
   PicoTimeSource pico_time_;
   SaveTimingManager timing_manager_;
+  const char *state_path_;
 };
 
 } // namespace drum

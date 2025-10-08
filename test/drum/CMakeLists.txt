@@ -38,32 +38,6 @@ target_link_libraries(drum-test-storage PRIVATE
     etl::etl
 )
 
-# Test target: Sequencer Persister (links production persister implementation)
-add_executable(drum-test-persister
-    sequencer_persister_test.cpp
-)
-
-target_sources(drum-test-persister PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_persister.cpp
-)
-
-target_include_directories(drum-test-persister PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
-    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src
-    ${CMAKE_CURRENT_LIST_DIR}/../../
-    ${CMAKE_CURRENT_LIST_DIR}/../
-    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
-)
-
-target_compile_definitions(drum-test-persister PRIVATE
-    AUDIO_BLOCK_SAMPLES=20
-)
-
-target_link_libraries(drum-test-persister PRIVATE
-    Catch2::Catch2WithMain
-    etl::etl
-)
-
 # Test target: Sequencer Effect Swing (unit tests for swing timing)
 add_executable(drum-test-swing
     sequencer_effect_swing_test.cpp
@@ -93,5 +67,4 @@ target_link_libraries(drum-test-swing PRIVATE
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
-catch_discover_tests(drum-test-persister)
 catch_discover_tests(drum-test-swing)

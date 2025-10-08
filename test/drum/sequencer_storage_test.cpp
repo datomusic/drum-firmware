@@ -15,50 +15,7 @@ absolute_time_t mock_current_time = 0;
 
 namespace drum {
 
-// Include component implementations inline for integration testing
-// (avoiding duplicate symbol issues with individual test files)
-
-// Redirect production path to a writable test path
-static const char *kTestRedirectPath = "/tmp/test_sequencer_state.dat";
-
-// SequencerPersister implementation
-bool SequencerPersister::save_to_file(const char *filepath,
-                                      const SequencerPersistentState &state) {
-  const char *target = filepath;
-  if (std::string(filepath) == "/sequencer_state.dat") {
-    target = kTestRedirectPath;
-  }
-  FILE *file = fopen(target, "wb");
-  if (!file) {
-    return false;
-  }
-
-  size_t written = fwrite(&state, sizeof(SequencerPersistentState), 1, file);
-  fclose(file);
-
-  return written == 1;
-}
-
-bool SequencerPersister::load_from_file(const char *filepath,
-                                        SequencerPersistentState &state) {
-  const char *target = filepath;
-  if (std::string(filepath) == "/sequencer_state.dat") {
-    target = kTestRedirectPath;
-  }
-  FILE *file = fopen(target, "rb");
-  if (!file) {
-    return false; // File doesn't exist, not an error
-  }
-
-  size_t read_size = fread(&state, sizeof(SequencerPersistentState), 1, file);
-  fclose(file);
-
-  if (read_size != 1 || !state.is_valid()) {
-    return false; // Corrupted or invalid file
-  }
-
-  return true;
-}
+static const char *kTestStatePath = "/tmp/test_sequencer_state.dat";
 
 // SaveTimingManager implementation
 SaveTimingManager::SaveTimingManager(TimeSource &time_source,
@@ -102,14 +59,10 @@ uint32_t PicoTimeSource::get_time_ms() const {
   return time_us_32() / 1000;
 }
 
-// For testing, we know SequencerStorage tries to use "/sequencer_state.dat"
-// which will fail due to permissions. Let's create a symlink or just accept
-// the failure and focus on testing the orchestration logic
-
 // Helper class to manage temporary test files
 class TempFileManager {
 public:
-  TempFileManager(const std::string &filename) : filepath_(filename) {
+  TempFileManager() : filepath_(kTestStatePath) {
     cleanup();
   }
 
@@ -117,7 +70,7 @@ public:
     cleanup();
   }
 
-  const std::string &path() const {
+  const char *path() const {
     return filepath_;
   }
 
@@ -132,7 +85,7 @@ public:
   }
 
 private:
-  std::string filepath_;
+  const char *filepath_;
 };
 
 // Helper function to create a test state with known pattern
@@ -200,8 +153,8 @@ TEST_CASE("SequencerPersistentState validation", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage basic round-trip", "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Save and load valid state") {
     SequencerPersistentState original_state = create_test_state();
@@ -250,8 +203,8 @@ TEST_CASE("SequencerStorage basic round-trip", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("All track data preservation") {
     SequencerPersistentState state;
@@ -320,8 +273,8 @@ TEST_CASE("SequencerStorage data integrity", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage file system edge cases", "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Non-existent file load returns false") {
     SequencerPersistentState state;
@@ -367,7 +320,8 @@ TEST_CASE("SequencerStorage file system edge cases", "[sequencer_storage]") {
 }
 
 TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Initial state is clean") {
     REQUIRE_FALSE(storage.is_dirty());
@@ -387,7 +341,6 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
   }
 
   SECTION("Successful save cleans state") {
-    TempFileManager temp_file(kTestRedirectPath);
     SequencerPersistentState state;
 
     storage.mark_state_dirty();
@@ -398,7 +351,6 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
   }
 
   SECTION("Load clears dirty flag") {
-    TempFileManager temp_file(kTestRedirectPath);
     SequencerPersistentState state = create_test_state();
 
     // Save a valid state first
@@ -416,8 +368,8 @@ TEST_CASE("SequencerStorage state management", "[sequencer_storage]") {
 
 TEST_CASE("SequencerStorage integration - composed architecture verification",
           "[sequencer_storage]") {
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SECTION("Orchestrator correctly delegates to components") {
     SequencerPersistentState state = create_test_state();
@@ -430,12 +382,12 @@ TEST_CASE("SequencerStorage integration - composed architecture verification",
     storage.mark_state_dirty();
     REQUIRE(storage.is_dirty());
 
-    // Save should delegate to SequencerPersister and clean timing manager
+    // Save should clean timing manager
     REQUIRE(storage.save_state_to_flash(state));
     REQUIRE_FALSE(storage.is_dirty());
     REQUIRE(temp_file.exists());
 
-    // Load should delegate to SequencerPersister
+    // Load should persist and restore state
     SequencerPersistentState loaded_state;
     REQUIRE(storage.load_state_from_flash(loaded_state));
     REQUIRE(states_equal(state, loaded_state));
@@ -481,8 +433,8 @@ TEST_CASE("SequencerStorage integration - composed architecture verification",
 TEST_CASE("SequencerStorage integration - file path consistency",
           "[sequencer_storage]") {
   // Verify that the orchestrator uses the correct file path consistently
-  TempFileManager temp_file(kTestRedirectPath);
-  SequencerStorage<4, 8> storage;
+  TempFileManager temp_file;
+  SequencerStorage<4, 8> storage(temp_file.path());
 
   SequencerPersistentState state = create_test_state();
 
@@ -490,7 +442,6 @@ TEST_CASE("SequencerStorage integration - file path consistency",
   REQUIRE(storage.save_state_to_flash(state));
   REQUIRE(temp_file.exists());
 
-  // The file should be exactly what SequencerPersister would create
   // Verify by loading it back
   SequencerPersistentState loaded_state;
   REQUIRE(storage.load_state_from_flash(loaded_state));

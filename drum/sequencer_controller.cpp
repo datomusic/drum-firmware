@@ -560,15 +560,6 @@ bool SequencerController<NumTracks, NumSteps>::has_recent_velocity_hit(
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
-    uint8_t track_index, uint8_t mode) {
-  if (track_index < NumTracks && (mode == 1 || mode == 2)) {
-    _retrigger_mode_per_track[track_index] =
-        (mode == 1) ? RetriggerMode::Step : RetriggerMode::Substeps;
-  }
-}
-
-template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::activate_play_on_every_step(
     uint8_t track_index, RetriggerMode mode) {
   if (track_index < NumTracks) {
     _retrigger_mode_per_track[track_index] = mode;

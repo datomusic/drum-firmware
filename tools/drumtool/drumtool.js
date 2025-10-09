@@ -20,6 +20,7 @@ const midi = require('midi');
 const fs = require('fs');
 const readline = require('readline');
 const { WaveFile } = require('wavefile');
+const crc32 = require('buffer-crc32');
 
 // MIDI SDS Constants
 const SYSEX_START = 0xF0;
@@ -52,6 +53,26 @@ const REBOOT_BOOTLOADER = 0x0B;
 const FORMAT_FILESYSTEM = 0x15;
 const CUSTOM_ACK = 0x13;
 const CUSTOM_NACK = 0x14;
+
+// File Transfer Commands
+const BEGIN_FILE_WRITE = 0x10;
+const FILE_BYTES = 0x11;
+const END_FILE_TRANSFER = 0x12;
+const BEGIN_FIRMWARE_WRITE = 0x20;
+
+// UF2 Format Constants
+const UF2_MAGIC_START0 = 0x0A324655;
+const UF2_MAGIC_START1 = 0x9E5D5157;
+const UF2_MAGIC_END = 0x0AB16F30;
+const UF2_FLAG_FAMILY_ID_PRESENT = 0x00002000;
+const ABSOLUTE_FAMILY_ID = 0xe48bff57;
+const RP2350_ARM_S_FAMILY_ID = 0xe48bff59;
+const UF2_BLOCK_SIZE = 512;
+
+// Firmware Transfer Configuration
+const FIRMWARE_PATH = "/firmware/update.uf2";
+const CHUNK_SIZE = 512; // Matches UF2 block size
+const MAX_RETRIES = 2;  // 2 retries = 3 total attempts
 
 // Find and connect to DRUM device
 function find_dato_drum() {
@@ -380,6 +401,306 @@ async function reboot_bootloader() {
   sendCustomMessage(payload);
   // Note: Device will reboot immediately, so we don't wait for ACK
   console.log("Reboot command sent. Device should now enter bootloader mode.");
+}
+
+// Validate UF2 file format
+function validateUF2File(buffer) {
+  if (buffer.length < UF2_BLOCK_SIZE) {
+    return { valid: false, error: 'File too small to be valid UF2 (minimum 512 bytes)' };
+  }
+
+  if (buffer.length % UF2_BLOCK_SIZE !== 0) {
+    return { valid: false, error: `File size must be multiple of ${UF2_BLOCK_SIZE} bytes` };
+  }
+
+  const numBlocks = buffer.length / UF2_BLOCK_SIZE;
+  let expectedBlockCount = null;
+  const seenBlocks = new Set();
+
+  for (let i = 0; i < numBlocks; i++) {
+    const offset = i * UF2_BLOCK_SIZE;
+
+    // Read UF2 block header (little-endian)
+    const magicStart0 = buffer.readUInt32LE(offset + 0);
+    const magicStart1 = buffer.readUInt32LE(offset + 4);
+    const flags = buffer.readUInt32LE(offset + 8);
+    const targetAddr = buffer.readUInt32LE(offset + 12);
+    const payloadSize = buffer.readUInt32LE(offset + 16);
+    const blockNo = buffer.readUInt32LE(offset + 20);
+    const numBlocksInFile = buffer.readUInt32LE(offset + 24);
+    const familyIdOrFileSize = buffer.readUInt32LE(offset + 28);
+    const magicEnd = buffer.readUInt32LE(offset + 508);
+
+    // Validate magic numbers
+    if (magicStart0 !== UF2_MAGIC_START0) {
+      return { valid: false, error: `Block ${i}: Invalid magic start0 (expected 0x${UF2_MAGIC_START0.toString(16)}, got 0x${magicStart0.toString(16)})` };
+    }
+    if (magicStart1 !== UF2_MAGIC_START1) {
+      return { valid: false, error: `Block ${i}: Invalid magic start1 (expected 0x${UF2_MAGIC_START1.toString(16)}, got 0x${magicStart1.toString(16)})` };
+    }
+    if (magicEnd !== UF2_MAGIC_END) {
+      return { valid: false, error: `Block ${i}: Invalid magic end (expected 0x${UF2_MAGIC_END.toString(16)}, got 0x${magicEnd.toString(16)})` };
+    }
+
+    // Validate payload size
+    if (payloadSize > 476) {
+      return { valid: false, error: `Block ${i}: Payload size ${payloadSize} exceeds maximum 476 bytes` };
+    }
+
+    // Check family ID for RP2350
+    if (flags & UF2_FLAG_FAMILY_ID_PRESENT) {
+      if (familyIdOrFileSize !== ABSOLUTE_FAMILY_ID &&
+          familyIdOrFileSize !== RP2350_ARM_S_FAMILY_ID) {
+        return {
+          valid: false,
+          error: `Block ${i}: Wrong family ID (expected RP2350 ABSOLUTE 0x${ABSOLUTE_FAMILY_ID.toString(16)} or ARM-S 0x${RP2350_ARM_S_FAMILY_ID.toString(16)}, got 0x${familyIdOrFileSize.toString(16)})`
+        };
+      }
+    } else {
+      return { valid: false, error: `Block ${i}: Family ID flag not present (required for RP2350)` };
+    }
+
+    // This logic handles UF2 files that are composed of multiple "sub-files",
+    // which can happen with flags like --abs-block.
+    // When a block with blockNo 0 is found, we reset our validation state.
+    if (blockNo === 0) {
+      expectedBlockCount = numBlocksInFile;
+      seenBlocks.clear();
+    }
+
+    // Validate block number
+    if (blockNo >= expectedBlockCount) {
+      return {
+        valid: false,
+        error: `Block ${i}: Block number ${blockNo} out of bounds (total blocks: ${expectedBlockCount})`
+      };
+    }
+
+    // Check for duplicates
+    if (seenBlocks.has(blockNo)) {
+      return { valid: false, error: `Duplicate block number ${blockNo}` };
+    }
+    seenBlocks.add(blockNo);
+  }
+
+  // Check if all blocks are present
+  if (expectedBlockCount !== null && seenBlocks.size !== expectedBlockCount) {
+    return {
+      valid: false,
+      error: `Missing blocks (expected ${expectedBlockCount}, got ${seenBlocks.size})`
+    };
+  }
+
+  return {
+    valid: true,
+    numBlocks: expectedBlockCount || numBlocks,
+    fileSize: buffer.length
+  };
+}
+
+// Encode binary data to SysEx-safe 7-to-8 format
+// For every 7 bytes of input, produces 8 bytes of output
+// (7 data bytes with MSB cleared + 1 byte containing packed MSBs)
+function encode7to8Bytes(inputBuffer, offset, length) {
+  const output = [];
+  let pos = 0;
+
+  while (pos < length) {
+    let msbs = 0;
+    const bytesToProcess = Math.min(7, length - pos);
+
+    // Process up to 7 bytes
+    for (let i = 0; i < 7; i++) {
+      if (i < bytesToProcess) {
+        const byte = inputBuffer[offset + pos + i];
+        // Send data with MSB cleared
+        output.push(byte & 0x7F);
+        // Track MSB for packing
+        if (byte & 0x80) {
+          msbs |= (1 << i);
+        }
+      } else {
+        // Pad with zeros if less than 7 bytes remain
+        output.push(0);
+      }
+    }
+
+    // Send packed MSBs as 8th byte
+    output.push(msbs & 0x7F);
+    pos += bytesToProcess;
+  }
+
+  return Buffer.from(output);
+}
+
+// Send BeginFirmwareWrite command with retries
+async function sendBeginFirmwareWrite(fileSize, fileCrc32, retries = MAX_RETRIES) {
+  const pathBytes = Buffer.from(FIRMWARE_PATH + '\0', 'utf8');
+
+  // Build size and CRC32 as little-endian uint32
+  const sizeBytes = Buffer.alloc(4);
+  sizeBytes.writeUInt32LE(fileSize, 0);
+
+  const crc32Bytes = Buffer.alloc(4);
+  crc32Bytes.writeUInt32LE(fileCrc32, 0);
+
+  const payload = [
+    BEGIN_FIRMWARE_WRITE,
+    ...pathBytes,
+    ...sizeBytes,
+    ...crc32Bytes
+  ];
+
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`Retrying BeginFirmwareWrite (attempt ${attempt + 1}/${retries + 1})...`);
+      }
+      sendCustomMessage(payload);
+      await waitForCustomAck(5000); // 5 second timeout for begin command
+      return; // Success
+    } catch (e) {
+      lastError = e;
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Brief pause before retry
+      }
+    }
+  }
+
+  throw new Error(`BeginFirmwareWrite failed after ${retries + 1} attempts: ${lastError.message}`);
+}
+
+// Send FileBytes command with encoded data
+async function sendFileBytes(encodedData) {
+  const payload = [FILE_BYTES, ...encodedData];
+  sendCustomMessage(payload);
+}
+
+// Send EndFileTransfer command with retries
+async function sendEndFileTransfer(retries = MAX_RETRIES) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`Retrying EndFileTransfer (attempt ${attempt + 1}/${retries + 1})...`);
+      }
+      const payload = [END_FILE_TRANSFER];
+      sendCustomMessage(payload);
+      await waitForCustomAck(10000); // 10 second timeout for end command
+      return; // Success
+    } catch (e) {
+      lastError = e;
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Brief pause before retry
+      }
+    }
+  }
+
+  throw new Error(`EndFileTransfer failed after ${retries + 1} attempts: ${lastError.message}`);
+}
+
+// Main firmware transfer function
+async function transferFirmware(filePath, verboseMode = false) {
+  const verbose = verboseMode;
+
+  console.log(`\n=== Firmware Transfer: ${filePath} ===`);
+
+  // Read and validate UF2 file
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Firmware file not found: ${filePath}`);
+  }
+
+  const uf2Buffer = fs.readFileSync(filePath);
+  console.log(`File size: ${formatBytes(uf2Buffer.length)}`);
+
+  // Validate UF2 format
+  console.log('Validating UF2 file...');
+  const validation = validateUF2File(uf2Buffer);
+  if (!validation.valid) {
+    throw new Error(`Invalid UF2 file: ${validation.error}`);
+  }
+
+  console.log(`✓ Valid UF2: ${validation.numBlocks} blocks, RP2350 family`);
+
+  // Calculate CRC32
+  const fileCrc32 = crc32.unsigned(uf2Buffer);
+  console.log(`CRC32: 0x${fileCrc32.toString(16).padStart(8, '0')}`);
+
+  // Confirm with user
+  console.log('\n⚠️  WARNING: This will update device firmware and reboot the device!');
+  const confirmed = await askConfirmation(`Are you sure you want to flash ${filePath}?`);
+  if (!confirmed) {
+    console.log('Firmware update cancelled.');
+    return false;
+  }
+
+  try {
+    // Step 1: Send BeginFirmwareWrite
+    console.log('\nInitiating firmware transfer...');
+    await sendBeginFirmwareWrite(uf2Buffer.length, fileCrc32);
+    if (verbose) {
+      console.log('✓ Device accepted firmware transfer');
+    }
+
+    // Step 2: Transfer file in chunks
+    console.log('Transferring firmware data...');
+    const totalBlocks = validation.numBlocks;
+    let blocksSent = 0;
+    let offset = 0;
+
+    const transferStartTime = Date.now();
+
+    while (offset < uf2Buffer.length) {
+      const chunkSize = Math.min(CHUNK_SIZE, uf2Buffer.length - offset);
+
+      // Encode chunk for SysEx transmission
+      const encodedChunk = encode7to8Bytes(uf2Buffer, offset, chunkSize);
+
+      // Send encoded chunk
+      await sendFileBytes(encodedChunk);
+
+      offset += chunkSize;
+      blocksSent++;
+
+      // Progress indicator
+      const progress = Math.min(100, (blocksSent / totalBlocks) * 100);
+      const progressPercent = Math.round(progress);
+
+      const bar_length = 40;
+      const filled_length = Math.round(bar_length * (progress / 100));
+      const bar = '█'.repeat(filled_length) + '░'.repeat(bar_length - filled_length);
+
+      if (process.stdout.clearLine) {
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+        process.stdout.write(`Progress: ${progressPercent}% |${bar}| ${blocksSent}/${totalBlocks} blocks`);
+      } else {
+        if (blocksSent % 10 === 0 || blocksSent === totalBlocks) {
+          console.log(`Progress: ${progressPercent}% |${bar}| ${blocksSent}/${totalBlocks} blocks`);
+        }
+      }
+
+      // Small delay to avoid overwhelming device
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    const transferDuration = Date.now() - transferStartTime;
+    const transferSeconds = (transferDuration / 1000).toFixed(1);
+    console.log(`\n\nTransfer complete: ${blocksSent} blocks sent in ${transferSeconds}s`);
+
+    // Step 3: End transfer and wait for verification
+    console.log('Waiting for device verification...');
+    await sendEndFileTransfer();
+    console.log('✓ Firmware verified by device');
+    console.log('\nDevice will reboot automatically.');
+
+    return true;
+
+  } catch (error) {
+    console.error(`\nFirmware transfer failed: ${error.message}`);
+    return false;
+  }
 }
 
 // Test universal SysEx identity request
@@ -936,6 +1257,7 @@ if (!command) {
   console.log("");
   console.log("Usage:");
   console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  drumtool.js flash <firmware.uf2> [--verbose|-v]");
   console.log("  drumtool.js version");
   console.log("  drumtool.js storage");
   console.log("  drumtool.js format");
@@ -944,6 +1266,7 @@ if (!command) {
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
+  console.log("  flash          - Update device firmware from UF2 file");
   console.log("  version        - Get device firmware version");
   console.log("  storage        - Get device storage information");
   console.log("  format         - Format device filesystem");
@@ -957,6 +1280,10 @@ if (!command) {
   console.log("                   For WAV files, the sample rate is detected automatically.");
   console.log("  --verbose, -v  - Show detailed transfer information");
   console.log("");
+  console.log("Flash Arguments:");
+  console.log("  firmware.uf2   - UF2 firmware file (must be for RP2350 family)");
+  console.log("  --verbose, -v  - Show detailed transfer information");
+  console.log("");
   console.log("Examples:");
   console.log("  # Explicit slot assignment (WAV files are auto-converted):");
   console.log("  drumtool.js send kick.wav:0 snare.wav:1");
@@ -967,7 +1294,10 @@ if (!command) {
   console.log("  # Transfer raw PCM data with a specific sample rate:");
   console.log("  drumtool.js send my_sample.pcm:10 22050 -v");
   console.log("  ");
-  console.log("  # Cannot mix formats - use either all file:slot OR all filenames");
+  console.log("  # Update device firmware:");
+  console.log("  drumtool.js flash firmware.uf2");
+  console.log("  ");
+  console.log("  # Other commands:");
   console.log("  drumtool.js version                           # Check firmware version");
   console.log("  drumtool.js storage                           # Check storage usage");
   console.log("  drumtool.js format                            # Format filesystem");
@@ -1035,9 +1365,21 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
+    } else if (command === 'flash') {
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+
+      if (args.length === 0) {
+        console.error("Error: 'flash' command requires a firmware file argument.");
+        process.exit(1);
+      }
+
+      if (args.length > 1) {
+        console.error("Error: 'flash' command only accepts one firmware file.");
+        process.exit(1);
+      }
     } else if (command !== 'version' && command !== 'storage' && command !== 'format' &&
                command !== 'reboot-bootloader' && command !== 'identity') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', or 'identity'.`);
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'flash', 'version', 'storage', 'format', 'reboot-bootloader', or 'identity'.`);
       process.exit(1);
     }
 
@@ -1059,9 +1401,15 @@ async function main() {
       const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
       const transfers = parseFileSlotArgs(args); // Already validated above
       
-      const success = transfers.length === 1 
+      const success = transfers.length === 1
         ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
         : await transferMultipleSamples(transfers, verbose);
+      process.exitCode = success ? 0 : 1;
+    } else if (command === 'flash') {
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      const firmwareFile = args[0];
+
+      const success = await transferFirmware(firmwareFile, verbose);
       process.exitCode = success ? 0 : 1;
     } else if (command === 'version') {
       await get_firmware_version();

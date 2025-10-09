@@ -8,6 +8,7 @@ Comprehensive tool for managing DATO DRUM devices via MIDI, featuring sample tra
 - 📦 **Batch Operations**: Transfer multiple samples in a single command
 - 🎯 **Flexible Slot Assignment**: Auto-increment or explicit slot targeting
 - 🔧 **Device Management**: Firmware version, filesystem formatting, bootloader access
+- 💾 **Firmware Updates**: Safe over-the-air firmware updates via MIDI with UF2 validation
 - 📊 **Progress Monitoring**: Real-time transfer progress with device status feedback
 - ✅ **Safe Operations**: Confirmation prompts for destructive commands
 
@@ -58,7 +59,27 @@ node drumtool.js send kick.wav:5 snare.wav:10
 node drumtool.js send kick.wav:0 snare.wav:1 48000 --verbose
 ```
 
-#### Device Management
+#### Firmware Updates
+
+**Update device firmware (⚠️ DESTRUCTIVE):**
+```bash
+node drumtool.js flash firmware.uf2
+```
+
+**With verbose output:**
+```bash
+node drumtool.js flash firmware.uf2 --verbose
+```
+
+**Important firmware update notes:**
+- ⚠️ Device will reboot automatically after successful update
+- Firmware files must be in UF2 format for RP2350 family
+- Invalid or corrupted firmware will be rejected before installation
+- Transfer is validated with CRC32 checksum
+- Progress is shown during transfer
+- Confirmation required before starting
+
+### Device Management
 
 **Check firmware version:**
 ```bash
@@ -113,6 +134,22 @@ node drumtool.js send kick.wav:35 snare.wav:38 hat-closed.wav:42
 node drumtool.js send samples/*.wav --verbose
 ```
 
+### Firmware Updates
+```bash
+# Check current firmware version before updating
+node drumtool.js version
+
+# Update firmware (with confirmation prompt)
+node drumtool.js flash /path/to/firmware.uf2
+
+# Update with detailed progress information
+node drumtool.js flash /path/to/firmware.uf2 --verbose
+
+# Device will reboot automatically after successful update
+# Check new version after reboot
+node drumtool.js version
+```
+
 ### Device Maintenance
 ```bash
 # Check device status
@@ -122,11 +159,13 @@ node drumtool.js version
 node drumtool.js format
 node drumtool.js send new-kit/*.wav
 
-# Enter firmware update mode
+# Enter firmware update mode (for USB mass storage updates)
 node drumtool.js reboot-bootloader
 ```
 
 ## Protocol Details
+
+### Sample Transfer Protocol
 
 Drumtool uses the **MIDI Sample Dump Standard (SDS)** protocol for reliable sample transfer:
 
@@ -134,6 +173,21 @@ Drumtool uses the **MIDI Sample Dump Standard (SDS)** protocol for reliable samp
 - **Data packets**: 40 samples per packet with checksum validation
 - **Handshaking**: ACK/NAK responses with timeout fallback
 - **Status monitoring**: Device busy/error state detection
+
+### Firmware Transfer Protocol
+
+Firmware updates use a custom SysEx protocol with UF2 validation:
+
+- **UF2 Format**: Industry-standard firmware format with 512-byte blocks
+- **Family Validation**: Ensures firmware is for RP2350 ARM-S devices
+- **Binary Encoding**: 7-to-8 encoding for MIDI-safe transmission (7 data bytes + 1 MSB byte)
+- **CRC32 Checksum**: Full-file integrity verification
+- **Block Validation**: Magic numbers, block sequencing, duplicate detection
+- **Transfer Flow**:
+  1. BeginFirmwareWrite with path, size, and CRC32
+  2. FileBytes messages with encoded UF2 blocks (512 bytes per chunk)
+  3. EndFileTransfer with device-side verification
+  4. Automatic device reboot on success
 
 ## Troubleshooting
 
@@ -149,7 +203,35 @@ No suitable MIDI output port found containing any of: Pico, DRUM
 ### Transfer Failures
 - Use `--verbose` flag to see detailed error information
 - Try smaller batch sizes if transfers fail consistently
-- Check available storage space on device with `drumtool.js version`
+- Check available storage space on device with `drumtool.js storage`
+
+### Firmware Update Issues
+
+**Invalid UF2 file:**
+```
+Error: Invalid UF2 file: Wrong family ID (expected RP2350 0xe48bff59, got 0x...)
+```
+**Solution**: Ensure you're using firmware built for RP2350 devices (not RP2040 or other platforms)
+
+**Transfer interrupted:**
+- If firmware transfer fails partway through, the device remains on the old firmware
+- Simply retry the flash command - the device is safe to retry
+- Use `--verbose` to see exactly where the transfer failed
+
+**Device not rebooting after update:**
+- Wait 10-15 seconds after "Device will reboot automatically" message
+- Manually power cycle the device if it doesn't reboot
+- Check firmware version with `drumtool.js version` after reboot
+
+**Verification failed:**
+```
+Error: Device firmware verification failed
+```
+**Solution**:
+- Check that all UF2 blocks were received (use `--verbose`)
+- Verify the UF2 file isn't corrupted (try re-downloading)
+- Ensure sufficient storage space on device
+- Try the transfer again
 
 ### Permission Issues (macOS/Linux)
 - Ensure user has access to MIDI devices

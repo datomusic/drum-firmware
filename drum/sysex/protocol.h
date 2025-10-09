@@ -17,6 +17,7 @@ extern "C" {
 
 #include "./chunk.h"
 #include "./codec.h"
+#include "./uf2_validator.h"
 
 namespace sysex {
 
@@ -70,6 +71,9 @@ template <typename FileOperations> struct Protocol {
     Ack = 0x13,
     Nack = 0x14,
     FormatFilesystem = 0x15,
+
+    // Firmware Transfer Commands
+    BeginFirmwareWrite = 0x20,
   };
 
   enum class Result {
@@ -84,6 +88,8 @@ template <typename FileOperations> struct Protocol {
     NotSysex,
     InvalidManufacturer,
     InvalidContent,
+    FirmwareVerified,
+    FirmwareVerificationFailed,
   };
 
   template <typename Sender>
@@ -139,6 +145,51 @@ template <typename FileOperations> struct Protocol {
         }
       }
 
+      if (state == State::FirmwareTransfer) {
+        if (tag == EndFileTransfer) {
+          logger.info("SysEx: EndFileTransfer received for firmware");
+          flush_write_buffer();
+
+          if (firmware_state.has_value()) {
+            const bool all_blocks =
+                firmware_state->validator.all_blocks_received();
+            const uint32_t expected =
+                firmware_state->validator.get_expected_blocks();
+            const uint32_t received =
+                firmware_state->validator.get_received_count();
+
+            logger.info("SysEx: UF2 blocks received:", received);
+            logger.info("SysEx: UF2 blocks expected:", expected);
+
+            if (!all_blocks) {
+              logger.error(
+                  "SysEx: Firmware transfer incomplete, missing blocks");
+              opened_file.reset();
+              firmware_state.reset();
+              state = State::Idle;
+              send_reply(Tag::Nack);
+              return Result::FirmwareVerificationFailed;
+            }
+
+            logger.info("SysEx: All UF2 blocks received successfully");
+            opened_file.reset();
+            firmware_state.reset();
+            state = State::Idle;
+            logger.info("SysEx: Sending Ack for firmware EndFileTransfer");
+            send_reply(Tag::Ack);
+            return Result::FirmwareVerified;
+          } else {
+            logger.error(
+                "SysEx: Firmware state missing during EndFileTransfer");
+            opened_file.reset();
+            firmware_state.reset();
+            state = State::Idle;
+            send_reply(Tag::Nack);
+            return Result::FirmwareVerificationFailed;
+          }
+        }
+      }
+
       const auto maybe_result = handle_no_body(tag, send_reply);
       if (maybe_result.has_value()) {
         return *maybe_result;
@@ -146,8 +197,9 @@ template <typename FileOperations> struct Protocol {
 
       logger.error("SysEx: Unknown command with no body. Tag",
                    static_cast<uint32_t>(tag));
-      if (state == State::FileTransfer) {
+      if (state == State::FileTransfer || state == State::FirmwareTransfer) {
         opened_file.reset();
+        firmware_state.reset();
         state = State::Idle;
       }
       send_reply(Tag::Nack);
@@ -156,12 +208,13 @@ template <typename FileOperations> struct Protocol {
   }
 
   constexpr bool check_timeout(absolute_time_t now) {
-    if (state == State::FileTransfer) {
+    if (state == State::FileTransfer || state == State::FirmwareTransfer) {
       if (absolute_time_diff_us(last_activity_time_, now) >
           static_cast<int64_t>(TIMEOUT_US)) {
-        logger.warn("SysEx: File transfer timed out.");
+        logger.warn("SysEx: Transfer timed out.");
         flush_write_buffer();
         opened_file.reset();
+        firmware_state.reset();
         state = State::Idle;
         return true;
       }
@@ -176,6 +229,7 @@ template <typename FileOperations> struct Protocol {
   enum class State {
     Idle,
     FileTransfer,
+    FirmwareTransfer,
   };
 
   constexpr State get_state() const {
@@ -183,10 +237,22 @@ template <typename FileOperations> struct Protocol {
   }
 
 private:
+  struct FirmwareTransferState {
+    size_t expected_size;
+    uint32_t expected_crc32;
+    size_t bytes_written;
+    UF2BlockValidator validator;
+
+    constexpr FirmwareTransferState(size_t size, uint32_t crc32)
+        : expected_size(size), expected_crc32(crc32), bytes_written(0) {
+    }
+  };
+
   FileOperations &file_ops;
   musin::Logger &logger;
   State state = State::Idle;
   etl::optional<File> opened_file;
+  etl::optional<FirmwareTransferState> firmware_state;
   absolute_time_t last_activity_time_;
 
   etl::array<uint8_t, FileOperations::BlockSize> write_buffer;
@@ -259,10 +325,13 @@ private:
     switch (tag) {
     case BeginFileWrite:
       return handle_begin_file_write(bytes, send_reply, now);
+    case BeginFirmwareWrite:
+      return handle_begin_firmware_write(bytes, send_reply, now);
     default:
       logger.error("SysEx: Unknown tag with body", static_cast<uint32_t>(tag));
-      if (state == State::FileTransfer) {
+      if (state == State::FileTransfer || state == State::FirmwareTransfer) {
         opened_file.reset();
+        firmware_state.reset();
         state = State::Idle;
       }
       send_reply(Tag::Nack);
@@ -309,11 +378,103 @@ private:
     }
   }
 
+  template <typename Sender>
+  constexpr Result
+  handle_begin_firmware_write(const etl::span<const uint8_t> &bytes,
+                              Sender send_reply, absolute_time_t now) {
+    if (state != State::Idle) {
+      logger.warn("SysEx: BeginFirmwareWrite received while another transfer "
+                  "is in progress. Canceling previous transfer.");
+      flush_write_buffer();
+      opened_file.reset();
+      firmware_state.reset();
+    }
+
+    if (bytes.size() < 9) {
+      logger.error("SysEx: BeginFirmwareWrite payload too short");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+
+    size_t path_end = 0;
+    while (path_end < bytes.size() && bytes[path_end] != '\0') {
+      path_end++;
+    }
+
+    if (path_end == 0 || path_end + 8 > bytes.size()) {
+      logger.error("SysEx: BeginFirmwareWrite invalid payload format");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+
+    const auto path_bytes = etl::span{bytes.begin(), path_end};
+
+    char path[drum::config::MAX_PATH_LENGTH];
+    const auto sanitize_result = sanitize_path(path_bytes, path);
+
+    if (sanitize_result != SanitizeResult::Success) {
+      logger.error("SysEx: BeginFirmwareWrite path sanitization failed");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+
+    constexpr char firmware_prefix[] = "/firmware/";
+    bool has_firmware_prefix = true;
+    for (size_t i = 0; i < sizeof(firmware_prefix) - 1; ++i) {
+      if (path[i] != firmware_prefix[i]) {
+        has_firmware_prefix = false;
+        break;
+      }
+    }
+
+    if (!has_firmware_prefix) {
+      logger.error("SysEx: BeginFirmwareWrite path must start with /firmware/");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+
+    const size_t size_offset = path_end + 1;
+    const uint32_t expected_size =
+        static_cast<uint32_t>(bytes[size_offset]) |
+        (static_cast<uint32_t>(bytes[size_offset + 1]) << 8) |
+        (static_cast<uint32_t>(bytes[size_offset + 2]) << 16) |
+        (static_cast<uint32_t>(bytes[size_offset + 3]) << 24);
+
+    const uint32_t expected_crc32 =
+        static_cast<uint32_t>(bytes[size_offset + 4]) |
+        (static_cast<uint32_t>(bytes[size_offset + 5]) << 8) |
+        (static_cast<uint32_t>(bytes[size_offset + 6]) << 16) |
+        (static_cast<uint32_t>(bytes[size_offset + 7]) << 24);
+
+    logger.info("SysEx: BeginFirmwareWrite received for path:");
+    logger.info(path);
+    logger.info("SysEx: Expected size:", expected_size);
+    logger.info("SysEx: Expected CRC32:", expected_crc32);
+
+    opened_file.emplace(file_ops, path);
+    if (opened_file.has_value() && opened_file->is_valid()) {
+      state = State::FirmwareTransfer;
+      firmware_state.emplace(expected_size, expected_crc32);
+      write_buffer_pos = 0;
+      last_activity_time_ = now;
+      logger.info("SysEx: Sending Ack for BeginFirmwareWrite");
+      send_reply(Tag::Ack);
+      return Result::OK;
+    } else {
+      opened_file.reset();
+      firmware_state.reset();
+      state = State::Idle;
+      logger.error("SysEx: Failed to open file for firmware writing");
+      send_reply(Tag::Nack);
+      return Result::FileError;
+    }
+  }
+
   template <typename Sender, typename InputIt>
   constexpr Result handle_file_bytes_fast(InputIt start, InputIt end,
                                           Sender send_reply,
                                           absolute_time_t now) {
-    if (state != State::FileTransfer) {
+    if (state != State::FileTransfer && state != State::FirmwareTransfer) {
       logger.error(
           "SysEx: FileBytes received while not in a file transfer state.");
       send_reply(Tag::Nack);
@@ -332,10 +493,44 @@ private:
         write_buffer_pos += bytes_decoded;
         start += bytes_read;
 
+        if (state == State::FirmwareTransfer) {
+          constexpr size_t UF2_BLOCK_SIZE = 512;
+          while (write_buffer_pos >= UF2_BLOCK_SIZE) {
+            const auto *block_ptr =
+                reinterpret_cast<const uf2_block *>(write_buffer.data());
+            if (firmware_state.has_value()) {
+              const auto validation_result =
+                  firmware_state->validator.validate_block(*block_ptr);
+              if (validation_result !=
+                  UF2BlockValidator::ValidationResult::Success) {
+                logger.error("SysEx: UF2 block validation failed:",
+                             static_cast<uint32_t>(validation_result));
+                opened_file.reset();
+                firmware_state.reset();
+                state = State::Idle;
+                send_reply(Tag::Nack);
+                return Result::FirmwareVerificationFailed;
+              }
+            }
+
+            if (!flush_write_buffer()) {
+              logger.error("SysEx: Failed to write buffer, aborting transfer.");
+              opened_file.reset();
+              firmware_state.reset();
+              state = State::Idle;
+              send_reply(Tag::Nack);
+              return Result::FileError;
+            }
+          }
+        }
+
         if (write_buffer_pos >= write_buffer.size()) {
           if (!flush_write_buffer()) {
             logger.error("SysEx: Failed to write buffer, aborting transfer.");
             opened_file.reset();
+            if (state == State::FirmwareTransfer) {
+              firmware_state.reset();
+            }
             state = State::Idle;
             send_reply(Tag::Nack);
             return Result::FileError;

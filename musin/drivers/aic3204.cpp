@@ -243,6 +243,7 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x00, 0x40, 0x00) != Aic3204Status::OK) {
     return; // Unmute DAC digital volume, 0dB gain
   }
+  _dac_muted = false; // DAC is now unmuted
 
   _is_initialized = true;
   AIC_LOG("AIC3204 register initialization complete.");
@@ -453,6 +454,45 @@ Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
     _current_mixer_volume = INT8_MIN; // Invalidate cache
     return (status_l != Aic3204Status::OK) ? status_l : status_r;
   }
+}
+
+Aic3204Status Aic3204::set_dac_muted(bool muted) {
+  if (!is_initialized()) {
+    return Aic3204Status::ERROR_NOT_INITIALIZED;
+  }
+
+  if (muted == _dac_muted) {
+    return Aic3204Status::OK;
+  }
+
+  const uint8_t PAGE = 0;
+  const uint8_t DAC_SETUP_REG = 0x40;
+  const uint8_t LEFT_DAC_MUTE_BIT = (1 << 3);
+  const uint8_t RIGHT_DAC_MUTE_BIT = (1 << 2);
+
+  uint8_t reg_value = 0;
+  Aic3204Status status = read_register(PAGE, DAC_SETUP_REG, reg_value);
+  if (status != Aic3204Status::OK) {
+    AIC_LOG(
+        "AIC3204 Error: Failed to read DAC setup register for mute control");
+    return status;
+  }
+
+  if (muted) {
+    reg_value |= (LEFT_DAC_MUTE_BIT | RIGHT_DAC_MUTE_BIT);
+  } else {
+    reg_value &= ~(LEFT_DAC_MUTE_BIT | RIGHT_DAC_MUTE_BIT);
+  }
+
+  status = write_register(PAGE, DAC_SETUP_REG, reg_value);
+  if (status != Aic3204Status::OK) {
+    AIC_LOG("AIC3204 Error: Failed to write DAC mute control");
+    return status;
+  }
+
+  _dac_muted = muted;
+  AIC_LOG("AIC3204: DAC %s", muted ? "muted" : "unmuted");
+  return Aic3204Status::OK;
 }
 
 std::optional<bool> Aic3204::is_headphone_inserted() {

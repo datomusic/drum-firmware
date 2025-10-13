@@ -55,6 +55,7 @@ private:
 public:
   AttackBufferingSampleReader()
       : ram_read_pos_(0), attack_buffer_length_(0),
+        pending_discard_samples_(0),
         source_type_(SourceType::NONE),
         flash_data_buffered_reader_(sustain_reader_proxy_) {
     sustain_reader_proxy_.set_active_reader(&flash_data_memory_reader_);
@@ -63,6 +64,7 @@ public:
   // This constructor is for backward compatibility.
   explicit AttackBufferingSampleReader(const SampleData &sample_data_ref)
       : ram_read_pos_(0), attack_buffer_length_(0),
+        pending_discard_samples_(0),
         source_type_(SourceType::NONE),
         flash_data_buffered_reader_(sustain_reader_proxy_) {
     set_source(sample_data_ref);
@@ -80,6 +82,7 @@ public:
     flash_data_memory_reader_.set_source(
         sample_data_ptr_->get_flash_data_ptr(),
         sample_data_ptr_->get_flash_data_length());
+    pending_discard_samples_ = 0;
     reset(); // Resets ram_read_pos_ and flash_data_buffered_reader_
   }
 
@@ -112,6 +115,13 @@ public:
   void reset() override {
     ram_read_pos_ = 0;
     flash_data_buffered_reader_.reset();
+    // After a reset while streaming from file, ensure the sustain stream
+    // resumes after the preloaded attack portion.
+    if (source_type_ == SourceType::FROM_FILE) {
+      pending_discard_samples_ = attack_buffer_length_;
+    } else {
+      pending_discard_samples_ = 0;
+    }
   }
 
   bool __time_critical_func(has_data)() override {
@@ -176,6 +186,22 @@ public:
     // 2. Read from buffered sustain data if more samples are needed and RAM
     // buffer is exhausted
     if (samples_written_total < AUDIO_BLOCK_SAMPLES) {
+      // If we just reset and are streaming from a file, discard the preloaded attack
+      if (source_type_ == SourceType::FROM_FILE && pending_discard_samples_ > 0) {
+        uint32_t to_discard = pending_discard_samples_;
+        int16_t discard_buf[AUDIO_BLOCK_SAMPLES];
+        while (to_discard > 0) {
+          const uint32_t chunk = std::min(to_discard, static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES));
+          const uint32_t discarded =
+              flash_data_buffered_reader_.read_buffered_chunk(discard_buf, chunk);
+          if (discarded == 0) {
+            break; // No more data available right now
+          }
+          to_discard -= discarded;
+        }
+        pending_discard_samples_ = to_discard;
+      }
+
       uint32_t samples_needed_from_sustain =
           AUDIO_BLOCK_SAMPLES - samples_written_total;
       uint32_t samples_read_from_sustain =
@@ -224,7 +250,18 @@ public:
       }
     }
 
-    // 2. If RAM is exhausted, try to read from buffered sustain data
+    // 2. If RAM is exhausted, ensure sustain stream is positioned after attack
+    if (source_type_ == SourceType::FROM_FILE && pending_discard_samples_ > 0) {
+      int16_t tmp;
+      while (pending_discard_samples_ > 0) {
+        if (!flash_data_buffered_reader_.read_next(tmp)) {
+          out = 0;
+          return false;
+        }
+        pending_discard_samples_--;
+      }
+    }
+    // Then read next sustain sample
     return flash_data_buffered_reader_.read_next(out);
   }
 
@@ -238,6 +275,7 @@ private:
   // State for file-based sources
   AudioBlock attack_buffer_ram_;
   uint32_t attack_buffer_length_;
+  uint32_t pending_discard_samples_;
 
   enum class SourceType {
     NONE,

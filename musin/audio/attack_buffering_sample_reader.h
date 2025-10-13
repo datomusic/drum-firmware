@@ -54,8 +54,7 @@ private:
 
 public:
   AttackBufferingSampleReader()
-      : ram_read_pos_(0), attack_buffer_length_(0),
-        pending_discard_samples_(0),
+      : ram_read_pos_(0), attack_buffer_length_(0), pending_discard_samples_(0),
         source_type_(SourceType::NONE),
         flash_data_buffered_reader_(sustain_reader_proxy_) {
     sustain_reader_proxy_.set_active_reader(&flash_data_memory_reader_);
@@ -63,8 +62,7 @@ public:
 
   // This constructor is for backward compatibility.
   explicit AttackBufferingSampleReader(const SampleData &sample_data_ref)
-      : ram_read_pos_(0), attack_buffer_length_(0),
-        pending_discard_samples_(0),
+      : ram_read_pos_(0), attack_buffer_length_(0), pending_discard_samples_(0),
         source_type_(SourceType::NONE),
         flash_data_buffered_reader_(sustain_reader_proxy_) {
     set_source(sample_data_ref);
@@ -186,14 +184,18 @@ public:
     // 2. Read from buffered sustain data if more samples are needed and RAM
     // buffer is exhausted
     if (samples_written_total < AUDIO_BLOCK_SAMPLES) {
-      // If we just reset and are streaming from a file, discard the preloaded attack
-      if (source_type_ == SourceType::FROM_FILE && pending_discard_samples_ > 0) {
+      // If we just reset and are streaming from a file, discard the preloaded
+      // attack
+      if (source_type_ == SourceType::FROM_FILE &&
+          pending_discard_samples_ > 0) {
         uint32_t to_discard = pending_discard_samples_;
         int16_t discard_buf[AUDIO_BLOCK_SAMPLES];
         while (to_discard > 0) {
-          const uint32_t chunk = std::min(to_discard, static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES));
+          const uint32_t chunk =
+              std::min(to_discard, static_cast<uint32_t>(AUDIO_BLOCK_SAMPLES));
           const uint32_t discarded =
-              flash_data_buffered_reader_.read_buffered_chunk(discard_buf, chunk);
+              flash_data_buffered_reader_.read_buffered_chunk(discard_buf,
+                                                              chunk);
           if (discarded == 0) {
             break; // No more data available right now
           }

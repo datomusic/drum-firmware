@@ -27,8 +27,7 @@ SequencerController<NumTracks, NumSteps>::SequencerController(
     : sequencer_(main_sequencer_), scheduled_step_counter_{0},
       last_played_note_per_track{}, _just_played_step_per_track{},
       tempo_source(tempo_handler_ref), _running(false), _step_is_due{false},
-      _active_note_per_track{}, _pad_pressed_state{},
-      _retrigger_mode_per_track{}, logger_(logger) {
+      _active_note_per_track{}, _retrigger_mode_per_track{}, logger_(logger) {
 
   initialize_active_notes();
   initialize_all_sequencers();
@@ -501,23 +500,6 @@ uint8_t SequencerController<NumTracks, NumSteps>::get_active_note_for_track(
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::set_pad_pressed_state(
-    uint8_t track_index, bool is_pressed) {
-  if (track_index < NumTracks) {
-    _pad_pressed_state[track_index] = is_pressed;
-  }
-}
-
-template <size_t NumTracks, size_t NumSteps>
-bool SequencerController<NumTracks, NumSteps>::is_pad_pressed(
-    uint8_t track_index) const {
-  if (track_index < NumTracks) {
-    return _pad_pressed_state[track_index];
-  }
-  return false;
-}
-
-template <size_t NumTracks, size_t NumSteps>
 uint8_t SequencerController<NumTracks, NumSteps>::get_retrigger_mode_for_track(
     uint8_t track_index) const {
   if (track_index < NumTracks) {
@@ -669,7 +651,6 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
   srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
-  _pad_pressed_state.fill(false);
   _has_active_velocity_hit.fill(false);
 }
 

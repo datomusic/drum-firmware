@@ -222,10 +222,6 @@ public:
   void set_pad_pressed_state(uint8_t track_index, bool is_pressed);
   [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
 
-  void record_velocity_hit(uint8_t track_index);
-  void clear_velocity_hit(uint8_t track_index);
-  [[nodiscard]] bool has_recent_velocity_hit(uint8_t track_index) const;
-
   /**
    * @brief Get the current retrigger mode for a track.
    * @param track_index The track index to check.
@@ -303,7 +299,6 @@ private:
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
   etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};
-  etl::array<bool, NumTracks> _has_active_velocity_hit{};
 
   // Persistence management (optional until filesystem is ready)
   std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;

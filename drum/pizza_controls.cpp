@@ -142,7 +142,7 @@ void PizzaControls::notification(
 // --- KeypadComponent ---
 PizzaControls::KeypadComponent::KeypadComponent(PizzaControls *parent_ptr)
     : parent_controls(parent_ptr),
-      keypad(keypad_decoder_pins, keypad_columns_pins,
+      keypad(keypad_decoder_pins, keypad_columns_pins, parent_ptr->_logger_ref,
              config::keypad::POLL_INTERVAL_MS, config::keypad::DEBOUNCE_TIME_MS,
              config::keypad::HOLD_TIME_MS, config::keypad::TAP_TIME_MS),
       keypad_observer(this, keypad_cc_map, config::keypad::_CHANNEL) {

@@ -9,37 +9,38 @@
 // hardware/gpio.h is no longer needed directly
 extern "C" {
 #include "pico/assert.h" // For panic etc.
-#include "pico/time.h"   // For get_absolute_time, absolute_time_diff_us, nil_time
+#include "pico/time.h" // For get_absolute_time, absolute_time_diff_us, nil_time
 }
 
-// Note: Definitions are already within Musin::UI namespace via keypad_hc138.h include
+// Note: Definitions are already within Musin::UI namespace via keypad_hc138.h
+// include
 
 // --- Constructor Implementation ---
 template <std::uint8_t NumRows, std::uint8_t NumCols>
-Keypad_HC138<NumRows, NumCols>::Keypad_HC138(const etl::array<uint32_t, 3> &decoder_address_pins,
-                                             const etl::array<uint32_t, NumCols> &col_pins,
-                                             // No key_data_buffer parameter
-                                             std::uint32_t scan_interval_ms,
-                                             std::uint32_t debounce_time_ms,
-                                             std::uint32_t hold_time_ms,
-                                             std::uint32_t tap_time_ms)
+Keypad_HC138<NumRows, NumCols>::Keypad_HC138(
+    const etl::array<uint32_t, 3> &decoder_address_pins,
+    const etl::array<uint32_t, NumCols> &col_pins, musin::Logger &logger,
+    std::uint32_t scan_interval_ms, std::uint32_t debounce_time_ms,
+    std::uint32_t hold_time_ms,
+    std::uint32_t tap_time_ms)
     : // Store timing parameters (convert ms to us for internal storage)
-      _scan_interval_us(scan_interval_ms * 1000), _debounce_time_us(debounce_time_ms * 1000),
+      _scan_interval_us(scan_interval_ms * 1000),
+      _debounce_time_us(debounce_time_ms * 1000),
       _hold_time_us(hold_time_ms * 1000), _tap_time_us(tap_time_ms * 1000),
       // _internal_key_data is default-initialized (member array)
       // Initialize time
-      _last_scan_time(nil_time)
-// Note: _decoder_address_pins and _col_pins vectors are default-initialized here
+      _last_scan_time(nil_time), _logger(logger)
+// Note: _decoder_address_pins and _col_pins vectors are default-initialized
+// here
 {
   // --- Runtime Input Validation ---
   // static_asserts in the header handle dimension range checks.
   // No need to check span size anymore.
 
   // Initialize the internal key data buffer
-  // (Default initialization of KeyData structs might be sufficient,
-  // but explicit zeroing is safer if KeyData changes)
+  // Keys start in STUCK state (already set by KeyData default initialization)
   for (KeyData &key : _internal_key_data) {
-    key = {}; // Default initialize KeyData structs
+    key.state = KeyState::STUCK;
   }
 
   // Construct GpioPin objects in the vectors using the provided pin numbers
@@ -52,14 +53,16 @@ Keypad_HC138<NumRows, NumCols>::Keypad_HC138(const etl::array<uint32_t, 3> &deco
 }
 
 // --- init() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols> void Keypad_HC138<NumRows, NumCols>::init() {
+template <std::uint8_t NumRows, std::uint8_t NumCols>
+void Keypad_HC138<NumRows, NumCols>::init() {
   // Initialize Decoder Address Pins (Outputs)
   for (auto &pin : _decoder_address_pins) { // Iterate over GpioPin vector
     pin.set_direction(musin::hal::GpioDirection::OUT);
     pin.write(false); // Start with address 0
   }
 
-  // Initialize Column Pins (Inputs with Pull-ups) - Iterate through the GpioPin vector
+  // Initialize Column Pins (Inputs with Pull-ups) - Iterate through the GpioPin
+  // vector
   for (auto &pin : _col_pins) { // Iterate over GpioPin vector
     pin.set_direction(musin::hal::GpioDirection::IN);
     pin.enable_pullup();
@@ -68,10 +71,12 @@ template <std::uint8_t NumRows, std::uint8_t NumCols> void Keypad_HC138<NumRows,
   }
 
   _last_scan_time = get_absolute_time();
+  _first_scan_complete = false;
 }
 
 // --- scan() Implementation ---
-template <std::uint8_t NumRows, std::uint8_t NumCols> bool Keypad_HC138<NumRows, NumCols>::scan() {
+template <std::uint8_t NumRows, std::uint8_t NumCols>
+bool Keypad_HC138<NumRows, NumCols>::scan() {
   absolute_time_t now = get_absolute_time();
   uint64_t diff_us = absolute_time_diff_us(_last_scan_time, now);
 
@@ -109,41 +114,63 @@ template <std::uint8_t NumRows, std::uint8_t NumCols> bool Keypad_HC138<NumRows,
   // Optional: De-select row (set address lines low or to an unused state)
   select_row(0); // Or select an address > num_rows if needed
 
+  // After first scan, log any keys that are still stuck
+  if (!_first_scan_complete) {
+    _first_scan_complete = true;
+    for (std::uint8_t r = 0; r < NumRows; ++r) {
+      for (std::uint8_t c = 0; c < NumCols; ++c) {
+        const KeyData &key = _internal_key_data[r * NumCols + c];
+        if (key.state == KeyState::STUCK) {
+          _logger.warn("Stuck key at init: row", static_cast<std::uint32_t>(r));
+          _logger.warn("Stuck key at init: col", static_cast<std::uint32_t>(c));
+        }
+      }
+    }
+  }
+
   return true; // Scan was performed
 }
 
 // --- is_pressed() Implementation ---
 template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::is_pressed(std::uint8_t row, std::uint8_t col) const {
+bool Keypad_HC138<NumRows, NumCols>::is_pressed(std::uint8_t row,
+                                                std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
     return false; // Use template parameters
   const KeyState current_state =
       _internal_key_data[row * NumCols + col].state; // Use internal array
-  return (current_state == KeyState::PRESSED || current_state == KeyState::HOLDING);
+  return (current_state == KeyState::PRESSED ||
+          current_state == KeyState::HOLDING);
 }
 
 // --- was_pressed() Implementation ---
 template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::was_pressed(std::uint8_t row, std::uint8_t col) const {
+bool Keypad_HC138<NumRows, NumCols>::was_pressed(std::uint8_t row,
+                                                 std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
-    return false;                                              // Use template parameters
-  return _internal_key_data[row * NumCols + col].just_pressed; // Use internal array
+    return false; // Use template parameters
+  return _internal_key_data[row * NumCols + col]
+      .just_pressed; // Use internal array
 }
 
 // --- was_released() Implementation ---
 template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::was_released(std::uint8_t row, std::uint8_t col) const {
+bool Keypad_HC138<NumRows, NumCols>::was_released(std::uint8_t row,
+                                                  std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
-    return false;                                               // Use template parameters
-  return _internal_key_data[row * NumCols + col].just_released; // Use internal array
+    return false; // Use template parameters
+  return _internal_key_data[row * NumCols + col]
+      .just_released; // Use internal array
 }
 
 // --- is_Held() Implementation ---
 template <std::uint8_t NumRows, std::uint8_t NumCols>
-bool Keypad_HC138<NumRows, NumCols>::is_held(std::uint8_t row, std::uint8_t col) const {
+bool Keypad_HC138<NumRows, NumCols>::is_held(std::uint8_t row,
+                                             std::uint8_t col) const {
   if (row >= NumRows || col >= NumCols)
     return false; // Use template parameters
-  return (_internal_key_data[row * NumCols + col].state == KeyState::HOLDING); // Use internal array
+  return (_internal_key_data[row * NumCols + col].state ==
+          KeyState::HOLDING); // Use internal array
 }
 
 // --- select_row() Implementation ---
@@ -162,12 +189,24 @@ void Keypad_HC138<NumRows, NumCols>::select_row(std::uint8_t row) {
 
 // --- update_key_state() Implementation ---
 template <std::uint8_t NumRows, std::uint8_t NumCols>
-void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8_t c,
-                                                      bool raw_key_pressed, absolute_time_t now) {
+void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r,
+                                                      std::uint8_t c,
+                                                      bool raw_key_pressed,
+                                                      absolute_time_t now) {
   // Get mutable reference to the key's data using the internal array
   KeyData &key = _internal_key_data[r * NumCols + c]; // Use internal array
 
   switch (key.state) {
+  case KeyState::STUCK:
+    if (!raw_key_pressed) {
+      // Key released, transition directly to IDLE (no debounce)
+      key.state = KeyState::IDLE;
+      _logger.info("Key cleared: row", static_cast<std::uint32_t>(r));
+      _logger.info("Key cleared: col", static_cast<std::uint32_t>(c));
+    }
+    // else: still pressed, remain in STUCK state
+    break;
+
   case KeyState::IDLE:
     if (raw_key_pressed) {
       // Potential press detected, start debounce timer
@@ -180,18 +219,20 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
   case KeyState::DEBOUNCING_PRESS:
     if (raw_key_pressed) {
       // Still pressed, check if debounce time has passed
-      if (absolute_time_diff_us(key.state_change_time, now) >= _debounce_time_us) {
+      if (absolute_time_diff_us(key.state_change_time, now) >=
+          _debounce_time_us) {
         // Debounce confirmed, transition to PRESSED
         KeyState next_state = KeyState::PRESSED;
-        key.press_event_time = now;                   // Record press time for tap check
-        key.just_pressed = true;                      // Set event flag
+        key.press_event_time = now; // Record press time for tap check
+        key.just_pressed = true;    // Set event flag
         notify_event(r, c, KeypadEvent::Type::Press); // Notify observers
 
         // Check immediately if hold time is zero or very small
         if (_hold_time_us == 0 ||
             absolute_time_diff_us(key.press_start_time, now) >= _hold_time_us) {
           next_state = KeyState::HOLDING;
-          notify_event(r, c, KeypadEvent::Type::Hold); // Notify observers about hold
+          notify_event(r, c,
+                       KeypadEvent::Type::Hold); // Notify observers about hold
         }
         key.state = next_state;
       }
@@ -209,7 +250,8 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
       // Still pressed, check if hold time has passed
       if (absolute_time_diff_us(key.press_start_time, now) >= _hold_time_us) {
         key.state = KeyState::HOLDING;
-        notify_event(r, c, KeypadEvent::Type::Hold); // Notify observers about hold
+        notify_event(r, c,
+                     KeypadEvent::Type::Hold); // Notify observers about hold
         // Note: press_start_time remains the original press time
       }
       // else: Hold time not yet elapsed, remain in PRESSED
@@ -232,7 +274,8 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
   case KeyState::DEBOUNCING_RELEASE:
     if (!raw_key_pressed) {
       // Still released, check if debounce time has passed
-      if (absolute_time_diff_us(key.state_change_time, now) >= _debounce_time_us) {
+      if (absolute_time_diff_us(key.state_change_time, now) >=
+          _debounce_time_us) {
         // Debounce confirmed, transition to IDLE
         key.state = KeyState::IDLE;
         key.just_released = true;                       // Set event flag
@@ -253,7 +296,8 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r, std::uint8
       // Key pressed again during release debounce. Go back to PRESSED.
       // The original press_start_time is still valid for hold calculations.
       key.state = KeyState::PRESSED;
-      key.state_change_time = now; // Reset debounce timer to avoid immediate release.
+      key.state_change_time =
+          now; // Reset debounce timer to avoid immediate release.
     }
     break;
   } // end switch

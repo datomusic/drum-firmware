@@ -147,19 +147,20 @@ bool AudioOutput::volume(float volume) {
   }
 
   // --- DAC Volume (Output Stage) ---
-  // Map curved volume [0, 1024] to DAC register value [-127, 0]
-  int8_t dac_register_value;
-  // If volume is below 3% (31/1024), mute it to prevent noise at the lowest
-  // levels.
+  // If volume is below 3% (31/1024), use hardware mute to prevent noise.
+  bool dac_ok;
   if (curved_volume < 31) {
-    dac_register_value = -127;
+    dac_ok = codec->set_dac_muted(true) == musin::drivers::Aic3204Status::OK;
   } else {
-    // Maps [31, 1024] to DAC range [-63, 0]
-    int32_t mapped_dac_value = ((curved_volume - 31) * 63) / (1024 - 31);
-    dac_register_value = static_cast<int8_t>(mapped_dac_value - 63);
+    // Unmute and set volume: Maps [31, 1024] to DAC range [-63, 0]
+    dac_ok = codec->set_dac_muted(false) == musin::drivers::Aic3204Status::OK;
+    if (dac_ok) {
+      int32_t mapped_dac_value = ((curved_volume - 31) * 63) / (1024 - 31);
+      int8_t dac_register_value = static_cast<int8_t>(mapped_dac_value - 63);
+      dac_ok = codec->set_dac_volume(dac_register_value) ==
+               musin::drivers::Aic3204Status::OK;
+    }
   }
-  bool dac_ok = codec->set_dac_volume(dac_register_value) ==
-                musin::drivers::Aic3204Status::OK;
 
   // --- Mixer Volume (Input Stage) ---
   // Map curved volume [0, 1024] to Mixer register value [-40, 0]

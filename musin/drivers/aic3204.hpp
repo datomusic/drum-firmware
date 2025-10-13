@@ -72,6 +72,7 @@ public:
   Aic3204Status set_headphone_enabled(bool enable);
   Aic3204Status set_dac_volume(int8_t volume);
   Aic3204Status set_mixer_volume(int8_t volume);
+  Aic3204Status set_dac_muted(bool muted);
   std::optional<bool> is_headphone_inserted();
   bool update_headphone_detection();
   Aic3204Status enter_sleep_mode();
@@ -101,6 +102,7 @@ private:
   uint8_t _current_page = 0xFF;
   int8_t _current_dac_volume = 0;
   int8_t _current_mixer_volume = 0;
+  bool _dac_muted = true;
   bool _headphone_inserted_state = false;
 };
 

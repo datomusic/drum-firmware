@@ -201,8 +201,6 @@ void Keypad_HC138<NumRows, NumCols>::update_key_state(std::uint8_t r,
     if (!raw_key_pressed) {
       // Key released, transition directly to IDLE (no debounce)
       key.state = KeyState::IDLE;
-      _logger.info("Key cleared: row", static_cast<std::uint32_t>(r));
-      _logger.info("Key cleared: col", static_cast<std::uint32_t>(c));
     }
     // else: still pressed, remain in STUCK state
     break;

@@ -7,6 +7,7 @@
 #include "etl/span.h"       // Include ETL span
 #include "etl/vector.h"     // Include ETL vector for storing GpioPin objects
 #include "musin/hal/gpio.h" // Include the GPIO abstraction
+#include "musin/hal/logger.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -40,32 +41,39 @@ template <std::uint8_t NumRows, std::uint8_t NumCols> class Keypad_HC138;
  * @brief Represents the possible states of a single key.
  */
 enum class KeyState : std::uint8_t {
+  STUCK,             ///< Initial state or key is stuck pressed.
   IDLE,              ///< Key is up and stable.
-  DEBOUNCING_PRESS,  ///< Key is potentially pressed, waiting for debounce confirmation.
+  DEBOUNCING_PRESS,  ///< Key is potentially pressed, waiting for debounce
+                     ///< confirmation.
   PRESSED,           ///< Key is confirmed pressed, hold timer running.
   HOLDING,           ///< Key is confirmed pressed and hold time has elapsed.
-  DEBOUNCING_RELEASE ///< Key is potentially released, waiting for debounce confirmation.
+  DEBOUNCING_RELEASE ///< Key is potentially released, waiting for debounce
+                     ///< confirmation.
 };
 
 /**
  * @brief Internal data structure to hold the state for a single key.
  */
 struct KeyData {
-  KeyState state = KeyState::IDLE;              ///< Current debounced and hold state.
-  absolute_time_t press_start_time = nil_time;  ///< Time of the initial press for hold detection.
-  absolute_time_t state_change_time = nil_time; ///< Time of the last state change for debouncing.
+  KeyState state = KeyState::STUCK; ///< Current debounced and hold state.
+  absolute_time_t press_start_time =
+      nil_time; ///< Time of the initial press for hold detection.
+  absolute_time_t state_change_time =
+      nil_time; ///< Time of the last state change for debouncing.
   absolute_time_t press_event_time =
-      nil_time;              ///< Time of the confirmed press event for tap detection.
-  bool just_pressed = false; ///< Flag indicating a transition to PRESSED occurred in the last scan.
-  bool just_released = false; ///< Flag indicating a transition to IDLE occurred in the last scan.
+      nil_time; ///< Time of the confirmed press event for tap detection.
+  bool just_pressed = false;  ///< Flag indicating a transition to PRESSED
+                              ///< occurred in the last scan.
+  bool just_released = false; ///< Flag indicating a transition to IDLE occurred
+                              ///< in the last scan.
 };
 
 /**
  * @brief Driver for a matrix keypad scanned using a 74HC138 decoder for rows.
  *
  * This driver handles debouncing and detects press, release, and hold events.
- * It requires the user to provide the memory buffer (via etl::span) for storing key states
- * to avoid dynamic allocation within the driver.
+ * It requires the user to provide the memory buffer (via etl::span) for storing
+ * key states to avoid dynamic allocation within the driver.
  *
  * @tparam NumRows Number of rows (1-8).
  * @tparam NumCols Number of columns (>0).
@@ -75,31 +83,39 @@ template <std::uint8_t NumRows, std::uint8_t NumCols>
 class Keypad_HC138 : public etl::observable<etl::observer<KeypadEvent>, 4> {
 public:
   // --- Compile-time validation ---
-  static_assert(NumRows > 0 && NumRows <= 8, "Keypad_HC138: NumRows must be between 1 and 8.");
+  static_assert(NumRows > 0 && NumRows <= 8,
+                "Keypad_HC138: NumRows must be between 1 and 8.");
   static_assert(NumCols > 0, "Keypad_HC138: NumCols must be greater than 0.");
 
   // --- Constants ---
-  static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_MS = 10; ///< 10ms default scan rate
-  static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_MS = 5;  ///< 5ms default debounce time
-  static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS = 500;    ///< 500ms default hold time
-  static constexpr std::uint32_t DEFAULT_TAP_TIME_MS = 60; ///< 150ms default tap time threshold
+  static constexpr std::uint32_t DEFAULT_SCAN_INTERVAL_MS =
+      10; ///< 10ms default scan rate
+  static constexpr std::uint32_t DEFAULT_DEBOUNCE_TIME_MS =
+      5; ///< 5ms default debounce time
+  static constexpr std::uint32_t DEFAULT_HOLD_TIME_MS =
+      500; ///< 500ms default hold time
+  static constexpr std::uint32_t DEFAULT_TAP_TIME_MS =
+      60; ///< 150ms default tap time threshold
 
   /**
    * @brief Construct a new Keypad_HC138 driver instance.
    *
-   * @param decoder_address_pins Array containing the 3 GPIO pin numbers for HC138 A0, A1, A2.
-   * @param col_pins Array containing the GPIO pin numbers for the columns. Must contain `NumCols`
-   * elements.
-   * @param key_data_buffer An etl::span wrapping the buffer allocated by the caller to store key
-   * states. Must contain `NumRows * NumCols` elements.
+   * @param decoder_address_pins Array containing the 3 GPIO pin numbers for
+   * HC138 A0, A1, A2.
+   * @param col_pins Array containing the GPIO pin numbers for the columns. Must
+   * contain `NumCols` elements.
+   * @param logger Reference to logger for diagnostic output.
    * @param scan_interval_ms Time between full keypad scans in milliseconds.
-   * @param debounce_time_ms Time duration for debouncing transitions in milliseconds.
-   * @param hold_time_ms Minimum time a key must be pressed to be considered 'held'.
-   * @param tap_time_ms Maximum time between a press and release to be considered a 'tap'.
+   * @param debounce_time_ms Time duration for debouncing transitions in
+   * milliseconds.
+   * @param hold_time_ms Minimum time a key must be pressed to be considered
+   * 'held'.
+   * @param tap_time_ms Maximum time between a press and release to be
+   * considered a 'tap'.
    */
   Keypad_HC138(const etl::array<uint32_t, 3> &decoder_address_pins,
-               const etl::array<uint32_t, NumCols> &col_pins, // Use etl::array reference
-               // No longer need key_data_buffer parameter
+               const etl::array<uint32_t, NumCols> &col_pins,
+               musin::Logger &logger,
                std::uint32_t scan_interval_ms = DEFAULT_SCAN_INTERVAL_MS,
                std::uint32_t debounce_time_ms = DEFAULT_DEBOUNCE_TIME_MS,
                std::uint32_t hold_time_ms = DEFAULT_HOLD_TIME_MS,
@@ -117,14 +133,16 @@ public:
 
   /**
    * @brief Performs a scan cycle if the scan interval has elapsed.
-   * This function should be called periodically in the main loop or via a timer.
-   * It updates the internal state of all keys based on raw input, debouncing, and hold timing.
+   * This function should be called periodically in the main loop or via a
+   * timer. It updates the internal state of all keys based on raw input,
+   * debouncing, and hold timing.
    * @return true if a scan was performed, false otherwise.
    */
   bool scan();
 
   /**
-   * @brief Checks if a specific key is currently considered pressed (includes held state).
+   * @brief Checks if a specific key is currently considered pressed (includes
+   * held state).
    *
    * @param row Row index (0 to NumRows-1).
    * @param col Column index (0 to NumCols-1).
@@ -133,8 +151,9 @@ public:
   bool is_pressed(std::uint8_t row, std::uint8_t col) const;
 
   /**
-   * @brief Checks if a specific key transitioned to the PRESSED state during the *last completed*
-   * scan cycle. This flag is cleared at the beginning of the next scan.
+   * @brief Checks if a specific key transitioned to the PRESSED state during
+   * the *last completed* scan cycle. This flag is cleared at the beginning of
+   * the next scan.
    *
    * @param row Row index (0 to NumRows-1).
    * @param col Column index (0 to NumCols-1).
@@ -143,8 +162,9 @@ public:
   bool was_pressed(std::uint8_t row, std::uint8_t col) const;
 
   /**
-   * @brief Checks if a specific key transitioned back to the IDLE state (was released) during the
-   * *last completed* scan cycle. This flag is cleared at the beginning of the next scan.
+   * @brief Checks if a specific key transitioned back to the IDLE state (was
+   * released) during the *last completed* scan cycle. This flag is cleared at
+   * the beginning of the next scan.
    *
    * @param row Row index (0 to NumRows-1).
    * @param col Column index (0 to NumCols-1).
@@ -173,21 +193,23 @@ public:
 
 private:
   /**
-   * @brief Sets the decoder address pins (A0, A1, A2) to select a specific row output (Y0-Y7).
-   * The selected Y output goes LOW.
+   * @brief Sets the decoder address pins (A0, A1, A2) to select a specific row
+   * output (Y0-Y7). The selected Y output goes LOW.
    * @param row The row number (0-7).
    */
   void select_row(std::uint8_t row);
 
   /**
-   * @brief Updates the state machine for a single key based on its raw state and timings.
+   * @brief Updates the state machine for a single key based on its raw state
+   * and timings.
    *
    * @param r Row index.
    * @param c Column index.
    * @param raw_key_pressed Current raw physical state (true if GPIO reads LOW).
    * @param now The current time.
    */
-  void update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key_pressed, absolute_time_t now);
+  void update_key_state(std::uint8_t r, std::uint8_t c, bool raw_key_pressed,
+                        absolute_time_t now);
 
   // --- Configuration (initialized in constructor) ---
   // NumRows and NumCols are now template parameters
@@ -201,7 +223,9 @@ private:
 
   // --- State ---
   etl::array<KeyData, NumRows * NumCols> _internal_key_data; // Internal buffer
-  absolute_time_t _last_scan_time = nil_time;                // Initialize to nil_time
+  absolute_time_t _last_scan_time = nil_time; // Initialize to nil_time
+  musin::Logger &_logger;
+  bool _first_scan_complete = false;
 
   // --- Private Notification Helper ---
   void notify_event(uint8_t r, uint8_t c, KeypadEvent::Type type) {

@@ -20,8 +20,20 @@ namespace {
 etl::optional<musin::drivers::Aic3204> codec;
 
 // Headphone jack detection state
-constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 100;
-absolute_time_t last_headphone_check = nil_time;
+constexpr uint32_t HEADPHONE_POLL_INTERVAL_MS = 20;     // Poll every 20ms
+constexpr uint32_t HEADPHONE_DEBOUNCE_DURATION_MS = 75; // Require 75ms stable
+
+// Debouncing state machine
+std::optional<bool> current_debounced_state =
+    std::nullopt;           // Cached debounced state
+bool pending_state = false; // Current raw pin state
+absolute_time_t pending_state_start_time =
+    nil_time; // When pending_state was first observed
+absolute_time_t last_poll_time = nil_time; // Last time we polled the codec
+
+// Listener and policy
+AudioOutput::HeadphoneListener headphone_listener = nullptr;
+bool auto_speaker_mute_enabled = false;
 
 } // namespace
 #endif
@@ -180,9 +192,43 @@ bool AudioOutput::volume(float volume) {
 
 bool AudioOutput::update(BufferSource &source) {
 #ifdef DATO_SUBMARINE
-  if (codec && time_reached(last_headphone_check)) {
-    last_headphone_check = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
-    codec->update_headphone_detection();
+  // Time-based headphone detection polling with software debounce
+  if (codec && time_reached(last_poll_time)) {
+    last_poll_time = make_timeout_time_ms(HEADPHONE_POLL_INTERVAL_MS);
+
+    auto raw_state_opt = codec->is_headphone_inserted();
+    if (raw_state_opt) {
+      bool raw_state = *raw_state_opt;
+
+      // State machine: detect changes and debounce
+      if (raw_state != pending_state) {
+        // State changed, restart debounce timer
+        pending_state = raw_state;
+        pending_state_start_time = get_absolute_time();
+      } else {
+        // State is stable, check if debounce period elapsed
+        int64_t elapsed_us = absolute_time_diff_us(pending_state_start_time,
+                                                   get_absolute_time());
+        if (elapsed_us >= (HEADPHONE_DEBOUNCE_DURATION_MS * 1000)) {
+          // Debounce period elapsed with stable state
+          if (!current_debounced_state ||
+              (*current_debounced_state != pending_state)) {
+            // State has changed after debouncing
+            current_debounced_state = pending_state;
+
+            // Notify listener if registered
+            if (headphone_listener) {
+              headphone_listener(pending_state);
+            }
+
+            // Apply auto-mute policy if enabled
+            if (auto_speaker_mute_enabled && codec) {
+              codec->set_amp_enabled(!pending_state);
+            }
+          }
+        }
+      }
+    }
   }
 #endif
 
@@ -265,5 +311,35 @@ bool AudioOutput::unmute() {
   // No codec defined, just track mute state
   is_muted = false;
   return true;
+#endif
+}
+
+std::optional<bool> AudioOutput::headphones_inserted() {
+#ifdef DATO_SUBMARINE
+  return current_debounced_state;
+#else
+  return std::nullopt;
+#endif
+}
+
+void AudioOutput::set_headphone_listener(HeadphoneListener listener) {
+#ifdef DATO_SUBMARINE
+  headphone_listener = listener;
+#else
+  (void)listener;
+#endif
+}
+
+void AudioOutput::clear_headphone_listener() {
+#ifdef DATO_SUBMARINE
+  headphone_listener = nullptr;
+#endif
+}
+
+void AudioOutput::enable_auto_speaker_mute(bool enable) {
+#ifdef DATO_SUBMARINE
+  auto_speaker_mute_enabled = enable;
+#else
+  (void)enable;
 #endif
 }

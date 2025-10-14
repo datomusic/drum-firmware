@@ -123,15 +123,13 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x00, 0x19, 0x00) != Aic3204Status::OK) {
     return; // BCLK/WCLK inputs
   }
+  if (write_register(0x00, 0x38, 0x04) != Aic3204Status::OK) {
+    return; // Enable MFP3 as GPIO input
+  }
 
   // DAC Processing Block (Page 0)
   if (write_register(0x00, 0x3C, 0x08) != Aic3204Status::OK) {
     return; // DAC PRB_P8
-  }
-
-  // Configure headphone jack detection
-  if (write_register(0x00, 0x43, 0x93) != Aic3204Status::OK) {
-    return; // HP detect Enable + 256ms debounce
   }
 
   if (select_page(1) != Aic3204Status::OK) {
@@ -500,35 +498,24 @@ std::optional<bool> Aic3204::is_headphone_inserted() {
     return std::nullopt;
   }
 
+  // Read MFP3 pin state directly from GPIO control register
+  // Page 0, Reg 0x36: MFP3 Pin Control/Status
+  // Bit 0 contains the pin level when configured as input
   const uint8_t PAGE = 0;
-  const uint8_t STATUS_REG = 0x2E; // Register 46
-  const uint8_t INSERTION_MASK = (1 << 4);
+  const uint8_t MFP3_REG = 0x36;
+  const uint8_t PIN_LEVEL_MASK = (1 << 0);
 
   uint8_t reg_val = 0;
-  Aic3204Status status = read_register(PAGE, STATUS_REG, reg_val);
+  Aic3204Status status = read_register(PAGE, MFP3_REG, reg_val);
   if (status != Aic3204Status::OK) {
-    AIC_LOG("AIC3204 Error: Failed to read headphone jack status.");
+    AIC_LOG("AIC3204 Error: Failed to read MFP3 pin state.");
     return std::nullopt;
   }
 
-  return (reg_val & INSERTION_MASK) != 0;
-}
-
-bool Aic3204::update_headphone_detection() {
-  if (auto inserted_opt = is_headphone_inserted()) {
-    // We successfully read the status
-    bool is_inserted = inserted_opt.value();
-    if (is_inserted != _headphone_inserted_state) {
-      AIC_LOG("Toggling headphone detect state");
-      _headphone_inserted_state = is_inserted;
-      return set_amp_enabled(_headphone_inserted_state == false) ==
-             Aic3204Status::OK;
-    }
-    return true;
-  } else {
-    // Failed to read status, return an error
-    return false;
-  }
+  // MFP3 pin is typically pulled HIGH by default and goes LOW when headphones
+  // are inserted (jack switch grounds the pin). Invert the logic.
+  bool pin_low = (reg_val & PIN_LEVEL_MASK) == 0;
+  return pin_low; // true = headphones inserted (pin LOW)
 }
 
 Aic3204Status Aic3204::enter_sleep_mode() {

@@ -123,6 +123,9 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x00, 0x19, 0x00) != Aic3204Status::OK) {
     return; // BCLK/WCLK inputs
   }
+  if (write_register(0x00, 0x38, 0x04) != Aic3204Status::OK) {
+    return; // Enable MFP3 as GPIO input
+  }
 
   // DAC Processing Block (Page 0)
   if (write_register(0x00, 0x3C, 0x08) != Aic3204Status::OK) {

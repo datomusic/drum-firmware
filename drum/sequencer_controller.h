@@ -219,9 +219,6 @@ public:
    */
   [[nodiscard]] uint8_t get_active_note_for_track(uint8_t track_index) const;
 
-  void set_pad_pressed_state(uint8_t track_index, bool is_pressed);
-  [[nodiscard]] bool is_pad_pressed(uint8_t track_index) const;
-
   void record_velocity_hit(uint8_t track_index);
   void clear_velocity_hit(uint8_t track_index);
   [[nodiscard]] bool has_recent_velocity_hit(uint8_t track_index) const;
@@ -301,7 +298,6 @@ private:
   bool random_intends_flip_{false};
 
   etl::array<uint8_t, NumTracks> _active_note_per_track{};
-  etl::array<bool, NumTracks> _pad_pressed_state{};
   etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};
   etl::array<bool, NumTracks> _has_active_velocity_hit{};
 
@@ -318,10 +314,6 @@ private:
 
   void create_persistent_state(SequencerPersistentState &state) const;
   void apply_persistent_state(const SequencerPersistentState &state);
-
-  etl::array<bool, NumTracks> &_pad_pressed_state_for_testing() {
-    return _pad_pressed_state;
-  }
 
 public:
   void activate_repeat(uint32_t length);

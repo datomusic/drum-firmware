@@ -138,7 +138,7 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
   switch (get_clock_source()) {
   case ClockSource::INTERNAL:
   case ClockSource::MIDI:
-    clock_router_ref_.trigger_resync();
+    clock_router_ref_.resync_sync_output();
     emit_manual_resync_event(target_phase);
     break;
   case ClockSource::EXTERNAL_SYNC:

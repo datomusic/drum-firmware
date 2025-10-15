@@ -95,10 +95,6 @@ void ClockRouter::set_bpm(float bpm) {
 }
 
 void ClockRouter::trigger_resync() {
-  if (current_source_ == ClockSource::INTERNAL) {
-    internal_clock_.reset();
-  }
-
   ClockEvent resync_event{current_source_};
   resync_event.is_resync = true;
   notify_observers(resync_event);

@@ -147,15 +147,15 @@ bool AudioOutput::volume(float volume) {
   }
 
   // --- DAC Volume (Output Stage) ---
-  // If volume is below 3% (31/1024), use hardware mute to prevent noise.
+  // If volume is below ~0.8% (8/1024), use hardware mute to prevent noise.
   bool dac_ok;
-  if (curved_volume < 31) {
+  if (curved_volume < 8) {
     dac_ok = codec->set_dac_muted(true) == musin::drivers::Aic3204Status::OK;
   } else {
-    // Unmute and set volume: Maps [31, 1024] to DAC range [-63, +8] (+4dB max)
+    // Unmute and set volume: Maps [8, 1024] to DAC range [-63, +12] (+6dB max)
     dac_ok = codec->set_dac_muted(false) == musin::drivers::Aic3204Status::OK;
     if (dac_ok) {
-      int32_t mapped_dac_value = ((curved_volume - 31) * 71) / (1024 - 31);
+      int32_t mapped_dac_value = ((curved_volume - 8) * 75) / (1024 - 8);
       int8_t dac_register_value = static_cast<int8_t>(mapped_dac_value - 63);
       dac_ok = codec->set_dac_volume(dac_register_value) ==
                musin::drivers::Aic3204Status::OK;

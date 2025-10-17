@@ -70,7 +70,7 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
 
   // Initialize all voice gains to zero to ensure silence.
   for (size_t i = 0; i < NUM_VOICES; ++i) {
-    mixer_.gain(i, 0.5f);
+    mixer_.gain(i, 0.25f);
   }
 }
 

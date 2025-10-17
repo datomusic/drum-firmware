@@ -1,4 +1,4 @@
-# CODER.md - DRUM Firmware Development Guide
+# AGENTS.md - DRUM Firmware Development Guide
 
 ## Project Overview
 DRUM is a MIDI drum machine/sequencer running on RP2350 microcontroller. Features 4 tracks with pressure-sensitive pads, step sequencer, real-time effects, MIDI I/O, and A/B firmware partitions for safe updates.

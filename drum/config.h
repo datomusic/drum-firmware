@@ -135,14 +135,14 @@ struct NoteDefinition {
 
 constexpr etl::array<NoteDefinition, 32> global_note_definitions = {
     {// Track 0 (notes 30-37)
-     {30, 0xFF0000},
-     {31, 0xFF0020},
-     {32, 0xFF0040},
-     {33, 0xFF0060},
-     {34, 0xFF1010},
-     {35, 0xFF1020},
-     {36, 0xFF2040},
-     {37, 0xFF2060},
+     {30, 0xFF0040},
+     {31, 0xFF0060},
+     {32, 0xFF1010},
+     {33, 0xFF1020},
+     {34, 0xFF2040},
+     {35, 0xFF2060},
+     {36, 0xFF0000},
+     {37, 0xFF0020},
      // Track 1 (notes 38-45)
      {38, 0x0000FF},
      {39, 0x0028FF},

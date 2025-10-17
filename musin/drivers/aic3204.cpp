@@ -180,11 +180,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x01, 0x0D, 0x0A) != Aic3204Status::OK) {
     return; // DAC_R -> HPR, MAR -> HPR
   }
-  if (write_register(0x01, 0x10, 0x00) != Aic3204Status::OK) {
-    return; // HPL Gain 0dB
+  if (write_register(0x01, 0x10, 0x04) != Aic3204Status::OK) {
+    return; // HPL Gain 4dB
   }
-  if (write_register(0x01, 0x11, 0x00) != Aic3204Status::OK) {
-    return; // HPR Gain 0dB
+  if (write_register(0x01, 0x11, 0x04) != Aic3204Status::OK) {
+    return; // HPR Gain 4dB
   }
 
   // Line Output Routing & Gain (0dB Gain)
@@ -194,10 +194,10 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x01, 0x0F, 0x08) != Aic3204Status::OK) {
     return; // LOR Diff Config
   }
-  if (write_register(0x01, 0x12, 0x00) != Aic3204Status::OK) {
+  if (write_register(0x01, 0x12, 0x04) != Aic3204Status::OK) {
     return; // LOL Gain 0dB
   }
-  if (write_register(0x01, 0x13, 0x00) != Aic3204Status::OK) {
+  if (write_register(0x01, 0x13, 0x04) != Aic3204Status::OK) {
     return; // LOR Gain 0dB
   }
 
@@ -215,12 +215,12 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
     return; // CM is routed to Right MICPGA via CM1R with 10k resistance
   }
 
-  // Set MICPGA Volume Control for 8.5dB boost on line inputs
-  if (write_register(0x01, 0x3B, 0x11) != Aic3204Status::OK) {
-    return; // Left MICPGA Volume: +8.5dB (0.5dB steps)
+  // Set MICPGA Volume Control for 4.5dB boost on line inputs
+  if (write_register(0x01, 0x3B, 0x09) != Aic3204Status::OK) {
+    return; // Left MICPGA Volume: +4.5dB (0.5dB steps)
   }
-  if (write_register(0x01, 0x3C, 0x11) != Aic3204Status::OK) {
-    return; // Right MICPGA Volume: +8.5dB (0.5dB steps)
+  if (write_register(0x01, 0x3C, 0x09) != Aic3204Status::OK) {
+    return; // Right MICPGA Volume: +4.5dB (0.5dB steps)
   }
 
   // Power up Output Drivers (Page 1) - This starts soft-stepping

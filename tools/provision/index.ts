@@ -439,7 +439,7 @@ async function runProvision({ useJson, forceLocal, forceDownload, firmwarePath }
   const TIMEOUT_SECONDS = 30;
   const MIDI_POLL_TIMEOUT_SECONDS = 30;
   const MIDI_POLL_INTERVAL_MS = 1000;
-  const SAMPLES_DIR = 'support/samples/factory_kit';
+  const SAMPLES_DIR = 'samples/factory_kit';
   const BOOTLOADER_VOLUME_NAME = 'DRUMBOOT';
   const partitionJsonPath = path.join(projectRoot, 'drum', 'partition_table.json');
   const partitionUf2Candidates = [

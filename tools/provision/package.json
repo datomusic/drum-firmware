@@ -8,8 +8,8 @@
     "drum-provision": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc --module commonjs --target ES2020 --outDir dist index.ts",
-    "build:watch": "tsc --module commonjs --target ES2020 --outDir dist --watch index.ts",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "start": "node --experimental-strip-types index.ts",
     "start:compiled": "npm run build && node dist/index.js",
     "clean": "rm -rf dist"

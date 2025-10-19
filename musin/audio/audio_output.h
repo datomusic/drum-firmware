@@ -2,6 +2,7 @@
 #define AUDIO_OUTPUT_H_5M07E3OB
 
 #include "buffer_source.h"
+#include <optional>
 
 namespace musin::drivers {
 class Aic3204;
@@ -9,6 +10,9 @@ class Aic3204;
 
 namespace AudioOutput {
 static const int SAMPLE_FREQUENCY = 44100;
+
+// Headphone detection listener callback type
+using HeadphoneListener = void (*)(bool inserted);
 
 /**
  * @brief Initializes the audio output system (I2S and Codec).
@@ -80,6 +84,41 @@ bool route_line_in_to_headphone(bool enable);
  * @brief Deinitializes the audio output system.
  */
 void deinit();
+
+/**
+ * @brief Returns the cached debounced headphone insertion state.
+ *
+ * @return std::optional<bool> containing true if headphones are inserted,
+ *         false if removed, or std::nullopt if state is unknown.
+ */
+std::optional<bool> headphones_inserted();
+
+/**
+ * @brief Registers a listener callback to be notified of headphone state
+ * changes.
+ *
+ * The callback is invoked from the update() context when the debounced state
+ * changes. Only one listener can be registered at a time.
+ *
+ * @param listener The callback function to invoke on state changes.
+ */
+void set_headphone_listener(HeadphoneListener listener);
+
+/**
+ * @brief Clears the registered headphone listener callback.
+ */
+void clear_headphone_listener();
+
+/**
+ * @brief Enables or disables automatic speaker muting when headphones are
+ * inserted.
+ *
+ * When enabled, the external amp is automatically disabled when headphones are
+ * detected and re-enabled when removed.
+ *
+ * @param enable true to enable auto-mute, false to disable.
+ */
+void enable_auto_speaker_mute(bool enable);
 
 } // namespace AudioOutput
 

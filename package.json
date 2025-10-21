@@ -1,0 +1,20 @@
+{
+  "name": "drum-firmware",
+  "version": "1.0.0",
+  "description": "DRUM - MIDI drum machine/sequencer for RP2350",
+  "private": true,
+  "workspaces": [
+    "tools/drumtool",
+    "tools/provision"
+  ],
+  "scripts": {
+    "install:tools": "npm install",
+    "build:provision": "npm run build --workspace=tools/provision",
+    "start:provision": "npm run start --workspace=tools/provision",
+    "clean:provision": "npm run clean --workspace=tools/provision",
+    "build:all": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

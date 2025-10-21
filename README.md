@@ -30,7 +30,35 @@ The device runs on an RP2350 microcontroller with dual-partition firmware (A/B) 
   - `ports/`: Platform-specific code and libraries (e.g., Pico SDK integration).
 - `test/`: Unit and integration tests for `musin` and `drum` code.
 - `tools/`: Utility scripts and tools for development/deployment.
-- `lib/`: External libraries. 
+- `lib/`: External libraries.
+
+## Installing Development Tools
+
+The repository includes Node.js-based development tools in the `tools/` directory:
+- `tools/drumtool`: MIDI Sample Dump Standard implementation for managing device samples
+- `tools/provision`: TypeScript-based provisioning tool for DRUM hardware
+
+Install all tool dependencies from the project root using npm workspaces:
+
+```bash
+npm install
+```
+
+**Tool-specific commands:**
+
+```bash
+npm run build:provision      # Build the provision tool
+npm run start:provision      # Run the provision tool
+npm run build:all           # Build all tools with build scripts
+```
+
+Alternatively, you can work directly in each tool directory:
+
+```bash
+cd tools/provision
+npm install
+npm run build
+```
 
 ## Building the Firmware
 

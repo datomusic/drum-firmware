@@ -209,7 +209,7 @@ async function waitForDeviceOverMidi(timeoutSeconds: number, intervalMs: number,
 
   while (true) {
     const result = await runCommand('node', ['tools/drumtool/drumtool.js', 'version'], logger, {
-      silent: true,
+      silent: false,
       ignoreFailure: true
     });
 

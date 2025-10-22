@@ -243,13 +243,13 @@ void PizzaControls::KeypadComponent::KeypadEventHandler::handle_sequencer_step(
       uint8_t note = controls->drumpad_component.get_note_for_pad(track_index);
       track.set_step_note(step_index, note);
       track.set_step_velocity(step_index, step_velocity);
-      // Mark sequencer state dirty after pattern change
-      controls->_sequencer_controller_ref.mark_state_dirty_public();
       if (!controls->is_running()) {
         controls->_sequencer_controller_ref.trigger_note_on(track_index, note,
                                                             step_velocity);
       }
     }
+    // Mark sequencer state dirty after pattern change (both enable and disable)
+    controls->_sequencer_controller_ref.mark_state_dirty_public();
   }
   if (event.type == musin::ui::KeypadEvent::Type::Hold) {
     if (!track.get_step(step_index).enabled) {

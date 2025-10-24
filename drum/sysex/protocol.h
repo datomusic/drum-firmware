@@ -20,6 +20,16 @@ extern "C" {
 
 namespace sysex {
 
+// SysEx message frame sizes
+static constexpr size_t SYSEX_START_SIZE = 1;  // 0xF0
+static constexpr size_t SYSEX_MFR_ID_SIZE = 3; // 3 manufacturer ID bytes
+static constexpr size_t SYSEX_DEVICE_ID_SIZE = 1;
+static constexpr size_t SYSEX_TAG_SIZE = 1;
+static constexpr size_t SYSEX_END_SIZE = 1; // 0xF7
+static constexpr size_t SYSEX_HEADER_SIZE =
+    SYSEX_START_SIZE + SYSEX_MFR_ID_SIZE + SYSEX_DEVICE_ID_SIZE +
+    SYSEX_TAG_SIZE;
+
 template <typename FileOperations> struct Protocol {
   static constexpr uint64_t TIMEOUT_US = 5000000; // 5 seconds
 
@@ -70,6 +80,11 @@ template <typename FileOperations> struct Protocol {
     Ack = 0x13,
     Nack = 0x14,
     FormatFilesystem = 0x15,
+
+    // Sequencer State Commands
+    RequestSequencerState = 0x20,
+    SequencerStateResponse = 0x21,
+    SetSequencerState = 0x22,
   };
 
   enum class Result {
@@ -79,6 +94,8 @@ template <typename FileOperations> struct Protocol {
     PrintFirmwareVersion,
     PrintSerialNumber,
     PrintStorageInfo,
+    PrintSequencerState,
+    SetSequencerState,
     FileError,
     ShortMessage,
     NotSysex,
@@ -218,6 +235,8 @@ private:
       return Result::PrintSerialNumber;
     case Tag::RequestStorageInfo:
       return Result::PrintStorageInfo;
+    case Tag::RequestSequencerState:
+      return Result::PrintSequencerState;
     default:
       break;
     }
@@ -259,6 +278,8 @@ private:
     switch (tag) {
     case BeginFileWrite:
       return handle_begin_file_write(bytes, send_reply, now);
+    case SetSequencerState:
+      return Result::SetSequencerState;
     default:
       logger.error("SysEx: Unknown tag with body", static_cast<uint32_t>(tag));
       if (state == State::FileTransfer) {

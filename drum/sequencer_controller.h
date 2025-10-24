@@ -244,6 +244,20 @@ public:
     return sequencer_.get();
   }
 
+  /**
+   * @brief Gets the current sequencer state for SysEx transfer.
+   * @return The current persistent state including all track velocities and
+   * active notes.
+   */
+  [[nodiscard]] SequencerPersistentState get_current_state() const;
+
+  /**
+   * @brief Applies a sequencer state received via SysEx.
+   * @param state The state to apply to the sequencer.
+   * @return true if state was applied successfully, false on error.
+   */
+  bool apply_state(const SequencerPersistentState &state);
+
 private:
   /**
    * @brief Calculates the anchor phase and primed last_phase to maintain swing

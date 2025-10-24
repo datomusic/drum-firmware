@@ -77,6 +77,31 @@ export class SysexProtocol {
             this.replyPromise.resolve({ total: total_bytes, free: free_bytes });
             this.replyPromise = null;
           }
+        } else if (tag === Command.SequencerStateResponse) {
+          if (this.replyPromise) {
+            const NUM_TRACKS = 4;
+            const NUM_STEPS = 8;
+            const VELOCITIES_SIZE = NUM_TRACKS * NUM_STEPS;
+
+            // Extract velocities (32 bytes)
+            const velocities: number[][] = [];
+            for (let track = 0; track < NUM_TRACKS; track++) {
+              velocities[track] = [];
+              for (let step = 0; step < NUM_STEPS; step++) {
+                velocities[track][step] = message[6 + track * NUM_STEPS + step];
+              }
+            }
+
+            // Extract active notes (4 bytes)
+            const activeNotes: number[] = [];
+            for (let track = 0; track < NUM_TRACKS; track++) {
+              activeNotes[track] = message[6 + VELOCITIES_SIZE + track];
+            }
+
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve({ velocities, activeNotes });
+            this.replyPromise = null;
+          }
         }
       }
     }
@@ -181,6 +206,56 @@ export class SysexProtocol {
         }, 2000)
       };
     });
+  }
+
+  async getSequencerState(): Promise<{ velocities: number[][], activeNotes: number[] }> {
+    await this.sendMessage([Command.RequestSequencerState]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for sequencer state reply.'));
+        }, 2000)
+      };
+    });
+  }
+
+  async setSequencerState(velocities: number[][], activeNotes: number[]): Promise<void> {
+    const NUM_TRACKS = 4;
+    const NUM_STEPS = 8;
+
+    // Validate input
+    if (velocities.length !== NUM_TRACKS) {
+      throw new Error(`Expected ${NUM_TRACKS} tracks, got ${velocities.length}`);
+    }
+    if (activeNotes.length !== NUM_TRACKS) {
+      throw new Error(`Expected ${NUM_TRACKS} active notes, got ${activeNotes.length}`);
+    }
+
+    // Build payload: 32 velocity bytes + 4 active note bytes
+    const payload: number[] = [Command.SetSequencerState];
+
+    // Add velocities
+    for (let track = 0; track < NUM_TRACKS; track++) {
+      if (velocities[track].length !== NUM_STEPS) {
+        throw new Error(`Track ${track}: expected ${NUM_STEPS} steps, got ${velocities[track].length}`);
+      }
+      for (let step = 0; step < NUM_STEPS; step++) {
+        const velocity = velocities[track][step] & 0x7F;
+        payload.push(velocity);
+      }
+    }
+
+    // Add active notes
+    for (let track = 0; track < NUM_TRACKS; track++) {
+      const note = activeNotes[track] & 0x7F;
+      payload.push(note);
+    }
+
+    await this.sendMessage(payload);
+    await this.waitForAck();
   }
 
   async sendFileChunk(chunk: Buffer): Promise<void> {

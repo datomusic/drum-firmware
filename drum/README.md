@@ -186,3 +186,55 @@ Transferring files (like samples or `kit.bin`) to the device is a multi-step pro
     - **Command:** `EndFileTransfer` (0x12)
     - **Payload:** None.
     - After sending all data chunks, the sender sends this command. The device closes the file, finalizing the write, and sends a final `Ack`.
+
+### Sequencer State Commands
+These commands allow reading and writing the current sequencer pattern state, including step velocities and active note assignments for each track.
+
+#### RequestSequencerState (0x20)
+Requests the current sequencer state from the device.
+
+**Request Format:**
+```
+F0 00 22 01 65 20 F7
+```
+
+**Response:** The device replies with a `SequencerStateResponse` message containing the current pattern.
+
+#### SequencerStateResponse (0x21)
+The device's response to `RequestSequencerState`, containing the full sequencer state.
+
+**Response Format:**
+```
+F0 00 22 01 65 21 <State Data> F7
+```
+
+**State Data Structure (36 bytes):**
+- Bytes 0-31: Velocity data for all steps (4 tracks × 8 steps)
+  - Track 0 steps (0-7): bytes 0-7
+  - Track 1 steps (0-7): bytes 8-15
+  - Track 2 steps (0-7): bytes 16-23
+  - Track 3 steps (0-7): bytes 24-31
+  - Velocity 0 = step disabled, 1-127 = step enabled with velocity
+- Bytes 32-35: Active MIDI note per track
+  - Track 0 note: byte 32
+  - Track 1 note: byte 33
+  - Track 2 note: byte 34
+  - Track 3 note: byte 35
+
+All values are 7-bit MIDI-compliant (0-127).
+
+#### SetSequencerState (0x22)
+Sets the sequencer state on the device.
+
+**Command Format:**
+```
+F0 00 22 01 65 22 <State Data> F7
+```
+
+**State Data:** Same 36-byte structure as `SequencerStateResponse` (see above).
+
+**Response:** The device replies with `Ack` (0x13) on success or `Nack` (0x14) on failure.
+
+**Notes:**
+- Setting sequencer state marks the internal storage as dirty, triggering an automatic save to flash after a debounce period
+- Sample selection is done by sending MIDI note numbers matching the desired sample slots (as documented in the MIDI Note Numbers section above)

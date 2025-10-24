@@ -144,6 +144,9 @@ int main() {
   // internally.
   sequencer_controller.add_observer(message_router);
 
+  // Connect SysExHandler to SequencerController for state transfer
+  sysex_handler.set_sequencer_controller(&sequencer_controller);
+
   // Register observers for SysEx state changes
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(sequencer_controller);

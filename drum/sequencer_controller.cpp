@@ -793,6 +793,32 @@ void SequencerController<NumTracks, NumSteps>::mark_state_dirty_public() {
 }
 
 template <size_t NumTracks, size_t NumSteps>
+SequencerPersistentState
+SequencerController<NumTracks, NumSteps>::get_current_state() const {
+  SequencerPersistentState state;
+  create_persistent_state(state);
+  return state;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::apply_state(
+    const SequencerPersistentState &state) {
+  if (!state.is_valid()) {
+    logger_.error("SequencerController: Cannot apply invalid state");
+    return false;
+  }
+
+  apply_persistent_state(state);
+
+  if (storage_.has_value()) {
+    storage_->mark_state_dirty();
+  }
+
+  logger_.info("SequencerController: State applied successfully");
+  return true;
+}
+
+template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::enable_random_offset_mode() {
   random_effect_.request_state(RandomEffectState::OffsetActive,
                                is_repeat_active());

@@ -10,4 +10,7 @@ export enum Command {
   Ack = 0x13,
   Nack = 0x14,
   FormatFilesystem = 0x15,
+  RequestSequencerState = 0x20,
+  SequencerStateResponse = 0x21,
+  SetSequencerState = 0x22,
 }

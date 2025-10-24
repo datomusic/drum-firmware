@@ -41,15 +41,20 @@ public:
 
   void on_file_received();
 
+  void set_sequencer_controller(void *controller);
+
 private:
   void print_firmware_version() const;
   void print_serial_number() const;
   void send_storage_info() const;
   void send_universal_identity_response() const;
+  void send_sequencer_state() const;
+  void handle_set_sequencer_state(const etl::span<const uint8_t> &payload);
 
   ConfigurationManager &config_manager_;
   musin::Logger &logger_;
   musin::filesystem::Filesystem &filesystem_;
+  void *sequencer_controller_ = nullptr;
 
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;

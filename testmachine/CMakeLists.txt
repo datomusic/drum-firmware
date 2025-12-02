@@ -25,6 +25,7 @@ project(${EXECUTABLE_NAME})
 add_executable(${EXECUTABLE_NAME}
   main.cpp
   test_midi_manager.cpp
+  status_display.cpp
   usb_descriptors.c
   ../musin/midi/midi_sender.cpp
   # Test framework

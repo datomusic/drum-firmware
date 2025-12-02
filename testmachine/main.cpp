@@ -16,6 +16,7 @@ extern "C" {
 #include "command/command_parser.h"
 #include "command/response_formatter.h"
 #include "drum/drum_pizza_hardware.h"
+#include "status_display.h"
 #include "test_framework/test_manager.h"
 #include "test_midi_manager.h"
 #include "tests/midi/midi_loopback_test.h"
@@ -42,6 +43,7 @@ static musin::midi::MidiSender midi_sender(musin::midi::MidiSendStrategy::QUEUED
 static testmachine::TestMidiManager midi_manager(logger);
 static testmachine::TestManager test_manager;
 static testmachine::CommandParser command_parser;
+static testmachine::StatusDisplay status_display(logger);
 
 // Test instances
 static testmachine::MidiLoopbackTest midi_loopback_test(midi_manager, midi_sender);
@@ -76,6 +78,8 @@ void handle_command(const testmachine::Command &cmd) {
     testmachine::Test *test = test_manager.find_test(cmd.name);
     if (test != nullptr) {
       test_manager.start_test(test);
+      status_display.set_status(testmachine::DisplayStatus::RUNNING);
+      status_display.update();
       ResponseFormatter::send_ok("started");
     } else {
       ResponseFormatter::send_error("unknown command");
@@ -96,6 +100,7 @@ int main() {
 #endif
 
   midi_manager.init();
+  status_display.init();
 
   // Register tests
   test_manager.register_test(&midi_loopback_test);
@@ -103,6 +108,9 @@ int main() {
   test_manager.register_test(&sync_loopback_test);
 
   logger.info("Test machine started");
+
+  status_display.set_status(testmachine::DisplayStatus::IDLE);
+  status_display.update();
 
   while (true) {
     absolute_time_t now = get_absolute_time();
@@ -121,8 +129,17 @@ int main() {
     // Check for test completion
     if (test_manager.is_test_complete()) {
       testmachine::Test *test = test_manager.get_active_test();
-      testmachine::ResponseFormatter::send_result(test->get_name(),
-                                                  test_manager.get_result());
+      testmachine::TestResult result = test_manager.get_result();
+      testmachine::ResponseFormatter::send_result(test->get_name(), result);
+
+      // Update status display based on result
+      if (result.status == testmachine::TestStatus::Passed) {
+        status_display.set_status(testmachine::DisplayStatus::PASSED);
+      } else {
+        status_display.set_status(testmachine::DisplayStatus::FAILED);
+      }
+      status_display.update();
+
       test_manager.clear_result();
     }
 

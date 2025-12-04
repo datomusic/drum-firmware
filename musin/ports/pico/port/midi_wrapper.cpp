@@ -157,6 +157,14 @@ void MIDI::sendSysEx(const unsigned length, const byte *bytes) {
   musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
+void MIDI::setThruEnabled(const bool enabled) {
+  if (enabled) {
+    ALL_TRANSPORTS(turnThruOn());
+  } else {
+    ALL_TRANSPORTS(turnThruOff());
+  }
+}
+
 // --- Internal Actual Send Functions (Called by Queue Processor) ---
 
 void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {

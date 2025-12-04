@@ -40,6 +40,7 @@ void MidiManager::init() {
       .pitch_bend = nullptr,
       .sysex = sysex_callback,
   });
+  MIDI::setThruEnabled(false);
 }
 
 void MidiManager::process_input() {

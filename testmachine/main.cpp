@@ -4,6 +4,7 @@
 #include "musin/midi/midi_sender.h"
 #include "musin/timing/sync_in.h"
 #include "musin/timing/sync_out.h"
+#include "musin/ui/keypad_hc138.h"
 #include "musin/usb/usb.h"
 
 extern "C" {
@@ -11,10 +12,13 @@ extern "C" {
 #include "pico/time.h"
 }
 
+#include <cstdio>
+
 #include "hardware/watchdog.h"
 
 #include "command/command_parser.h"
 #include "command/response_formatter.h"
+#include "config.h"
 #include "drum/drum_pizza_hardware.h"
 #include "status_display.h"
 #include "test_framework/test_manager.h"
@@ -50,7 +54,74 @@ static testmachine::MidiLoopbackTest midi_loopback_test(midi_manager, midi_sende
 static testmachine::MidiThruTest midi_thru_test(midi_manager, midi_sender);
 static testmachine::SyncLoopbackTest sync_loopback_test(sync_out, sync_in);
 
+// Keypad hardware
+static musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
+    keypad_decoder_pins, keypad_columns_pins, logger,
+    drum::config::keypad::POLL_INTERVAL_MS,
+    drum::config::keypad::DEBOUNCE_TIME_MS,
+    drum::config::keypad::HOLD_TIME_MS,
+    drum::config::keypad::TAP_TIME_MS);
+
 namespace {
+
+// Keypad event handler for triggering tests
+class KeypadEventHandler : public etl::observer<musin::ui::KeypadEvent> {
+public:
+  void notification(musin::ui::KeypadEvent event) override {
+    // Output JSON for all keypad events
+    const char *event_type = "unknown";
+    switch (event.type) {
+    case musin::ui::KeypadEvent::Type::Press:
+      event_type = "press";
+      break;
+    case musin::ui::KeypadEvent::Type::Release:
+      event_type = "release";
+      break;
+    case musin::ui::KeypadEvent::Type::Hold:
+      event_type = "hold";
+      break;
+    case musin::ui::KeypadEvent::Type::Tap:
+      event_type = "tap";
+      break;
+    }
+
+    printf("KEYPAD:{\"event\":\"%s\",\"row\":%u,\"col\":%u}\n", event_type,
+           static_cast<unsigned int>(event.row),
+           static_cast<unsigned int>(event.col));
+
+    // Only respond to Press events to trigger tests
+    if (event.type != musin::ui::KeypadEvent::Type::Press) {
+      return;
+    }
+
+    // Check if a test is already running
+    if (test_manager.is_test_running()) {
+      logger.warn("Test already running, ignoring button press");
+      return;
+    }
+
+    // Map keypad buttons to tests
+    // Row 4, Col 3 -> SYNC_LOOPBACK
+    // Row 5, Col 3 -> MIDI_LOOPBACK
+    testmachine::Test *test = nullptr;
+
+    if (event.row == 4 && event.col == 3) {
+      test = &sync_loopback_test;
+    } else if (event.row == 5 && event.col == 3) {
+      test = &midi_loopback_test;
+    }
+
+    if (test != nullptr) {
+      logger.info(test->get_name());
+      test_manager.start_test(test);
+      status_display.set_status(test->get_name(),
+                                testmachine::DisplayStatus::RUNNING);
+      status_display.update();
+    }
+  }
+};
+
+static KeypadEventHandler keypad_handler;
 
 void handle_command(const testmachine::Command &cmd) {
   using testmachine::ResponseFormatter;
@@ -78,7 +149,8 @@ void handle_command(const testmachine::Command &cmd) {
     testmachine::Test *test = test_manager.find_test(cmd.name);
     if (test != nullptr) {
       test_manager.start_test(test);
-      status_display.set_status(testmachine::DisplayStatus::RUNNING);
+      status_display.set_status(test->get_name(),
+                                testmachine::DisplayStatus::RUNNING);
       status_display.update();
       ResponseFormatter::send_ok("started");
     } else {
@@ -102,18 +174,35 @@ int main() {
   midi_manager.init();
   status_display.init();
 
+  // Initialize keypad
+  keypad.init();
+  keypad.add_observer(keypad_handler);
+
   // Register tests
   test_manager.register_test(&midi_loopback_test);
   test_manager.register_test(&midi_thru_test);
   test_manager.register_test(&sync_loopback_test);
 
+  // Register test LED mappings
+  status_display.register_test(midi_loopback_test.get_name(), 3, 4);
+  status_display.register_test(sync_loopback_test.get_name(), 4, 4);
+  status_display.register_test(midi_thru_test.get_name(), 3, 1);
+
   logger.info("Test machine started");
 
-  status_display.set_status(testmachine::DisplayStatus::IDLE);
+  status_display.set_status(midi_loopback_test.get_name(),
+                            testmachine::DisplayStatus::IDLE);
+  status_display.set_status(sync_loopback_test.get_name(),
+                            testmachine::DisplayStatus::IDLE);
+  status_display.set_status(midi_thru_test.get_name(),
+                            testmachine::DisplayStatus::IDLE);
   status_display.update();
 
   while (true) {
     absolute_time_t now = get_absolute_time();
+
+    // Scan keypad for button presses
+    keypad.scan();
 
     // Process serial commands
     command_parser.update();
@@ -134,9 +223,11 @@ int main() {
 
       // Update status display based on result
       if (result.status == testmachine::TestStatus::Passed) {
-        status_display.set_status(testmachine::DisplayStatus::PASSED);
+        status_display.set_status(test->get_name(),
+                                  testmachine::DisplayStatus::PASSED);
       } else {
-        status_display.set_status(testmachine::DisplayStatus::FAILED);
+        status_display.set_status(test->get_name(),
+                                  testmachine::DisplayStatus::FAILED);
       }
       status_display.update();
 

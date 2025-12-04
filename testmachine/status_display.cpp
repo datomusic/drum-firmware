@@ -9,7 +9,7 @@ constexpr uint32_t DEFAULT_COLOR_CORRECTION = 0xffe080;
 StatusDisplay::StatusDisplay(musin::Logger &logger_ref)
     : _leds(PIZZA_LED_DATA_PIN, musin::drivers::RGBOrder::GRB, MAX_BRIGHTNESS,
             DEFAULT_COLOR_CORRECTION),
-      _logger_ref(logger_ref), _current_status(DisplayStatus::IDLE) {}
+      _logger_ref(logger_ref) {}
 
 bool StatusDisplay::init() {
   ExternalPinState led_pin_state =
@@ -36,30 +36,63 @@ void StatusDisplay::deinit() {
   gpio_put(PIZZA_LED_ENABLE_PIN, 0);
 }
 
-void StatusDisplay::set_status(DisplayStatus status) {
-  _current_status = status;
+void StatusDisplay::register_test(const char *test_name, uint8_t step,
+                                   uint8_t track) {
+  TestName name(test_name);
+  _test_mappings[name] = TestLedMapping{step, track};
+  _test_statuses[name] = DisplayStatus::IDLE;
+}
+
+void StatusDisplay::set_status(const char *test_name, DisplayStatus status) {
+  TestName name(test_name);
+  auto it = _test_statuses.find(name);
+  if (it != _test_statuses.end()) {
+    it->second = status;
+  }
+}
+
+uint32_t StatusDisplay::get_led_index(uint8_t step, uint8_t track) const {
+  if (step < 1 || step > 8 || track < 1 || track > 4) {
+    return LED_PLAY_BUTTON;
+  }
+  uint32_t array_index = (step - 1) * 4 + (track - 1);
+  return LED_ARRAY[array_index];
 }
 
 void StatusDisplay::update() {
   _leds.clear();
 
-  ui::Color status_color;
-  switch (_current_status) {
-  case DisplayStatus::IDLE:
-    status_color = COLOR_IDLE;
-    break;
-  case DisplayStatus::RUNNING:
-    status_color = COLOR_RUNNING;
-    break;
-  case DisplayStatus::PASSED:
-    status_color = COLOR_PASSED;
-    break;
-  case DisplayStatus::FAILED:
-    status_color = COLOR_FAILED;
-    break;
+  for (const auto &pair : _test_statuses) {
+    const TestName &test_name = pair.first;
+    DisplayStatus status = pair.second;
+
+    auto mapping_it = _test_mappings.find(test_name);
+    if (mapping_it == _test_mappings.end()) {
+      continue;
+    }
+
+    const TestLedMapping &mapping = mapping_it->second;
+    uint32_t led_index = get_led_index(mapping.step, mapping.track);
+
+    ui::Color status_color;
+    switch (status) {
+    case DisplayStatus::IDLE:
+      status_color = COLOR_IDLE;
+      break;
+    case DisplayStatus::RUNNING:
+      status_color = COLOR_RUNNING;
+      break;
+    case DisplayStatus::PASSED:
+      status_color = COLOR_PASSED;
+      break;
+    case DisplayStatus::FAILED:
+      status_color = COLOR_FAILED;
+      break;
+    }
+
+    _leds.set_pixel(led_index, static_cast<uint32_t>(status_color));
   }
 
-  _leds.set_pixel(LED_PLAY_BUTTON, static_cast<uint32_t>(status_color));
   _leds.show();
 }
 

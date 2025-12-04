@@ -113,10 +113,10 @@ public:
 
     if (test != nullptr) {
       logger.info(test->get_name());
-      test_manager.start_test(test);
       status_display.set_status(test->get_name(),
                                 testmachine::DisplayStatus::RUNNING);
       status_display.update();
+      test_manager.start_test(test);
     }
   }
 };
@@ -148,10 +148,10 @@ void handle_command(const testmachine::Command &cmd) {
     // Try to find and start a test
     testmachine::Test *test = test_manager.find_test(cmd.name);
     if (test != nullptr) {
-      test_manager.start_test(test);
       status_display.set_status(test->get_name(),
                                 testmachine::DisplayStatus::RUNNING);
       status_display.update();
+      test_manager.start_test(test);
       ResponseFormatter::send_ok("started");
     } else {
       ResponseFormatter::send_error("unknown command");

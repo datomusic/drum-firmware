@@ -15,9 +15,9 @@ public:
   static constexpr uint8_t NUM_TEST_NOTES = 8;
   static constexpr uint8_t START_NOTE = 60;
   static constexpr uint8_t TEST_VELOCITY = 64;
-  static constexpr uint8_t TEST_CHANNEL = 1;
-  static constexpr uint32_t SEND_INTERVAL_MS = 50;
-  static constexpr uint32_t DEFAULT_TIMEOUT_MS = 5000;
+  static constexpr uint8_t TEST_CHANNEL = 10;
+  static constexpr uint32_t SEND_INTERVAL_MS = 100;
+  static constexpr uint32_t DEFAULT_TIMEOUT_MS = 1000;
 
   MidiLoopbackTest(TestMidiManager &midi_manager,
                    musin::midi::MidiSender &midi_sender);

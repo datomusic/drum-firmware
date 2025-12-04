@@ -27,7 +27,7 @@ public:
   static constexpr uint32_t TICK_INTERVAL_MS = 20; // Send ticks every 20ms
   static constexpr uint32_t TICKS_PER_PULSE = 12;  // SyncOut default
   static constexpr uint32_t TARGET_PULSES = 10;    // Number of pulses to verify
-  static constexpr uint32_t TIMEOUT_MS = 5000;     // 5 second timeout
+  static constexpr uint32_t TIMEOUT_MS = 1000;     // 5 second timeout
 
   SyncLoopbackTest(musin::timing::SyncOut &sync_out,
                    musin::timing::SyncIn &sync_in);

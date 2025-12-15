@@ -85,9 +85,9 @@ public:
       break;
     }
 
-    printf("KEYPAD:{\"event\":\"%s\",\"row\":%u,\"col\":%u}\n", event_type,
+    /* printf("KEYPAD:{\"event\":\"%s\",\"row\":%u,\"col\":%u}\n", event_type,
            static_cast<unsigned int>(event.row),
-           static_cast<unsigned int>(event.col));
+           static_cast<unsigned int>(event.col)); */
 
     // Only respond to Press events to trigger tests
     if (event.type != musin::ui::KeypadEvent::Type::Press) {

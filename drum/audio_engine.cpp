@@ -1,6 +1,7 @@
 #include "audio_engine.h"
 
 #include "config.h"
+#include "flash_access_coordinator.h"
 #include "musin/audio/audio_output.h"
 #include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
@@ -49,12 +50,13 @@ AudioEngine::Voice::Voice()
 }
 
 AudioEngine::AudioEngine(const SampleRepository &repository,
-                         musin::Logger &logger)
+                         musin::Logger &logger,
+                         FlashAccessCoordinator &flash_coordinator)
     : sample_repository_(repository), logger_(logger),
       voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
                      &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
-      highpass_(lowpass_) {
+      highpass_(lowpass_), flash_coordinator_(flash_coordinator) {
   // Initialize to a known, silent state.
   set_volume(1.0f); // Set master volume to full.
 
@@ -204,6 +206,22 @@ void AudioEngine::notification(drum::Events::NoteEvent event) {
   // Direct mapping: MIDI note = sample slot
   size_t sample_id = event.note;
   play_on_voice(event.track_index, sample_id, event.velocity);
+}
+
+void AudioEngine::prepare_for_flash_write() {
+  // Pre-fill all active voice buffers for flash blackout survival
+  for (auto &voice : voices_) {
+    if (voice.reader.has_value()) {
+      voice.reader->pre_fill_for_flash_write();
+    }
+  }
+  preparing_for_flash_write_ = false; // Buffers are now filled
+}
+
+bool AudioEngine::flash_write_buffers_ready() const {
+  // Buffers are ready immediately after prepare_for_flash_write() completes,
+  // as it synchronously pre-fills all buffers with ~116ms of audio.
+  return !preparing_for_flash_write_;
 }
 
 } // namespace drum

@@ -18,7 +18,8 @@
 
 namespace drum {
 
-class SampleRepository; // Forward declaration
+class FlashAccessCoordinator; // Forward declaration
+class SampleRepository;       // Forward declaration
 
 constexpr size_t NUM_VOICES = 4;
 
@@ -41,7 +42,8 @@ private:
 
 public:
   explicit AudioEngine(const SampleRepository &repository,
-                       musin::Logger &logger);
+                       musin::Logger &logger,
+                       FlashAccessCoordinator &flash_coordinator);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -141,6 +143,18 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
+  /**
+   * @brief Prepare for an upcoming flash write operation.
+   * Signals to fill audio buffers in preparation for flash blackout.
+   */
+  void prepare_for_flash_write();
+
+  /**
+   * @brief Check if audio buffers are sufficiently filled for flash write.
+   * @return true if buffers are ready, false if still filling.
+   */
+  bool flash_write_buffers_ready() const;
+
 private:
   const SampleRepository &sample_repository_;
   musin::Logger &logger_;
@@ -159,8 +173,10 @@ private:
     PLAY_ON_VOICE_UPDATE
   };
 
+  FlashAccessCoordinator &flash_coordinator_;
   bool is_initialized_ = false;
   bool muted_ = false;
+  bool preparing_for_flash_write_ = false;
   float current_volume_ = 1.0f;
 };
 

@@ -64,7 +64,26 @@ target_link_libraries(drum-test-swing PRIVATE
     etl::etl
 )
 
+# Test target: Flash Access Coordinator (state machine tests)
+add_executable(drum-test-flash-coordinator
+    flash_access_coordinator_test.cpp
+)
+
+target_sources(drum-test-flash-coordinator PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/flash_access_coordinator.cpp
+)
+
+target_include_directories(drum-test-flash-coordinator PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+)
+
+target_link_libraries(drum-test-flash-coordinator PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
 catch_discover_tests(drum-test-swing)
+catch_discover_tests(drum-test-flash-coordinator)

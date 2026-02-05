@@ -30,6 +30,7 @@ extern "C" {
 #include "drum/drum_pizza_hardware.h"
 #include "drum/ui/pizza_display.h"
 #include "events.h"
+#include "flash_access_coordinator.h"
 #include "message_router.h"
 #include "pizza_controls.h"
 #include "sequencer_controller.h"
@@ -51,7 +52,9 @@ static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static musin::filesystem::Filesystem filesystem(logger);
 static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);
-static drum::AudioEngine audio_engine(sample_repository, logger);
+static drum::FlashAccessCoordinator flash_coordinator;
+static drum::AudioEngine audio_engine(sample_repository, logger,
+                                      flash_coordinator);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
@@ -189,13 +192,26 @@ int main() {
         pizza_display.switch_to_file_transfer_mode();
         break;
       case drum::SystemStateId::FallingAsleep:
-        // Force save sequencer state before sleep
+        // Force save sequencer state before sleep with flash coordination
         if (sequencer_controller.is_persistence_initialized()) {
+          // Request flash write access
+          flash_coordinator.request_write();
+
+          // Pre-buffer audio while waiting (even though we'll mute soon)
+          audio_engine.prepare_for_flash_write();
+          while (!audio_engine.flash_write_buffers_ready()) {
+            audio_engine.process();
+          }
+          flash_coordinator.buffers_ready();
+
+          // Now safe to write
           if (sequencer_controller.save_state_to_flash()) {
             logger.info("State saved successfully before sleep");
           } else {
             logger.warn("Failed to save state before sleep");
           }
+
+          flash_coordinator.write_complete();
         }
         audio_engine.mute();
         audio_engine.deinit();

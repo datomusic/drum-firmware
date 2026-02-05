@@ -33,6 +33,7 @@ add_executable(${EXECUTABLE_NAME}
   sequencer_effect_swing.cpp
   sequencer_effect_random.cpp
   save_timing_manager.cpp
+  flash_access_coordinator.cpp
   configuration_manager.cpp
   message_router.cpp
   audio_engine.cpp

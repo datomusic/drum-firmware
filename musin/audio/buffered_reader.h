@@ -13,7 +13,10 @@ namespace musin {
 // buffers. Each block is AUDIO_BLOCK_SAMPLES (e.g., 128) samples. Total RAM = 2
 // * NumBlocksPerSlot * AUDIO_BLOCK_SAMPLES * sizeof(int16_t). E.g., 2 slots * 4
 // blocks/slot * 128 samples/block * 2 bytes/sample = 2048 bytes.
-constexpr size_t DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT = 1;
+//
+// Set to 20 blocks (~58ms buffer) to survive flash erase blackout (~50ms).
+// RAM impact: 2 * 20 * 128 * 2 = 10,240 bytes per voice (40KB for 4 voices).
+constexpr size_t DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT = 20;
 
 template <size_t NumBlocksPerSlot = DEFAULT_AUDIO_BLOCKS_PER_BUFFER_SLOT,
           typename CopierPolicy = CpuCopier>
@@ -43,6 +46,30 @@ struct BufferedReader {
     return (current_read_position_in_active_buffer <
             samples_in_active_buffer) ||
            reader.has_data();
+  }
+
+  /**
+   * @brief Pre-fills both ping-pong buffers for flash write survival.
+   *
+   * Call this before a flash erase operation to ensure maximum buffered
+   * audio is available. With default 20 blocks per slot, this buffers
+   * ~116ms of audio (2 slots × 20 blocks × 128 samples ÷ 44.1kHz).
+   *
+   * @return Total samples buffered across both slots.
+   */
+  uint32_t pre_fill_both_buffers() {
+    // Fill the inactive buffer first (it may be partially consumed)
+    uint32_t inactive_samples = 0;
+    fill_buffer_slot(*inactive_buffer_ptr, inactive_samples);
+
+    // If active buffer has been consumed, refill it too
+    if (current_read_position_in_active_buffer >= samples_in_active_buffer) {
+      fill_buffer_slot(*active_buffer_ptr, samples_in_active_buffer);
+      current_read_position_in_active_buffer = 0;
+    }
+
+    return (samples_in_active_buffer - current_read_position_in_active_buffer) +
+           inactive_samples;
   }
 
 private:

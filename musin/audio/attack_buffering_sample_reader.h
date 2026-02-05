@@ -267,6 +267,18 @@ public:
     return flash_data_buffered_reader_.read_next(out);
   }
 
+  /**
+   * @brief Pre-fills audio buffers to survive flash write blackout.
+   *
+   * Call this before a flash erase operation. With 20 blocks per slot,
+   * this buffers ~116ms of audio to survive a ~50ms flash blackout.
+   *
+   * @return Total samples buffered for playback.
+   */
+  uint32_t pre_fill_for_flash_write() {
+    return flash_data_buffered_reader_.pre_fill_both_buffers();
+  }
+
 private:
   // State for both memory and file-based sources
   uint32_t ram_read_pos_; // Current read position within the RAM attack buffer

@@ -14,7 +14,7 @@ void MidiLoopbackTest::start(absolute_time_t now) {
   result_ = {TestStatus::Running, ""};
 
   for (uint8_t i = 0; i < NUM_TEST_NOTES; ++i) {
-    notes_[i] = {static_cast<uint8_t>(START_NOTE + i), false, false};
+    notes_[i] = {TEST_NOTE_SEQUENCE[i], false, false};
   }
 
   next_send_time_ = now;

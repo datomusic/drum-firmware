@@ -13,7 +13,9 @@ namespace testmachine {
 class MidiLoopbackTest : public Test {
 public:
   static constexpr uint8_t NUM_TEST_NOTES = 8;
-  static constexpr uint8_t START_NOTE = 60;
+  static constexpr uint8_t TEST_NOTE_SEQUENCE[NUM_TEST_NOTES] = {36, 38, 46,
+                                                                 54, 36, 38,
+                                                                 46, 54};
   static constexpr uint8_t TEST_VELOCITY = 64;
   static constexpr uint8_t TEST_CHANNEL = 10;
   static constexpr uint32_t SEND_INTERVAL_MS = 100;

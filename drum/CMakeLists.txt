@@ -43,6 +43,7 @@ add_executable(${EXECUTABLE_NAME}
   state_implementations.cpp
   usb_descriptors.c
   ../musin/midi/midi_sender.cpp
+  flash_safety_override.c
 )
 
 target_compile_features(${EXECUTABLE_NAME} PRIVATE cxx_std_20)

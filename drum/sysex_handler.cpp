@@ -58,8 +58,10 @@ void SysExHandler::update(absolute_time_t now) {
       last_notified_sample_slot_ = current_sample_slot;
     } else {
       logger_.info("SysEx file transfer finished.");
+      // Pass through the last known sample slot so the display can preserve
+      // the sample color during the debounce/cooldown period (issue #550).
       drum::Events::SysExTransferStateChangeEvent event{
-          .is_active = false, .sample_slot = std::nullopt};
+          .is_active = false, .sample_slot = last_notified_sample_slot_};
       this->notify_observers(event);
       last_notified_sample_slot_ = std::nullopt;
     }

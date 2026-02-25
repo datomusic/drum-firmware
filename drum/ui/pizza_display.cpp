@@ -48,7 +48,14 @@ void PizzaDisplay::notification(
     transfer_mode_.set_sample_slot(event.sample_slot);
     transfer_mode_.set_progress(event.progress);
   } else {
-    transfer_mode_.set_sample_slot(std::nullopt);
+    // Preserve the sample slot so the cooldown period keeps the sample color
+    // instead of falling back to green (issue #550). Only clear if the slot
+    // was never set (e.g. non-SDS transfer where slot is always nullopt).
+    if (event.sample_slot.has_value()) {
+      transfer_mode_.set_sample_slot(event.sample_slot);
+    } else {
+      transfer_mode_.set_sample_slot(std::nullopt);
+    }
     transfer_mode_.set_progress(std::nullopt);
   }
 }

@@ -425,7 +425,11 @@ SequencerDisplayMode::calculate_trace_color(const PizzaDisplay &display,
 
 void FileTransferDisplayMode::on_enter(PizzaDisplay &display) {
   display.clear();
-  _chaser_position = 0;
+  // Only reset animation position when entering fresh (not re-entering while
+  // still in a transfer chain), to avoid blink-timing jumps (issue #550).
+  if (is_nil_time(_last_update_time)) {
+    _chaser_position = 0;
+  }
   _last_update_time = nil_time;
 }
 

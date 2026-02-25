@@ -176,7 +176,6 @@ private:
   FlashAccessCoordinator &flash_coordinator_;
   bool is_initialized_ = false;
   bool muted_ = false;
-  bool preparing_for_flash_write_ = false;
   float current_volume_ = 1.0f;
 };
 

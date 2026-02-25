@@ -122,14 +122,23 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
     return;
   }
 
+  // Gate flash reads through the coordinator to prevent conflicts with writes
+  if (!flash_coordinator_.request_read()) {
+    // Flash write in progress — drop this note to avoid flash conflict
+    return;
+  }
+
   // Load the sample from the file path.
   if (!voice.reader->load(*path_opt)) {
     // Failed to load the file (e.g., file not found, corrupted).
+    flash_coordinator_.read_complete();
     logger_.error("Failed to load sample from");
     logger_.error(*path_opt);
     // The reader is now in a safe state (SourceType::NONE).
     return;
   }
+
+  flash_coordinator_.read_complete();
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);
@@ -209,19 +218,18 @@ void AudioEngine::notification(drum::Events::NoteEvent event) {
 }
 
 void AudioEngine::prepare_for_flash_write() {
-  // Pre-fill all active voice buffers for flash blackout survival
+  // Pre-fill all active voice buffers for flash blackout survival.
+  // This is synchronous — buffers are ready when this returns.
   for (auto &voice : voices_) {
     if (voice.reader.has_value()) {
       voice.reader->pre_fill_for_flash_write();
     }
   }
-  preparing_for_flash_write_ = false; // Buffers are now filled
 }
 
 bool AudioEngine::flash_write_buffers_ready() const {
-  // Buffers are ready immediately after prepare_for_flash_write() completes,
-  // as it synchronously pre-fills all buffers with ~116ms of audio.
-  return !preparing_for_flash_write_;
+  // Always ready — prepare_for_flash_write() fills buffers synchronously.
+  return true;
 }
 
 } // namespace drum

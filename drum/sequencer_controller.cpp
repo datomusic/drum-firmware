@@ -551,17 +551,6 @@ void SequencerController<NumTracks, NumSteps>::deactivate_play_on_every_step(
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::update() {
-  // Periodic save logic with debouncing (runs regardless of step timing)
-  if (storage_.has_value() && storage_->should_save_now()) {
-    SequencerPersistentState state;
-    create_persistent_state(state);
-    if (storage_->save_state_to_flash(state)) {
-      logger_.debug("Periodic save completed successfully");
-    } else {
-      logger_.warn("Periodic save failed");
-    }
-  }
-
   uint8_t current_retrigger_mask = _retrigger_due_mask.load();
   if (current_retrigger_mask > 0) {
     uint8_t processed_mask = 0;
@@ -901,6 +890,21 @@ SequencerController<NumTracks, NumSteps>::get_highlighted_random_step_for_track(
     size_t track_idx) const {
   auto step_opt = random_effect_.get_highlighted_step_for_track(track_idx);
   return step_opt.value_or(get_current_step());
+}
+
+template <size_t NumTracks, size_t NumSteps>
+bool SequencerController<NumTracks, NumSteps>::should_save_now() const {
+  if (!storage_.has_value()) {
+    return false;
+  }
+  return storage_->should_save_now();
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::mark_save_complete() {
+  if (storage_.has_value()) {
+    storage_->mark_state_clean();
+  }
 }
 
 template class SequencerController<config::NUM_TRACKS,

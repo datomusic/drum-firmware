@@ -71,7 +71,9 @@ public:
   /**
    * @brief Get the current coordinator state.
    */
-  FlashAccessState get_state() const { return state_; }
+  FlashAccessState get_state() const {
+    return state_;
+  }
 
   /**
    * @brief Check if a flash read can start now.
@@ -86,12 +88,16 @@ public:
   /**
    * @brief Check if there are queued read requests.
    */
-  bool has_pending_reads() const { return pending_reads_ > 0; }
+  bool has_pending_reads() const {
+    return pending_reads_ > 0;
+  }
 
   /**
    * @brief Get count of active/pending read operations.
    */
-  uint8_t active_read_count() const { return active_reads_; }
+  uint8_t active_read_count() const {
+    return active_reads_;
+  }
 
 private:
   FlashAccessState state_ = FlashAccessState::Idle;

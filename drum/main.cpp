@@ -197,11 +197,8 @@ int main() {
           // Request flash write access
           flash_coordinator.request_write();
 
-          // Pre-buffer audio while waiting (even though we'll mute soon)
+          // Pre-buffer audio (synchronous — ready when it returns)
           audio_engine.prepare_for_flash_write();
-          while (!audio_engine.flash_write_buffers_ready()) {
-            audio_engine.process();
-          }
           flash_coordinator.buffers_ready();
 
           // Now safe to write
@@ -240,6 +237,23 @@ int main() {
       sync_in.update(now);
       sequencer_controller
           .update(); // Checks if a step is due and queues NoteEvents
+
+      // Coordinated flash save: pre-buffer audio to survive flash erase
+      if (sequencer_controller.should_save_now()) {
+        flash_coordinator.request_write();
+        audio_engine.prepare_for_flash_write();
+        flash_coordinator.buffers_ready();
+
+        if (sequencer_controller.save_state_to_flash()) {
+          logger.debug("Coordinated periodic save completed");
+        } else {
+          logger.warn("Coordinated periodic save failed");
+        }
+
+        flash_coordinator.write_complete();
+        sequencer_controller.mark_save_complete();
+      }
+
       message_router
           .update(); // Drains NoteEvent queue, sending to observers and MIDI
       audio_engine.process();

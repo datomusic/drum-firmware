@@ -368,6 +368,19 @@ public:
    * Call this after modifying sequencer patterns via get_sequencer().
    */
   void mark_state_dirty_public();
+
+  /**
+   * @brief Check if the sequencer state should be saved now.
+   * Delegates to the storage's debounce timing logic.
+   * @return true if a save should be performed now, false otherwise
+   */
+  [[nodiscard]] bool should_save_now() const;
+
+  /**
+   * @brief Mark the save as complete (state is clean).
+   * Call after a successful coordinated save.
+   */
+  void mark_save_complete();
 };
 
 } // namespace drum

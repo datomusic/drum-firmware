@@ -5,8 +5,7 @@ namespace musin::ui {
 Drumpad::Drumpad(uint8_t pad_id, const DrumpadConfig &config)
     : _pad_id(pad_id), _noise_threshold(config.noise_threshold),
       _trigger_threshold(config.trigger_threshold),
-      _high_pressure_threshold(
-          config.high_pressure_threshold),
+      _high_pressure_threshold(config.high_pressure_threshold),
       _active_low(config.active_low),
       _debounce_time_us(config.debounce_time_us),
       _hold_time_us(config.hold_time_us),
@@ -82,7 +81,6 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
       notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);
     } else if (current_adc_value < _noise_threshold) {
       _current_state = DrumpadState::DebouncingRelease;
-      _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
     }
     break;
@@ -90,7 +88,6 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
   case DrumpadState::Falling:
     if (current_adc_value < _noise_threshold) {
       _current_state = DrumpadState::DebouncingRelease;
-      _current_retrigger_mode = RetriggerMode::Off;
       _state_transition_time = now;
     }
     break;
@@ -100,9 +97,10 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
       _current_retrigger_mode = RetriggerMode::Double;
     } else if (current_adc_value >= _trigger_threshold) {
       _current_retrigger_mode = RetriggerMode::Single;
-    } else {
-      _current_retrigger_mode = RetriggerMode::Off;
     }
+    // Do not clear retrigger mode when pressure drops below trigger_threshold.
+    // The mode is preserved through Falling and only cleared on Release,
+    // keeping it in sync with has_recent_velocity_hit (ring light lifetime).
 
     if (current_adc_value < _trigger_threshold) {
       _current_state = DrumpadState::Falling;

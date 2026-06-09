@@ -4,6 +4,7 @@
 #include "musin/audio/audio_output.h"
 #include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
+#include "sample_slot_manager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -44,15 +45,14 @@ float map_value_filter_fast(float normalized_value) {
 
 } // namespace
 
-AudioEngine::Voice::Voice()
-    : sound(reader.emplace()) { // reader is default constructed here
+AudioEngine::Voice::Voice() : sound(reader) {
 }
 
 AudioEngine::AudioEngine(const SampleRepository &repository,
-                         musin::Logger &logger)
-    : sample_repository_(repository), logger_(logger),
-      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
-                     &voices_[3].sound},
+                         SampleSlotManager &slot_manager, musin::Logger &logger)
+    : sample_repository_(repository), slot_manager_(slot_manager),
+      logger_(logger), voice_sources_{&voices_[0].sound, &voices_[1].sound,
+                                      &voices_[2].sound, &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
       highpass_(lowpass_) {
   // Initialize to a known, silent state.
@@ -97,6 +97,20 @@ void AudioEngine::process() {
   AudioOutput::update(highpass_);
 }
 
+void AudioEngine::pump_sample_loads() {
+  slot_manager_.update();
+
+  // Commit a finished load as soon as the target voice is no longer
+  // sounding, so the next trigger plays the new sample immediately.
+  for (uint8_t voice_index = 0; voice_index < NUM_VOICES; ++voice_index) {
+    if (slot_manager_.staging_ready_for_voice(voice_index) &&
+        !voices_[voice_index].reader.has_data()) {
+      slot_manager_.commit_staging();
+      break;
+    }
+  }
+}
+
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
                                 uint8_t velocity) {
   musin::hal::DebugUtils::ScopedProfile p(
@@ -115,19 +129,24 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
 
   Voice &voice = voices_[voice_index];
 
-  auto path_opt = sample_repository_.get_path(sample_index);
-  if (!path_opt.has_value()) {
-    return;
+  if (!slot_manager_.voice_has_sample(voice_index, sample_index)) {
+    if (slot_manager_.staging_ready_for(voice_index, sample_index)) {
+      slot_manager_.commit_staging();
+    } else {
+      // Start loading; this trigger replays the voice's current sample.
+      auto path_opt = sample_repository_.get_path(sample_index);
+      if (path_opt.has_value()) {
+        slot_manager_.request_load(voice_index, sample_index, *path_opt);
+      }
+      musin::hal::DebugUtils::g_sample_load_misses++;
+    }
   }
 
-  // Load the sample from the file path.
-  if (!voice.reader->load(*path_opt)) {
-    // Failed to load the file (e.g., file not found, corrupted).
-    logger_.error("Failed to load sample from");
-    logger_.error(*path_opt);
-    // The reader is now in a safe state (SourceType::NONE).
+  if (slot_manager_.voice_length(voice_index) == 0) {
     return;
   }
+  voice.reader.set_source(slot_manager_.voice_data(voice_index),
+                          slot_manager_.voice_length(voice_index));
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);

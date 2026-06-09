@@ -41,6 +41,7 @@ add_executable(${EXECUTABLE_NAME}
   message_router.cpp
   audio_engine.cpp
   sample_repository.cpp
+  sample_slot_manager.cpp
   ui/display_mode.cpp
   system_state_machine.cpp
   state_implementations.cpp

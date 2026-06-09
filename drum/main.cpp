@@ -19,6 +19,7 @@
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
+#include "sample_slot_manager.h"
 
 extern "C" {
 #include "pico/stdio_usb.h"
@@ -53,7 +54,9 @@ static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
 static musin::filesystem::Filesystem filesystem(logger);
 static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);
-static drum::AudioEngine audio_engine(sample_repository, logger);
+static drum::SampleSlotManager sample_slot_manager(logger);
+static drum::AudioEngine audio_engine(sample_repository, sample_slot_manager,
+                                      logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
@@ -121,6 +124,16 @@ int main() {
 
     // Initialize persistence subsystem now that filesystem is ready
     sequencer_controller.init_persistence();
+
+    // Preload each voice's active sample into RAM before audio starts.
+    for (uint8_t track = 0; track < drum::config::NUM_TRACKS; ++track) {
+      const uint8_t note =
+          sequencer_controller.get_active_note_for_track(track);
+      auto path = sample_repository.get_path(note);
+      if (path.has_value()) {
+        sample_slot_manager.load_blocking(track, note, *path);
+      }
+    }
   }
 
   tempo_handler.set_tempo_control_range(
@@ -236,6 +249,7 @@ int main() {
           .update(); // Checks if a step is due and queues NoteEvents
       message_router
           .update(); // Drains NoteEvent queue, sending to observers and MIDI
+      audio_engine.pump_sample_loads();
       audio_engine.process();
       pizza_display.update(now);
       midi_manager.process_input();

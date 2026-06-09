@@ -1,0 +1,66 @@
+#include "audio_safe_flash.h"
+
+extern "C" {
+#include "hardware/flash.h"
+#include "pico/platform/sections.h"
+}
+
+namespace {
+
+// Flash offset of the wrapped device's first byte. A single data
+// partition is assumed; assert in the wrapper guards against a second.
+uint32_t device_flash_offset = 0;
+bool device_wrapped = false;
+
+// BASEPRI value that masks every interrupt except priority 0 (the audio
+// DMA interrupt, raised to 0 in AudioOutput::attach_source).
+constexpr uint32_t MASK_ALL_BUT_HIGHEST_PRIORITY = 0x40;
+
+inline uint32_t read_basepri() {
+  uint32_t value;
+  __asm volatile("mrs %0, basepri" : "=r"(value));
+  return value;
+}
+
+inline void write_basepri(uint32_t value) {
+  __asm volatile("msr basepri, %0" ::"r"(value) : "memory");
+}
+
+int __not_in_flash_func(erase_keep_audio_running)(blockdevice_t *device,
+                                                  bd_size_t addr,
+                                                  bd_size_t size) {
+  (void)device;
+  const uint32_t saved_basepri = read_basepri();
+  write_basepri(MASK_ALL_BUT_HIGHEST_PRIORITY);
+  flash_range_erase(device_flash_offset + (size_t)addr, (size_t)size);
+  write_basepri(saved_basepri);
+  return BD_ERROR_OK;
+}
+
+int __not_in_flash_func(program_keep_audio_running)(blockdevice_t *device,
+                                                    const void *buffer,
+                                                    bd_size_t addr,
+                                                    bd_size_t size) {
+  (void)device;
+  const uint32_t saved_basepri = read_basepri();
+  write_basepri(MASK_ALL_BUT_HIGHEST_PRIORITY);
+  flash_range_program(device_flash_offset + (size_t)addr,
+                      (const uint8_t *)buffer, (size_t)size);
+  write_basepri(saved_basepri);
+  return BD_ERROR_OK;
+}
+
+} // namespace
+
+namespace musin::filesystem {
+
+void make_flash_blockdevice_audio_safe(blockdevice_t *device,
+                                       uint32_t flash_offset) {
+  assert(!device_wrapped);
+  device_wrapped = true;
+  device_flash_offset = flash_offset;
+  device->erase = erase_keep_audio_running;
+  device->program = program_keep_audio_running;
+}
+
+} // namespace musin::filesystem

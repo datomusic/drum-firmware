@@ -1,6 +1,7 @@
 #ifndef PCM_READER_H_GB952ZMC
 #define PCM_READER_H_GB952ZMC
 
+#include "port/section_macros.h"
 #include "sample_reader.h"
 #include <algorithm> // For std::copy
 
@@ -78,12 +79,12 @@ struct MemorySampleReader : SampleReader {
   }
 
   // Reader interface
-  constexpr bool has_data() override {
+  constexpr bool __time_critical_func(has_data)() override {
     return (m_buffer_read_idx < m_buffer_valid_samples) || reader.has_data();
   }
 
   // Reader interface
-  constexpr bool read_next(int16_t &out) override {
+  constexpr bool __time_critical_func(read_next)(int16_t &out) override {
     if (m_buffer_read_idx >=
         m_buffer_valid_samples) { // If current buffer is exhausted
       m_buffer_valid_samples = reader.read_chunk(m_buffer.begin()); // Refill it
@@ -98,7 +99,8 @@ struct MemorySampleReader : SampleReader {
   }
 
   // Reader interface
-  constexpr uint32_t read_samples(AudioBlock &out) override {
+  constexpr uint32_t
+  __time_critical_func(read_samples)(AudioBlock &out) override {
     uint32_t total_samples_copied_from_source = 0;
     int16_t *out_ptr = out.begin();
     uint32_t samples_to_fill_in_block = AUDIO_BLOCK_SAMPLES;

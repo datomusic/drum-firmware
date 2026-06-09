@@ -37,6 +37,7 @@
 #include "buffer_source.h"
 #include "dspinst.h" // For signed_saturate_rshift
 #include "etl/array.h"
+#include "port/section_macros.h"
 #include <cstddef> // For size_t
 #include <stdint.h>
 
@@ -97,7 +98,7 @@ template <size_t N> struct AudioMixer : ::BufferSource {
    *
    * @param out_samples The AudioBlock to fill with the mixed audio data.
    */
-  void fill_buffer(::AudioBlock &out_samples) override {
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) override {
     // Declare a temporary buffer locally within the function scope.
     ::AudioBlock temp_buffer;
 

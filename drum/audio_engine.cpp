@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <cmath>
 
+extern "C" {
+#include "hardware/sync.h"
+}
+
 namespace drum {
 
 namespace {
@@ -82,6 +86,7 @@ bool AudioEngine::init() {
   if (!AudioOutput::init()) {
     return false;
   }
+  AudioOutput::attach_source(highpass_);
   is_initialized_ = true;
   return true;
 }
@@ -94,7 +99,7 @@ void AudioEngine::deinit() {
 }
 
 void AudioEngine::process() {
-  AudioOutput::update(highpass_);
+  AudioOutput::update();
 }
 
 void AudioEngine::pump_sample_loads() {
@@ -131,7 +136,11 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
 
   if (!slot_manager_.voice_has_sample(voice_index, sample_index)) {
     if (slot_manager_.staging_ready_for(voice_index, sample_index)) {
+      // The voice may still be sounding from the buffer being overwritten;
+      // keep the interrupt-driven render out while it is replaced.
+      const uint32_t saved_irq = save_and_disable_interrupts();
       slot_manager_.commit_staging();
+      restore_interrupts(saved_irq);
     } else {
       // Start loading; this trigger replays the voice's current sample.
       auto path_opt = sample_repository_.get_path(sample_index);
@@ -145,14 +154,18 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
   if (slot_manager_.voice_length(voice_index) == 0) {
     return;
   }
-  voice.reader.set_source(slot_manager_.voice_data(voice_index),
-                          slot_manager_.voice_length(voice_index));
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);
-  mixer_.gain(voice_index, gain);
 
+  // The render runs in the DMA interrupt; keep it from reading the voice
+  // mid-retrigger.
+  const uint32_t saved_irq = save_and_disable_interrupts();
+  voice.reader.set_source(slot_manager_.voice_data(voice_index),
+                          slot_manager_.voice_length(voice_index));
+  mixer_.gain(voice_index, gain);
   voice.sound.play(voice.current_pitch);
+  restore_interrupts(saved_irq);
 }
 
 void AudioEngine::stop_voice(uint8_t voice_index) {

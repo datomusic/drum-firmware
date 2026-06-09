@@ -184,6 +184,7 @@ macro(musin_setup_filesystem_target)
     add_library(musin_filesystem_impl STATIC
         ${MUSIN_ROOT}/filesystem/filesystem.cpp
         ${MUSIN_ROOT}/filesystem/partition_manager.cpp
+        ${MUSIN_ROOT}/filesystem/audio_safe_flash.cpp
     )
 
     # Implementation needs include paths to find musin headers

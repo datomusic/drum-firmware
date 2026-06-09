@@ -12,6 +12,7 @@ extern "C" {
 // clang-format on
 
 #include "partition_manager.h"
+#include "audio_safe_flash.h"
 
 namespace {
 
@@ -201,7 +202,12 @@ blockdevice_t *PartitionManager::create_partition_blockdevice(
 
   if (!flash) {
     logger_.error("Failed to create flash block device");
+    return nullptr;
   }
+
+  // Keep the audio interrupt alive during erase/program so persistence
+  // writes do not glitch playback.
+  make_flash_blockdevice_audio_safe(flash, aligned_start);
 
   return flash;
 }

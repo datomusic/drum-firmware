@@ -126,7 +126,6 @@ macro(musin_setup_audio_target)
     add_library(musin_audio_impl STATIC
         ${musin_audio_generic_sources}
         ${MUSIN_AUDIO}/audio_output.cpp
-        ${MUSIN_AUDIO}/unbuffered_file_sample_reader.cpp
         ${MUSIN_DRIVERS}/aic3204.cpp
     )
 

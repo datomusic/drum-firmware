@@ -12,9 +12,11 @@ namespace {
 uint32_t device_flash_offset = 0;
 bool device_wrapped = false;
 
-// BASEPRI value that masks every interrupt except priority 0 (the audio
-// DMA interrupt, raised to 0 in AudioOutput::attach_source).
-constexpr uint32_t MASK_ALL_BUT_HIGHEST_PRIORITY = 0x40;
+// Masks all IRQs with hardware priority >= 0x10, leaving only priority 0x00
+// able to preempt (the audio DMA IRQ, set to 0 in AudioOutput::attach_source).
+// Any future IRQ whose handler lives in flash MUST be assigned priority >= 0x10
+// or it will hard-fault during a flash erase.
+constexpr uint32_t MASK_ALL_BUT_HIGHEST_PRIORITY = 0x10;
 
 inline uint32_t read_basepri() {
   uint32_t value;

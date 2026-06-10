@@ -27,8 +27,8 @@ namespace drum {
 class SampleSlotManager {
 public:
   static constexpr size_t NUM_VOICE_SLOTS = 4;
-  /** Maximum sample length: 700 ms of 44.1 kHz 16-bit mono. */
-  static constexpr size_t MAX_SLOT_SAMPLES = 30870;
+  /** Maximum sample length: 900 ms of 44.1 kHz 16-bit mono. */
+  static constexpr size_t MAX_SLOT_SAMPLES = 39690;
 
   explicit SampleSlotManager(musin::Logger &logger);
 

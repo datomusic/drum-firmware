@@ -69,12 +69,6 @@ public:
   void process();
 
   /**
-   * @brief Commits a staged sample load once its voice falls idle.
-   * Call frequently from the main application loop.
-   */
-  void pump_sample_loads();
-
-  /**
    * @brief Starts playback of a sample on a specific voice/track.
    * If the voice is already playing, it should be re-triggered.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).

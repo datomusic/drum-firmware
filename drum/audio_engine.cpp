@@ -102,18 +102,6 @@ void AudioEngine::process() {
   AudioOutput::update();
 }
 
-void AudioEngine::pump_sample_loads() {
-  // Commit a finished load as soon as the target voice is no longer
-  // sounding, so the next trigger plays the new sample immediately.
-  for (uint8_t voice_index = 0; voice_index < NUM_VOICES; ++voice_index) {
-    if (slot_manager_.staging_ready_for_voice(voice_index) &&
-        !voices_[voice_index].reader.has_data()) {
-      slot_manager_.commit_staging();
-      break;
-    }
-  }
-}
-
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
                                 uint8_t velocity) {
   musin::hal::DebugUtils::ScopedProfile p(
@@ -133,20 +121,16 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
   Voice &voice = voices_[voice_index];
 
   if (!slot_manager_.voice_has_sample(voice_index, sample_index)) {
-    if (slot_manager_.staging_ready_for(voice_index, sample_index)) {
+    auto path_opt = sample_repository_.get_path(sample_index);
+    if (path_opt.has_value() &&
+        slot_manager_.request_load(voice_index, sample_index, *path_opt)) {
       // The voice may still be sounding from the buffer being overwritten;
       // keep the interrupt-driven render out while it is replaced.
       const uint32_t saved_irq = save_and_disable_interrupts();
       slot_manager_.commit_staging();
       restore_interrupts(saved_irq);
-    } else {
-      // Start loading; this trigger replays the voice's current sample.
-      auto path_opt = sample_repository_.get_path(sample_index);
-      if (path_opt.has_value()) {
-        slot_manager_.request_load(voice_index, sample_index, *path_opt);
-      }
-      musin::hal::DebugUtils::g_sample_load_misses++;
     }
+    // On load failure the voice keeps its current sample.
   }
 
   if (slot_manager_.voice_length(voice_index) == 0) {

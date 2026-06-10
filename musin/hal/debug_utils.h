@@ -28,8 +28,6 @@ namespace DebugUtils {
 // Global atomic counters for underrun monitoring
 inline std::atomic<uint32_t> g_audio_output_underruns{0};
 inline std::atomic<uint32_t> g_pitch_shifter_underruns{0};
-// Triggers that arrived before their sample finished loading into RAM
-inline std::atomic<uint32_t> g_sample_load_misses{0};
 
 #ifdef ENABLE_PROFILING
 
@@ -164,11 +162,9 @@ private:
     printf("--- Underrun Report ---\n");
     uint32_t audio_output_underruns = g_audio_output_underruns.exchange(0);
     uint32_t pitch_shifter_underruns = g_pitch_shifter_underruns.exchange(0);
-    uint32_t sample_load_misses = g_sample_load_misses.exchange(0);
 
     printf("AudioOutput Underruns: %u\n", audio_output_underruns);
     printf("PitchShifter Underruns: %u\n", pitch_shifter_underruns);
-    printf("Sample Load Misses: %u\n", sample_load_misses);
     printf("------------------------\n");
   }
 

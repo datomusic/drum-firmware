@@ -250,7 +250,6 @@ int main() {
           .update(); // Checks if a step is due and queues NoteEvents
       message_router
           .update(); // Drains NoteEvent queue, sending to observers and MIDI
-      audio_engine.pump_sample_loads();
       audio_engine.process();
       pizza_display.update(now);
       midi_manager.process_input();

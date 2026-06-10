@@ -60,7 +60,11 @@ SECTIONS
          * FLASH ... we will include any thing excluded here in .data below by default */
         *(.init)
         *libgcc.a:cmse_nonsecure_call.o
-        *(EXCLUDE_FILE(*libgcc.a: *libc.a:*lib_a-mem*.o *libm.a:) .text*)
+        /* pico_audio's buffer pool functions run from the I2S DMA interrupt
+           and must stay callable during flash erase, so (unlike the SDK
+           default script this file is based on) the whole translation unit
+           is kept out of flash and falls through to RAM via .data below. */
+        *(EXCLUDE_FILE(*libgcc.a: *libc.a:*lib_a-mem*.o *libm.a: *pico_audio/audio.cpp.o) .text*)
         *(.fini)
         /* Pull all c'tors into .text */
         *crtbegin.o(.ctors)

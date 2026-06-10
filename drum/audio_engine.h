@@ -69,8 +69,8 @@ public:
   void process();
 
   /**
-   * @brief Advances pending sample loads and commits completed ones to idle
-   * voices. Call frequently from the main application loop.
+   * @brief Commits a staged sample load once its voice falls idle.
+   * Call frequently from the main application loop.
    */
   void pump_sample_loads();
 

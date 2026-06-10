@@ -130,8 +130,9 @@ int main() {
       const uint8_t note =
           sequencer_controller.get_active_note_for_track(track);
       auto path = sample_repository.get_path(note);
-      if (path.has_value()) {
-        sample_slot_manager.load_blocking(track, note, *path);
+      if (path.has_value() &&
+          sample_slot_manager.request_load(track, note, *path)) {
+        sample_slot_manager.commit_staging();
       }
     }
   }

@@ -103,8 +103,6 @@ void AudioEngine::process() {
 }
 
 void AudioEngine::pump_sample_loads() {
-  slot_manager_.update();
-
   // Commit a finished load as soon as the target voice is no longer
   // sounding, so the next trigger plays the new sample immediately.
   for (uint8_t voice_index = 0; voice_index < NUM_VOICES; ++voice_index) {

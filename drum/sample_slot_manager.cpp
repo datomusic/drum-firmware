@@ -1,23 +1,17 @@
 #include "sample_slot_manager.h"
 
+#include "etl/string.h"
+
 #include <algorithm>
+#include <cstdio>
 
 namespace drum {
 
+namespace {
+constexpr size_t MAX_PATH_LENGTH = 64;
+}
+
 SampleSlotManager::SampleSlotManager(musin::Logger &logger) : logger_(logger) {
-}
-
-SampleSlotManager::~SampleSlotManager() {
-  abort_load();
-}
-
-void SampleSlotManager::abort_load() {
-  if (load_file_ != nullptr) {
-    fclose(load_file_);
-    load_file_ = nullptr;
-  }
-  staging_state_ = StagingState::Idle;
-  staging_length_ = 0;
 }
 
 bool SampleSlotManager::request_load(uint8_t voice_index, size_t sample_index,
@@ -25,68 +19,28 @@ bool SampleSlotManager::request_load(uint8_t voice_index, size_t sample_index,
   if (voice_index >= NUM_VOICE_SLOTS || path.size() > MAX_PATH_LENGTH) {
     return false;
   }
-  if (voice_has_sample(voice_index, sample_index)) {
-    return true;
-  }
-  const bool same_as_current = (staging_voice_ == voice_index) &&
-                               (staging_sample_index_ == sample_index);
-  if (staging_state_ != StagingState::Idle && same_as_current) {
+  if (voice_has_sample(voice_index, sample_index) ||
+      staging_ready_for(voice_index, sample_index)) {
     return true;
   }
 
-  abort_load();
-
-  staging_path_.assign(path.begin(), path.end());
-  load_file_ = fopen(staging_path_.c_str(), "rb");
-  if (load_file_ == nullptr) {
+  const etl::string<MAX_PATH_LENGTH> terminated_path(path.begin(), path.end());
+  FILE *file = fopen(terminated_path.c_str(), "rb");
+  if (file == nullptr) {
     logger_.error("Failed to open sample file:");
-    logger_.error(staging_path_.c_str());
+    logger_.error(terminated_path.c_str());
     return false;
   }
+
+  staging_ready_ = false;
+  staging_length_ = static_cast<uint32_t>(
+      fread(staging_buffer_.data(), sizeof(int16_t), MAX_SLOT_SAMPLES, file));
+  fclose(file);
 
   staging_voice_ = voice_index;
   staging_sample_index_ = sample_index;
-  staging_length_ = 0;
-  staging_state_ = StagingState::Loading;
+  staging_ready_ = true;
   return true;
-}
-
-void SampleSlotManager::update() {
-  if (staging_state_ != StagingState::Loading) {
-    return;
-  }
-
-  const size_t remaining = MAX_SLOT_SAMPLES - staging_length_;
-  const size_t to_read = std::min(remaining, LOAD_CHUNK_SAMPLES);
-  const size_t samples_read = fread(staging_buffer_.data() + staging_length_,
-                                    sizeof(int16_t), to_read, load_file_);
-  staging_length_ += samples_read;
-
-  const bool file_exhausted = (samples_read < to_read);
-  const bool buffer_full = (staging_length_ >= MAX_SLOT_SAMPLES);
-  if (file_exhausted || buffer_full) {
-    fclose(load_file_);
-    load_file_ = nullptr;
-    staging_state_ = StagingState::Ready;
-  }
-}
-
-bool SampleSlotManager::load_blocking(uint8_t voice_index, size_t sample_index,
-                                      const etl::string_view &path) {
-  if (!request_load(voice_index, sample_index, path)) {
-    return false;
-  }
-  if (voice_has_sample(voice_index, sample_index)) {
-    return true;
-  }
-  while (staging_state_ == StagingState::Loading) {
-    update();
-  }
-  if (staging_ready_for(voice_index, sample_index)) {
-    commit_staging();
-    return true;
-  }
-  return false;
 }
 
 bool SampleSlotManager::voice_has_sample(uint8_t voice_index,
@@ -101,16 +55,16 @@ bool SampleSlotManager::voice_has_sample(uint8_t voice_index,
 
 bool SampleSlotManager::staging_ready_for(uint8_t voice_index,
                                           size_t sample_index) const {
-  return staging_state_ == StagingState::Ready &&
-         staging_voice_ == voice_index && staging_sample_index_ == sample_index;
+  return staging_ready_ && staging_voice_ == voice_index &&
+         staging_sample_index_ == sample_index;
 }
 
 bool SampleSlotManager::staging_ready_for_voice(uint8_t voice_index) const {
-  return staging_state_ == StagingState::Ready && staging_voice_ == voice_index;
+  return staging_ready_ && staging_voice_ == voice_index;
 }
 
 void SampleSlotManager::commit_staging() {
-  if (staging_state_ != StagingState::Ready) {
+  if (!staging_ready_) {
     return;
   }
   VoiceSlot &slot = voice_slots_[staging_voice_];
@@ -118,8 +72,7 @@ void SampleSlotManager::commit_staging() {
             slot.buffer.begin());
   slot.length = staging_length_;
   slot.sample_index = staging_sample_index_;
-  staging_state_ = StagingState::Idle;
-  staging_length_ = 0;
+  staging_ready_ = false;
 }
 
 const int16_t *SampleSlotManager::voice_data(uint8_t voice_index) const {

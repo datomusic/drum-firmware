@@ -26,6 +26,8 @@ add_executable(${EXECUTABLE_NAME}
   main.cpp
   midi_manager.cpp
   sysex_handler.cpp
+  firmware_update_buyer.cpp
+  ../musin/flash/firmware_writer.cpp
   pizza_controls.cpp
   ui/pizza_display.cpp
   sequencer_controller.cpp
@@ -87,7 +89,14 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   PICO_PROGRAM_VERSION_STRING="${VERSION_STRING}"
   SWAP_AUDIO_CLOCK=1
   PICO_STDIO_USB_RESET_INTERFACE_SUPPORT_MS_OS_20_DESCRIPTOR=0
+  # Mark the image try-before-you-buy: any flash-update boot (SysEx update,
+  # picotool load, UF2 drag-drop) must be committed by FirmwareUpdateBuyer or
+  # the bootrom reverts to the previous image on the next reboot.
+  PICO_CRT0_IMAGE_TYPE_TBYB=1
 )
+
+# Embed the image version in the IMAGE_DEF so the bootrom can compare A/B.
+pico_set_binary_version(${EXECUTABLE_NAME} MAJOR ${VERSION_MAJOR} MINOR ${VERSION_MINOR})
 
 if (SWAP_AUDIO_CLOCK)
   target_compile_definitions(${EXECUTABLE_NAME} PRIVATE PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED=1)
@@ -136,6 +145,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   musin::audio
   musin::filesystem
   pico_rand
+  pico_sha256
 )
 
 # Enable filesystem for the pico (must be done after linking)

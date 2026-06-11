@@ -53,6 +53,16 @@ const FORMAT_FILESYSTEM = 0x15;
 const CUSTOM_ACK = 0x13;
 const CUSTOM_NACK = 0x14;
 
+// Firmware Update Commands (UF2 streamed to the inactive A/B partition)
+const BEGIN_FIRMWARE_UPDATE = 0x20;
+const FIRMWARE_BYTES = 0x21;
+const END_FIRMWARE_UPDATE = 0x22;
+const ABORT_FIRMWARE_UPDATE = 0x23;
+// Decoded bytes per FirmwareBytes message; must be a multiple of 7 so each
+// message contains whole 8-byte encoded groups.
+const FIRMWARE_CHUNK_SIZE = 7 * 146; // 1022 bytes
+const FIRMWARE_ACK_TIMEOUT = 5000;
+
 // Find and connect to DRUM device
 function find_dato_drum() {
   const output = new midi.Output();
@@ -380,6 +390,102 @@ async function reboot_bootloader() {
   sendCustomMessage(payload);
   // Note: Device will reboot immediately, so we don't wait for ACK
   console.log("Reboot command sent. Device should now enter bootloader mode.");
+}
+
+// --- Firmware update over SysEx ---
+
+// Packs 8-bit data into SysEx-safe 8-byte groups: 7 data bytes (low 7 bits)
+// followed by one byte carrying the MSBs. Mirrors codec::decode_8_to_7 in the
+// firmware. The final group is zero-padded; the device ignores the padding.
+function encode8to7(data) {
+  const out = [];
+  for (let i = 0; i < data.length; i += 7) {
+    let msbs = 0;
+    for (let j = 0; j < 7; j++) {
+      const byte = i + j < data.length ? data[i + j] : 0;
+      out.push(byte & 0x7F);
+      msbs |= ((byte >> 7) & 0x01) << j;
+    }
+    out.push(msbs);
+  }
+  return out;
+}
+
+// Encodes raw bytes as 16-bit values, 3 SysEx bytes per value (matches
+// codec::decode_3_to_16bit in the firmware). Used for the Begin payload.
+function encode3to16(bytes) {
+  const out = [];
+  for (let i = 0; i < bytes.length; i += 2) {
+    const value = bytes[i] | ((i + 1 < bytes.length ? bytes[i + 1] : 0) << 8);
+    out.push((value >> 14) & 0x7F, (value >> 7) & 0x7F, value & 0x7F);
+  }
+  return out;
+}
+
+const UF2_MAGIC_START_0 = 0x0A324655;
+const UF2_BLOCK_SIZE = 512;
+
+async function flash_firmware(filePath) {
+  const crypto = require('crypto');
+  const uf2 = fs.readFileSync(filePath);
+
+  if (uf2.length === 0 || uf2.length % UF2_BLOCK_SIZE !== 0) {
+    throw new Error(`${filePath} is not a UF2 file (size not a multiple of 512).`);
+  }
+  if (uf2.readUInt32LE(0) !== UF2_MAGIC_START_0) {
+    throw new Error(`${filePath} is not a UF2 file (bad magic).`);
+  }
+
+  const sha256 = crypto.createHash('sha256').update(uf2).digest();
+  console.log(`Firmware: ${filePath} (${uf2.length} bytes, ${uf2.length / UF2_BLOCK_SIZE} UF2 blocks)`);
+  console.log(`SHA-256:  ${sha256.toString('hex')}`);
+
+  try {
+    await get_firmware_version();
+  } catch (e) {
+    console.log('Could not read current firmware version, continuing anyway.');
+  }
+
+  // Begin: total size (32-bit LE) + SHA-256 + version placeholder (the device
+  // treats the version as informational).
+  const beginPayload = [
+    uf2.length & 0xFF, (uf2.length >> 8) & 0xFF,
+    (uf2.length >> 16) & 0xFF, (uf2.length >> 24) & 0xFF,
+    ...sha256, 0, 0, 0,
+  ];
+  sendCustomMessage([BEGIN_FIRMWARE_UPDATE, ...encode3to16(beginPayload)]);
+  await waitForCustomAck(FIRMWARE_ACK_TIMEOUT);
+  console.log('Device accepted firmware update, streaming...');
+
+  const startTime = Date.now();
+  try {
+    for (let offset = 0; offset < uf2.length; offset += FIRMWARE_CHUNK_SIZE) {
+      const chunk = uf2.subarray(offset, Math.min(offset + FIRMWARE_CHUNK_SIZE, uf2.length));
+      sendCustomMessage([FIRMWARE_BYTES, ...encode8to7(chunk)]);
+      await waitForCustomAck(FIRMWARE_ACK_TIMEOUT);
+
+      const done = Math.min(offset + FIRMWARE_CHUNK_SIZE, uf2.length);
+      const percent = Math.floor((done / uf2.length) * 100);
+      const barLength = 30;
+      const filled = Math.floor((done / uf2.length) * barLength);
+      const bar = '█'.repeat(filled) + '░'.repeat(barLength - filled);
+      process.stdout.write(`\r[${bar}] ${percent}% (${done}/${uf2.length} bytes)`);
+    }
+  } catch (e) {
+    process.stdout.write('\n');
+    sendCustomMessage([ABORT_FIRMWARE_UPDATE]);
+    throw new Error(`Transfer failed: ${e.message}`);
+  }
+  process.stdout.write('\n');
+
+  sendCustomMessage([END_FIRMWARE_UPDATE]);
+  await waitForCustomAck(FIRMWARE_ACK_TIMEOUT);
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`Firmware verified by device in ${elapsed}s.`);
+  console.log('Device is rebooting into the new firmware for a trial boot.');
+  console.log('It commits the update automatically after a few seconds of healthy operation.');
+  console.log("Run 'drumtool.js version' after the device reconnects to confirm.");
 }
 
 // Test universal SysEx identity request
@@ -941,6 +1047,7 @@ if (!command) {
   console.log("  drumtool.js format");
   console.log("  drumtool.js reboot-bootloader");
   console.log("  drumtool.js identity");
+  console.log("  drumtool.js flash <firmware.uf2>");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
@@ -949,6 +1056,7 @@ if (!command) {
   console.log("  format         - Format device filesystem");
   console.log("  reboot-bootloader - Reboot device into bootloader mode");
   console.log("  identity       - Test universal SysEx identity request");
+  console.log("  flash          - Update firmware over MIDI (A/B partition, auto-revert on failure)");
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127)");
@@ -1035,9 +1143,19 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
+    } else if (command === 'flash') {
+      const file = process.argv[3];
+      if (!file) {
+        console.error("Error: 'flash' command requires a firmware .uf2 file argument.");
+        process.exit(1);
+      }
+      if (!fs.existsSync(file)) {
+        console.error(`Error: File not found: ${file}`);
+        process.exit(1);
+      }
     } else if (command !== 'version' && command !== 'storage' && command !== 'format' &&
                command !== 'reboot-bootloader' && command !== 'identity') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', or 'identity'.`);
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', or 'flash'.`);
       process.exit(1);
     }
 
@@ -1073,6 +1191,8 @@ async function main() {
       await reboot_bootloader();
     } else if (command === 'identity') {
       await test_universal_identity();
+    } else if (command === 'flash') {
+      await flash_firmware(process.argv[3]);
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);

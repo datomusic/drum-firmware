@@ -434,6 +434,10 @@ void FileTransferDisplayMode::set_sample_slot(
   _current_sample_slot = sample_slot;
 }
 
+void FileTransferDisplayMode::set_progress(std::optional<float> progress) {
+  _progress = progress;
+}
+
 void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   display.clear();
   // Flash the play button in sample color or green as fallback
@@ -453,6 +457,26 @@ void FileTransferDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   }
 
   display.set_play_button_led(pulse_color);
+
+  // During firmware updates, fill the sequencer LEDs as a progress bar.
+  if (_progress.has_value()) {
+    const float clamped = std::clamp(_progress.value(), 0.0f, 1.0f);
+    const size_t total_steps = config::NUM_TRACKS * config::NUM_STEPS_PER_TRACK;
+    const size_t lit = static_cast<size_t>(clamped * total_steps);
+    size_t count = 0;
+    for (size_t track = 0; track < config::NUM_TRACKS; ++track) {
+      for (size_t step = 0; step < config::NUM_STEPS_PER_TRACK; ++step) {
+        if (count >= lit) {
+          break;
+        }
+        if (auto led = display.get_sequencer_led_index(track, step);
+            led.has_value()) {
+          display.set_led(led.value(), PizzaDisplay::COLOR_GREEN);
+        }
+        count++;
+      }
+    }
+  }
 }
 
 // --- BootAnimationMode Implementation ---

@@ -186,3 +186,46 @@ Transferring files (like samples or `kit.bin`) to the device is a multi-step pro
     - **Command:** `EndFileTransfer` (0x12)
     - **Payload:** None.
     - After sending all data chunks, the sender sends this command. The device closes the file, finalizing the write, and sends a final `Ack`.
+
+### Firmware Update Protocol
+
+Firmware can be updated over SysEx without entering the bootloader. The device
+streams the standard `.uf2` build artifact into the inactive A/B partition and
+uses the RP2350 bootrom's try-before-you-buy (TBYB) mechanism, so a failed or
+broken update can never brick the device. `tools/drumtool/drumtool.js flash
+firmware.uf2` is the reference client.
+
+1.  **Begin Update:**
+    - **Command:** `BeginFirmwareUpdate` (0x20)
+    - **Payload (encoded like BeginFileWrite):** total UF2 size (32-bit LE),
+      SHA-256 of the UF2 stream (32 bytes), version major/minor/patch (3 bytes,
+      informational).
+    - The device resolves the inactive partition and replies `Ack`/`Nack`. The
+      request is refused while a previous update is still in its unbought trial
+      boot.
+
+2.  **Send Data Chunks:**
+    - **Command:** `FirmwareBytes` (0x21)
+    - **Payload:** raw UF2 stream bytes in the same 7-bytes-plus-MSBs encoding
+      as `FileBytes`. The device parses UF2 blocks (skipping the RP2350-A2
+      erratum "absolute" block), rebases addresses to the inactive partition
+      and programs flash one 4 KiB sector at a time. The `Ack` is sent only
+      after the data has been written, so the host self-throttles.
+
+3.  **End Update:**
+    - **Command:** `EndFirmwareUpdate` (0x22)
+    - The device verifies completeness and the SHA-256, replies `Ack`, then
+      reboots into the new image in trial mode. The new firmware commits itself
+      (`rom_explicit_buy`) after ~5 seconds of healthy operation; if it crashes
+      or hangs before that, the watchdog reboot falls back to the previous
+      firmware.
+    - `AbortFirmwareUpdate` (0x23) or a 5-second inactivity timeout cancels an
+      update in progress; only the inactive partition is affected.
+
+Notes:
+- Firmware images are built with the TBYB flag, so picotool/BOOTSEL loads also
+  self-commit on first boot via the same mechanism.
+- Only RAM builds (`PICO_COPY_TO_RAM`, the default) are relocatable between
+  partitions and safe to distribute for SysEx updates.
+- If both partitions ever hold invalid images, the bootrom falls back to the
+  USB (UF2) bootloader; LED indication is not possible in that mode.

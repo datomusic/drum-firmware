@@ -70,6 +70,9 @@ template <typename FileOperations> struct Protocol {
     Ack = 0x13,
     Nack = 0x14,
     FormatFilesystem = 0x15,
+
+    // Firmware Update Commands (0x20-0x23) are handled by
+    // sysex::FirmwareUpdate in drum/sysex/firmware_update.h.
   };
 
   enum class Result {

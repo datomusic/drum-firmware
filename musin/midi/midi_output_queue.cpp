@@ -1,8 +1,10 @@
 #include "musin/midi/midi_output_queue.h"
 #include "etl/deque.h"
+#include "etl/queue.h"
 #include "musin/midi/midi_wrapper.h" // For MIDI::internal actual send functions
 #include "pico/sync.h"
 #include "pico/time.h" // For RP2040 specific timing (get_absolute_time, absolute_time_diff_us, is_nil_time)
+#include <algorithm>   // For std::min, std::copy
 #include <cstdio>      // For printf
 #include <optional>
 
@@ -10,6 +12,9 @@ namespace musin::midi {
 
 // Define the global queue instance and its spinlock
 etl::deque<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
+// SysEx payloads live here; a SYSTEM_EXCLUSIVE marker in midi_output_queue
+// holds their place in the send order. Both queues share the spinlock.
+static etl::queue<SystemExclusiveData, SYSEX_QUEUE_SIZE> sysex_payload_queue;
 static spin_lock_t *midi_queue_lock =
     spin_lock_init(spin_lock_claim_unused(true));
 
@@ -48,12 +53,42 @@ bool enqueue_midi_message(const OutgoingMidiMessage &message,
   return success;
 }
 
+bool enqueue_sysex_message(const uint8_t *payload, unsigned length,
+                           musin::Logger &logger) {
+  uint32_t irq_status = spin_lock_blocking(midi_queue_lock);
+
+  bool success = false;
+  if (midi_output_queue.full() || sysex_payload_queue.full()) {
+    logger.debug("MIDI queue full - sysex message dropped");
+  } else {
+    sysex_payload_queue.emplace();
+    SystemExclusiveData &slot = sysex_payload_queue.back();
+    if (payload != nullptr) {
+      slot.length = std::min(length, static_cast<unsigned>(MIDI::SysExMaxSize));
+      std::copy(payload, payload + slot.length, slot.data_buffer.begin());
+    } else {
+      slot.length = 0;
+    }
+
+    OutgoingMidiMessage marker;
+    marker.type = MidiMessageType::SYSTEM_EXCLUSIVE;
+    midi_output_queue.push_back(marker);
+    success = true;
+  }
+
+  spin_unlock(midi_queue_lock, irq_status);
+  return success;
+}
+
 // Rate limiting for non-real-time messages
 constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME =
     960; // 3125 bytes per second at 3 bytes each
 static absolute_time_t last_non_realtime_send_time = nil_time;
 
 void process_midi_output_queue(musin::Logger &logger) {
+  // Scratch buffer for the dequeued SysEx payload; processing happens on a
+  // single context, and keeping it static avoids a 2KB stack copy.
+  static SystemExclusiveData sysex_scratch;
   std::optional<OutgoingMidiMessage> message_to_send;
   bool rate_limited = false;
 
@@ -68,6 +103,10 @@ void process_midi_output_queue(musin::Logger &logger) {
               MIN_INTERVAL_US_NON_REALTIME) {
         message_to_send = message_in_queue;
         midi_output_queue.pop_front();
+        if (message_to_send->type == MidiMessageType::SYSTEM_EXCLUSIVE) {
+          sysex_scratch = sysex_payload_queue.front();
+          sysex_payload_queue.pop();
+        }
       } else {
         rate_limited = true;
       }
@@ -113,9 +152,8 @@ void process_midi_output_queue(musin::Logger &logger) {
       // Real-time messages do not update last_non_realtime_send_time
       break;
     case MidiMessageType::SYSTEM_EXCLUSIVE:
-      MIDI::internal::_sendSysEx_actual(
-          message.data.system_exclusive_message.length,
-          message.data.system_exclusive_message.data_buffer.data());
+      MIDI::internal::_sendSysEx_actual(sysex_scratch.length,
+                                        sysex_scratch.data_buffer.data());
       last_non_realtime_send_time = get_absolute_time();
       break;
     }

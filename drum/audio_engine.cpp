@@ -52,9 +52,16 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
                          musin::Logger &logger)
     : sample_repository_(repository), logger_(logger),
       voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
-                     &voices_[3].sound},
-      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
-      highpass_(lowpass_) {
+                     &voices_[3].sound,
+                     LINE_IN_ROUTING == config::audio::LineInRouting::PreFx
+                         ? &line_in_
+                         : nullptr},
+      line_in_(audio_input_), mixer_(voice_sources_), crusher_(mixer_),
+      lowpass_(crusher_), highpass_(lowpass_),
+      output_mixer_(&highpass_,
+                    LINE_IN_ROUTING == config::audio::LineInRouting::PostFx
+                        ? static_cast<BufferSource *>(&line_in_)
+                        : nullptr) {
   // Initialize to a known, silent state.
   set_volume(1.0f); // Set master volume to full.
 
@@ -72,6 +79,9 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
   for (size_t i = 0; i < NUM_VOICES; ++i) {
     mixer_.gain(i, 0.25f);
   }
+  mixer_.gain(LINE_IN_MIXER_CHANNEL, config::audio::LINE_IN_GAIN);
+  output_mixer_.gain(0, 1.0f);
+  output_mixer_.gain(1, config::audio::LINE_IN_GAIN);
 }
 
 bool AudioEngine::init() {
@@ -82,19 +92,34 @@ bool AudioEngine::init() {
   if (!AudioOutput::init()) {
     return false;
   }
+
+  if constexpr (LINE_IN_ROUTING != config::audio::LineInRouting::Off) {
+    if (!AudioOutput::set_line_in_enabled(true) || !audio_input_.init()) {
+      logger_.error("Failed to enable line input");
+    }
+  }
+
   is_initialized_ = true;
   return true;
 }
 
 void AudioEngine::deinit() {
   if (is_initialized_) {
+    if constexpr (LINE_IN_ROUTING != config::audio::LineInRouting::Off) {
+      audio_input_.deinit();
+      AudioOutput::set_line_in_enabled(false);
+    }
     AudioOutput::deinit();
     is_initialized_ = false;
   }
 }
 
 void AudioEngine::process() {
-  AudioOutput::update(highpass_);
+  if constexpr (LINE_IN_ROUTING == config::audio::LineInRouting::PostFx) {
+    AudioOutput::update(output_mixer_);
+  } else {
+    AudioOutput::update(highpass_);
+  }
 }
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,

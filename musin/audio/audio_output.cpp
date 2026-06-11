@@ -222,6 +222,18 @@ bool AudioOutput::update(BufferSource &source) {
   return false; // No buffer processed or running is false
 }
 
+bool AudioOutput::set_line_in_enabled(bool enable) {
+#ifdef DATO_SUBMARINE
+  if (!codec) {
+    return false;
+  }
+  return codec->set_adc_enabled(enable) == musin::drivers::Aic3204Status::OK;
+#else
+  (void)enable;
+  return false;
+#endif
+}
+
 bool AudioOutput::mute() {
 #ifdef DATO_SUBMARINE
   if (!codec) {

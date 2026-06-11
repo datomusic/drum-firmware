@@ -33,22 +33,23 @@ public:
 
   /**
    * @brief Get a reference to a specific step.
-   * @param index The index of the step (0 to NumSteps - 1).
+   * @param index The index of the step (0 to NumSteps - 1). Asserts on
+   * out-of-bounds access.
    * @return A reference to the Step object.
-   * @note Assumes index is valid.
    */
   [[nodiscard]] constexpr Step &get_step(size_t index) {
+    ETL_ASSERT(index < NumSteps,
+               etl::range_error("Track::get_step: index out of bounds"));
     return steps[index];
   }
 
   /**
    * @brief Get a const reference to a specific step.
-   * @param index The index of the step (0 to NumSteps - 1).
+   * @param index The index of the step (0 to NumSteps - 1). Asserts on
+   * out-of-bounds access.
    * @return A const reference to the Step object.
-   * @note Assumes index is valid.
    */
   [[nodiscard]] constexpr const Step &get_step(size_t index) const {
-    // Basic bounds check (can be enhanced with ETL assertions if desired)
     ETL_ASSERT(index < NumSteps,
                etl::range_error("Track::get_step: index out of bounds"));
     return steps[index];

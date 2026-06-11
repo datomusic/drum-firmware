@@ -123,8 +123,8 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x00, 0x19, 0x00) != Aic3204Status::OK) {
     return; // BCLK/WCLK inputs
   }
-  if (write_register(0x00, 0x38, 0x04) != Aic3204Status::OK) {
-    return; // Enable MFP3 as GPIO input
+  if (write_register(0x00, 0x38, 0x02) != Aic3204Status::OK) {
+    return; // SCLK/MFP3 as general-purpose input (jack detect)
   }
 
   // DAC Processing Block (Page 0)
@@ -149,6 +149,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
 
   if (write_register(0x01, 0x0A, 0x33) != Aic3204Status::OK) {
     return; // HP CM=1.65V, Lineout CM=0.9V, LDO=1.72V
+  }
+
+  // MICBIAS provides the pull-up for the jack detect switch on MFP3
+  if (write_register(0x01, 0x33, 0x40) != Aic3204Status::OK) {
+    return; // MICBIAS powered up, 1.25V
   }
 
   // DAC/ADC PTM modes (Page 1)
@@ -498,11 +503,10 @@ std::optional<bool> Aic3204::is_headphone_inserted() {
     return std::nullopt;
   }
 
-  // Read MFP3 pin state directly from GPIO control register
-  // Page 0, Reg 0x36: MFP3 Pin Control/Status
-  // Bit 0 contains the pin level when configured as input
+  // Page 0, Reg 0x38: SCLK/MFP3 control. Bit 0 reflects the pin level when
+  // configured as a general-purpose input.
   const uint8_t PAGE = 0;
-  const uint8_t MFP3_REG = 0x36;
+  const uint8_t MFP3_REG = 0x38;
   const uint8_t PIN_LEVEL_MASK = (1 << 0);
 
   uint8_t reg_val = 0;
@@ -512,10 +516,10 @@ std::optional<bool> Aic3204::is_headphone_inserted() {
     return std::nullopt;
   }
 
-  // MFP3 pin is typically pulled HIGH by default and goes LOW when headphones
-  // are inserted (jack switch grounds the pin). Invert the logic.
+  // Active low: pulled up to VMICBIAS when empty, grounded by the jack
+  // switch when a headphone is inserted.
   bool pin_low = (reg_val & PIN_LEVEL_MASK) == 0;
-  return pin_low; // true = headphones inserted (pin LOW)
+  return pin_low;
 }
 
 Aic3204Status Aic3204::enter_sleep_mode() {

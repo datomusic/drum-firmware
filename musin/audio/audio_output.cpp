@@ -33,7 +33,8 @@ absolute_time_t last_poll_time = nil_time; // Last time we polled the codec
 
 // Listener and policy
 AudioOutput::HeadphoneListener headphone_listener = nullptr;
-bool auto_speaker_mute_enabled = false;
+// Enabled by default to match the previous codec-managed behaviour
+bool auto_speaker_mute_enabled = true;
 
 } // namespace
 #endif

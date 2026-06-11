@@ -17,7 +17,7 @@ namespace drum {
 class FirmwareUpdateBuyer {
 public:
   // Healthy main-loop time required before committing.
-  static constexpr uint32_t HEALTH_PERIOD_MS = 5000;
+  static constexpr uint32_t HEALTH_PERIOD_MS = 1000;
 
   explicit FirmwareUpdateBuyer(musin::Logger &logger);
 

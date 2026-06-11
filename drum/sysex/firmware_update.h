@@ -11,8 +11,8 @@ extern "C" {
 
 #include "musin/hal/logger.h"
 
-#include "./chunk.h"
 #include "./codec.h"
+#include "musin/midi/sysex_chunk.h"
 
 namespace sysex {
 

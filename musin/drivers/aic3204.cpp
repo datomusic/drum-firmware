@@ -152,10 +152,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   }
 
   // MICBIAS provides the pull-up for the jack detect switch on MFP3.
-  // 2.5V so the released pin clears MFP3's input high threshold
-  // (0.7 x IOVDD = 2.31V at 3.3V).
-  if (write_register(0x01, 0x33, 0x60) != Aic3204Status::OK) {
-    return; // MICBIAS powered up, 2.5V
+  // Source from LDOIN (3.3V) so the released pin clears MFP3's input
+  // high threshold (0.7 x IOVDD = 2.31V); AVDD-derived settings top out
+  // below it.
+  if (write_register(0x01, 0x33, 0x78) != Aic3204Status::OK) {
+    return; // MICBIAS powered up, MICBIAS = LDOIN
   }
 
   // DAC/ADC PTM modes (Page 1)

@@ -32,6 +32,8 @@ add_executable(${EXECUTABLE_NAME}
   sequencer_storage.cpp
   sequencer_effect_swing.cpp
   sequencer_effect_random.cpp
+  sequencer_effect_repeat.cpp
+  sequencer_effect_retrigger.cpp
   save_timing_manager.cpp
   configuration_manager.cpp
   message_router.cpp

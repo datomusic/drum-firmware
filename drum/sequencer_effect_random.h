@@ -16,6 +16,16 @@ enum class RandomEffectState {
   StepPreview     // Stopped + any press: step highlighting for preview
 };
 
+/**
+ * @brief Randomization effect driven by the two-stage pressure-sensitive
+ * RANDOM button.
+ *
+ * The two mechanisms are layered, not alternatives: a soft press swaps
+ * playback to randomized step offsets (OffsetActive); a hard press keeps the
+ * offsets and additionally flips each step's enabled state with 50%
+ * probability at play time (OffsetWithFlip). While stopped, pressing
+ * previews randomly chosen steps instead (StepPreview).
+ */
 class SequencerEffectRandom {
 public:
   struct RandomizedStep {

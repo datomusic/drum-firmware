@@ -25,7 +25,9 @@ enum class MidiMessageType : uint8_t {
 };
 
 struct SystemExclusiveData {
-  // Uses MIDI::SysExMaxSize from musin/midi/midi_wrapper.h (which is 128)
+  // Sized by MIDI::SysExMaxSize from musin/midi/midi_wrapper.h (2048 bytes).
+  // Note: this buffer lives in a union inside every OutgoingMidiMessage, so
+  // each of the MIDI_QUEUE_SIZE queue slots carries it (~128 KB total).
   etl::array<uint8_t, MIDI::SysExMaxSize> data_buffer;
   unsigned length;
 };

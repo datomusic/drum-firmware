@@ -6,7 +6,6 @@ namespace drum::ui {
 
 namespace {
 
-// This helper function was previously in pizza_display.cpp
 Color apply_visual_effects(Color color, float filter_val, float crush_val,
                            absolute_time_t now) {
   if (filter_val < 0.04f && crush_val < 0.04f) {

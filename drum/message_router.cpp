@@ -16,22 +16,6 @@ namespace drum {
 
 namespace { // Anonymous namespace for internal linkage
 
-void send_midi_cc([[maybe_unused]] const uint8_t channel,
-                  [[maybe_unused]] const uint8_t cc_number,
-                  [[maybe_unused]] const uint8_t value) {
-  // This function is no longer used directly for sending MIDI CCs from
-  // MessageRouter as MidiSender will handle it.
-  // MIDI::sendControlChange(cc_number, value, channel);
-}
-
-void send_midi_note([[maybe_unused]] const uint8_t channel,
-                    [[maybe_unused]] const uint8_t note_number,
-                    [[maybe_unused]] const uint8_t velocity) {
-  // This function is no longer used directly for sending MIDI notes from
-  // MessageRouter as MidiSender will handle it. MIDI::sendNoteOn(note_number,
-  // velocity, channel);
-}
-
 struct ParameterMapping {
   Parameter param_id;
   std::optional<uint8_t> track_index;

@@ -35,7 +35,6 @@ struct PicoDmaCopier {
       return;
     }
 
-    // The DMA logic now uses the static channel.
     dma_channel_config cfg = dma_channel_get_default_config(dma_channel_);
     channel_config_set_transfer_data_size(&cfg, DMA_SIZE_16);
     channel_config_set_read_increment(&cfg, true);

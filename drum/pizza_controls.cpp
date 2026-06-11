@@ -516,7 +516,6 @@ void PizzaControls::AnalogControlComponent::handle_control_change(
         drum::Parameter::FILTER_RESONANCE, (1.0f - value));
     break;
   case RANDOM:
-    // This is now handled by the pressure-sensitive button logic
     parent_controls->_message_router_ref.set_parameter(
         drum::Parameter::RANDOM_EFFECT, value, 0);
     break;

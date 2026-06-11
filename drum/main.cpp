@@ -47,8 +47,6 @@ static musin::NullLogger logger;
 
 static musin::NullLogger null_logger;
 
-// System State Machine (will be initialized after pizza_display)
-
 // Model
 static drum::ConfigurationManager config_manager(logger);
 static drum::SampleRepository sample_repository(logger);
@@ -59,7 +57,6 @@ static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,
                                      DATO_SUBMARINE_SYNC_DETECT_PIN);
-// SyncIn now handles 2 PPQN to 24 PPQN conversion internally
 static musin::timing::ClockRouter
     clock_router(internal_clock, midi_clock_processor, sync_in,
                  musin::timing::ClockSource::INTERNAL);
@@ -91,7 +88,6 @@ static drum::MidiManager midi_manager(message_router, midi_clock_processor,
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
                                         logger);
 
-// System State Machine (simplified without wrapper)
 static drum::SystemStateMachine system_state_machine(logger);
 
 // Controller
@@ -138,12 +134,7 @@ int main() {
   pizza_display.init();
   pizza_controls.init();
 
-  // Boot animation is now handled by BootState
-  // No circular references needed with simplified approach
-
   // --- Initialize Clocking System ---
-  // TempoHandler's constructor calls set_clock_source, which handles initial
-  // observation. SyncIn is now connected directly via ClockRouter.
   tempo_handler.add_observer(sequencer_controller);
   tempo_handler.add_observer(
       pizza_display); // PizzaDisplay needs tempo events for pulsing
@@ -173,8 +164,7 @@ int main() {
   clock_router.add_observer(midi_clock_out);
   clock_router.add_observer(speed_adapter);
 
-  // SystemStateMachine automatically starts in Boot state
-  // No initialization_complete() call needed
+  // SystemStateMachine starts in Boot state.
 
   // Track state transitions for display management
   drum::SystemStateId previous_state = drum::SystemStateId::Boot;
@@ -244,7 +234,9 @@ int main() {
       internal_clock.update(now);
       clock_router.update_auto_source_switching();
 
-      // ClockRouter handles raw clock routing; SyncOut remains attached
+      // Second drain: process_midi_output_queue sends at most one message
+      // per call, so draining twice per loop halves MIDI output latency
+      // (see #527).
       musin::midi::process_midi_output_queue(null_logger);
       sleep_us(10);
       break;

@@ -202,10 +202,6 @@ private:
   // --- Constants ---
   static constexpr uint32_t LATCH_DELAY_US = 80;
 
-  // --- PIO Program Info ---
-  // PIO program loading and SM claiming are now handled dynamically in init()
-  // using SDK helpers. Static tracking is no longer needed here.
-
 }; // class WS2812
 
 // =============================================================================

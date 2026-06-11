@@ -197,6 +197,7 @@ macro(musin_setup_filesystem_target)
     # Implementation needs pico stdlib and the vfs library to compile
     target_link_libraries(musin_filesystem_impl PRIVATE
         pico_stdlib
+        pico_multicore
         filesystem_vfs
         etl::etl
         musin::hal

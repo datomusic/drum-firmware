@@ -2,8 +2,11 @@
 
 extern "C" {
 #include "hardware/flash.h"
+#include "pico/multicore.h"
 #include "pico/platform/sections.h"
 }
+
+#include <cassert>
 
 namespace {
 
@@ -28,10 +31,20 @@ inline void write_basepri(uint32_t value) {
   __asm volatile("msr basepri, %0" ::"r"(value) : "memory");
 }
 
+// These wrappers bypass flash_safe_execute(), so they offer no core 1
+// lockout: they are only safe while core 1 stays parked in the bootrom.
+// If core 1 is ever launched, route flash writes through flash_safe_execute
+// instead. Must run before BASEPRI masking, while flash (XIP) is readable.
+inline void assert_core1_not_running() {
+  assert(get_core_num() == 0);
+  assert(!multicore_lockout_victim_is_initialized(1));
+}
+
 int __not_in_flash_func(erase_keep_audio_running)(blockdevice_t *device,
                                                   bd_size_t addr,
                                                   bd_size_t size) {
   (void)device;
+  assert_core1_not_running();
   const uint32_t saved_basepri = read_basepri();
   write_basepri(MASK_ALL_BUT_HIGHEST_PRIORITY);
   flash_range_erase(device_flash_offset + (size_t)addr, (size_t)size);
@@ -44,6 +57,7 @@ int __not_in_flash_func(program_keep_audio_running)(blockdevice_t *device,
                                                     bd_size_t addr,
                                                     bd_size_t size) {
   (void)device;
+  assert_core1_not_running();
   const uint32_t saved_basepri = read_basepri();
   write_basepri(MASK_ALL_BUT_HIGHEST_PRIORITY);
   flash_range_program(device_flash_offset + (size_t)addr,

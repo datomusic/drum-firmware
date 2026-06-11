@@ -65,7 +65,7 @@ void SysExHandler::update(absolute_time_t now) {
     }
     was_busy_ = current_busy_state;
   }
-  // Check for sample slot changes during active transfer
+  // Report progress during an active firmware update
   else if (current_busy_state && firmware_update_.busy()) {
     notify_firmware_update_progress();
   }
@@ -180,8 +180,7 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
 }
 
 bool SysExHandler::is_busy() const {
-  return protocol_.busy() || sds_protocol_.is_busy() ||
-         firmware_update_.busy();
+  return protocol_.busy() || sds_protocol_.is_busy() || firmware_update_.busy();
 }
 
 void SysExHandler::set_firmware_update_allowed(bool allowed) {

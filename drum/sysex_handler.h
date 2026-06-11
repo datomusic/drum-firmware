@@ -6,8 +6,8 @@
 #include "drum/sysex/firmware_update.h"
 #include "drum/sysex/protocol.h"
 #include "drum/sysex/sds_protocol.h"
-#include "musin/flash/firmware_writer.h"
 #include "etl/observer.h"
+#include "musin/flash/firmware_writer.h"
 #include "musin/hal/logger.h"
 
 extern "C" {

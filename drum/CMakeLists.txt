@@ -133,6 +133,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   musin::usb_midi
   musin::audio
   musin::filesystem
+  pico_rand
 )
 
 # Enable filesystem for the pico (must be done after linking)

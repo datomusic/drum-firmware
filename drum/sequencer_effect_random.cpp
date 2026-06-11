@@ -7,8 +7,6 @@
 namespace drum {
 
 SequencerEffectRandom::SequencerEffectRandom() {
-  srand(time_us_32());
-
   for (size_t track_idx = 0; track_idx < MAX_TRACKS; ++track_idx) {
     current_offset_index_per_track_[track_idx] = 0;
     highlighted_random_steps_[track_idx] = 0;

@@ -25,6 +25,9 @@ extern "C" {
 }
 
 #include "hardware/watchdog.h"
+#include "pico/rand.h"
+
+#include <cstdlib>
 
 #include "audio_engine.h"
 #include "drum/drum_pizza_hardware.h"
@@ -98,6 +101,10 @@ static drum::PizzaControls pizza_controls(pizza_display, tempo_handler,
 
 int main() {
   stdio_usb_init();
+
+  // Seed rand() from the hardware RNG; seeding from the boot clock in static
+  // constructors produced the same sequence every power-up.
+  srand(get_rand_32());
 
 #ifdef VERBOSE
   musin::usb::init(true); // Wait for serial connection in debug builds

@@ -650,7 +650,6 @@ void SequencerController<NumTracks, NumSteps>::initialize_all_sequencers() {
 
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::initialize_timing_and_random() {
-  srand(time_us_32());
   _just_played_step_per_track.fill(std::nullopt);
   _has_active_velocity_hit.fill(false);
 }

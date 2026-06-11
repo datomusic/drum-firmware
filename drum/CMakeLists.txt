@@ -55,6 +55,7 @@ set(KIT_BINARY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${KIT_NAME}.bin")
 # The pico toolchain setup will automatically apply the correct compiler flags.
 add_library(${KIT_NAME}_obj OBJECT ${KIT_SRC_CPP})
 target_link_libraries(${KIT_NAME}_obj PRIVATE etl::etl)
+target_include_directories(${KIT_NAME}_obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # 2. Find objcopy
 find_program(OBJCOPY_PATH NAMES arm-none-eabi-objcopy HINTS ENV PICO_TOOLCHAIN_PATH)

@@ -2,7 +2,6 @@
 #include "config.h"
 #include "events.h"
 #include "pico/time.h"
-#include "pizza_controls.h" // For config constants
 #include "sequencer_persistence.h"
 #include "sequencer_storage.h"
 #include <algorithm>
@@ -186,7 +185,9 @@ void SequencerController<NumTracks, NumSteps>::start() {
   const auto [anchor_phase, primed_phase] =
       align_to_last_anchor(last_phase_12_);
   last_phase_12_ = primed_phase;
-  tempo_source.trigger_manual_sync(anchor_phase);
+  if (drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
+    tempo_source.trigger_manual_sync(anchor_phase);
+  }
 }
 
 template <size_t NumTracks, size_t NumSteps>

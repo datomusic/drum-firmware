@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <optional>
 
-#include "drum/config.h"
 #include "etl/observer.h"
 #include "musin/hal/adc_defs.h" // For ADC_MAX_VALUE
+#include "musin/ui/drumpad_config.h"
 
 extern "C" {
 #include "pico/time.h"
@@ -43,8 +43,7 @@ enum class RetriggerMode : uint8_t {
 
 class Drumpad : public etl::observable<etl::observer<DrumpadEvent>, 4> {
 public:
-  explicit Drumpad(uint8_t pad_id,
-                   const drum::config::drumpad::DrumpadConfig &config);
+  explicit Drumpad(uint8_t pad_id, const DrumpadConfig &config);
 
   Drumpad(const Drumpad &) = delete;
   Drumpad &operator=(const Drumpad &) = delete;

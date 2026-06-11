@@ -1,7 +1,7 @@
 #ifndef MUSIN_MIDI_MIDI_INPUT_QUEUE_H
 #define MUSIN_MIDI_MIDI_INPUT_QUEUE_H
 
-#include "drum/sysex/chunk.h"
+#include "musin/midi/sysex_chunk.h"
 #include "etl/queue_spsc_atomic.h"
 #include "etl/span.h"
 #include "etl/variant.h"

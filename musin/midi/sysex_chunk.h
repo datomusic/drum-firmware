@@ -1,5 +1,5 @@
-#ifndef SYSEX_CHUNK_H_JY7GCIDU
-#define SYSEX_CHUNK_H_JY7GCIDU
+#ifndef MUSIN_MIDI_SYSEX_CHUNK_H
+#define MUSIN_MIDI_SYSEX_CHUNK_H
 
 #include "etl/span.h"
 
@@ -58,4 +58,4 @@ private:
 
 } // namespace sysex
 
-#endif /* end of include guard: SYSEX_CHUNK_H_JY7GCIDU */
+#endif // MUSIN_MIDI_SYSEX_CHUNK_H

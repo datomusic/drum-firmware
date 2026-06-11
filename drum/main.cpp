@@ -119,6 +119,10 @@ int main() {
     sequencer_controller.init_persistence();
   }
 
+  tempo_handler.set_tempo_control_range(
+      drum::config::analog_controls::MIN_BPM_ADJUST,
+      drum::config::analog_controls::MAX_BPM_ADJUST);
+
   midi_manager.init();
 
   audio_engine.init();

@@ -15,7 +15,7 @@ extern "C" {
 
 #include "musin/midi/midi_wrapper.h"
 
-#include "./chunk.h"
+#include "musin/midi/sysex_chunk.h"
 #include "./codec.h"
 
 namespace sysex {

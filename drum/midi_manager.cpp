@@ -45,11 +45,15 @@ void MidiManager::init() {
 void MidiManager::process_input() {
   MIDI::read();
 
+  while (const sysex::Chunk *chunk = musin::midi::peek_incoming_sysex_chunk()) {
+    handle_sysex(*chunk);
+    musin::midi::pop_incoming_sysex_chunk();
+  }
+
   musin::midi::IncomingMidiMessage message;
   while (musin::midi::dequeue_incoming_midi_message(message)) {
-    // Gate all non-SysEx messages during a file transfer to prevent conflicts.
-    if (sysex_handler_.is_busy() &&
-        !etl::holds_alternative<sysex::Chunk>(message)) {
+    // Gate all other messages during a file transfer to prevent conflicts.
+    if (sysex_handler_.is_busy()) {
       continue;
     }
 
@@ -75,8 +79,6 @@ void MidiManager::process_input() {
           } else if constexpr (std::is_same_v<
                                    T, musin::midi::SystemRealtimeData>) {
             handle_realtime(arg.type);
-          } else if constexpr (std::is_same_v<T, sysex::Chunk>) {
-            handle_sysex(arg);
           }
         },
         message);
@@ -109,8 +111,7 @@ void MidiManager::sysex_callback(uint8_t *data, unsigned length) {
   if (length < 2) {
     return;
   }
-  musin::midi::enqueue_incoming_midi_message(
-      sysex::Chunk(data + 1, length - 2));
+  musin::midi::enqueue_incoming_sysex_chunk(data + 1, length - 2);
 }
 
 void MidiManager::clock_callback() {

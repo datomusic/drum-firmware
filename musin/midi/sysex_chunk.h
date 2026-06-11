@@ -1,59 +1,71 @@
 #ifndef MUSIN_MIDI_SYSEX_CHUNK_H
 #define MUSIN_MIDI_SYSEX_CHUNK_H
 
+#include "etl/array.h"
 #include "etl/span.h"
+#include <cstddef>
+#include <cstdint>
 
 namespace sysex {
 
+// Largest SysEx payload (excluding 0xF0/0xF7 framing) that can be received.
+// Matches MIDI::SysExMaxSize (2048) minus the two framing bytes.
+inline constexpr size_t MAX_PAYLOAD_SIZE = 2046;
+
 /**
  * @class Chunk
- * @brief A non-owning view of a SysEx message chunk.
+ * @brief An owning, fixed-capacity copy of a SysEx message chunk.
  *
- * This class wraps an etl::span to provide a consistent, non-owning
- * interface to a segment of a SysEx message. It avoids copying data,
- * making it efficient for processing message fragments that are owned
- * by another buffer (e.g., the MIDI driver's receive buffer).
+ * Copies the payload at construction so the chunk remains valid after the
+ * MIDI driver's receive buffer is reused. Payloads longer than
+ * MAX_PAYLOAD_SIZE are truncated.
  */
 class Chunk {
 public:
-  using const_iterator = etl::span<const uint8_t>::const_iterator;
+  using const_iterator = const uint8_t *;
 
   /**
-   * @brief Constructs a Chunk from a raw pointer and size.
+   * @brief Constructs a Chunk by copying from a raw pointer and size.
    */
-  constexpr Chunk(const uint8_t *data, size_t size) : view_(data, size) {
+  constexpr Chunk(const uint8_t *data, size_t size)
+      : size_(size < MAX_PAYLOAD_SIZE ? size : MAX_PAYLOAD_SIZE) {
+    for (size_t i = 0; i < size_; ++i) {
+      data_[i] = data[i];
+    }
   }
 
   /**
-   * @brief Constructs a Chunk from an etl::span.
+   * @brief Constructs a Chunk by copying from an etl::span.
    */
-  explicit constexpr Chunk(etl::span<const uint8_t> view) : view_(view) {
+  explicit constexpr Chunk(etl::span<const uint8_t> view)
+      : Chunk(view.data(), view.size()) {
   }
 
   constexpr const uint8_t &operator[](size_t i) const {
-    return view_[i];
+    return data_[i];
   }
   constexpr size_t size() const {
-    return view_.size();
+    return size_;
   }
   constexpr bool empty() const {
-    return view_.empty();
+    return size_ == 0;
   }
   constexpr const_iterator begin() const {
-    return view_.begin();
+    return data_.data();
   }
   constexpr const_iterator end() const {
-    return view_.end();
+    return data_.data() + size_;
   }
   constexpr const_iterator cbegin() const {
-    return view_.cbegin();
+    return begin();
   }
   constexpr const_iterator cend() const {
-    return view_.cend();
+    return end();
   }
 
 private:
-  etl::span<const uint8_t> view_;
+  etl::array<uint8_t, MAX_PAYLOAD_SIZE> data_{};
+  size_t size_;
 };
 
 } // namespace sysex

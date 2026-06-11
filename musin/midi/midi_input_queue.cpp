@@ -22,7 +22,26 @@ template bool
 enqueue_incoming_midi_message<ControlChangeData>(const ControlChangeData &);
 template bool
 enqueue_incoming_midi_message<SystemRealtimeData>(const SystemRealtimeData &);
-template bool enqueue_incoming_midi_message<sysex::Chunk>(const sysex::Chunk &);
+
+namespace {
+etl::queue_spsc_atomic<sysex::Chunk, SYSEX_INPUT_QUEUE_SIZE,
+                       etl::memory_model::MEMORY_MODEL_SMALL>
+    sysex_input_queue;
+} // namespace
+
+bool enqueue_incoming_sysex_chunk(const uint8_t *data, size_t length) {
+  // emplace constructs the chunk in the queue slot, avoiding a 2 KB stack
+  // copy.
+  return sysex_input_queue.emplace(data, length);
+}
+
+const sysex::Chunk *peek_incoming_sysex_chunk() {
+  return sysex_input_queue.empty() ? nullptr : &sysex_input_queue.front();
+}
+
+void pop_incoming_sysex_chunk() {
+  sysex_input_queue.pop();
+}
 
 bool dequeue_incoming_midi_message(IncomingMidiMessage &message) {
   if (midi_input_queue.empty()) {

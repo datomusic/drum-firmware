@@ -459,7 +459,29 @@ void SequencerController<NumTracks, NumSteps>::record_velocity_hit(
     uint8_t track_index) {
   if (track_index < NumTracks) {
     track_states_[track_index].has_velocity_hit = true;
+    record_pad_hit_trace(track_index);
   }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
+    uint8_t track_index) {
+  if (_running && track_index < NumTracks) {
+    TrackState &track_state = track_states_[track_index];
+    const size_t cursor_step =
+        track_state.just_played_step.value_or(get_current_step());
+    track_state.last_pad_hit = PadHitTrace{cursor_step, get_absolute_time()};
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+std::optional<PadHitTrace>
+SequencerController<NumTracks, NumSteps>::get_last_pad_hit_for_track(
+    uint8_t track_index) const {
+  if (track_index < NumTracks) {
+    return track_states_[track_index].last_pad_hit;
+  }
+  return std::nullopt;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -511,6 +533,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
           get_active_note_for_track(static_cast<uint8_t>(track_idx));
       trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
                       drum::config::drumpad::RETRIGGER_VELOCITY);
+      record_pad_hit_trace(static_cast<uint8_t>(track_idx));
     }
   }
 
@@ -546,6 +569,7 @@ void SequencerController<NumTracks, NumSteps>::update() {
           get_active_note_for_track(static_cast<uint8_t>(track_idx));
       trigger_note_on(static_cast<uint8_t>(track_idx), note_to_play,
                       drum::config::drumpad::RETRIGGER_VELOCITY);
+      record_pad_hit_trace(static_cast<uint8_t>(track_idx));
     }
   }
 

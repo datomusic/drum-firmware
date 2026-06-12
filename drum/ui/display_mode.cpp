@@ -184,13 +184,9 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
 
 void SequencerDisplayMode::update_track_override_colors(
     PizzaDisplay &display) const {
-  // While running, pad hits are shown as fading traces on the cursor step
-  // instead of flashing the whole ring.
-  bool ring_flash_enabled = !_sequencer_controller_ref.is_running();
   for (uint8_t track_idx = 0;
        track_idx < PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
-    if (ring_flash_enabled &&
-        _sequencer_controller_ref.has_recent_velocity_hit(track_idx)) {
+    if (_sequencer_controller_ref.has_recent_velocity_hit(track_idx)) {
       uint8_t active_note =
           _sequencer_controller_ref.get_active_note_for_track(track_idx);
       std::optional<Color> color_opt =

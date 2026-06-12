@@ -36,8 +36,7 @@ void SequencerEffectRetrigger::mark_due_tracks(bool step_is_due,
 uint8_t SequencerEffectRetrigger::take_due_mask() {
   uint8_t mask = due_mask_.load(std::memory_order_relaxed);
   if (mask != 0) {
-    due_mask_.fetch_and(static_cast<uint8_t>(~mask),
-                        std::memory_order_relaxed);
+    due_mask_.fetch_and(static_cast<uint8_t>(~mask), std::memory_order_relaxed);
   }
   return mask;
 }

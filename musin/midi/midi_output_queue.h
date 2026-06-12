@@ -6,7 +6,6 @@
 #include "midi_common.h"
 #include "midi_wrapper.h" // For MIDI::SysExMaxSize (from musin/midi/midi_wrapper.h)
 #include "musin/hal/logger.h" // Include logger header
-#include <algorithm>          // For std::min, std::copy
 #include <cstdint>
 
 namespace musin::midi {
@@ -14,6 +13,8 @@ namespace musin::midi {
 // Configuration for the MIDI queue
 constexpr size_t MIDI_QUEUE_SIZE =
     64; // Max number of MIDI messages in the queue
+constexpr size_t SYSEX_QUEUE_SIZE =
+    2; // Max number of pending outgoing SysEx payloads
 
 enum class MidiMessageType : uint8_t {
   NOTE_ON,
@@ -24,10 +25,11 @@ enum class MidiMessageType : uint8_t {
   SYSTEM_EXCLUSIVE
 };
 
+// SysEx payloads are large (MIDI::SysExMaxSize bytes), so they are stored in
+// a small dedicated queue instead of the per-message union. A
+// SYSTEM_EXCLUSIVE entry in the main queue marks the payload's position in
+// the send order.
 struct SystemExclusiveData {
-  // Sized by MIDI::SysExMaxSize from musin/midi/midi_wrapper.h (2048 bytes).
-  // Note: this buffer lives in a union inside every OutgoingMidiMessage, so
-  // each of the MIDI_QUEUE_SIZE queue slots carries it (~128 KB total).
   etl::array<uint8_t, MIDI::SysExMaxSize> data_buffer;
   unsigned length;
 };
@@ -39,7 +41,6 @@ struct OutgoingMidiMessage {
     ControlChangeData control_change_message;
     PitchBendData pitch_bend_message;
     SystemRealtimeData system_realtime_message;
-    SystemExclusiveData system_exclusive_message;
 
     // Default constructor for the union.
     // Members will be initialized by the OutgoingMidiMessage constructors.
@@ -78,28 +79,18 @@ struct OutgoingMidiMessage {
     data.pitch_bend_message.channel = ch;
     data.pitch_bend_message.bend_value = pb_val;
   }
-
-  OutgoingMidiMessage(const uint8_t *sysex_payload, unsigned len)
-      : type(MidiMessageType::SYSTEM_EXCLUSIVE) {
-    // Ensure length does not exceed the buffer size defined by
-    // MIDI::SysExMaxSize from midi_wrapper.h
-    data.system_exclusive_message.length =
-        std::min(len, static_cast<unsigned>(MIDI::SysExMaxSize));
-    if (sysex_payload != nullptr) { // Check for null payload
-      std::copy(sysex_payload,
-                sysex_payload + data.system_exclusive_message.length,
-                data.system_exclusive_message.data_buffer.begin());
-    } else {
-      // If payload is null, ensure length is 0 to avoid copying garbage
-      data.system_exclusive_message.length = 0;
-    }
-  }
 };
 
 extern etl::deque<OutgoingMidiMessage, MIDI_QUEUE_SIZE> midi_output_queue;
 
 bool enqueue_midi_message(const OutgoingMidiMessage &message,
                           musin::Logger &logger);
+
+// Copies the payload into the dedicated SysEx queue and enqueues a
+// SYSTEM_EXCLUSIVE marker to preserve send ordering. Payloads longer than
+// MIDI::SysExMaxSize are truncated; a null payload is sent as length 0.
+bool enqueue_sysex_message(const uint8_t *payload, unsigned length,
+                           musin::Logger &logger);
 
 void process_midi_output_queue(musin::Logger &logger);
 

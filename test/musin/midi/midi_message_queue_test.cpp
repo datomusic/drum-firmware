@@ -212,7 +212,6 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     OutgoingMidiMessage msg_cc(ch, ctrl, val);
     OutgoingMidiMessage msg_pitch_bend(ch, bend);
     OutgoingMidiMessage msg_rt(rt_type);
-    OutgoingMidiMessage msg_sysex(sysex_payload, sysex_len);
 
     REQUIRE(enqueue_midi_message(msg_note_on, test_logger));
     process_midi_output_queue(test_logger);
@@ -234,7 +233,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     process_midi_output_queue(test_logger);
     // No time advance needed after RT for next non-RT, as RT doesn't affect its timer
 
-    REQUIRE(enqueue_midi_message(msg_sysex, test_logger));
+    REQUIRE(enqueue_sysex_message(sysex_payload, sysex_len, test_logger));
     // SysEx is non-RT. If the previous non-RT was recent, this might be deferred.
     // The previous non-RT was pitch_bend, then RT, so the timer for non-RT is from pitch_bend.
     // We advanced time after pitch_bend, so this should send.
@@ -261,8 +260,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
       reset_test_state();
       uint8_t payload[] = {0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7};
       unsigned len = sizeof(payload);
-      OutgoingMidiMessage msg(payload, len);
-      REQUIRE(enqueue_midi_message(msg, test_logger));
+      REQUIRE(enqueue_sysex_message(payload, len, test_logger));
       process_midi_output_queue(test_logger);
       REQUIRE(mock_midi_calls.size() == 1);
       REQUIRE(mock_midi_calls[0] ==
@@ -275,8 +273,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
     SECTION("Empty SysEx (nullptr payload, zero length in constructor)") {
       reset_test_state();
-      OutgoingMidiMessage msg(nullptr, 0);
-      REQUIRE(enqueue_midi_message(msg, test_logger));
+      REQUIRE(enqueue_sysex_message(nullptr, 0, test_logger));
       process_midi_output_queue(test_logger);
       REQUIRE(mock_midi_calls.size() == 1);
       // Constructor sets length to 0 if payload is nullptr
@@ -293,13 +290,13 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
         long_payload_vec[i] = static_cast<uint8_t>(i);
       }
 
-      OutgoingMidiMessage msg(long_payload_vec.data(),
-                              static_cast<unsigned>(long_payload_vec.size()));
-      REQUIRE(enqueue_midi_message(msg, test_logger));
+      REQUIRE(enqueue_sysex_message(
+          long_payload_vec.data(),
+          static_cast<unsigned>(long_payload_vec.size()), test_logger));
       process_midi_output_queue(test_logger);
 
       REQUIRE(mock_midi_calls.size() == 1);
-      // The constructor of OutgoingMidiMessage truncates.
+      // enqueue_sysex_message truncates to MIDI::SysExMaxSize.
       REQUIRE(mock_midi_calls[0].function_name == "_sendSysEx_actual");
       REQUIRE(mock_midi_calls[0].sysex_length == MIDI::SysExMaxSize);
       REQUIRE(mock_midi_calls[0].sysex_data.size() == MIDI::SysExMaxSize);
@@ -309,11 +306,10 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
                          long_payload_vec.begin(), long_payload_vec.begin() + MIDI::SysExMaxSize));
     }
 
-    SECTION("SysEx with zero length but non-null pointer in constructor") {
+    SECTION("SysEx with zero length but non-null pointer") {
       reset_test_state();
       uint8_t dummy_payload[] = {1, 2, 3}; // Content doesn't matter as length is 0
-      OutgoingMidiMessage msg(dummy_payload, 0);
-      REQUIRE(enqueue_midi_message(msg, test_logger));
+      REQUIRE(enqueue_sysex_message(dummy_payload, 0, test_logger));
       process_midi_output_queue(test_logger);
       REQUIRE(mock_midi_calls.size() == 1);
       REQUIRE(mock_midi_calls[0] ==

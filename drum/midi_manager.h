@@ -1,7 +1,7 @@
 #ifndef DRUM_MIDI_MANAGER_H
 #define DRUM_MIDI_MANAGER_H
 
-#include "drum/sysex/chunk.h"
+#include "musin/midi/sysex_chunk.h"
 #include <cstdint>
 
 // Forward declarations to minimize header includes

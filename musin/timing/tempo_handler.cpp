@@ -1,5 +1,4 @@
 #include "musin/timing/tempo_handler.h"
-#include "drum/config.h"
 #include "musin/timing/tempo_event.h"
 #include "musin/timing/timing_constants.h"
 
@@ -105,13 +104,16 @@ PlaybackState TempoHandler::get_playback_state() const {
   return _playback_state;
 }
 
+void TempoHandler::set_tempo_control_range(float min_bpm, float max_bpm) {
+  min_bpm_ = min_bpm;
+  max_bpm_ = max_bpm;
+}
+
 void TempoHandler::set_tempo_control_value(float knob_value) {
   last_tempo_knob_value_ = knob_value;
 
   if (get_clock_source() == ClockSource::INTERNAL) {
-    float bpm = drum::config::analog_controls::MIN_BPM_ADJUST +
-                knob_value * (drum::config::analog_controls::MAX_BPM_ADJUST -
-                              drum::config::analog_controls::MIN_BPM_ADJUST);
+    float bpm = min_bpm_ + knob_value * (max_bpm_ - min_bpm_);
     set_bpm(bpm);
     // Ensure speed modifier is always normal when on internal clock
     set_speed_modifier(SpeedModifier::NORMAL_SPEED);
@@ -131,10 +133,6 @@ void TempoHandler::set_playback_state(PlaybackState new_state) {
 }
 
 void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
-  if (!drum::config::RETRIGGER_SYNC_ON_PLAYBUTTON) {
-    return;
-  }
-
   switch (get_clock_source()) {
   case ClockSource::INTERNAL:
   case ClockSource::MIDI:

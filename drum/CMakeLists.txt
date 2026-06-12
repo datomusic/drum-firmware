@@ -32,6 +32,8 @@ add_executable(${EXECUTABLE_NAME}
   sequencer_storage.cpp
   sequencer_effect_swing.cpp
   sequencer_effect_random.cpp
+  sequencer_effect_repeat.cpp
+  sequencer_effect_retrigger.cpp
   save_timing_manager.cpp
   configuration_manager.cpp
   message_router.cpp
@@ -55,6 +57,7 @@ set(KIT_BINARY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${KIT_NAME}.bin")
 # The pico toolchain setup will automatically apply the correct compiler flags.
 add_library(${KIT_NAME}_obj OBJECT ${KIT_SRC_CPP})
 target_link_libraries(${KIT_NAME}_obj PRIVATE etl::etl)
+target_include_directories(${KIT_NAME}_obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # 2. Find objcopy
 find_program(OBJCOPY_PATH NAMES arm-none-eabi-objcopy HINTS ENV PICO_TOOLCHAIN_PATH)
@@ -132,6 +135,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   musin::usb_midi
   musin::audio
   musin::filesystem
+  pico_rand
 )
 
 # Enable filesystem for the pico (must be done after linking)

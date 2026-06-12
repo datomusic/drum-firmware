@@ -3,6 +3,7 @@
 
 #include "etl/array.h"
 #include "etl/span.h"
+#include "musin/ui/drumpad_config.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -68,17 +69,8 @@ namespace drumpad {
 constexpr uint8_t DEFAULT_FALLBACK_NOTE = 36;
 constexpr uint8_t RETRIGGER_VELOCITY = 100;
 
-// Per-pad settings structure
-struct DrumpadConfig {
-  uint16_t noise_threshold;
-  uint16_t trigger_threshold;
-  uint16_t high_pressure_threshold;
-  bool active_low;
-  uint32_t debounce_time_us;
-  uint32_t hold_time_us;
-  uint64_t max_velocity_time_us;
-  uint64_t min_velocity_time_us;
-};
+// Per-pad settings structure (defined by the musin drumpad driver)
+using DrumpadConfig = musin::ui::DrumpadConfig;
 
 // Since all pads are physically identical, we can define a single configuration
 constexpr DrumpadConfig default_drumpad_config = {.noise_threshold = 150,

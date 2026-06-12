@@ -28,8 +28,6 @@
 #include <cstddef>       // For size_t
 #include <cstdint>       // For int16_t, uint16_t, int32_t
 
-// Destructor is no longer needed as etl::vector handles memory.
-
 void Waveshaper::shape(const float *new_shape, size_t length) {
   // Validate input shape and length
   if (!new_shape || length < 2 || length > MAX_WAVESHAPE_SIZE) {

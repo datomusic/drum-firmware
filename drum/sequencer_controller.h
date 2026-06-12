@@ -18,9 +18,11 @@
 
 #include "musin/hal/logger.h"
 #include "sequencer_effect_random.h"
+#include "sequencer_effect_repeat.h"
+#include "sequencer_effect_retrigger.h"
 #include "sequencer_effect_swing.h"
 #include "sequencer_persistence.h"
-#include "sequencer_storage.h"
+#include "sequencer_persistence_manager.h"
 #include <cstddef>
 
 namespace drum {
@@ -33,10 +35,14 @@ constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 4
 constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 3
 } // namespace musical_timing
 
-enum class RetriggerMode : uint8_t {
-  Off = 0,
-  Step = 1,
-  Substeps = 2
+/**
+ * @brief Per-track runtime state for the sequencer.
+ */
+struct TrackState {
+  uint8_t active_note{0};
+  bool has_velocity_hit{false};
+  std::optional<uint8_t> last_played_note{};
+  std::optional<size_t> just_played_step{};
 };
 
 // Forward declare the specific Sequencer instantiation from its new namespace
@@ -279,30 +285,20 @@ private:
   std::reference_wrapper<musin::timing::Sequencer<NumTracks, NumSteps>>
       sequencer_;
   uint32_t scheduled_step_counter_;
-  etl::array<std::optional<uint8_t>, NumTracks> last_played_note_per_track;
-  etl::array<std::optional<size_t>, NumTracks> _just_played_step_per_track;
+  etl::array<TrackState, NumTracks> track_states_{};
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;
-  std::atomic<uint8_t> _retrigger_due_mask{0};
   uint8_t last_phase_12_{0};
 
-  bool repeat_active_ = false;
-  uint32_t repeat_length_ = 0;
-  uint32_t repeat_activation_step_index_ = 0;
-  uint64_t repeat_activation_step_counter_ = 0;
-
+  SequencerEffectRepeat repeat_effect_;
+  SequencerEffectRetrigger retrigger_effect_;
   SequencerEffectSwing swing_effect_;
   SequencerEffectRandom random_effect_;
   // User intent: true when RANDOM is held hard-press while running.
   bool random_intends_flip_{false};
 
-  etl::array<uint8_t, NumTracks> _active_note_per_track{};
-  etl::array<RetriggerMode, NumTracks> _retrigger_mode_per_track{};
-  etl::array<bool, NumTracks> _has_active_velocity_hit{};
-
-  // Persistence management (optional until filesystem is ready)
-  std::optional<SequencerStorage<NumTracks, NumSteps>> storage_;
+  SequencerPersistenceManager<NumTracks, NumSteps> persistence_;
 
   // Logger reference
   musin::Logger &logger_;

@@ -62,6 +62,12 @@ public:
 
   void set_bpm(float bpm);
   void set_speed_modifier(SpeedModifier modifier);
+
+  /**
+   * @brief Sets the BPM range the tempo control knob maps onto when the
+   * internal clock is active.
+   */
+  void set_tempo_control_range(float min_bpm, float max_bpm);
   void set_tempo_control_value(float knob_value);
 
   [[nodiscard]] SpeedModifier get_speed_modifier() const;
@@ -88,6 +94,8 @@ private:
   uint64_t tick_count_;
   const bool _send_midi_clock_when_stopped;
   bool initialized_ = false;
+  float min_bpm_ = 60.0f;
+  float max_bpm_ = 360.0f;
   float last_tempo_knob_value_ = 0.5f;
   SyncState sync_state_ = SyncState::RUNNING;
 };

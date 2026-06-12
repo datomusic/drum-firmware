@@ -1,10 +1,8 @@
 #include "musin/ui/drumpad.h"
-#include "drum/config.h"
 
 namespace musin::ui {
 
-Drumpad::Drumpad(uint8_t pad_id,
-                 const drum::config::drumpad::DrumpadConfig &config)
+Drumpad::Drumpad(uint8_t pad_id, const DrumpadConfig &config)
     : _pad_id(pad_id), _noise_threshold(config.noise_threshold),
       _trigger_threshold(config.trigger_threshold),
       _high_pressure_threshold(

@@ -62,6 +62,19 @@ drum/build.sh [options]  # See README.md for full options
 cd test && ./run_all_tests.sh
 ```
 
+### Git Worktrees & Submodules
+Fresh worktrees do **not** have submodules populated; builds and tests fail with missing CMakeLists.txt or headers until they are initialized. Run this first in any new worktree:
+```bash
+# For host tests:
+git submodule update --init --depth 1 lib/etl lib/test/Catch2 \
+  musin/ports/pico/libraries/arduino_midi_library \
+  musin/ports/pico/libraries/Arduino-USBMIDI
+# Additionally, for firmware builds (large download):
+git submodule update --init --recursive --depth 1 \
+  musin/ports/pico/pico-sdk musin/ports/pico/pico-extras \
+  musin/ports/pico/libraries/pico-vfs
+```
+
 ### Code Quality
 - **Pre-commit hooks:** Run `pre-commit` before commits
 - **Conventional commits:** `fix:` `feat:` `refactor:` etc.

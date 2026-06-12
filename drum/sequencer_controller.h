@@ -17,6 +17,7 @@
 #include <optional>
 
 #include "musin/hal/logger.h"
+#include "pico/time.h"
 #include "sequencer_effect_random.h"
 #include "sequencer_effect_repeat.h"
 #include "sequencer_effect_retrigger.h"
@@ -26,6 +27,16 @@
 #include <cstddef>
 
 namespace drum {
+
+/**
+ * @brief Records where and when a drumpad was hit while the sequencer ran.
+ * Consumed by the display to draw a fading trace note on the sequencer ring;
+ * never affects playback or stored patterns.
+ */
+struct PadHitTrace {
+  size_t step_index;
+  absolute_time_t timestamp;
+};
 
 namespace musical_timing {
 constexpr uint8_t PPQN = 12;
@@ -43,6 +54,7 @@ struct TrackState {
   bool has_velocity_hit{false};
   std::optional<uint8_t> last_played_note{};
   std::optional<size_t> just_played_step{};
+  std::optional<PadHitTrace> last_pad_hit{};
 };
 
 // Forward declare the specific Sequencer instantiation from its new namespace
@@ -230,6 +242,14 @@ public:
   [[nodiscard]] bool has_recent_velocity_hit(uint8_t track_index) const;
 
   /**
+   * @brief Gets the most recent drumpad hit recorded while the sequencer was
+   * running, for display purposes. Returns std::nullopt if no hit has been
+   * recorded for the track.
+   */
+  [[nodiscard]] std::optional<PadHitTrace>
+  get_last_pad_hit_for_track(uint8_t track_index) const;
+
+  /**
    * @brief Get the current retrigger mode for a track.
    * @param track_index The track index to check.
    * @return 0 for off, 1 for single retrigger, 2 for double retrigger.
@@ -275,6 +295,12 @@ private:
 
   [[nodiscard]] size_t calculate_base_step_index() const;
   void process_track_step(size_t track_idx, size_t step_index_to_play);
+
+  /**
+   * @brief Stores a display trace for a live hit (drumpad or retrigger) on the
+   * track's current cursor step. No-op when the sequencer is stopped.
+   */
+  void record_pad_hit_trace(uint8_t track_index);
 
   void initialize_active_notes();
   void initialize_all_sequencers();

@@ -72,6 +72,8 @@ SequencerDisplayMode::SequencerDisplayMode(
 
 void SequencerDisplayMode::draw(PizzaDisplay &display, absolute_time_t now) {
   sync_highlight_phase_with_step();
+  measure_step_period(now);
+  update_pad_traces();
   draw_base_elements(display, now);
   draw_animations(display, now);
 }
@@ -124,6 +126,16 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
       Color base_step_color = calculate_step_color(display, step);
       Color final_color = base_step_color;
 
+      // Pad-hit traces only show on steps that display as empty; steps with
+      // a visible note already give feedback on their own.
+      if (is_running && base_step_color == 0u) {
+        std::optional<Color> trace_color =
+            calculate_trace_color(display, track_idx, step_idx, now);
+        if (trace_color.has_value()) {
+          final_color = trace_color.value();
+        }
+      }
+
       // Apply track override color if active
       if (track_idx < display._track_override_colors.size() &&
           display._track_override_colors[track_idx].has_value()) {
@@ -172,9 +184,13 @@ void SequencerDisplayMode::draw_sequencer_state(PizzaDisplay &display,
 
 void SequencerDisplayMode::update_track_override_colors(
     PizzaDisplay &display) const {
+  // While running, pad hits are shown as fading traces on the cursor step
+  // instead of flashing the whole ring.
+  bool ring_flash_enabled = !_sequencer_controller_ref.is_running();
   for (uint8_t track_idx = 0;
        track_idx < PizzaDisplay::SEQUENCER_TRACKS_DISPLAYED; ++track_idx) {
-    if (_sequencer_controller_ref.has_recent_velocity_hit(track_idx)) {
+    if (ring_flash_enabled &&
+        _sequencer_controller_ref.has_recent_velocity_hit(track_idx)) {
       uint8_t active_note =
           _sequencer_controller_ref.get_active_note_for_track(track_idx);
       std::optional<Color> color_opt =
@@ -317,6 +333,96 @@ bool SequencerDisplayMode::is_highlight_bright(
   // When stopped: use phase-based blinking managed by PizzaDisplay
   // This provides consistent blinking on phases 0 and 12
   return display._highlight_is_bright.load(std::memory_order_relaxed);
+}
+
+void SequencerDisplayMode::measure_step_period(absolute_time_t now) {
+  if (!_sequencer_controller_ref.is_running()) {
+    _last_timed_step = std::nullopt;
+    _last_step_change_time = nil_time;
+    return;
+  }
+
+  uint32_t current_step = _sequencer_controller_ref.get_current_step();
+  if (_last_timed_step.has_value() &&
+      _last_timed_step.value() == current_step) {
+    return;
+  }
+
+  if (!is_nil_time(_last_step_change_time)) {
+    _measured_step_period_us = static_cast<uint64_t>(
+        absolute_time_diff_us(_last_step_change_time, now));
+  }
+  _last_timed_step = current_step;
+  _last_step_change_time = now;
+}
+
+void SequencerDisplayMode::update_pad_traces() {
+  if (!_sequencer_controller_ref.is_running()) {
+    clear_pad_traces();
+    return;
+  }
+
+  for (uint8_t track_idx = 0; track_idx < config::NUM_TRACKS; ++track_idx) {
+    auto hit = _sequencer_controller_ref.get_last_pad_hit_for_track(track_idx);
+    if (!hit.has_value() ||
+        to_us_since_boot(hit->timestamp) ==
+            to_us_since_boot(_last_trace_timestamps[track_idx])) {
+      continue;
+    }
+    _last_trace_timestamps[track_idx] = hit->timestamp;
+    if (hit->step_index < config::NUM_STEPS_PER_TRACK) {
+      _trace_start_times[track_idx][hit->step_index] = hit->timestamp;
+    }
+  }
+}
+
+void SequencerDisplayMode::clear_pad_traces() {
+  for (auto &track_traces : _trace_start_times) {
+    track_traces.fill(nil_time);
+  }
+}
+
+uint64_t SequencerDisplayMode::trace_fade_duration_us() const {
+  uint64_t step_period_us = (_measured_step_period_us != 0)
+                                ? _measured_step_period_us
+                                : DEFAULT_STEP_PERIOD_US;
+  return static_cast<uint64_t>(static_cast<float>(step_period_us) *
+                               TRACE_FADE_STEPS);
+}
+
+std::optional<Color>
+SequencerDisplayMode::calculate_trace_color(const PizzaDisplay &display,
+                                            size_t track_idx, size_t step_idx,
+                                            absolute_time_t now) {
+  absolute_time_t start = _trace_start_times[track_idx][step_idx];
+  if (is_nil_time(start)) {
+    return std::nullopt;
+  }
+
+  // A hit recorded later in the same main-loop iteration carries a timestamp
+  // slightly ahead of the `now` this frame draws with; treat it as just
+  // started rather than expired.
+  int64_t elapsed_us = std::max<int64_t>(absolute_time_diff_us(start, now), 0);
+  uint64_t duration_us = trace_fade_duration_us();
+  if (static_cast<uint64_t>(elapsed_us) >= duration_us) {
+    _trace_start_times[track_idx][step_idx] = nil_time;
+    return std::nullopt;
+  }
+
+  uint8_t active_note = _sequencer_controller_ref.get_active_note_for_track(
+      static_cast<uint8_t>(track_idx));
+  std::optional<Color> base_color =
+      display.get_color_for_midi_note(active_note);
+  if (!base_color.has_value()) {
+    return std::nullopt;
+  }
+
+  float fade_factor =
+      1.0f - (static_cast<float>(elapsed_us) / static_cast<float>(duration_us));
+  uint8_t brightness =
+      static_cast<uint8_t>(PizzaDisplay::MAX_BRIGHTNESS * fade_factor);
+  return Color(display._leds.adjust_color_brightness(
+      static_cast<uint32_t>(base_color.value()), brightness));
 }
 
 // --- FileTransferDisplayMode Implementation ---

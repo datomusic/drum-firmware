@@ -10,10 +10,10 @@
 
 #include "musin/audio/attack_buffering_sample_reader.h" // Changed include
 #include "musin/audio/buffer_source.h"
-#include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
+#include "musin/audio/waveshaper.h"
 #include "musin/hal/logger.h"
 
 namespace drum {
@@ -126,14 +126,7 @@ public:
    * @brief Sets the global crusher sample rate reduction amount.
    * @param normalized_value The crush amount, normalized (0.0f to 1.0f).
    */
-  void set_crush_rate(float normalized_value);
-
-  /**
-   * @brief Sets the global crusher bit depth.
-   * @param normalized_value The desired depth amount, normalized (0.0f
-   * to 1.0f).
-   */
-  void set_crush_depth(float normalized_value);
+  void set_distortion(float normalized_value);
 
   /**
    * @brief Handles incoming NoteEvents to play or stop sounds.
@@ -147,8 +140,34 @@ private:
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;
 
+  /**
+   * @brief Internal class to apply gain before the waveshaper.
+   */
+  class DistortionStage : public ::BufferSource {
+  public:
+    explicit DistortionStage(::BufferSource &source)
+        : source_(source), gain_(1.0f) {
+    }
+    void fill_buffer(::AudioBlock &out_samples) override {
+      source_.fill_buffer(out_samples);
+      for (size_t i = 0; i < out_samples.size(); ++i) {
+        float sample = static_cast<float>(out_samples[i]) * gain_;
+        out_samples[i] =
+            static_cast<int16_t>(std::clamp(sample, -32768.0f, 32767.0f));
+      }
+    }
+    void set_gain(float gain) {
+      gain_ = gain;
+    }
+
+  private:
+    ::BufferSource &source_;
+    float gain_;
+  };
+
   musin::audio::AudioMixer<NUM_VOICES> mixer_;
-  musin::audio::Crusher crusher_;
+  DistortionStage distortion_stage_;
+  Waveshaper waveshaper_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
 

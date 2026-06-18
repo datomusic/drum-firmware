@@ -42,36 +42,34 @@ float map_value_filter_fast(float normalized_value) {
   return map_value_breakpoint(inverted_value, 400.0f, 800.0f, 20000.0f);
 }
 
+constexpr size_t WAVESHAPE_SIZE = 257;
+
+constexpr auto generate_linear_shape() {
+  etl::array<float, WAVESHAPE_SIZE> data{};
+  for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
+    // Map i to x in [-1, 1] for a linear pass-through
+    float x = -1.0f + 2.0f * static_cast<float>(i) / (WAVESHAPE_SIZE - 1);
+    data[i] = x;
+  }
+  return data;
+}
+
+constexpr etl::array<float, WAVESHAPE_SIZE> waveshape_linear_data =
+    generate_linear_shape();
+etl::array<float, WAVESHAPE_SIZE> waveshape_tanh_data;
+
+void generate_tanh_shape() {
+  for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
+    // Map i to x in [-4, 4] for a good tanh curve
+    float x = -4.0f + 8.0f * static_cast<float>(i) / (WAVESHAPE_SIZE - 1);
+    waveshape_tanh_data[i] = std::tanh(x);
+  }
+}
+
 } // namespace
 
 AudioEngine::Voice::Voice()
     : sound(reader.emplace()) { // reader is default constructed here
-}
-
-AudioEngine::AudioEngine(const SampleRepository &repository,
-                         musin::Logger &logger)
-    : sample_repository_(repository), logger_(logger),
-      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
-                     &voices_[3].sound},
-      mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
-      highpass_(lowpass_) {
-  // Initialize to a known, silent state.
-  set_volume(1.0f); // Set master volume to full.
-
-  // Set filters to neutral positions.
-  set_filter_frequency(20000.0f);   // Fully open.
-  set_filter_resonance(0.0f);       // No resonance.
-  highpass_.filter.frequency(0.0f); // Fully open.
-  highpass_.filter.resonance(0.7f); // Default resonance.
-
-  // Set crusher to be transparent.
-  set_crush_depth(1.0f); // Maximum bit depth (i.e., no crush).
-  set_crush_rate(1.0f);  // Maximum sample rate (i.e., no crush).
-
-  // Initialize all voice gains to zero to ensure silence.
-  for (size_t i = 0; i < NUM_VOICES; ++i) {
-    mixer_.gain(i, 0.25f);
-  }
 }
 
 bool AudioEngine::init() {
@@ -187,17 +185,60 @@ void AudioEngine::set_filter_resonance(float normalized_value) {
   const float resonance = map_value_linear(normalized_value, 0.7f, 3.0f);
   lowpass_.filter.resonance(resonance);
 }
-void AudioEngine::set_crush_rate(float normalized_value) {
-  const float inverted_value = 1.0f - std::clamp(normalized_value, 0.0f, 1.0f);
-  const float rate =
-      map_value_breakpoint(inverted_value, 882.0f, 2205.0f, 22050.0f);
-  crusher_.sampleRate(rate);
+
+AudioEngine::AudioEngine(const SampleRepository &repository,
+                         musin::Logger &logger)
+    : sample_repository_(repository), logger_(logger),
+      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
+                     &voices_[3].sound},
+      mixer_(voice_sources_), distortion_stage_(mixer_),
+      waveshaper_(distortion_stage_), lowpass_(waveshaper_),
+      highpass_(lowpass_) {
+  // Initialize to a known, silent state.
+  set_volume(1.0f); // Set master volume to full.
+
+  // Set filters to neutral positions.
+  set_filter_frequency(20000.0f);   // Fully open.
+  set_filter_resonance(0.0f);       // No resonance.
+  highpass_.filter.frequency(0.0f); // Fully open.
+  highpass_.filter.resonance(0.7f); // Default resonance.
+
+  // Generate tanh shape once (linear shape is constexpr).
+  generate_tanh_shape();
+
+  // Initialize all voice gains to zero to ensure silence.
+  for (size_t i = 0; i < NUM_VOICES; ++i) {
+    mixer_.gain(i, 0.25f);
+  }
+
+  // Set distortion to be transparent initially.
+  set_distortion(0.0f);
 }
 
-void AudioEngine::set_crush_depth(float normalized_value) {
+void AudioEngine::set_distortion(float normalized_value) {
   normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-  const uint8_t depth = map_value_linear(normalized_value, 5.0f, 16.0f);
-  crusher_.bits(depth);
+
+  // 1. Pre-distortion gain (drives the effect)
+  const float pre_gain = 1.0f + (normalized_value * 8.0f);
+  distortion_stage_.set_gain(pre_gain);
+
+  // 2. Calculate the post-distortion compensation gain to keep volume stable
+  const float post_gain = std::lerp(1.0f, 0.4f, normalized_value);
+
+  // 3. Blend the waveshape and apply the compensation gain directly to the
+  //    lookup table data.
+  etl::array<float, WAVESHAPE_SIZE> blended_shape;
+  for (size_t i = 0; i < WAVESHAPE_SIZE; ++i) {
+    // First, blend between the linear and tanh shapes
+    float shape_value = std::lerp(waveshape_linear_data[i],
+                                  waveshape_tanh_data[i], normalized_value);
+
+    // Then, apply the compensation gain to the shape point itself
+    blended_shape[i] = shape_value * post_gain;
+  }
+
+  // Send the final, gain-compensated shape to the waveshaper
+  waveshaper_.shape(blended_shape.data(), blended_shape.size());
 }
 
 void AudioEngine::notification(drum::Events::NoteEvent event) {

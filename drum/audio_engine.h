@@ -8,10 +8,13 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "config.h"
 #include "musin/audio/attack_buffering_sample_reader.h" // Changed include
+#include "musin/audio/audio_input.h"
 #include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
+#include "musin/audio/line_in_source.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
 #include "musin/hal/logger.h"
@@ -142,15 +145,22 @@ public:
   void notification(drum::Events::NoteEvent event) override;
 
 private:
+  static constexpr config::audio::LineInRouting LINE_IN_ROUTING =
+      config::audio::LINE_IN_ROUTING;
+  static constexpr size_t LINE_IN_MIXER_CHANNEL = NUM_VOICES;
+
   const SampleRepository &sample_repository_;
   musin::Logger &logger_;
   etl::array<Voice, NUM_VOICES> voices_;
-  etl::array<BufferSource *, NUM_VOICES> voice_sources_;
+  etl::array<BufferSource *, NUM_VOICES + 1> voice_sources_;
 
-  musin::audio::AudioMixer<NUM_VOICES> mixer_;
+  musin::audio::AudioInput audio_input_;
+  musin::audio::LineInSource line_in_;
+  musin::audio::AudioMixer<NUM_VOICES + 1> mixer_;
   musin::audio::Crusher crusher_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
+  musin::audio::AudioMixer<2> output_mixer_;
 
   // profiler_ member is removed, ProfileSection enum remains for use with the
   // global profiler

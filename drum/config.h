@@ -35,6 +35,18 @@ constexpr bool RETRIGGER_SYNC_ON_PLAYBUTTON = true;
 constexpr bool IGNORE_MIDI_NOTE_OFF = true;
 constexpr uint32_t COLOR_MIDI_CLOCK_LISTENER = 0x88FF55;
 
+// Line input configuration
+namespace audio {
+enum class LineInRouting : uint8_t {
+  Off,    // Line input is not sampled.
+  PreFx,  // Mixed with the voices, before crusher/filters.
+  PostFx, // Mixed after the effects chain; only master volume applies.
+};
+// Build-time routing for now; will become SysEx-configurable later.
+constexpr LineInRouting LINE_IN_ROUTING = LineInRouting::PreFx;
+constexpr float LINE_IN_GAIN = 1.0f;
+} // namespace audio
+
 // SysEx Manufacturer and Device IDs
 namespace sysex {
 constexpr uint8_t MANUFACTURER_ID_0 = 0x00;

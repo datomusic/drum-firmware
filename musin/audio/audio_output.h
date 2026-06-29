@@ -81,6 +81,19 @@ bool unmute();
 bool route_line_in_to_headphone(bool enable);
 
 /**
+ * @brief Powers the codec ADC up or down so the line input (IN1_L/R) is
+ * streamed over I2S.
+ *
+ * Requires the DATO_SUBMARINE build configuration (AIC3204 codec). Use
+ * musin::audio::AudioInput to capture the streamed samples.
+ *
+ * @param enable true to power up the ADC, false to power it down.
+ * @return true on success, false otherwise (e.g., codec error or feature
+ * unavailable).
+ */
+bool set_line_in_enabled(bool enable);
+
+/**
  * @brief Deinitializes the audio output system.
  */
 void deinit();

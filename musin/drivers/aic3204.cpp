@@ -462,6 +462,65 @@ Aic3204Status Aic3204::set_mixer_volume(int8_t volume) {
   }
 }
 
+Aic3204Status Aic3204::set_adc_enabled(bool enable) {
+  if (!is_initialized()) {
+    return Aic3204Status::ERROR_NOT_INITIALIZED;
+  }
+
+  const uint8_t PAGE = 0;
+  const uint8_t NADC_REG = 0x12;
+  const uint8_t MADC_REG = 0x13;
+  const uint8_t AOSR_REG = 0x14;
+  const uint8_t ADC_PROCESSING_REG = 0x3D;
+  const uint8_t ADC_CHANNEL_SETUP_REG = 0x51;
+  const uint8_t ADC_FINE_GAIN_REG = 0x52;
+
+  Aic3204Status status;
+  if (enable) {
+    // ADC clocking mirrors the DAC: NADC=5, MADC=3, AOSR=128
+    status = write_register(PAGE, NADC_REG, 0x85);
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, MADC_REG, 0x83);
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, AOSR_REG, 0x80);
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, ADC_PROCESSING_REG, 0x01); // ADC PRB_R1
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, ADC_CHANNEL_SETUP_REG, 0xC0); // L+R ADC on
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, ADC_FINE_GAIN_REG, 0x00); // Unmute, 0dB
+  } else {
+    status = write_register(PAGE, ADC_FINE_GAIN_REG, 0x88); // Mute L+R
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, ADC_CHANNEL_SETUP_REG, 0x00); // L+R ADC off
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, NADC_REG, 0x05); // NADC divider off
+    if (status != Aic3204Status::OK) {
+      return status;
+    }
+    status = write_register(PAGE, MADC_REG, 0x03); // MADC divider off
+  }
+
+  if (status == Aic3204Status::OK) {
+    AIC_LOG("AIC3204: ADC %s", enable ? "enabled" : "disabled");
+  }
+  return status;
+}
+
 Aic3204Status Aic3204::set_dac_muted(bool muted) {
   if (!is_initialized()) {
     return Aic3204Status::ERROR_NOT_INITIALIZED;

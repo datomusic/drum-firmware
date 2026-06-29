@@ -126,7 +126,6 @@ macro(musin_setup_audio_target)
     add_library(musin_audio_impl STATIC
         ${musin_audio_generic_sources}
         ${MUSIN_AUDIO}/audio_output.cpp
-        ${MUSIN_AUDIO}/unbuffered_file_sample_reader.cpp
         ${MUSIN_DRIVERS}/aic3204.cpp
     )
 
@@ -185,6 +184,7 @@ macro(musin_setup_filesystem_target)
     add_library(musin_filesystem_impl STATIC
         ${MUSIN_ROOT}/filesystem/filesystem.cpp
         ${MUSIN_ROOT}/filesystem/partition_manager.cpp
+        ${MUSIN_ROOT}/filesystem/audio_safe_flash.cpp
     )
 
     # Implementation needs include paths to find musin headers
@@ -197,6 +197,7 @@ macro(musin_setup_filesystem_target)
     # Implementation needs pico stdlib and the vfs library to compile
     target_link_libraries(musin_filesystem_impl PRIVATE
         pico_stdlib
+        pico_multicore
         filesystem_vfs
         etl::etl
         musin::hal

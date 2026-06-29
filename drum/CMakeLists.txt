@@ -41,6 +41,7 @@ add_executable(${EXECUTABLE_NAME}
   message_router.cpp
   audio_engine.cpp
   sample_repository.cpp
+  sample_slot_manager.cpp
   ui/display_mode.cpp
   system_state_machine.cpp
   state_implementations.cpp
@@ -122,6 +123,14 @@ if (ENABLE_VERBOSE_LOGGING)
 endif()
 
 pico_enable_stdio_usb(${EXECUTABLE_NAME} 1)
+
+# XIP builds use a custom linker script that copies .rodata to RAM so the
+# interrupt-driven audio render never reads flash (required to keep audio
+# running during flash erase/program).
+if(NOT PICO_COPY_TO_RAM)
+  pico_set_linker_script(${EXECUTABLE_NAME}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/memmap_xip_rodata_in_ram.ld)
+endif()
 
 # --- Setup musin INTERFACE libraries ---
 # Order matters: setup libraries with fewer dependencies first.

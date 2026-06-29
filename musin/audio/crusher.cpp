@@ -1,6 +1,8 @@
 #include "crusher.h"
 
-void musin::audio::Crusher::crush(::AudioBlock &samples) {
+#include "port/section_macros.h"
+
+void __time_critical_func(musin::audio::Crusher::crush)(::AudioBlock &samples) {
   uint32_t i;
   uint32_t sampleSquidge;
   uint32_t sampleSqueeze; // squidge is bitdepth, squeeze is for samplerate

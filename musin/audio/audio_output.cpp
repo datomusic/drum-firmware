@@ -3,9 +3,11 @@
 #include <algorithm>               // For std::clamp
 #include <cmath>                   // For std::round
 
+#include "hardware/irq.h"
 #include "pico/audio.h"
 #include "pico/audio_i2s.h"
 #include "pico/stdlib.h"
+#include "port/section_macros.h"
 
 #include <optional>
 
@@ -42,6 +44,32 @@ bool auto_speaker_mute_enabled = true;
 static audio_buffer_pool_t *producer_pool;
 static bool running = false;
 static bool is_muted = false;
+static BufferSource *fill_source = nullptr;
+
+#define AUDIO_DMA_IRQ_NUM (DMA_IRQ_0 + PICO_AUDIO_I2S_DMA_IRQ)
+
+// Renders audio into every free producer buffer. Runs from the I2S DMA
+// interrupt (after the i2s handler has freed the just-played buffer), so
+// playback continues while the main loop is blocked. The entire call tree
+// must be RAM-resident: during a flash erase, any flash access here would
+// stall the interrupt and glitch the audio.
+static void __not_in_flash_func(fill_buffers_from_irq)() {
+  if (!running || fill_source == nullptr) {
+    return;
+  }
+  audio_buffer_t *buffer;
+  while ((buffer = take_audio_buffer(producer_pool, false)) != nullptr) {
+    AudioBlock block;
+    fill_source->fill_buffer(block);
+
+    int16_t *out_samples = (int16_t *)buffer->buffer->bytes;
+    for (size_t i = 0; i < block.size(); ++i) {
+      out_samples[i] = block[i];
+    }
+    buffer->sample_count = block.size();
+    give_audio_buffer(producer_pool, buffer);
+  }
+}
 
 #define audio_pio __CONCAT(pio, PICO_AUDIO_I2S_PIO)
 #define BUFFER_COUNT 3
@@ -112,6 +140,11 @@ void AudioOutput::deinit() {
   running = false;
 
   audio_i2s_set_enabled(false);
+
+  if (fill_source != nullptr) {
+    irq_remove_handler(AUDIO_DMA_IRQ_NUM, fill_buffers_from_irq);
+    fill_source = nullptr;
+  }
 
   audio_buffer_t *buffer;
 
@@ -191,7 +224,22 @@ bool AudioOutput::volume(float volume) {
 #endif
 }
 
-bool AudioOutput::update(BufferSource &source) {
+void AudioOutput::attach_source(BufferSource &source) {
+  fill_source = &source;
+
+  // The fill runs as a second shared handler on the I2S DMA interrupt,
+  // after the i2s handler has freed the just-played buffer. Raise the
+  // interrupt's priority so it can be kept enabled while all other
+  // interrupts are masked during flash erase/program.
+  irq_set_priority(AUDIO_DMA_IRQ_NUM, 0);
+  irq_add_shared_handler(AUDIO_DMA_IRQ_NUM, fill_buffers_from_irq,
+                         PICO_SHARED_IRQ_HANDLER_LOWEST_ORDER_PRIORITY);
+
+  // Prime the buffer pool so playback starts immediately.
+  fill_buffers_from_irq();
+}
+
+void AudioOutput::update() {
 #ifdef DATO_SUBMARINE
   // Time-based headphone detection polling with software debounce
   if (codec && time_reached(last_poll_time)) {
@@ -232,41 +280,6 @@ bool AudioOutput::update(BufferSource &source) {
     }
   }
 #endif
-
-  if (running) {
-    audio_buffer_t *buffer = take_audio_buffer(producer_pool, false);
-    if (buffer != nullptr) {
-      // printf("GOT BUFFER\n");
-
-      AudioBlock block;
-      source.fill_buffer(block);
-
-      // Copy mono samples directly to the stereo buffer
-      // The pico-sdk audio layer expects stereo, but we configure I2S for mono
-      // input. It seems to handle the duplication internally or expects mono
-      // data in the buffer. Let's copy directly for now. If stereo is needed,
-      // duplicate samples here. NOTE: The previous digital volume scaling
-      // `(volume * block[i]) >> 8u` is removed. Volume is now controlled solely
-      // by the hardware codec via AudioOutput::volume().
-      int16_t *out_samples = (int16_t *)buffer->buffer->bytes;
-      for (size_t i = 0; i < block.size(); ++i) {
-        out_samples[i] = block[i];
-        // If true stereo output needed:
-        // out_samples[i*2 + 0] = block[i]; // Left
-        // out_samples[i*2 + 1] = block[i]; // Right (duplicate mono)
-      }
-
-      buffer->sample_count = block.size(); // Should match AUDIO_BLOCK_SAMPLES
-
-      give_audio_buffer(producer_pool, buffer);
-      return false; // Successfully processed a buffer
-    } else {
-      // Buffer was not available from the pool, potential underrun
-      musin::hal::DebugUtils::g_audio_output_underruns++;
-    }
-  }
-
-  return false; // No buffer processed or running is false
 }
 
 bool AudioOutput::mute() {

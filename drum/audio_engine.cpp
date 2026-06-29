@@ -4,9 +4,14 @@
 #include "musin/audio/audio_output.h"
 #include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
+#include "sample_slot_manager.h"
 
 #include <algorithm>
 #include <cmath>
+
+extern "C" {
+#include "hardware/sync.h"
+}
 
 namespace drum {
 
@@ -44,15 +49,14 @@ float map_value_filter_fast(float normalized_value) {
 
 } // namespace
 
-AudioEngine::Voice::Voice()
-    : sound(reader.emplace()) { // reader is default constructed here
+AudioEngine::Voice::Voice() : sound(reader) {
 }
 
 AudioEngine::AudioEngine(const SampleRepository &repository,
-                         musin::Logger &logger)
-    : sample_repository_(repository), logger_(logger),
-      voice_sources_{&voices_[0].sound, &voices_[1].sound, &voices_[2].sound,
-                     &voices_[3].sound},
+                         SampleSlotManager &slot_manager, musin::Logger &logger)
+    : sample_repository_(repository), slot_manager_(slot_manager),
+      logger_(logger), voice_sources_{&voices_[0].sound, &voices_[1].sound,
+                                      &voices_[2].sound, &voices_[3].sound},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
       highpass_(lowpass_) {
   // Initialize to a known, silent state.
@@ -82,6 +86,7 @@ bool AudioEngine::init() {
   if (!AudioOutput::init()) {
     return false;
   }
+  AudioOutput::attach_source(highpass_);
   is_initialized_ = true;
   return true;
 }
@@ -94,7 +99,7 @@ void AudioEngine::deinit() {
 }
 
 void AudioEngine::process() {
-  AudioOutput::update(highpass_);
+  AudioOutput::update();
 }
 
 void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
@@ -115,25 +120,34 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
 
   Voice &voice = voices_[voice_index];
 
-  auto path_opt = sample_repository_.get_path(sample_index);
-  if (!path_opt.has_value()) {
-    return;
+  if (!slot_manager_.voice_has_sample(voice_index, sample_index)) {
+    auto path_opt = sample_repository_.get_path(sample_index);
+    if (path_opt.has_value() &&
+        slot_manager_.request_load(voice_index, sample_index, *path_opt)) {
+      // The voice may still be sounding from the buffer being overwritten;
+      // keep the interrupt-driven render out while it is replaced.
+      const uint32_t saved_irq = save_and_disable_interrupts();
+      slot_manager_.commit_staging();
+      restore_interrupts(saved_irq);
+    }
+    // On load failure the voice keeps its current sample.
   }
 
-  // Load the sample from the file path.
-  if (!voice.reader->load(*path_opt)) {
-    // Failed to load the file (e.g., file not found, corrupted).
-    logger_.error("Failed to load sample from");
-    logger_.error(*path_opt);
-    // The reader is now in a safe state (SourceType::NONE).
+  if (slot_manager_.voice_length(voice_index) == 0) {
     return;
   }
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);
-  mixer_.gain(voice_index, gain);
 
+  // The render runs in the DMA interrupt; keep it from reading the voice
+  // mid-retrigger.
+  const uint32_t saved_irq = save_and_disable_interrupts();
+  voice.reader.set_source(slot_manager_.voice_data(voice_index),
+                          slot_manager_.voice_length(voice_index));
+  mixer_.gain(voice_index, gain);
   voice.sound.play(voice.current_pitch);
+  restore_interrupts(saved_irq);
 }
 
 void AudioEngine::stop_voice(uint8_t voice_index) {

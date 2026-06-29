@@ -25,9 +25,6 @@ extern char __StackTop[];
 namespace musin::hal {
 namespace DebugUtils {
 
-// Global atomic counters for underrun monitoring
-inline std::atomic<uint32_t> g_audio_output_underruns{0};
-inline std::atomic<uint32_t> g_attack_buffer_reader_underruns{0};
 inline std::atomic<uint32_t> g_pitch_shifter_underruns{0};
 
 #ifdef ENABLE_PROFILING
@@ -161,13 +158,7 @@ private:
 
     // Underrun report
     printf("--- Underrun Report ---\n");
-    uint32_t audio_output_underruns = g_audio_output_underruns.exchange(0);
-    uint32_t attack_buffer_underruns =
-        g_attack_buffer_reader_underruns.exchange(0);
     uint32_t pitch_shifter_underruns = g_pitch_shifter_underruns.exchange(0);
-
-    printf("AudioOutput Underruns: %u\n", audio_output_underruns);
-    printf("AttackBufferReader Underruns: %u\n", attack_buffer_underruns);
     printf("PitchShifter Underruns: %u\n", pitch_shifter_underruns);
     printf("------------------------\n");
   }

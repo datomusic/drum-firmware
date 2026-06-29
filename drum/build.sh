@@ -23,7 +23,7 @@ check_device_connected() {
 
 # Default values
 VERBOSE=false
-COPY_TO_RAM=true
+COPY_TO_RAM=false
 UPLOAD=true
 PARTITION=""
 HELP=false
@@ -68,8 +68,8 @@ Build and optionally upload drum firmware with A/B partition support.
 
 OPTIONS:
   -v, --verbose        Enable verbose logging
-  -r, --ram            Copy to RAM (default)
-  -f, --flash          Build for flash (no RAM copy)
+  -r, --ram            Copy to RAM
+  -f, --flash          Build for flash (default)
   -p N, --partition=N  Upload to specific partition (0=A, 1=B)
   -n, --no-upload      Build only, don't upload
   -c, --clean          Remove build directory before building

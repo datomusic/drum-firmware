@@ -7,9 +7,6 @@
 namespace musin::hal {
 namespace DebugUtils {
 
-// Global atomic counters for underrun monitoring.
-// These are available in tests to be inspected if needed.
-inline std::atomic<uint32_t> g_audio_output_underruns{0};
 inline std::atomic<uint32_t> g_attack_buffer_reader_underruns{0};
 inline std::atomic<uint32_t> g_pitch_shifter_underruns{0};
 

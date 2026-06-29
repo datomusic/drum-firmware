@@ -31,6 +31,7 @@
 
 #include "audio_output.h"
 #include "buffer_source.h"
+#include "port/section_macros.h"
 #include <cmath> // Include for std::round
 
 namespace musin::audio {
@@ -39,7 +40,7 @@ struct Crusher : ::BufferSource {
   Crusher(::BufferSource &source) : source(source) {
   }
 
-  void fill_buffer(::AudioBlock &out_samples) {
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) {
     source.fill_buffer(out_samples);
     crush(out_samples);
   }

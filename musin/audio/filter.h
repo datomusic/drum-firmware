@@ -29,6 +29,7 @@
 #define MUSIN_AUDIO_FILTER_H_
 
 #include "audio_output.h"
+#include "port/section_macros.h"
 #include <cmath> // Include for std::log, std::exp
 #include <cstdint>
 #include <etl/math.h>
@@ -166,7 +167,7 @@ struct Lowpass : ::BufferSource {
   Lowpass(::BufferSource &from) : from(from) {
   }
 
-  void fill_buffer(::AudioBlock &out_samples) {
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
     etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(),
@@ -197,7 +198,7 @@ struct Highpass : ::BufferSource {
   Highpass(::BufferSource &from) : from(from) {
   }
 
-  void fill_buffer(::AudioBlock &out_samples) {
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) {
     from.fill_buffer(out_samples);
     filter.update_fixed(out_samples, outputs);
     etl::copy(outputs.highpass.cbegin(), outputs.highpass.cend(),

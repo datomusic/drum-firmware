@@ -232,7 +232,7 @@ struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  bool has_data() override {
+  bool __time_critical_func(has_data)() override {
     if (this->speed > 0.99f && this->speed < 1.01f) {
       return sample_reader.has_data();
     } else {
@@ -245,7 +245,7 @@ struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  bool read_next(int16_t &out) override {
+  bool __time_critical_func(read_next)(int16_t &out) override {
     if (this->speed > 0.99f && this->speed < 1.01f) {
       // Passthrough directly from the source reader
       return sample_reader.read_next(out);
@@ -270,7 +270,7 @@ struct PitchShifter : SampleReader {
   }
 
   // Reader interface
-  uint32_t read_samples(AudioBlock &out) override {
+  uint32_t __time_critical_func(read_samples)(AudioBlock &out) override {
     // Fast path for essentially unmodified speed
     if (this->speed > 0.99f && this->speed < 1.01f) {
       return sample_reader.read_samples(out);

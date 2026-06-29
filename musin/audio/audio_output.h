@@ -26,12 +26,21 @@ using HeadphoneListener = void (*)(bool inserted);
 bool init();
 
 /**
- * @brief Fetches a block of audio from the source and sends it to the output.
- * @param source The BufferSource providing the audio data.
- * @return true if a buffer was successfully processed, false if no buffer was
- * available.
+ * @brief Attaches the audio source and starts interrupt-driven buffer
+ * filling.
+ *
+ * Rendering runs from the I2S DMA interrupt, so audio keeps flowing even
+ * when the main loop is blocked (e.g. during flash writes). The source's
+ * fill path must be RAM-resident and must not touch the filesystem.
  */
-bool update(BufferSource &source);
+void attach_source(BufferSource &source);
+
+/**
+ * @brief Performs non-realtime housekeeping (headphone jack detection).
+ * Call periodically from the main loop. Buffer filling happens in the DMA
+ * interrupt via attach_source().
+ */
+void update();
 
 /**
  * @brief Sets the master output volume of the audio codec.

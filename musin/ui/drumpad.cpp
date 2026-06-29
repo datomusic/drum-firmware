@@ -95,7 +95,10 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
   case DrumpadState::Holding:
     if (current_adc_value >= _high_pressure_threshold) {
       _current_retrigger_mode = RetriggerMode::Double;
-    } else if (current_adc_value >= _trigger_threshold) {
+    } else if (_current_retrigger_mode == RetriggerMode::Off) {
+      // Reaching Holding means the pad has been pressed and held past
+      // _hold_time_us, so retrigger engages even if pressure has already
+      // settled below _trigger_threshold. High pressure upgrades to Double.
       _current_retrigger_mode = RetriggerMode::Single;
     }
     // Do not clear retrigger mode when pressure drops below trigger_threshold.

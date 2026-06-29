@@ -16,9 +16,10 @@ FirmwareUpdateBuyer::FirmwareUpdateBuyer(musin::Logger &logger)
     : logger_(logger) {
   boot_info_t boot_info{};
   if (rom_get_boot_info(&boot_info) != 0 &&
-      boot_info.boot_type == BOOT_TYPE_FLASH_UPDATE) {
+      (boot_info.tbyb_and_update_info &
+       BOOT_TBYB_AND_UPDATE_FLAG_BUY_PENDING)) {
     trial_boot_pending_ = true;
-    logger_.info("FirmwareUpdateBuyer: Trial boot detected, partition",
+    logger_.info("FirmwareUpdateBuyer: Buy pending, partition",
                  static_cast<int32_t>(boot_info.partition));
   }
 }

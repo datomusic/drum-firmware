@@ -14,6 +14,7 @@
 #include "musin/usb/usb.h"
 
 #include "drum/configuration_manager.h"
+#include "drum/firmware_update_buyer.h"
 #include "drum/midi_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
@@ -166,6 +167,11 @@ int main() {
 
   // SystemStateMachine starts in Boot state.
 
+  // Commits a try-before-you-buy image once the main loop has proven healthy.
+  // Constructed here (not statically) so the bootrom query runs after SDK
+  // runtime init.
+  static drum::FirmwareUpdateBuyer firmware_update_buyer(logger);
+
   // Track state transitions for display management
   drum::SystemStateId previous_state = drum::SystemStateId::Boot;
   pizza_display.start_boot_animation(); // Initial boot animation
@@ -220,6 +226,9 @@ int main() {
     case drum::SystemStateId::Sequencer: {
       // Full sequencer operation - existing SequencerMode logic
       musin::usb::background_update();
+      firmware_update_buyer.update(now);
+      sysex_handler.set_firmware_update_allowed(
+          !firmware_update_buyer.is_trial_boot());
       sysex_handler.update(now);
       pizza_controls.update(now);
       sync_in.update(now);

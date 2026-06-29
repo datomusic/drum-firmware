@@ -46,8 +46,10 @@ void PizzaDisplay::notification(
     drum::Events::SysExTransferStateChangeEvent event) {
   if (event.is_active) {
     transfer_mode_.set_sample_slot(event.sample_slot);
+    transfer_mode_.set_progress(event.progress);
   } else {
     transfer_mode_.set_sample_slot(std::nullopt);
+    transfer_mode_.set_progress(std::nullopt);
   }
 }
 

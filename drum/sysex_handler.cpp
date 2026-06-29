@@ -2,6 +2,8 @@
 #include "events.h"
 #include "musin/midi/midi_wrapper.h"
 #include "version.h"
+#include <boot/picoboot_constants.h>
+#include <hardware/regs/addressmap.h>
 #include <pico/bootrom.h>
 #include <pico/unique_id.h>
 
@@ -12,11 +14,26 @@ SysExHandler::SysExHandler(ConfigurationManager &config_manager,
                            musin::filesystem::Filesystem &filesystem)
     : config_manager_(config_manager), logger_(logger), filesystem_(filesystem),
       file_ops_(logger, filesystem), protocol_(file_ops_, logger),
-      sds_protocol_(file_ops_, logger) {
+      sds_protocol_(file_ops_, logger), firmware_writer_(logger),
+      firmware_update_(firmware_writer_, logger) {
 }
 
 void SysExHandler::update(absolute_time_t now) {
   protocol_.check_timeout(now);
+  firmware_update_.check_timeout(now);
+
+  if (firmware_reboot_pending_ &&
+      absolute_time_diff_us(firmware_reboot_time_, now) > 0) {
+    if (const auto target = firmware_writer_.target_flash_offset();
+        target.has_value()) {
+      logger_.info("SysEx: Rebooting into new firmware for trial boot.");
+      rom_reboot(REBOOT2_FLAG_REBOOT_TYPE_FLASH_UPDATE |
+                     REBOOT2_FLAG_NO_RETURN_ON_SUCCESS,
+                 100, XIP_BASE + target.value(), 0);
+    }
+    firmware_reboot_pending_ = false;
+  }
+
   bool current_busy_state = is_busy();
 
   // Get current sample slot if available
@@ -47,6 +64,10 @@ void SysExHandler::update(absolute_time_t now) {
       last_notified_sample_slot_ = std::nullopt;
     }
     was_busy_ = current_busy_state;
+  }
+  // Report progress during an active firmware update
+  else if (current_busy_state && firmware_update_.busy()) {
+    notify_firmware_update_progress();
   }
   // Check for sample slot changes during active transfer
   else if (current_busy_state &&
@@ -115,6 +136,12 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
     return;
   }
 
+  // Firmware update messages have their own state machine
+  if (sysex::FirmwareUpdate<musin::flash::FirmwareWriter>::claims(chunk)) {
+    handle_firmware_update_message(chunk, get_absolute_time());
+    return;
+  }
+
   // Not an SDS message - route to existing custom protocol
   auto sender = [this](sysex::Protocol<StandardFileOps>::Tag tag) {
     uint8_t msg[] = {0xF0,
@@ -153,7 +180,60 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
 }
 
 bool SysExHandler::is_busy() const {
-  return protocol_.busy() || sds_protocol_.is_busy();
+  return protocol_.busy() || sds_protocol_.is_busy() || firmware_update_.busy();
+}
+
+void SysExHandler::set_firmware_update_allowed(bool allowed) {
+  firmware_update_allowed_ = allowed;
+}
+
+void SysExHandler::notify_firmware_update_progress() {
+  if (firmware_update_.total_size() == 0) {
+    return;
+  }
+  const float progress = static_cast<float>(firmware_update_.bytes_received()) /
+                         static_cast<float>(firmware_update_.total_size());
+  if (progress - last_notified_progress_ < 1.0f / 32.0f) {
+    return;
+  }
+  last_notified_progress_ = progress;
+  drum::Events::SysExTransferStateChangeEvent event{
+      .is_active = true, .sample_slot = std::nullopt, .progress = progress};
+  this->notify_observers(event);
+}
+
+void SysExHandler::handle_firmware_update_message(const sysex::Chunk &chunk,
+                                                  absolute_time_t now) {
+  auto sender = [](uint8_t tag) {
+    uint8_t msg[] = {0xF0,
+                     drum::config::sysex::MANUFACTURER_ID_0,
+                     drum::config::sysex::MANUFACTURER_ID_1,
+                     drum::config::sysex::MANUFACTURER_ID_2,
+                     drum::config::sysex::DEVICE_ID,
+                     tag,
+                     0xF7};
+    MIDI::sendSysEx(sizeof(msg), msg);
+  };
+
+  using Update = sysex::FirmwareUpdate<musin::flash::FirmwareWriter>;
+
+  if (chunk[4] == Update::Tag::BeginFirmwareUpdate &&
+      !firmware_update_allowed_) {
+    logger_.warn("SysEx: Firmware update refused during unbought trial boot.");
+    sender(Update::Tag::Nack);
+    return;
+  }
+
+  const auto result = firmware_update_.handle_chunk(chunk, sender, now);
+  if (result == Update::Result::UpdateReady) {
+    // Give the Ack time to drain through the MIDI output queue, then reboot
+    // into the new image for its trial boot.
+    firmware_reboot_pending_ = true;
+    firmware_reboot_time_ = make_timeout_time_ms(500);
+  }
+  if (chunk[4] == Update::Tag::BeginFirmwareUpdate) {
+    last_notified_progress_ = -1.0f;
+  }
 }
 
 void SysExHandler::on_file_received() {

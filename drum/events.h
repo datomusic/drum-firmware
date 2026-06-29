@@ -54,6 +54,9 @@ struct SysExTransferStateChangeEvent {
   bool is_active; // true when transfer starts, false when it ends
   // Optional active sample slot (SDS). Present when known and transfer active.
   std::optional<uint8_t> sample_slot;
+  // Optional transfer progress (0.0f to 1.0f). Present during firmware
+  // updates, absent for file/sample transfers.
+  std::optional<float> progress = std::nullopt;
 };
 
 } // namespace drum::Events

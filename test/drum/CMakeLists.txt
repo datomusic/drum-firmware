@@ -64,7 +64,24 @@ target_link_libraries(drum-test-swing PRIVATE
     etl::etl
 )
 
+# Test target: Firmware Update SysEx protocol (uses inline FakeWriter)
+add_executable(drum-test-firmware-update
+    firmware_update_test.cpp
+)
+
+target_include_directories(drum-test-firmware-update PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+)
+
+target_link_libraries(drum-test-firmware-update PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
 catch_discover_tests(drum-test-swing)
+catch_discover_tests(drum-test-firmware-update)

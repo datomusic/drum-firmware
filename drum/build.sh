@@ -168,6 +168,9 @@ if [ "$COPY_TO_RAM" = true ]; then
   echo "Building for RAM execution..."
 else
   echo "Building for Flash execution..."
+  echo "WARNING: Flash (XIP) builds are linked to partition A's address and are"
+  echo "         NOT safe to distribute for SysEx firmware updates, which may"
+  echo "         place the image in partition B. Only RAM builds are relocatable."
 fi
 
 if [ "$VERBOSE" = true ]; then

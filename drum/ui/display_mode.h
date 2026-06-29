@@ -35,9 +35,8 @@ public:
   void draw(PizzaDisplay &display, absolute_time_t now) override;
 
 private:
-  // A pad-hit trace fades out over this many step durations, so it is gone
-  // well before the cursor wraps around the 8-step ring.
-  static constexpr float TRACE_FADE_STEPS = 6.0f;
+  // A pad-hit trace fades out over this many step durations.
+  static constexpr float TRACE_FADE_STEPS = 8.0f;
   // Step period assumed until one has been measured (eighth note at 120 BPM).
   static constexpr uint64_t DEFAULT_STEP_PERIOD_US = 250'000;
 

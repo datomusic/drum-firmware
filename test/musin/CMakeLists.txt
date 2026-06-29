@@ -20,6 +20,7 @@ add_executable(${PROJECT_NAME}
   timing/speed_adapter_test.cpp
   timing/clock_router_test.cpp
   timing/tempo_handler_external_sync_test.cpp
+  ui/drumpad_test.cpp
 )
 
 if(${STATIC_TESTS})
@@ -40,6 +41,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/speed_adapter.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_out.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/tempo_handler.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../musin/ui/drumpad.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../midi_test_support.cpp
 )
 

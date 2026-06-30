@@ -20,6 +20,7 @@ SysExHandler::SysExHandler(ConfigurationManager &config_manager,
 
 void SysExHandler::update(absolute_time_t now) {
   protocol_.check_timeout(now);
+  sds_protocol_.check_timeout(now);
   firmware_update_.check_timeout(now);
 
   if (firmware_reboot_pending_ &&

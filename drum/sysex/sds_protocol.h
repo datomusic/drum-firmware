@@ -80,9 +80,14 @@ struct SampleInfo {
 
 template <typename FileOperations> class Protocol {
 public:
+  // A single sample transfer should take a few seconds at most; if no message
+  // arrives for this long, assume the host has disconnected or errored out.
+  static constexpr uint64_t TIMEOUT_US = 30000000; // 30 seconds
+
   constexpr Protocol(FileOperations &file_ops, musin::Logger &logger)
       : file_ops_(file_ops), logger_(logger), state_(State::Idle),
-        expected_packet_num_(0), bytes_received_(0), current_sample_{} {
+        expected_packet_num_(0), bytes_received_(0), current_sample_{},
+        last_activity_time_{} {
   }
 
   // Process incoming SDS message
@@ -117,6 +122,19 @@ public:
     return state_ != State::Idle;
   }
 
+  // Abort a stalled transfer whose host has gone away. No reply is sent, as the
+  // host is assumed to be disconnected.
+  constexpr bool check_timeout(absolute_time_t now) {
+    if (is_busy() && absolute_time_diff_us(last_activity_time_, now) >
+                         static_cast<int64_t>(TIMEOUT_US)) {
+      logger_.warn("SDS: Sample transfer timed out.");
+      opened_file_.reset();
+      state_ = State::Idle;
+      return true;
+    }
+    return false;
+  }
+
   // Expose current sample number (if any) without leaking internal state
   constexpr etl::optional<uint16_t> current_sample_number_opt() const {
     if (state_ == State::ReceivingData) {
@@ -132,6 +150,7 @@ private:
   uint8_t expected_packet_num_;
   uint32_t bytes_received_;
   SampleInfo current_sample_;
+  absolute_time_t last_activity_time_;
 
   // File handle wrapper (same pattern as existing protocol)
   struct File {
@@ -212,8 +231,7 @@ private:
   // Handle Dump Header message
   template <typename Sender>
   constexpr Result handle_dump_header(const etl::span<const uint8_t> &message,
-                                      Sender send_reply,
-                                      [[maybe_unused]] absolute_time_t now) {
+                                      Sender send_reply, absolute_time_t now) {
     if (message.size() < 17) { // Minimum size for dump header
       logger_.error("SDS: Dump header too short:",
                     static_cast<uint32_t>(message.size()));
@@ -273,6 +291,7 @@ private:
     state_ = State::ReceivingData;
     expected_packet_num_ = 0;
     bytes_received_ = 0;
+    last_activity_time_ = now;
 
     logger_.info("SDS: Ready to receive data packets");
     send_reply(ACK, 0);
@@ -282,8 +301,7 @@ private:
   // Handle Data Packet message
   template <typename Sender>
   constexpr Result handle_data_packet(const etl::span<const uint8_t> &message,
-                                      Sender send_reply,
-                                      [[maybe_unused]] absolute_time_t now) {
+                                      Sender send_reply, absolute_time_t now) {
     if (state_ != State::ReceivingData) {
       logger_.error("SDS: Data packet received in wrong state");
       send_reply(NAK, 0);
@@ -321,6 +339,8 @@ private:
                    static_cast<uint32_t>(packet_num));
       // For now, accept out-of-order packets (could improve this)
     }
+
+    last_activity_time_ = now;
 
     // Unpack samples from data packet (40 samples, 3 bytes each)
     etl::array<uint8_t, 80> unpacked_data; // 40 samples * 2 bytes each

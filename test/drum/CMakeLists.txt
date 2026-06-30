@@ -104,9 +104,26 @@ target_link_libraries(drum-test-sample-slots PRIVATE
     etl::etl
 )
 
+# Test target: SDS protocol (sample dump standard, header-only)
+add_executable(drum-test-sds
+    sds_protocol_test.cpp
+)
+
+target_include_directories(drum-test-sds PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+)
+
+target_link_libraries(drum-test-sds PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
 catch_discover_tests(drum-test-swing)
 catch_discover_tests(drum-test-firmware-update)
 catch_discover_tests(drum-test-sample-slots)
+catch_discover_tests(drum-test-sds)

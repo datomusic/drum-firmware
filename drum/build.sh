@@ -229,9 +229,7 @@ else
 fi
 
 # For RAM builds, we typically want to execute immediately
-if [ "$COPY_TO_RAM" = true ]; then
-  PICOTOOL_ARGS="$PICOTOOL_ARGS -x"
-fi
+PICOTOOL_ARGS="$PICOTOOL_ARGS -x"
 
 # Always verify partitions exist before flashing
 echo "Verifying device partitions..."

@@ -295,6 +295,8 @@ or invalid file means the default applies.
 | Setting | ID | Range | Default | Description |
 |---------|-----|-------|---------|-------------|
 | `midi_channel` | 0x01 | 1-16 | 10 | MIDI channel for incoming and outgoing notes and CCs |
+| `slider_mode` | 0x02 | 0-2 | 0 | Track slider assignment: 0 = pitch, 1 = gain, 2 = both |
+| `sample_decay` | 0x03 | 0-100 | 100 | Percentage of the sample's playback duration at which gain starts fading linearly to zero; 100 disables the fade |
 
 #### GetSetting (0x40)
 Requests the current value of one setting.

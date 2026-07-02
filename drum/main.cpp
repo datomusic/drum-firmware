@@ -60,7 +60,7 @@ static drum::SysExHandler sysex_handler(config_manager, settings_manager,
                                         logger, filesystem);
 static drum::SampleSlotManager sample_slot_manager(logger);
 static drum::AudioEngine audio_engine(sample_repository, sample_slot_manager,
-                                      logger);
+                                      settings, logger);
 static musin::timing::InternalClock internal_clock(120.0f);
 static musin::timing::MidiClockProcessor midi_clock_processor;
 static musin::timing::SyncIn sync_in(DATO_SUBMARINE_SYNC_IN_PIN,

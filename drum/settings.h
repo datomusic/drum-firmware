@@ -16,6 +16,18 @@ namespace drum::settings {
  */
 enum class Id : uint8_t {
   MidiChannel = 0x01,
+  SliderMode = 0x02,
+  SampleDecay = 0x03,
+};
+
+/**
+ * @brief Values for the SliderMode setting: what the per-track slider
+ * controls on the audio engine.
+ */
+enum class SliderMode : uint8_t {
+  Pitch = 0,
+  Gain = 1,
+  PitchAndGain = 2,
 };
 
 /**
@@ -32,8 +44,10 @@ struct Descriptor {
   uint8_t default_value;
 };
 
-inline constexpr etl::array<Descriptor, 1> DESCRIPTORS{{
+inline constexpr etl::array<Descriptor, 3> DESCRIPTORS{{
     {Id::MidiChannel, "midi_channel", 1, 16, 10},
+    {Id::SliderMode, "slider_mode", 0, 2, 0},
+    {Id::SampleDecay, "sample_decay", 0, 100, 100},
 }};
 
 /**

@@ -16,6 +16,8 @@
 #include "musin/audio/sound.h"
 #include "musin/hal/logger.h"
 
+#include "drum/settings.h"
+
 namespace drum {
 
 class SampleRepository;  // Forward declaration
@@ -30,18 +32,33 @@ class AudioEngine : public etl::observer<drum::Events::NoteEvent> {
 private:
   /**
    * @brief Internal structure representing a single audio voice.
+   *
+   * Renders its Sound and applies an optional linear decay envelope that
+   * fades the voice to silence over the tail of the sample. fill_buffer runs
+   * in the I2S DMA interrupt and must stay RAM-resident.
    */
-  struct Voice {
+  struct Voice : BufferSource {
     musin::MemorySampleReader reader;
     Sound sound;
     float current_pitch = 1.0f;
+    float current_gain = 1.0f;
+
+    // Decay envelope state, set at trigger time and consumed in the ISR.
+    bool decay_active = false;
+    uint32_t decay_start_frame = 0;
+    uint32_t total_frames = 0;
+    float decay_scale = 0.0f; // 1 / (total_frames - decay_start_frame)
+    uint32_t frames_rendered = 0;
 
     Voice();
+
+    void fill_buffer(AudioBlock &out_samples) override;
   };
 
 public:
   AudioEngine(const SampleRepository &repository,
-              SampleSlotManager &slot_manager, musin::Logger &logger);
+              SampleSlotManager &slot_manager,
+              const settings::Settings &settings, musin::Logger &logger);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -95,6 +112,14 @@ public:
   void set_pitch(uint8_t voice_index, float value);
 
   /**
+   * @brief Sets the gain for a specific voice/track for the *next* time it's
+   * triggered. Scales the velocity-derived gain.
+   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
+   * @param value The gain value, normalized (0.0f to 1.0f).
+   */
+  void set_track_gain(uint8_t voice_index, float value);
+
+  /**
    * @brief Sets the master output volume.
    * @param volume The desired volume level (0.0f to 1.0f).
    */
@@ -144,6 +169,7 @@ public:
 private:
   const SampleRepository &sample_repository_;
   SampleSlotManager &slot_manager_;
+  const settings::Settings &settings_;
   musin::Logger &logger_;
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;

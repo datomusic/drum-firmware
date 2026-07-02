@@ -52,11 +52,36 @@ float map_value_filter_fast(float normalized_value) {
 AudioEngine::Voice::Voice() : sound(reader) {
 }
 
+// Runs in the I2S DMA interrupt: must stay RAM-resident (see AGENTS.md).
+void __not_in_flash_func(AudioEngine::Voice::fill_buffer)(
+    AudioBlock &out_samples) {
+  sound.fill_buffer(out_samples);
+
+  if (!decay_active) {
+    return;
+  }
+
+  uint32_t position = frames_rendered;
+  for (int16_t &sample : out_samples) {
+    if (position >= decay_start_frame) {
+      float gain = 0.0f;
+      if (position < total_frames) {
+        gain = static_cast<float>(total_frames - position) * decay_scale;
+      }
+      sample = static_cast<int16_t>(static_cast<float>(sample) * gain);
+    }
+    ++position;
+  }
+  frames_rendered = position;
+}
+
 AudioEngine::AudioEngine(const SampleRepository &repository,
-                         SampleSlotManager &slot_manager, musin::Logger &logger)
+                         SampleSlotManager &slot_manager,
+                         const settings::Settings &settings,
+                         musin::Logger &logger)
     : sample_repository_(repository), slot_manager_(slot_manager),
-      logger_(logger), voice_sources_{&voices_[0].sound, &voices_[1].sound,
-                                      &voices_[2].sound, &voices_[3].sound},
+      settings_(settings), logger_(logger),
+      voice_sources_{&voices_[0], &voices_[1], &voices_[2], &voices_[3]},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
       highpass_(lowpass_) {
   // Initialize to a known, silent state.
@@ -138,7 +163,20 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
   }
 
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
-  const float gain = map_value_linear(normalized_velocity, 0.0f, 1.0f);
+  const float gain = normalized_velocity * voice.current_gain;
+
+  // Decay envelope: from decay_percent of the sample's playback duration,
+  // gain ramps linearly to zero at the end. 100 disables the envelope.
+  const uint8_t decay_percent = settings_.get(settings::Id::SampleDecay);
+  const float speed = std::max(voice.current_pitch, 0.2f);
+  const uint32_t total_frames = static_cast<uint32_t>(
+      static_cast<float>(slot_manager_.voice_length(voice_index)) / speed);
+  const uint32_t decay_start_frame = (total_frames * decay_percent) / 100;
+  const bool decay_active =
+      decay_percent < 100 && total_frames > decay_start_frame;
+  const float decay_scale =
+      decay_active ? 1.0f / static_cast<float>(total_frames - decay_start_frame)
+                   : 0.0f;
 
   // The render runs in the DMA interrupt; keep it from reading the voice
   // mid-retrigger.
@@ -146,6 +184,11 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
   voice.reader.set_source(slot_manager_.voice_data(voice_index),
                           slot_manager_.voice_length(voice_index));
   mixer_.gain(voice_index, gain);
+  voice.decay_active = decay_active;
+  voice.decay_start_frame = decay_start_frame;
+  voice.total_frames = total_frames;
+  voice.decay_scale = decay_scale;
+  voice.frames_rendered = 0;
   voice.sound.play(voice.current_pitch);
   restore_interrupts(saved_irq);
 }
@@ -167,6 +210,13 @@ void AudioEngine::set_pitch(uint8_t voice_index, float value) {
   voices_[voice_index].current_pitch = pitch_multiplier;
   // TODO: Consider if pitch should affect currently playing sound (requires
   // Sound modification) voices_[voice_index].sound.set_speed(pitch_multiplier);
+}
+
+void AudioEngine::set_track_gain(uint8_t voice_index, float value) {
+  if (!is_initialized_ || voice_index >= NUM_VOICES) {
+    return;
+  }
+  voices_[voice_index].current_gain = std::clamp(value, 0.0f, 1.0f);
 }
 
 void AudioEngine::set_volume(float volume) {

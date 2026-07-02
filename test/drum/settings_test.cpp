@@ -19,6 +19,15 @@ TEST_CASE("Settings defaults", "[settings]") {
   SECTION("MIDI channel defaults to 10 (GM percussion)") {
     REQUIRE(settings.get(Id::MidiChannel) == 10);
   }
+
+  SECTION("Slider defaults to controlling pitch") {
+    REQUIRE(settings.get(Id::SliderMode) ==
+            static_cast<uint8_t>(drum::settings::SliderMode::Pitch));
+  }
+
+  SECTION("Sample decay defaults to 100 (no fade)") {
+    REQUIRE(settings.get(Id::SampleDecay) == 100);
+  }
 }
 
 TEST_CASE("Settings set validation", "[settings]") {
@@ -41,6 +50,20 @@ TEST_CASE("Settings set validation", "[settings]") {
 
   SECTION("Rejects unknown setting ids") {
     REQUIRE_FALSE(settings.set(static_cast<Id>(0x7F), 1));
+  }
+
+  SECTION("Slider mode accepts pitch, gain and both") {
+    REQUIRE(settings.set(Id::SliderMode, 2));
+    REQUIRE(settings.get(Id::SliderMode) == 2);
+    REQUIRE_FALSE(settings.set(Id::SliderMode, 3));
+    REQUIRE(settings.get(Id::SliderMode) == 2);
+  }
+
+  SECTION("Sample decay accepts 0-100 percent") {
+    REQUIRE(settings.set(Id::SampleDecay, 0));
+    REQUIRE(settings.set(Id::SampleDecay, 100));
+    REQUIRE_FALSE(settings.set(Id::SampleDecay, 101));
+    REQUIRE(settings.get(Id::SampleDecay) == 100);
   }
 }
 

@@ -42,9 +42,38 @@ struct PadHitTrace {
 namespace musical_timing {
 constexpr uint8_t PPQN = 12;
 constexpr uint8_t DOWNBEAT = 0;
-constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 6
-constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 4
-constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 3
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;       // 6
+constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;    // 4
+constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4;  // 3
+constexpr uint8_t TICKS_PER_STEP = STRAIGHT_OFFBEAT; // 6
+
+/**
+ * @brief Where within a step's timing window a live hit landed.
+ * A step spans 6 clock ticks. Early hits trace on the step that just played,
+ * Late hits feel like they anticipate the upcoming step so they trace forward,
+ * and Middle hits sit clearly between two steps and leave no trace. The zone
+ * widths are one tick each; widen them here if that feels too narrow. Zones
+ * use the straight grid and ignore swing.
+ */
+enum class HitZone : uint8_t {
+  Early,
+  Middle,
+  Late,
+};
+
+constexpr uint8_t EARLY_ZONE_TICKS = 1;
+constexpr uint8_t LATE_ZONE_TICKS = 1;
+
+constexpr HitZone hit_zone_from_phase(uint8_t phase_12) {
+  const uint8_t tick_in_step = phase_12 % TICKS_PER_STEP;
+  if (tick_in_step < EARLY_ZONE_TICKS) {
+    return HitZone::Early;
+  }
+  if (tick_in_step >= TICKS_PER_STEP - LATE_ZONE_TICKS) {
+    return HitZone::Late;
+  }
+  return HitZone::Middle;
+}
 } // namespace musical_timing
 
 /**

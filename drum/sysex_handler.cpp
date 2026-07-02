@@ -15,10 +15,9 @@ SysExHandler::SysExHandler(ConfigurationManager &config_manager,
                            musin::Logger &logger,
                            musin::filesystem::Filesystem &filesystem)
     : config_manager_(config_manager), settings_manager_(settings_manager),
-      logger_(logger), filesystem_(filesystem),
-      file_ops_(logger, filesystem), protocol_(file_ops_, logger),
-      sds_protocol_(file_ops_, logger), firmware_writer_(logger),
-      firmware_update_(firmware_writer_, logger) {
+      logger_(logger), filesystem_(filesystem), file_ops_(logger, filesystem),
+      protocol_(file_ops_, logger), sds_protocol_(file_ops_, logger),
+      firmware_writer_(logger), firmware_update_(firmware_writer_, logger) {
 }
 
 void SysExHandler::update(absolute_time_t now) {

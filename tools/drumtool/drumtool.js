@@ -835,6 +835,10 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
     let lastProgressUpdate = 0;
     
     while (offset < pcmData.length) {
+      if (stallAfter !== null && packetNum >= stallAfter) {
+        console.log(`\nTEST: stalling after ${packetNum} packets — exiting without SDS cancel.`);
+        process.exit(0);
+      }
       const packet = createDataPacket(packetNum & 0x7F, pcmData, offset);
       if (verbose && packetNum < 5) { // Debug first few packets
         console.log(`Packet ${packetNum} size:`, packet.length, "checksum:", `0x${packet[packet.length-1].toString(16)}`);
@@ -1036,6 +1040,10 @@ function parseFileSlotArgs(args) {
 // Command line interface
 const command = process.argv[2];
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
+// TEST ONLY: --stall-after=N abandons the transfer after N data packets
+// without sending an SDS cancel, simulating a host that vanished mid-dump.
+const stallArg = process.argv.find(arg => arg.startsWith('--stall-after='));
+const stallAfter = stallArg ? parseInt(stallArg.split('=')[1], 10) : null;
 
 if (!command) {
   console.log("Drumtool - DRUM Device Management Tool");
@@ -1125,7 +1133,7 @@ async function main() {
   try {
     // Validate arguments early before MIDI initialization
     if (command === 'send') {
-      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v' && !arg.startsWith('--stall-after='));
       
       if (args.length === 0) {
         console.error("Error: 'send' command requires at least one file argument.");
@@ -1174,7 +1182,7 @@ async function main() {
     activeMidiInput.on('message', handleMidiMessage);
 
     if (command === 'send') {
-      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v');
+      const args = process.argv.slice(3).filter(arg => arg !== '--verbose' && arg !== '-v' && !arg.startsWith('--stall-after='));
       const transfers = parseFileSlotArgs(args); // Already validated above
       
       const success = transfers.length === 1 

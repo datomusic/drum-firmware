@@ -225,7 +225,14 @@ firmware.uf2` is the reference client.
 Notes:
 - Firmware images are built with the TBYB flag, so picotool/BOOTSEL loads also
   self-commit on first boot via the same mechanism.
-- Only RAM builds (`PICO_COPY_TO_RAM`, the default) are relocatable between
-  partitions and safe to distribute for SysEx updates.
+- Both RAM (`PICO_COPY_TO_RAM`, the default) and flash (XIP) builds are
+  relocatable between partitions and safe to distribute for SysEx updates.
+  Images are linked to the XIP window base (0x10000000), and the RP2350
+  bootrom programs QMI address translation on every partition boot so the
+  booted partition appears at that address; partition A is not at flash
+  offset 0, so even A-boots rely on this. Flash reads that must bypass the
+  translation (e.g. the data partition) use storage offsets or the
+  untranslated XIP alias. Verified on hardware in both directions (A->B and
+  B->A) with an XIP build.
 - If both partitions ever hold invalid images, the bootrom falls back to the
   USB (UF2) bootloader; LED indication is not possible in that mode.

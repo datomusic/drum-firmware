@@ -167,10 +167,10 @@ if [ "$COPY_TO_RAM" = true ]; then
   CMAKE_ARGS="$CMAKE_ARGS -DPICO_COPY_TO_RAM=ON"
   echo "Building for RAM execution..."
 else
+  # Explicitly OFF: a cached PICO_COPY_TO_RAM=ON from a previous RAM build
+  # would otherwise silently persist and produce a RAM build.
+  CMAKE_ARGS="$CMAKE_ARGS -DPICO_COPY_TO_RAM=OFF"
   echo "Building for Flash execution..."
-  echo "WARNING: Flash (XIP) builds are linked to partition A's address and are"
-  echo "         NOT safe to distribute for SysEx firmware updates, which may"
-  echo "         place the image in partition B. Only RAM builds are relocatable."
 fi
 
 if [ "$VERBOSE" = true ]; then

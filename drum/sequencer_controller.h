@@ -42,9 +42,9 @@ struct PadHitTrace {
 namespace musical_timing {
 constexpr uint8_t PPQN = 12;
 constexpr uint8_t DOWNBEAT = 0;
-constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;      // 6
-constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;   // 4
-constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4; // 3
+constexpr uint8_t STRAIGHT_OFFBEAT = PPQN / 2;       // 6
+constexpr uint8_t TRIPLET_SUBDIVISION = PPQN / 3;    // 4
+constexpr uint8_t SIXTEENTH_SUBDIVISION = PPQN / 4;  // 3
 constexpr uint8_t TICKS_PER_STEP = STRAIGHT_OFFBEAT; // 6
 
 /**

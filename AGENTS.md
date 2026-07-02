@@ -54,6 +54,25 @@ DRUM is a MIDI drum machine/sequencer running on RP2350 microcontroller. Feature
 - **Hardware failure handling** essential
 - **Power state awareness** needed
 
+### Audio ISR RAM Residency (XIP builds)
+Audio renders inside the I2S DMA interrupt (priority 0), which stays enabled
+during flash erase/program (`musin/filesystem/audio_safe_flash.cpp`). Every
+function reachable from that interrupt — **including through function
+pointers** (`BufferSource` vtables, `audio_connection_t` take/give members) —
+must be RAM-resident, or the device hard-faults and watchdog-reboots when the
+interrupt fires mid-erase on an XIP cache miss. Symptom: random watchdog
+reboots, typically ~10 s after interaction (the debounced sequencer state save).
+
+When touching the audio path or `drum/memmap_xip_rodata_in_ram.ld`:
+- Annotate new audio-path code `__time_critical_func`/`__not_in_flash_func`,
+  or exclude its translation unit from flash in the linker script (see the
+  `pico_audio/audio.cpp.o` and `pico_audio_i2s/audio_i2s.c.o` exclusions).
+- Verify by disassembling the ELF and walking the call graph from the ISR
+  roots (`fill_buffers_from_irq`, `audio_i2s_dma_irq_handler`, buffer-pool and
+  connection functions, all `fill_buffer`/`read_samples` implementations): no
+  reachable function may have a flash address (`0x10xxxxxx`). A flash-side
+  `*_veneer` symbol for an ISR-tree function means a flash caller exists.
+
 ## Development Workflow
 
 ### Building & Testing

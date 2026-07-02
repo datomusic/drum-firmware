@@ -20,6 +20,21 @@ extern "C" {
 
 namespace sysex {
 
+// SysEx message frame sizes
+static constexpr size_t SYSEX_START_SIZE = 1;  // 0xF0
+static constexpr size_t SYSEX_MFR_ID_SIZE = 3; // 3 manufacturer ID bytes
+static constexpr size_t SYSEX_DEVICE_ID_SIZE = 1;
+static constexpr size_t SYSEX_TAG_SIZE = 1;
+static constexpr size_t SYSEX_END_SIZE = 1; // 0xF7
+static constexpr size_t SYSEX_HEADER_SIZE =
+    SYSEX_START_SIZE + SYSEX_MFR_ID_SIZE + SYSEX_DEVICE_ID_SIZE +
+    SYSEX_TAG_SIZE;
+// Offset of the payload within a received Chunk, which excludes the 0xF0
+// start byte (chunk[0..2] = manufacturer ID, chunk[3] = device ID,
+// chunk[4] = tag).
+static constexpr size_t SYSEX_CHUNK_PAYLOAD_OFFSET =
+    SYSEX_MFR_ID_SIZE + SYSEX_DEVICE_ID_SIZE + SYSEX_TAG_SIZE;
+
 template <typename FileOperations> struct Protocol {
   static constexpr uint64_t TIMEOUT_US = 5000000; // 5 seconds
 
@@ -73,6 +88,11 @@ template <typename FileOperations> struct Protocol {
 
     // Firmware Update Commands (0x20-0x23) are handled by
     // sysex::FirmwareUpdate in drum/sysex/firmware_update.h.
+
+    // Sequencer State Commands
+    RequestSequencerState = 0x30,
+    SequencerStateResponse = 0x31,
+    SetSequencerState = 0x32,
   };
 
   enum class Result {
@@ -82,6 +102,8 @@ template <typename FileOperations> struct Protocol {
     PrintFirmwareVersion,
     PrintSerialNumber,
     PrintStorageInfo,
+    PrintSequencerState,
+    SetSequencerState,
     FileError,
     ShortMessage,
     NotSysex,
@@ -109,6 +131,13 @@ template <typename FileOperations> struct Protocol {
     if (is_file_bytes_command(chunk)) {
       return handle_file_bytes_fast(iterator + 1, chunk.cend(), send_reply,
                                     now);
+    }
+
+    // SetSequencerState carries a raw 7-bit payload (see
+    // sequencer_state_codec.h); skip the legacy 3-to-16bit body decoding and
+    // let the handler read the payload directly from the chunk.
+    if (get_tag_from_chunk(chunk) == Tag::SetSequencerState) {
+      return Result::SetSequencerState;
     }
 
     const uint16_t tag = (*iterator++);
@@ -221,6 +250,8 @@ private:
       return Result::PrintSerialNumber;
     case Tag::RequestStorageInfo:
       return Result::PrintStorageInfo;
+    case Tag::RequestSequencerState:
+      return Result::PrintSequencerState;
     default:
       break;
     }

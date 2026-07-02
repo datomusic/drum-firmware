@@ -236,3 +236,52 @@ Notes:
   B->A) with an XIP build.
 - If both partitions ever hold invalid images, the bootrom falls back to the
   USB (UF2) bootloader; LED indication is not possible in that mode.
+
+### Sequencer State Commands
+These commands allow reading and writing the current sequencer pattern state, including step velocities and active note assignments for each track.
+
+#### RequestSequencerState (0x30)
+Requests the current sequencer state from the device. No payload.
+
+**Response:** The device replies with a `SequencerStateResponse` message containing the current pattern.
+
+#### SequencerStateResponse (0x31)
+The device's response to `RequestSequencerState`, containing the full sequencer state.
+
+**Response Format:**
+```
+F0 00 22 01 65 31 <Payload> F7
+```
+
+**Payload (37 bytes):**
+- Byte 0: Payload format version (currently `1`)
+- Bytes 1-32: Velocity data for all steps (4 tracks x 8 steps)
+  - Track 0 steps (0-7): bytes 1-8
+  - Track 1 steps (0-7): bytes 9-16
+  - Track 2 steps (0-7): bytes 17-24
+  - Track 3 steps (0-7): bytes 25-32
+  - Velocity 0 = step disabled, 1-127 = step enabled with velocity
+- Bytes 33-36: Active MIDI note per track
+  - Track 0 note: byte 33
+  - Track 1 note: byte 34
+  - Track 2 note: byte 35
+  - Track 3 note: byte 36
+
+All values are 7-bit MIDI-compliant (0-127).
+
+#### SetSequencerState (0x32)
+Sets the sequencer state on the device.
+
+**Command Format:**
+```
+F0 00 22 01 65 32 <Payload> F7
+```
+
+**Payload:** Same 37-byte versioned structure as `SequencerStateResponse` (see above), sent as raw 7-bit bytes directly after the command byte (no 3-to-16bit packing, unlike `BeginFileWrite`).
+
+**Response:** The device replies with `Ack` (0x13) on success, or `Nack` (0x14) if the payload is malformed, too short, or has an unsupported version byte.
+
+**Notes:**
+- The leading version byte lets the device reject payloads from a mismatched protocol version instead of misinterpreting the data. If the payload format ever changes, this version byte is bumped.
+- Setting sequencer state marks the internal storage as dirty, triggering an automatic save to flash after a debounce period.
+- Sample selection is done by sending MIDI note numbers matching the desired sample slots (as documented in the MIDI Note Numbers section above).

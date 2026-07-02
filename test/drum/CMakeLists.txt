@@ -120,6 +120,28 @@ target_link_libraries(drum-test-sds PRIVATE
     etl::etl
 )
 
+# Test target: SysEx Sequencer State (codec unit tests)
+add_executable(drum-test-sysex-sequencer-state
+    sysex_sequencer_state_test.cpp
+)
+
+target_include_directories(drum-test-sysex-sequencer-state PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+)
+
+target_compile_definitions(drum-test-sysex-sequencer-state PRIVATE
+    AUDIO_BLOCK_SAMPLES=20
+)
+
+target_link_libraries(drum-test-sysex-sequencer-state PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
@@ -127,3 +149,4 @@ catch_discover_tests(drum-test-swing)
 catch_discover_tests(drum-test-firmware-update)
 catch_discover_tests(drum-test-sample-slots)
 catch_discover_tests(drum-test-sds)
+catch_discover_tests(drum-test-sysex-sequencer-state)

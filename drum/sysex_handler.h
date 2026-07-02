@@ -2,6 +2,7 @@
 #define DRUM_SYSEX_HANDLER_H
 
 #include "drum/configuration_manager.h"
+#include "drum/sequencer_state_access.h"
 #include "drum/standard_file_ops.h"
 #include "drum/sysex/firmware_update.h"
 #include "drum/sysex/protocol.h"
@@ -49,6 +50,13 @@ public:
    */
   void set_firmware_update_allowed(bool allowed);
 
+  /**
+   * @brief Wires the sequencer state accessor used for SysEx sequencer
+   * state read/write. Must be called before RequestSequencerState /
+   * SetSequencerState messages can be handled.
+   */
+  void set_sequencer_state_access(SequencerStateAccess *sequencer_state_access);
+
 private:
   void handle_firmware_update_message(const sysex::Chunk &chunk,
                                       absolute_time_t now);
@@ -57,10 +65,13 @@ private:
   void print_serial_number() const;
   void send_storage_info() const;
   void send_universal_identity_response() const;
+  void send_sequencer_state() const;
+  void handle_set_sequencer_state(const etl::span<const uint8_t> &payload);
 
   ConfigurationManager &config_manager_;
   musin::Logger &logger_;
   musin::filesystem::Filesystem &filesystem_;
+  SequencerStateAccess *sequencer_state_access_ = nullptr;
 
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;

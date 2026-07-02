@@ -16,7 +16,18 @@ namespace drum::settings {
  */
 enum class Id : uint8_t {
   MidiChannel = 0x01,
+  SliderMode = 0x02,
 };
+
+/**
+ * @brief Bit mask values for the SliderMode setting: which parameters the
+ * per-track slider controls on the audio engine. Any combination is valid.
+ */
+namespace slider_mode {
+inline constexpr uint8_t PITCH = 1u << 0;
+inline constexpr uint8_t GAIN = 1u << 1;
+inline constexpr uint8_t DECAY = 1u << 2;
+} // namespace slider_mode
 
 /**
  * @brief Describes one setting: wire id, short name, valid range and default.
@@ -32,8 +43,9 @@ struct Descriptor {
   uint8_t default_value;
 };
 
-inline constexpr etl::array<Descriptor, 1> DESCRIPTORS{{
+inline constexpr etl::array<Descriptor, 2> DESCRIPTORS{{
     {Id::MidiChannel, "midi_channel", 1, 16, 10},
+    {Id::SliderMode, "slider_mode", 0, 7, slider_mode::PITCH},
 }};
 
 /**

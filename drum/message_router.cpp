@@ -170,9 +170,19 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
   if ((_output_mode == OutputMode::AUDIO || _output_mode == OutputMode::BOTH) &&
       _local_control_mode == LocalControlMode::ON) {
     switch (param_id) {
-    case Parameter::PITCH:
-      _audio_engine.set_pitch(track_index.value(), value);
+    case Parameter::PITCH: {
+      const uint8_t slider_mode = settings_.get(settings::Id::SliderMode);
+      if (slider_mode & settings::slider_mode::PITCH) {
+        _audio_engine.set_pitch(track_index.value(), value);
+      }
+      if (slider_mode & settings::slider_mode::GAIN) {
+        _audio_engine.set_track_gain(track_index.value(), value);
+      }
+      if (slider_mode & settings::slider_mode::DECAY) {
+        _audio_engine.set_track_decay(track_index.value(), value);
+      }
       break;
+    }
     case Parameter::FILTER_FREQUENCY:
       _audio_engine.set_filter_frequency(value);
       break;

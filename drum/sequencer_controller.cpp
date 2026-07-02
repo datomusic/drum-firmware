@@ -468,9 +468,22 @@ void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
     uint8_t track_index) {
   if (_running && track_index < NumTracks) {
     TrackState &track_state = track_states_[track_index];
-    const size_t cursor_step =
+    size_t trace_step =
         track_state.just_played_step.value_or(get_current_step());
-    track_state.last_pad_hit = PadHitTrace{cursor_step, get_absolute_time()};
+    // A hit late in the step feels like it anticipates the next step, so the
+    // trace is quantized forward; a hit clearly between two steps belongs to
+    // neither and leaves no trace. Only the visualization is affected; the
+    // sounded note keeps its live timing.
+    switch (musical_timing::hit_zone_from_phase(last_phase_12_)) {
+    case musical_timing::HitZone::Early:
+      break;
+    case musical_timing::HitZone::Middle:
+      return;
+    case musical_timing::HitZone::Late:
+      trace_step = (trace_step + 1) % NumSteps;
+      break;
+    }
+    track_state.last_pad_hit = PadHitTrace{trace_step, get_absolute_time()};
   }
 }
 

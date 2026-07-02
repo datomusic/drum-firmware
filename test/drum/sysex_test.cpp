@@ -1,147 +1,216 @@
-#include "test_support.h"
+#include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
 #include <cstdint>
 
 #include "etl/array.h"
+#include "etl/optional.h"
 #include "etl/span.h"
+#include "etl/string.h"
+#include "etl/string_view.h"
 #include "etl/vector.h"
 
+#include "drum/config.h"
 #include "drum/sysex/protocol.h"
+#include "musin/hal/null_logger.h"
 
-using etl::array;
+namespace {
 
 struct TestFileOps {
-  static const unsigned BlockSize = 256;
+  static constexpr unsigned BlockSize = 256;
 
   struct Handle {
     TestFileOps &parent;
 
-    constexpr Handle(TestFileOps &parent) : parent(parent) {
+    explicit Handle(TestFileOps &parent) : parent(parent) {
       parent.file_is_open = true;
     }
 
-    constexpr void close() {
+    void close() {
       parent.file_is_open = false;
     }
 
-    constexpr size_t write(const etl::span<const uint8_t> &bytes) {
-      // TODO: Indicate error when write is truncated.
-      etl::copy_n(bytes.cbegin(), std::min(bytes.size(), parent.content.size()),
-                  parent.content.begin());
-      parent.byte_count = bytes.size();
+    size_t write(const etl::span<const uint8_t> &bytes) {
+      for (uint8_t byte : bytes) {
+        if (parent.byte_count < parent.content.size()) {
+          parent.content[parent.byte_count] = byte;
+        }
+        ++parent.byte_count;
+      }
       return bytes.size();
     }
   };
 
-  // Handle should close upon destruction
-  constexpr Handle open(const etl::string_view &path) {
+  etl::optional<Handle> open(const etl::string_view &path) {
+    last_path.assign(path.begin(), path.end());
     return Handle(*this);
+  }
+
+  bool format() {
+    return true;
   }
 
   bool file_is_open = false;
   size_t byte_count = 0;
-  etl::array<uint8_t, BlockSize> content;
+  etl::array<uint8_t, BlockSize> content{};
+  etl::string<drum::config::MAX_PATH_LENGTH> last_path;
 };
 
-typedef sysex::Protocol<TestFileOps> Protocol;
-typedef Protocol::State State;
+using Protocol = sysex::Protocol<TestFileOps>;
+using State = Protocol::State;
 
+// handle_chunk takes the sender by value, so record into a vector the
+// sender references rather than a member.
 struct MockSender {
-  etl::vector<Protocol::Tag, 10> sent_tags;
+  etl::vector<Protocol::Tag, 10> &sent_tags;
   void operator()(Protocol::Tag tag) {
     sent_tags.push_back(tag);
   }
 };
 
+// Chunk header as seen by Protocol (0xF0 already stripped):
+// manufacturer ID (3 bytes) followed by device ID.
+constexpr uint8_t MFR0 = drum::config::sysex::MANUFACTURER_ID_0;
+constexpr uint8_t MFR1 = drum::config::sysex::MANUFACTURER_ID_1;
+constexpr uint8_t MFR2 = drum::config::sysex::MANUFACTURER_ID_2;
+constexpr uint8_t DEV = drum::config::sysex::DEVICE_ID;
+
+} // namespace
+
 TEST_CASE("Protocol with empty bytes") {
-  CONST_BODY(({
-    TestFileOps file_ops;
-    Protocol protocol(file_ops);
-    MockSender sender;
-    const uint8_t data[0] = {};
-    sysex::Chunk chunk(data, 0);
-    protocol.handle_chunk(chunk, sender);
-    REQUIRE(protocol.__get_state() == State::Idle);
-    REQUIRE(sender.sent_tags.empty());
-  }));
+  TestFileOps file_ops;
+  musin::NullLogger logger;
+  Protocol protocol(file_ops, logger);
+  etl::vector<Protocol::Tag, 10> sent_tags;
+  MockSender sender{sent_tags};
+
+  const sysex::Chunk chunk(nullptr, 0);
+  const auto result = protocol.handle_chunk(chunk, sender, absolute_time_t{});
+
+  REQUIRE(result == Protocol::Result::ShortMessage);
+  REQUIRE(protocol.get_state() == State::Idle);
+  REQUIRE(sent_tags.empty());
+}
+
+TEST_CASE("Protocol rejects wrong manufacturer ID") {
+  TestFileOps file_ops;
+  musin::NullLogger logger;
+  Protocol protocol(file_ops, logger);
+  etl::vector<Protocol::Tag, 10> sent_tags;
+  MockSender sender{sent_tags};
+
+  const uint8_t message[] = {0x7D, 0x01, 0x02, DEV,
+                             Protocol::RequestFirmwareVersion};
+  const auto result = protocol.handle_chunk(
+      sysex::Chunk(message, sizeof(message)), sender, absolute_time_t{});
+
+  REQUIRE(result == Protocol::Result::InvalidManufacturer);
+  REQUIRE(sent_tags.empty());
 }
 
 TEST_CASE("Protocol receives file data") {
-  CONST_BODY(({
-    TestFileOps file_ops;
-    REQUIRE(file_ops.file_is_open == false);
-    Protocol protocol(file_ops);
-    MockSender sender;
+  TestFileOps file_ops;
+  musin::NullLogger logger;
+  REQUIRE(file_ops.file_is_open == false);
+  Protocol protocol(file_ops, logger);
+  etl::vector<Protocol::Tag, 10> sent_tags;
+  MockSender sender{sent_tags};
+  const absolute_time_t now{};
 
-    // TODO: Simplify building of SysEx messages, so we don't have to repeat the
-    // header in each one
+  // BeginFileWrite with a one-character file name '@' (64), encoded with
+  // the 3-bytes-to-16-bit body codec: 64 -> {0, 0, 64}.
+  const uint8_t begin_file_write[] = {
+      MFR0, MFR1, MFR2, DEV, Protocol::BeginFileWrite, 0, 0, 64};
+  auto result = protocol.handle_chunk(
+      sysex::Chunk(begin_file_write, sizeof(begin_file_write)), sender, now);
 
-    const uint8_t begin_file_write[] = {
-        0, 0x7D, 0x65, 0, 0, Protocol::BeginFileWrite,
-        0, 0,    64}; // Represents a file-name with ASCII character '@'
-    protocol.handle_chunk(
-        sysex::Chunk(begin_file_write, sizeof(begin_file_write)), sender);
+  REQUIRE(result == Protocol::Result::OK);
+  REQUIRE(protocol.get_state() == State::FileTransfer);
+  REQUIRE(file_ops.file_is_open == true);
+  REQUIRE(file_ops.last_path == "/@");
+  REQUIRE(file_ops.byte_count == 0);
+  REQUIRE(sent_tags.size() == 1);
+  REQUIRE(sent_tags[0] == Protocol::Tag::Ack);
 
-    REQUIRE(protocol.__get_state() == State::FileTransfer);
-    REQUIRE(file_ops.file_is_open == true);
-    REQUIRE(file_ops.byte_count == 0);
-    REQUIRE(sender.sent_tags.size() == 1);
-    REQUIRE(sender.sent_tags[0] == Protocol::Tag::Ack);
+  sent_tags.clear();
 
-    sender.sent_tags.clear();
+  // FileBytes carries a raw 7-to-8 encoded payload: 7 data bytes followed by
+  // an MSB byte. All MSBs zero here, so the decoded bytes are 1..7.
+  const uint8_t byte_transfer[] = {MFR0, MFR1, MFR2, DEV, Protocol::FileBytes,
+                                   1,    2,    3,    4,   5,
+                                   6,    7,    0};
+  result = protocol.handle_chunk(
+      sysex::Chunk(byte_transfer, sizeof(byte_transfer)), sender, now);
 
-    const uint8_t byte_transfer[] = {0, 0x7D, 0x65, 0, 0, Protocol::FileBytes,
-                                     0, 0,    127};
-    protocol.handle_chunk(sysex::Chunk(byte_transfer, sizeof(byte_transfer)),
-                          sender);
-    REQUIRE(file_ops.byte_count == 2);
-    REQUIRE(file_ops.content[0] == 127);
-    REQUIRE(file_ops.content[1] == 0);
-    REQUIRE(sender.sent_tags.size() == 1);
-    REQUIRE(sender.sent_tags[0] == Protocol::Tag::Ack);
+  REQUIRE(result == Protocol::Result::OK);
+  // Bytes are buffered until the block fills or the transfer ends.
+  REQUIRE(file_ops.byte_count == 0);
+  REQUIRE(sent_tags.size() == 1);
+  REQUIRE(sent_tags[0] == Protocol::Tag::Ack);
 
-    sender.sent_tags.clear();
+  sent_tags.clear();
 
-    const uint8_t end_write[] = {0, 0x7D, 0x65,
-                                 0, 0,    Protocol::EndFileTransfer};
-    protocol.handle_chunk(sysex::Chunk(end_write, sizeof(end_write)), sender);
-    REQUIRE(protocol.__get_state() == State::Idle);
-    REQUIRE(file_ops.file_is_open == false);
-    REQUIRE(sender.sent_tags.size() == 1);
-    REQUIRE(sender.sent_tags[0] == Protocol::Tag::Ack);
-  }));
+  const uint8_t end_write[] = {MFR0, MFR1, MFR2, DEV,
+                               Protocol::EndFileTransfer};
+  result = protocol.handle_chunk(sysex::Chunk(end_write, sizeof(end_write)),
+                                 sender, now);
+
+  REQUIRE(result == Protocol::Result::FileWritten);
+  REQUIRE(protocol.get_state() == State::Idle);
+  REQUIRE(file_ops.file_is_open == false);
+  REQUIRE(file_ops.byte_count == 7);
+  for (size_t i = 0; i < 7; ++i) {
+    REQUIRE(file_ops.content[i] == i + 1);
+  }
+  REQUIRE(sent_tags.size() == 1);
+  REQUIRE(sent_tags[0] == Protocol::Tag::Ack);
 }
 
-static constexpr uint8_t syx_pack1(uint16_t value) {
-  return (uint8_t)((value >> 14) & 0x7F);
+TEST_CASE("Protocol decodes MSBs in FileBytes payload") {
+  TestFileOps file_ops;
+  musin::NullLogger logger;
+  Protocol protocol(file_ops, logger);
+  etl::vector<Protocol::Tag, 10> sent_tags;
+  MockSender sender{sent_tags};
+  const absolute_time_t now{};
+
+  const uint8_t begin_file_write[] = {
+      MFR0, MFR1, MFR2, DEV, Protocol::BeginFileWrite, 0, 0, 64};
+  protocol.handle_chunk(
+      sysex::Chunk(begin_file_write, sizeof(begin_file_write)), sender, now);
+
+  // MSB byte 0b0000001 sets bit 7 of the first data byte: 0x7F -> 0xFF.
+  const uint8_t byte_transfer[] = {MFR0, MFR1, MFR2, DEV, Protocol::FileBytes,
+                                   0x7F, 0,    0,    0,   0,
+                                   0,    0,    0x01};
+  protocol.handle_chunk(sysex::Chunk(byte_transfer, sizeof(byte_transfer)),
+                        sender, now);
+
+  const uint8_t end_write[] = {MFR0, MFR1, MFR2, DEV,
+                               Protocol::EndFileTransfer};
+  protocol.handle_chunk(sysex::Chunk(end_write, sizeof(end_write)), sender,
+                        now);
+
+  REQUIRE(file_ops.byte_count == 7);
+  REQUIRE(file_ops.content[0] == 0xFF);
+  REQUIRE(file_ops.content[1] == 0);
 }
 
-static constexpr uint8_t syx_pack2(uint16_t value) {
-  return (uint8_t)((value >> 7) & 0x7F);
-}
+TEST_CASE("Protocol maps no-body commands to results") {
+  TestFileOps file_ops;
+  musin::NullLogger logger;
+  Protocol protocol(file_ops, logger);
+  etl::vector<Protocol::Tag, 10> sent_tags;
+  MockSender sender{sent_tags};
 
-static constexpr uint8_t syx_pack3(uint16_t value) {
-  return (uint8_t)(value & 0x7F);
-}
+  const uint8_t request_version[] = {MFR0, MFR1, MFR2, DEV,
+                                     Protocol::RequestFirmwareVersion};
+  const auto result =
+      protocol.handle_chunk(sysex::Chunk(request_version,
+                                         sizeof(request_version)),
+                            sender, absolute_time_t{});
 
-TEST_CASE("decoder decodes a byte") {
-  CONST_BODY(({
-    const auto v1 = 100;
-    const auto v2 = 0;
-    const auto v3 = 127;
-
-    const uint8_t sysex[9] = {
-        syx_pack1(v1), syx_pack2(v1), syx_pack3(v1), v2, v2, v2,
-        syx_pack1(v3), syx_pack2(v3), syx_pack3(v3)};
-    array<uint16_t, 9> bytes;
-    const auto byte_count = sysex::codec::decode<9>(sysex, sysex + 9, bytes);
-
-    REQUIRE(byte_count == 3);
-    REQUIRE(bytes[0] == 100);
-    REQUIRE(bytes[1] == 0);
-    REQUIRE(bytes[2] == 127);
-  }));
+  REQUIRE(result == Protocol::Result::PrintFirmwareVersion);
 }
 
 // ---------------------------------------------------------------------------
@@ -153,13 +222,14 @@ TEST_CASE("decoder decodes a byte") {
 // (Result::SampleComplete), the protocol resets to Idle and
 // current_sample_number_opt() returns nullopt.
 //
-// Our fix in sysex_handler.cpp captures `last_notified_sample_slot_` *before*
-// the protocol goes Idle, so the "transfer finished" event can carry the last
+// sysex_handler.cpp captures `last_notified_sample_slot_` *before* the
+// protocol goes Idle, so the "transfer finished" event can carry the last
 // known slot instead of nullopt.  These tests verify the protocol's slot
 // reporting behavior that makes that capture necessary.
 
 #include "drum/sysex/sds_protocol.h"
-#include "musin/hal/null_logger.h"
+
+namespace {
 
 struct SdsTestFileOps {
   static const unsigned BlockSize = 4096;
@@ -188,7 +258,7 @@ struct SdsTestFileOps {
 
 // Build a minimal SDS Dump Header for sample_number, bit_depth=16,
 // one 16-bit word long (so a single data packet completes the transfer).
-static etl::array<uint8_t, 19> make_dump_header(uint16_t sample_number) {
+etl::array<uint8_t, 19> make_dump_header(uint16_t sample_number) {
   // SDS DUMP_HEADER layout (after 0x7E channel byte stripped by SysExHandler):
   // [0] msg type 0x01, [1] sample_num_lsb, [2] sample_num_msb,
   // [3] bit_depth, [4-6] period_ns (21-bit), [7-9] length_words (21-bit),
@@ -215,7 +285,7 @@ static etl::array<uint8_t, 19> make_dump_header(uint16_t sample_number) {
 // Build a valid SDS Data Packet for a single sample word (2 bytes = 1 word).
 // The protocol expects exactly 123 bytes: [type][packet_num][120
 // data][checksum]
-static etl::array<uint8_t, 123> make_data_packet(uint8_t packet_num) {
+etl::array<uint8_t, 123> make_data_packet(uint8_t packet_num) {
   etl::array<uint8_t, 123> pkt{};
   pkt[0] = sds::DATA_PACKET;
   pkt[1] = packet_num;
@@ -227,6 +297,8 @@ static etl::array<uint8_t, 123> make_data_packet(uint8_t packet_num) {
   pkt[122] = cs & 0x7F;
   return pkt;
 }
+
+} // namespace
 
 TEST_CASE(
     "SDS: sample slot is reported during transfer and cleared on complete",
@@ -262,7 +334,7 @@ TEST_CASE(
   REQUIRE_FALSE(protocol.is_busy());
   REQUIRE_FALSE(protocol.current_sample_number_opt().has_value());
   // SysExHandler captures last_notified_sample_slot_ *before* this point,
-  // which is what our fix relies on.
+  // which is what its slot-tracking fix relies on.
 }
 
 TEST_CASE("SDS: slot nullopt when never started", "[sds][issue-550]") {

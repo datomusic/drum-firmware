@@ -53,6 +53,13 @@ const FORMAT_FILESYSTEM = 0x15;
 const CUSTOM_ACK = 0x13;
 const CUSTOM_NACK = 0x14;
 
+// Sequencer State Commands
+const REQUEST_SEQUENCER_STATE = 0x30;
+const SEQUENCER_STATE_RESPONSE = 0x31;
+const SET_SEQUENCER_STATE = 0x32;
+const SEQUENCER_NUM_TRACKS = 4;
+const SEQUENCER_NUM_STEPS = 8;
+
 // Firmware Update Commands (UF2 streamed to the inactive A/B partition)
 const BEGIN_FIRMWARE_UPDATE = 0x20;
 const FIRMWARE_BYTES = 0x21;
@@ -111,7 +118,7 @@ function find_dato_drum() {
     output.openPort(outPort);
     input.openPort(inPort);
     input.ignoreTypes(false, false, false);
-    console.log(`Opened MIDI ports: ${portName}`);
+    console.error(`Opened MIDI ports: ${portName}`);
     return { output, input };
   } catch (e) {
     console.error(`Error opening MIDI ports for ${portName}: ${e.message}`);
@@ -347,6 +354,92 @@ async function get_storage_info() {
     console.error(`Error requesting storage info: ${e.message}`);
     throw e;
   }
+}
+
+// Get sequencer state
+// Payload: 32 velocity bytes (track-major, 4 tracks x 8 steps) followed by
+// 4 active-note bytes, all raw 7-bit values.
+async function get_sequencer_state(asJson = false) {
+  sendCustomMessage([REQUEST_SEQUENCER_STATE]);
+  const reply = await waitForCustomReply();
+  if (reply[5] !== SEQUENCER_STATE_RESPONSE) {
+    throw new Error(`Unexpected reply received. Tag: ${reply[5]}`);
+  }
+
+  const payloadSize = SEQUENCER_NUM_TRACKS * SEQUENCER_NUM_STEPS + SEQUENCER_NUM_TRACKS;
+  const payload = reply.slice(6, reply.length - 1);
+  if (payload.length < payloadSize) {
+    throw new Error(`Insufficient reply data: expected ${payloadSize} payload bytes, got ${payload.length}`);
+  }
+
+  const velocities = [];
+  for (let track = 0; track < SEQUENCER_NUM_TRACKS; track++) {
+    velocities.push(payload.slice(track * SEQUENCER_NUM_STEPS, (track + 1) * SEQUENCER_NUM_STEPS));
+  }
+  const activeNotes = payload.slice(
+    SEQUENCER_NUM_TRACKS * SEQUENCER_NUM_STEPS,
+    SEQUENCER_NUM_TRACKS * SEQUENCER_NUM_STEPS + SEQUENCER_NUM_TRACKS
+  );
+
+  const state = { velocities, activeNotes };
+
+  if (asJson) {
+    console.log(JSON.stringify(state, null, 2));
+  } else {
+    console.log('Sequencer state:');
+    for (let track = 0; track < SEQUENCER_NUM_TRACKS; track++) {
+      const steps = velocities[track].map(v => v.toString().padStart(3)).join(' ');
+      console.log(`  Track ${track} (note ${activeNotes[track]}): ${steps}`);
+    }
+  }
+
+  return state;
+}
+
+// Validate and normalize a sequencer state object ({ velocities, activeNotes })
+function validateSequencerState(state) {
+  if (!state || !Array.isArray(state.velocities) || !Array.isArray(state.activeNotes)) {
+    throw new Error("State must be an object with 'velocities' and 'activeNotes' arrays.");
+  }
+  if (state.velocities.length !== SEQUENCER_NUM_TRACKS) {
+    throw new Error(`Expected ${SEQUENCER_NUM_TRACKS} velocity tracks, got ${state.velocities.length}`);
+  }
+  if (state.activeNotes.length !== SEQUENCER_NUM_TRACKS) {
+    throw new Error(`Expected ${SEQUENCER_NUM_TRACKS} active notes, got ${state.activeNotes.length}`);
+  }
+  const check7bit = (value, what) => {
+    if (!Number.isInteger(value) || value < 0 || value > 127) {
+      throw new Error(`${what} must be an integer 0-127, got ${value}`);
+    }
+  };
+  state.velocities.forEach((track, t) => {
+    if (!Array.isArray(track) || track.length !== SEQUENCER_NUM_STEPS) {
+      throw new Error(`Track ${t} must have ${SEQUENCER_NUM_STEPS} velocity values.`);
+    }
+    track.forEach((v, s) => check7bit(v, `Velocity for track ${t} step ${s}`));
+  });
+  state.activeNotes.forEach((note, t) => check7bit(note, `Active note for track ${t}`));
+}
+
+// Set sequencer state from a JSON file (or stdin with '-')
+async function set_sequencer_state(filePath) {
+  const source = filePath === '-' ? '/dev/stdin' : filePath;
+  let state;
+  try {
+    state = JSON.parse(fs.readFileSync(source, 'utf8'));
+  } catch (e) {
+    throw new Error(`Could not read state from '${filePath}': ${e.message}`);
+  }
+  validateSequencerState(state);
+
+  const payload = [];
+  for (let track = 0; track < SEQUENCER_NUM_TRACKS; track++) {
+    payload.push(...state.velocities[track]);
+  }
+  payload.push(...state.activeNotes);
+
+  await sendCustomCommandAndWait(SET_SEQUENCER_STATE, payload);
+  console.log('Sequencer state set successfully.');
 }
 
 // Format bytes for human-readable display
@@ -1056,6 +1149,8 @@ if (!command) {
   console.log("  drumtool.js reboot-bootloader");
   console.log("  drumtool.js identity");
   console.log("  drumtool.js flash <firmware.uf2>");
+  console.log("  drumtool.js get-sequencer [--json]");
+  console.log("  drumtool.js set-sequencer <state.json|->");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
@@ -1065,6 +1160,8 @@ if (!command) {
   console.log("  reboot-bootloader - Reboot device into bootloader mode");
   console.log("  identity       - Test universal SysEx identity request");
   console.log("  flash          - Update firmware over MIDI (A/B partition, auto-revert on failure)");
+  console.log("  get-sequencer  - Read the sequencer pattern (velocities + active notes)");
+  console.log("  set-sequencer  - Write a sequencer pattern from a JSON file ('-' for stdin)");
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127)");
@@ -1088,6 +1185,8 @@ if (!command) {
   console.log("  drumtool.js storage                           # Check storage usage");
   console.log("  drumtool.js format                            # Format filesystem");
   console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
+  console.log("  drumtool.js get-sequencer --json > state.json # Save sequencer pattern");
+  console.log("  drumtool.js set-sequencer state.json          # Restore sequencer pattern");
   console.log("");
   process.exit(1);
 }
@@ -1161,14 +1260,25 @@ async function main() {
         console.error(`Error: File not found: ${file}`);
         process.exit(1);
       }
+    } else if (command === 'set-sequencer') {
+      const file = process.argv[3];
+      if (!file) {
+        console.error("Error: 'set-sequencer' command requires a JSON state file argument (or '-' for stdin).");
+        process.exit(1);
+      }
+      if (file !== '-' && !fs.existsSync(file)) {
+        console.error(`Error: File not found: ${file}`);
+        process.exit(1);
+      }
     } else if (command !== 'version' && command !== 'storage' && command !== 'format' &&
-               command !== 'reboot-bootloader' && command !== 'identity') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', or 'flash'.`);
+               command !== 'reboot-bootloader' && command !== 'identity' &&
+               command !== 'get-sequencer') {
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', 'flash', 'get-sequencer', or 'set-sequencer'.`);
       process.exit(1);
     }
 
     // Initialize MIDI connection after arguments are validated
-    console.log("Initializing MIDI connection...");
+    console.error("Initializing MIDI connection...");
     const midi_ports = find_dato_drum();
     if (!midi_ports) {
       console.error("Failed to initialize MIDI. Exiting.");
@@ -1201,6 +1311,10 @@ async function main() {
       await test_universal_identity();
     } else if (command === 'flash') {
       await flash_firmware(process.argv[3]);
+    } else if (command === 'get-sequencer') {
+      await get_sequencer_state(process.argv.includes('--json'));
+    } else if (command === 'set-sequencer') {
+      await set_sequencer_state(process.argv[3]);
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);

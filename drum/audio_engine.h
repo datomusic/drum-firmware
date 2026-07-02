@@ -40,13 +40,12 @@ private:
     Sound sound;
     float current_pitch = 1.0f;
     float current_gain = 1.0f;
-    float current_decay = 1.0f; // Fraction of duration where the fade starts.
+    float current_decay = 1.0f; // Fraction of duration where gain reaches 0.
 
     // Decay envelope state, set at trigger time and consumed in the ISR.
     bool decay_active = false;
-    uint32_t decay_start_frame = 0;
-    uint32_t total_frames = 0;
-    float decay_scale = 0.0f; // 1 / (total_frames - decay_start_frame)
+    uint32_t decay_end_frame = 0;
+    float decay_scale = 0.0f; // 1 / decay_end_frame
     uint32_t frames_rendered = 0;
 
     Voice();
@@ -119,8 +118,8 @@ public:
 
   /**
    * @brief Sets the decay for a specific voice/track for the *next* time it's
-   * triggered. The voice fades linearly to silence from this fraction of the
-   * sample's playback duration; 1.0 disables the fade.
+   * triggered. Gain ramps linearly from full at the trigger to silence at
+   * this fraction of the sample's playback duration; 1.0 disables the fade.
    * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
    * @param value The decay value, normalized (0.0f to 1.0f).
    */

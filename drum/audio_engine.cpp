@@ -63,13 +63,11 @@ void __not_in_flash_func(AudioEngine::Voice::fill_buffer)(
 
   uint32_t position = frames_rendered;
   for (int16_t &sample : out_samples) {
-    if (position >= decay_start_frame) {
-      float gain = 0.0f;
-      if (position < total_frames) {
-        gain = static_cast<float>(total_frames - position) * decay_scale;
-      }
-      sample = static_cast<int16_t>(static_cast<float>(sample) * gain);
+    float gain = 0.0f;
+    if (position < decay_end_frame) {
+      gain = static_cast<float>(decay_end_frame - position) * decay_scale;
     }
+    sample = static_cast<int16_t>(static_cast<float>(sample) * gain);
     ++position;
   }
   frames_rendered = position;
@@ -163,18 +161,20 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = normalized_velocity * voice.current_gain;
 
-  // Decay envelope: from current_decay of the sample's playback duration,
-  // gain ramps linearly to zero at the end. 1.0 disables the envelope.
+  // Decay envelope: gain ramps linearly from full at the trigger to zero at
+  // current_decay of the sample's playback duration, silencing the rest.
+  // 1.0 disables the envelope. A floor keeps very low values click-free.
+  constexpr uint32_t MIN_DECAY_FRAMES = 128;
   const float speed = std::max(voice.current_pitch, 0.2f);
   const uint32_t total_frames = static_cast<uint32_t>(
       static_cast<float>(slot_manager_.voice_length(voice_index)) / speed);
-  const uint32_t decay_start_frame = static_cast<uint32_t>(
-      static_cast<float>(total_frames) * voice.current_decay);
-  const bool decay_active =
-      voice.current_decay < 1.0f && total_frames > decay_start_frame;
+  const uint32_t decay_end_frame =
+      std::max(static_cast<uint32_t>(static_cast<float>(total_frames) *
+                                     voice.current_decay),
+               MIN_DECAY_FRAMES);
+  const bool decay_active = voice.current_decay < 1.0f;
   const float decay_scale =
-      decay_active ? 1.0f / static_cast<float>(total_frames - decay_start_frame)
-                   : 0.0f;
+      decay_active ? 1.0f / static_cast<float>(decay_end_frame) : 0.0f;
 
   // The render runs in the DMA interrupt; keep it from reading the voice
   // mid-retrigger.
@@ -183,8 +183,7 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
                           slot_manager_.voice_length(voice_index));
   mixer_.gain(voice_index, gain);
   voice.decay_active = decay_active;
-  voice.decay_start_frame = decay_start_frame;
-  voice.total_frames = total_frames;
+  voice.decay_end_frame = decay_end_frame;
   voice.decay_scale = decay_scale;
   voice.frames_rendered = 0;
   voice.sound.play(voice.current_pitch);

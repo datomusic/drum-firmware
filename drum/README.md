@@ -295,7 +295,7 @@ or invalid file means the default applies.
 | Setting | ID | Range | Default | Description |
 |---------|-----|-------|---------|-------------|
 | `midi_channel` | 0x01 | 1-16 | 10 | MIDI channel for incoming and outgoing notes and CCs |
-| `slider_mode` | 0x02 | 0-7 | 1 | Bit mask of what the track slider controls: bit 0 = pitch, bit 1 = gain, bit 2 = decay. Decay fades the voice linearly to silence from the slider-set fraction of the sample's playback duration (slider at max = no fade) |
+| `slider_mode` | 0x02 | 0-7 | 1 | Bit mask of what the track slider controls: bit 0 = pitch, bit 1 = gain, bit 2 = decay. Decay ramps gain linearly from full at the trigger to silence at the slider-set fraction of the sample's playback duration (slider at max = no fade) |
 
 #### GetSetting (0x40)
 Requests the current value of one setting.

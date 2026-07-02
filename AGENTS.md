@@ -75,6 +75,9 @@ git submodule update --init --recursive --depth 1 \
   musin/ports/pico/libraries/pico-vfs
 ```
 
+### Git Worktrees (Claude Code)
+When creating a worktree for a task (`EnterWorktree`), always pass a descriptive `name` derived from the task — short kebab-case summarizing the work (e.g. `fix-sds-cooldown-color`, `feat-midi-sysex-ab-update`). Don't rely on the auto-generated random name.
+
 ### Code Quality
 - **Pre-commit hooks:** Run `pre-commit` before commits
 - **Conventional commits:** `fix:` `feat:` `refactor:` etc.

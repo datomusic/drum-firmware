@@ -16,8 +16,6 @@
 #include "musin/audio/sound.h"
 #include "musin/hal/logger.h"
 
-#include "drum/settings.h"
-
 namespace drum {
 
 class SampleRepository;  // Forward declaration
@@ -42,6 +40,7 @@ private:
     Sound sound;
     float current_pitch = 1.0f;
     float current_gain = 1.0f;
+    float current_decay = 1.0f; // Fraction of duration where the fade starts.
 
     // Decay envelope state, set at trigger time and consumed in the ISR.
     bool decay_active = false;
@@ -57,8 +56,7 @@ private:
 
 public:
   AudioEngine(const SampleRepository &repository,
-              SampleSlotManager &slot_manager,
-              const settings::Settings &settings, musin::Logger &logger);
+              SampleSlotManager &slot_manager, musin::Logger &logger);
   ~AudioEngine() = default;
 
   // Delete copy and move operations
@@ -120,6 +118,15 @@ public:
   void set_track_gain(uint8_t voice_index, float value);
 
   /**
+   * @brief Sets the decay for a specific voice/track for the *next* time it's
+   * triggered. The voice fades linearly to silence from this fraction of the
+   * sample's playback duration; 1.0 disables the fade.
+   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
+   * @param value The decay value, normalized (0.0f to 1.0f).
+   */
+  void set_track_decay(uint8_t voice_index, float value);
+
+  /**
    * @brief Sets the master output volume.
    * @param volume The desired volume level (0.0f to 1.0f).
    */
@@ -169,7 +176,6 @@ public:
 private:
   const SampleRepository &sample_repository_;
   SampleSlotManager &slot_manager_;
-  const settings::Settings &settings_;
   musin::Logger &logger_;
   etl::array<Voice, NUM_VOICES> voices_;
   etl::array<BufferSource *, NUM_VOICES> voice_sources_;

@@ -171,15 +171,15 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
       _local_control_mode == LocalControlMode::ON) {
     switch (param_id) {
     case Parameter::PITCH: {
-      const auto slider_mode = static_cast<settings::SliderMode>(
-          settings_.get(settings::Id::SliderMode));
-      if (slider_mode == settings::SliderMode::Pitch ||
-          slider_mode == settings::SliderMode::PitchAndGain) {
+      const uint8_t slider_mode = settings_.get(settings::Id::SliderMode);
+      if (slider_mode & settings::slider_mode::PITCH) {
         _audio_engine.set_pitch(track_index.value(), value);
       }
-      if (slider_mode == settings::SliderMode::Gain ||
-          slider_mode == settings::SliderMode::PitchAndGain) {
+      if (slider_mode & settings::slider_mode::GAIN) {
         _audio_engine.set_track_gain(track_index.value(), value);
+      }
+      if (slider_mode & settings::slider_mode::DECAY) {
+        _audio_engine.set_track_decay(track_index.value(), value);
       }
       break;
     }

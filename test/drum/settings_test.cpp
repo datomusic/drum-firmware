@@ -20,13 +20,8 @@ TEST_CASE("Settings defaults", "[settings]") {
     REQUIRE(settings.get(Id::MidiChannel) == 10);
   }
 
-  SECTION("Slider defaults to controlling pitch") {
-    REQUIRE(settings.get(Id::SliderMode) ==
-            static_cast<uint8_t>(drum::settings::SliderMode::Pitch));
-  }
-
-  SECTION("Sample decay defaults to 100 (no fade)") {
-    REQUIRE(settings.get(Id::SampleDecay) == 100);
+  SECTION("Slider defaults to controlling pitch only") {
+    REQUIRE(settings.get(Id::SliderMode) == drum::settings::slider_mode::PITCH);
   }
 }
 
@@ -52,18 +47,13 @@ TEST_CASE("Settings set validation", "[settings]") {
     REQUIRE_FALSE(settings.set(static_cast<Id>(0x7F), 1));
   }
 
-  SECTION("Slider mode accepts pitch, gain and both") {
-    REQUIRE(settings.set(Id::SliderMode, 2));
-    REQUIRE(settings.get(Id::SliderMode) == 2);
-    REQUIRE_FALSE(settings.set(Id::SliderMode, 3));
-    REQUIRE(settings.get(Id::SliderMode) == 2);
-  }
-
-  SECTION("Sample decay accepts 0-100 percent") {
-    REQUIRE(settings.set(Id::SampleDecay, 0));
-    REQUIRE(settings.set(Id::SampleDecay, 100));
-    REQUIRE_FALSE(settings.set(Id::SampleDecay, 101));
-    REQUIRE(settings.get(Id::SampleDecay) == 100);
+  SECTION("Slider mode accepts any combination of pitch, gain and decay") {
+    using namespace drum::settings::slider_mode;
+    REQUIRE(settings.set(Id::SliderMode, PITCH | GAIN | DECAY));
+    REQUIRE(settings.get(Id::SliderMode) == 7);
+    REQUIRE(settings.set(Id::SliderMode, 0));
+    REQUIRE_FALSE(settings.set(Id::SliderMode, 8));
+    REQUIRE(settings.get(Id::SliderMode) == 0);
   }
 }
 

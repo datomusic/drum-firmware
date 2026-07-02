@@ -66,8 +66,7 @@ const SETTING_VALUE = 0x41;
 const SET_SETTING = 0x42;
 const SETTINGS = {
   midi_channel: { id: 0x01, min: 1, max: 16, description: 'MIDI channel for notes and CCs (1-16)' },
-  slider_mode: { id: 0x02, min: 0, max: 2, description: 'Track slider assignment: 0=pitch, 1=gain, 2=both' },
-  sample_decay: { id: 0x03, min: 0, max: 100, description: 'Percent of sample duration where fade to zero begins (100=off)' },
+  slider_mode: { id: 0x02, min: 0, max: 7, description: 'Track slider bit mask: 1=pitch, 2=gain, 4=decay (combinable)' },
 };
 
 // Firmware Update Commands (UF2 streamed to the inactive A/B partition)

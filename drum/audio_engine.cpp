@@ -76,11 +76,9 @@ void __not_in_flash_func(AudioEngine::Voice::fill_buffer)(
 }
 
 AudioEngine::AudioEngine(const SampleRepository &repository,
-                         SampleSlotManager &slot_manager,
-                         const settings::Settings &settings,
-                         musin::Logger &logger)
+                         SampleSlotManager &slot_manager, musin::Logger &logger)
     : sample_repository_(repository), slot_manager_(slot_manager),
-      settings_(settings), logger_(logger),
+      logger_(logger),
       voice_sources_{&voices_[0], &voices_[1], &voices_[2], &voices_[3]},
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
       highpass_(lowpass_) {
@@ -165,15 +163,15 @@ void AudioEngine::play_on_voice(uint8_t voice_index, size_t sample_index,
   const float normalized_velocity = static_cast<float>(velocity) / 127.0f;
   const float gain = normalized_velocity * voice.current_gain;
 
-  // Decay envelope: from decay_percent of the sample's playback duration,
-  // gain ramps linearly to zero at the end. 100 disables the envelope.
-  const uint8_t decay_percent = settings_.get(settings::Id::SampleDecay);
+  // Decay envelope: from current_decay of the sample's playback duration,
+  // gain ramps linearly to zero at the end. 1.0 disables the envelope.
   const float speed = std::max(voice.current_pitch, 0.2f);
   const uint32_t total_frames = static_cast<uint32_t>(
       static_cast<float>(slot_manager_.voice_length(voice_index)) / speed);
-  const uint32_t decay_start_frame = (total_frames * decay_percent) / 100;
+  const uint32_t decay_start_frame = static_cast<uint32_t>(
+      static_cast<float>(total_frames) * voice.current_decay);
   const bool decay_active =
-      decay_percent < 100 && total_frames > decay_start_frame;
+      voice.current_decay < 1.0f && total_frames > decay_start_frame;
   const float decay_scale =
       decay_active ? 1.0f / static_cast<float>(total_frames - decay_start_frame)
                    : 0.0f;
@@ -217,6 +215,13 @@ void AudioEngine::set_track_gain(uint8_t voice_index, float value) {
     return;
   }
   voices_[voice_index].current_gain = std::clamp(value, 0.0f, 1.0f);
+}
+
+void AudioEngine::set_track_decay(uint8_t voice_index, float value) {
+  if (!is_initialized_ || voice_index >= NUM_VOICES) {
+    return;
+  }
+  voices_[voice_index].current_decay = std::clamp(value, 0.0f, 1.0f);
 }
 
 void AudioEngine::set_volume(float volume) {

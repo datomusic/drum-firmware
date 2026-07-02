@@ -64,7 +64,7 @@ SECTIONS
            and must stay callable during flash erase, so (unlike the SDK
            default script this file is based on) the whole translation unit
            is kept out of flash and falls through to RAM via .data below. */
-        *(EXCLUDE_FILE(*libgcc.a: *libc.a:*lib_a-mem*.o *libm.a: *pico_audio/audio.cpp.o) .text*)
+        *(EXCLUDE_FILE(*libgcc.a: *libc.a:*lib_a-mem*.o *libm.a: *pico_audio/audio.cpp.o *pico_audio_i2s/audio_i2s.c.o) .text*)
         *(.fini)
         /* Pull all c'tors into .text */
         *crtbegin.o(.ctors)

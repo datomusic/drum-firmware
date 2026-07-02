@@ -25,10 +25,8 @@ constexpr float DISPLAY_BRIGHTNESS_MAX_VALUE = 255.0f;
 constexpr size_t MAX_PATH_LENGTH = 64;
 
 // MIDI Configuration
-constexpr uint8_t MIDI_IN_CHANNEL =
-    10; // Input MIDI Channel (GM Percussion Standard)
-constexpr uint8_t MIDI_OUT_CHANNEL =
-    10; // Output MIDI Channel (GM Percussion Standard)
+// The MIDI channel (default 10, GM Percussion Standard) is a runtime
+// setting; see drum/settings.h.
 constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = true;
 constexpr bool SEND_SYNC_CLOCK_WHEN_STOPPED_AS_MASTER = true;
 constexpr bool RETRIGGER_SYNC_ON_PLAYBUTTON = true;

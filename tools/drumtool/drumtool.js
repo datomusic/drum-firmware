@@ -60,6 +60,14 @@ const SET_SEQUENCER_STATE = 0x32;
 const SEQUENCER_NUM_TRACKS = 4;
 const SEQUENCER_NUM_STEPS = 8;
 
+// Settings Commands (generic key-value; ids match drum/settings.h)
+const GET_SETTING = 0x40;
+const SETTING_VALUE = 0x41;
+const SET_SETTING = 0x42;
+const SETTINGS = {
+  midi_channel: { id: 0x01, min: 1, max: 16, description: 'MIDI channel for notes and CCs (1-16)' },
+};
+
 // Firmware Update Commands (UF2 streamed to the inactive A/B partition)
 const BEGIN_FIRMWARE_UPDATE = 0x20;
 const FIRMWARE_BYTES = 0x21;
@@ -394,6 +402,40 @@ async function get_sequencer_state(asJson = false) {
   }
 
   return state;
+}
+
+// Look up a setting by name, with a helpful error listing known names
+function findSetting(name) {
+  const setting = SETTINGS[name];
+  if (!setting) {
+    throw new Error(`Unknown setting '${name}'. Known settings: ${Object.keys(SETTINGS).join(', ')}`);
+  }
+  return setting;
+}
+
+// Get one named setting, or all settings when name is undefined
+async function get_setting(name) {
+  const names = name ? [name] : Object.keys(SETTINGS);
+  for (const settingName of names) {
+    const setting = findSetting(settingName);
+    sendCustomMessage([GET_SETTING, setting.id]);
+    const reply = await waitForCustomReply();
+    if (reply[5] !== SETTING_VALUE || reply[6] !== setting.id) {
+      throw new Error(`Unexpected reply for '${settingName}'. Tag: ${reply[5]}`);
+    }
+    console.log(`${settingName}: ${reply[7]}`);
+  }
+}
+
+// Set one named setting; the device validates and persists the value
+async function set_setting(name, valueStr) {
+  const setting = findSetting(name);
+  const value = parseInt(valueStr, 10);
+  if (isNaN(value) || value < setting.min || value > setting.max) {
+    throw new Error(`Invalid value '${valueStr}' for '${name}'. Must be ${setting.min}-${setting.max}.`);
+  }
+  await sendCustomCommandAndWait(SET_SETTING, [setting.id, value]);
+  console.log(`${name} set to ${value}.`);
 }
 
 // Validate and normalize a sequencer state object ({ velocities, activeNotes })
@@ -1151,6 +1193,8 @@ if (!command) {
   console.log("  drumtool.js flash <firmware.uf2>");
   console.log("  drumtool.js get-sequencer [--json]");
   console.log("  drumtool.js set-sequencer <state.json|->");
+  console.log("  drumtool.js get-setting [name]");
+  console.log("  drumtool.js set-setting <name> <value>");
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
@@ -1162,6 +1206,13 @@ if (!command) {
   console.log("  flash          - Update firmware over MIDI (A/B partition, auto-revert on failure)");
   console.log("  get-sequencer  - Read the sequencer pattern (velocities + active notes)");
   console.log("  set-sequencer  - Write a sequencer pattern from a JSON file ('-' for stdin)");
+  console.log("  get-setting    - Read a device setting (all settings when no name given)");
+  console.log("  set-setting    - Write a device setting (persisted on the device)");
+  console.log("");
+  console.log("Settings:");
+  for (const [name, setting] of Object.entries(SETTINGS)) {
+    console.log(`  ${name.padEnd(14)} - ${setting.description}`);
+  }
   console.log("");
   console.log("Send Arguments:");
   console.log("  file:slot      - Audio file path and target slot (0-127)");
@@ -1187,6 +1238,7 @@ if (!command) {
   console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
   console.log("  drumtool.js get-sequencer --json > state.json # Save sequencer pattern");
   console.log("  drumtool.js set-sequencer state.json          # Restore sequencer pattern");
+  console.log("  drumtool.js set-setting midi_channel 1        # Use MIDI channel 1");
   console.log("");
   process.exit(1);
 }
@@ -1270,10 +1322,23 @@ async function main() {
         console.error(`Error: File not found: ${file}`);
         process.exit(1);
       }
+    } else if (command === 'get-setting') {
+      const name = process.argv[3];
+      if (name) {
+        findSetting(name); // Throws with a helpful message for unknown names
+      }
+    } else if (command === 'set-setting') {
+      const name = process.argv[3];
+      const value = process.argv[4];
+      if (!name || value === undefined) {
+        console.error("Error: 'set-setting' requires a setting name and a value.");
+        process.exit(1);
+      }
+      findSetting(name); // Throws with a helpful message for unknown names
     } else if (command !== 'version' && command !== 'storage' && command !== 'format' &&
                command !== 'reboot-bootloader' && command !== 'identity' &&
                command !== 'get-sequencer') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', 'flash', 'get-sequencer', or 'set-sequencer'.`);
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', 'flash', 'get-sequencer', 'set-sequencer', 'get-setting', or 'set-setting'.`);
       process.exit(1);
     }
 
@@ -1315,6 +1380,10 @@ async function main() {
       await get_sequencer_state(process.argv.includes('--json'));
     } else if (command === 'set-sequencer') {
       await set_sequencer_state(process.argv[3]);
+    } else if (command === 'get-setting') {
+      await get_setting(process.argv[3]);
+    } else if (command === 'set-setting') {
+      await set_setting(process.argv[3], process.argv[4]);
     }
   } catch (error) {
     console.error(`\nError: ${error.message}`);

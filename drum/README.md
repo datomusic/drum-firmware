@@ -1,7 +1,7 @@
 # DATO DRUM MIDI Implementation Chart
 
 ## General Settings
-- **Default MIDI Channel:** 10 (GM Percussion Standard)
+- **Default MIDI Channel:** 10 (GM Percussion Standard), configurable via the `SetSetting` SysEx command (see Settings Commands below)
 - **Note Off Messages:** Ignored
 - **Velocity Range:** 1-127
 - **Clock:** Master by default, slave when external clock detected
@@ -113,7 +113,7 @@
 - **Stops when sequencer stopped**
 
 ## Configuration Notes
-- All MIDI channels, CC numbers, and note mappings configurable via web interface
+- The MIDI channel is configurable via the `SetSetting` SysEx command (see Settings Commands below)
 - Sample-to-note mapping updates in real-time during sample selection
 - **MIDI Input:** Receiving a note plays that sound on the corresponding track AND sets that note as the active sample for that track
 - MIDI Clock input automatically detected and followed
@@ -284,3 +284,43 @@ F0 00 22 01 65 32 <Payload> F7
 - If the payload layout ever changes, a new SysEx tag should be introduced for the new format so existing tools keep working.
 - Setting sequencer state marks the internal storage as dirty, triggering an automatic save to flash after a debounce period.
 - Sample selection is done by sending MIDI note numbers matching the desired sample slots (as documented in the MIDI Note Numbers section above).
+
+### Settings Commands
+
+Generic key-value access to device settings. Each setting has a 7-bit id, a
+valid range, and a compile-time default (see `drum/settings.h`). Values are
+persisted on the device as one file per setting under `/settings/`; a missing
+or invalid file means the default applies.
+
+| Setting | ID | Range | Default | Description |
+|---------|-----|-------|---------|-------------|
+| `midi_channel` | 0x01 | 1-16 | 10 | MIDI channel for incoming and outgoing notes and CCs |
+
+#### GetSetting (0x40)
+Requests the current value of one setting.
+
+**Command Format:**
+```
+F0 00 22 01 65 40 <setting id> F7
+```
+
+**Response:** A `SettingValue` message, or `Nack` (0x14) for unknown setting ids.
+
+#### SettingValue (0x41)
+The device's response to `GetSetting`.
+
+**Response Format:**
+```
+F0 00 22 01 65 41 <setting id> <value> F7
+```
+
+#### SetSetting (0x42)
+Sets and persists one setting. The new value takes effect immediately.
+
+**Command Format:**
+```
+F0 00 22 01 65 42 <setting id> <value> F7
+```
+
+**Response:** `Ack` (0x13) on success, or `Nack` (0x14) for unknown setting
+ids, out-of-range values, or persistence failures.

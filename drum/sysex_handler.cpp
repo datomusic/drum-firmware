@@ -11,9 +11,11 @@
 namespace drum {
 
 SysExHandler::SysExHandler(ConfigurationManager &config_manager,
+                           SettingsManager &settings_manager,
                            musin::Logger &logger,
                            musin::filesystem::Filesystem &filesystem)
-    : config_manager_(config_manager), logger_(logger), filesystem_(filesystem),
+    : config_manager_(config_manager), settings_manager_(settings_manager),
+      logger_(logger), filesystem_(filesystem),
       file_ops_(logger, filesystem), protocol_(file_ops_, logger),
       sds_protocol_(file_ops_, logger), firmware_writer_(logger),
       firmware_update_(firmware_writer_, logger) {
@@ -185,6 +187,20 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
         chunk.cbegin() + sysex::SYSEX_CHUNK_PAYLOAD_OFFSET;
     const auto payload = etl::span<const uint8_t>{payload_start, chunk.cend()};
     handle_set_sequencer_state(payload);
+    break;
+  }
+  case sysex::Protocol<StandardFileOps>::Result::GetSetting: {
+    const auto payload_start =
+        chunk.cbegin() + sysex::SYSEX_CHUNK_PAYLOAD_OFFSET;
+    const auto payload = etl::span<const uint8_t>{payload_start, chunk.cend()};
+    send_setting_value(payload);
+    break;
+  }
+  case sysex::Protocol<StandardFileOps>::Result::SetSetting: {
+    const auto payload_start =
+        chunk.cbegin() + sysex::SYSEX_CHUNK_PAYLOAD_OFFSET;
+    const auto payload = etl::span<const uint8_t>{payload_start, chunk.cend()};
+    handle_set_setting(payload);
     break;
   }
   default:
@@ -407,6 +423,65 @@ void SysExHandler::handle_set_sequencer_state(
 
   logger_.info("SysEx: Sequencer state applied successfully");
   sender(sysex::Protocol<StandardFileOps>::Tag::Ack);
+}
+
+namespace {
+void send_reply_tag(sysex::Protocol<StandardFileOps>::Tag tag) {
+  uint8_t msg[] = {0xF0,
+                   drum::config::sysex::MANUFACTURER_ID_0,
+                   drum::config::sysex::MANUFACTURER_ID_1,
+                   drum::config::sysex::MANUFACTURER_ID_2,
+                   drum::config::sysex::DEVICE_ID,
+                   static_cast<uint8_t>(tag),
+                   0xF7};
+  MIDI::sendSysEx(sizeof(msg), msg);
+}
+} // namespace
+
+void SysExHandler::send_setting_value(
+    const etl::span<const uint8_t> &payload) const {
+  if (payload.empty()) {
+    logger_.error("SysEx: GetSetting without setting id");
+    send_reply_tag(sysex::Protocol<StandardFileOps>::Tag::Nack);
+    return;
+  }
+
+  const auto id = static_cast<settings::Id>(payload[0]);
+  if (settings::find_descriptor(id) == nullptr) {
+    logger_.warn("SysEx: GetSetting for unknown id",
+                 static_cast<uint32_t>(payload[0]));
+    send_reply_tag(sysex::Protocol<StandardFileOps>::Tag::Nack);
+    return;
+  }
+
+  uint8_t message[] = {
+      0xF0,
+      drum::config::sysex::MANUFACTURER_ID_0,
+      drum::config::sysex::MANUFACTURER_ID_1,
+      drum::config::sysex::MANUFACTURER_ID_2,
+      drum::config::sysex::DEVICE_ID,
+      static_cast<uint8_t>(sysex::Protocol<StandardFileOps>::Tag::SettingValue),
+      payload[0],
+      settings_manager_.get(id),
+      0xF7};
+  MIDI::sendSysEx(sizeof(message), message);
+}
+
+void SysExHandler::handle_set_setting(const etl::span<const uint8_t> &payload) {
+  if (payload.size() < 2) {
+    logger_.error("SysEx: SetSetting payload too short");
+    send_reply_tag(sysex::Protocol<StandardFileOps>::Tag::Nack);
+    return;
+  }
+
+  const auto id = static_cast<settings::Id>(payload[0]);
+  if (!settings_manager_.set(id, payload[1])) {
+    send_reply_tag(sysex::Protocol<StandardFileOps>::Tag::Nack);
+    return;
+  }
+
+  logger_.info("SysEx: Setting applied", static_cast<uint32_t>(payload[0]));
+  send_reply_tag(sysex::Protocol<StandardFileOps>::Tag::Ack);
 }
 
 void SysExHandler::send_universal_identity_response() const {

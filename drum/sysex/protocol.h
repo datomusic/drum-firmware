@@ -93,6 +93,11 @@ template <typename FileOperations> struct Protocol {
     RequestSequencerState = 0x30,
     SequencerStateResponse = 0x31,
     SetSequencerState = 0x32,
+
+    // Settings Commands (generic key-value, see drum/settings.h)
+    GetSetting = 0x40,
+    SettingValue = 0x41,
+    SetSetting = 0x42,
   };
 
   enum class Result {
@@ -104,6 +109,8 @@ template <typename FileOperations> struct Protocol {
     PrintStorageInfo,
     PrintSequencerState,
     SetSequencerState,
+    GetSetting,
+    SetSetting,
     FileError,
     ShortMessage,
     NotSysex,
@@ -138,6 +145,15 @@ template <typename FileOperations> struct Protocol {
     // let the handler read the payload directly from the chunk.
     if (get_tag_from_chunk(chunk) == Tag::SetSequencerState) {
       return Result::SetSequencerState;
+    }
+
+    // Settings commands also carry raw 7-bit payloads (setting id and
+    // value bytes); the handler reads them directly from the chunk.
+    if (get_tag_from_chunk(chunk) == Tag::GetSetting) {
+      return Result::GetSetting;
+    }
+    if (get_tag_from_chunk(chunk) == Tag::SetSetting) {
+      return Result::SetSetting;
     }
 
     const uint16_t tag = (*iterator++);

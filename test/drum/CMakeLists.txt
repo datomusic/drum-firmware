@@ -142,6 +142,20 @@ target_link_libraries(drum-test-sysex-sequencer-state PRIVATE
     etl::etl
 )
 
+# Test target: Settings registry and validation
+add_executable(drum-test-settings
+    settings_test.cpp
+)
+
+target_include_directories(drum-test-settings PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+)
+
+target_link_libraries(drum-test-settings PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
@@ -150,3 +164,4 @@ catch_discover_tests(drum-test-firmware-update)
 catch_discover_tests(drum-test-sample-slots)
 catch_discover_tests(drum-test-sds)
 catch_discover_tests(drum-test-sysex-sequencer-state)
+catch_discover_tests(drum-test-settings)

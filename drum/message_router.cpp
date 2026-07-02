@@ -101,9 +101,10 @@ MessageRouter::MessageRouter(
     SequencerController<drum::config::NUM_TRACKS,
                         drum::config::NUM_STEPS_PER_TRACK>
         &sequencer_controller,
-    musin::midi::MidiSender &midi_sender, musin::Logger &logger)
+    musin::midi::MidiSender &midi_sender, const settings::Settings &settings,
+    musin::Logger &logger)
     : _audio_engine(audio_engine), _sequencer_controller(sequencer_controller),
-      _midi_sender(midi_sender), logger_(logger),
+      _midi_sender(midi_sender), settings_(settings), logger_(logger),
       _output_mode(OutputMode::BOTH), _local_control_mode(LocalControlMode::ON),
       _previous_local_control_mode(
           std::nullopt) { // Default local control to ON
@@ -157,7 +158,7 @@ void MessageRouter::set_parameter(Parameter param_id, float value,
   if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
     uint8_t cc_number = map_parameter_to_midi_cc(param_id, track_index);
     if (cc_number > 0) {
-      uint8_t midi_channel = drum::config::MIDI_OUT_CHANNEL;
+      uint8_t midi_channel = settings_.get(settings::Id::MidiChannel);
       uint8_t midi_value = static_cast<uint8_t>(std::round(value * 127.0f));
       midi_value = std::min(midi_value, static_cast<uint8_t>(127));
 
@@ -210,8 +211,8 @@ void MessageRouter::update() {
                   static_cast<uint32_t>(event.track_index));
 
     if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
-      _midi_sender.sendNoteOn(drum::config::MIDI_OUT_CHANNEL, event.note,
-                              event.velocity);
+      _midi_sender.sendNoteOn(settings_.get(settings::Id::MidiChannel),
+                              event.note, event.velocity);
     }
 
     if ((_output_mode == OutputMode::AUDIO ||

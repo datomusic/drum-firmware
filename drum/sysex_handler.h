@@ -3,6 +3,7 @@
 
 #include "drum/configuration_manager.h"
 #include "drum/sequencer_state_access.h"
+#include "drum/settings_manager.h"
 #include "drum/standard_file_ops.h"
 #include "drum/sysex/firmware_update.h"
 #include "drum/sysex/protocol.h"
@@ -25,7 +26,8 @@ class SysExHandler
           etl::observer<drum::Events::SysExTransferStateChangeEvent>,
           drum::config::MAX_SYSEX_EVENT_OBSERVERS> {
 public:
-  SysExHandler(ConfigurationManager &config_manager, musin::Logger &logger,
+  SysExHandler(ConfigurationManager &config_manager,
+               SettingsManager &settings_manager, musin::Logger &logger,
                musin::filesystem::Filesystem &filesystem);
 
   void update(absolute_time_t now);
@@ -67,8 +69,11 @@ private:
   void send_universal_identity_response() const;
   void send_sequencer_state() const;
   void handle_set_sequencer_state(const etl::span<const uint8_t> &payload);
+  void send_setting_value(const etl::span<const uint8_t> &payload) const;
+  void handle_set_setting(const etl::span<const uint8_t> &payload);
 
   ConfigurationManager &config_manager_;
+  SettingsManager &settings_manager_;
   musin::Logger &logger_;
   musin::filesystem::Filesystem &filesystem_;
   SequencerStateAccess *sequencer_state_access_ = nullptr;

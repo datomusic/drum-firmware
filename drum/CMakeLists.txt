@@ -26,6 +26,7 @@ add_executable(${EXECUTABLE_NAME}
   main.cpp
   midi_manager.cpp
   sysex_handler.cpp
+  settings_manager.cpp
   firmware_update_buyer.cpp
   ../musin/flash/firmware_writer.cpp
   pizza_controls.cpp

@@ -4,11 +4,6 @@ import { Command } from './Command';
 const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01];
 const SYSEX_DEVICE_ID = 0x65;
 
-// Bump this if the sequencer state payload layout ever changes; must match
-// SEQUENCER_STATE_PAYLOAD_VERSION in drum/sysex/sequencer_state_codec.h.
-const SEQUENCER_STATE_PAYLOAD_VERSION = 1;
-
-
 
 export class SysexProtocol {
   private transport: IMidiTransport;
@@ -87,18 +82,7 @@ export class SysexProtocol {
             const NUM_STEPS = 8;
             const VELOCITIES_SIZE = NUM_TRACKS * NUM_STEPS;
 
-            // message[6] is the payload format version byte.
-            const version = message[6];
-            if (version !== SEQUENCER_STATE_PAYLOAD_VERSION) {
-              clearTimeout(this.replyPromise.timer);
-              this.replyPromise.reject(
-                new Error(`Unsupported sequencer state payload version: ${version}`)
-              );
-              this.replyPromise = null;
-              return;
-            }
-
-            const dataStart = 7; // skip header (6) + version byte (1)
+            const dataStart = 6; // payload starts right after the tag byte
 
             // Extract velocities (32 bytes)
             const velocities: number[][] = [];
@@ -250,8 +234,8 @@ export class SysexProtocol {
       throw new Error(`Expected ${NUM_TRACKS} active notes, got ${activeNotes.length}`);
     }
 
-    // Build the versioned payload: [version, 32 velocity bytes, 4 active note bytes].
-    const data: number[] = [SEQUENCER_STATE_PAYLOAD_VERSION];
+    // Build the payload: [32 velocity bytes, 4 active note bytes].
+    const data: number[] = [];
 
     for (let track = 0; track < NUM_TRACKS; track++) {
       if (velocities[track].length !== NUM_STEPS) {

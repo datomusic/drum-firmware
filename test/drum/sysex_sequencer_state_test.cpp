@@ -26,25 +26,11 @@ TEST_CASE("Chunk payload offset excludes the 0xF0 start byte") {
   }));
 }
 
-TEST_CASE("Encode sequencer state includes version byte") {
-  CONST_BODY(({
-    SequencerPersistentState state;
-
-    etl::array<uint8_t, sysex::SEQUENCER_STATE_PAYLOAD_SIZE> payload;
-    const size_t encoded_size =
-        sysex::encode_sequencer_state(state, etl::span{payload});
-
-    REQUIRE(encoded_size == sysex::SEQUENCER_STATE_PAYLOAD_SIZE);
-    REQUIRE(payload[0] == sysex::SEQUENCER_STATE_PAYLOAD_VERSION);
-  }));
-}
-
 TEST_CASE("Encode sequencer state") {
   CONST_BODY(({
     SequencerPersistentState state;
 
     constexpr size_t NUM_STEPS = 8;
-    constexpr size_t VERSION_SIZE = 1;
     constexpr size_t VELOCITIES_SIZE = 32;
 
     state.tracks[0].velocities[0] = 100;
@@ -64,40 +50,38 @@ TEST_CASE("Encode sequencer state") {
 
     REQUIRE(encoded_size == sysex::SEQUENCER_STATE_PAYLOAD_SIZE);
 
-    REQUIRE(payload[VERSION_SIZE + 0 * NUM_STEPS + 0] == 100);
-    REQUIRE(payload[VERSION_SIZE + 0 * NUM_STEPS + 1] == 80);
-    REQUIRE(payload[VERSION_SIZE + 0 * NUM_STEPS + 2] == 0);
-    REQUIRE(payload[VERSION_SIZE + 1 * NUM_STEPS + 2] == 60);
-    REQUIRE(payload[VERSION_SIZE + 2 * NUM_STEPS + 3] == 40);
-    REQUIRE(payload[VERSION_SIZE + 3 * NUM_STEPS + 7] == 127);
+    REQUIRE(payload[0 * NUM_STEPS + 0] == 100);
+    REQUIRE(payload[0 * NUM_STEPS + 1] == 80);
+    REQUIRE(payload[0 * NUM_STEPS + 2] == 0);
+    REQUIRE(payload[1 * NUM_STEPS + 2] == 60);
+    REQUIRE(payload[2 * NUM_STEPS + 3] == 40);
+    REQUIRE(payload[3 * NUM_STEPS + 7] == 127);
 
-    REQUIRE(payload[VERSION_SIZE + VELOCITIES_SIZE + 0] == 37);
-    REQUIRE(payload[VERSION_SIZE + VELOCITIES_SIZE + 1] == 38);
-    REQUIRE(payload[VERSION_SIZE + VELOCITIES_SIZE + 2] == 46);
-    REQUIRE(payload[VERSION_SIZE + VELOCITIES_SIZE + 3] == 54);
+    REQUIRE(payload[VELOCITIES_SIZE + 0] == 37);
+    REQUIRE(payload[VELOCITIES_SIZE + 1] == 38);
+    REQUIRE(payload[VELOCITIES_SIZE + 2] == 46);
+    REQUIRE(payload[VELOCITIES_SIZE + 3] == 54);
   }));
 }
 
 TEST_CASE("Decode sequencer state") {
   CONST_BODY(({
     constexpr size_t NUM_STEPS = 8;
-    constexpr size_t VERSION_SIZE = 1;
     constexpr size_t VELOCITIES_SIZE = 32;
 
     etl::array<uint8_t, sysex::SEQUENCER_STATE_PAYLOAD_SIZE> payload;
     payload.fill(0);
-    payload[0] = sysex::SEQUENCER_STATE_PAYLOAD_VERSION;
 
-    payload[VERSION_SIZE + 0 * NUM_STEPS + 0] = 100;
-    payload[VERSION_SIZE + 0 * NUM_STEPS + 1] = 80;
-    payload[VERSION_SIZE + 1 * NUM_STEPS + 2] = 60;
-    payload[VERSION_SIZE + 2 * NUM_STEPS + 3] = 40;
-    payload[VERSION_SIZE + 3 * NUM_STEPS + 7] = 127;
+    payload[0 * NUM_STEPS + 0] = 100;
+    payload[0 * NUM_STEPS + 1] = 80;
+    payload[1 * NUM_STEPS + 2] = 60;
+    payload[2 * NUM_STEPS + 3] = 40;
+    payload[3 * NUM_STEPS + 7] = 127;
 
-    payload[VERSION_SIZE + VELOCITIES_SIZE + 0] = 37;
-    payload[VERSION_SIZE + VELOCITIES_SIZE + 1] = 38;
-    payload[VERSION_SIZE + VELOCITIES_SIZE + 2] = 46;
-    payload[VERSION_SIZE + VELOCITIES_SIZE + 3] = 54;
+    payload[VELOCITIES_SIZE + 0] = 37;
+    payload[VELOCITIES_SIZE + 1] = 38;
+    payload[VELOCITIES_SIZE + 2] = 46;
+    payload[VELOCITIES_SIZE + 3] = 54;
 
     const auto maybe_state =
         sysex::decode_sequencer_state(etl::span<const uint8_t>{payload});
@@ -118,24 +102,10 @@ TEST_CASE("Decode sequencer state") {
   }));
 }
 
-TEST_CASE("Decode rejects unknown version byte") {
-  CONST_BODY(({
-    etl::array<uint8_t, sysex::SEQUENCER_STATE_PAYLOAD_SIZE> payload;
-    payload.fill(0);
-    payload[0] = sysex::SEQUENCER_STATE_PAYLOAD_VERSION + 1;
-
-    const auto maybe_state =
-        sysex::decode_sequencer_state(etl::span<const uint8_t>{payload});
-
-    REQUIRE(!maybe_state.has_value());
-  }));
-}
-
 TEST_CASE("Decode rejects too-short payload") {
   CONST_BODY(({
     etl::array<uint8_t, 10> payload;
     payload.fill(0);
-    payload[0] = sysex::SEQUENCER_STATE_PAYLOAD_VERSION;
 
     const auto maybe_state =
         sysex::decode_sequencer_state(etl::span<const uint8_t>{payload});

@@ -3,6 +3,7 @@
 
 #include "audio_engine.h"
 #include "config.h" // For NUM_TRACKS, NUM_STEPS_PER_TRACK and potentially message_router::MAX_NOTE_EVENT_OBSERVERS
+#include "drum/settings.h"
 #include "etl/observer.h"
 #include "etl/queue.h"
 #include "events.h" // Include NoteEvent definition
@@ -58,7 +59,8 @@ public:
       AudioEngine &audio_engine,
       SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
           &sequencer_controller,
-      musin::midi::MidiSender &midi_sender, musin::Logger &logger);
+      musin::midi::MidiSender &midi_sender, const settings::Settings &settings,
+      musin::Logger &logger);
 
   // Delete copy and move operations
   MessageRouter(const MessageRouter &) = delete;
@@ -182,6 +184,7 @@ private:
   SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller;
   musin::midi::MidiSender &_midi_sender;
+  const settings::Settings &settings_;
   musin::Logger &logger_;
   OutputMode _output_mode;
   LocalControlMode _local_control_mode;

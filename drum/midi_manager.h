@@ -1,6 +1,7 @@
 #ifndef DRUM_MIDI_MANAGER_H
 #define DRUM_MIDI_MANAGER_H
 
+#include "drum/settings.h"
 #include "musin/midi/sysex_chunk.h"
 #include <cstdint>
 
@@ -33,11 +34,13 @@ public:
    * @param message_router Reference to the router for Note/CC messages.
    * @param midi_clock_processor Reference to the processor for clock messages.
    * @param sysex_handler Reference to the handler for SysEx messages.
+   * @param settings Reference to the device settings (for the MIDI channel).
    * @param logger Reference to the system logger.
    */
   MidiManager(MessageRouter &message_router,
               musin::timing::MidiClockProcessor &midi_clock_processor,
-              SysExHandler &sysex_handler, musin::Logger &logger);
+              SysExHandler &sysex_handler, const settings::Settings &settings,
+              musin::Logger &logger);
 
   /**
    * @brief Initializes the MIDI hardware and sets up callbacks.
@@ -58,6 +61,7 @@ private:
   MessageRouter &message_router_;
   musin::timing::MidiClockProcessor &midi_clock_processor_;
   SysExHandler &sysex_handler_;
+  const settings::Settings &settings_;
   musin::Logger &logger_;
 
   // --- Singleton Instance for C Callbacks ---

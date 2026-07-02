@@ -19,10 +19,11 @@ MidiManager *MidiManager::instance_ = nullptr;
 MidiManager::MidiManager(
     MessageRouter &message_router,
     musin::timing::MidiClockProcessor &midi_clock_processor,
-    SysExHandler &sysex_handler, musin::Logger &logger)
+    SysExHandler &sysex_handler, const settings::Settings &settings,
+    musin::Logger &logger)
     : message_router_(message_router),
       midi_clock_processor_(midi_clock_processor),
-      sysex_handler_(sysex_handler), logger_(logger) {
+      sysex_handler_(sysex_handler), settings_(settings), logger_(logger) {
   assert(!instance_ && "Only one MidiManager instance is allowed.");
   instance_ = this;
 }
@@ -138,7 +139,7 @@ void MidiManager::stop_callback() {
 
 void MidiManager::handle_note_on(uint8_t channel, uint8_t note,
                                  uint8_t velocity) {
-  if (channel != drum::config::MIDI_IN_CHANNEL) {
+  if (channel != settings_.get(settings::Id::MidiChannel)) {
     return; // Ignore messages not on our input channel
   }
   message_router_.handle_incoming_note_on(note, velocity);
@@ -146,7 +147,7 @@ void MidiManager::handle_note_on(uint8_t channel, uint8_t note,
 
 void MidiManager::handle_note_off(uint8_t channel, uint8_t note,
                                   uint8_t velocity) {
-  if (channel != drum::config::MIDI_IN_CHANNEL) {
+  if (channel != settings_.get(settings::Id::MidiChannel)) {
     return; // Ignore messages not on our input channel
   }
   message_router_.handle_incoming_note_off(note, velocity);
@@ -154,7 +155,7 @@ void MidiManager::handle_note_off(uint8_t channel, uint8_t note,
 
 void MidiManager::handle_control_change(uint8_t channel, uint8_t controller,
                                         uint8_t value) {
-  if (channel != drum::config::MIDI_IN_CHANNEL) {
+  if (channel != settings_.get(settings::Id::MidiChannel)) {
     return; // Ignore messages not on our input channel
   }
   message_router_.handle_incoming_midi_cc(controller, value);

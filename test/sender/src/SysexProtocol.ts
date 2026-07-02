@@ -5,7 +5,6 @@ const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01];
 const SYSEX_DEVICE_ID = 0x65;
 
 
-
 export class SysexProtocol {
   private transport: IMidiTransport;
   private ackQueue: { resolve: () => void; reject: (reason?: any) => void; timer: NodeJS.Timeout }[] = [];
@@ -75,6 +74,33 @@ export class SysexProtocol {
             const free_bytes = (message[10] << 21) | (message[11] << 14) | (message[12] << 7) | message[13];
             clearTimeout(this.replyPromise.timer);
             this.replyPromise.resolve({ total: total_bytes, free: free_bytes });
+            this.replyPromise = null;
+          }
+        } else if (tag === Command.SequencerStateResponse) {
+          if (this.replyPromise) {
+            const NUM_TRACKS = 4;
+            const NUM_STEPS = 8;
+            const VELOCITIES_SIZE = NUM_TRACKS * NUM_STEPS;
+
+            const dataStart = 6; // payload starts right after the tag byte
+
+            // Extract velocities (32 bytes)
+            const velocities: number[][] = [];
+            for (let track = 0; track < NUM_TRACKS; track++) {
+              velocities[track] = [];
+              for (let step = 0; step < NUM_STEPS; step++) {
+                velocities[track][step] = message[dataStart + track * NUM_STEPS + step];
+              }
+            }
+
+            // Extract active notes (4 bytes)
+            const activeNotes: number[] = [];
+            for (let track = 0; track < NUM_TRACKS; track++) {
+              activeNotes[track] = message[dataStart + VELOCITIES_SIZE + track];
+            }
+
+            clearTimeout(this.replyPromise.timer);
+            this.replyPromise.resolve({ velocities, activeNotes });
             this.replyPromise = null;
           }
         }
@@ -181,6 +207,52 @@ export class SysexProtocol {
         }, 2000)
       };
     });
+  }
+
+  async getSequencerState(): Promise<{ velocities: number[][], activeNotes: number[] }> {
+    await this.sendMessage([Command.RequestSequencerState]);
+    return new Promise((resolve, reject) => {
+      this.replyPromise = {
+        resolve: resolve,
+        reject: reject,
+        timer: setTimeout(() => {
+          this.replyPromise = null;
+          reject(new Error('Timeout waiting for sequencer state reply.'));
+        }, 2000)
+      };
+    });
+  }
+
+  async setSequencerState(velocities: number[][], activeNotes: number[]): Promise<void> {
+    const NUM_TRACKS = 4;
+    const NUM_STEPS = 8;
+
+    if (velocities.length !== NUM_TRACKS) {
+      throw new Error(`Expected ${NUM_TRACKS} tracks, got ${velocities.length}`);
+    }
+    if (activeNotes.length !== NUM_TRACKS) {
+      throw new Error(`Expected ${NUM_TRACKS} active notes, got ${activeNotes.length}`);
+    }
+
+    // Build the payload: [32 velocity bytes, 4 active note bytes].
+    const data: number[] = [];
+
+    for (let track = 0; track < NUM_TRACKS; track++) {
+      if (velocities[track].length !== NUM_STEPS) {
+        throw new Error(`Track ${track}: expected ${NUM_STEPS} steps, got ${velocities[track].length}`);
+      }
+      for (let step = 0; step < NUM_STEPS; step++) {
+        data.push(velocities[track][step] & 0x7F);
+      }
+    }
+
+    for (let track = 0; track < NUM_TRACKS; track++) {
+      data.push(activeNotes[track] & 0x7F);
+    }
+
+    // The payload is sent as raw 7-bit bytes; the device reads it directly
+    // from the SysEx body (no 3-to-16bit packing, unlike BeginFileWrite).
+    await this.sendCommandAndWait(Command.SetSequencerState, data);
   }
 
   async sendFileChunk(chunk: Buffer): Promise<void> {

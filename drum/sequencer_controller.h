@@ -24,6 +24,7 @@
 #include "sequencer_effect_swing.h"
 #include "sequencer_persistence.h"
 #include "sequencer_persistence_manager.h"
+#include "sequencer_state_access.h"
 #include <cstddef>
 
 namespace drum {
@@ -74,7 +75,8 @@ class SequencerController
     : public etl::observer<musin::timing::TempoEvent>,
       public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
       public etl::observable<etl::observer<drum::Events::NoteEvent>,
-                             drum::config::MAX_NOTE_EVENT_OBSERVERS> {
+                             drum::config::MAX_NOTE_EVENT_OBSERVERS>,
+      public SequencerStateAccess {
 public:
   /**
    * @brief Constructor.
@@ -390,6 +392,20 @@ public:
    * Call this after modifying sequencer patterns via get_sequencer().
    */
   void mark_state_dirty_public();
+
+  /**
+   * @brief Gets the current sequencer state for SysEx transfer.
+   * @return The current persistent state including all track velocities and
+   * active notes.
+   */
+  [[nodiscard]] SequencerPersistentState get_current_state() const override;
+
+  /**
+   * @brief Applies a sequencer state received via SysEx.
+   * @param state The state to apply to the sequencer.
+   * @return true if state was applied successfully, false on error.
+   */
+  bool apply_state(const SequencerPersistentState &state) override;
 };
 
 } // namespace drum

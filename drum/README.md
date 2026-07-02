@@ -1,7 +1,7 @@
 # DATO DRUM MIDI Implementation Chart
 
 ## General Settings
-- **Default MIDI Channel:** 10 (GM Percussion Standard)
+- **Default MIDI Channel:** 10 (GM Percussion Standard), configurable via the `SetSetting` SysEx command (see Settings Commands below)
 - **Note Off Messages:** Ignored
 - **Velocity Range:** 1-127
 - **Clock:** Master by default, slave when external clock detected
@@ -113,7 +113,7 @@
 - **Stops when sequencer stopped**
 
 ## Configuration Notes
-- All MIDI channels, CC numbers, and note mappings configurable via web interface
+- The MIDI channel is configurable via the `SetSetting` SysEx command (see Settings Commands below)
 - Sample-to-note mapping updates in real-time during sample selection
 - **MIDI Input:** Receiving a note plays that sound on the corresponding track AND sets that note as the active sample for that track
 - MIDI Clock input automatically detected and followed
@@ -236,3 +236,91 @@ Notes:
   B->A) with an XIP build.
 - If both partitions ever hold invalid images, the bootrom falls back to the
   USB (UF2) bootloader; LED indication is not possible in that mode.
+
+### Sequencer State Commands
+These commands allow reading and writing the current sequencer pattern state, including step velocities and active note assignments for each track.
+
+#### RequestSequencerState (0x30)
+Requests the current sequencer state from the device. No payload.
+
+**Response:** The device replies with a `SequencerStateResponse` message containing the current pattern.
+
+#### SequencerStateResponse (0x31)
+The device's response to `RequestSequencerState`, containing the full sequencer state.
+
+**Response Format:**
+```
+F0 00 22 01 65 31 <Payload> F7
+```
+
+**Payload (36 bytes):**
+- Bytes 0-31: Velocity data for all steps (4 tracks x 8 steps)
+  - Track 0 steps (0-7): bytes 0-7
+  - Track 1 steps (0-7): bytes 8-15
+  - Track 2 steps (0-7): bytes 16-23
+  - Track 3 steps (0-7): bytes 24-31
+  - Velocity 0 = step disabled, 1-127 = step enabled with velocity
+- Bytes 32-35: Active MIDI note per track
+  - Track 0 note: byte 32
+  - Track 1 note: byte 33
+  - Track 2 note: byte 34
+  - Track 3 note: byte 35
+
+All values are 7-bit MIDI-compliant (0-127).
+
+#### SetSequencerState (0x32)
+Sets the sequencer state on the device.
+
+**Command Format:**
+```
+F0 00 22 01 65 32 <Payload> F7
+```
+
+**Payload:** Same 36-byte structure as `SequencerStateResponse` (see above), sent as raw 7-bit bytes directly after the command byte (no 3-to-16bit packing, unlike `BeginFileWrite`).
+
+**Response:** The device replies with `Ack` (0x13) on success, or `Nack` (0x14) if the payload is malformed or too short.
+
+**Notes:**
+- If the payload layout ever changes, a new SysEx tag should be introduced for the new format so existing tools keep working.
+- Setting sequencer state marks the internal storage as dirty, triggering an automatic save to flash after a debounce period.
+- Sample selection is done by sending MIDI note numbers matching the desired sample slots (as documented in the MIDI Note Numbers section above).
+
+### Settings Commands
+
+Generic key-value access to device settings. Each setting has a 7-bit id, a
+valid range, and a compile-time default (see `drum/settings.h`). Values are
+persisted on the device as one file per setting under `/settings/`; a missing
+or invalid file means the default applies.
+
+| Setting | ID | Range | Default | Description |
+|---------|-----|-------|---------|-------------|
+| `midi_channel` | 0x01 | 1-16 | 10 | MIDI channel for incoming and outgoing notes and CCs |
+
+#### GetSetting (0x40)
+Requests the current value of one setting.
+
+**Command Format:**
+```
+F0 00 22 01 65 40 <setting id> F7
+```
+
+**Response:** A `SettingValue` message, or `Nack` (0x14) for unknown setting ids.
+
+#### SettingValue (0x41)
+The device's response to `GetSetting`.
+
+**Response Format:**
+```
+F0 00 22 01 65 41 <setting id> <value> F7
+```
+
+#### SetSetting (0x42)
+Sets and persists one setting. The new value takes effect immediately.
+
+**Command Format:**
+```
+F0 00 22 01 65 42 <setting id> <value> F7
+```
+
+**Response:** `Ack` (0x13) on success, or `Nack` (0x14) for unknown setting
+ids, out-of-range values, or persistence failures.

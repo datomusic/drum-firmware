@@ -16,6 +16,7 @@
 #include "drum/configuration_manager.h"
 #include "drum/firmware_update_buyer.h"
 #include "drum/midi_manager.h"
+#include "drum/settings_manager.h"
 #include "drum/sysex_handler.h"
 #include "musin/filesystem/filesystem.h"
 #include "sample_repository.h"
@@ -51,9 +52,12 @@ static musin::NullLogger null_logger;
 
 // Model
 static drum::ConfigurationManager config_manager(logger);
+static drum::settings::Settings settings;
+static drum::SettingsManager settings_manager(settings, logger);
 static drum::SampleRepository sample_repository(logger);
 static musin::filesystem::Filesystem filesystem(logger);
-static drum::SysExHandler sysex_handler(config_manager, logger, filesystem);
+static drum::SysExHandler sysex_handler(config_manager, settings_manager,
+                                        logger, filesystem);
 static drum::SampleSlotManager sample_slot_manager(logger);
 static drum::AudioEngine audio_engine(sample_repository, sample_slot_manager,
                                       logger);
@@ -82,11 +86,11 @@ static musin::midi::MidiSender midi_sender(
     musin::midi::MidiSendStrategy::QUEUED,
     null_logger); // Change to DIRECT_BYPASS_QUEUE for testing bypass
 static drum::MessageRouter message_router(audio_engine, sequencer_controller,
-                                          midi_sender, logger);
+                                          midi_sender, settings, logger);
 
 // MIDI Manager
 static drum::MidiManager midi_manager(message_router, midi_clock_processor,
-                                      sysex_handler, logger);
+                                      sysex_handler, settings, logger);
 
 // View
 static drum::PizzaDisplay pizza_display(sequencer_controller, tempo_handler,
@@ -121,6 +125,7 @@ int main() {
     filesystem.list_files("/"); // List files in the root directory
 
     config_manager.load();
+    settings_manager.init();
 
     // Initialize persistence subsystem now that filesystem is ready
     sequencer_controller.init_persistence();
@@ -160,6 +165,9 @@ int main() {
   // SequencerController notifies MessageRouter, which queues the events
   // internally.
   sequencer_controller.add_observer(message_router);
+
+  // Connect SysExHandler to SequencerController for sequencer state transfer
+  sysex_handler.set_sequencer_state_access(&sequencer_controller);
 
   // Register observers for SysEx state changes
   sysex_handler.add_observer(message_router);

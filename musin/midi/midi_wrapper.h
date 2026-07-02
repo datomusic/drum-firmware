@@ -38,6 +38,7 @@ void sendNoteOn(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
 void sendNoteOff(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
 void sendPitchBend(int bend, uint8_t channel);
 void sendSysEx(unsigned length, const uint8_t *bytes);
+void setThruEnabled(bool enabled);
 
 namespace internal {
 // These functions perform the actual MIDI sending via underlying libraries.

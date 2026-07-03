@@ -297,17 +297,20 @@ private:
   void record_pad_hit_trace(uint8_t track_index);
 
   /**
-   * @brief Fades all trace velocities by one step's worth of brightness.
-   * Called once per step advance so traces age in lockstep with the cursor,
-   * regardless of swing timing.
+   * @brief Fades all trace velocities by the given number of clock ticks.
+   * Ticks are accumulated in notification() and drained in update(), so all
+   * traces age together on the uniform 12 PPQN grid — smooth in wall time
+   * and immune to swing's uneven step lengths.
    */
-  void fade_traces();
+  void fade_traces(uint32_t elapsed_ticks);
   void clear_traces();
 
   // Trace velocities match the MIDI velocity range so the display maps them
   // to brightness exactly like pattern steps.
   static constexpr uint8_t TRACE_INITIAL_VELOCITY = 127;
   static constexpr uint8_t TRACE_FADE_STEPS = 8;
+  static constexpr uint32_t TRACE_FADE_TICKS =
+      TRACE_FADE_STEPS * musical_timing::TICKS_PER_STEP;
 
   void initialize_active_notes();
   void initialize_all_sequencers();
@@ -320,6 +323,7 @@ private:
   uint32_t scheduled_step_counter_;
   etl::array<TrackState, NumTracks> track_states_{};
   etl::array<etl::array<uint8_t, NumSteps>, NumTracks> trace_velocities_{};
+  std::atomic<uint32_t> pending_trace_fade_ticks_{0};
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;

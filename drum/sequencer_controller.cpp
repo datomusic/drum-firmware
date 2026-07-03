@@ -233,6 +233,12 @@ void SequencerController<NumTracks, NumSteps>::notification(
     return;
   }
 
+  // Accumulate elapsed ticks for trace fading; drained in update().
+  const uint32_t elapsed_ticks =
+      (event.phase_12 + musin::timing::DEFAULT_PPQN - last_phase_12_) %
+      musin::timing::DEFAULT_PPQN;
+  pending_trace_fade_ticks_.fetch_add(elapsed_ticks, std::memory_order_relaxed);
+
   // Calculate swing timing using the dedicated effect
   const size_t next_index = calculate_base_step_index();
   const auto timing = swing_effect_.calculate_step_timing(
@@ -469,6 +475,14 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
     uint8_t track_index) {
   if (_running && track_index < NumTracks) {
+    // Apply fade for ticks that elapsed before this hit, so the elapsed time
+    // doesn't age the fresh trace.
+    const uint32_t fade_ticks =
+        pending_trace_fade_ticks_.exchange(0, std::memory_order_relaxed);
+    if (fade_ticks > 0) {
+      fade_traces(fade_ticks);
+    }
+
     TrackState &track_state = track_states_[track_index];
     size_t trace_step =
         track_state.just_played_step.value_or(get_current_step());
@@ -490,12 +504,16 @@ void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
 }
 
 template <size_t NumTracks, size_t NumSteps>
-void SequencerController<NumTracks, NumSteps>::fade_traces() {
-  constexpr uint8_t DECREMENT =
-      (TRACE_INITIAL_VELOCITY + TRACE_FADE_STEPS - 1) / TRACE_FADE_STEPS;
+void SequencerController<NumTracks, NumSteps>::fade_traces(
+    uint32_t elapsed_ticks) {
+  constexpr uint32_t DECREMENT_PER_TICK =
+      (TRACE_INITIAL_VELOCITY + TRACE_FADE_TICKS - 1) / TRACE_FADE_TICKS;
+  const uint32_t decrement = DECREMENT_PER_TICK * elapsed_ticks;
   for (auto &track_traces : trace_velocities_) {
     for (auto &velocity : track_traces) {
-      velocity = (velocity > DECREMENT) ? (velocity - DECREMENT) : 0;
+      velocity = (velocity > decrement)
+                     ? static_cast<uint8_t>(velocity - decrement)
+                     : 0;
     }
   }
 }
@@ -569,14 +587,16 @@ void SequencerController<NumTracks, NumSteps>::update() {
     }
   }
 
+  const uint32_t fade_ticks =
+      pending_trace_fade_ticks_.exchange(0, std::memory_order_relaxed);
+  if (fade_ticks > 0) {
+    fade_traces(fade_ticks);
+  }
+
   if (!_step_is_due) {
     return;
   }
   _step_is_due = false;
-
-  // Fade before this step's hits are recorded, so a fresh trace stays at
-  // full brightness for the whole step window it landed on.
-  fade_traces();
 
   size_t base_step_index = calculate_base_step_index();
 

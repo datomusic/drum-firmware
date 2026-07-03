@@ -30,13 +30,27 @@ class AudioEngine : public etl::observer<drum::Events::NoteEvent> {
 private:
   /**
    * @brief Internal structure representing a single audio voice.
+   *
+   * Renders its Sound and applies an optional linear decay envelope that
+   * fades the voice to silence over the tail of the sample. fill_buffer runs
+   * in the I2S DMA interrupt and must stay RAM-resident.
    */
-  struct Voice {
+  struct Voice : BufferSource {
     musin::MemorySampleReader reader;
     Sound sound;
     float current_pitch = 1.0f;
+    float current_gain = 1.0f;
+    float current_decay = 1.0f; // Fraction of duration where gain reaches 0.
+
+    // Decay envelope state, set at trigger time and consumed in the ISR.
+    bool decay_active = false;
+    uint32_t decay_end_frame = 0;
+    float decay_scale = 0.0f; // 1 / decay_end_frame
+    uint32_t frames_rendered = 0;
 
     Voice();
+
+    void fill_buffer(AudioBlock &out_samples) override;
   };
 
 public:
@@ -93,6 +107,23 @@ public:
    * to a multiplier.
    */
   void set_pitch(uint8_t voice_index, float value);
+
+  /**
+   * @brief Sets the gain for a specific voice/track for the *next* time it's
+   * triggered. Scales the velocity-derived gain.
+   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
+   * @param value The gain value, normalized (0.0f to 1.0f).
+   */
+  void set_track_gain(uint8_t voice_index, float value);
+
+  /**
+   * @brief Sets the decay for a specific voice/track for the *next* time it's
+   * triggered. Gain ramps linearly from full at the trigger to silence at
+   * this fraction of the sample's playback duration; 1.0 disables the fade.
+   * @param voice_index The voice/track index (0 to NUM_VOICES - 1).
+   * @param value The decay value, normalized (0.0f to 1.0f).
+   */
+  void set_track_decay(uint8_t voice_index, float value);
 
   /**
    * @brief Sets the master output volume.

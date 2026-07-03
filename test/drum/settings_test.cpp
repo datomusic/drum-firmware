@@ -19,6 +19,10 @@ TEST_CASE("Settings defaults", "[settings]") {
   SECTION("MIDI channel defaults to 10 (GM percussion)") {
     REQUIRE(settings.get(Id::MidiChannel) == 10);
   }
+
+  SECTION("Slider defaults to controlling pitch only") {
+    REQUIRE(settings.get(Id::SliderMode) == drum::settings::slider_mode::PITCH);
+  }
 }
 
 TEST_CASE("Settings set validation", "[settings]") {
@@ -41,6 +45,15 @@ TEST_CASE("Settings set validation", "[settings]") {
 
   SECTION("Rejects unknown setting ids") {
     REQUIRE_FALSE(settings.set(static_cast<Id>(0x7F), 1));
+  }
+
+  SECTION("Slider mode accepts any combination of pitch, gain and decay") {
+    using namespace drum::settings::slider_mode;
+    REQUIRE(settings.set(Id::SliderMode, PITCH | GAIN | DECAY));
+    REQUIRE(settings.get(Id::SliderMode) == 7);
+    REQUIRE(settings.set(Id::SliderMode, 0));
+    REQUIRE_FALSE(settings.set(Id::SliderMode, 8));
+    REQUIRE(settings.get(Id::SliderMode) == 0);
   }
 }
 

@@ -135,6 +135,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   deactivate_repeat();
   disable_random_offset_mode();
   disable_random_probability_mode();
+  clear_traces();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
@@ -193,6 +194,7 @@ void SequencerController<NumTracks, NumSteps>::stop() {
 
   random_effect_.reset_to_inactive();
   random_intends_flip_ = false;
+  clear_traces();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -230,6 +232,12 @@ void SequencerController<NumTracks, NumSteps>::notification(
   if (event.phase_12 == last_phase_12_) {
     return;
   }
+
+  // Accumulate elapsed ticks for trace fading; drained in update().
+  const uint32_t elapsed_ticks =
+      (event.phase_12 + musin::timing::DEFAULT_PPQN - last_phase_12_) %
+      musin::timing::DEFAULT_PPQN;
+  pending_trace_fade_ticks_.fetch_add(elapsed_ticks, std::memory_order_relaxed);
 
   // Calculate swing timing using the dedicated effect
   const size_t next_index = calculate_base_step_index();
@@ -467,21 +475,63 @@ template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
     uint8_t track_index) {
   if (_running && track_index < NumTracks) {
+    // Apply fade for ticks that elapsed before this hit, so the elapsed time
+    // doesn't age the fresh trace.
+    const uint32_t fade_ticks =
+        pending_trace_fade_ticks_.exchange(0, std::memory_order_relaxed);
+    if (fade_ticks > 0) {
+      fade_traces(fade_ticks);
+    }
+
     TrackState &track_state = track_states_[track_index];
-    const size_t cursor_step =
+    size_t trace_step =
         track_state.just_played_step.value_or(get_current_step());
-    track_state.last_pad_hit = PadHitTrace{cursor_step, get_absolute_time()};
+    // A hit late in the step feels like it anticipates the next step, so the
+    // trace is quantized forward; a hit clearly between two steps belongs to
+    // neither and leaves no trace. Only the visualization is affected; the
+    // sounded note keeps its live timing.
+    switch (swing_effect_.classify_hit_phase(last_phase_12_)) {
+    case SequencerEffectSwing::HitZone::Early:
+      break;
+    case SequencerEffectSwing::HitZone::Middle:
+      return;
+    case SequencerEffectSwing::HitZone::Late:
+      trace_step = (trace_step + 1) % NumSteps;
+      break;
+    }
+    trace_velocities_[track_index][trace_step] = TRACE_INITIAL_VELOCITY;
   }
 }
 
 template <size_t NumTracks, size_t NumSteps>
-std::optional<PadHitTrace>
-SequencerController<NumTracks, NumSteps>::get_last_pad_hit_for_track(
-    uint8_t track_index) const {
-  if (track_index < NumTracks) {
-    return track_states_[track_index].last_pad_hit;
+void SequencerController<NumTracks, NumSteps>::fade_traces(
+    uint32_t elapsed_ticks) {
+  constexpr uint32_t DECREMENT_PER_TICK =
+      (TRACE_INITIAL_VELOCITY + TRACE_FADE_TICKS - 1) / TRACE_FADE_TICKS;
+  const uint32_t decrement = DECREMENT_PER_TICK * elapsed_ticks;
+  for (auto &track_traces : trace_velocities_) {
+    for (auto &velocity : track_traces) {
+      velocity = (velocity > decrement)
+                     ? static_cast<uint8_t>(velocity - decrement)
+                     : 0;
+    }
   }
-  return std::nullopt;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::clear_traces() {
+  for (auto &track_traces : trace_velocities_) {
+    track_traces.fill(0);
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+uint8_t SequencerController<NumTracks, NumSteps>::get_trace_velocity(
+    size_t track_idx, size_t step_idx) const {
+  if (track_idx < NumTracks && step_idx < NumSteps) {
+    return trace_velocities_[track_idx][step_idx];
+  }
+  return 0;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -535,6 +585,12 @@ void SequencerController<NumTracks, NumSteps>::update() {
                       drum::config::drumpad::RETRIGGER_VELOCITY);
       record_pad_hit_trace(static_cast<uint8_t>(track_idx));
     }
+  }
+
+  const uint32_t fade_ticks =
+      pending_trace_fade_ticks_.exchange(0, std::memory_order_relaxed);
+  if (fade_ticks > 0) {
+    fade_traces(fade_ticks);
   }
 
   if (!_step_is_due) {

@@ -142,6 +142,47 @@ target_link_libraries(drum-test-sysex-sequencer-state PRIVATE
     etl::etl
 )
 
+# Test target: Save Timing Manager (debounced sequencer state saves)
+add_executable(drum-test-save-timing
+    save_timing_manager_test.cpp
+)
+
+target_sources(drum-test-save-timing PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/save_timing_manager.cpp
+)
+
+target_include_directories(drum-test-save-timing PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+)
+
+target_link_libraries(drum-test-save-timing PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
+# Test target: SysEx file-transfer protocol (drum/sysex/protocol.h)
+add_executable(drum-test-sysex
+    sysex_test.cpp
+)
+
+target_include_directories(drum-test-sysex PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+)
+
+target_compile_definitions(drum-test-sysex PRIVATE
+    AUDIO_BLOCK_SAMPLES=20
+)
+
+target_link_libraries(drum-test-sysex PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 # Test target: Settings registry and validation
 add_executable(drum-test-settings
     settings_test.cpp
@@ -165,3 +206,5 @@ catch_discover_tests(drum-test-sample-slots)
 catch_discover_tests(drum-test-sds)
 catch_discover_tests(drum-test-sysex-sequencer-state)
 catch_discover_tests(drum-test-settings)
+catch_discover_tests(drum-test-save-timing)
+catch_discover_tests(drum-test-sysex)

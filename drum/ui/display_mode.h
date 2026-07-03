@@ -35,11 +35,6 @@ public:
   void draw(PizzaDisplay &display, absolute_time_t now) override;
 
 private:
-  // A pad-hit trace fades out over this many step durations.
-  static constexpr float TRACE_FADE_STEPS = 8.0f;
-  // Step period assumed until one has been measured (eighth note at 120 BPM).
-  static constexpr uint64_t DEFAULT_STEP_PERIOD_US = 250'000;
-
   void draw_base_elements(PizzaDisplay &display, absolute_time_t now);
   void draw_animations(PizzaDisplay &display, absolute_time_t now) const;
   void draw_sequencer_state(PizzaDisplay &display, absolute_time_t now);
@@ -49,25 +44,14 @@ private:
   static Color apply_pulsing_highlight(Color base_color, bool bright_phase);
   void sync_highlight_phase_with_step();
   bool is_highlight_bright(const PizzaDisplay &display) const;
-  void measure_step_period(absolute_time_t now);
-  void update_pad_traces();
-  void clear_pad_traces();
-  [[nodiscard]] uint64_t trace_fade_duration_us() const;
   std::optional<Color> calculate_trace_color(const PizzaDisplay &display,
-                                             size_t track_idx, size_t step_idx,
-                                             absolute_time_t now);
+                                             size_t track_idx,
+                                             size_t step_idx) const;
   drum::SequencerController<config::NUM_TRACKS, config::NUM_STEPS_PER_TRACK>
       &_sequencer_controller_ref;
   musin::timing::TempoHandler &_tempo_handler_ref;
   std::optional<uint32_t> _last_synced_step_index{};
   bool _bright_phase_for_current_step = true;
-  etl::array<etl::array<absolute_time_t, config::NUM_STEPS_PER_TRACK>,
-             config::NUM_TRACKS>
-      _trace_start_times{};
-  etl::array<absolute_time_t, config::NUM_TRACKS> _last_trace_timestamps{};
-  std::optional<uint32_t> _last_timed_step{};
-  absolute_time_t _last_step_change_time = nil_time;
-  uint64_t _measured_step_period_us = 0;
 };
 
 // --- Concrete Strategy for File Transfer Mode ---

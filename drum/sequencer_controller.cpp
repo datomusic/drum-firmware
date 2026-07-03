@@ -135,6 +135,7 @@ void SequencerController<NumTracks, NumSteps>::reset() {
   deactivate_repeat();
   disable_random_offset_mode();
   disable_random_probability_mode();
+  clear_traces();
   for (size_t i = 0; i < NumTracks; ++i) {
     deactivate_play_on_every_step(static_cast<uint8_t>(i));
   }
@@ -193,6 +194,7 @@ void SequencerController<NumTracks, NumSteps>::stop() {
 
   random_effect_.reset_to_inactive();
   random_intends_flip_ = false;
+  clear_traces();
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -483,18 +485,35 @@ void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
       trace_step = (trace_step + 1) % NumSteps;
       break;
     }
-    track_state.last_pad_hit = PadHitTrace{trace_step, get_absolute_time()};
+    trace_velocities_[track_index][trace_step] = TRACE_INITIAL_VELOCITY;
   }
 }
 
 template <size_t NumTracks, size_t NumSteps>
-std::optional<PadHitTrace>
-SequencerController<NumTracks, NumSteps>::get_last_pad_hit_for_track(
-    uint8_t track_index) const {
-  if (track_index < NumTracks) {
-    return track_states_[track_index].last_pad_hit;
+void SequencerController<NumTracks, NumSteps>::fade_traces() {
+  constexpr uint8_t DECREMENT =
+      (TRACE_INITIAL_VELOCITY + TRACE_FADE_STEPS - 1) / TRACE_FADE_STEPS;
+  for (auto &track_traces : trace_velocities_) {
+    for (auto &velocity : track_traces) {
+      velocity = (velocity > DECREMENT) ? (velocity - DECREMENT) : 0;
+    }
   }
-  return std::nullopt;
+}
+
+template <size_t NumTracks, size_t NumSteps>
+void SequencerController<NumTracks, NumSteps>::clear_traces() {
+  for (auto &track_traces : trace_velocities_) {
+    track_traces.fill(0);
+  }
+}
+
+template <size_t NumTracks, size_t NumSteps>
+uint8_t SequencerController<NumTracks, NumSteps>::get_trace_velocity(
+    size_t track_idx, size_t step_idx) const {
+  if (track_idx < NumTracks && step_idx < NumSteps) {
+    return trace_velocities_[track_idx][step_idx];
+  }
+  return 0;
 }
 
 template <size_t NumTracks, size_t NumSteps>
@@ -554,6 +573,10 @@ void SequencerController<NumTracks, NumSteps>::update() {
     return;
   }
   _step_is_due = false;
+
+  // Fade before this step's hits are recorded, so a fresh trace stays at
+  // full brightness for the whole step window it landed on.
+  fade_traces();
 
   size_t base_step_index = calculate_base_step_index();
 

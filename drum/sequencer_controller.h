@@ -29,16 +29,6 @@
 
 namespace drum {
 
-/**
- * @brief Records where and when a drumpad was hit while the sequencer ran.
- * Consumed by the display to draw a fading trace note on the sequencer ring;
- * never affects playback or stored patterns.
- */
-struct PadHitTrace {
-  size_t step_index;
-  absolute_time_t timestamp;
-};
-
 namespace musical_timing {
 constexpr uint8_t PPQN = 12;
 constexpr uint8_t DOWNBEAT = 0;
@@ -56,7 +46,6 @@ struct TrackState {
   bool has_velocity_hit{false};
   std::optional<uint8_t> last_played_note{};
   std::optional<size_t> just_played_step{};
-  std::optional<PadHitTrace> last_pad_hit{};
 };
 
 // Forward declare the specific Sequencer instantiation from its new namespace
@@ -245,12 +234,14 @@ public:
   [[nodiscard]] bool has_recent_velocity_hit(uint8_t track_index) const;
 
   /**
-   * @brief Gets the most recent drumpad hit recorded while the sequencer was
-   * running, for display purposes. Returns std::nullopt if no hit has been
-   * recorded for the track.
+   * @brief Gets the current trace velocity for a step, for display purposes.
+   * Live hits land in a trace layer overlaid on the pattern; each step
+   * advance fades all traces linearly so they reach zero within
+   * TRACE_FADE_STEPS steps. Never affects playback or stored patterns.
+   * @return 0 when no trace is active on the step.
    */
-  [[nodiscard]] std::optional<PadHitTrace>
-  get_last_pad_hit_for_track(uint8_t track_index) const;
+  [[nodiscard]] uint8_t get_trace_velocity(size_t track_idx,
+                                           size_t step_idx) const;
 
   /**
    * @brief Get the current retrigger mode for a track.
@@ -305,6 +296,19 @@ private:
    */
   void record_pad_hit_trace(uint8_t track_index);
 
+  /**
+   * @brief Fades all trace velocities by one step's worth of brightness.
+   * Called once per step advance so traces age in lockstep with the cursor,
+   * regardless of swing timing.
+   */
+  void fade_traces();
+  void clear_traces();
+
+  // Trace velocities match the MIDI velocity range so the display maps them
+  // to brightness exactly like pattern steps.
+  static constexpr uint8_t TRACE_INITIAL_VELOCITY = 127;
+  static constexpr uint8_t TRACE_FADE_STEPS = 8;
+
   void initialize_active_notes();
   void initialize_all_sequencers();
   void initialize_timing_and_random();
@@ -315,6 +319,7 @@ private:
       sequencer_;
   uint32_t scheduled_step_counter_;
   etl::array<TrackState, NumTracks> track_states_{};
+  etl::array<etl::array<uint8_t, NumSteps>, NumTracks> trace_velocities_{};
   musin::timing::TempoHandler &tempo_source;
   bool _running = false;
   std::atomic<bool> _step_is_due = false;

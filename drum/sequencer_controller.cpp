@@ -474,12 +474,12 @@ void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
     // trace is quantized forward; a hit clearly between two steps belongs to
     // neither and leaves no trace. Only the visualization is affected; the
     // sounded note keeps its live timing.
-    switch (musical_timing::hit_zone_from_phase(last_phase_12_)) {
-    case musical_timing::HitZone::Early:
+    switch (swing_effect_.classify_hit_phase(last_phase_12_)) {
+    case SequencerEffectSwing::HitZone::Early:
       break;
-    case musical_timing::HitZone::Middle:
+    case SequencerEffectSwing::HitZone::Middle:
       return;
-    case musical_timing::HitZone::Late:
+    case SequencerEffectSwing::HitZone::Late:
       trace_step = (trace_step + 1) % NumSteps;
       break;
     }

@@ -526,4 +526,42 @@ TEST_CASE("SequencerEffectSwing retrigger mask tests",
   }
 }
 
+TEST_CASE("SequencerEffectSwing hit zone classification",
+          "[sequencer_effect_swing]") {
+  SequencerEffectSwing swing_effect;
+  using HitZone = SequencerEffectSwing::HitZone;
+
+  auto zones_for_onsets = [&](uint8_t even_onset, uint8_t odd_onset) {
+    for (uint8_t phase = 0; phase < PHASES_PER_BEAT; ++phase) {
+      HitZone expected = HitZone::Middle;
+      if (phase == even_onset || phase == odd_onset) {
+        expected = HitZone::Early;
+      } else if (phase ==
+                     (even_onset + PHASES_PER_BEAT - 1) % PHASES_PER_BEAT ||
+                 phase == (odd_onset + PHASES_PER_BEAT - 1) % PHASES_PER_BEAT) {
+        expected = HitZone::Late;
+      }
+      INFO("phase " << static_cast<int>(phase));
+      REQUIRE(swing_effect.classify_hit_phase(phase) == expected);
+    }
+  };
+
+  SECTION("Straight timing anchors zones at phases 0 and 6") {
+    swing_effect.set_swing_enabled(false);
+    zones_for_onsets(DOWNBEAT, OFFBEAT);
+  }
+
+  SECTION("Swing delaying odd steps moves the offbeat zones") {
+    swing_effect.set_swing_enabled(true);
+    swing_effect.set_swing_target(true);
+    zones_for_onsets(DOWNBEAT, OFFBEAT + config::timing::SWING_OFFSET_PHASES);
+  }
+
+  SECTION("Swing delaying even steps moves the downbeat zones") {
+    swing_effect.set_swing_enabled(true);
+    swing_effect.set_swing_target(false);
+    zones_for_onsets(config::timing::SWING_OFFSET_PHASES, OFFBEAT);
+  }
+}
+
 } // namespace drum

@@ -25,6 +25,32 @@ public:
   };
 
   /**
+   * @brief Where within a step's timing window a live hit landed.
+   * Early hits trace on the step that just played, Late hits feel like they
+   * anticipate the upcoming step so they trace forward, and Middle hits sit
+   * clearly between two steps and leave no trace. Zones are anchored on the
+   * actual (swung) step onsets, so they follow the cursor in every swing
+   * direction. The zone widths are one tick each; widen them here if that
+   * feels too narrow.
+   */
+  enum class HitZone : uint8_t {
+    Early,
+    Middle,
+    Late,
+  };
+
+  static constexpr uint8_t EARLY_ZONE_TICKS = 1;
+  static constexpr uint8_t LATE_ZONE_TICKS = 1;
+
+  /**
+   * @brief Classify a live hit's clock phase relative to the swung step grid.
+   * @param phase_12 Clock phase in [0, 11] at the moment of the hit
+   * @return Early if just after a step onset, Late if just before the next
+   * onset, Middle otherwise
+   */
+  [[nodiscard]] HitZone classify_hit_phase(uint8_t phase_12) const;
+
+  /**
    * @brief Calculate complete timing information for a step.
    * @param next_index The step index that will be played next
    * @param repeat_active Whether repeat mode is currently active
@@ -55,6 +81,8 @@ public:
   void set_swing_target(bool delay_odd);
 
 private:
+  [[nodiscard]] uint8_t onset_phase_for_parity(bool is_even) const;
+
   bool swing_enabled_{false};
   bool swing_delays_odd_steps_{true};
 };

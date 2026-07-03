@@ -106,6 +106,14 @@ public:
    */
   void show();
 
+  /**
+   * @brief Push the current pixel buffer and block until the LEDs have
+   * latched. Bypasses the frame-rate throttle. Intended for showing a final
+   * frame right before a reset or reboot, where show()'s background DMA
+   * transfer would be cut short.
+   */
+  void show_blocking();
+
   void clear();
   void fade_by(uint8_t fade_amount);
   void set_brightness(uint8_t brightness);
@@ -310,6 +318,23 @@ template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show() {
   // Switch to the other buffer for the next drawing operations.
   _draw_buffer_index = 1 - _draw_buffer_index;
   _last_show_time = current_time;
+}
+
+template <size_t NUM_LEDS> void WS2812_DMA<NUM_LEDS>::show_blocking() {
+  if (!_initialized) {
+    assert(_initialized);
+    return;
+  }
+
+  _last_show_time = nil_time; // Bypass the frame-rate throttle.
+  show();
+  dma_channel_wait_for_finish_blocking(_dma_channel);
+
+  // The PIO TX FIFO can still hold up to 8 pixels after the DMA completes;
+  // wait for it to drain (24 bits at 800 kHz = 30 us per pixel) plus the
+  // WS2812 latch time before returning.
+  constexpr uint32_t PIO_FIFO_DRAIN_US = 8 * 30;
+  busy_wait_us_32(PIO_FIFO_DRAIN_US + G_LATCH_DELAY_US);
 }
 
 // --- Namespace-level Static Handler Implementations ---

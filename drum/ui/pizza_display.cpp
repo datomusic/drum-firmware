@@ -63,7 +63,10 @@ void PizzaDisplay::notification(
 void PizzaDisplay::notification(drum::Events::EnteringBootloaderEvent) {
   clear();
   set_led(0, Color(0x0000FF));
-  show();
+  // Block until the frame has latched: the device reboots into the
+  // bootloader immediately after this notification, which would cut short
+  // show()'s throttled, background DMA transfer.
+  _leds.show_blocking();
 }
 
 void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {

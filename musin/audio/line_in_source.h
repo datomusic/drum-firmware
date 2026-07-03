@@ -3,6 +3,8 @@
 
 #include "musin/audio/block.h"
 #include "musin/audio/buffer_source.h"
+#include "port/section_macros.h"
+#include <atomic>
 #include <cstddef>
 
 namespace musin::audio {
@@ -26,14 +28,26 @@ struct BlockReader {
  *
  * Samples that the reader cannot provide are filled with silence, so a
  * starved or disabled input never stalls the audio pipeline.
+ *
+ * The gate allows several LineInSource instances to share one reader while
+ * only the enabled one drains it; a disabled instance outputs silence
+ * without touching the reader. fill_buffer runs in the I2S DMA interrupt
+ * and must stay RAM-resident.
  */
 class LineInSource : public ::BufferSource {
 public:
   explicit LineInSource(BlockReader &reader) : reader_(reader) {
   }
 
-  void fill_buffer(::AudioBlock &out_samples) override {
-    const size_t count = reader_.read_samples(out_samples);
+  void set_enabled(bool enabled) {
+    enabled_.store(enabled, std::memory_order_relaxed);
+  }
+
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) override {
+    size_t count = 0;
+    if (enabled_.load(std::memory_order_relaxed)) {
+      count = reader_.read_samples(out_samples);
+    }
     for (size_t i = count; i < out_samples.size(); ++i) {
       out_samples[i] = 0;
     }
@@ -41,6 +55,7 @@ public:
 
 private:
   BlockReader &reader_;
+  std::atomic<bool> enabled_{false};
 };
 
 } // namespace musin::audio

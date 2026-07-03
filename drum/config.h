@@ -40,8 +40,8 @@ enum class LineInRouting : uint8_t {
   PreFx,  // Mixed with the voices, before crusher/filters.
   PostFx, // Mixed after the effects chain; only master volume applies.
 };
-// Build-time routing for now; will become SysEx-configurable later.
-constexpr LineInRouting LINE_IN_ROUTING = LineInRouting::PreFx;
+// Routing is runtime-configurable through the LineInRouting setting
+// (drum/settings.h); enum values are the setting's wire values.
 constexpr float LINE_IN_GAIN = 1.0f;
 } // namespace audio
 

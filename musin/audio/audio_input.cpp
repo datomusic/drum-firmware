@@ -31,8 +31,8 @@ uint program_offset = 0;
 size_t read_index = 0;
 bool running = false;
 
-size_t dma_write_index() {
-  const uintptr_t write_addr = dma_channel_hw_addr(dma_channel)->write_addr;
+size_t __not_in_flash_func(dma_write_index)(int channel) {
+  const uintptr_t write_addr = dma_channel_hw_addr(channel)->write_addr;
   return (write_addr - reinterpret_cast<uintptr_t>(ring_buffer)) /
          sizeof(uint32_t);
 }
@@ -104,12 +104,16 @@ void AudioInput::deinit() {
   rx_sm = -1;
 }
 
-size_t AudioInput::read_samples(AudioBlock &out) {
-  if (!running) {
+size_t __not_in_flash_func(AudioInput::read_samples)(AudioBlock &out) {
+  // Snapshot the channel: deinit() can run concurrently on the main loop and
+  // this is called from the I2S DMA interrupt.
+  const int channel = dma_channel;
+  if (!running || channel < 0) {
     return 0;
   }
 
-  const size_t available = (dma_write_index() - read_index) & (RING_WORDS - 1);
+  const size_t available =
+      (dma_write_index(channel) - read_index) & (RING_WORDS - 1);
   const size_t to_read = available < out.size() ? available : out.size();
 
   for (size_t i = 0; i < to_read; ++i) {

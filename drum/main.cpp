@@ -149,6 +149,9 @@ int main() {
   midi_manager.init();
 
   audio_engine.init();
+  audio_engine.set_line_in_routing(
+      static_cast<drum::config::audio::LineInRouting>(
+          settings.get(drum::settings::Id::LineInRouting)));
   message_router.set_output_mode(drum::OutputMode::BOTH);
 
   pizza_display.init();
@@ -258,6 +261,9 @@ int main() {
           .update(); // Checks if a step is due and queues NoteEvents
       message_router
           .update(); // Drains NoteEvent queue, sending to observers and MIDI
+      audio_engine.set_line_in_routing(
+          static_cast<drum::config::audio::LineInRouting>(
+              settings.get(drum::settings::Id::LineInRouting)));
       audio_engine.process();
       pizza_display.update(now);
       midi_manager.process_input();

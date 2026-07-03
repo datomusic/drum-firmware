@@ -180,11 +180,11 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   if (write_register(0x01, 0x14, 0x05) != Aic3204Status::OK) {
     return; // Slowly ramp up HP drivers
   }
-  if (write_register(0x01, 0x0C, 0x0A) != Aic3204Status::OK) {
-    return; // DAC_L -> HPL, MAL -> HPL
+  if (write_register(0x01, 0x0C, 0x08) != Aic3204Status::OK) {
+    return; // DAC_L -> HPL only; line in reaches the outputs via the ADC
   }
-  if (write_register(0x01, 0x0D, 0x0A) != Aic3204Status::OK) {
-    return; // DAC_R -> HPR, MAR -> HPR
+  if (write_register(0x01, 0x0D, 0x08) != Aic3204Status::OK) {
+    return; // DAC_R -> HPR only
   }
   if (write_register(0x01, 0x10, 0x04) != Aic3204Status::OK) {
     return; // HPL Gain 4dB
@@ -194,8 +194,8 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   }
 
   // Line Output Routing & Gain (0dB Gain)
-  if (write_register(0x01, 0x0E, 0x03) != Aic3204Status::OK) {
-    return; // LOL Diff Config, MAL to LOL
+  if (write_register(0x01, 0x0E, 0x01) != Aic3204Status::OK) {
+    return; // LOL Diff Config (no analog MAL bypass to LOL)
   }
   if (write_register(0x01, 0x0F, 0x08) != Aic3204Status::OK) {
     return; // LOR Diff Config
@@ -230,8 +230,8 @@ Aic3204::Aic3204(uint8_t sda_pin, uint8_t scl_pin, uint32_t baudrate,
   }
 
   // Power up Output Drivers (Page 1) - This starts soft-stepping
-  if (write_register(0x01, 0x09, 0x3F) != Aic3204Status::OK) {
-    return; // Power up HPL, HPR, LOL, LOR, MAL, MAR
+  if (write_register(0x01, 0x09, 0x3C) != Aic3204Status::OK) {
+    return; // Power up HPL, HPR, LOL, LOR (MAL/MAR stay off: no analog bypass)
   }
 
   // --- Wait for soft-stepping completion ---
@@ -365,10 +365,10 @@ Aic3204Status Aic3204::set_headphone_enabled(bool enable) {
 
   // Register 0x01/0x09: Output Driver Power Control
   // Bit positions: D5=HPL, D4=HPR, D3=LOL, D2=LOR, D1=MAL, D0=MAR
-  // 0x3F = 00111111 (all outputs enabled)
-  // Disable only HPL/HPR: turn off bits D5,D4 but keep D3,D2,D1,D0
-  // Result: 00001111 = 0x0F (MAL/MAR/LOL/LOR stay enabled)
-  uint8_t power_reg_value = enable ? 0x3F : 0x0F;
+  // MAL/MAR stay powered down: line in reaches the outputs through the ADC,
+  // not the analog mixer amps.
+  // Disable only HPL/HPR: turn off bits D5,D4 but keep D3,D2 (LOL/LOR)
+  uint8_t power_reg_value = enable ? 0x3C : 0x0C;
 
   Aic3204Status status = write_register(0x01, 0x09, power_reg_value);
   if (status != Aic3204Status::OK) {

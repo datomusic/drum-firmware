@@ -29,6 +29,7 @@ TEST_CASE("LineInSource passes samples through") {
   reader.sample_value = 1234;
 
   musin::audio::LineInSource source(reader);
+  source.set_enabled(true);
 
   AudioBlock block;
   source.fill_buffer(block);
@@ -38,12 +39,30 @@ TEST_CASE("LineInSource passes samples through") {
   }
 }
 
+TEST_CASE("LineInSource outputs silence and leaves the reader untouched when "
+          "disabled") {
+  FakeBlockReader reader;
+  reader.samples_to_provide = AUDIO_BLOCK_SAMPLES;
+  reader.sample_value = 1234;
+
+  musin::audio::LineInSource source(reader);
+
+  AudioBlock block;
+  block[0] = 42; // Stale data that must be overwritten.
+  source.fill_buffer(block);
+
+  for (size_t i = 0; i < block.size(); ++i) {
+    REQUIRE(block[i] == 0);
+  }
+}
+
 TEST_CASE("LineInSource zero-fills when the reader underruns") {
   FakeBlockReader reader;
   reader.samples_to_provide = 5;
   reader.sample_value = -321;
 
   musin::audio::LineInSource source(reader);
+  source.set_enabled(true);
 
   AudioBlock block;
   source.fill_buffer(block);
@@ -60,6 +79,7 @@ TEST_CASE("LineInSource outputs silence when no data is available") {
   FakeBlockReader reader;
 
   musin::audio::LineInSource source(reader);
+  source.set_enabled(true);
 
   AudioBlock block;
   block[0] = 42; // Stale data that must be overwritten.

@@ -17,6 +17,7 @@ namespace drum::settings {
 enum class Id : uint8_t {
   MidiChannel = 0x01,
   SliderMode = 0x02,
+  LineInRouting = 0x03,
 };
 
 /**
@@ -43,9 +44,13 @@ struct Descriptor {
   uint8_t default_value;
 };
 
-inline constexpr etl::array<Descriptor, 2> DESCRIPTORS{{
+// LineInRouting values mirror config::audio::LineInRouting:
+// 0 = Off, 1 = PreFx, 2 = PostFx (checked by static_asserts in
+// audio_engine.cpp).
+inline constexpr etl::array<Descriptor, 3> DESCRIPTORS{{
     {Id::MidiChannel, "midi_channel", 1, 16, 10},
     {Id::SliderMode, "slider_mode", 0, 7, slider_mode::PITCH},
+    {Id::LineInRouting, "line_in", 0, 2, 1},
 }};
 
 /**

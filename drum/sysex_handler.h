@@ -24,11 +24,36 @@ namespace drum {
 class SysExHandler
     : public etl::observable<
           etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+          drum::config::MAX_SYSEX_EVENT_OBSERVERS>,
+      public etl::observable<
+          etl::observer<drum::Events::EnteringBootloaderEvent>,
           drum::config::MAX_SYSEX_EVENT_OBSERVERS> {
 public:
   SysExHandler(ConfigurationManager &config_manager,
                SettingsManager &settings_manager, musin::Logger &logger,
                musin::filesystem::Filesystem &filesystem);
+
+  /**
+   * @brief Adds an observer for SysExTransferStateChangeEvent, resolving
+   * ambiguity between the two observable base classes.
+   */
+  void add_transfer_state_observer(
+      etl::observer<drum::Events::SysExTransferStateChangeEvent> &observer) {
+    etl::observable<
+        etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+        drum::config::MAX_SYSEX_EVENT_OBSERVERS>::add_observer(observer);
+  }
+
+  /**
+   * @brief Adds an observer for EnteringBootloaderEvent, resolving ambiguity
+   * between the two observable base classes.
+   */
+  void add_bootloader_event_observer(
+      etl::observer<drum::Events::EnteringBootloaderEvent> &observer) {
+    etl::observable<
+        etl::observer<drum::Events::EnteringBootloaderEvent>,
+        drum::config::MAX_SYSEX_EVENT_OBSERVERS>::add_observer(observer);
+  }
 
   void update(absolute_time_t now);
 

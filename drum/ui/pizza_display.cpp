@@ -60,6 +60,12 @@ void PizzaDisplay::notification(
   }
 }
 
+void PizzaDisplay::notification(drum::Events::EnteringBootloaderEvent) {
+  clear();
+  set_led(0, Color(0x0000FF));
+  show();
+}
+
 void PizzaDisplay::notification(drum::Events::ParameterChangeEvent event) {
   switch (event.param_id) {
   case drum::Parameter::FILTER_FREQUENCY:

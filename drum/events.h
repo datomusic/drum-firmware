@@ -59,6 +59,12 @@ struct SysExTransferStateChangeEvent {
   std::optional<float> progress = std::nullopt;
 };
 
+/**
+ * @brief Event signaling that the device is about to reboot into the USB
+ * bootloader in response to a SysEx command.
+ */
+struct EnteringBootloaderEvent {};
+
 } // namespace drum::Events
 
 #endif // DRUM_EVENTS_H_

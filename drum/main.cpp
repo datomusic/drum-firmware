@@ -170,10 +170,11 @@ int main() {
   sysex_handler.set_sequencer_state_access(&sequencer_controller);
 
   // Register observers for SysEx state changes
-  sysex_handler.add_observer(message_router);
-  sysex_handler.add_observer(sequencer_controller);
-  sysex_handler.add_observer(system_state_machine);
-  sysex_handler.add_observer(pizza_display);
+  sysex_handler.add_transfer_state_observer(message_router);
+  sysex_handler.add_transfer_state_observer(sequencer_controller);
+  sysex_handler.add_transfer_state_observer(system_state_machine);
+  sysex_handler.add_transfer_state_observer(pizza_display);
+  sysex_handler.add_bootloader_event_observer(pizza_display);
 
   // Register observers for events from MessageRouter
   message_router.add_note_event_observer(pizza_display);

@@ -35,7 +35,8 @@ class PizzaDisplay
     : public etl::observer<musin::timing::TempoEvent>,
       public etl::observer<drum::Events::NoteEvent>,
       public etl::observer<drum::Events::SysExTransferStateChangeEvent>,
-      public etl::observer<drum::Events::ParameterChangeEvent> {
+      public etl::observer<drum::Events::ParameterChangeEvent>,
+      public etl::observer<drum::Events::EnteringBootloaderEvent> {
 public:
   friend class ui::SequencerDisplayMode;
   friend class ui::FileTransferDisplayMode;
@@ -143,6 +144,12 @@ public:
    * status.
    */
   void notification(drum::Events::SysExTransferStateChangeEvent event);
+
+  /**
+   * @brief Handles EnteringBootloaderEvent notifications by showing a single
+   * blue LED to indicate the device is about to reboot into the bootloader.
+   */
+  void notification(drum::Events::EnteringBootloaderEvent event);
 
   /**
    * @brief Handles ParameterChangeEvent notifications to update visual effects.

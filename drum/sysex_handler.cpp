@@ -57,7 +57,9 @@ void SysExHandler::update(absolute_time_t now) {
       }
       drum::Events::SysExTransferStateChangeEvent event{
           .is_active = true, .sample_slot = current_sample_slot};
-      this->notify_observers(event);
+      etl::observable<
+          etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+          drum::config::MAX_SYSEX_EVENT_OBSERVERS>::notify_observers(event);
       last_notified_sample_slot_ = current_sample_slot;
     } else {
       logger_.info("SysEx file transfer finished.");
@@ -65,7 +67,9 @@ void SysExHandler::update(absolute_time_t now) {
       // the sample color during the debounce/cooldown period (issue #550).
       drum::Events::SysExTransferStateChangeEvent event{
           .is_active = false, .sample_slot = last_notified_sample_slot_};
-      this->notify_observers(event);
+      etl::observable<
+          etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+          drum::config::MAX_SYSEX_EVENT_OBSERVERS>::notify_observers(event);
       last_notified_sample_slot_ = std::nullopt;
     }
     was_busy_ = current_busy_state;
@@ -85,7 +89,9 @@ void SysExHandler::update(absolute_time_t now) {
     }
     drum::Events::SysExTransferStateChangeEvent event{
         .is_active = true, .sample_slot = current_sample_slot};
-    this->notify_observers(event);
+    etl::observable<
+        etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+        drum::config::MAX_SYSEX_EVENT_OBSERVERS>::notify_observers(event);
     last_notified_sample_slot_ = current_sample_slot;
   }
 
@@ -166,9 +172,14 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
   case sysex::Protocol<StandardFileOps>::Result::FileWritten:
     on_file_received();
     break;
-  case sysex::Protocol<StandardFileOps>::Result::Reboot:
+  case sysex::Protocol<StandardFileOps>::Result::Reboot: {
+    drum::Events::EnteringBootloaderEvent event{};
+    etl::observable<etl::observer<drum::Events::EnteringBootloaderEvent>,
+                    drum::config::MAX_SYSEX_EVENT_OBSERVERS>::
+        notify_observers(event);
     reset_usb_boot(0, 0);
     break;
+  }
   case sysex::Protocol<StandardFileOps>::Result::PrintFirmwareVersion:
     print_firmware_version();
     break;
@@ -228,7 +239,9 @@ void SysExHandler::notify_firmware_update_progress() {
   last_notified_progress_ = progress;
   drum::Events::SysExTransferStateChangeEvent event{
       .is_active = true, .sample_slot = std::nullopt, .progress = progress};
-  this->notify_observers(event);
+  etl::observable<
+      etl::observer<drum::Events::SysExTransferStateChangeEvent>,
+      drum::config::MAX_SYSEX_EVENT_OBSERVERS>::notify_observers(event);
 }
 
 void SysExHandler::handle_firmware_update_message(const sysex::Chunk &chunk,

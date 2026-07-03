@@ -177,6 +177,9 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
     etl::observable<etl::observer<drum::Events::EnteringBootloaderEvent>,
                     drum::config::MAX_SYSEX_EVENT_OBSERVERS>::
         notify_observers(event);
+    // Hold long enough for the observers' visual feedback to register; the
+    // reboot resets the pads, cutting LED power (LED_ENABLE goes Hi-Z).
+    sleep_ms(500);
     reset_usb_boot(0, 0);
     break;
   }

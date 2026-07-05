@@ -50,7 +50,7 @@ struct Descriptor {
 inline constexpr etl::array<Descriptor, 3> DESCRIPTORS{{
     {Id::MidiChannel, "midi_channel", 1, 16, 10},
     {Id::SliderMode, "slider_mode", 0, 7, slider_mode::PITCH},
-    {Id::LineInRouting, "line_in", 0, 2, 1},
+    {Id::LineInRouting, "line_in", 0, 2, 2},
 }};
 
 /**

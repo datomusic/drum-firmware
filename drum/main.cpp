@@ -169,6 +169,10 @@ int main() {
   // Connect SysExHandler to SequencerController for sequencer state transfer
   sysex_handler.set_sequencer_state_access(&sequencer_controller);
 
+  // A completed SDS sample transfer must drop any RAM copy of the slot so
+  // the rewritten file is re-read from flash (issue #572).
+  sysex_handler.set_sample_slot_manager(&sample_slot_manager);
+
   // Register observers for SysEx state changes
   sysex_handler.add_observer(message_router);
   sysex_handler.add_observer(sequencer_controller);

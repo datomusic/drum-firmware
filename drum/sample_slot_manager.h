@@ -66,6 +66,15 @@ public:
    */
   void commit_staging();
 
+  /**
+   * @brief Forgets any RAM copy of the given sample slot.
+   *
+   * Voices keep playing their current buffer, but the next trigger for
+   * this sample index re-reads the file from flash. Used after a SysEx
+   * transfer rewrites a sample so stale RAM data is not reused.
+   */
+  void invalidate_sample(size_t sample_index);
+
   const int16_t *voice_data(uint8_t voice_index) const;
   uint32_t voice_length(uint8_t voice_index) const;
   etl::optional<size_t> voice_sample_index(uint8_t voice_index) const;

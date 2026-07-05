@@ -91,6 +91,48 @@ TEST_CASE("Request for a sample the voice already holds is a no-op") {
   remove(path.c_str());
 }
 
+TEST_CASE("Invalidated sample is re-read from disk on the next request") {
+  drum::SampleSlotManager manager(logger);
+  auto path = write_pcm_file("slot_test_g.pcm", 1000, 100);
+
+  REQUIRE(manager.request_load(1, 9, path.c_str()));
+  manager.commit_staging();
+  REQUIRE(manager.voice_has_sample(1, 9));
+
+  // Simulate a SysEx transfer rewriting the file on flash.
+  write_pcm_file("slot_test_g.pcm", 1000, 500);
+  manager.invalidate_sample(9);
+
+  REQUIRE_FALSE(manager.voice_has_sample(1, 9));
+  // The old audio stays playable until the reload commits.
+  REQUIRE(manager.voice_length(1) == 1000);
+  REQUIRE(manager.voice_data(1)[0] == 100);
+
+  REQUIRE(manager.request_load(1, 9, path.c_str()));
+  manager.commit_staging();
+  REQUIRE(manager.voice_has_sample(1, 9));
+  REQUIRE(manager.voice_data(1)[0] == 500);
+  remove(path.c_str());
+}
+
+TEST_CASE("Invalidation drops a matching staged load") {
+  drum::SampleSlotManager manager(logger);
+  auto path = write_pcm_file("slot_test_h.pcm", 1000, 100);
+
+  REQUIRE(manager.request_load(0, 4, path.c_str()));
+  REQUIRE(manager.staging_ready_for(0, 4));
+
+  manager.invalidate_sample(4);
+  REQUIRE_FALSE(manager.staging_ready_for_voice(0));
+
+  // Other samples are unaffected.
+  REQUIRE(manager.request_load(2, 6, path.c_str()));
+  manager.commit_staging();
+  manager.invalidate_sample(4);
+  REQUIRE(manager.voice_has_sample(2, 6));
+  remove(path.c_str());
+}
+
 TEST_CASE("Missing file is reported as failure") {
   drum::SampleSlotManager manager(logger);
   REQUIRE_FALSE(manager.request_load(0, 3, "./does_not_exist.pcm"));

@@ -75,6 +75,18 @@ void SampleSlotManager::commit_staging() {
   staging_ready_ = false;
 }
 
+void SampleSlotManager::invalidate_sample(size_t sample_index) {
+  for (VoiceSlot &slot : voice_slots_) {
+    if (slot.sample_index.has_value() &&
+        slot.sample_index.value() == sample_index) {
+      slot.sample_index.reset();
+    }
+  }
+  if (staging_ready_ && staging_sample_index_ == sample_index) {
+    staging_ready_ = false;
+  }
+}
+
 const int16_t *SampleSlotManager::voice_data(uint8_t voice_index) const {
   if (voice_index >= NUM_VOICE_SLOTS) {
     return nullptr;

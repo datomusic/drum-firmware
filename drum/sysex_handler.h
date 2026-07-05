@@ -21,6 +21,8 @@ extern "C" {
 
 namespace drum {
 
+class SampleSlotManager;
+
 class SysExHandler
     : public etl::observable<
           etl::observer<drum::Events::SysExTransferStateChangeEvent>,
@@ -59,6 +61,12 @@ public:
    */
   void set_sequencer_state_access(SequencerStateAccess *sequencer_state_access);
 
+  /**
+   * @brief Wires the sample slot manager so a completed SDS sample
+   * transfer invalidates any RAM copy of the rewritten slot.
+   */
+  void set_sample_slot_manager(SampleSlotManager *sample_slot_manager);
+
 private:
   void handle_firmware_update_message(const sysex::Chunk &chunk,
                                       absolute_time_t now);
@@ -77,6 +85,7 @@ private:
   musin::Logger &logger_;
   musin::filesystem::Filesystem &filesystem_;
   SequencerStateAccess *sequencer_state_access_ = nullptr;
+  SampleSlotManager *sample_slot_manager_ = nullptr;
 
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;

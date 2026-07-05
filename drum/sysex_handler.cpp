@@ -1,4 +1,5 @@
 #include "drum/sysex_handler.h"
+#include "drum/sample_slot_manager.h"
 #include "drum/sysex/sequencer_state_codec.h"
 #include "events.h"
 #include "musin/midi/midi_wrapper.h"
@@ -120,12 +121,19 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
     // Extract SDS payload (skip 0x7E and channel)
     const auto sds_payload =
         etl::span<const uint8_t>{chunk.cbegin() + 2, chunk.cend()};
+    // Capture the active slot before processing: a completing data packet
+    // returns the protocol to Idle, after which the slot is no longer
+    // reported.
+    const auto active_sample_slot = sds_protocol_.current_sample_number_opt();
     auto result = sds_protocol_.process_message(sds_payload, sds_sender,
                                                 get_absolute_time());
 
     switch (result) {
     case sds::Result::SampleComplete:
       logger_.info("SDS: Sample transfer completed successfully");
+      if (sample_slot_manager_ != nullptr && active_sample_slot.has_value()) {
+        sample_slot_manager_->invalidate_sample(active_sample_slot.value());
+      }
       on_file_received();
       break;
     case sds::Result::ChecksumError:
@@ -347,6 +355,11 @@ void SysExHandler::send_storage_info() const {
 void SysExHandler::set_sequencer_state_access(
     SequencerStateAccess *sequencer_state_access) {
   sequencer_state_access_ = sequencer_state_access;
+}
+
+void SysExHandler::set_sample_slot_manager(
+    SampleSlotManager *sample_slot_manager) {
+  sample_slot_manager_ = sample_slot_manager;
 }
 
 void SysExHandler::send_sequencer_state() const {

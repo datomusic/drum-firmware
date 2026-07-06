@@ -141,8 +141,8 @@ private:
     if (payload_size != PAYLOAD_SIZE) {
       return Result::BadPayloadSize;
     }
-    if (target_addr < FLASH_BASE ||
-        target_addr + PAYLOAD_SIZE > FLASH_BASE + partition_size_) {
+    if (target_addr < FLASH_BASE || partition_size_ < PAYLOAD_SIZE ||
+        target_addr - FLASH_BASE > partition_size_ - PAYLOAD_SIZE) {
       return Result::OutOfRange;
     }
 

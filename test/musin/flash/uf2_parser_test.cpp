@@ -175,6 +175,11 @@ TEST_CASE("Uf2Parser rejects out-of-range targets") {
     REQUIRE(parser.push(etl::span<const uint8_t>{block.data(), block.size()},
                         collector) == Result::OutOfRange);
   }
+  SECTION("target address near uint32_t overflow") {
+    auto block = make_block(0, 1, 0xFFFFFF00);
+    REQUIRE(parser.push(etl::span<const uint8_t>{block.data(), block.size()},
+                        collector) == Result::OutOfRange);
+  }
 }
 
 TEST_CASE("Uf2Parser rejects non-sequential block numbers") {

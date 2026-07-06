@@ -199,8 +199,9 @@ bool FirmwareWriter::flush_sector() {
     return true;
   }
   if (current_sector_base_ < target_offset_ ||
-      current_sector_base_ + FLASH_SECTOR_SIZE >
-          target_offset_ + target_size_) {
+      target_size_ < FLASH_SECTOR_SIZE ||
+      current_sector_base_ - target_offset_ >
+          target_size_ - FLASH_SECTOR_SIZE) {
     logger_.error("FirmwareWriter: Sector outside target partition");
     return false;
   }

@@ -73,9 +73,9 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     break;
 
   case DrumpadState::Peaking:
-    if (current_adc_value < _trigger_threshold) {
-      _current_state = DrumpadState::Falling;
-    }
+    // A dip below _trigger_threshold does not abort the hold: as long as
+    // contact stays above _noise_threshold, the hold timer keeps running so
+    // retrigger arms in sync with has_recent_velocity_hit (ring lifetime).
     if (time_in_state >= _hold_time_us) {
       _current_state = DrumpadState::Holding;
       notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);

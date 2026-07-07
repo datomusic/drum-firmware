@@ -11,15 +11,15 @@ namespace {
 
 // active_low = false so the raw ADC value passed to update() is used directly,
 // keeping the threshold arithmetic in the tests easy to follow.
-constexpr musin::ui::DrumpadConfig test_config = {
-    .noise_threshold = 150,
-    .trigger_threshold = 800,
-    .high_pressure_threshold = 2500,
-    .active_low = false,
-    .debounce_time_us = 5000,
-    .hold_time_us = 50000,
-    .max_velocity_time_us = 50000,
-    .min_velocity_time_us = 100};
+constexpr musin::ui::DrumpadConfig test_config = {.noise_threshold = 150,
+                                                  .trigger_threshold = 800,
+                                                  .high_pressure_threshold =
+                                                      2500,
+                                                  .active_low = false,
+                                                  .debounce_time_us = 5000,
+                                                  .hold_time_us = 50000,
+                                                  .max_velocity_time_us = 50000,
+                                                  .min_velocity_time_us = 100};
 
 // Drive the pad from Idle to Peaking, emitting a Press once trigger is crossed.
 void press_to_peaking(Drumpad &pad, uint16_t adc) {
@@ -86,6 +86,26 @@ TEST_CASE("Holding below trigger after a press still engages Single") {
   pad.init();
   press_to_peaking(pad, 1000);        // crosses trigger, Press fired
   hold_until_mode_resolved(pad, 500); // settles to 150..799 range while held
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Single);
+}
+
+// Same regression, but the pad is scanned while pressure sits below trigger
+// before hold_time_us expires. Previously this update moved Peaking to
+// Falling, a dead end where the hold timer no longer ran, so retrigger never
+// engaged even though the ring stayed lit until release.
+TEST_CASE("Scan below trigger before hold expiry still engages Single") {
+  Drumpad pad(0, test_config);
+  pad.init();
+  press_to_peaking(pad, 1000); // crosses trigger, Press fired
+
+  advance_mock_time_us(10000);
+  pad.update(500); // pressure sags below trigger, above noise, before hold
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Off);
+
+  advance_mock_time_us(50000);
+  pad.update(500); // hold timer expires while contact persists
+  REQUIRE(pad.is_held());
+  pad.update(500); // Holding-state logic resolves retrigger mode
   REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Single);
 }
 

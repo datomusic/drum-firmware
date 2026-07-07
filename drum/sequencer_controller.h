@@ -307,10 +307,26 @@ private:
 
   // Trace velocities match the MIDI velocity range so the display maps them
   // to brightness exactly like pattern steps.
-  static constexpr uint8_t TRACE_INITIAL_VELOCITY = 127;
+  //
+  // The fade subtracts a whole number of velocity units per 12 PPQN tick, so
+  // the only achievable fade lengths are TRACE_INITIAL_VELOCITY / d ticks for
+  // an integer decrement d. The static_assert below rejects any
+  // TRACE_INITIAL_VELOCITY / TRACE_FADE_STEPS combination that doesn't divide
+  // evenly, instead of silently fading in fewer steps than requested.
+  // Valid combinations must satisfy:
+  //   TRACE_INITIAL_VELOCITY % (TRACE_FADE_STEPS * TICKS_PER_STEP) == 0
+  // e.g. velocity 96 fades in exactly 8 or 16 steps; 127 divides by nothing
+  // useful and is not usable here.
+  static constexpr uint8_t TRACE_INITIAL_VELOCITY = 96;
   static constexpr uint8_t TRACE_FADE_STEPS = 8;
   static constexpr uint32_t TRACE_FADE_TICKS =
       TRACE_FADE_STEPS * musical_timing::TICKS_PER_STEP;
+  static_assert(TRACE_INITIAL_VELOCITY % TRACE_FADE_TICKS == 0,
+                "TRACE_INITIAL_VELOCITY must be an exact multiple of "
+                "TRACE_FADE_STEPS * TICKS_PER_STEP so the integer per-tick "
+                "decrement fades in exactly TRACE_FADE_STEPS steps");
+  static constexpr uint32_t TRACE_DECREMENT_PER_TICK =
+      TRACE_INITIAL_VELOCITY / TRACE_FADE_TICKS;
 
   void initialize_active_notes();
   void initialize_all_sequencers();

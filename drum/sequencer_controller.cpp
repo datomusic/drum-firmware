@@ -506,9 +506,7 @@ void SequencerController<NumTracks, NumSteps>::record_pad_hit_trace(
 template <size_t NumTracks, size_t NumSteps>
 void SequencerController<NumTracks, NumSteps>::fade_traces(
     uint32_t elapsed_ticks) {
-  constexpr uint32_t DECREMENT_PER_TICK =
-      (TRACE_INITIAL_VELOCITY + TRACE_FADE_TICKS - 1) / TRACE_FADE_TICKS;
-  const uint32_t decrement = DECREMENT_PER_TICK * elapsed_ticks;
+  const uint32_t decrement = TRACE_DECREMENT_PER_TICK * elapsed_ticks;
   for (auto &track_traces : trace_velocities_) {
     for (auto &velocity : track_traces) {
       velocity = (velocity > decrement)

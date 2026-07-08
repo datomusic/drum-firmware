@@ -710,6 +710,11 @@ async function test_universal_identity() {
 }
 
 // Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
+// TODO: The device now re-ACKs a retransmission of the previous packet
+// instead of appending its data twice, so a lost ACK can be handled by
+// resending the same packet after a short timeout (e.g. PACKET_TIMEOUT with
+// a few retries) rather than waiting out the 30 s cap below and dropping to
+// non-handshaking mode.
 function waitForResponse(timeout, packetNum = 0, allowWaitEscape = true) {
   return new Promise((resolve) => {
     // For WAIT responses, use longer timeout but still have escape hatch

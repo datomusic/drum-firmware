@@ -331,13 +331,25 @@ private:
       return Result::ChecksumError;
     }
 
-    // Check packet sequence
+    // Check packet sequence. A retransmission of the previous packet means
+    // our ACK was lost in transit: re-ACK it without writing, or the data
+    // would be appended twice and corrupt the sample. Anything else
+    // out-of-sequence is NAKed so the host retries the packet we expect.
     if (packet_num != expected_packet_num_) {
+      const uint8_t previous_packet_num = (expected_packet_num_ - 1) & 0x7F;
+      if (packet_num == previous_packet_num && bytes_received_ > 0) {
+        logger_.warn("SDS: Duplicate packet re-ACKed:",
+                     static_cast<uint32_t>(packet_num));
+        last_activity_time_ = now;
+        send_reply(ACK, packet_num);
+        return Result::OK;
+      }
       logger_.warn("SDS: Unexpected packet number, expected:",
                    static_cast<uint32_t>(expected_packet_num_));
       logger_.warn("SDS: Unexpected packet number, got:",
                    static_cast<uint32_t>(packet_num));
-      // For now, accept out-of-order packets (could improve this)
+      send_reply(NAK, expected_packet_num_);
+      return Result::InvalidMessage;
     }
 
     last_activity_time_ = now;

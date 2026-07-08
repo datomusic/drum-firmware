@@ -39,6 +39,8 @@ const SDS_WAIT = 0x7C;
 const SYSEX_CHANNEL = 0x65; // DRUM device channel (same as existing protocol)
 const PACKET_TIMEOUT = 20;   // 20ms timeout per packet as per SDS spec
 const HEADER_TIMEOUT = 2000; // 2 second timeout for dump header
+const PACKET_RETRY_WINDOW = 5000; // Give up on a packet after this long without any response
+const WAIT_RESPONSE_TIMEOUT = 30000; // Deadline for the follow-up after a WAIT
 
 // Custom SysEx Configuration (for firmware/format commands)
 const SYSEX_MANUFACTURER_ID = [0x00, 0x22, 0x01]; // Dato Musical Instruments
@@ -710,25 +712,68 @@ async function test_universal_identity() {
 }
 
 // Wait for ACK/NAK/WAIT/CANCEL with timeout and CTRL+C escape
-// TODO: The device now re-ACKs a retransmission of the previous packet
-// instead of appending its data twice, so a lost ACK can be handled by
-// resending the same packet after a short timeout (e.g. PACKET_TIMEOUT with
-// a few retries) rather than waiting out the 30 s cap below and dropping to
-// non-handshaking mode.
-function waitForResponse(timeout, packetNum = 0, allowWaitEscape = true) {
+function waitForResponse(timeout, packetNum = 0) {
   return new Promise((resolve) => {
-    // For WAIT responses, use longer timeout but still have escape hatch
-    const maxWaitTime = allowWaitEscape ? 30000 : timeout; // 30s max even for WAIT
     const timer = setTimeout(() => {
       pendingResponse = null;
       resolve({ type: 'timeout', packet: packetNum });
-    }, maxWaitTime);
+    }, timeout);
 
     pendingResponse = {
       resolve,
       timer
     };
   });
+}
+
+// Send one data packet and wait for its ACK, retransmitting on timeout.
+// The device re-ACKs a retransmission of the previous packet without
+// rewriting its data, so resending after a lost packet or lost ACK is safe
+// (firmware with SDS download support or newer). Returns 'ack', 'cancel' or
+// 'failed'.
+async function deliverPacket(packet, expectedPacketNum, verbose) {
+  sendSDSMessage(packet);
+  let deadline = Date.now() + PACKET_RETRY_WINDOW;
+  let responseTimeout = PACKET_TIMEOUT;
+
+  while (Date.now() < deadline) {
+    const response = await waitForResponse(responseTimeout, expectedPacketNum);
+    responseTimeout = PACKET_TIMEOUT;
+
+    switch (response.type) {
+      case SDS_ACK:
+        if (response.packet === expectedPacketNum) {
+          return 'ack';
+        }
+        // Stale ACK for an earlier packet we retransmitted; keep waiting.
+        break;
+      case SDS_NAK:
+        if (verbose) {
+          console.log(`\nPacket ${expectedPacketNum} NAK - retrying`);
+        }
+        sendSDSMessage(packet);
+        break;
+      case SDS_WAIT:
+        // Device is busy (e.g. flash housekeeping): hold off retransmission
+        // and give it a long window for the follow-up response.
+        if (verbose) {
+          console.log(`\nPacket ${expectedPacketNum} WAIT - device is busy`);
+        }
+        deviceStatus = 'slow';
+        responseTimeout = WAIT_RESPONSE_TIMEOUT;
+        deadline = Date.now() + WAIT_RESPONSE_TIMEOUT;
+        break;
+      case SDS_CANCEL:
+        return 'cancel';
+      default: // timeout: the packet or its ACK was lost in transit
+        if (verbose) {
+          console.log(`\nPacket ${expectedPacketNum} timeout - retransmitting`);
+        }
+        sendSDSMessage(packet);
+        break;
+    }
+  }
+  return 'failed';
 }
 
 // Convert sample rate to SDS period format (3-byte nanosecond period)
@@ -998,69 +1043,23 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
       if (verbose && packetNum < 5) { // Debug first few packets
         console.log(`Packet ${packetNum} size:`, packet.length, "checksum:", `0x${packet[packet.length-1].toString(16)}`);
       }
-      sendSDSMessage(packet);
-      
       if (handshaking) {
-        const response = await waitForResponse(PACKET_TIMEOUT, packetNum & 0x7F);
-        
-        if (response.type === SDS_ACK) {
-          deviceStatus = 'ok';
-          successfulPackets++;
-          offset += 80; // Move to next 40 samples (80 bytes)
-          packetNum++;
-        } else if (response.type === SDS_NAK) {
-          if (verbose) {
-            if (showProgress) {
-              console.log(`\nPacket ${packetNum & 0x7F} NAK - retrying`);
-            } else {
-              console.log(`Packet ${packetNum & 0x7F} NAK - retrying`);
-            }
-          }
-          continue; // Retry same packet
-        } else if (response.type === SDS_WAIT) {
-          if (verbose) {
-            console.log(`\nPacket ${packetNum & 0x7F} WAIT - device is busy, waiting for final response...`);
-          }
-          deviceStatus = 'slow';
-          // Wait indefinitely for ACK/NAK/CANCEL after WAIT
-          const finalResponse = await waitForResponse(30000, packetNum & 0x7F, true);
-          if (finalResponse.type === SDS_ACK) {
-            successfulPackets++;
-            offset += 80;
-            packetNum++;
-          } else if (finalResponse.type === SDS_NAK) {
-            continue; // Retry same packet
-          } else if (finalResponse.type === SDS_CANCEL) {
-            throw new Error('Device cancelled transfer - storage may be full');
-          } else {
-            // Even WAIT can timeout - assume non-handshaking
-            if (verbose) {
-              console.log(`Final response timeout after WAIT - assuming non-handshaking`);
-            }
-            successfulPackets++;
-            offset += 80;
-            packetNum++;
-            handshaking = false;
-          }
-        } else if (response.type === SDS_CANCEL) {
+        const status = await deliverPacket(packet, packetNum & 0x7F, verbose);
+        if (status === 'cancel') {
           throw new Error('Device cancelled transfer - storage may be full');
-        } else {
-          // Timeout - assume non-handshaking mode
-          if (verbose) {
-            if (showProgress) {
-              console.log(`\nPacket ${packetNum & 0x7F} timeout - continuing without handshaking`);
-            } else {
-              console.log(`Packet ${packetNum & 0x7F} timeout - continuing without handshaking`);
-            }
-          }
-          successfulPackets++;
-          offset += 80;
-          packetNum++;
-          // Switch to non-handshaking mode for remaining packets
-          handshaking = false;
         }
+        if (status !== 'ack') {
+          throw new Error(`No response for packet ${packetNum & 0x7F} after ${PACKET_RETRY_WINDOW}ms`);
+        }
+        deviceStatus = 'ok';
+        successfulPackets++;
+        offset += 80; // Move to next 40 samples (80 bytes)
+        packetNum++;
       } else {
-        // Non-handshaking mode - advance immediately
+        // Non-handshaking mode (the device never ACKed the header): pace
+        // packets open-loop so the receiver can keep up.
+        sendSDSMessage(packet);
+        await new Promise(resolve => setTimeout(resolve, 10));
         successfulPackets++;
         offset += 80;
         packetNum++;

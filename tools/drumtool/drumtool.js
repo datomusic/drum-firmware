@@ -846,9 +846,11 @@ async function transferMultipleSamples(transfers, verboseMode = false) {
       results.push({ filePath, slot, success: false, error: error.message });
     }
     
-    // Brief pause between transfers to avoid overwhelming the device
+    // The device closes and flushes the file before sending the final ACK,
+    // so it is ready for the next dump header as soon as a transfer ends; a
+    // short grace period is enough.
     if (i < transfers.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
   }
   

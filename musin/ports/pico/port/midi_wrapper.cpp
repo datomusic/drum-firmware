@@ -186,13 +186,17 @@ void MIDI::internal::_sendPitchBend_actual(const byte channel, const int bend) {
 
 void MIDI::internal::_sendSysEx_actual(const unsigned length,
                                        const byte *bytes) {
+  // SysEx goes to USB only. Mirroring to DIN would block the main loop for
+  // ~40 ms per 125-byte packet (blocking UART writes at 31250 baud), pacing
+  // SDS sample dumps down to ~2 KB/s and saturating the DIN port.
+  //
   // The underlying Arduino MIDI library adds the F0/F7 terminators itself.
   // We must pass only the payload.
   // This wrapper function will strip the terminators if they are present.
   if (length >= 2 && bytes[0] == 0xF0 && bytes[length - 1] == 0xF7) {
-    ALL_TRANSPORTS(sendSysEx(length - 2, bytes + 1));
+    usb_midi.sendSysEx(length - 2, bytes + 1);
   } else {
     // If the message is not framed, send it as-is.
-    ALL_TRANSPORTS(sendSysEx(length, bytes));
+    usb_midi.sendSysEx(length, bytes);
   }
 }

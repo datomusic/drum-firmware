@@ -37,7 +37,12 @@ const SDS_WAIT = 0x7C;
 
 // Device Configuration
 const SYSEX_CHANNEL = 0x65; // DRUM device channel (same as existing protocol)
-const PACKET_TIMEOUT = 20;   // 20ms timeout per packet as per SDS spec
+// Retransmit only after the device's slowest routine ACKs. Flash
+// housekeeping (littlefs commits, and the file close on the final packet)
+// can delay an ACK by well over 100 ms; retransmitting sooner floods the
+// device with duplicates whose late replies (stale NAKs once the duplicate
+// is no longer "the previous packet") disrupt the following transfer.
+const PACKET_TIMEOUT = 500;
 const HEADER_TIMEOUT = 2000; // 2 second timeout for dump header
 const PACKET_RETRY_WINDOW = 5000; // Give up on a packet after this long without any response
 const WAIT_RESPONSE_TIMEOUT = 30000; // Deadline for the follow-up after a WAIT
@@ -748,6 +753,10 @@ async function deliverPacket(packet, expectedPacketNum, verbose) {
         // Stale ACK for an earlier packet we retransmitted; keep waiting.
         break;
       case SDS_NAK:
+        if (response.packet !== expectedPacketNum) {
+          // Stale NAK for a duplicate of an earlier packet; keep waiting.
+          break;
+        }
         if (verbose) {
           console.log(`\nPacket ${expectedPacketNum} NAK - retrying`);
         }

@@ -42,9 +42,10 @@ public:
   // host is still waiting for exactly this packet, and skipping it would
   // lose data irrecoverably.
   static constexpr uint64_t RETRANSMIT_INTERVAL_US = 100000;
-  // Open-loop pacing: slow enough that the small SysEx output queue and a
-  // DIN MIDI link (~41 ms per 127-byte packet at 31250 baud) can keep up.
-  static constexpr uint64_t OPEN_LOOP_INTERVAL_US = 50000;
+  // Open-loop pacing. SysEx goes out over USB only, where a 127-byte packet
+  // is on the wire in a few milliseconds; 10 ms leaves headroom for the
+  // receiver to store each packet, well under the ~20 ms SDS convention.
+  static constexpr uint64_t OPEN_LOOP_INTERVAL_US = 10000;
   // A host that sent WAIT but never followed up is assumed gone.
   static constexpr uint64_t STALL_TIMEOUT_US = 30000000;
   // Sample rate reported in outgoing dump headers; the stored .pcm files

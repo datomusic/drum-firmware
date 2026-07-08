@@ -121,7 +121,11 @@ public:
     switch (type) {
     case ACK:
       wait_pending_ = false;
-      if (state_ == State::AwaitingPacketResponse && transfer_complete()) {
+      // Complete only after the final packet went out (bytes_sent_ is zero
+      // while the header awaits its response). Checked in every sending
+      // state: a late-handshaking host may ACK the final open-loop packet,
+      // and advancing would emit a spurious zero-filled packet past the end.
+      if (transfer_complete()) {
         finish();
         logger_.info("SDS: Dump complete");
         return Result::SampleComplete;

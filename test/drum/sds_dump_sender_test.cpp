@@ -285,6 +285,34 @@ TEST_CASE("A silent host gets the dump open-loop") {
   REQUIRE_FALSE(file_ops.file_is_open);
 }
 
+TEST_CASE("A late ACK of the final open-loop packet completes the dump "
+          "without a spurious extra packet") {
+  TestFileOps file_ops;
+  fill_with_samples(file_ops.content, {500, -500, 250, -250});
+  musin::NullLogger logger;
+  Sender dump_sender(file_ops, logger);
+  MessageLog log;
+  MockSender out{log};
+
+  const auto request = make_dump_request(9);
+  absolute_time_t now = ONE_SECOND_US;
+  dump_sender.handle_dump_request(etl::span<const uint8_t>{request}, out, now);
+
+  // Silent host: the single (final) packet goes out open-loop.
+  now += Sender::HEADER_RESPONSE_TIMEOUT_US + 1;
+  REQUIRE(dump_sender.update(out, now) == sds::Result::OK);
+  REQUIRE(log.size() == 2);
+  REQUIRE(log[1][0] == sds::DATA_PACKET);
+
+  // The host wakes up and ACKs that final packet: the dump is complete and
+  // nothing further is sent.
+  REQUIRE(dump_sender.handle_response(sds::ACK, out, now) ==
+          sds::Result::SampleComplete);
+  REQUIRE(log.size() == 2);
+  REQUIRE_FALSE(dump_sender.is_busy());
+  REQUIRE_FALSE(file_ops.file_is_open);
+}
+
 TEST_CASE("A handshaking host with a lost packet gets retransmissions") {
   TestFileOps file_ops;
   // Two packets' worth of data so the transfer is not complete after one.

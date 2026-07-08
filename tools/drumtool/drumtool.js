@@ -170,6 +170,9 @@ function isCustomMessage(message) {
 
 // MIDI message handler - will be attached during initialization
 function handleMidiMessage(deltaTime, message) {
+  if (process.env.DRUMTOOL_DEBUG) {
+    console.log('IN :', message.map(b => b.toString(16).padStart(2, '0')).join(' '));
+  }
   // Handle SDS messages
   if (isSdsMessage(message)) {
     const messageType = message[3];

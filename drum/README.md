@@ -210,9 +210,12 @@ F0 7E 65 03 <sample # LSB> <sample # MSB> F7
 
 - The device replies with a Dump Header for `/NN.pcm` and then streams data
   packets, waiting for the host's ACK/NAK/WAIT/CANCEL after the header and
-  after every packet (NAK retransmits, CANCEL aborts). If the host never
-  responds, the device continues open-loop with a fixed inter-packet delay,
-  as the SDS spec allows.
+  after every packet (NAK retransmits, CANCEL aborts). If a handshaking
+  host's response goes missing, the device retransmits the same packet
+  (every 100 ms) rather than advancing, so a lost packet is never skipped.
+  Only when the host never responds to the header at all does the device
+  fall back to open-loop streaming with a fixed inter-packet delay, as the
+  SDS spec allows.
 - If the requested slot has no sample, the device replies with an SDS
   CANCEL (`F0 7E 65 7D 00 F7`).
 - The device plays back at 44100 Hz only, so outgoing dump headers always

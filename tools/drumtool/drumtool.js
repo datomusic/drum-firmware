@@ -171,7 +171,7 @@ function isCustomMessage(message) {
 // MIDI message handler - will be attached during initialization
 function handleMidiMessage(deltaTime, message) {
   if (process.env.DRUMTOOL_DEBUG) {
-    console.log('IN :', message.map(b => b.toString(16).padStart(2, '0')).join(' '));
+    console.log(`IN +${deltaTime.toFixed(4)}:`, message.map(b => b.toString(16).padStart(2, '0')).join(' '));
   }
   // Handle SDS messages
   if (isSdsMessage(message)) {
@@ -1206,6 +1206,7 @@ async function receiveSample(slot, outputPath, rawMode = false, verboseMode = fa
         // Duplicate of an already-ACKed packet (our ACK got lost): re-ACK.
         if (packetNum !== session.expectedPacket) {
           sendSDSMessage([SDS_ACK, packetNum]);
+          resetTimer(HEADER_TIMEOUT);
           return;
         }
 
@@ -1245,6 +1246,9 @@ async function receiveSample(slot, outputPath, rawMode = false, verboseMode = fa
     activeReceiveSession = session;
     isTransferActive = true;
     currentTransferInfo = { sampleNumber: slot };
+    // Abort any dump a previous (crashed/disconnected) host left running;
+    // the device ignores a CANCEL when idle.
+    sendSDSMessage([SDS_CANCEL, 0]);
     sendSDSMessage([SDS_DUMP_REQUEST, slot & 0x7F, (slot >> 7) & 0x7F]);
     resetTimer(HEADER_TIMEOUT);
   }).finally(() => {

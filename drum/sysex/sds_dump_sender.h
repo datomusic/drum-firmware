@@ -9,8 +9,10 @@
  * Request. The device acts as the SDS dump source: it sends the Dump Header,
  * waits for the host handshake, then sends data packets one at a time, each
  * gated on the host's ACK/NAK/WAIT/CANCEL response. If the host never
- * responds, the transfer continues open-loop with a fixed inter-packet
- * interval, as permitted by the SDS spec.
+ * responds to the header, the transfer continues open-loop with a fixed
+ * inter-packet interval, as permitted by the SDS spec. Once handshaking, a
+ * missing packet response triggers retransmission of the same packet (the
+ * packet or its ACK was lost in transit) rather than advancing.
  *
  * Sending is paced from the main loop via update(); no blocking occurs, so
  * audio and the sequencer keep running during a download.
@@ -31,11 +33,15 @@ namespace sds {
 
 template <typename FileOperations> class DumpSender {
 public:
-  // Handshake timeouts from the SDS spec: two seconds after the header,
-  // 20 ms after each data packet. A missing response switches the transfer
-  // to open-loop mode instead of aborting it.
+  // If the host never responds to the header within two seconds (SDS spec),
+  // it is assumed to be a non-handshaking receiver and the dump proceeds
+  // open-loop.
   static constexpr uint64_t HEADER_RESPONSE_TIMEOUT_US = 2000000;
-  static constexpr uint64_t PACKET_RESPONSE_TIMEOUT_US = 20000;
+  // Once the host has handshaked, a missing packet response means the packet
+  // (or its ACK) was lost in transit. Retransmit rather than advance: the
+  // host is still waiting for exactly this packet, and skipping it would
+  // lose data irrecoverably.
+  static constexpr uint64_t RETRANSMIT_INTERVAL_US = 100000;
   // Open-loop pacing: slow enough that the small SysEx output queue and a
   // DIN MIDI link (~41 ms per 127-byte packet at 31250 baud) can keep up.
   static constexpr uint64_t OPEN_LOOP_INTERVAL_US = 50000;
@@ -96,6 +102,7 @@ public:
     send_dump_header(send_message);
     state_ = State::AwaitingHeaderResponse;
     last_activity_time_ = now;
+    last_send_time_ = now;
     logger_.info("SDS: Dump started, bytes:",
                  static_cast<uint32_t>(total_bytes_));
     return Result::OK;
@@ -122,7 +129,7 @@ public:
       return Result::OK;
     case NAK:
       wait_pending_ = false;
-      resend_last(send_message);
+      resend_last(send_message, now);
       return Result::OK;
     case WAIT:
       wait_pending_ = true;
@@ -152,6 +159,7 @@ public:
       return Result::OK; // Host asked us to wait; stall timeout still applies.
     }
 
+    const int64_t since_send = absolute_time_diff_us(last_send_time_, now);
     switch (state_) {
     case State::AwaitingHeaderResponse:
       if (elapsed > static_cast<int64_t>(HEADER_RESPONSE_TIMEOUT_US)) {
@@ -161,13 +169,15 @@ public:
       }
       return Result::OK;
     case State::AwaitingPacketResponse:
-      if (elapsed > static_cast<int64_t>(PACKET_RESPONSE_TIMEOUT_US)) {
-        state_ = State::OpenLoop;
-        return advance_open_loop(send_message, now);
+      // The host handshaked earlier but this packet's response is missing:
+      // the packet or its ACK was lost. Retransmit until the host answers
+      // or the stall timeout gives up on it.
+      if (since_send > static_cast<int64_t>(RETRANSMIT_INTERVAL_US)) {
+        resend_last(send_message, now);
       }
       return Result::OK;
     case State::OpenLoop:
-      if (elapsed > static_cast<int64_t>(OPEN_LOOP_INTERVAL_US)) {
+      if (since_send > static_cast<int64_t>(OPEN_LOOP_INTERVAL_US)) {
         return advance_open_loop(send_message, now);
       }
       return Result::OK;
@@ -197,7 +207,10 @@ private:
   size_t bytes_sent_ = 0;
   uint8_t packet_num_ = 0;
   bool wait_pending_ = false;
+  // Last host response (or transfer start); drives the stall timeout.
   absolute_time_t last_activity_time_{};
+  // Last outgoing header/packet; drives retransmit and open-loop pacing.
+  absolute_time_t last_send_time_{};
   etl::array<uint8_t, PACKET_SIZE> last_packet_{};
   bool header_is_last_sent_ = true;
   etl::array<uint8_t, 17> header_{};
@@ -284,16 +297,22 @@ private:
     packet_num_ = (packet_num_ + 1) & 0x7F;
     if (state_ != State::OpenLoop) {
       state_ = State::AwaitingPacketResponse;
+    } else {
+      // No host responses are expected open-loop; sending is the only
+      // activity that can keep the stall timeout at bay.
+      last_activity_time_ = now;
     }
-    last_activity_time_ = now;
+    last_send_time_ = now;
   }
 
-  template <typename SendMessage> void resend_last(SendMessage send_message) {
+  template <typename SendMessage>
+  void resend_last(SendMessage send_message, absolute_time_t now) {
     if (header_is_last_sent_) {
       send_message(etl::span<const uint8_t>{header_});
     } else {
       send_message(etl::span<const uint8_t>{last_packet_});
     }
+    last_send_time_ = now;
   }
 
   template <typename SendMessage>

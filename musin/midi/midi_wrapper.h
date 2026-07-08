@@ -28,10 +28,12 @@ struct Callbacks {
 };
 
 void init(const Callbacks &callbacks);
-/** @brief Read MIDI messages for a specific channel. */
-void read(uint8_t channel);
-/** @brief Read MIDI messages for all channels (OMNI). */
-void read();
+/** @brief Read MIDI messages for a specific channel.
+ *  @return true if a complete message was parsed and dispatched. */
+bool read(uint8_t channel);
+/** @brief Read MIDI messages for all channels (OMNI).
+ *  @return true if a complete message was parsed and dispatched. */
+bool read();
 void sendRealTime(MidiType message);
 void sendControlChange(uint8_t cc, uint8_t value, uint8_t channel);
 void sendNoteOn(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);

@@ -101,6 +101,7 @@ private:
   bool firmware_reboot_pending_ = false;
   absolute_time_t firmware_reboot_time_{};
   float last_notified_progress_ = -1.0f;
+  bool sds_dump_was_active_ = false;
 };
 
 } // namespace drum

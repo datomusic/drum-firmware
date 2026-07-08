@@ -57,6 +57,9 @@ struct SysExTransferStateChangeEvent {
   // Optional transfer progress (0.0f to 1.0f). Present during firmware
   // updates, absent for file/sample transfers.
   std::optional<float> progress = std::nullopt;
+  // If true, skip the debounce period and return to sequencer immediately.
+  // Used for outgoing SDS dumps where the device just sends data.
+  bool skip_debounce = false;
 };
 
 } // namespace drum::Events

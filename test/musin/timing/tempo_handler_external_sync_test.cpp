@@ -57,7 +57,6 @@ TEST_CASE("TempoHandler external manual sync primes next SyncIn downbeat") {
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
-                             /*send_midi_clock_when_stopped*/ false,
                              ClockSource::EXTERNAL_SYNC);
 
   clock_router.add_observer(speed_adapter);
@@ -92,7 +91,6 @@ TEST_CASE("TempoHandler speed change with pending downbeat waits then aligns") {
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
-                             /*send_midi_clock_when_stopped*/ false,
                              ClockSource::EXTERNAL_SYNC);
 
   clock_router.add_observer(speed_adapter);
@@ -134,7 +132,6 @@ TEST_CASE("TempoHandler cable disconnect during pending sync switches source") {
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
-                             /*send_midi_clock_when_stopped*/ false,
                              ClockSource::EXTERNAL_SYNC);
 
   clock_router.add_observer(speed_adapter);
@@ -172,7 +169,6 @@ TEST_CASE(
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
-                             /*send_midi_clock_when_stopped*/ false,
                              ClockSource::EXTERNAL_SYNC);
 
   clock_router.add_observer(speed_adapter);
@@ -205,7 +201,6 @@ TEST_CASE("TempoHandler multiple speed changes before downbeat uses final "
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
-                             /*send_midi_clock_when_stopped*/ false,
                              ClockSource::EXTERNAL_SYNC);
 
   clock_router.add_observer(speed_adapter);
@@ -253,7 +248,6 @@ TEST_CASE("TempoHandler speed change without pending downbeat realigns on next "
 
   musin::timing::SpeedAdapter speed_adapter(SpeedModifier::NORMAL_SPEED);
   TempoHandler tempo_handler(clock_router, speed_adapter,
-                             /*send_midi_clock_when_stopped*/ false,
                              ClockSource::EXTERNAL_SYNC);
 
   clock_router.add_observer(speed_adapter);

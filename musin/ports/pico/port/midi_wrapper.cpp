@@ -164,6 +164,18 @@ void MIDI::internal::_sendRealTime_actual(const midi::MidiType message) {
   }
 }
 
+void MIDI::internal::_sendRealTime_usb_actual(const midi::MidiType message) {
+  usb_midi.sendRealTime(message);
+}
+
+void MIDI::internal::_sendRealTime_din_actual(const midi::MidiType message) {
+  // DIN MIDI: try non-blocking write first to minimize jitter
+  // Fall back to blocking write to guarantee delivery if FIFO is full
+  if (!midi_uart.write_nonblocking(static_cast<byte>(message))) {
+    midi_uart.write(static_cast<byte>(message));
+  }
+}
+
 void MIDI::internal::_sendControlChange_actual(const byte channel,
                                                const byte controller,
                                                const byte value) {

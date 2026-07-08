@@ -6,14 +6,12 @@ namespace musin::timing {
 
 TempoHandler::TempoHandler(ClockRouter &clock_router_ref,
                            SpeedAdapter &speed_adapter_ref,
-                           bool send_midi_clock_when_stopped,
                            ClockSource initial_source)
     : clock_router_ref_(clock_router_ref),
       speed_adapter_ref_(speed_adapter_ref),
       _playback_state(PlaybackState::STOPPED),
       current_speed_modifier_(SpeedModifier::NORMAL_SPEED), phase_12_(0),
-      tick_count_(0),
-      _send_midi_clock_when_stopped(send_midi_clock_when_stopped) {
+      tick_count_(0) {
   clock_router_ref_.set_source_change_listener(this);
   speed_adapter_ref_.add_observer(*this);
   set_clock_source(initial_source);

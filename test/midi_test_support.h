@@ -10,9 +10,12 @@
 namespace MIDI::internal {
 void _sendNoteOn_actual(uint8_t channel, uint8_t note, uint8_t velocity);
 void _sendNoteOff_actual(uint8_t channel, uint8_t note, uint8_t velocity);
-void _sendControlChange_actual(uint8_t channel, uint8_t controller, uint8_t value);
+void _sendControlChange_actual(uint8_t channel, uint8_t controller,
+                               uint8_t value);
 void _sendPitchBend_actual(uint8_t channel, int bend);
 void _sendRealTime_actual(::midi::MidiType message);
+void _sendRealTime_usb_actual(::midi::MidiType message);
+void _sendRealTime_din_actual(::midi::MidiType message);
 void _sendSysEx_actual(unsigned length, const uint8_t *bytes);
 } // namespace MIDI::internal
 
@@ -33,15 +36,20 @@ struct MockMidiCallRecord {
 
   // Constructors
   MockMidiCallRecord();
-  MockMidiCallRecord(std::string name, uint8_t ch, uint8_t param1, uint8_t param2, int paramInt,
-                     ::midi::MidiType realtimeType, std::vector<uint8_t> sx_data, unsigned sx_len);
+  MockMidiCallRecord(std::string name, uint8_t ch, uint8_t param1,
+                     uint8_t param2, int paramInt,
+                     ::midi::MidiType realtimeType,
+                     std::vector<uint8_t> sx_data, unsigned sx_len);
 
   // Factory methods for convenience
   static MockMidiCallRecord NoteOn(uint8_t ch, uint8_t note, uint8_t vel);
   static MockMidiCallRecord NoteOff(uint8_t ch, uint8_t note, uint8_t vel);
-  static MockMidiCallRecord ControlChange(uint8_t ch, uint8_t ctrl, uint8_t val);
+  static MockMidiCallRecord ControlChange(uint8_t ch, uint8_t ctrl,
+                                          uint8_t val);
   static MockMidiCallRecord PitchBend(uint8_t ch, int bend);
   static MockMidiCallRecord RealTime(::midi::MidiType type);
+  static MockMidiCallRecord RealTimeUsb(::midi::MidiType type);
+  static MockMidiCallRecord RealTimeDin(::midi::MidiType type);
   static MockMidiCallRecord SysEx(unsigned length, const uint8_t *bytes);
 
   bool operator==(const MockMidiCallRecord &other) const;

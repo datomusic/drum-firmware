@@ -27,7 +27,8 @@ constexpr size_t MAX_PATH_LENGTH = 64;
 // MIDI Configuration
 // The MIDI channel (default 10, GM Percussion Standard) is a runtime
 // setting; see drum/settings.h.
-constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER = true;
+constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER_DIN = true;
+constexpr bool SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER_USB = false;
 constexpr bool SEND_SYNC_CLOCK_WHEN_STOPPED_AS_MASTER = true;
 constexpr bool RETRIGGER_SYNC_ON_PLAYBUTTON = true;
 constexpr bool IGNORE_MIDI_NOTE_OFF = true;

@@ -109,8 +109,9 @@
 
 ### Clock Output
 - **24 PPQN** (Pulses Per Quarter Note)
-- **Continuous when playing**
-- **Stops when sequencer stopped**
+- **DIN MIDI:** continuous (sends clock even when stopped, per `SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER_DIN`)
+- **USB MIDI:** only when playing (per `SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER_USB`)
+- **EXTERNAL_SYNC bridge:** always forwarded to both transports
 
 ## Configuration Notes
 - The MIDI channel is configurable via the `SetSetting` SysEx command (see Settings Commands below)

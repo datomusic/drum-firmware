@@ -43,6 +43,8 @@ namespace internal {
 // These functions perform the actual MIDI sending via underlying libraries.
 // They are called by the midi_message_queue processor.
 void _sendRealTime_actual(MidiType message);
+void _sendRealTime_usb_actual(MidiType message);
+void _sendRealTime_din_actual(MidiType message);
 void _sendControlChange_actual(uint8_t channel, uint8_t controller,
                                uint8_t value);
 void _sendNoteOn_actual(uint8_t channel, uint8_t note, uint8_t velocity);

@@ -50,7 +50,6 @@ class TempoHandler
 public:
   explicit TempoHandler(ClockRouter &clock_router_ref,
                         SpeedAdapter &speed_adapter_ref,
-                        bool send_midi_clock_when_stopped,
                         ClockSource initial_source = ClockSource::INTERNAL);
 
   // Prevent copying and assignment
@@ -92,7 +91,6 @@ private:
   SpeedModifier current_speed_modifier_;
   uint8_t phase_12_;
   uint64_t tick_count_;
-  const bool _send_midi_clock_when_stopped;
   bool initialized_ = false;
   float min_bpm_ = 60.0f;
   float max_bpm_ = 360.0f;

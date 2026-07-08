@@ -73,11 +73,11 @@ static musin::timing::SpeedAdapter
 static musin::timing::SyncOut sync_out(DATO_SUBMARINE_SYNC_OUT_PIN);
 static musin::timing::TempoHandler
     tempo_handler(clock_router, speed_adapter,
-                  drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER,
                   musin::timing::ClockSource::INTERNAL);
 static musin::timing::MidiClockOut
     midi_clock_out(tempo_handler,
-                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER);
+                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER_DIN,
+                   drum::config::SEND_MIDI_CLOCK_WHEN_STOPPED_AS_MASTER_USB);
 static drum::SequencerController<drum::config::NUM_TRACKS,
                                  drum::config::NUM_STEPS_PER_TRACK>
     sequencer_controller(tempo_handler, logger);

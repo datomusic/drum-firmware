@@ -1,0 +1,60 @@
+;
+; 16-bit stereo I2S receive, clocked by externally generated BCLK/LRCLK
+; (the audio_i2s TX state machine drives both clocks on this device).
+;
+; Pin mapping is relative to the IN pin base, which must be the data input
+; pin (codec DOUT). The clock pins must sit two GPIOs above it:
+;   pin 0: data in
+;   pin 2: BCLK
+;   pin 3: LRCLK
+; This matches the Dato Submarine wiring: data in 21, BCLK 23, LRCLK 24
+; (swapped clock pin order, see PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED).
+;
+; Autopush must be enabled with threshold 32, shifting left (MSB first).
+; Each pushed FIFO word holds:
+;
+; | 31     :     16 | 15     :      0 |
+; | sample LRCLK=0  | sample LRCLK=1  |
+;
+; Data is sampled on the rising BCLK edge. The single-bit I2S delay after
+; each LRCLK transition is handled by skipping one clock at sync time; the
+; LSB of each sample is captured in the first slot of the following frame
+; half, which keeps alignment as long as the clocks run continuously.
+
+.program audio_i2s_rx
+
+public entry_point:
+    wait 1 pin 3        ; sync to the LRCLK=1 half
+    wait 0 pin 3        ; falling LRCLK edge: a new frame begins
+    wait 1 pin 2        ; skip the I2S one-bit delay slot
+frame_loop:
+    set x, 15
+high_half:
+    wait 0 pin 2
+    wait 1 pin 2
+    in pins, 1
+    jmp x-- high_half
+    set x, 15
+low_half:
+    wait 0 pin 2
+    wait 1 pin 2
+    in pins, 1
+    jmp x-- low_half
+    jmp frame_loop
+
+% c-sdk {
+
+static inline void audio_i2s_rx_program_init(PIO pio, uint sm, uint offset, uint data_in_pin) {
+    pio_sm_config sm_config = audio_i2s_rx_program_get_default_config(offset);
+
+    sm_config_set_in_pins(&sm_config, data_in_pin);
+    sm_config_set_in_shift(&sm_config, false, true, 32);
+    sm_config_set_fifo_join(&sm_config, PIO_FIFO_JOIN_RX);
+
+    pio_gpio_init(pio, data_in_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, data_in_pin, 1, false);
+
+    pio_sm_init(pio, sm, offset + audio_i2s_rx_offset_entry_point, &sm_config);
+}
+
+%}

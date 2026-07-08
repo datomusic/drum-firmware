@@ -67,6 +67,7 @@ const SET_SETTING = 0x42;
 const SETTINGS = {
   midi_channel: { id: 0x01, min: 1, max: 16, description: 'MIDI channel for notes and CCs (1-16)' },
   slider_mode: { id: 0x02, min: 0, max: 7, description: 'Track slider bit mask: 1=pitch, 2=gain, 4=decay (combinable)' },
+  line_in: { id: 0x03, min: 0, max: 2, description: 'Line in routing: 0=off, 1=pre-fx, 2=post-fx' },
 };
 
 // Firmware Update Commands (UF2 streamed to the inactive A/B partition)

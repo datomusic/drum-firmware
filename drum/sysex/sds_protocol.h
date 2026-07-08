@@ -59,6 +59,19 @@ enum class Result {
   StateError
 };
 
+// XOR checksum over non-realtime id, channel, message type, packet number
+// and all data bytes, as defined by the SDS spec. Shared by the receive
+// protocol and the dump sender.
+constexpr uint8_t
+calculate_data_checksum(uint8_t packet_num,
+                        const etl::span<const uint8_t> &data) {
+  uint8_t checksum = 0x7E ^ 0x65 ^ DATA_PACKET ^ packet_num; // 0x65 = DRUM
+  for (const uint8_t byte : data) {
+    checksum ^= byte;
+  }
+  return checksum & 0x7F;
+}
+
 // Sample metadata from Dump Header
 struct SampleInfo {
   uint16_t sample_number;
@@ -204,19 +217,6 @@ private:
     return static_cast<int16_t>(unsigned_sample - 0x8000);
   }
 
-  // Calculate checksum for data packet validation
-  static constexpr uint8_t
-  calculate_checksum(uint8_t packet_num, const etl::span<const uint8_t> &data) {
-    // XOR of: 0x7E (non-realtime), channel, 0x02 (data packet), packet_num, and
-    // all data
-    uint8_t checksum =
-        0x7E ^ 0x65 ^ DATA_PACKET ^ packet_num; // 0x65 = DRUM channel
-    for (const uint8_t byte : data) {
-      checksum ^= byte;
-    }
-    return checksum & 0x7F;
-  }
-
   // Handle Cancel message
   constexpr Result handle_cancel_message() {
     logger_.info("SDS: Transfer cancelled by host.");
@@ -321,7 +321,7 @@ private:
 
     // Verify checksum
     const uint8_t calculated_checksum =
-        calculate_checksum(packet_num, data_span);
+        calculate_data_checksum(packet_num, data_span);
     if (received_checksum != calculated_checksum) {
       logger_.error("SDS: Checksum mismatch, expected:",
                     static_cast<uint32_t>(calculated_checksum));

@@ -7,6 +7,7 @@
 #include "drum/standard_file_ops.h"
 #include "drum/sysex/firmware_update.h"
 #include "drum/sysex/protocol.h"
+#include "drum/sysex/sds_dump_sender.h"
 #include "drum/sysex/sds_protocol.h"
 #include "etl/observer.h"
 #include "musin/flash/firmware_writer.h"
@@ -90,6 +91,7 @@ private:
   StandardFileOps file_ops_;
   sysex::Protocol<StandardFileOps> protocol_;
   sds::Protocol<StandardFileOps> sds_protocol_;
+  sds::DumpSender<StandardFileOps> sds_dump_sender_;
   musin::flash::FirmwareWriter firmware_writer_;
   sysex::FirmwareUpdate<musin::flash::FirmwareWriter> firmware_update_;
   bool new_file_received_ = false;

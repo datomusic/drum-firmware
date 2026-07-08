@@ -141,6 +141,7 @@ let activeMidiInput = null;
 
 // Message handling
 let pendingResponse = null;
+let activeReceiveSession = null; // Set while a sample download is in progress
 let deviceStatus = 'unknown'; // 'ok', 'slow', 'error', 'unknown'
 let isTransferActive = false;
 let currentTransferInfo = null; // To hold info about the active transfer
@@ -173,7 +174,15 @@ function handleMidiMessage(deltaTime, message) {
   if (isSdsMessage(message)) {
     const messageType = message[3];
     const packetNum = message.length > 4 ? message[4] : 0;
-    
+
+    // Route dump header / data packets to an active sample download
+    if (activeReceiveSession &&
+        (messageType === SDS_DUMP_HEADER || messageType === SDS_DATA_PACKET ||
+         messageType === SDS_CANCEL)) {
+      activeReceiveSession.onMessage(message);
+      return;
+    }
+
     // Handle responses during handshaking
     if (pendingResponse && (messageType === SDS_ACK || messageType === SDS_NAK || 
                            messageType === SDS_WAIT || messageType === SDS_CANCEL)) {
@@ -1092,6 +1101,169 @@ async function transferSample(filePath, sampleNumber, sampleRate = 44100, verbos
   }
 }
 
+// Unpack a 16-bit sample from the SDS left-justified 3-byte format
+function unpack16BitSample(b0, b1, b2) {
+  const unsignedSample = ((b0 & 0x7F) << 9) | ((b1 & 0x7F) << 2) | ((b2 & 0x7F) >> 5);
+  return unsignedSample - 0x8000;
+}
+
+// Download a sample from the device using an SDS Dump Request.
+// The device streams the stored 16-bit PCM back; we ACK each packet.
+async function receiveSample(slot, outputPath, rawMode = false, verboseMode = false) {
+  if (slot < 0 || slot > 127) {
+    console.error(`Error: Sample number must be between 0-127, got: ${slot}`);
+    return false;
+  }
+
+  const finalPath = outputPath || `slot_${slot.toString().padStart(2, '0')}.${rawMode ? 'pcm' : 'wav'}`;
+  console.log(`\n=== SDS Download: slot ${slot} → ${finalPath} ===`);
+
+  const startTime = Date.now();
+
+  const result = await new Promise((resolve, reject) => {
+    const session = {
+      header: null,
+      totalBytes: 0,
+      bytesReceived: 0,
+      expectedPacket: 0,
+      chunks: [],
+      timer: null,
+      lastProgressUpdate: -1,
+    };
+
+    const finish = (err, data) => {
+      clearTimeout(session.timer);
+      activeReceiveSession = null;
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    };
+
+    const resetTimer = (ms) => {
+      clearTimeout(session.timer);
+      session.timer = setTimeout(() => {
+        finish(new Error(`Timeout waiting for device after ${ms}ms.`));
+      }, ms);
+    };
+
+    session.onMessage = (message) => {
+      const messageType = message[3];
+
+      if (messageType === SDS_CANCEL) {
+        finish(new Error('Device cancelled the dump - the slot is probably empty.'));
+        return;
+      }
+
+      if (messageType === SDS_DUMP_HEADER) {
+        // F0 7E 65 01 sl sh ee p*3 g*3 h*3 i*3 jj F7
+        session.header = {
+          sampleNumber: (message[4] & 0x7F) | ((message[5] & 0x7F) << 7),
+          bitDepth: message[6],
+          periodNs: (message[7] & 0x7F) | ((message[8] & 0x7F) << 7) | ((message[9] & 0x7F) << 14),
+          lengthWords: (message[10] & 0x7F) | ((message[11] & 0x7F) << 7) | ((message[12] & 0x7F) << 14),
+        };
+        session.header.sampleRate = session.header.periodNs > 0
+          ? Math.round(1000000000 / session.header.periodNs) : 44100;
+        session.totalBytes = session.header.lengthWords * 2;
+
+        if (session.header.bitDepth !== 16) {
+          finish(new Error(`Unsupported bit depth: ${session.header.bitDepth}`));
+          return;
+        }
+        if (verboseMode) {
+          console.log(`Dump header: ${session.totalBytes} bytes, ${session.header.sampleRate}Hz, ${session.header.bitDepth}-bit`);
+        }
+        sendSDSMessage([SDS_ACK, 0]);
+        resetTimer(HEADER_TIMEOUT);
+        return;
+      }
+
+      if (messageType === SDS_DATA_PACKET) {
+        if (!session.header) {
+          return; // Data before header; ignore
+        }
+        if (message.length !== 127) { // F0 7E 65 02 num data*120 checksum F7
+          sendSDSMessage([SDS_NAK, session.expectedPacket]);
+          return;
+        }
+        const packetNum = message[4];
+        const data = message.slice(5, 125);
+        const checksum = message[125];
+        if (checksum !== calculateChecksum(packetNum, data)) {
+          if (verboseMode) {
+            console.log(`\nPacket ${packetNum} checksum mismatch - requesting resend`);
+          }
+          sendSDSMessage([SDS_NAK, packetNum]);
+          resetTimer(HEADER_TIMEOUT);
+          return;
+        }
+
+        // Duplicate of an already-ACKed packet (our ACK got lost): re-ACK.
+        if (packetNum !== session.expectedPacket) {
+          sendSDSMessage([SDS_ACK, packetNum]);
+          return;
+        }
+
+        const packetBytes = Buffer.alloc(80);
+        for (let i = 0; i < 40; i++) {
+          const sample = unpack16BitSample(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+          packetBytes.writeInt16LE(sample, i * 2);
+        }
+        const remaining = session.totalBytes - session.bytesReceived;
+        session.chunks.push(packetBytes.subarray(0, Math.min(80, remaining)));
+        session.bytesReceived += Math.min(80, remaining);
+        session.expectedPacket = (packetNum + 1) & 0x7F;
+
+        sendSDSMessage([SDS_ACK, packetNum]);
+        resetTimer(HEADER_TIMEOUT);
+
+        const percent = Math.floor((session.bytesReceived / session.totalBytes) * 100);
+        if (percent > session.lastProgressUpdate && process.stdout.clearLine) {
+          session.lastProgressUpdate = percent;
+          const barLength = 40;
+          const filled = Math.round(barLength * (percent / 100));
+          const bar = '█'.repeat(filled) + '░'.repeat(barLength - filled);
+          process.stdout.clearLine(0);
+          process.stdout.cursorTo(0);
+          process.stdout.write(`Progress: ${percent}% |${bar}| ${session.bytesReceived}/${session.totalBytes} bytes`);
+        }
+
+        if (session.bytesReceived >= session.totalBytes) {
+          finish(null, {
+            pcm: Buffer.concat(session.chunks),
+            sampleRate: session.header.sampleRate,
+          });
+        }
+      }
+    };
+
+    activeReceiveSession = session;
+    isTransferActive = true;
+    currentTransferInfo = { sampleNumber: slot };
+    sendSDSMessage([SDS_DUMP_REQUEST, slot & 0x7F, (slot >> 7) & 0x7F]);
+    resetTimer(HEADER_TIMEOUT);
+  }).finally(() => {
+    activeReceiveSession = null;
+    isTransferActive = false;
+    currentTransferInfo = null;
+  });
+
+  if (rawMode) {
+    fs.writeFileSync(finalPath, result.pcm);
+  } else {
+    const samples = new Int16Array(result.pcm.buffer, result.pcm.byteOffset, result.pcm.length / 2);
+    const wav = new WaveFile();
+    wav.fromScratch(1, result.sampleRate, '16', samples);
+    fs.writeFileSync(finalPath, wav.toBuffer());
+  }
+
+  const seconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`\n\nDownload complete: ${result.pcm.length} bytes at ${result.sampleRate}Hz written to ${finalPath} in ${seconds} s`);
+  return true;
+}
+
 // Helper function to check if argument is a sample rate
 function isSampleRate(arg) {
   const rateMatch = arg.match(/^(\d+)$/);
@@ -1186,6 +1358,7 @@ if (!command) {
   console.log("");
   console.log("Usage:");
   console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
+  console.log("  drumtool.js receive <slot> [output_file] [--raw] [--verbose|-v]");
   console.log("  drumtool.js version");
   console.log("  drumtool.js storage");
   console.log("  drumtool.js format");
@@ -1199,6 +1372,7 @@ if (!command) {
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
+  console.log("  receive        - Download a sample from the device (WAV by default, --raw for PCM)");
   console.log("  version        - Get device firmware version");
   console.log("  storage        - Get device storage information");
   console.log("  format         - Format device filesystem");
@@ -1237,6 +1411,8 @@ if (!command) {
   console.log("  drumtool.js storage                           # Check storage usage");
   console.log("  drumtool.js format                            # Format filesystem");
   console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
+  console.log("  drumtool.js receive 0 kick.wav                # Download slot 0 as WAV");
+  console.log("  drumtool.js receive 30 --raw                  # Download slot 30 as raw PCM");
   console.log("  drumtool.js get-sequencer --json > state.json # Save sequencer pattern");
   console.log("  drumtool.js set-sequencer state.json          # Restore sequencer pattern");
   console.log("  drumtool.js set-setting midi_channel 1        # Use MIDI channel 1");
@@ -1303,6 +1479,13 @@ async function main() {
         console.error(`Error: ${error.message}`);
         process.exit(1);
       }
+    } else if (command === 'receive') {
+      const slotStr = process.argv[3];
+      const slot = parseInt(slotStr, 10);
+      if (slotStr === undefined || isNaN(slot) || slot < 0 || slot > 127) {
+        console.error("Error: 'receive' requires a slot number (0-127).");
+        process.exit(1);
+      }
     } else if (command === 'flash') {
       const file = process.argv[3];
       if (!file) {
@@ -1339,7 +1522,7 @@ async function main() {
     } else if (command !== 'version' && command !== 'storage' && command !== 'format' &&
                command !== 'reboot-bootloader' && command !== 'identity' &&
                command !== 'get-sequencer') {
-      console.error(`Error: Unknown command '${command}'. Use 'send', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', 'flash', 'get-sequencer', 'set-sequencer', 'get-setting', or 'set-setting'.`);
+      console.error(`Error: Unknown command '${command}'. Use 'send', 'receive', 'version', 'storage', 'format', 'reboot-bootloader', 'identity', 'flash', 'get-sequencer', 'set-sequencer', 'get-setting', or 'set-setting'.`);
       process.exit(1);
     }
 
@@ -1364,6 +1547,13 @@ async function main() {
       const success = transfers.length === 1 
         ? await transferSample(transfers[0].filePath, transfers[0].slot, transfers[0].sampleRate, verbose)
         : await transferMultipleSamples(transfers, verbose);
+      process.exitCode = success ? 0 : 1;
+    } else if (command === 'receive') {
+      const slot = parseInt(process.argv[3], 10);
+      const extraArgs = process.argv.slice(4);
+      const rawMode = extraArgs.includes('--raw');
+      const outputPath = extraArgs.find(arg => !arg.startsWith('-'));
+      const success = await receiveSample(slot, outputPath, rawMode, verbose);
       process.exitCode = success ? 0 : 1;
     } else if (command === 'version') {
       await get_firmware_version();

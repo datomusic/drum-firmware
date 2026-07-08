@@ -215,9 +215,8 @@ F0 7E 65 03 <sample # LSB> <sample # MSB> F7
   as the SDS spec allows.
 - If the requested slot has no sample, the device replies with an SDS
   CANCEL (`F0 7E 65 7D 00 F7`).
-- Stored samples carry no sample-rate metadata, so outgoing dump headers
-  always claim 44100 Hz. Samples uploaded at other rates download with an
-  incorrect rate in the header (the audio data itself is unchanged).
+- The device plays back at 44100 Hz only, so outgoing dump headers always
+  report 44100 Hz.
 - A download cannot start while an upload is in progress and vice versa;
   the conflicting request is refused (CANCEL/NAK).
 

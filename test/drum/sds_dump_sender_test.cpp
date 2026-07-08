@@ -285,6 +285,52 @@ TEST_CASE("A silent host gets the dump open-loop") {
   REQUIRE_FALSE(file_ops.file_is_open);
 }
 
+TEST_CASE("A handshaking host with a lost packet gets retransmissions") {
+  TestFileOps file_ops;
+  // Two packets' worth of data so the transfer is not complete after one.
+  etl::vector<int16_t, 64> samples;
+  for (int i = 0; i < 42; ++i) {
+    samples.push_back(static_cast<int16_t>(i));
+  }
+  for (const int16_t s : samples) {
+    file_ops.content.push_back(static_cast<uint8_t>(s & 0xFF));
+    file_ops.content.push_back(static_cast<uint8_t>((s >> 8) & 0xFF));
+  }
+  musin::NullLogger logger;
+  Sender dump_sender(file_ops, logger);
+  MessageLog log;
+  MockSender out{log};
+
+  const auto request = make_dump_request(4);
+  absolute_time_t now = ONE_SECOND_US;
+  dump_sender.handle_dump_request(etl::span<const uint8_t>{request}, out, now);
+  dump_sender.handle_response(sds::ACK, out, now); // header ACK, packet 0 sent
+  REQUIRE(log.size() == 2);
+
+  // Packet 0 (or our view of its ACK) is lost: the host stays silent. The
+  // device must retransmit the same packet, not advance past it.
+  now += Sender::RETRANSMIT_INTERVAL_US + 1;
+  REQUIRE(dump_sender.update(out, now) == sds::Result::OK);
+  REQUIRE(log.size() == 3);
+  REQUIRE(log[2] == log[1]); // identical retransmission
+
+  // Still silent: it keeps retransmitting at the same cadence.
+  now += Sender::RETRANSMIT_INTERVAL_US + 1;
+  dump_sender.update(out, now);
+  REQUIRE(log.size() == 4);
+  REQUIRE(log[3] == log[1]);
+
+  // The late ACK finally arrives and the transfer resumes with packet 1.
+  dump_sender.handle_response(sds::ACK, out, now);
+  REQUIRE(log.size() == 5);
+  REQUIRE(log[4][1] == 1); // next packet number, not another retransmit
+
+  // A host that never comes back eventually trips the stall timeout.
+  now += Sender::STALL_TIMEOUT_US + 1;
+  REQUIRE(dump_sender.update(out, now) == sds::Result::Cancelled);
+  REQUIRE_FALSE(dump_sender.is_busy());
+}
+
 TEST_CASE("A host that sends WAIT and then vanishes trips the stall timeout") {
   TestFileOps file_ops;
   fill_with_samples(file_ops.content, {500, -500});

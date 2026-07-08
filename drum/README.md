@@ -159,7 +159,7 @@ All custom SysEx messages share the following structure:
 - **Encoded Payload**: Command-specific data, with each pair of 8-bit bytes encoded into three 7-bit bytes.
 - **F7**: Standard SysEx End byte.
 
-A utility tool, `tools/drumtool/drumtool.js`, is provided to handle device communication and sample management using MIDI Sample Dump Standard (SDS) protocol.
+A utility tool, `tools/drumtool/drumtool.js`, is provided to handle device communication and sample management (upload and download) using the MIDI Sample Dump Standard (SDS) protocol.
 
 ### General Commands
 | Command | Tag | Description |
@@ -186,6 +186,45 @@ Transferring files (like samples or `kit.bin`) to the device is a multi-step pro
     - **Command:** `EndFileTransfer` (0x12)
     - **Payload:** None.
     - After sending all data chunks, the sender sends this command. The device closes the file, finalizing the write, and sends a final `Ack`.
+
+### Sample Transfer (MIDI Sample Dump Standard)
+
+Samples are transferred using the standard MIDI SDS protocol on SysEx channel
+`65`, with the DRUM acting as receiver (upload) or sender (download).
+`tools/drumtool/drumtool.js send` and `drumtool.js receive` are the reference
+clients.
+
+#### Upload (host → DRUM)
+The host sends an SDS **Dump Header** (`F0 7E 65 01 ...`) describing a 16-bit
+sample, followed by **Data Packets** (`F0 7E 65 02 ...`, 40 samples each).
+The device ACKs the header and each packet, and stores the audio as raw
+16-bit little-endian PCM in `/NN.pcm`, where `NN` is the two-digit sample
+number from the header.
+
+#### Download (DRUM → host)
+The host requests a sample with an SDS **Dump Request**:
+
+```
+F0 7E 65 03 <sample # LSB> <sample # MSB> F7
+```
+
+- The device replies with a Dump Header for `/NN.pcm` and then streams data
+  packets, waiting for the host's ACK/NAK/WAIT/CANCEL after the header and
+  after every packet (NAK retransmits, CANCEL aborts). If the host never
+  responds, the device continues open-loop with a fixed inter-packet delay,
+  as the SDS spec allows.
+- If the requested slot has no sample, the device replies with an SDS
+  CANCEL (`F0 7E 65 7D 00 F7`).
+- Stored samples carry no sample-rate metadata, so outgoing dump headers
+  always claim 44100 Hz. Samples uploaded at other rates download with an
+  incorrect rate in the header (the audio data itself is unchanged).
+- A download cannot start while an upload is in progress and vice versa;
+  the conflicting request is refused (CANCEL/NAK).
+
+```bash
+tools/drumtool/drumtool.js receive 0 kick.wav    # slot 0 as 44.1kHz WAV
+tools/drumtool/drumtool.js receive 30 --raw      # slot 30 as raw 16-bit PCM
+```
 
 ### Firmware Update Protocol
 

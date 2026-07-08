@@ -1,6 +1,8 @@
 #include "drum/sysex_handler.h"
 #include "drum/sample_slot_manager.h"
 #include "drum/sysex/sequencer_state_codec.h"
+#include "etl/algorithm.h"
+#include "etl/array.h"
 #include "events.h"
 #include "musin/midi/midi_wrapper.h"
 #include "version.h"
@@ -11,6 +13,19 @@
 
 namespace drum {
 
+namespace {
+// Wraps an SDS payload (message type onward) in F0 7E <channel> ... F7.
+void send_sds_message(const etl::span<const uint8_t> &payload) {
+  etl::array<uint8_t, 128> msg;
+  msg[0] = 0xF0;
+  msg[1] = 0x7E;
+  msg[2] = 0x65;
+  etl::copy(payload.begin(), payload.end(), msg.begin() + 3);
+  msg[3 + payload.size()] = 0xF7;
+  MIDI::sendSysEx(payload.size() + 4, msg.data());
+}
+} // namespace
+
 SysExHandler::SysExHandler(ConfigurationManager &config_manager,
                            SettingsManager &settings_manager,
                            musin::Logger &logger,
@@ -18,12 +33,14 @@ SysExHandler::SysExHandler(ConfigurationManager &config_manager,
     : config_manager_(config_manager), settings_manager_(settings_manager),
       logger_(logger), filesystem_(filesystem), file_ops_(logger, filesystem),
       protocol_(file_ops_, logger), sds_protocol_(file_ops_, logger),
-      firmware_writer_(logger), firmware_update_(firmware_writer_, logger) {
+      sds_dump_sender_(file_ops_, logger), firmware_writer_(logger),
+      firmware_update_(firmware_writer_, logger) {
 }
 
 void SysExHandler::update(absolute_time_t now) {
   protocol_.check_timeout(now);
   sds_protocol_.check_timeout(now);
+  sds_dump_sender_.update(send_sds_message, now);
   firmware_update_.check_timeout(now);
 
   if (firmware_reboot_pending_ &&
@@ -45,6 +62,9 @@ void SysExHandler::update(absolute_time_t now) {
   if (auto slot_opt = sds_protocol_.current_sample_number_opt();
       slot_opt.has_value()) {
     current_sample_slot = static_cast<uint8_t>(slot_opt.value() & 0x7F);
+  } else if (auto dump_slot = sds_dump_sender_.current_sample_number_opt();
+             dump_slot.has_value()) {
+    current_sample_slot = static_cast<uint8_t>(dump_slot.value() & 0x7F);
   }
 
   // Check for busy state changes (transfer start/stop)
@@ -121,6 +141,36 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
     // Extract SDS payload (skip 0x7E and channel)
     const auto sds_payload =
         etl::span<const uint8_t>{chunk.cbegin() + 2, chunk.cend()};
+    const uint8_t sds_type = sds_payload[0];
+
+    // Dump requests and, while a dump is active, host handshake responses go
+    // to the dump sender. Everything else is the receive path below.
+    if (sds_type == sds::DUMP_REQUEST) {
+      if (sds_protocol_.is_busy()) {
+        logger_.warn("SDS: Dump request refused during sample upload");
+        const etl::array<uint8_t, 2> cancel{sds::CANCEL, 0};
+        send_sds_message(etl::span<const uint8_t>{cancel});
+      } else {
+        sds_dump_sender_.handle_dump_request(sds_payload, send_sds_message,
+                                             get_absolute_time());
+      }
+      return;
+    }
+    if (sds_dump_sender_.is_busy() &&
+        (sds_type == sds::ACK || sds_type == sds::NAK ||
+         sds_type == sds::WAIT || sds_type == sds::CANCEL)) {
+      sds_dump_sender_.handle_response(sds_type, send_sds_message,
+                                       get_absolute_time());
+      return;
+    }
+
+    if (sds_dump_sender_.is_busy()) {
+      logger_.warn("SDS: Upload message refused during sample download");
+      const etl::array<uint8_t, 2> nak{sds::NAK, 0};
+      send_sds_message(etl::span<const uint8_t>{nak});
+      return;
+    }
+
     // Capture the active slot before processing: a completing data packet
     // returns the protocol to Idle, after which the slot is no longer
     // reported.
@@ -217,7 +267,8 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
 }
 
 bool SysExHandler::is_busy() const {
-  return protocol_.busy() || sds_protocol_.is_busy() || firmware_update_.busy();
+  return protocol_.busy() || sds_protocol_.is_busy() ||
+         sds_dump_sender_.is_busy() || firmware_update_.busy();
 }
 
 void SysExHandler::set_firmware_update_allowed(bool allowed) {

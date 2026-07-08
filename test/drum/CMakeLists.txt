@@ -107,6 +107,7 @@ target_link_libraries(drum-test-sample-slots PRIVATE
 # Test target: SDS protocol (sample dump standard, header-only)
 add_executable(drum-test-sds
     sds_protocol_test.cpp
+    sds_dump_sender_test.cpp
 )
 
 target_include_directories(drum-test-sds PRIVATE

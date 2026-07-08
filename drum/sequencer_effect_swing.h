@@ -39,8 +39,8 @@ public:
     Late,
   };
 
-  static constexpr uint8_t EARLY_ZONE_TICKS = 1;
-  static constexpr uint8_t LATE_ZONE_TICKS = 1;
+  static constexpr uint8_t EARLY_ZONE_TICKS = 2;
+  static constexpr uint8_t LATE_ZONE_TICKS = 2;
 
   /**
    * @brief Classify a live hit's clock phase relative to the swung step grid.

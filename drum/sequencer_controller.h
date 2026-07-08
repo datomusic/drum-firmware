@@ -307,7 +307,7 @@ private:
 
   // Trace velocities match the MIDI velocity range so the display maps them
   // to brightness exactly like pattern steps.
-  static constexpr uint8_t TRACE_INITIAL_VELOCITY = 127;
+  static constexpr uint8_t TRACE_INITIAL_VELOCITY = 96;
   static constexpr uint8_t TRACE_FADE_STEPS = 8;
   static constexpr uint32_t TRACE_FADE_TICKS =
       TRACE_FADE_STEPS * musical_timing::TICKS_PER_STEP;

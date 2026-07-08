@@ -44,11 +44,25 @@ void MidiManager::init() {
 }
 
 void MidiManager::process_input() {
-  MIDI::read();
-
-  while (const sysex::Chunk *chunk = musin::midi::peek_incoming_sysex_chunk()) {
-    handle_sysex(*chunk);
-    musin::midi::pop_incoming_sysex_chunk();
+  // Drain every buffered message instead of one per loop iteration: each
+  // read() returns after at most one complete message, and a single call per
+  // loop paces inbound SysEx far below what USB delivers during sample
+  // transfers. The loop is bounded because the transport buffers only refill
+  // from usb::background_update(); the cap guards the loop period against a
+  // pathological flood.
+  constexpr int MAX_MESSAGES_PER_UPDATE = 32;
+  for (int i = 0; i < MAX_MESSAGES_PER_UPDATE; ++i) {
+    const bool message_parsed = MIDI::read();
+    // The SysEx chunk queue is only two entries deep, so consume chunks
+    // between reads or back-to-back SysEx messages would be dropped.
+    while (const sysex::Chunk *chunk =
+               musin::midi::peek_incoming_sysex_chunk()) {
+      handle_sysex(*chunk);
+      musin::midi::pop_incoming_sysex_chunk();
+    }
+    if (!message_parsed) {
+      break;
+    }
   }
 
   musin::midi::IncomingMidiMessage message;

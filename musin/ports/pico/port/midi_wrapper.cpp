@@ -29,11 +29,13 @@ struct MIDISettings {
   */
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
 
-  /*! Setting this to true will make MIDI.read parse only one byte of data for
-  each call when data is available. This can speed up your application if
-  receiving a lot of traffic, but might induce MIDI Thru and treatment latency.
+  /*! Parse all buffered bytes per MIDI.read call instead of one per call.
+  One byte per call caps inbound throughput at one byte per main-loop
+  iteration, which throttles SDS sample uploads to a few KB/s. Parser
+  recursion depth is bounded by the transport buffers (tens of bytes),
+  which only refill from usb::background_update between loop iterations.
   */
-  static const bool Use1ByteParsing = true;
+  static const bool Use1ByteParsing = false;
 
   /*! Maximum size of SysEx receivable. Decrease to save RAM if you don't expect
   to receive SysEx, or adjust accordingly.
@@ -106,13 +108,17 @@ void MIDI::init(const Callbacks &callbacks) {
   ALL_TRANSPORTS(setHandleSystemExclusive(callbacks.sysex));
 }
 
-void MIDI::read(const byte channel) {
-  ALL_TRANSPORTS(read(channel));
+bool MIDI::read(const byte channel) {
+  const bool usb_message = usb_midi.read(channel);
+  const bool serial_message = serial_midi.read(channel);
+  return usb_message || serial_message;
 }
 
 // Overload for reading all channels (OMNI)
-void MIDI::read() {
-  ALL_TRANSPORTS(read());
+bool MIDI::read() {
+  const bool usb_message = usb_midi.read();
+  const bool serial_message = serial_midi.read();
+  return usb_message || serial_message;
 }
 
 // --- Public Send Functions (Enqueue Messages) ---

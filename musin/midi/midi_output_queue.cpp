@@ -96,7 +96,11 @@ void process_midi_output_queue(musin::Logger &logger) {
     uint32_t irq_status = spin_lock_blocking(midi_queue_lock);
     if (!midi_output_queue.empty()) {
       OutgoingMidiMessage &message_in_queue = midi_output_queue.front();
+      // SysEx bypasses the rate limit: it is sent over USB only (never DIN),
+      // so the 31250-baud pacing that MIN_INTERVAL_US_NON_REALTIME models
+      // does not apply to it.
       if (message_in_queue.type == MidiMessageType::SYSTEM_REALTIME ||
+          message_in_queue.type == MidiMessageType::SYSTEM_EXCLUSIVE ||
           is_nil_time(last_non_realtime_send_time) ||
           absolute_time_diff_us(last_non_realtime_send_time,
                                 get_absolute_time()) >=
@@ -154,7 +158,8 @@ void process_midi_output_queue(musin::Logger &logger) {
     case MidiMessageType::SYSTEM_EXCLUSIVE:
       MIDI::internal::_sendSysEx_actual(sysex_scratch.length,
                                         sysex_scratch.data_buffer.data());
-      last_non_realtime_send_time = get_absolute_time();
+      // USB-only; does not consume DIN bandwidth, so it does not push back
+      // the next DIN-bound message.
       break;
     }
   } else if (rate_limited) {

@@ -60,9 +60,14 @@ void SystemStateMachine::notification(
       notify_file_transfer_start();
     }
   } else {
-    // Transfer ended - start debounce period instead of immediate transition
+    // Transfer ended - start debounce period (unless this was an outgoing
+    // SDS dump, which should return to sequencer immediately).
     if (get_current_state() == SystemStateId::FileTransfer) {
-      notify_file_transfer_complete();
+      if (event.skip_debounce) {
+        transition_to(SystemStateId::Sequencer);
+      } else {
+        notify_file_transfer_complete();
+      }
     }
   }
 }

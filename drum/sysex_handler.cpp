@@ -82,12 +82,13 @@ void SysExHandler::update(absolute_time_t now) {
       last_notified_sample_slot_ = current_sample_slot;
     } else {
       logger_.info("SysEx file transfer finished.");
-      // Pass through the last known sample slot so the display can preserve
-      // the sample color during the debounce/cooldown period (issue #550).
       drum::Events::SysExTransferStateChangeEvent event{
-          .is_active = false, .sample_slot = last_notified_sample_slot_};
+          .is_active = false,
+          .sample_slot = last_notified_sample_slot_,
+          .skip_debounce = sds_dump_was_active_};
       this->notify_observers(event);
       last_notified_sample_slot_ = std::nullopt;
+      sds_dump_was_active_ = false;
     }
     was_busy_ = current_busy_state;
   }
@@ -153,6 +154,7 @@ void SysExHandler::handle_sysex_message(const sysex::Chunk &chunk) {
       } else {
         sds_dump_sender_.handle_dump_request(sds_payload, send_sds_message,
                                              get_absolute_time());
+        sds_dump_was_active_ = true;
       }
       return;
     }

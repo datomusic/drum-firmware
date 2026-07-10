@@ -114,6 +114,35 @@ def wav_to_pcm(path):
     return w.readframes(w.getnframes())
 
 
+PICOBIN_BLOCK_MARKER_START = 0xFFFFDED3
+PICOBIN_ITEM_TYPE_IMAGE_TYPE = 0x42
+PICOBIN_IMAGE_TYPE_EXE_TBYB_BITS = 0x8000
+
+
+def clear_tbyb(firmware):
+  """Clear the try-before-you-buy flag in the picobin IMAGE_TYPE item.
+
+  The build sets TBYB so A/B updates boot as flash-update trials, but the
+  bootrom refuses to boot an unbought TBYB image on a normal power-on. The
+  factory image must ship pre-bought — the same state rom_explicit_buy
+  leaves in flash after a successful update."""
+  cleared = 0
+  marker = struct.pack("<I", PICOBIN_BLOCK_MARKER_START)
+  pos = firmware.find(marker)
+  while pos >= 0:
+    item_offset = pos + 4
+    if firmware[item_offset] == PICOBIN_ITEM_TYPE_IMAGE_TYPE:
+      flags, = struct.unpack_from("<H", firmware, item_offset + 2)
+      if flags & PICOBIN_IMAGE_TYPE_EXE_TBYB_BITS:
+        struct.pack_into("<H", firmware, item_offset + 2,
+                         flags & ~PICOBIN_IMAGE_TYPE_EXE_TBYB_BITS)
+        cleared += 1
+    pos = firmware.find(marker, pos + 4)
+  if cleared != 1:
+    raise ValueError(f"expected exactly one TBYB IMAGE_TYPE item, "
+                     f"patched {cleared}")
+
+
 # Disk format written by the littlefs vendored in pico-vfs
 # (musin/ports/pico/libraries/pico-vfs/vendor/littlefs, LFS_DISK_VERSION).
 PICO_VFS_LFS_DISK_VERSION = (2, 1)
@@ -189,6 +218,7 @@ def main():
   firmware = bytearray(b"\xFF" * fw_a_size)
   uf2_payload_into(firmware, pathlib.Path(args.firmware).read_bytes(), FLASH_BASE,
                    skip_outside=True)
+  clear_tbyb(firmware)
   used = max((i for i, b in enumerate(firmware) if b != 0xFF), default=-1) + 1
   image[fw_a_offset:fw_a_offset + used] = firmware[:used]
   image[fw_b_offset:fw_b_offset + used] = firmware[:used]

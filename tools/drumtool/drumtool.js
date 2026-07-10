@@ -18,6 +18,7 @@
 
 const midi = require('midi');
 const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
 const { WaveFile } = require('wavefile');
 
@@ -1127,10 +1128,13 @@ function unpack16BitSample(b0, b1, b2) {
 
 // Download a sample from the device using an SDS Dump Request.
 // The device streams the stored 16-bit PCM back; we ACK each packet.
+// Resolves to 'ok' or 'empty' (device cancelled: nothing stored in the slot);
+// throws on real failures. Timeout errors carry `.timeout = true` so batch
+// downloads can tell a missing device apart from an empty slot.
 async function receiveSample(slot, outputPath, rawMode = false, verboseMode = false) {
   if (slot < 0 || slot > 127) {
     console.error(`Error: Sample number must be between 0-127, got: ${slot}`);
-    return false;
+    throw new Error(`Sample number must be between 0-127, got: ${slot}`);
   }
 
   const finalPath = outputPath || `slot_${slot.toString().padStart(2, '0')}.${rawMode ? 'pcm' : 'wav'}`;
@@ -1162,7 +1166,9 @@ async function receiveSample(slot, outputPath, rawMode = false, verboseMode = fa
     const resetTimer = (ms) => {
       clearTimeout(session.timer);
       session.timer = setTimeout(() => {
-        finish(new Error(`Timeout waiting for device after ${ms}ms.`));
+        const err = new Error(`Timeout waiting for device after ${ms}ms.`);
+        err.timeout = true;
+        finish(err);
       }, ms);
     };
 
@@ -1170,7 +1176,7 @@ async function receiveSample(slot, outputPath, rawMode = false, verboseMode = fa
       const messageType = message[3];
 
       if (messageType === SDS_CANCEL) {
-        finish(new Error('Device cancelled the dump - the slot is probably empty.'));
+        finish(null, { empty: true });
         return;
       }
 
@@ -1272,6 +1278,11 @@ async function receiveSample(slot, outputPath, rawMode = false, verboseMode = fa
     currentTransferInfo = null;
   });
 
+  if (result.empty) {
+    console.log(`Slot ${slot} is empty - device cancelled the dump.`);
+    return 'empty';
+  }
+
   if (rawMode) {
     fs.writeFileSync(finalPath, result.pcm);
   } else {
@@ -1283,7 +1294,59 @@ async function receiveSample(slot, outputPath, rawMode = false, verboseMode = fa
 
   const seconds = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`\n\nDownload complete: ${result.pcm.length} bytes at ${result.sampleRate}Hz written to ${finalPath} in ${seconds} s`);
-  return true;
+  return 'ok';
+}
+
+// Batch sample download: probe each slot with a dump request and skip the
+// ones the device cancels (empty). Consecutive timeouts mean the device is
+// gone, not that slots are empty, so those abort the whole batch.
+const BATCH_TIMEOUT_LIMIT = 3;
+
+async function receiveMultipleSamples(slots, outputDir, rawMode = false, verboseMode = false) {
+  console.log(`\n=== Batch SDS Download: slots ${slots[0]}-${slots[slots.length - 1]} → ${outputDir} ===`);
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const failures = [];
+  let downloaded = 0;
+  let empty = 0;
+  let consecutiveTimeouts = 0;
+
+  for (const slot of slots) {
+    const fileName = `slot_${slot.toString().padStart(2, '0')}.${rawMode ? 'pcm' : 'wav'}`;
+    const outputPath = path.join(outputDir, fileName);
+    try {
+      const status = await receiveSample(slot, outputPath, rawMode, verboseMode);
+      consecutiveTimeouts = 0;
+      if (status === 'empty') {
+        empty++;
+      } else {
+        downloaded++;
+      }
+    } catch (error) {
+      console.error(`\nSlot ${slot} failed: ${error.message}`);
+      failures.push({ slot, error: error.message });
+      if (error.timeout) {
+        consecutiveTimeouts++;
+        if (consecutiveTimeouts >= BATCH_TIMEOUT_LIMIT) {
+          console.error(`\nAborting: ${BATCH_TIMEOUT_LIMIT} consecutive timeouts - is the device still connected?`);
+          break;
+        }
+      } else {
+        consecutiveTimeouts = 0;
+      }
+    }
+    // Give the device a moment to settle between dump requests, matching
+    // the grace period used for batch uploads.
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+
+  console.log(`\n=== Download Summary ===`);
+  console.log(`Downloaded: ${downloaded}, empty: ${empty}, failed: ${failures.length}`);
+  if (failures.length > 0) {
+    failures.forEach(f => console.log(`  slot ${f.slot}: ${f.error}`));
+  }
+
+  return failures.length === 0;
 }
 
 // Helper function to check if argument is a sample rate
@@ -1368,6 +1431,40 @@ function parseFileSlotArgs(args) {
 }
 
 // Command line interface
+// Parse 'receive' arguments into a single-slot or batch download request.
+// Accepts: <slot> [output_file] | <start>-<end> [output_dir] | --all [output_dir]
+function parseReceiveArgs(args) {
+  const rawMode = args.includes('--raw');
+  const positional = args.filter(arg => !arg.startsWith('-') || /^-\d/.test(arg));
+  const target = args.includes('--all') ? '--all' : positional.shift();
+
+  if (target === undefined) {
+    throw new Error("'receive' requires a slot number (0-127), a range (e.g. 30-40), or --all.");
+  }
+
+  let range = null;
+  if (target === '--all') {
+    range = [0, 127];
+  } else if (/^\d+-\d+$/.test(target)) {
+    range = target.split('-').map(s => parseInt(s, 10));
+  }
+
+  if (range) {
+    const [start, end] = range;
+    if (start > end || start < 0 || end > 127) {
+      throw new Error(`Invalid slot range: ${target}. Slots must be 0-127 with start <= end.`);
+    }
+    const slots = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    return { mode: 'batch', slots, outputDir: positional.shift() || '.', rawMode };
+  }
+
+  const slot = parseInt(target, 10);
+  if (!/^\d+$/.test(target) || slot < 0 || slot > 127) {
+    throw new Error("'receive' requires a slot number (0-127), a range (e.g. 30-40), or --all.");
+  }
+  return { mode: 'single', slot, outputPath: positional.shift(), rawMode };
+}
+
 const command = process.argv[2];
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
 // TEST ONLY: --stall-after=N abandons the transfer after N data packets
@@ -1381,6 +1478,7 @@ if (!command) {
   console.log("Usage:");
   console.log("  drumtool.js send <file:slot> [file:slot] ... [sample_rate] [--verbose|-v]");
   console.log("  drumtool.js receive <slot> [output_file] [--raw] [--verbose|-v]");
+  console.log("  drumtool.js receive <start>-<end>|--all [output_dir] [--raw] [--verbose|-v]");
   console.log("  drumtool.js version");
   console.log("  drumtool.js storage");
   console.log("  drumtool.js format");
@@ -1394,7 +1492,8 @@ if (!command) {
   console.log("");
   console.log("Commands:");
   console.log("  send           - Transfer audio samples (WAV or raw PCM) using SDS protocol");
-  console.log("  receive        - Download a sample from the device (WAV by default, --raw for PCM)");
+  console.log("  receive        - Download samples from the device (WAV by default, --raw for PCM).");
+  console.log("                   A range or --all downloads every occupied slot, skipping empty ones");
   console.log("  version        - Get device firmware version");
   console.log("  storage        - Get device storage information");
   console.log("  format         - Format device filesystem");
@@ -1435,6 +1534,8 @@ if (!command) {
   console.log("  drumtool.js reboot-bootloader                 # Enter bootloader mode");
   console.log("  drumtool.js receive 0 kick.wav                # Download slot 0 as WAV");
   console.log("  drumtool.js receive 30 --raw                  # Download slot 30 as raw PCM");
+  console.log("  drumtool.js receive --all backup/             # Download every occupied slot");
+  console.log("  drumtool.js receive 30-40 backup/             # Download slots 30-40");
   console.log("  drumtool.js get-sequencer --json > state.json # Save sequencer pattern");
   console.log("  drumtool.js set-sequencer state.json          # Restore sequencer pattern");
   console.log("  drumtool.js set-setting midi_channel 1        # Use MIDI channel 1");
@@ -1502,10 +1603,10 @@ async function main() {
         process.exit(1);
       }
     } else if (command === 'receive') {
-      const slotStr = process.argv[3];
-      const slot = parseInt(slotStr, 10);
-      if (slotStr === undefined || isNaN(slot) || slot < 0 || slot > 127) {
-        console.error("Error: 'receive' requires a slot number (0-127).");
+      try {
+        parseReceiveArgs(process.argv.slice(3));
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
         process.exit(1);
       }
     } else if (command === 'flash') {
@@ -1571,11 +1672,14 @@ async function main() {
         : await transferMultipleSamples(transfers, verbose);
       process.exitCode = success ? 0 : 1;
     } else if (command === 'receive') {
-      const slot = parseInt(process.argv[3], 10);
-      const extraArgs = process.argv.slice(4);
-      const rawMode = extraArgs.includes('--raw');
-      const outputPath = extraArgs.find(arg => !arg.startsWith('-'));
-      const success = await receiveSample(slot, outputPath, rawMode, verbose);
+      const receive = parseReceiveArgs(process.argv.slice(3)); // Already validated above
+      let success;
+      if (receive.mode === 'batch') {
+        success = await receiveMultipleSamples(receive.slots, receive.outputDir, receive.rawMode, verbose);
+      } else {
+        const status = await receiveSample(receive.slot, receive.outputPath, receive.rawMode, verbose);
+        success = status === 'ok';
+      }
       process.exitCode = success ? 0 : 1;
     } else if (command === 'version') {
       await get_firmware_version();

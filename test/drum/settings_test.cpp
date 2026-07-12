@@ -12,7 +12,8 @@ TEST_CASE("Settings defaults", "[settings]") {
 
   SECTION("Every setting starts at its descriptor default") {
     for (const auto &descriptor : DESCRIPTORS) {
-      REQUIRE(settings.get(descriptor.id) == descriptor.default_value);
+      REQUIRE(settings.get(static_cast<Id>(descriptor.id)) ==
+              descriptor.default_value);
     }
   }
 

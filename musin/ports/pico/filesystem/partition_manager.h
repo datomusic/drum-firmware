@@ -10,7 +10,6 @@ extern "C" {
 #include "pico.h"
 #include "boot/bootrom_constants.h"
 #include "hardware/flash.h"
-typedef struct blockdevice blockdevice_t;
 }
 // clang-format on
 
@@ -63,15 +62,6 @@ public:
    * otherwise.
    */
   std::optional<PartitionInfo> find_partition_by_family(uint32_t family_bit);
-
-  /**
-   * @brief Creates a block device for the specified partition.
-   *
-   * @param partition_info The partition information.
-   * @return Pointer to the created block device, or nullptr on failure.
-   */
-  blockdevice_t *
-  create_partition_blockdevice(const PartitionInfo &partition_info);
 
 private:
   musin::Logger &logger_;

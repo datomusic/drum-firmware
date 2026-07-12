@@ -1,7 +1,6 @@
 // clang-format off
 extern "C" {
 #include "pico.h"
-#include "blockdevice/flash.h"
 #include "boot/bootrom_constants.h"
 #include "boot/picobin.h"
 #include "pico/bootrom.h"
@@ -12,7 +11,6 @@ extern "C" {
 // clang-format on
 
 #include "partition_manager.h"
-#include "audio_safe_flash.h"
 
 namespace {
 
@@ -168,48 +166,6 @@ PartitionManager::find_partition_by_family(uint32_t family_bit) {
 
   logger_.error("Partition with specified family bit not found: ", family_bit);
   return std::nullopt;
-}
-
-blockdevice_t *PartitionManager::create_partition_blockdevice(
-    const PartitionInfo &partition_info) {
-  logger_.info("Creating block device for partition");
-
-  // Align partition boundaries to FLASH_SECTOR_SIZE (4096 bytes)
-  // Round start address UP to stay within partition bounds
-  uint32_t aligned_start =
-      (partition_info.offset + FLASH_SECTOR_ALIGNMENT_MASK) &
-      ~FLASH_SECTOR_ALIGNMENT_MASK;
-
-  // Calculate end address and round DOWN to stay within partition bounds
-  uint32_t partition_end = partition_info.offset + partition_info.size;
-  uint32_t aligned_end = partition_end & ~FLASH_SECTOR_ALIGNMENT_MASK;
-
-  // Ensure we have at least one sector after alignment
-  if (aligned_start >= aligned_end) {
-    logger_.error("Partition too small after alignment, needs bytes: ",
-                  static_cast<std::int32_t>(FLASH_SECTOR_SIZE));
-    return nullptr;
-  }
-
-  uint32_t aligned_size = aligned_end - aligned_start;
-
-  logger_.info("Original partition offset: ", partition_info.offset);
-  logger_.info("Original partition size: ", partition_info.size);
-  logger_.info("Aligned partition offset: ", aligned_start);
-  logger_.info("Aligned partition size: ", aligned_size);
-
-  blockdevice_t *flash = blockdevice_flash_create(aligned_start, aligned_size);
-
-  if (!flash) {
-    logger_.error("Failed to create flash block device");
-    return nullptr;
-  }
-
-  // Keep the audio interrupt alive during erase/program so persistence
-  // writes do not glitch playback.
-  make_flash_blockdevice_audio_safe(flash, aligned_start);
-
-  return flash;
 }
 
 } // namespace musin::filesystem

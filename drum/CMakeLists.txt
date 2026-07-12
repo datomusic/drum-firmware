@@ -29,6 +29,7 @@ add_executable(${EXECUTABLE_NAME}
   settings_manager.cpp
   firmware_update_buyer.cpp
   ../musin/flash/firmware_writer.cpp
+  ../musin/settings/settings_manager.cpp
   pizza_controls.cpp
   ui/pizza_display.cpp
   sequencer_controller.cpp

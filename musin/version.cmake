@@ -12,6 +12,7 @@ function(configure_version_from_git)
   set(VERSION_PATCH 0)
   set(VERSION_COMMITS 0)
   set(VERSION_SHA "unknown")
+  set(VERSION_PRERELEASE "")
   set(VERSION_IS_RELEASE FALSE)
   
   # Get the latest tag
@@ -27,13 +28,14 @@ function(configure_version_from_git)
     # Remove 'v' prefix if present
     string(REGEX REPLACE "^v" "" VERSION_TAG ${GIT_TAG})
     
-    # Extract semver components
-    string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" VERSION_MATCH ${VERSION_TAG})
-    
+    # Extract semver components, including any prerelease suffix (e.g. -rc.3)
+    string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(-[0-9A-Za-z.-]+)?" VERSION_MATCH ${VERSION_TAG})
+
     if(VERSION_MATCH)
       set(VERSION_MAJOR ${CMAKE_MATCH_1})
       set(VERSION_MINOR ${CMAKE_MATCH_2})
       set(VERSION_PATCH ${CMAKE_MATCH_3})
+      set(VERSION_PRERELEASE "${CMAKE_MATCH_4}")
     endif()
     
     # Count commits since the latest tag
@@ -73,8 +75,8 @@ function(configure_version_from_git)
   set(VERSION_BASE "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
   
   if(VERSION_IS_RELEASE)
-    set(VERSION_STRING "${VERSION_BASE}")
-    set(VERSION_FILENAME "${VERSION_BASE}")
+    set(VERSION_STRING "${VERSION_BASE}${VERSION_PRERELEASE}")
+    set(VERSION_FILENAME "${VERSION_BASE}${VERSION_PRERELEASE}")
   else()
     set(VERSION_STRING "${VERSION_BASE}-dev.${VERSION_COMMITS}+${VERSION_SHA}")
     set(VERSION_FILENAME "${VERSION_BASE}-dev.${VERSION_COMMITS}-${VERSION_SHA}")
@@ -86,6 +88,7 @@ function(configure_version_from_git)
   set(VERSION_PATCH ${VERSION_PATCH} PARENT_SCOPE)
   set(VERSION_COMMITS ${VERSION_COMMITS} PARENT_SCOPE)
   set(VERSION_SHA ${VERSION_SHA} PARENT_SCOPE)
+  set(VERSION_PRERELEASE "${VERSION_PRERELEASE}" PARENT_SCOPE)
   set(VERSION_STRING ${VERSION_STRING} PARENT_SCOPE)
   set(VERSION_FILENAME ${VERSION_FILENAME} PARENT_SCOPE)
   set(VERSION_BASE ${VERSION_BASE} PARENT_SCOPE)

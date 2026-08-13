@@ -544,7 +544,7 @@ Progress, as of 2026-08-13:
 | Step 0 — walking skeleton + CPU measurement | ✅ done — 3.7% on the partial graph |
 | Track A — audio graph (delay excluded) | ✅ done — 16.0–16.4% on the full graph |
 | Track B — sequencer, timing, LEDs, control mapping | ✅ done — played by hand and confirmed (§12.1) |
-| MIDI I/O | ✅ done — notes, CC, clock, transport confirmed; SysEx untested (§12.4) |
+| MIDI I/O | ✅ done — notes, CC, clock, transport, SysEx all confirmed (§12.4) |
 | Close-out — ISR RAM-residency disassembly walk | ✅ done — passed, no fixes needed (§12.3) |
 
 The "done when" criterion below is met and **milestone 1 is complete**. The
@@ -678,8 +678,12 @@ first two items are now retired.
   after MIDI landed** — the per-frame CC scan and queue drain cost nothing
   measurable, being entirely main-loop side.
 - ~~**MIDI I/O has not been exercised against a host**~~ — notes, CC,
-  transport and clock confirmed against a host (§12.4). **SysEx is still
-  unexercised**, including the shortened serial number.
+  transport, clock and SysEx all confirmed against a host (§12.4), the
+  shortened serial number included: it decodes to the board's USB serial
+  string. What this surfaced instead was §12.4.1, the DUO/DRUM SysEx dialect
+  split.
+- **MIDI DIN was not tested** — only USB. `musin`'s wrapper sends notes, CC
+  and realtime to both transports, but SysEx is USB-only by design.
 - **Schematics were not consulted** — hardware claims come from firmware pin
   definitions and board headers, which can drift from the actual PCB. The pin
   map is now indirectly confirmed for LEDs, keypad, mux, I²C and codec, since
@@ -864,8 +868,42 @@ What is wired:
 `MIDI_CHANNEL` remains a hardcoded `1`, matching the reference's
 `main_init()`. Persistence for it is a post-gate decision (§7.2).
 
-**Confirmed on hardware 2026-08-13:** notes, CC, transport and clock all work
-against a host.
+**Confirmed on hardware 2026-08-13:** notes, CC, transport, clock **and
+SysEx** all work against a host. Verify SysEx with `tools/duo_sysex.py`:
+
+```
+$ python3 tools/duo_sysex.py
+version    f0 7d 64 01 00 00 f7   -> firmware 1.0.0
+serial     f0 7d 64 00 00 ...     -> serial 0000000000000000fa19152a4611082c
+identity   f0 7e 64 06 02 7d ...  -> identity: manufacturer 0x7d, firmware 1.0.0
+```
+
+The decoded serial matches the board's USB serial string exactly, confirming
+the re-packing. `bootloader` and `transpose` were also exercised by hand.
+
+#### 12.4.1 ⚠️ DUO and DRUM speak different SysEx dialects
+
+SysEx was initially reported as broken, and this is why. It is a genuine
+divergence, not a bug in either firmware:
+
+| | Manufacturer ID | Device ID |
+|---|---|---|
+| **DUO** (inherited from Brains 2) | `7D` — the single-byte *non-commercial* ID | `64` |
+| **DRUM** | `00 22 01` — Dato's real three-byte ID | `65` |
+
+`tools/drumtool` sends `F0 00 22 01 65 …`, which the DUO rejects at
+`data[1] != 0x7D` and — having no NAK path — ignores in silence. Pointing
+DRUM tooling at a DUO therefore looks exactly like broken SysEx. The
+confusion is compounded by the two apps sharing USB VID/PID `2E8A:0009`, so
+CoreMIDI may keep showing a board that previously ran DRUM as **"DRUM"**.
+
+Milestone 1 keeps the legacy IDs deliberately (§7.6): the DUO's existing host
+tooling speaks them, and changing the wire protocol is not a porting task.
+**But `0x7D` is the non-commercial ID and the DRUM has already moved off it**,
+so a shipping DUO-on-RP2350 almost certainly should too. That is a real
+question for the gate, and it belongs with the §8 item that already plans to
+rewrite `tools/updater`: pick one dialect, or make the shared tooling speak
+both. Distinct device IDs (`64` vs `65`) are worth keeping either way.
 
 ### 12.5 Flashing notes
 

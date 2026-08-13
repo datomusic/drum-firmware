@@ -3,8 +3,11 @@
 Feasibility research and refactor plan for moving the Dato DUO from the
 i.MX RT1011 (Brains 2) to the RP2350 platform used by the DRUM.
 
-**Status:** research complete, no code written. Decisions marked
-**[DECIDED]** are settled; **[OPEN]** ones need an owner.
+**Status (2026-08-13): milestone 1 is running on hardware.** The `duo/` app
+boots on the Submarine board, enumerates USB, sequences, and renders the full
+DUO graph minus the delay at **16.0–16.4%** audio ISR load. Decisions marked
+**[DECIDED]** are settled; **[OPEN]** ones need an owner. See §12 for what
+remains before the gate.
 
 **Sources:** `duo-imxrt/` (Brains 2 firmware), `drum-firmware/` (`musin/` +
 `drum/`). Line references were accurate at time of writing; verify before
@@ -36,6 +39,10 @@ supposed to *inform* rather than assume.
 ---
 
 ## 1. Verdict
+
+**Confirmed by construction.** Milestone 1 was built and runs; the estimate
+below held, and the one surprise was a platform-integration bug rather than
+anything in the port itself (§12.2).
 
 Feasible, and lower-risk than a platform migration normally is, because both
 halves of the problem are already partly solved in `musin/`:
@@ -132,7 +139,10 @@ pull model eliminates Teensy's `AudioMemory(192)` block pool (~50 KB) outright.
 | `AudioMixer4` | `musin/audio/mixer.h` (templated on N) |
 | DSP intrinsics | `musin/audio/dspinst.h` + `port/intrinsics.h` |
 
-**Must be ported for milestone 1** — all PJRC, all int16, all mechanical:
+**Must be ported for milestone 1** — all PJRC, all int16, all mechanical.
+✅ **All ported and running** (`musin/audio/synth_waveform.*`, `synth_dc.*`,
+`synth_whitenoise.*`, `synth_simple_drum.*`, `analyze_peak.*`, and
+`duo/audio/effect_custom_envelope.*`):
 
 `synth_waveform` (the big one), `synth_dc`, `synth_whitenoise`,
 `synth_simple_drum`, ~~`effect_multiply`~~ (included by `Synth.h` but never
@@ -391,7 +401,12 @@ not discovered when pads don't respond.
 
 ## 7. Decisions
 
-### 7.1 [DECIDED] Drop Arduino, go musin-native
+### 7.1 [DECIDED] Drop Arduino, go musin-native — ✅ done
+
+`duo/` has no Arduino dependency. `Leds.h` became
+`duo/ui/duo_display.cpp` on `musin::ws2812`, re-indexed onto DRUM's
+`LED_ARRAY` in the same pass as predicted (§6.3), carrying the FastLED-derived
+colour maths (`fade_light_by`, `blend`) across as portable C++.
 
 Concrete cost, enumerated honestly:
 
@@ -516,11 +531,23 @@ which is a further argument for keeping the deviations near zero.
 
 ## 8. Sequencing
 
-### Milestone 1 — duo-on-drum
+### Milestone 1 — duo-on-drum — ✅ **substantially complete**
 
 Lives in `duo/`, a sibling app to `drum/` sharing `musin/`.
 
-#### Step 0 — walking skeleton: one key, one note ⭐
+Progress, as of 2026-08-13:
+
+| | Status |
+|---|---|
+| Step 0 — walking skeleton + CPU measurement | ✅ done — 3.7% on the partial graph |
+| Track A — audio graph (delay excluded) | ✅ done — 16.0–16.4% on the full graph |
+| Track B — sequencer, timing, LEDs, control mapping | ✅ built, ⚠️ unplayed (§12.1) |
+| Close-out — ISR RAM-residency disassembly walk | ❌ **not done** (§4.3, §12.3) |
+| MIDI I/O | ❌ **not wired** (§12.4) |
+
+The "done when" criterion below is met except for MIDI and the close-out walk.
+
+#### Step 0 — walking skeleton: one key, one note ⭐ ✅
 
 Before any batch porting, get a single thin slice working end to end:
 
@@ -546,7 +573,7 @@ least time left to absorb it.
 Everything after this step is repeating a proven shape rather than discovering
 one.
 
-**Track A — audio graph**
+**Track A — audio graph** ✅
 
 1. Port the remaining PJRC classes (§4.1) — `synth_dc`, `synth_whitenoise`,
    `synth_simple_drum`, `effect_multiply`, `analyze_peak` — delay excluded,
@@ -554,7 +581,7 @@ one.
 2. Wire up the full DUO patch minus the delay; trigger notes over USB MIDI.
 3. Re-measure CPU load against the step-0 number.
 
-**Track B — application** (can run in parallel with Track A)
+**Track B — application** (can run in parallel with Track A) ✅ built, unplayed
 
 1. Port `shared/duo/` sequencer + note stack, minimal-change per §7.6
    (near-free — `<cstdint>` only).
@@ -565,10 +592,10 @@ one.
    `AnalogMuxScanner` + `Drumpad`.
 
 **Close-out:** one disassembly walk per `AGENTS.md` to confirm no ISR-reachable
-function sits in flash.
+function sits in flash. ❌ **Still outstanding** — see §12.3.
 
 **Done when:** the DUO plays, sequences and responds to DRUM's panel per §6,
-with a measured CPU number.
+with a measured CPU number. ✅ met, modulo §12.1's playability check.
 
 ### The gate — re-evaluate (§9)
 
@@ -620,32 +647,110 @@ duo-on-drum in hand is the point.
 
 ## 10. Risk register (milestone 1)
 
-| # | Risk | Severity | Mitigation |
-|---|---|---|---|
-| 1 | ISR CPU load exceeds budget | High | Measured at step 0 on a partial graph, before the porting cost is sunk, and again at the end of Track A. Bandlimited voicing (§4.4) means it is the worst case. Brains-1-on-72 MHz-M4 precedent suggests it will be fine; second core in reserve, and plain waveforms are a fallback |
-| 2 | Voicing doesn't match reference DUO | Medium | §4.4 settled on the shipping RT1011 voicing; voicing pass is post-gate |
-| 3 | RAM-residency annotations omitted, faulting later | Medium | Cannot fire in milestone 1 (§7.2), which is exactly why it gets missed. Annotate as you port; one disassembly walk at close-out |
-| 4 | Pull model unproven against cyclic graphs | Medium | Accepted debt (§4.2). Nothing in milestone 1 surfaces it |
-| 5 | Minimal-change port (§7.6) imports DUO's coupling into `duo/`, and the style cleanup never gets funded | Medium | Deliberate trade for behavioural safety, and the imported code is small and bounded. Sharpened by porting without the Unity suite (§11) — keep deviations near zero so behaviour changes stay attributable |
-| 6 | LED re-index diverges from control mapping | Low | Do §6.3 and §6.1 as one job |
-| 7 | RP2350 erratum **E9** — GPIO input latching when high-Z with internal pulldowns | Low | Use pull-ups (the matrix already does); audit any high-Z input |
-| 8 | RP2350 **E10** | Low | Already handled — `PICO_RP2350_A2_SUPPORTED ON` in `drum/CMakeLists.txt` |
-| 9 | Volca sync interpolation missing from `musin::timing` | Low | Verify per §7.3 |
+Outcomes added 2026-08-13.
+
+| # | Risk | Severity | Mitigation | Outcome |
+|---|---|---|---|---|
+| 1 | ISR CPU load exceeds budget | High | Measured at step 0 on a partial graph, before the porting cost is sunk, and again at the end of Track A. Bandlimited voicing (§4.4) means it is the worst case. Brains-1-on-72 MHz-M4 precedent suggests it will be fine; second core in reserve, and plain waveforms are a fallback | ✅ **Retired.** 3.7% partial, 16.0–16.4% full. Never close to the budget; the fallback was not needed |
+| 2 | Voicing doesn't match reference DUO | Medium | §4.4 settled on the shipping RT1011 voicing; voicing pass is post-gate | Open, unchanged — not assessable until someone plays it (§12.1) |
+| 3 | RAM-residency annotations omitted, faulting later | Medium | Cannot fire in milestone 1 (§7.2), which is exactly why it gets missed. Annotate as you port; one disassembly walk at close-out | ⚠️ **Live.** Predicted correctly: the walk was skipped (§12.3) |
+| 4 | Pull model unproven against cyclic graphs | Medium | Accepted debt (§4.2). Nothing in milestone 1 surfaces it | Open, unchanged — accepted debt; milestone 1 surfaced nothing, as predicted |
+| 5 | Minimal-change port (§7.6) imports DUO's coupling into `duo/`, and the style cleanup never gets funded | Medium | Deliberate trade for behavioural safety, and the imported code is small and bounded. Sharpened by porting without the Unity suite (§11) — keep deviations near zero so behaviour changes stay attributable | Open — `duo/` does carry the imported coupling; cleanup unfunded |
+| 6 | LED re-index diverges from control mapping | Low | Do §6.3 and §6.1 as one job | ✅ Retired — done as one job in `duo_display.cpp` |
+| 7 | RP2350 erratum **E9** — GPIO input latching when high-Z with internal pulldowns | Low | Use pull-ups (the matrix already does); audit any high-Z input | ✅ Not hit — keypad matrix uses pull-ups |
+| 8 | RP2350 **E10** | Low | Already handled — `PICO_RP2350_A2_SUPPORTED ON` in `drum/CMakeLists.txt` | ✅ Retired — `PICO_RP2350_A2_SUPPORTED ON` also set in `duo/CMakeLists.txt` |
+| 9 | Volca sync interpolation missing from `musin::timing` | Low | Verify per §7.3 | ⚠️ **Live** — still unverified (§11) |
 
 ---
 
 ## 11. What was not verified
 
-Stated plainly so nobody over-trusts this document:
+Stated plainly so nobody over-trusts this document. Updated 2026-08-13 — the
+first two items are now retired.
 
-- **No code was run or built.** This is a reading of both codebases.
-- **No CPU measurement exists** for the DUO graph on RP2350 (risk #1).
+- ~~**No code was run or built.**~~ Milestone 1 is built and running on
+  hardware.
+- ~~**No CPU measurement exists** for the DUO graph on RP2350 (risk #1).~~
+  3.7% partial, 16.0–16.4% full graph minus delay.
 - **Schematics were not consulted** — hardware claims come from firmware pin
-  definitions and board headers, which can drift from the actual PCB.
+  definitions and board headers, which can drift from the actual PCB. The pin
+  map is now indirectly confirmed for LEDs, keypad, mux, I²C and codec, since
+  those all function.
 - **`musin::timing` feature parity with `TempoHandler` was not fully checked** —
-  only the two behaviours in §7.3 were identified as needing verification.
+  only the two behaviours in §7.3 were identified as needing verification. Of
+  those, the external-clock `speed_mod` nudge is implemented
+  (`sequencer_update()` in `duo/main.cpp`); **Volca sync-pulse interpolation is
+  still unverified.**
 - **The DUO's own test suite** (`shared/duo/test/`, Unity) was not assessed for
-  migration to DRUM's Catch2 host-test setup.
+  migration to DRUM's Catch2 host-test setup. Still true, and §7.6's risk #5
+  stands: nothing regression-tests the minimal-change port.
 - **The DRUM control mapping (§6) has not been tried by hand.** It is exact on
   counts, but playability — whether the outer ring reads as a keyboard — is
-  unproven until someone plays it.
+  unproven until someone plays it. **Still true** and now the most valuable
+  outstanding check (§12.1).
+
+---
+
+## 12. Current status and what remains before the gate
+
+Written 2026-08-13, after bring-up. Bring-up debugging detail lives in
+[`duo-boot-debug.md`](duo-boot-debug.md).
+
+### 12.1 Play it ⭐ — the highest-value next step
+
+Everything in §6 is implemented but **nobody has played it**. The counts fit
+exactly, which was never the open question; whether the outer ring reads as a
+keyboard is. This is also where the voicing (§4.4) first becomes assessable by
+ear. Cheap to do, and it can invalidate mapping decisions that are currently
+just arithmetic.
+
+### 12.2 The one real surprise: hardcoded PIO/DMA resources in `musin`
+
+Not predicted by this document, and it cost the whole bring-up. `audio_i2s_setup()`
+takes `pio_sm 0` and `dma_channel 0` from a **hardcoded** `i2s_config` in
+`musin/audio/audio_output.cpp` and claims them with panic-on-conflict calls,
+while `WS2812_DMA::init()` takes the lowest free DMA channel. Initialising the
+display before the audio therefore panics; in a Release build with no host
+attached that presents as a completely dead board.
+
+`drum/` works only **by accident of ordering** — `audio_engine.init()` happens
+to precede `pizza_display.init()`. Nothing documents or enforces it.
+
+Fixed in `duo/` by reordering. The underlying fragility is deliberately left
+alone because the fix touches DRUM's working audio path — **it is now the most
+concrete input to gate question §9.1** ("does musin need to expand"), and it is
+evidence of a specific kind: not a missing feature, but an implicit
+initialisation contract that only a second consumer could reveal. That is
+precisely what milestone 1 existed to produce.
+
+### 12.3 Close-out: the RAM-residency disassembly walk
+
+§4.3 budgeted one walk at the end of milestone 1; it has **not been done**.
+Risk #3 predicted this would be the item that gets missed, because milestone 1
+never writes flash and so cannot fire the fault. It was right. Do the walk
+before persistence is added, not after — the annotations are latent until then.
+
+### 12.4 MIDI I/O is not wired
+
+`duo/main.cpp` does not yet handle MIDI in or out; notes come only from the
+panel and the internal sequencer. §6.5 rated this Low effort ("both projects
+use TinyUSB and the same MIDI libs") and nothing has contradicted that. It is
+scope that was simply not reached, not a problem found.
+
+### 12.5 Flashing notes
+
+- Both flash partitions on the development unit currently hold `duo` images;
+  the DRUM is no longer on it.
+- Upload **must** target partition 0 explicitly. DUO and DRUM both declare
+  binary version 1.0, so the bootrom has no tiebreak and always boots partition
+  0; a bare `picotool load -f` is treated as an A/B update and lands in
+  partition 1, which is never selected. `duo/build.sh` handles this.
+- Now that the firmware services USB, `duo/build.sh` can force BOOTSEL itself
+  — no manual replugging for normal iteration.
+
+### 12.6 Unchanged by bring-up
+
+Everything past the gate is untouched: the delay feedback loop (§4.2) and its
+one-block node, the output-stage refactor (§5), the N-mux generalisation (§6.4),
+persistence and update tooling (§7.2), and the voicing pass. The gate questions
+in §9 are all still open, now with §12.2 as real evidence for the first one.

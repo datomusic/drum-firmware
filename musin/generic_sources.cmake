@@ -7,6 +7,12 @@ include(${CMAKE_CURRENT_LIST_DIR}/musin_paths.cmake)
 
 set(musin_audio_generic_sources
   ${MUSIN_AUDIO}/data_ulaw.c
+  ${MUSIN_AUDIO}/data_waveforms.c
+  ${MUSIN_AUDIO}/data_bandlimit_step.c
+  ${MUSIN_AUDIO}/synth_waveform.cpp
+  ${MUSIN_AUDIO}/synth_dc.cpp
+  ${MUSIN_AUDIO}/synth_whitenoise.cpp
+  ${MUSIN_AUDIO}/synth_simple_drum.cpp
   ${MUSIN_AUDIO}/crusher.cpp
   ${MUSIN_AUDIO}/waveshaper.cpp
   ${MUSIN_AUDIO}/filter.cpp

@@ -7,6 +7,17 @@ set(PICO_RP2350_A2_SUPPORTED ON)
 
 set(PICO_BOARD dato_submarine)
 
+# Stack sizing. The audio ISR renders the whole pull graph on this stack and
+# nests on top of the main loop: the deepest graph chain (two AudioMixer
+# frames carrying an AudioBlock each) is ~816 bytes plus the exception/FP
+# frame, and the main loop reaches ~680. The SDK's 2K default left too little
+# margin. These must be global and set before the SDK is initialised, because
+# crt0.S reserves the .stack section and the guard is compiled into SDK code.
+# SCRATCH_Y is 4K, which bounds PICO_STACK_SIZE; SCRATCH_X stays free because
+# core 1 is unused.
+add_compile_definitions(PICO_STACK_SIZE=4096)
+add_compile_definitions(PICO_USE_STACK_GUARDS=1)
+
 set(EXECUTABLE_NAME_BASE duo)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../musin/musin.cmake)

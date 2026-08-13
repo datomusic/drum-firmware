@@ -3,8 +3,16 @@
 //
 // MIDI I/O is not yet wired. Prints audio ISR CPU load once per second.
 
+// Bring-up aid: set to 1 to light one more LED after each init step, so a dark
+// panel localises the hang instead of only proving the main loop was never
+// reached. Bit-banged, so it works before any driver is up. Set to 0 for
+// normal builds — while enabled it owns the LED data pin and the panel shows
+// the beacon rather than the DUO's display.
+#define DUO_BOOT_BEACON 0
+
 #include "duo/audio/effect_custom_envelope.h"
 #include "duo/seq.h"
+#include "duo/ui/boot_beacon.h"
 #include "duo/ui/duo_display.h"
 #include "musin/audio/analyze_peak.h"
 #include "musin/audio/audio_output.h"
@@ -34,6 +42,7 @@
 #include <cstdlib>
 
 extern "C" {
+#include "pico/rand.h"
 #include "pico/stdio_usb.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -621,28 +630,64 @@ void synth_update() {
   audio_volume(synth.amplitude);
 }
 
+#if DUO_BOOT_BEACON
+#define BEACON(stage) duo::ui::boot_beacon::signal(stage)
+#else
+#define BEACON(stage) ((void)0)
+#endif
+
 } // namespace
 
 int main() {
+  BEACON(1); // reached main() at all
+
   stdio_usb_init();
   musin::usb::init(false);
+  BEACON(2);
 
-  musin::NullLogger logger;
-  musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
+  // The DUO seeds its RNG during pin init (BRAINS_2.3 pins.cpp: randomSeed
+  // from three pot readings). That was an entropy hack for a part with no
+  // RNG; the RP2350 has one, so use it. Without any seed the "random"
+  // default pattern below is identical on every power-up.
+  srand(get_rand_32());
+  BEACON(3);
+
+  // These are static, not automatic: Keypad_HC138<8,5> alone is 1744 bytes
+  // against a 2 KB stack, so holding them as locals leaves main() with no
+  // room to call anything. The logger must outlive the keypad that borrows
+  // it, so it is static too.
+  static musin::NullLogger logger;
+  static musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
       keypad_decoder_pins, keypad_columns_pins, logger);
-  KeypadHandler keypad_handler;
+  static KeypadHandler keypad_handler;
   keypad.add_observer(keypad_handler);
   keypad.init();
+  BEACON(4);
 
-  musin::hal::AnalogMuxScanner scanner(DATO_SUBMARINE_ADC_PIN,
-                                       analog_address_pins);
+  static musin::hal::AnalogMuxScanner scanner(DATO_SUBMARINE_ADC_PIN,
+                                              analog_address_pins);
   scanner.init();
+  BEACON(5);
+
+  // The audio output must claim its PIO state machine and DMA channel before
+  // anything else does. audio_i2s_setup() hardcodes pio_sm 0 and dma_channel 0
+  // (i2s_config in musin/audio/audio_output.cpp) and claims them with
+  // pio_sm_claim/dma_channel_claim, which panic when already taken — whereas
+  // WS2812_DMA::init() calls dma_claim_unused_channel() and so grabs channel 0
+  // if it goes first. Initialising the display before the audio therefore
+  // panics inside AudioOutput::init(), which in a Release build with no host
+  // attached is indistinguishable from a dead board. drum/main.cpp gets this
+  // right by accident of ordering; keep the two in the same order.
+  const bool audio_output_ok = AudioOutput::init();
+  BEACON(6);
 
   static duo::ui::DuoDisplay display;
   display.init();
+  BEACON(7);
 
   audio_init();
   drum_init();
+  BEACON(8);
 
   // Timing: clock -> speed adapter (24 PPQN out) -> tempo handler -> ticker
   clock_router.add_observer(speed_adapter);
@@ -654,15 +699,30 @@ int main() {
     sequencer.set_step_note(i, SCALE[std::rand() % 9]);
   }
   sequencer_stop();
+  BEACON(9);
 
-  if (!AudioOutput::init()) {
+  if (!audio_output_ok) {
+    // Keep servicing USB so the device still enumerates and the message below
+    // is actually readable; without it a codec failure is indistinguishable
+    // from a board that never started. Blink the play LED as the out-of-band
+    // signal for when no host is attached.
+    absolute_time_t next_blink = get_absolute_time();
+    bool lit = false;
     while (true) {
-      printf("AudioOutput::init failed\n");
-      sleep_ms(1000);
+      musin::usb::background_update();
+      if (absolute_time_diff_us(get_absolute_time(), next_blink) <= 0) {
+        lit = !lit;
+        display.show_error(lit);
+        if (lit) {
+          printf("AudioOutput::init failed\n");
+        }
+        next_blink = make_timeout_time_ms(500);
+      }
     }
   }
   AudioOutput::attach_source(load_meter);
   AudioOutput::volume(0.6f);
+  BEACON(10);
 
   last_sequencer_update = time_us_32();
   absolute_time_t next_report = make_timeout_time_ms(1000);
@@ -695,7 +755,22 @@ int main() {
       if (peak1.available()) {
         peak_level = peak1.read();
       }
+#if DUO_BOOT_BEACON
+      // Alternate between 11 and 12 lit LEDs at ~2 Hz: a visibly blinking
+      // twelfth LED means the main loop is turning over, which no static
+      // stage count can show. The real display is suppressed because the
+      // beacon owns the data pin.
+      static bool beacon_toggle = false;
+      static absolute_time_t next_beacon = nil_time;
+      if (absolute_time_diff_us(now, next_beacon) <= 0) {
+        next_beacon = make_timeout_time_ms(500);
+        beacon_toggle = !beacon_toggle;
+        BEACON(beacon_toggle ? 12 : 11);
+      }
+      (void)peak_level;
+#else
       display.update(sequencer, synth, peak_level);
+#endif
     }
 
     if (absolute_time_diff_us(now, next_report) <= 0) {

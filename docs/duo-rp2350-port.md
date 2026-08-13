@@ -3,11 +3,13 @@
 Feasibility research and refactor plan for moving the Dato DUO from the
 i.MX RT1011 (Brains 2) to the RP2350 platform used by the DRUM.
 
-**Status (2026-08-13): milestone 1 is running on hardware.** The `duo/` app
-boots on the Submarine board, enumerates USB, sequences, and renders the full
-DUO graph minus the delay at **16.0–16.4%** audio ISR load. Decisions marked
-**[DECIDED]** are settled; **[OPEN]** ones need an owner. See §12 for what
-remains before the gate.
+**Status (2026-08-13): milestone 1 is running on hardware and the control
+mapping is confirmed playable.** The `duo/` app boots on the Submarine board,
+enumerates USB, sequences, responds to DRUM's panel per §6, and renders the
+full DUO graph minus the delay at **16.0–16.4%** audio ISR load. Two items
+remain: **MIDI I/O** (§12.4, next up) and the **RAM-residency disassembly
+walk** (§12.3). Decisions marked **[DECIDED]** are settled; **[OPEN]** ones
+need an owner.
 
 **Sources:** `duo-imxrt/` (Brains 2 firmware), `drum-firmware/` (`musin/` +
 `drum/`). Line references were accurate at time of writing; verify before
@@ -541,11 +543,12 @@ Progress, as of 2026-08-13:
 |---|---|
 | Step 0 — walking skeleton + CPU measurement | ✅ done — 3.7% on the partial graph |
 | Track A — audio graph (delay excluded) | ✅ done — 16.0–16.4% on the full graph |
-| Track B — sequencer, timing, LEDs, control mapping | ✅ built, ⚠️ unplayed (§12.1) |
+| Track B — sequencer, timing, LEDs, control mapping | ✅ done — played by hand and confirmed (§12.1) |
 | Close-out — ISR RAM-residency disassembly walk | ❌ **not done** (§4.3, §12.3) |
-| MIDI I/O | ❌ **not wired** (§12.4) |
+| MIDI I/O | ❌ **not wired** — next up (§12.4) |
 
-The "done when" criterion below is met except for MIDI and the close-out walk.
+The "done when" criterion below is met. MIDI and the close-out walk are the
+only outstanding milestone-1 work.
 
 #### Step 0 — walking skeleton: one key, one note ⭐ ✅
 
@@ -595,7 +598,7 @@ one.
 function sits in flash. ❌ **Still outstanding** — see §12.3.
 
 **Done when:** the DUO plays, sequences and responds to DRUM's panel per §6,
-with a measured CPU number. ✅ met, modulo §12.1's playability check.
+with a measured CPU number. ✅ **met** — confirmed by hand on 2026-08-13.
 
 ### The gate — re-evaluate (§9)
 
@@ -652,11 +655,11 @@ Outcomes added 2026-08-13.
 | # | Risk | Severity | Mitigation | Outcome |
 |---|---|---|---|---|
 | 1 | ISR CPU load exceeds budget | High | Measured at step 0 on a partial graph, before the porting cost is sunk, and again at the end of Track A. Bandlimited voicing (§4.4) means it is the worst case. Brains-1-on-72 MHz-M4 precedent suggests it will be fine; second core in reserve, and plain waveforms are a fallback | ✅ **Retired.** 3.7% partial, 16.0–16.4% full. Never close to the budget; the fallback was not needed |
-| 2 | Voicing doesn't match reference DUO | Medium | §4.4 settled on the shipping RT1011 voicing; voicing pass is post-gate | Open, unchanged — not assessable until someone plays it (§12.1) |
+| 2 | Voicing doesn't match reference DUO | Medium | §4.4 settled on the shipping RT1011 voicing; voicing pass is post-gate | Open — the panel is confirmed playable (§12.1), but no A/B against a reference DUO has been done. Post-gate |
 | 3 | RAM-residency annotations omitted, faulting later | Medium | Cannot fire in milestone 1 (§7.2), which is exactly why it gets missed. Annotate as you port; one disassembly walk at close-out | ⚠️ **Live.** Predicted correctly: the walk was skipped (§12.3) |
 | 4 | Pull model unproven against cyclic graphs | Medium | Accepted debt (§4.2). Nothing in milestone 1 surfaces it | Open, unchanged — accepted debt; milestone 1 surfaced nothing, as predicted |
 | 5 | Minimal-change port (§7.6) imports DUO's coupling into `duo/`, and the style cleanup never gets funded | Medium | Deliberate trade for behavioural safety, and the imported code is small and bounded. Sharpened by porting without the Unity suite (§11) — keep deviations near zero so behaviour changes stay attributable | Open — `duo/` does carry the imported coupling; cleanup unfunded |
-| 6 | LED re-index diverges from control mapping | Low | Do §6.3 and §6.1 as one job | ✅ Retired — done as one job in `duo_display.cpp` |
+| 6 | LED re-index diverges from control mapping | Low | Do §6.3 and §6.1 as one job | ✅ Retired — done as one job in `duo_display.cpp`; confirmed by playing it (§12.1) |
 | 7 | RP2350 erratum **E9** — GPIO input latching when high-Z with internal pulldowns | Low | Use pull-ups (the matrix already does); audit any high-Z input | ✅ Not hit — keypad matrix uses pull-ups |
 | 8 | RP2350 **E10** | Low | Already handled — `PICO_RP2350_A2_SUPPORTED ON` in `drum/CMakeLists.txt` | ✅ Retired — `PICO_RP2350_A2_SUPPORTED ON` also set in `duo/CMakeLists.txt` |
 | 9 | Volca sync interpolation missing from `musin::timing` | Low | Verify per §7.3 | ⚠️ **Live** — still unverified (§11) |
@@ -684,10 +687,10 @@ first two items are now retired.
 - **The DUO's own test suite** (`shared/duo/test/`, Unity) was not assessed for
   migration to DRUM's Catch2 host-test setup. Still true, and §7.6's risk #5
   stands: nothing regression-tests the minimal-change port.
-- **The DRUM control mapping (§6) has not been tried by hand.** It is exact on
-  counts, but playability — whether the outer ring reads as a keyboard — is
-  unproven until someone plays it. **Still true** and now the most valuable
-  outstanding check (§12.1).
+- ~~**The DRUM control mapping (§6) has not been tried by hand.**~~ Played and
+  confirmed on 2026-08-13 — the outer ring does read as a keyboard and the
+  remap is playable (§12.1). **Voicing parity is a separate question and is
+  still untested** (§4.4, risk #2).
 
 ---
 
@@ -696,13 +699,18 @@ first two items are now retired.
 Written 2026-08-13, after bring-up. Bring-up debugging detail lives in
 [`duo-boot-debug.md`](duo-boot-debug.md).
 
-### 12.1 Play it ⭐ — the highest-value next step
+### 12.1 ✅ Control mapping confirmed by hand
 
-Everything in §6 is implemented but **nobody has played it**. The counts fit
-exactly, which was never the open question; whether the outer ring reads as a
-keyboard is. This is also where the voicing (§4.4) first becomes assessable by
-ear. Cheap to do, and it can invalidate mapping decisions that are currently
-just arithmetic.
+**Played on hardware 2026-08-13: the §6 mapping works.** The open question was
+never the counts — those were exact by construction — but whether the outer
+ring reads as a keyboard and the remap is playable. It does. No mapping
+decision in §6 needs revisiting, including the two homeless pots and the
+deliberate choice to keep `FILTER_FREQ_POT` off DRUM's coupled `FILTER`
+control (§6.2).
+
+Note this validates the *mapping*, not the *voicing*. Audible parity against a
+reference DUO (§4.4, risk #2) is a separate post-gate exercise and remains
+untested.
 
 ### 12.2 The one real surprise: hardcoded PIO/DMA resources in `musin`
 
@@ -730,12 +738,31 @@ Risk #3 predicted this would be the item that gets missed, because milestone 1
 never writes flash and so cannot fire the fault. It was right. Do the walk
 before persistence is added, not after — the annotations are latent until then.
 
-### 12.4 MIDI I/O is not wired
+### 12.4 MIDI I/O is not wired ⭐ — the next piece of work
 
 `duo/main.cpp` does not yet handle MIDI in or out; notes come only from the
 panel and the internal sequencer. §6.5 rated this Low effort ("both projects
 use TinyUSB and the same MIDI libs") and nothing has contradicted that. It is
 scope that was simply not reached, not a problem found.
+
+Starting points for a fresh session:
+
+- `drum/midi_manager.cpp` is the working reference on this platform, driven
+  from `drum/main.cpp` via `midi_manager.init()` + `process_input()`, with
+  `musin::midi::process_midi_output_queue()` drained twice per loop (see #527).
+- `duo/main.cpp` already has the note entry points the reference firmware sends
+  from: `note_on(midi_note, velocity, enabled)`, `note_off()`,
+  `kick_noteon`/`kick_noteoff`, `hat_noteon`/`hat_noteoff`. The DUO's original
+  `MidiFunctions.h` is the behavioural reference (§2 — it pulls in `MIDI.h`,
+  which musin vendors unchanged, per §7.1).
+- `MIDI_CHANNEL` is currently a hardcoded `[[maybe_unused]]` constant `1` in
+  `duo/main.cpp`, matching the reference's `main_init()`. Persistence for it is
+  a post-gate decision (§7.2), not part of wiring MIDI.
+- `musin::timing::MidiClockProcessor` is already constructed and routed through
+  `clock_router`, so external MIDI clock should need wiring only at the input
+  end. `MidiClockOut` is **not** instantiated — DRUM has it, DUO does not.
+- Beware §12.2 when adding any new peripheral init: audio must claim its
+  PIO/DMA first.
 
 ### 12.5 Flashing notes
 

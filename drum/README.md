@@ -264,8 +264,13 @@ firmware.uf2` is the reference client.
       update in progress; only the inactive partition is affected.
 
 Notes:
-- Firmware images are built with the TBYB flag, so picotool/BOOTSEL loads also
-  self-commit on first boot via the same mechanism.
+- Firmware images are built with the TBYB flag, but the buyer only runs on an
+  update boot (the bootrom reports a pending buy). A plain picotool/BOOTSEL
+  load is not an update boot, so the image is never bought and the bootrom
+  refuses it on the next power-on — the device comes up dead. Build with
+  `drum/build.sh --direct` for direct flashing; it clears the flag, leaving
+  the image in the state a successful update leaves in flash. Omit `--direct`
+  when you need to exercise the trial-boot and rollback path.
 - Both RAM (`PICO_COPY_TO_RAM`, the default) and flash (XIP) builds are
   relocatable between partitions and safe to distribute for SysEx updates.
   Images are linked to the XIP window base (0x10000000), and the RP2350

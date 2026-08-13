@@ -47,7 +47,10 @@ import sys
 import tempfile
 import wave
 
-FLASH_BASE = 0x10000000
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from picobin import FLASH_BASE, clear_tbyb, uf2_payload_into  # noqa: E402
+
 PARTITION_TABLE_REGION = 0x2000  # flash reserved for the partition table
 BLOCK_SIZE = 4096  # littlefs block == flash sector
 PROG_SIZE = 256  # flash page
@@ -80,24 +83,6 @@ def partition_offsets(table_json_path):
   return offsets
 
 
-def uf2_payload_into(image, data, base, skip_outside=False):
-  """Write each UF2 block's payload of `data` into `image` at addr - base.
-
-  skip_outside ignores blocks outside the region: SDK firmware UF2s carry an
-  address-wrap marker block at the top of the 16MB flash address space."""
-  for offset in range(0, len(data), 512):
-    block = data[offset:offset + 512]
-    magic0, magic1, _flags, addr, size = struct.unpack_from("<5I", block, 0)
-    if (magic0, magic1) != (UF2_MAGIC_START0, UF2_MAGIC_START1):
-      raise ValueError(f"bad UF2 magic at offset {offset:#x}")
-    dest = addr - base
-    if dest < 0 or dest + size > len(image):
-      if skip_outside:
-        continue
-      raise ValueError(f"UF2 block at {addr:#x} outside target region")
-    image[dest:dest + size] = block[32:32 + size]
-
-
 def create_partition_table(table_json_path):
   with tempfile.NamedTemporaryFile(suffix=".uf2") as tmp:
     subprocess.run(
@@ -112,35 +97,6 @@ def wav_to_pcm(path):
       raise ValueError(f"{path.name}: expected 16-bit mono WAV, got "
                        f"{w.getnchannels()} ch / {w.getsampwidth() * 8}-bit")
     return w.readframes(w.getnframes())
-
-
-PICOBIN_BLOCK_MARKER_START = 0xFFFFDED3
-PICOBIN_ITEM_TYPE_IMAGE_TYPE = 0x42
-PICOBIN_IMAGE_TYPE_EXE_TBYB_BITS = 0x8000
-
-
-def clear_tbyb(firmware):
-  """Clear the try-before-you-buy flag in the picobin IMAGE_TYPE item.
-
-  The build sets TBYB so A/B updates boot as flash-update trials, but the
-  bootrom refuses to boot an unbought TBYB image on a normal power-on. The
-  factory image must ship pre-bought — the same state rom_explicit_buy
-  leaves in flash after a successful update."""
-  cleared = 0
-  marker = struct.pack("<I", PICOBIN_BLOCK_MARKER_START)
-  pos = firmware.find(marker)
-  while pos >= 0:
-    item_offset = pos + 4
-    if firmware[item_offset] == PICOBIN_ITEM_TYPE_IMAGE_TYPE:
-      flags, = struct.unpack_from("<H", firmware, item_offset + 2)
-      if flags & PICOBIN_IMAGE_TYPE_EXE_TBYB_BITS:
-        struct.pack_into("<H", firmware, item_offset + 2,
-                         flags & ~PICOBIN_IMAGE_TYPE_EXE_TBYB_BITS)
-        cleared += 1
-    pos = firmware.find(marker, pos + 4)
-  if cleared != 1:
-    raise ValueError(f"expected exactly one TBYB IMAGE_TYPE item, "
-                     f"patched {cleared}")
 
 
 # Disk format written by the littlefs vendored in pico-vfs

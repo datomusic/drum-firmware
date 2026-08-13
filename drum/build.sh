@@ -30,6 +30,7 @@ HELP=false
 CLEAN=false
 WHITE_LABEL=false
 SETUP_PARTITIONS=false
+DIRECT=false
 
 # Parse command line arguments
 while getopts "vVrfp:nch-:" opt; do
@@ -52,6 +53,7 @@ while getopts "vVrfp:nch-:" opt; do
         clean) CLEAN=true ;;
         white-label) WHITE_LABEL=true ;;
         setup-partitions) SETUP_PARTITIONS=true ;;
+        direct) DIRECT=true ;;
         help) HELP=true ;;
         *) echo "Unknown option --$OPTARG" >&2; exit 1 ;;
       esac ;;
@@ -73,6 +75,7 @@ OPTIONS:
   -p N, --partition=N  Upload to specific partition (0=A, 1=B)
   -n, --no-upload      Build only, don't upload
   -c, --clean          Remove build directory before building
+  --direct             Pre-buy the image (clear TBYB) so a plain flash boots
   --white-label        Program OTP white-label data from drum/white-label.json
   --setup-partitions   Create and flash partition table from drum/partition_table.json
   -h, --help           Show this help
@@ -86,10 +89,21 @@ EXAMPLES:
 
 PARTITION INFO:
   Partition 0: Firmware A
-  Partition 1: Firmware B  
+  Partition 1: Firmware B
   Partition 2: Data (filesystem)
-  
+
   Without -p flag, uploads to currently inactive partition.
+
+DIRECT FLASHING:
+  Builds carry the picobin try-before-you-buy bit, so the bootrom only boots
+  them as a flash-update trial; firmware_update_buyer commits them with
+  rom_explicit_buy once they run healthily. A plain 'picotool load' is not an
+  update boot, so such an image is refused on the next power-on and the
+  device comes up dead (no USB, no LEDs).
+
+  --direct clears that bit before uploading, matching the state a successful
+  update leaves in flash. Use it for ordinary development flashing. Omit it
+  when you need to exercise the trial-boot and rollback path.
 
 EOF
   exit 0
@@ -202,14 +216,28 @@ if ! cmake --build build --parallel 10; then
   exit 1
 fi
 
-# Find the generated UF2 file
-UF2_FILE=$(find build -name "*.uf2" -print -quit)
+# Find the generated UF2 file. The build directory accumulates UF2s from
+# earlier builds under different version strings, so take the newest rather
+# than whichever the filesystem lists first. Derived images are excluded so
+# they can never be mistaken for a build output.
+UF2_FILE=$(ls -t build/*.uf2 2>/dev/null \
+  | grep -v -e '-direct\.uf2$' -e '/partition_table\.uf2$' | head -1)
 if [ ! -f "$UF2_FILE" ]; then
   echo "Error: .uf2 file not found in build directory" >&2
   exit 1
 fi
 
 echo "Build successful: $UF2_FILE"
+
+# Pre-buy the image so it survives a power cycle after a direct flash.
+if [ "$DIRECT" = true ]; then
+  DIRECT_UF2="${UF2_FILE%.uf2}-direct.uf2"
+  if ! python3 "$SCRIPT_DIR/../tools/clear_tbyb_uf2.py" "$UF2_FILE" -o "$DIRECT_UF2"; then
+    echo "Error: clearing the TBYB flag failed" >&2
+    exit 1
+  fi
+  UF2_FILE="$DIRECT_UF2"
+fi
 
 # Upload if requested
 if [ "$UPLOAD" = false ]; then

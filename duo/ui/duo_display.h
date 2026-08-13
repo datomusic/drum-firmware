@@ -34,6 +34,13 @@ public:
   void update(const Sequencer::Sequencer &sequencer,
               const synth_parameters &synth, float peak_level);
 
+  /**
+   * @brief Shows a bare fault indicator: the play LED red, everything else
+   * dark. For init failures, where the main loop is never reached and the
+   * only channel left is the panel.
+   */
+  void show_error(bool lit);
+
 private:
   static constexpr uint32_t NUM_LEDS = 37;
 

@@ -31,6 +31,7 @@ constexpr uint8_t SK6812_BRIGHTNESS = 32;
 constexpr uint32_t CORRECTION_SK6812 = 0xFFF1E0;
 constexpr uint32_t LED_WHITE = (230u << 16) | (255u << 8) | 150u;
 constexpr uint32_t LED_BLACK = 0;
+constexpr uint32_t LED_RED = 255u << 16; // init-failure indicator
 
 // The black keys have assigned colors. The white keys are shown in gray.
 constexpr uint32_t COLORS[] = {0x444444, 0xFF0001, 0x444444, 0xFFDD00, 0x444444,
@@ -96,6 +97,12 @@ bool DuoDisplay::init() {
 
 void DuoDisplay::deinit() {
   gpio_put(LED_ENABLE_PIN, 0);
+}
+
+void DuoDisplay::show_error(bool lit) {
+  leds_.clear();
+  leds_.set_pixel(LED_PLAY_BUTTON, lit ? LED_RED : LED_BLACK);
+  leds_.show();
 }
 
 void DuoDisplay::set_step_led(uint8_t step, uint32_t color) {

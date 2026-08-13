@@ -1,7 +1,7 @@
 // duo-on-drum milestone 1: full DUO synth graph (minus delay) plus the DUO
 // sequencer/arpeggiator, driven by musin::timing and the §6 control mapping.
 //
-// MIDI I/O is not yet wired. Prints audio ISR CPU load once per second.
+// Prints audio ISR CPU load once per second.
 
 // Bring-up aid: set to 1 to light one more LED after each init step, so a dark
 // panel localises the hang instead of only proving the main loop was never
@@ -25,8 +25,11 @@
 #include "musin/audio/synth_whitenoise.h"
 #include "musin/hal/analog_mux_scanner.h"
 #include "musin/hal/null_logger.h"
+#include "musin/midi/midi_output_queue.h"
+#include "musin/midi/midi_wrapper.h"
 #include "musin/timing/clock_router.h"
 #include "musin/timing/internal_clock.h"
+#include "musin/timing/midi_clock_out.h"
 #include "musin/timing/midi_clock_processor.h"
 #include "musin/timing/speed_adapter.h"
 #include "musin/timing/sync_in.h"
@@ -88,7 +91,7 @@ enum MuxChannel : uint8_t {
 // =====================================================================
 constexpr etl::array<uint8_t, 10> SCALE = {49, 51, 54, 56, 58,
                                            61, 63, 66, 68, 70};
-constexpr uint8_t MIDI_CHANNEL [[maybe_unused]] = 1;
+constexpr uint8_t MIDI_CHANNEL = 1;
 
 float osc_saw_frequency = 0.f;
 float osc_pulse_frequency = 0.f;
@@ -100,6 +103,10 @@ bool double_speed = false;
 uint8_t note_is_playing = 0;
 
 synth_parameters synth;
+
+// Namespace scope so the MIDI output queue drain and the keypad share one
+// logger, and so it outlives everything that borrows it.
+musin::NullLogger logger;
 
 constexpr long map_range(long x, long in_min, long in_max, long out_min,
                          long out_max) {
@@ -293,7 +300,7 @@ void pitch_update() {
 }
 
 // =====================================================================
-// Note handling (duo-imxrt main.cpp note_on/note_off; MIDI TX not wired)
+// Note handling (duo-imxrt main.cpp note_on/note_off)
 // =====================================================================
 void note_on(uint8_t midi_note, uint8_t velocity, bool enabled) {
   if (synth.accent) {
@@ -308,6 +315,7 @@ void note_on(uint8_t midi_note, uint8_t velocity, bool enabled) {
     osc_pulse_target_frequency = midi_note_to_frequency(midi_note);
     osc_saw.frequency(detune(osc_pulse_midi_note, detune_amount));
 
+    MIDI::sendNoteOn(midi_note, velocity, MIDI_CHANNEL);
     envelope1.noteOn();
     envelope2.noteOn();
   }
@@ -315,6 +323,7 @@ void note_on(uint8_t midi_note, uint8_t velocity, bool enabled) {
 
 void note_off() {
   if (note_is_playing) {
+    MIDI::sendNoteOff(note_is_playing, 0, MIDI_CHANNEL);
     envelope1.noteOff();
     envelope2.noteOff();
     note_is_playing = 0;
@@ -347,6 +356,11 @@ Sequencer::Sequencer
                                            .note_off = note_off},
               sequencer_on_running_advance);
 
+// MidiFunctions.h is a definition-carrying header included here, as in the
+// reference firmware, because it closes over `synth`, `transpose`,
+// `note_off()` and `sequencer` above (§7.6 minimal-change).
+#include "duo/midi_functions.h"
+
 // =====================================================================
 // Timing: musin::timing stack (§7.3). SpeedAdapter runs at DOUBLE_SPEED so
 // TempoEvents arrive at 24 PPQN — the DUO sequencer's native tick rate — and
@@ -363,6 +377,14 @@ musin::timing::SpeedAdapter
     speed_adapter(musin::timing::SpeedModifier::DOUBLE_SPEED);
 musin::timing::TempoHandler tempo_handler(clock_router, speed_adapter, false,
                                           musin::timing::ClockSource::INTERNAL);
+
+// MIDI clock out. This observes clock_router directly, which carries the raw
+// 24 PPQN — speed_adapter's output is the sequencer's rate, not the wire rate.
+// `send_when_stopped_as_master = true` matches the retired DUO TempoHandler,
+// which sent clock from trigger() whenever the source was not MIDI, running or
+// not (duo-imxrt shared/duo/TempoHandler.h). MidiClockOut suppresses the
+// MIDI-source case itself, so an external clock is not echoed back.
+musin::timing::MidiClockOut midi_clock_out(tempo_handler, true);
 
 struct SequencerTicker : etl::observer<musin::timing::TempoEvent> {
   void notification(musin::timing::TempoEvent) override {
@@ -415,13 +437,55 @@ void sequencer_update() {
 }
 
 void sequencer_stop() {
+  if (sequencer.is_running()) {
+    MIDI::sendControlChange(123, 0, MIDI_CHANNEL);
+    MIDI::sendRealTime(::midi::Stop);
+  }
   sequencer.stop();
   tempo_handler.set_playback_state(musin::timing::PlaybackState::STOPPED);
 }
 
 void sequencer_start() {
+  MIDI::sendRealTime(::midi::Continue);
   tempo_handler.set_playback_state(musin::timing::PlaybackState::PLAYING);
   sequencer.run();
+}
+
+// Transport in from a host. Unlike the reference, received realtime is not
+// echoed back out: the reference's Brains 2 DIN and USB ports were separate,
+// while here a DAW driving us over USB would see its own Start returned.
+void midi_handle_start() {
+  tempo_handler.set_playback_state(musin::timing::PlaybackState::PLAYING);
+  sequencer.align_clock();
+  sequencer.run();
+}
+
+void midi_handle_continue() {
+  tempo_handler.set_playback_state(musin::timing::PlaybackState::PLAYING);
+  sequencer.run();
+}
+
+void midi_handle_stop() {
+  sequencer.stop();
+  tempo_handler.set_playback_state(musin::timing::PlaybackState::STOPPED);
+}
+
+void midi_handle_clock() {
+  midi_clock_processor.on_midi_clock_tick_received();
+}
+
+void midi_init() {
+  MIDI::init(MIDI::Callbacks{
+      .note_on = midi_note_on,
+      .note_off = midi_note_off,
+      .clock = midi_handle_clock,
+      .start = midi_handle_start,
+      .cont = midi_handle_continue,
+      .stop = midi_handle_stop,
+      .cc = midi_handle_cc,
+      .pitch_bend = nullptr,
+      .sysex = midi_handle_sysex,
+  });
 }
 
 void sequencer_toggle_start() {
@@ -654,9 +718,7 @@ int main() {
 
   // These are static, not automatic: Keypad_HC138<8,5> alone is 1744 bytes
   // against a 2 KB stack, so holding them as locals leaves main() with no
-  // room to call anything. The logger must outlive the keypad that borrows
-  // it, so it is static too.
-  static musin::NullLogger logger;
+  // room to call anything.
   static musin::ui::Keypad_HC138<KEYPAD_ROWS, KEYPAD_COLS> keypad(
       keypad_decoder_pins, keypad_columns_pins, logger);
   static KeypadHandler keypad_handler;
@@ -687,10 +749,12 @@ int main() {
 
   audio_init();
   drum_init();
+  midi_init();
   BEACON(8);
 
   // Timing: clock -> speed adapter (24 PPQN out) -> tempo handler -> ticker
   clock_router.add_observer(speed_adapter);
+  clock_router.add_observer(midi_clock_out);
   SequencerTicker ticker;
   tempo_handler.add_observer(ticker);
 
@@ -743,14 +807,21 @@ int main() {
 
     internal_clock.update(now);
     sync_in.update(now);
+    clock_router.update_auto_source_switching();
 
     AudioOutput::update();
     musin::usb::background_update();
+    MIDI::read(MIDI_CHANNEL);
+    // process_midi_output_queue sends at most one message per call, so drain
+    // twice per loop to halve output latency (as drum/main.cpp, see #527).
+    musin::midi::process_midi_output_queue(logger);
+    musin::midi::process_midi_output_queue(logger);
 
     // ~11 ms LED/control frame, as the DUO's main_loop.
     static absolute_time_t next_led_frame = nil_time;
     if (absolute_time_diff_us(now, next_led_frame) <= 0) {
       next_led_frame = make_timeout_time_ms(11);
+      midi_send_cc();
       static float peak_level = 0.0f;
       if (peak1.available()) {
         peak_level = peak1.read();

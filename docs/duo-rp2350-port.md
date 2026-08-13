@@ -5,11 +5,10 @@ i.MX RT1011 (Brains 2) to the RP2350 platform used by the DRUM.
 
 **Status (2026-08-13): milestone 1 is running on hardware and the control
 mapping is confirmed playable.** The `duo/` app boots on the Submarine board,
-enumerates USB, sequences, responds to DRUM's panel per §6, and renders the
-full DUO graph minus the delay at **16.0–16.4%** audio ISR load. Two items
-remain: **MIDI I/O** (§12.4, next up) and the **RAM-residency disassembly
-walk** (§12.3). Decisions marked **[DECIDED]** are settled; **[OPEN]** ones
-need an owner.
+enumerates USB, sequences, responds to DRUM's panel per §6, does MIDI I/O,
+and renders the full DUO graph minus the delay at **16.0–16.4%** audio ISR
+load. One item remains: the **RAM-residency disassembly walk** (§12.3).
+Decisions marked **[DECIDED]** are settled; **[OPEN]** ones need an owner.
 
 **Sources:** `duo-imxrt/` (Brains 2 firmware), `drum-firmware/` (`musin/` +
 `drum/`). Line references were accurate at time of writing; verify before
@@ -544,11 +543,11 @@ Progress, as of 2026-08-13:
 | Step 0 — walking skeleton + CPU measurement | ✅ done — 3.7% on the partial graph |
 | Track A — audio graph (delay excluded) | ✅ done — 16.0–16.4% on the full graph |
 | Track B — sequencer, timing, LEDs, control mapping | ✅ done — played by hand and confirmed (§12.1) |
+| MIDI I/O | ✅ done — notes, CC, clock, transport confirmed; SysEx untested (§12.4) |
 | Close-out — ISR RAM-residency disassembly walk | ❌ **not done** (§4.3, §12.3) |
-| MIDI I/O | ❌ **not wired** — next up (§12.4) |
 
-The "done when" criterion below is met. MIDI and the close-out walk are the
-only outstanding milestone-1 work.
+The "done when" criterion below is met. The close-out walk is the only
+outstanding milestone-1 work.
 
 #### Step 0 — walking skeleton: one key, one note ⭐ ✅
 
@@ -674,7 +673,12 @@ first two items are now retired.
 - ~~**No code was run or built.**~~ Milestone 1 is built and running on
   hardware.
 - ~~**No CPU measurement exists** for the DUO graph on RP2350 (risk #1).~~
-  3.7% partial, 16.0–16.4% full graph minus delay.
+  3.7% partial, 16.0–16.4% full graph minus delay. **Not re-measured since
+  MIDI landed** — the per-frame CC scan and queue drain are small but not
+  free.
+- ~~**MIDI I/O has not been exercised against a host**~~ — notes, CC,
+  transport and clock confirmed against a host (§12.4). **SysEx is still
+  unexercised**, including the shortened serial number.
 - **Schematics were not consulted** — hardware claims come from firmware pin
   definitions and board headers, which can drift from the actual PCB. The pin
   map is now indirectly confirmed for LEDs, keypad, mux, I²C and codec, since
@@ -682,8 +686,9 @@ first two items are now retired.
 - **`musin::timing` feature parity with `TempoHandler` was not fully checked** —
   only the two behaviours in §7.3 were identified as needing verification. Of
   those, the external-clock `speed_mod` nudge is implemented
-  (`sequencer_update()` in `duo/main.cpp`); **Volca sync-pulse interpolation is
-  still unverified.**
+  (`sequencer_update()` in `duo/main.cpp`) but was unreachable until §12.4
+  added the missing `update_auto_source_switching()` call, and is still
+  untested; **Volca sync-pulse interpolation is still unverified.**
 - **The DUO's own test suite** (`shared/duo/test/`, Unity) was not assessed for
   migration to DRUM's Catch2 host-test setup. Still true, and §7.6's risk #5
   stands: nothing regression-tests the minimal-change port.
@@ -738,31 +743,60 @@ Risk #3 predicted this would be the item that gets missed, because milestone 1
 never writes flash and so cannot fire the fault. It was right. Do the walk
 before persistence is added, not after — the annotations are latent until then.
 
-### 12.4 MIDI I/O is not wired ⭐ — the next piece of work
+### 12.4 ✅ MIDI I/O wired
 
-`duo/main.cpp` does not yet handle MIDI in or out; notes come only from the
-panel and the internal sequencer. §6.5 rated this Low effort ("both projects
-use TinyUSB and the same MIDI libs") and nothing has contradicted that. It is
-scope that was simply not reached, not a problem found.
+`shared/duo/MidiFunctions.h` is ported to `duo/midi_functions.h` and wired into
+`duo/main.cpp`. §6.5 rated this Low effort and that held — it needed no new
+musin code. As in the reference, it is a definition-carrying header included
+from the middle of `main.cpp`'s anonymous namespace, after `synth`,
+`transpose`, `note_off()` and `sequencer` exist (§7.6 minimal-change).
 
-Starting points for a fresh session:
+What is wired:
 
-- `drum/midi_manager.cpp` is the working reference on this platform, driven
-  from `drum/main.cpp` via `midi_manager.init()` + `process_input()`, with
-  `musin::midi::process_midi_output_queue()` drained twice per loop (see #527).
-- `duo/main.cpp` already has the note entry points the reference firmware sends
-  from: `note_on(midi_note, velocity, enabled)`, `note_off()`,
-  `kick_noteon`/`kick_noteoff`, `hat_noteon`/`hat_noteoff`. The DUO's original
-  `MidiFunctions.h` is the behavioural reference (§2 — it pulls in `MIDI.h`,
-  which musin vendors unchanged, per §7.1).
-- `MIDI_CHANNEL` is currently a hardcoded `[[maybe_unused]]` constant `1` in
-  `duo/main.cpp`, matching the reference's `main_init()`. Persistence for it is
-  a post-gate decision (§7.2), not part of wiring MIDI.
-- `musin::timing::MidiClockProcessor` is already constructed and routed through
-  `clock_router`, so external MIDI clock should need wiring only at the input
-  end. `MidiClockOut` is **not** instantiated — DRUM has it, DUO does not.
-- Beware §12.2 when adding any new peripheral init: audio must claim its
-  PIO/DMA first.
+- **Note in** → `sequencer.hold_note()` / `release_note()`; **note out** from
+  `note_on()` / `note_off()`, so panel and sequencer notes echo to the host.
+- **CC out** — the full §MidiFunctions chart (7, 65, 70, 71, 72, 74, 80, 81,
+  94), change-detected, sent once per 11 ms frame as the reference does.
+  `resonance`, `glide`, `delay` and `crush` are pinned by §6.2's homeless pots,
+  so those simply never change.
+- **CC in** — 123 All Notes Off.
+- **Clock in** → `MidiClockProcessor`, plus `clock_router
+  .update_auto_source_switching()` now called in the loop. That call was
+  missing, so **sync-in auto-switching was also dead**, and with it §7.3's
+  external-clock `speed_mod` nudge, which can only fire on a non-internal
+  source.
+- **Clock out** → `musin::timing::MidiClockOut`, observing **`clock_router`,
+  not `speed_adapter`**: the router carries the raw 24 PPQN, while the adapter
+  runs at `DOUBLE_SPEED` to feed the sequencer and so carries the sequencer's
+  rate, not the wire rate. Constructed with
+  `send_when_stopped_as_master = true` to match the retired DUO
+  `TempoHandler`, which sent clock from `trigger()` whenever the source was
+  not MIDI, running or not. `MidiClockOut` suppresses the MIDI-source case
+  itself, so an external clock is not echoed back, and it additionally
+  **bridges `EXTERNAL_SYNC` to MIDI clock out** — as the reference did.
+
+  This was the one gap the first pass missed. The DUO's clock output lived
+  inside `shared/duo/TempoHandler.h`'s `trigger()`, so retiring that class
+  (§7.3) removed it, and unlike notes, CC and transport it had no other send
+  site to survive in. A reminder that §7.3's "retire DUO's TempoHandler" moved
+  more behaviour than its name suggests.
+- **Transport** — Start/Continue/Stop in; Continue/Stop plus CC 123 out on
+  panel start/stop, as the reference. **One deliberate deviation:** received
+  realtime is *not* echoed back out. The reference does echo, which was
+  harmless across Brains 2's separate DIN and USB ports but would return a
+  DAW's own Start to it here.
+- **SysEx** — firmware version, identity reply, reset transpose, reboot to
+  bootloader (`reset_usb_boot`). Serial number keeps the 24-byte wire format
+  of 4 groups of 5 right-aligned 7-bit values, but the RP2350's board id is
+  64 bits where the i.MX's was 128, so **the leading two groups are always
+  zero** — anything parsing DUO serials needs to tolerate that. Selftest is a
+  no-op stub; there is no selftest on this surface.
+
+`MIDI_CHANNEL` remains a hardcoded `1`, matching the reference's
+`main_init()`. Persistence for it is a post-gate decision (§7.2).
+
+**Confirmed on hardware 2026-08-13:** notes, CC, transport and clock all work
+against a host.
 
 ### 12.5 Flashing notes
 

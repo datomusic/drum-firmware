@@ -80,6 +80,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
   musin::ui
   musin::usb_midi
   musin::audio
+  pico_rand
 )
 
 pico_add_extra_outputs(${EXECUTABLE_NAME})

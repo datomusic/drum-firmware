@@ -125,6 +125,22 @@ multiply_subtract_32x32_rshift32_rounded(int32_t sum, int32_t a, int32_t b) {
   return sum - ((((int64_t)a * (int64_t)b) + 0x8000000) >> 32);
 }
 
+// computes ((a[15:0] * b[31:16]))
+static inline int32_t multiply_16bx16t(uint32_t a, uint32_t b)
+    __attribute__((always_inline, unused));
+static inline int32_t multiply_16bx16t(uint32_t a, uint32_t b) {
+
+  return (int16_t)(a & 0xFFFF) * (int16_t)(b >> 16);
+}
+
+// computes ((a[31:16] * b[31:16]))
+static inline int32_t multiply_16tx16t(uint32_t a, uint32_t b)
+    __attribute__((always_inline, unused));
+static inline int32_t multiply_16tx16t(uint32_t a, uint32_t b) {
+
+  return (int16_t)(a >> 16) * (int16_t)(b >> 16);
+}
+
 // computes (a[31:16] | (b[31:16] >> 16))
 static inline uint32_t pack_16t_16t(int32_t a, int32_t b)
     __attribute__((always_inline, unused));

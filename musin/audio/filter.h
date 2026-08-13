@@ -194,6 +194,62 @@ struct Lowpass : ::BufferSource {
   Filter filter;
 };
 
+struct Bandpass : ::BufferSource {
+  Bandpass(::BufferSource &from) : from(from) {
+  }
+
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) {
+    from.fill_buffer(out_samples);
+    filter.update_fixed(out_samples, outputs);
+    etl::copy(outputs.bandpass.cbegin(), outputs.bandpass.cend(),
+              out_samples.begin());
+  }
+
+  /**
+   * @brief Sets the filter center frequency using a normalized value
+   * [0.0, 1.0].
+   */
+  void frequency(float freq_normalized) {
+    filter.frequency_normalized(freq_normalized);
+  }
+
+  /**
+   * @brief Sets the filter resonance using a normalized value [0.0, 1.0].
+   */
+  void resonance(float res_normalized) {
+    filter.resonance_normalized(res_normalized);
+  }
+
+  ::BufferSource &from;
+  Filter::Outputs outputs;
+  Filter filter;
+};
+
+/**
+ * @brief Lowpass whose cutoff is modulated by a second audio-rate control
+ * signal, like the Teensy state-variable filter's signal input 1. The
+ * control source is pulled once per block alongside the audio input.
+ */
+struct LowpassModulated : ::BufferSource {
+  LowpassModulated(::BufferSource &from, ::BufferSource &control)
+      : from(from), control(control) {
+  }
+
+  void __time_critical_func(fill_buffer)(::AudioBlock &out_samples) {
+    from.fill_buffer(out_samples);
+    control.fill_buffer(control_samples);
+    filter.update_variable(out_samples, control_samples, outputs);
+    etl::copy(outputs.lowpass.cbegin(), outputs.lowpass.cend(),
+              out_samples.begin());
+  }
+
+  ::BufferSource &from;
+  ::BufferSource &control;
+  ::AudioBlock control_samples;
+  Filter::Outputs outputs;
+  Filter filter;
+};
+
 struct Highpass : ::BufferSource {
   Highpass(::BufferSource &from) : from(from) {
   }

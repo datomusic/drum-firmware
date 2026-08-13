@@ -6,9 +6,10 @@ i.MX RT1011 (Brains 2) to the RP2350 platform used by the DRUM.
 **Status (2026-08-13): milestone 1 is running on hardware and the control
 mapping is confirmed playable.** The `duo/` app boots on the Submarine board,
 enumerates USB, sequences, responds to DRUM's panel per §6, does MIDI I/O,
-and renders the full DUO graph minus the delay at **16.0–16.4%** audio ISR
-load. One item remains: the **RAM-residency disassembly walk** (§12.3).
-Decisions marked **[DECIDED]** are settled; **[OPEN]** ones need an owner.
+and renders the full DUO graph minus the delay at **15.9%** audio ISR load.
+The RAM-residency close-out walk has passed (§12.3), so **milestone 1 is
+complete and the gate (§9) is the next step.** Decisions marked **[DECIDED]**
+are settled; **[OPEN]** ones need an owner.
 
 **Sources:** `duo-imxrt/` (Brains 2 firmware), `drum-firmware/` (`musin/` +
 `drum/`). Line references were accurate at time of writing; verify before
@@ -544,10 +545,10 @@ Progress, as of 2026-08-13:
 | Track A — audio graph (delay excluded) | ✅ done — 16.0–16.4% on the full graph |
 | Track B — sequencer, timing, LEDs, control mapping | ✅ done — played by hand and confirmed (§12.1) |
 | MIDI I/O | ✅ done — notes, CC, clock, transport confirmed; SysEx untested (§12.4) |
-| Close-out — ISR RAM-residency disassembly walk | ❌ **not done** (§4.3, §12.3) |
+| Close-out — ISR RAM-residency disassembly walk | ✅ done — passed, no fixes needed (§12.3) |
 
-The "done when" criterion below is met. The close-out walk is the only
-outstanding milestone-1 work.
+The "done when" criterion below is met and **milestone 1 is complete**. The
+gate (§9) is the next step.
 
 #### Step 0 — walking skeleton: one key, one note ⭐ ✅
 
@@ -594,7 +595,7 @@ one.
    `AnalogMuxScanner` + `Drumpad`.
 
 **Close-out:** one disassembly walk per `AGENTS.md` to confirm no ISR-reachable
-function sits in flash. ❌ **Still outstanding** — see §12.3.
+function sits in flash. ✅ **Done and passed** — see §12.3.
 
 **Done when:** the DUO plays, sequences and responds to DRUM's panel per §6,
 with a measured CPU number. ✅ **met** — confirmed by hand on 2026-08-13.
@@ -655,7 +656,7 @@ Outcomes added 2026-08-13.
 |---|---|---|---|---|
 | 1 | ISR CPU load exceeds budget | High | Measured at step 0 on a partial graph, before the porting cost is sunk, and again at the end of Track A. Bandlimited voicing (§4.4) means it is the worst case. Brains-1-on-72 MHz-M4 precedent suggests it will be fine; second core in reserve, and plain waveforms are a fallback | ✅ **Retired.** 3.7% partial, 16.0–16.4% full. Never close to the budget; the fallback was not needed |
 | 2 | Voicing doesn't match reference DUO | Medium | §4.4 settled on the shipping RT1011 voicing; voicing pass is post-gate | Open — the panel is confirmed playable (§12.1), but no A/B against a reference DUO has been done. Post-gate |
-| 3 | RAM-residency annotations omitted, faulting later | Medium | Cannot fire in milestone 1 (§7.2), which is exactly why it gets missed. Annotate as you port; one disassembly walk at close-out | ⚠️ **Live.** Predicted correctly: the walk was skipped (§12.3) |
+| 3 | RAM-residency annotations omitted, faulting later | Medium | Cannot fire in milestone 1 (§7.2), which is exactly why it gets missed. Annotate as you port; one disassembly walk at close-out | ✅ **Retired.** Walk done and passed on a genuine XIP build (§12.3); all 13 graph nodes RAM-resident. §12.3.1 offers a way to retire the whole class of risk for the DUO |
 | 4 | Pull model unproven against cyclic graphs | Medium | Accepted debt (§4.2). Nothing in milestone 1 surfaces it | Open, unchanged — accepted debt; milestone 1 surfaced nothing, as predicted |
 | 5 | Minimal-change port (§7.6) imports DUO's coupling into `duo/`, and the style cleanup never gets funded | Medium | Deliberate trade for behavioural safety, and the imported code is small and bounded. Sharpened by porting without the Unity suite (§11) — keep deviations near zero so behaviour changes stay attributable | Open — `duo/` does carry the imported coupling; cleanup unfunded |
 | 6 | LED re-index diverges from control mapping | Low | Do §6.3 and §6.1 as one job | ✅ Retired — done as one job in `duo_display.cpp`; confirmed by playing it (§12.1) |
@@ -673,9 +674,9 @@ first two items are now retired.
 - ~~**No code was run or built.**~~ Milestone 1 is built and running on
   hardware.
 - ~~**No CPU measurement exists** for the DUO graph on RP2350 (risk #1).~~
-  3.7% partial, 16.0–16.4% full graph minus delay. **Not re-measured since
-  MIDI landed** — the per-frame CC scan and queue drain are small but not
-  free.
+  3.7% partial, 16.0–16.4% full graph minus delay, and **15.9% re-measured
+  after MIDI landed** — the per-frame CC scan and queue drain cost nothing
+  measurable, being entirely main-loop side.
 - ~~**MIDI I/O has not been exercised against a host**~~ — notes, CC,
   transport and clock confirmed against a host (§12.4). **SysEx is still
   unexercised**, including the shortened serial number.
@@ -736,12 +737,80 @@ evidence of a specific kind: not a missing feature, but an implicit
 initialisation contract that only a second consumer could reveal. That is
 precisely what milestone 1 existed to produce.
 
-### 12.3 Close-out: the RAM-residency disassembly walk
+### 12.3 ✅ Close-out: the RAM-residency disassembly walk — passed
 
-§4.3 budgeted one walk at the end of milestone 1; it has **not been done**.
-Risk #3 predicted this would be the item that gets missed, because milestone 1
-never writes flash and so cannot fire the fault. It was right. Do the walk
-before persistence is added, not after — the annotations are latent until then.
+Done 2026-08-13 with `tools/check_isr_ram_residency.py` (written for the DRUM;
+it takes any ELF and needed no changes):
+
+```
+export PATH="/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin:$PATH"
+python3 tools/check_isr_ram_residency.py duo/build/duo-<version>.elf
+→ Roots: 20, reachable functions: 33
+→ OK: entire ISR call tree is RAM-resident
+```
+
+Checked that the result is meaningful rather than vacuous:
+
+- **The build is genuinely XIP** — `PICO_COPY_TO_RAM=OFF`, 115 592 bytes of
+  `.text` at `0x10000000`. In a copy-to-RAM build the walk would pass
+  trivially. `.rodata` is 0 bytes, confirming
+  `memmap_xip_rodata_in_ram.ld` is doing its job.
+- **All 13 `fill_buffer` implementations in the graph are present and in RAM**
+  — `SynthWaveform`, `SynthDc`, `SynthNoiseWhite`, `SynthSimpleDrum`,
+  `CustomEnvelope`, `LowpassModulated`, `Highpass`, `Bandpass`, `Crusher`,
+  `AnalyzePeak`, `AudioMixer<2>`, `AudioMixer<4>`, `LoadMeter`. That set
+  matches the graph in `main.cpp` exactly, so no root was silently unmatched.
+- **The DRUM's historic culprits are all in RAM**: `memset`, `memmove`,
+  `memcpy`, `clock_get_hz`, `wrap_consumer_take`, `take_audio_buffer`,
+  `give_audio_buffer`, `audio_i2s_dma_irq_handler`. `duo/` inherits the
+  linker-script exclusions that fixed those, so it never had to rediscover
+  them.
+
+Flash-side `__memset_veneer`, `__memmove_veneer` and `__clock_get_hz_veneer`
+exist, meaning flash callers exist for those functions — expected, and not a
+problem: the ISR path itself resolves to the RAM copies.
+
+Nothing needed fixing. The "annotate as you port" discipline in §4.3 held.
+
+#### 12.3.1 [OPEN] The DUO could sidestep §4.3 entirely by running from RAM
+
+Raised at close-out and worth taking to the gate. The DUO image is small and
+the RP2350's SRAM is large, so `PICO_COPY_TO_RAM=ON` is comfortably
+affordable — which would make the whole RAM-residency question moot for this
+app, because nothing would execute from flash at all.
+
+Measured on the milestone-1 build:
+
+| | |
+|---|---|
+| `.text` | 115 592 |
+| `.data` | 29 136 |
+| `.bss` | 22 240 |
+| heap + stack | 6 144 |
+| **Total loadable** | **~169 KB** |
+| RP2350 SRAM | 520 KB |
+| Headroom | **~350 KB** — the deferred delay line is ~31 KB of it |
+
+Why this is attractive: §4.3's discipline exists only because the audio ISR
+can execute from flash while a sector is being erased. Run from RAM and the
+fault cannot occur, so **persistence (§7.2) stops dragging in the annotation
+burden** — which is precisely the point at which §4.3 was going to become
+live.
+
+Two honest caveats before treating it as settled:
+
+1. **It is a DUO-only escape, not a musin-wide one.** The DRUM cannot follow —
+   bigger image, samples in flash — so `musin/` must keep the annotations for
+   DRUM's sake regardless. This removes DUO's *exposure*, not the *constraint*
+   on shared code. Anyone editing `musin/audio` still has to care.
+2. **The interaction with A/B partitions and SysEx update is unverified.** XIP
+   builds are known partition-relocatable via ATRANS; a copy-to-RAM build
+   ought to be trivially so, since the bootrom copies it, but nothing has
+   tested that path. It lands with the update tooling, post-gate.
+
+Not changed now: the check passes as-is, so flipping the flag today would be
+a change with no current problem to solve. Decide it at the gate, alongside
+persistence.
 
 ### 12.4 ✅ MIDI I/O wired
 

@@ -96,6 +96,12 @@ static midi::MidiInterface<midi::SerialMIDI<MidiUart>, MIDISettings>
 void MIDI::init(const Callbacks &callbacks) {
   midi_uart.begin(31250); // Standard MIDI baud
   ALL_TRANSPORTS(begin(MIDI_CHANNEL_OMNI));
+  // begin() adopts the transport's thruActivated, which is true for serial:
+  // every parsed message would be echoed straight back out the DIN UART,
+  // bypassing midi_output_queue and its 31250-baud pacing and pushing the
+  // sequencer's own clock and notes later on the wire. Input is routed by
+  // MessageRouter; the device is not a thru box.
+  ALL_TRANSPORTS(turnThruOff());
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));
   ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));

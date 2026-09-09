@@ -19,5 +19,11 @@
   },
   "dependencies": {
     "midi": "^2.0.0"
+  },
+  "overrides": {
+    "nan": "2.28.0"
+  },
+  "allowScripts": {
+    "midi": true
   }
 }

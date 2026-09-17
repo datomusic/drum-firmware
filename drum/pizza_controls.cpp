@@ -371,6 +371,10 @@ void PizzaControls::DrumpadComponent::DrumpadEventHandler::notification(
       seq_controller.clear_velocity_hit(event.pad_index);
     } else if (event.type == musin::ui::DrumpadEvent::Type::Hold) {
       logger.debug("HELD ", static_cast<uint32_t>(event.pad_index));
+    } else if (event.type == musin::ui::DrumpadEvent::Type::Pressure) {
+      uint8_t note = parent->get_note_for_pad(event.pad_index);
+      parent->parent_controls->_message_router_ref.set_pad_pressure(
+          event.pad_index, note, event.pressure.value_or(0));
     }
   }
   logger.debug("Raw_value ", static_cast<uint32_t>(event.raw_value));

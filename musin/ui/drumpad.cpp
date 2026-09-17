@@ -10,7 +10,8 @@ Drumpad::Drumpad(uint8_t pad_id, const DrumpadConfig &config)
       _debounce_time_us(config.debounce_time_us),
       _hold_time_us(config.hold_time_us),
       _max_velocity_time_us(config.max_velocity_time_us),
-      _min_velocity_time_us(config.min_velocity_time_us) {
+      _min_velocity_time_us(config.min_velocity_time_us),
+      _pressure_hysteresis(config.pressure_hysteresis) {
 }
 
 void Drumpad::init() {
@@ -23,6 +24,7 @@ void Drumpad::init() {
   _just_pressed = false;
   _just_released = false;
   _last_velocity = std::nullopt;
+  _last_reported_pressure = std::nullopt;
 }
 
 void Drumpad::update(uint16_t raw_adc_value) {
@@ -37,6 +39,10 @@ void Drumpad::update(uint16_t raw_adc_value) {
   _last_adc_value = value;
 
   update_state_machine(value, now);
+
+  if (is_pressure_tracked()) {
+    report_pressure(value);
+  }
 }
 
 void Drumpad::update_state_machine(std::uint16_t current_adc_value,
@@ -117,18 +123,22 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
       _current_state = DrumpadState::Falling;
       _state_transition_time = now;
     } else if (time_in_state >= _debounce_time_us) {
-      notify_event(DrumpadEvent::Type::Release, std::nullopt,
-                   current_adc_value);
-      _current_state = DrumpadState::Idle;
-      _pressure_level = PressureLevel::None;
-      _state_transition_time = now;
-      _just_released = true;
-      _last_adc_value = 0;
-      _velocity_low_time = nil_time;
-      _velocity_high_time = nil_time;
+      release(current_adc_value, now);
     }
     break;
   }
+}
+
+void Drumpad::release(std::uint16_t current_adc_value, absolute_time_t now) {
+  report_pressure_released(current_adc_value);
+  notify_event(DrumpadEvent::Type::Release, std::nullopt, current_adc_value);
+  _current_state = DrumpadState::Idle;
+  _pressure_level = PressureLevel::None;
+  _state_transition_time = now;
+  _just_released = true;
+  _last_adc_value = 0;
+  _velocity_low_time = nil_time;
+  _velocity_high_time = nil_time;
 }
 
 // Pressure has climbed back above _trigger_threshold while Falling. If the
@@ -172,6 +182,54 @@ uint8_t Drumpad::calculate_velocity(uint64_t time_diff_us) const {
   uint8_t velocity = 1 + static_cast<uint8_t>(velocity_scaled / time_range);
 
   return velocity;
+}
+
+// Continuous pressure is only reported once the hold has engaged, so it
+// never races the Press that starts the note.
+bool Drumpad::is_pressure_tracked() const {
+  return _pressure_hysteresis > 0 && (_current_state == DrumpadState::Holding ||
+                                      _current_state == DrumpadState::Falling);
+}
+
+void Drumpad::report_pressure(std::uint16_t current_adc_value) {
+  uint8_t pressure = pressure_from_adc(current_adc_value);
+  if (!_last_reported_pressure.has_value()) {
+    emit_pressure(pressure, current_adc_value);
+    return;
+  }
+  int delta = static_cast<int>(pressure) -
+              static_cast<int>(_last_reported_pressure.value());
+  if (delta >= _pressure_hysteresis || -delta >= _pressure_hysteresis) {
+    emit_pressure(pressure, current_adc_value);
+  }
+}
+
+// A note that was reported with pressure ends at zero pressure, so receivers
+// are not left holding a stale value.
+void Drumpad::report_pressure_released(std::uint16_t current_adc_value) {
+  if (_last_reported_pressure.value_or(0) > 0) {
+    emit_pressure(0, current_adc_value);
+  }
+  _last_reported_pressure = std::nullopt;
+}
+
+void Drumpad::emit_pressure(uint8_t pressure, std::uint16_t current_adc_value) {
+  _last_reported_pressure = pressure;
+  DrumpadEvent event{.pad_index = _pad_id,
+                     .type = DrumpadEvent::Type::Pressure,
+                     .velocity = std::nullopt,
+                     .raw_value = current_adc_value,
+                     .pressure = pressure};
+  this->notify_observers(event);
+}
+
+uint8_t Drumpad::pressure_from_adc(std::uint16_t current_adc_value) const {
+  if (current_adc_value <= _noise_threshold) {
+    return 0;
+  }
+  uint32_t span = musin::hal::ADC_MAX_VALUE - _noise_threshold;
+  uint32_t scaled = (current_adc_value - _noise_threshold) * 127u / span;
+  return static_cast<uint8_t>(scaled > 127u ? 127u : scaled);
 }
 
 void Drumpad::notify_event(DrumpadEvent::Type type,

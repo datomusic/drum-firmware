@@ -48,4 +48,17 @@ void MidiSender::sendControlChange(uint8_t channel, uint8_t controller,
   }
 }
 
+void MidiSender::sendPolyAftertouch(uint8_t channel, uint8_t note_number,
+                                    uint8_t pressure) {
+  if (_strategy == MidiSendStrategy::DIRECT_BYPASS_QUEUE) {
+    _logger.info("MIDI_SENDER: Direct PolyAftertouch");
+    MIDI::internal::_sendPolyAftertouch_actual(channel, note_number, pressure);
+  } else {
+    _logger.info("MIDI_SENDER: Queued PolyAftertouch");
+    enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(channel, note_number, pressure),
+        _logger);
+  }
+}
+
 } // namespace musin::midi

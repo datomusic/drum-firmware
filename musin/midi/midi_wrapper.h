@@ -36,6 +36,7 @@ bool read(uint8_t channel);
 bool read();
 void sendRealTime(MidiType message);
 void sendControlChange(uint8_t cc, uint8_t value, uint8_t channel);
+void sendPolyAftertouch(uint8_t note, uint8_t pressure, uint8_t channel);
 void sendNoteOn(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
 void sendNoteOff(uint8_t inNoteNumber, uint8_t inVelocity, uint8_t inChannel);
 void sendPitchBend(int bend, uint8_t channel);
@@ -47,6 +48,8 @@ namespace internal {
 void _sendRealTime_actual(MidiType message);
 void _sendControlChange_actual(uint8_t channel, uint8_t controller,
                                uint8_t value);
+void _sendPolyAftertouch_actual(uint8_t channel, uint8_t note,
+                                uint8_t pressure);
 void _sendNoteOn_actual(uint8_t channel, uint8_t note, uint8_t velocity);
 void _sendNoteOff_actual(uint8_t channel, uint8_t note, uint8_t velocity);
 void _sendPitchBend_actual(uint8_t channel, int bend);

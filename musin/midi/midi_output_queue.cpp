@@ -18,25 +18,52 @@ static etl::queue<SystemExclusiveData, SYSEX_QUEUE_SIZE> sysex_payload_queue;
 static spin_lock_t *midi_queue_lock =
     spin_lock_init(spin_lock_claim_unused(true));
 
+namespace {
+
+// Continuous controllers only need their latest value on the wire. A queued
+// message for the same destination is overwritten in place, so a fast source
+// can never occupy more than one queue slot per destination.
+bool same_destination(const OutgoingMidiMessage &a,
+                      const OutgoingMidiMessage &b) {
+  if (a.type != b.type) {
+    return false;
+  }
+  switch (a.type) {
+  case MidiMessageType::CONTROL_CHANGE:
+    return a.data.control_change_message.channel ==
+               b.data.control_change_message.channel &&
+           a.data.control_change_message.controller ==
+               b.data.control_change_message.controller;
+  case MidiMessageType::POLY_AFTERTOUCH:
+    return a.data.poly_aftertouch_message.channel ==
+               b.data.poly_aftertouch_message.channel &&
+           a.data.poly_aftertouch_message.note ==
+               b.data.poly_aftertouch_message.note;
+  default:
+    return false;
+  }
+}
+
+// Must be called with midi_queue_lock held.
+bool coalesce_into_queue(const OutgoingMidiMessage &message) {
+  for (auto &queued_message : midi_output_queue) {
+    if (same_destination(queued_message, message)) {
+      queued_message.data = message.data;
+      return true;
+    }
+  }
+  return false;
+}
+
+} // namespace
+
 bool enqueue_midi_message(const OutgoingMidiMessage &message,
                           musin::Logger &logger) {
   uint32_t irq_status = spin_lock_blocking(midi_queue_lock);
 
-  // Coalesce Control Change messages
-  if (message.type == MidiMessageType::CONTROL_CHANGE) {
-    for (auto &queued_message : midi_output_queue) {
-      if (queued_message.type == MidiMessageType::CONTROL_CHANGE &&
-          queued_message.data.control_change_message.channel ==
-              message.data.control_change_message.channel &&
-          queued_message.data.control_change_message.controller ==
-              message.data.control_change_message.controller) {
-        // Found an existing CC for the same channel/controller, update it
-        queued_message.data.control_change_message.value =
-            message.data.control_change_message.value;
-        spin_unlock(midi_queue_lock, irq_status);
-        return true; // Don't enqueue a new one
-      }
-    }
+  if (coalesce_into_queue(message)) {
+    spin_unlock(midi_queue_lock, irq_status);
+    return true;
   }
 
   // If no message was coalesced, enqueue this one if there's space
@@ -142,6 +169,13 @@ void process_midi_output_queue(musin::Logger &logger) {
           message.data.control_change_message.channel,
           message.data.control_change_message.controller,
           message.data.control_change_message.value);
+      last_non_realtime_send_time = get_absolute_time();
+      break;
+    case MidiMessageType::POLY_AFTERTOUCH:
+      MIDI::internal::_sendPolyAftertouch_actual(
+          message.data.poly_aftertouch_message.channel,
+          message.data.poly_aftertouch_message.note,
+          message.data.poly_aftertouch_message.pressure);
       last_non_realtime_send_time = get_absolute_time();
       break;
     case MidiMessageType::PITCH_BEND:

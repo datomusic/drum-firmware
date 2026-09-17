@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}
   timing/speed_adapter_test.cpp
   timing/clock_router_test.cpp
   timing/tempo_handler_external_sync_test.cpp
+  timing/manual_sync_alignment_test.cpp
   ui/drumpad_test.cpp
 )
 

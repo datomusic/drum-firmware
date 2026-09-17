@@ -49,7 +49,6 @@ public:
   // Control API
   void set_bpm(float bpm);
   void trigger_resync();
-  void resync_sync_output();
   void set_sync_out(SyncOut *sync_out_ptr);
 
   // Auto source switching

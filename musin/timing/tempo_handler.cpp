@@ -68,7 +68,12 @@ void TempoHandler::notification(musin::timing::ClockEvent event) {
   }
 
   if (event.is_resync) {
-    phase_12_ = (anchor_phase != NO_ANCHOR) ? anchor_phase : 0;
+    if (anchor_phase != NO_ANCHOR) {
+      phase_12_ = anchor_phase;
+    } else {
+      phase_12_ = pending_manual_anchor_.value_or(0);
+    }
+    pending_manual_anchor_.reset();
     tick_count_++;
     musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
                                           .is_resync = true};
@@ -136,21 +141,17 @@ void TempoHandler::trigger_manual_sync(uint8_t target_phase) {
   switch (get_clock_source()) {
   case ClockSource::INTERNAL:
   case ClockSource::MIDI:
-    clock_router_ref_.resync_sync_output();
-    emit_manual_resync_event(target_phase);
+    // Resync through the router so SyncOut and SpeedAdapter both restart
+    // their counters from the press. The resync ClockEvent travels back
+    // through the SpeedAdapter and lands in notification(), where the anchor
+    // below becomes the phase of the single emitted resync TempoEvent.
+    pending_manual_anchor_ = target_phase;
+    clock_router_ref_.trigger_resync();
     break;
   case ClockSource::EXTERNAL_SYNC:
     sync_state_ = SyncState::WAITING_FOR_BEAT;
     break;
   }
-}
-
-void TempoHandler::emit_manual_resync_event(uint8_t anchor_phase) {
-  phase_12_ = anchor_phase;
-  tick_count_++;
-  musin::timing::TempoEvent tempo_event{.phase_12 = phase_12_,
-                                        .is_resync = true};
-  notify_observers(tempo_event);
 }
 
 void TempoHandler::on_clock_source_changed(ClockSource old_source,

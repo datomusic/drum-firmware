@@ -89,23 +89,26 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     if (current_adc_value < _noise_threshold) {
       _current_state = DrumpadState::DebouncingRelease;
       _state_transition_time = now;
+    } else if (current_adc_value >= _trigger_threshold) {
+      resume_press(current_adc_value, now);
     }
     break;
 
   case DrumpadState::Holding:
-    if (current_adc_value >= _high_pressure_threshold) {
-      _current_retrigger_mode = RetriggerMode::Double;
-    } else if (_current_retrigger_mode == RetriggerMode::Off) {
-      // Reaching Holding means the pad has been pressed and held past
-      // _hold_time_us, so retrigger engages even if pressure has already
-      // settled below _trigger_threshold. High pressure upgrades to Double.
-      _current_retrigger_mode = RetriggerMode::Single;
-    }
-    // Do not clear retrigger mode when pressure drops below trigger_threshold.
-    // The mode is preserved through Falling and only cleared on Release,
-    // keeping it in sync with has_recent_velocity_hit (ring light lifetime).
-
-    if (current_adc_value < _trigger_threshold) {
+    // Reaching Holding means the pad has been pressed and held past
+    // _hold_time_us, so retrigger engages even if pressure has already
+    // settled below _trigger_threshold. The mode follows pressure in both
+    // directions: pressing harder upgrades to Double, easing off returns to
+    // Single.
+    // Below trigger_threshold the mode is left untouched: it is preserved
+    // through Falling and only cleared on Release, keeping it in sync with
+    // has_recent_velocity_hit (ring light lifetime).
+    if (current_adc_value >= _trigger_threshold) {
+      _current_retrigger_mode = mode_for_pressure(current_adc_value);
+    } else {
+      if (_current_retrigger_mode == RetriggerMode::Off) {
+        _current_retrigger_mode = RetriggerMode::Single;
+      }
       _current_state = DrumpadState::Falling;
     }
     break;
@@ -127,6 +130,32 @@ void Drumpad::update_state_machine(std::uint16_t current_adc_value,
     }
     break;
   }
+}
+
+// Pressure has climbed back above _trigger_threshold while Falling. If the
+// hold already engaged, go straight back to Holding so the retrigger mode can
+// follow pressure again. Otherwise resume the hold timer from the original
+// Press, so a brief contact bounce cannot stall the pad short of Holding.
+void Drumpad::resume_press(std::uint16_t current_adc_value,
+                           absolute_time_t now) {
+  if (_current_retrigger_mode != RetriggerMode::Off) {
+    _current_state = DrumpadState::Holding;
+    _current_retrigger_mode = mode_for_pressure(current_adc_value);
+    return;
+  }
+  _state_transition_time = _velocity_high_time;
+  if (absolute_time_diff_us(_velocity_high_time, now) >= _hold_time_us) {
+    _current_state = DrumpadState::Holding;
+    notify_event(DrumpadEvent::Type::Hold, std::nullopt, current_adc_value);
+  } else {
+    _current_state = DrumpadState::Peaking;
+  }
+}
+
+RetriggerMode
+Drumpad::mode_for_pressure(std::uint16_t current_adc_value) const {
+  return current_adc_value >= _high_pressure_threshold ? RetriggerMode::Double
+                                                       : RetriggerMode::Single;
 }
 
 uint8_t Drumpad::calculate_velocity(uint64_t time_diff_us) const {

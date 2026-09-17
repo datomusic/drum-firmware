@@ -2,7 +2,7 @@
 #define DRUM_SETTINGS_H
 
 #include "etl/array.h"
-#include "etl/string_view.h"
+#include "musin/settings/settings_manager.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -29,23 +29,12 @@ inline constexpr uint8_t GAIN = 1u << 1;
 inline constexpr uint8_t DECAY = 1u << 2;
 } // namespace slider_mode
 
-/**
- * @brief Describes one setting: wire id, short name, valid range and default.
- *
- * The name doubles as the filename under /settings/ on the device
- * filesystem, so keep it short, lowercase and filesystem-safe.
- */
-struct Descriptor {
-  Id id;
-  etl::string_view name;
-  uint8_t min;
-  uint8_t max;
-  uint8_t default_value;
-};
+using Descriptor = musin::settings::Descriptor;
 
 inline constexpr etl::array<Descriptor, 2> DESCRIPTORS{{
-    {Id::MidiChannel, "midi_channel", 1, 16, 10},
-    {Id::SliderMode, "slider_mode", 0, 7, slider_mode::PITCH},
+    {static_cast<uint8_t>(Id::MidiChannel), "midi_channel", 1, 16, 10},
+    {static_cast<uint8_t>(Id::SliderMode), "slider_mode", 0, 7,
+     slider_mode::PITCH},
 }};
 
 /**
@@ -54,7 +43,7 @@ inline constexpr etl::array<Descriptor, 2> DESCRIPTORS{{
  */
 constexpr const Descriptor *find_descriptor(Id id) {
   for (const auto &descriptor : DESCRIPTORS) {
-    if (descriptor.id == id) {
+    if (descriptor.id == static_cast<uint8_t>(id)) {
       return &descriptor;
     }
   }

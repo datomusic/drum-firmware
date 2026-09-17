@@ -2,7 +2,6 @@
 #define FILESYSTEM_H_A1PWKQIM
 
 #include "musin/hal/logger.h"
-#include "partition_manager.h"
 #include <cstdint>
 
 // Forward declarations for filesystem types
@@ -16,6 +15,14 @@ struct StorageInfo {
   uint32_t free_bytes;
 };
 
+/**
+ * @brief Platform-neutral filesystem facade.
+ *
+ * Each port supplies the implementation (musin/ports/<platform>/filesystem/)
+ * backed by littlefs on that platform's flash. Ports must also wire the
+ * mounted filesystem into newlib/stdio so consumers can use plain
+ * fopen/fread/mkdir — POSIX stdio is the official seam for portable code.
+ */
 class Filesystem {
 public:
   explicit Filesystem(musin::Logger &logger);
@@ -59,7 +66,6 @@ public:
 private:
   musin::Logger &logger_;
   filesystem_t *fs_;
-  PartitionManager partition_manager_;
 
   bool format_filesystem(blockdevice_t *flash);
 };

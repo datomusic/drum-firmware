@@ -9,7 +9,7 @@ extern "C" {
 
 #include "etl/algorithm.h"
 
-#include "musin/filesystem/partition_manager.h"
+#include "musin/ports/pico/filesystem/partition_manager.h"
 
 namespace musin::flash {
 

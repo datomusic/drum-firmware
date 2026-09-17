@@ -3,16 +3,13 @@
 
 #include "drum/settings.h"
 #include "musin/hal/logger.h"
+#include "musin/settings/settings_manager.h"
 
 namespace drum {
 
 /**
- * @brief Persists settings as one file per setting under /settings/.
- *
- * The filename is the setting's short name and the file content is the raw
- * value byte. A missing or unreadable file means the compile-time default
- * applies, so no migration or versioning of the store is needed: unknown
- * files are ignored and absent files fall back to defaults.
+ * @brief DRUM's settings persistence: the generic musin SettingsManager
+ * bound to the DRUM descriptor table and Settings store.
  */
 class SettingsManager {
 public:
@@ -33,11 +30,25 @@ public:
   bool set(settings::Id id, uint8_t value);
 
 private:
-  void load_one(const settings::Descriptor &descriptor);
-  bool persist_one(const settings::Descriptor &descriptor, uint8_t value);
+  class Store final : public musin::settings::ValueStore {
+  public:
+    explicit Store(settings::Settings &settings) : settings_(settings) {
+    }
 
-  settings::Settings &settings_;
-  musin::Logger &logger_;
+    bool set(uint8_t id, uint8_t value) override {
+      return settings_.set(static_cast<settings::Id>(id), value);
+    }
+
+    [[nodiscard]] uint8_t get(uint8_t id) const override {
+      return settings_.get(static_cast<settings::Id>(id));
+    }
+
+  private:
+    settings::Settings &settings_;
+  };
+
+  Store store_;
+  musin::settings::SettingsManager impl_;
 };
 
 } // namespace drum

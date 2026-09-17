@@ -176,3 +176,34 @@ TEST_CASE("Retrigger clears on Release") {
   REQUIRE(pad.was_released());
   REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Off);
 }
+
+TEST_CASE("Easing off from high pressure downgrades Double to Single") {
+  Drumpad pad(0, test_config);
+  pad.init();
+  press_to_peaking(pad, 3000);
+  hold_until_mode_resolved(pad, 3000);
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Double);
+
+  pad.update(1000); // still above trigger, but no longer high pressure
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Single);
+
+  pad.update(3000); // pressing hard again re-engages Double
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Double);
+}
+
+TEST_CASE("Contact bounce before hold expiry returns to Peaking") {
+  Drumpad pad(0, test_config);
+  pad.init();
+  press_to_peaking(pad, 1000);
+
+  pad.update(0);    // Peaking -> DebouncingRelease
+  pad.update(1000); // DebouncingRelease -> Falling
+  advance_mock_time_us(10000);
+  pad.update(1000); // Falling -> Peaking, hold timer still measured from Press
+  REQUIRE(pad.get_current_state() == DrumpadState::Peaking);
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Off);
+
+  advance_mock_time_us(50000);
+  pad.update(1000); // hold time since the original Press has elapsed
+  REQUIRE(pad.is_held());
+}

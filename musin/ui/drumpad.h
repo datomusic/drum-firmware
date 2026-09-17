@@ -81,6 +81,8 @@ private:
                     uint16_t raw_value);
   void update_state_machine(std::uint16_t current_adc_value,
                             absolute_time_t now);
+  void resume_press(std::uint16_t current_adc_value, absolute_time_t now);
+  RetriggerMode mode_for_pressure(std::uint16_t current_adc_value) const;
   uint8_t calculate_velocity(uint64_t time_diff_us) const;
 
   const uint8_t _pad_id;

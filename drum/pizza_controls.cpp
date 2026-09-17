@@ -290,19 +290,18 @@ void PizzaControls::DrumpadComponent::update() {
         drumpad_addresses[(drumpads[i].get_id())]);
     drumpads[i].update(raw_value);
 
-    musin::ui::RetriggerMode current_mode = drumpads[i].get_retrigger_mode();
+    musin::ui::PressureLevel pressure = drumpads[i].get_pressure_level();
     bool has_velocity_hit =
         controls->_sequencer_controller_ref.has_recent_velocity_hit(i);
 
-    // Only activate retrigger if both mode is active AND we have a velocity hit
-    if (current_mode != musin::ui::RetriggerMode::Off && has_velocity_hit) {
-      if (current_mode == musin::ui::RetriggerMode::Single) {
-        controls->_sequencer_controller_ref.activate_play_on_every_step(
-            i, drum::RetriggerMode::Step);
-      } else if (current_mode == musin::ui::RetriggerMode::Double) {
-        controls->_sequencer_controller_ref.activate_play_on_every_step(
-            i, drum::RetriggerMode::Substeps);
-      }
+    // A held pad retriggers its track for as long as the press that started
+    // it is still live: a light hold retriggers every step, a hard hold every
+    // substep.
+    if (pressure != musin::ui::PressureLevel::None && has_velocity_hit) {
+      auto mode = pressure == musin::ui::PressureLevel::Hard
+                      ? drum::RetriggerMode::Substeps
+                      : drum::RetriggerMode::Step;
+      controls->_sequencer_controller_ref.activate_play_on_every_step(i, mode);
     } else {
       controls->_sequencer_controller_ref.deactivate_play_on_every_step(i);
     }

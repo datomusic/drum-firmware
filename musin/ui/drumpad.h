@@ -35,10 +35,18 @@ enum class DrumpadState : std::uint8_t {
   DebouncingRelease
 };
 
-enum class RetriggerMode : uint8_t {
-  Off,
-  Single,
-  Double
+/**
+ * @brief How firmly a held pad is being pressed.
+ *
+ * None until the pad has been held past hold_time_us; then Light or Hard
+ * depending on high_pressure_threshold, following pressure in both directions
+ * while contact stays above trigger_threshold. Preserved while pressure sags
+ * below trigger_threshold and cleared only on Release.
+ */
+enum class PressureLevel : uint8_t {
+  None,
+  Light,
+  Hard
 };
 
 class Drumpad : public etl::observable<etl::observer<DrumpadEvent>, 4> {
@@ -69,8 +77,8 @@ public:
   DrumpadState get_current_state() const {
     return _current_state;
   }
-  RetriggerMode get_retrigger_mode() const {
-    return _current_retrigger_mode;
+  PressureLevel get_pressure_level() const {
+    return _pressure_level;
   }
   uint8_t get_id() const {
     return _pad_id;
@@ -82,7 +90,7 @@ private:
   void update_state_machine(std::uint16_t current_adc_value,
                             absolute_time_t now);
   void resume_press(std::uint16_t current_adc_value, absolute_time_t now);
-  RetriggerMode mode_for_pressure(std::uint16_t current_adc_value) const;
+  PressureLevel classify_pressure(std::uint16_t current_adc_value) const;
   uint8_t calculate_velocity(uint64_t time_diff_us) const;
 
   const uint8_t _pad_id;
@@ -96,7 +104,7 @@ private:
   const std::uint64_t _min_velocity_time_us;
 
   DrumpadState _current_state = DrumpadState::Idle;
-  RetriggerMode _current_retrigger_mode = RetriggerMode::Off;
+  PressureLevel _pressure_level = PressureLevel::None;
   std::uint16_t _last_adc_value = 0;
   absolute_time_t _state_transition_time = nil_time;
   absolute_time_t _velocity_low_time = nil_time;

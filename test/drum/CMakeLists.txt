@@ -198,6 +198,46 @@ target_link_libraries(drum-test-settings PRIVATE
     etl::etl
 )
 
+# Test target: SequencerController Step retrigger (double-fire regression)
+add_executable(drum-test-sequencer-controller-retrigger
+    sequencer_controller_retrigger_test.cpp
+)
+
+target_sources(drum-test-sequencer-controller-retrigger PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_controller.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_effect_random.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_effect_repeat.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_effect_retrigger.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_effect_swing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/sequencer_storage.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../drum/save_timing_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/internal_clock.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_processor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/clock_router.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/speed_adapter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/midi_clock_out.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/timing/tempo_handler.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/midi/midi_output_queue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../midi_test_support.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/midi/midi_wrapper_test_shim.cpp
+)
+
+target_include_directories(drum-test-sequencer-controller-retrigger PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../musin/include_overrides
+    ${CMAKE_CURRENT_LIST_DIR}/../../musin/ports/pico/libraries/arduino_midi_library/src
+    ${CMAKE_CURRENT_LIST_DIR}/../../
+    ${CMAKE_CURRENT_LIST_DIR}/../
+)
+
+target_compile_definitions(drum-test-sequencer-controller-retrigger PRIVATE
+    AUDIO_BLOCK_SAMPLES=20
+)
+
+target_link_libraries(drum-test-sequencer-controller-retrigger PRIVATE
+    Catch2::Catch2WithMain
+    etl::etl
+)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(drum-test-storage)
@@ -209,3 +249,4 @@ catch_discover_tests(drum-test-sysex-sequencer-state)
 catch_discover_tests(drum-test-settings)
 catch_discover_tests(drum-test-save-timing)
 catch_discover_tests(drum-test-sysex)
+catch_discover_tests(drum-test-sequencer-controller-retrigger)

@@ -113,6 +113,16 @@ public:
                      std::optional<uint8_t> track_index = std::nullopt);
 
   /**
+   * @brief Reports the pressure on a held pad as polyphonic aftertouch.
+   * Sent to MIDI only; local audio does not respond to pad pressure.
+   * @param track_index The logical track index (0-3).
+   * @param midi_note The MIDI note the pad is currently playing.
+   * @param pressure The pad pressure (0-127).
+   */
+  void set_pad_pressure(uint8_t track_index, uint8_t midi_note,
+                        uint8_t pressure);
+
+  /**
    * @brief Processes events from the note event queue.
    * This should be called from the main loop.
    */

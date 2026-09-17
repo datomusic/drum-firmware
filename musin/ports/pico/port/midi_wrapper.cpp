@@ -134,6 +134,14 @@ void MIDI::sendControlChange(const byte cc, const byte value,
   musin::midi::enqueue_midi_message(msg, midi_send_logger);
 }
 
+void MIDI::sendPolyAftertouch(const byte note, const byte pressure,
+                              const byte channel) {
+  musin::midi::enqueue_midi_message(
+      musin::midi::OutgoingMidiMessage::poly_aftertouch(channel, note,
+                                                        pressure),
+      midi_send_logger);
+}
+
 void MIDI::sendNoteOn(const byte note, const byte velocity,
                       const byte channel) {
   musin::midi::OutgoingMidiMessage msg(channel, note, velocity, true);
@@ -174,6 +182,12 @@ void MIDI::internal::_sendControlChange_actual(const byte channel,
                                                const byte controller,
                                                const byte value) {
   ALL_TRANSPORTS(sendControlChange(controller, value, channel));
+}
+
+void MIDI::internal::_sendPolyAftertouch_actual(const byte channel,
+                                                const byte note,
+                                                const byte pressure) {
+  ALL_TRANSPORTS(sendAfterTouch(note, pressure, channel));
 }
 
 void MIDI::internal::_sendNoteOn_actual(const byte channel, const byte note,

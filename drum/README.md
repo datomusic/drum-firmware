@@ -87,7 +87,7 @@
 
 ## Drum Pad MIDI Output
 - **Note On:** Velocity 1-127 based on initial strike pressure
-- **Polyphonic Aftertouch (0xA0):** Continuous pressure while held
+- **Polyphonic Aftertouch (0xA0):** Continuous pressure (0-127) while held, on the pad's note. Starts once the hold engages (~50 ms after the strike), sent on changes of 2 or more steps, ends with pressure 0 just before Note Off
 - **Note Number:** Current sample selection for that track
 - **Hold Behavior:** Repeats notes at sequencer tempo
 - **Hard Press:** Triggers at double tempo rate

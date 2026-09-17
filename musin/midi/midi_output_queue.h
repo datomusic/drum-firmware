@@ -20,6 +20,7 @@ enum class MidiMessageType : uint8_t {
   NOTE_ON,
   NOTE_OFF,
   CONTROL_CHANGE,
+  POLY_AFTERTOUCH,
   PITCH_BEND,
   SYSTEM_REALTIME,
   SYSTEM_EXCLUSIVE
@@ -39,6 +40,7 @@ struct OutgoingMidiMessage {
   union MessageUnion {
     NoteMessageData note_message;
     ControlChangeData control_change_message;
+    PolyAftertouchData poly_aftertouch_message;
     PitchBendData pitch_bend_message;
     SystemRealtimeData system_realtime_message;
 
@@ -78,6 +80,17 @@ struct OutgoingMidiMessage {
       : type(MidiMessageType::PITCH_BEND) {
     data.pitch_bend_message.channel = ch;
     data.pitch_bend_message.bend_value = pb_val;
+  }
+
+  // Named factory: the three-byte constructor already means Control Change.
+  static OutgoingMidiMessage poly_aftertouch(uint8_t ch, uint8_t note,
+                                             uint8_t pressure) {
+    OutgoingMidiMessage msg;
+    msg.type = MidiMessageType::POLY_AFTERTOUCH;
+    msg.data.poly_aftertouch_message.channel = ch;
+    msg.data.poly_aftertouch_message.note = note;
+    msg.data.poly_aftertouch_message.pressure = pressure;
+    return msg;
   }
 };
 

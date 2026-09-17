@@ -120,6 +120,48 @@ TEST_CASE("Double is preserved when pressure drops below trigger") {
   REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Double);
 }
 
+// Bug: Falling is a dead end for pressure. Once Holding drops below trigger
+// into Falling, a subsequent rise back to high pressure should upgrade the
+// retrigger mode to Double, but Falling only ever watches for the noise
+// floor, so the mode is stuck at whatever it was when Falling began.
+TEST_CASE("Rising to high pressure while Falling upgrades to Double") {
+  Drumpad pad(0, test_config);
+  pad.init();
+  press_to_peaking(pad, 1000);
+  hold_until_mode_resolved(pad, 1000);
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Single);
+
+  pad.update(400); // Holding -> Falling (below trigger, above noise)
+  REQUIRE(pad.get_current_state() == DrumpadState::Falling);
+
+  pad.update(3000); // Pressure spikes back up to high pressure
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Double);
+}
+
+// Bug: a brief dip below noise while Peaking (before hold_time_us expires)
+// sends the pad through DebouncingRelease back into Falling once contact
+// resumes. Falling never checks the hold timer, so the pad can remain
+// pressed indefinitely without ever reaching Holding.
+TEST_CASE(
+    "Contact resuming after a brief dip below noise still reaches Holding") {
+  Drumpad pad(0, test_config);
+  pad.init();
+  press_to_peaking(pad, 1000); // crosses trigger, Press fired
+
+  pad.update(0); // Peaking -> DebouncingRelease (brief dip below noise)
+  REQUIRE(pad.get_current_state() == DrumpadState::DebouncingRelease);
+
+  pad.update(
+      1000); // Contact resumes above trigger -> DebouncingRelease -> Falling
+  REQUIRE(pad.get_current_state() == DrumpadState::Falling);
+
+  advance_mock_time_us(60000);
+  pad.update(1000); // Held long enough that hold_time_us has elapsed
+  REQUIRE(pad.is_held());
+  pad.update(1000); // Holding-state logic resolves retrigger mode
+  REQUIRE(pad.get_retrigger_mode() == RetriggerMode::Single);
+}
+
 TEST_CASE("Retrigger clears on Release") {
   Drumpad pad(0, test_config);
   pad.init();

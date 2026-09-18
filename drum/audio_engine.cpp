@@ -5,6 +5,7 @@
 #include "musin/hal/debug_utils.h"
 #include "sample_repository.h"
 #include "sample_slot_manager.h"
+#include "settings.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,6 +15,14 @@ extern "C" {
 }
 
 namespace drum {
+
+// The LineInRouting setting stores config::audio::LineInRouting values on the
+// wire; keep them in sync with the descriptor range in settings.h.
+static_assert(static_cast<uint8_t>(config::audio::LineInRouting::Off) == 0);
+static_assert(static_cast<uint8_t>(config::audio::LineInRouting::PreFx) == 1);
+static_assert(static_cast<uint8_t>(config::audio::LineInRouting::PostFx) == 2);
+static_assert(settings::find_descriptor(settings::Id::LineInRouting)->max ==
+              static_cast<uint8_t>(config::audio::LineInRouting::PostFx));
 
 namespace {
 
@@ -76,10 +85,12 @@ void __not_in_flash_func(AudioEngine::Voice::fill_buffer)(
 AudioEngine::AudioEngine(const SampleRepository &repository,
                          SampleSlotManager &slot_manager, musin::Logger &logger)
     : sample_repository_(repository), slot_manager_(slot_manager),
-      logger_(logger),
-      voice_sources_{&voices_[0], &voices_[1], &voices_[2], &voices_[3]},
+      logger_(logger), voice_sources_{&voices_[0], &voices_[1], &voices_[2],
+                                      &voices_[3], &line_in_pre_},
+      line_in_pre_(audio_input_), line_in_post_(audio_input_),
       mixer_(voice_sources_), crusher_(mixer_), lowpass_(crusher_),
-      highpass_(lowpass_) {
+      highpass_(lowpass_),
+      output_mixer_(&highpass_, static_cast<BufferSource *>(&line_in_post_)) {
   // Initialize to a known, silent state.
   set_volume(1.0f); // Set master volume to full.
 
@@ -97,6 +108,9 @@ AudioEngine::AudioEngine(const SampleRepository &repository,
   for (size_t i = 0; i < NUM_VOICES; ++i) {
     mixer_.gain(i, 0.25f);
   }
+  mixer_.gain(LINE_IN_MIXER_CHANNEL, config::audio::LINE_IN_GAIN);
+  output_mixer_.gain(0, 1.0f);
+  output_mixer_.gain(1, config::audio::LINE_IN_GAIN);
 }
 
 bool AudioEngine::init() {
@@ -107,16 +121,45 @@ bool AudioEngine::init() {
   if (!AudioOutput::init()) {
     return false;
   }
-  AudioOutput::attach_source(highpass_);
+
+  AudioOutput::attach_source(output_mixer_);
+
   is_initialized_ = true;
   return true;
 }
 
 void AudioEngine::deinit() {
   if (is_initialized_) {
+    set_line_in_routing(config::audio::LineInRouting::Off);
     AudioOutput::deinit();
     is_initialized_ = false;
   }
+}
+
+void AudioEngine::set_line_in_routing(config::audio::LineInRouting routing) {
+  if (!is_initialized_ || routing == line_in_routing_) {
+    return;
+  }
+
+  const bool was_off = line_in_routing_ == config::audio::LineInRouting::Off;
+  const bool now_off = routing == config::audio::LineInRouting::Off;
+
+  if (was_off && !now_off) {
+    if (!AudioOutput::set_line_in_enabled(true) || !audio_input_.init()) {
+      logger_.error("Failed to enable line input");
+      return;
+    }
+  }
+
+  line_in_pre_.set_enabled(routing == config::audio::LineInRouting::PreFx);
+  line_in_post_.set_enabled(routing == config::audio::LineInRouting::PostFx);
+
+  if (!was_off && now_off) {
+    audio_input_.deinit();
+    AudioOutput::set_line_in_enabled(false);
+  }
+
+  line_in_routing_ = routing;
 }
 
 void AudioEngine::process() {

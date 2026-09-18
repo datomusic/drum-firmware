@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}
   audio/pitch_shifter_test.cpp
   flash/uf2_parser_test.cpp
   audio/memory_reader_test.cpp
+  audio/line_in_source_test.cpp
   midi/midi_message_queue_test.cpp
   timing/tempo_handler_test.cpp
   timing/speed_adapter_test.cpp

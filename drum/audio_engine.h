@@ -8,9 +8,12 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "config.h"
+#include "musin/audio/audio_input.h"
 #include "musin/audio/buffer_source.h"
 #include "musin/audio/crusher.h"
 #include "musin/audio/filter.h"
+#include "musin/audio/line_in_source.h"
 #include "musin/audio/memory_reader.h"
 #include "musin/audio/mixer.h"
 #include "musin/audio/sound.h"
@@ -172,17 +175,35 @@ public:
    */
   void notification(drum::Events::NoteEvent event) override;
 
+  /**
+   * @brief Applies a line input routing mode.
+   *
+   * Enables or disables the capture path as needed and gates the line input
+   * into the mixer (PreFx) or onto the output stage (PostFx). Cheap when the
+   * routing is unchanged, so it may be called every main-loop iteration with
+   * the current setting value.
+   */
+  void set_line_in_routing(config::audio::LineInRouting routing);
+
 private:
+  static constexpr size_t LINE_IN_MIXER_CHANNEL = NUM_VOICES;
+
   const SampleRepository &sample_repository_;
   SampleSlotManager &slot_manager_;
   musin::Logger &logger_;
   etl::array<Voice, NUM_VOICES> voices_;
-  etl::array<BufferSource *, NUM_VOICES> voice_sources_;
+  etl::array<BufferSource *, NUM_VOICES + 1> voice_sources_;
 
-  musin::audio::AudioMixer<NUM_VOICES> mixer_;
+  musin::audio::AudioInput audio_input_;
+  musin::audio::LineInSource line_in_pre_;
+  musin::audio::LineInSource line_in_post_;
+  musin::audio::AudioMixer<NUM_VOICES + 1> mixer_;
   musin::audio::Crusher crusher_;
   musin::audio::Lowpass lowpass_;
   musin::audio::Highpass highpass_;
+  musin::audio::AudioMixer<2> output_mixer_;
+  config::audio::LineInRouting line_in_routing_ =
+      config::audio::LineInRouting::Off;
 
   // profiler_ member is removed, ProfileSection enum remains for use with the
   // global profiler

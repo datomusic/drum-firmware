@@ -126,8 +126,11 @@ macro(musin_setup_audio_target)
     add_library(musin_audio_impl STATIC
         ${musin_audio_generic_sources}
         ${MUSIN_AUDIO}/audio_output.cpp
+        ${MUSIN_AUDIO}/audio_input.cpp
         ${MUSIN_DRIVERS}/aic3204.cpp
     )
+
+    pico_generate_pio_header(musin_audio_impl ${MUSIN_AUDIO}/audio_i2s_rx.pio)
 
     # Implementation needs include paths to find its own headers and dependencies
     target_include_directories(musin_audio_impl PRIVATE

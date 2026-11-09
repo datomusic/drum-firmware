@@ -21,3 +21,6 @@ drum/*.bin
 
 # Compiled TypeScript output
 tools/provision/dist/
+
+# Firmware downloaded by the bench setup script
+releases/

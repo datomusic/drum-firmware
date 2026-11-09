@@ -10,6 +10,8 @@
 #   RP2350    blank chip  → program the white-label OTP (drum/white-label.json,
 #                           label becomes DRUMBOOT) and reboot it back into BOOTSEL
 #   DRUMBOOT  white-labelled → flash + verify the factory image, then run it
+#   running   already-flashed DRUM (USB "Dato DRUM") → verify its firmware
+#             against the factory image; on mismatch, ask whether to reflash
 #
 # So a blank board goes RP2350 → DRUMBOOT → running firmware without any
 # key presses. After each step the script waits for the volume to disappear
@@ -58,11 +60,15 @@ case "$(uname -s)" in
         BLANK_VOLUME="/Volumes/RP2350"
         LABELLED_VOLUME="/Volumes/DRUMBOOT"
         volume_present() { [ -f "$1/INFO_UF2.TXT" ]; }
+        drum_running() {
+            ioreg -p IOUSB -l -w0 | grep -q '"USB Product Name" = "Dato DRUM"'
+        }
         ;;
     Linux)
         BLANK_VOLUME="/dev/disk/by-label/RP2350"
         LABELLED_VOLUME="/dev/disk/by-label/DRUMBOOT"
         volume_present() { [ -e "$1" ]; }
+        drum_running() { grep -qsx "Dato DRUM" /sys/bus/usb/devices/*/product; }
         [ -f /etc/udev/rules.d/70-dato-bench.rules ] || \
             echo "Warning: bench udev rules not found — picotool may get 'access denied'. Run setup-linux.sh."
         ;;
@@ -100,6 +106,31 @@ wait_for_removal() {
     done
 }
 
+# The factory image covers the partition table, both firmware slots and the
+# littlefs data partition (0x10202000+). The firmware writes the data
+# partition at runtime (saved sequencer state), so a used board never matches
+# there; compare only the partition table and firmware slots.
+VERIFY_RANGE="0x10000000 0x10202000"
+
+# wait_for_unplug — block until no running DRUM has been seen for 3 s. The
+# debounce bridges the reboots picotool -f causes, and the gap between a
+# flashed board leaving BOOTSEL and enumerating as a running DRUM.
+wait_for_unplug() {
+    local absent=0
+    while [ $absent -lt 3 ]; do
+        if drum_running; then absent=0; else absent=$((absent + 1)); fi
+        pause
+    done
+}
+
+# ask_yes_no <prompt> — single-key prompt, default No
+ask_yes_no() {
+    local key=""
+    read -s -n 1 -p "$1 [y/N] " key
+    echo "$key"
+    [[ $key == "y" || $key == "Y" ]]
+}
+
 # Main Loop
 clear
 echo "Drum Factory Flashing Tool ($DRUM_FIRMWARE_VERSION)"
@@ -131,6 +162,32 @@ while true; do
             echo "    !! Flash FAILED — unplug the board and try again."
         fi
         wait_for_removal "$LABELLED_VOLUME"
+        wait_for_unplug
+        echo "    Waiting for next board…"
+
+    elif drum_running; then
+        echo ""
+        echo "==> Flashed DRUM detected — verifying firmware against $DRUM_FIRMWARE_VERSION"
+        sleep 1
+        if picotool verify -f -r $VERIFY_RANGE "$FIRMWARE"; then
+            echo "    Firmware matches the factory image."
+        else
+            printf '\a'
+            echo "    !! Firmware does NOT match the factory image."
+            if ask_yes_no "    Reflash with $DRUM_FIRMWARE_VERSION?"; then
+                if picotool load -f --ignore-partitions -x -v "$FIRMWARE"; then
+                    FLASHED=$((FLASHED + 1))
+                    echo "    Reflashed and verified. Boards done this session: $FLASHED"
+                else
+                    printf '\a'
+                    echo "    !! Reflash FAILED — unplug the board and try again."
+                fi
+            else
+                echo "    Left as is."
+            fi
+        fi
+        echo "    Unplug the board to continue."
+        wait_for_unplug
         echo "    Waiting for next board…"
 
     else

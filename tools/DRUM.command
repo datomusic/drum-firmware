@@ -131,6 +131,32 @@ ask_yes_no() {
     [[ $key == "y" || $key == "Y" ]]
 }
 
+# Audible feedback from the factory kit samples, so the operator can work by
+# ear. Falls back to terminal bells (1 = OK, 2 = reflash?, 3 = failed) when
+# no audio player is available.
+SOUNDS="samples/factory_kit"
+if command -v afplay >/dev/null; then
+    PLAYER="afplay"
+elif command -v paplay >/dev/null; then
+    PLAYER="paplay"
+elif command -v aplay >/dev/null; then
+    PLAYER="aplay -q"
+else
+    PLAYER=""
+fi
+
+# play_sound <sample> <fallback bell count> — plays in the background
+play_sound() {
+    if [ -n "$PLAYER" ] && [ -f "$SOUNDS/$1" ]; then
+        $PLAYER "$SOUNDS/$1" >/dev/null 2>&1 &
+    else
+        (for _ in $(seq "$2"); do printf '\a'; sleep 0.4; done) &
+    fi
+}
+sound_ok()      { play_sound 51_var_pow.wav 1; }
+sound_reflash() { play_sound 50_var_sepp.wav 2; }
+sound_failed()  { play_sound 41_snare_straw.wav 3; }
+
 # Main Loop
 clear
 echo "Drum Factory Flashing Tool ($DRUM_FIRMWARE_VERSION)"
@@ -145,7 +171,7 @@ while true; do
         if ./drum/build.sh --white-label && picotool reboot -f -u; then
             echo "    White-label done, rebooting into BOOTSEL as DRUMBOOT…"
         else
-            printf '\a'
+            sound_failed
             echo "    !! White-label FAILED — unplug the board and try again."
         fi
         wait_for_removal "$BLANK_VOLUME"
@@ -157,8 +183,9 @@ while true; do
         if picotool load -f --ignore-partitions -x -v "$FIRMWARE"; then
             FLASHED=$((FLASHED + 1))
             echo "    Flashed and verified. Boards done this session: $FLASHED"
+            sound_ok
         else
-            printf '\a'
+            sound_failed
             echo "    !! Flash FAILED — unplug the board and try again."
         fi
         wait_for_removal "$LABELLED_VOLUME"
@@ -171,15 +198,17 @@ while true; do
         sleep 1
         if picotool verify -f -r $VERIFY_RANGE "$FIRMWARE"; then
             echo "    Firmware matches the factory image."
+            sound_ok
         else
-            printf '\a'
+            sound_reflash
             echo "    !! Firmware does NOT match the factory image."
             if ask_yes_no "    Reflash with $DRUM_FIRMWARE_VERSION?"; then
                 if picotool load -f --ignore-partitions -x -v "$FIRMWARE"; then
                     FLASHED=$((FLASHED + 1))
                     echo "    Reflashed and verified. Boards done this session: $FLASHED"
+                    sound_ok
                 else
-                    printf '\a'
+                    sound_failed
                     echo "    !! Reflash FAILED — unplug the board and try again."
                 fi
             else

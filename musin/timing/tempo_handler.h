@@ -8,6 +8,7 @@
 #include "musin/timing/speed_adapter.h"
 #include "musin/timing/tempo_event.h"
 #include <cstdint>
+#include <optional>
 
 namespace musin::timing {
 
@@ -83,7 +84,6 @@ public:
 
 private:
   [[nodiscard]] uint8_t calculate_aligned_phase() const;
-  void emit_manual_resync_event(uint8_t anchor_phase);
 
   ClockRouter &clock_router_ref_;
   SpeedAdapter &speed_adapter_ref_;
@@ -98,6 +98,9 @@ private:
   float max_bpm_ = 360.0f;
   float last_tempo_knob_value_ = 0.5f;
   SyncState sync_state_ = SyncState::RUNNING;
+  // Phase requested by trigger_manual_sync(), consumed by the resync
+  // ClockEvent that the router sends back through the SpeedAdapter.
+  std::optional<uint8_t> pending_manual_anchor_;
 };
 
 } // namespace musin::timing

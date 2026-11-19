@@ -93,15 +93,67 @@ static midi::MidiInterface<midi::SerialMIDI<MidiUart>, MIDISettings>
   usb_midi.function_call;                                                      \
   serial_midi.function_call;
 
+namespace {
+
+// Transport messages arriving on DIN in are passed straight on to DIN out so
+// that gear chained behind the device still follows the upstream master.
+// This replaces the one part of the library's serial thru that the device
+// relied on; a single realtime byte on the UART keeps the wire latency the
+// thru had, without echoing every other message.
+MIDI::VoidCallback *app_start_callback = nullptr;
+MIDI::VoidCallback *app_continue_callback = nullptr;
+MIDI::VoidCallback *app_stop_callback = nullptr;
+
+void forward_transport_to_din(const midi::MidiType message) {
+  if (!midi_uart.write_nonblocking(static_cast<byte>(message))) {
+    midi_uart.write(static_cast<byte>(message));
+  }
+}
+
+void serial_start_handler() {
+  forward_transport_to_din(midi::Start);
+  if (app_start_callback != nullptr) {
+    app_start_callback();
+  }
+}
+
+void serial_continue_handler() {
+  forward_transport_to_din(midi::Continue);
+  if (app_continue_callback != nullptr) {
+    app_continue_callback();
+  }
+}
+
+void serial_stop_handler() {
+  forward_transport_to_din(midi::Stop);
+  if (app_stop_callback != nullptr) {
+    app_stop_callback();
+  }
+}
+
+} // namespace
+
 void MIDI::init(const Callbacks &callbacks) {
   midi_uart.begin(31250); // Standard MIDI baud
   ALL_TRANSPORTS(begin(MIDI_CHANNEL_OMNI));
+  // begin() adopts the transport's thruActivated, which is true for serial:
+  // every parsed message would be echoed straight back out the DIN UART,
+  // bypassing midi_output_queue and its 31250-baud pacing and pushing the
+  // sequencer's own clock and notes later on the wire. Input is routed by
+  // MessageRouter; only DIN transport messages are forwarded, below.
+  ALL_TRANSPORTS(turnThruOff());
   ALL_TRANSPORTS(setHandleClock(callbacks.clock));
   ALL_TRANSPORTS(setHandleNoteOn(callbacks.note_on));
   ALL_TRANSPORTS(setHandleNoteOff(callbacks.note_off));
-  ALL_TRANSPORTS(setHandleStart(callbacks.start));
-  ALL_TRANSPORTS(setHandleStop(callbacks.stop));
-  ALL_TRANSPORTS(setHandleContinue(callbacks.cont));
+  usb_midi.setHandleStart(callbacks.start);
+  usb_midi.setHandleStop(callbacks.stop);
+  usb_midi.setHandleContinue(callbacks.cont);
+  app_start_callback = callbacks.start;
+  app_stop_callback = callbacks.stop;
+  app_continue_callback = callbacks.cont;
+  serial_midi.setHandleStart(serial_start_handler);
+  serial_midi.setHandleStop(serial_stop_handler);
+  serial_midi.setHandleContinue(serial_continue_handler);
   ALL_TRANSPORTS(setHandleControlChange(callbacks.cc));
   ALL_TRANSPORTS(
       setHandlePitchBend(callbacks.pitch_bend)); // Register pitch bend handler

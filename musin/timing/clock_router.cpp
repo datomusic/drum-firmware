@@ -108,12 +108,6 @@ void ClockRouter::set_sync_out(SyncOut *sync_out_ptr) {
   sync_out_ = sync_out_ptr;
 }
 
-void ClockRouter::resync_sync_output() {
-  if (sync_out_ != nullptr) {
-    sync_out_->resync();
-  }
-}
-
 void ClockRouter::update_auto_source_switching() {
   if (!auto_switching_enabled_) {
     return;

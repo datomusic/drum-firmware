@@ -56,7 +56,7 @@ DRUM is a MIDI drum machine/sequencer running on RP2350 microcontroller. Feature
 
 ### Audio ISR RAM Residency (XIP builds)
 Audio renders inside the I2S DMA interrupt (priority 0), which stays enabled
-during flash erase/program (`musin/filesystem/audio_safe_flash.cpp`). Every
+during flash erase/program (`musin/ports/pico/filesystem/audio_safe_flash.cpp`). Every
 function reachable from that interrupt — **including through function
 pointers** (`BufferSource` vtables, `audio_connection_t` take/give members) —
 must be RAM-resident, or the device hard-faults and watchdog-reboots when the

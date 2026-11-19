@@ -182,9 +182,10 @@ macro(musin_setup_filesystem_target)
 
     # Private implementation library for musin filesystem
     add_library(musin_filesystem_impl STATIC
-        ${MUSIN_ROOT}/filesystem/filesystem.cpp
-        ${MUSIN_ROOT}/filesystem/partition_manager.cpp
-        ${MUSIN_ROOT}/filesystem/audio_safe_flash.cpp
+        ${MUSIN_ROOT}/ports/pico/filesystem/filesystem.cpp
+        ${MUSIN_ROOT}/ports/pico/filesystem/partition_manager.cpp
+        ${MUSIN_ROOT}/ports/pico/filesystem/storage_region.cpp
+        ${MUSIN_ROOT}/ports/pico/filesystem/audio_safe_flash.cpp
     )
 
     # Implementation needs include paths to find musin headers

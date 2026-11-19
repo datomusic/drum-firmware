@@ -1,28 +1,45 @@
 // clang-format off
 extern "C" {
-#include "pico.h" // Must be included before bootrom_constants.h
+#include "pico.h"
 #include "blockdevice/flash.h"
-#include "boot/bootrom_constants.h" // Include for partition flags
-#include "boot/picobin.h"
 #include "filesystem/littlefs.h"
 #include "filesystem/vfs.h" // Include for vfs_get_lfs
-#include "hardware/regs/addressmap.h"
-#include "pico/bootrom.h"
 #include <dirent.h>
 #include <errno.h>
-#include <hardware/flash.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 }
 // clang-format on
 
-#include "filesystem.h"
+#include "musin/filesystem/filesystem.h"
+#include "audio_safe_flash.h"
+#include "musin/filesystem/storage_region.h"
+
+namespace {
+
+blockdevice_t *
+create_storage_blockdevice(const musin::filesystem::StorageRegion &region,
+                           musin::Logger &logger) {
+  blockdevice_t *flash = blockdevice_flash_create(region.offset, region.size);
+  if (!flash) {
+    logger.error("Failed to create flash block device");
+    return nullptr;
+  }
+
+  // Keep the audio interrupt alive during erase/program so persistence
+  // writes do not glitch playback.
+  musin::filesystem::install_flash_guard(
+      flash, region.offset, musin::filesystem::audio_priority_flash_guard());
+
+  return flash;
+}
+
+} // namespace
 
 namespace musin::filesystem {
 
-Filesystem::Filesystem(musin::Logger &logger)
-    : logger_(logger), fs_(nullptr), partition_manager_(logger) {
+Filesystem::Filesystem(musin::Logger &logger) : logger_(logger), fs_(nullptr) {
 }
 
 bool Filesystem::format_filesystem(blockdevice_t *flash) {
@@ -64,23 +81,16 @@ void Filesystem::list_files(const char *path) {
 bool Filesystem::init() {
   logger_.info("Initializing filesystem");
 
-  logger_.info("Step 1: Looking for data partition by family type");
-  auto partition_info = partition_manager_.find_partition_by_family(
-      PICOBIN_PARTITION_FLAGS_ACCEPTS_DEFAULT_FAMILY_DATA_BITS);
-
-  if (!partition_info) {
-    logger_.error("Data partition not found, cannot initialize filesystem");
+  logger_.info("Step 1: Locating data storage region");
+  auto region = get_storage_region(logger_);
+  if (!region) {
+    logger_.error("Storage region not found, cannot initialize filesystem");
     return false;
   }
 
-  logger_.info("Step 2: Data partition found, creating block device");
-  logger_.info("  - Partition offset: ", partition_info->offset);
-  logger_.info("  - Partition size: ", partition_info->size);
-
-  blockdevice_t *flash =
-      partition_manager_.create_partition_blockdevice(*partition_info);
+  logger_.info("Step 2: Storage region found, creating block device");
+  blockdevice_t *flash = create_storage_blockdevice(*region, logger_);
   if (!flash) {
-    logger_.error("Failed to create flash block device");
     return false;
   }
 
@@ -107,24 +117,16 @@ bool Filesystem::init() {
 bool Filesystem::format() {
   logger_.info("Explicit format requested");
 
-  logger_.info("Format Step 1: Finding data partition for format");
-  auto partition_info = partition_manager_.find_partition_by_family(
-      PICOBIN_PARTITION_FLAGS_ACCEPTS_DEFAULT_FAMILY_DATA_BITS);
-
-  if (!partition_info) {
-    logger_.error("Data partition not found for format");
-    logger_.error("Cannot format filesystem without valid data partition");
+  logger_.info("Format Step 1: Locating data storage region");
+  auto region = get_storage_region(logger_);
+  if (!region) {
+    logger_.error("Storage region not found for format");
     return false;
   }
 
   logger_.info("Format Step 2: Creating block device for format");
-  logger_.info("  - Format partition offset: ", partition_info->offset);
-  logger_.info("  - Format partition size: ", partition_info->size);
-
-  blockdevice_t *flash =
-      partition_manager_.create_partition_blockdevice(*partition_info);
+  blockdevice_t *flash = create_storage_blockdevice(*region, logger_);
   if (!flash) {
-    logger_.error("Failed to create flash block device for format");
     return false;
   }
 

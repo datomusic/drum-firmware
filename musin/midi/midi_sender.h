@@ -18,6 +18,8 @@ public:
   void sendNoteOn(uint8_t channel, uint8_t note_number, uint8_t velocity);
   void sendNoteOff(uint8_t channel, uint8_t note_number, uint8_t velocity);
   void sendControlChange(uint8_t channel, uint8_t controller, uint8_t value);
+  void sendPolyAftertouch(uint8_t channel, uint8_t note_number,
+                          uint8_t pressure);
   // Add other MIDI message types as needed (PitchBend, SysEx, RealTime)
 
 private:

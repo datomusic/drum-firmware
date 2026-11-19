@@ -147,6 +147,11 @@ public:
     PizzaControls *parent_controls;
     std::array<musin::ui::Drumpad, config::NUM_DRUMPADS> drumpads;
     DrumpadEventHandler drumpad_observer;
+    // The note each pad sounded on Press. Pressure and Release address this
+    // note, not the track's current selection, so changing the sample while
+    // holding a pad cannot strand aftertouch or the Note Off on a note that
+    // never received a Note On.
+    std::array<uint8_t, config::NUM_DRUMPADS> held_notes{};
   };
 
   class PlaybuttonComponent {

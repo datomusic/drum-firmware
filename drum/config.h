@@ -66,20 +66,24 @@ constexpr uint8_t STEP_VELOCITY_ON_TAP = 100;
 namespace drumpad {
 constexpr uint8_t DEFAULT_FALLBACK_NOTE = 36;
 constexpr uint8_t RETRIGGER_VELOCITY = 100;
+// Pad pressure is sent as polyphonic aftertouch; only changes of at least
+// this many 7-bit steps go out, which keeps ADC jitter off the MIDI bus.
+constexpr uint8_t PRESSURE_HYSTERESIS = 2;
 
 // Per-pad settings structure (defined by the musin drumpad driver)
 using DrumpadConfig = musin::ui::DrumpadConfig;
 
 // Since all pads are physically identical, we can define a single configuration
-constexpr DrumpadConfig default_drumpad_config = {.noise_threshold = 150,
-                                                  .trigger_threshold = 800,
-                                                  .high_pressure_threshold =
-                                                      2500,
-                                                  .active_low = true,
-                                                  .debounce_time_us = 5000,
-                                                  .hold_time_us = 50000,
-                                                  .max_velocity_time_us = 50000,
-                                                  .min_velocity_time_us = 100};
+constexpr DrumpadConfig default_drumpad_config = {
+    .noise_threshold = 150,
+    .trigger_threshold = 800,
+    .high_pressure_threshold = 2500,
+    .active_low = true,
+    .debounce_time_us = 5000,
+    .hold_time_us = 50000,
+    .max_velocity_time_us = 50000,
+    .min_velocity_time_us = 100,
+    .pressure_hysteresis = PRESSURE_HYSTERESIS};
 
 // Configuration for the play button, which is also a drumpad
 constexpr DrumpadConfig play_button_config = {.noise_threshold = 150,
@@ -89,7 +93,8 @@ constexpr DrumpadConfig play_button_config = {.noise_threshold = 150,
                                               .debounce_time_us = 5000,
                                               .hold_time_us = 3000000,
                                               .max_velocity_time_us = 0,
-                                              .min_velocity_time_us = 0};
+                                              .min_velocity_time_us = 0,
+                                              .pressure_hysteresis = 0};
 
 // Create the array of configurations using the default for all pads
 constexpr std::array<DrumpadConfig, NUM_DRUMPADS> drumpad_configs = {

@@ -18,12 +18,16 @@ struct DrumpadEvent {
   enum class Type : uint8_t {
     Press,
     Release,
-    Hold
+    Hold,
+    Pressure
   };
   uint8_t pad_index;
   Type type;
   std::optional<uint8_t> velocity;
   uint16_t raw_value;
+  // 0-127, present on Pressure events only. Tracks the held pad's pressure
+  // from noise_threshold (0) up to full-scale ADC (127).
+  std::optional<uint8_t> pressure = std::nullopt;
 };
 
 enum class DrumpadState : std::uint8_t {
@@ -90,8 +94,14 @@ private:
   void update_state_machine(std::uint16_t current_adc_value,
                             absolute_time_t now);
   void resume_press(std::uint16_t current_adc_value, absolute_time_t now);
+  void release(std::uint16_t current_adc_value, absolute_time_t now);
   PressureLevel classify_pressure(std::uint16_t current_adc_value) const;
   uint8_t calculate_velocity(uint64_t time_diff_us) const;
+  bool is_pressure_tracked() const;
+  void report_pressure(std::uint16_t current_adc_value);
+  void report_pressure_released(std::uint16_t current_adc_value);
+  void emit_pressure(uint8_t pressure, std::uint16_t current_adc_value);
+  uint8_t pressure_from_adc(std::uint16_t current_adc_value) const;
 
   const uint8_t _pad_id;
   const std::uint16_t _noise_threshold;
@@ -102,6 +112,7 @@ private:
   const std::uint32_t _hold_time_us;
   const std::uint64_t _max_velocity_time_us;
   const std::uint64_t _min_velocity_time_us;
+  const uint8_t _pressure_hysteresis;
 
   DrumpadState _current_state = DrumpadState::Idle;
   PressureLevel _pressure_level = PressureLevel::None;
@@ -113,6 +124,7 @@ private:
   bool _just_pressed = false;
   bool _just_released = false;
   std::optional<uint8_t> _last_velocity = std::nullopt;
+  std::optional<uint8_t> _last_reported_pressure = std::nullopt;
 };
 
 } // namespace musin::ui

@@ -140,6 +140,17 @@ void MessageRouter::trigger_sound(uint8_t track_index, uint8_t midi_note,
   notification(event);
 }
 
+void MessageRouter::set_pad_pressure(uint8_t track_index, uint8_t midi_note,
+                                     uint8_t pressure) {
+  if (track_index >= config::NUM_TRACKS) {
+    return;
+  }
+  if (_output_mode == OutputMode::MIDI || _output_mode == OutputMode::BOTH) {
+    _midi_sender.sendPolyAftertouch(settings_.get(settings::Id::MidiChannel),
+                                    midi_note, pressure);
+  }
+}
+
 void MessageRouter::set_parameter(Parameter param_id, float value,
                                   std::optional<uint8_t> track_index) {
 

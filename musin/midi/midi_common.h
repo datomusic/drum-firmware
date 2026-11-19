@@ -18,6 +18,12 @@ struct ControlChangeData {
   uint8_t value;
 };
 
+struct PolyAftertouchData {
+  uint8_t channel;
+  uint8_t note;
+  uint8_t pressure;
+};
+
 struct PitchBendData {
   uint8_t channel;
   int bend_value;

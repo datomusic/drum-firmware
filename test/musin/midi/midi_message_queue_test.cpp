@@ -1,37 +1,38 @@
-#include "musin/midi/midi_output_queue.h"
-#include "test_support.h" // Assumed to bring in Catch2
 #include "midi_test_support.h"
 #include "musin/hal/null_logger.h"
+#include "musin/midi/midi_output_queue.h"
+#include "test_support.h" // Assumed to bring in Catch2
 
 // Rate limiting constant from midi_message_queue.cpp for test reference
 // This should match the value in the implementation file.
-// We define it here to ensure tests are aware of the value without exposing it in the header.
+// We define it here to ensure tests are aware of the value without exposing it
+// in the header.
 constexpr uint32_t MIN_INTERVAL_US_NON_REALTIME_TEST = 960;
 
 // --- Mock Logger ---
 static musin::NullLogger test_logger;
 
-// Helper function to get mock time, useful for debugging or more complex assertions
-// Not strictly necessary for these tests but good practice for mock time modules.
+// Helper function to get mock time, useful for debugging or more complex
+// assertions Not strictly necessary for these tests but good practice for mock
+// time modules.
 absolute_time_t get_mock_time_us() {
   return mock_current_time;
 }
-
 
 TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
   using namespace musin::midi;
 
   SECTION("Basic Enqueue and Process") {
     reset_test_state();
-    OutgoingMidiMessage msg(1, 60, 100, true); // Note On, Ch 1, Note 60, Vel 100
+    OutgoingMidiMessage msg(1, 60, 100,
+                            true); // Note On, Ch 1, Note 60, Vel 100
     REQUIRE(enqueue_midi_message(msg, test_logger));
     REQUIRE_FALSE(midi_output_queue.empty());
 
     process_midi_output_queue(test_logger);
 
     REQUIRE(mock_midi_calls.size() == 1);
-    REQUIRE(mock_midi_calls[0] ==
-            MockMidiCallRecord::NoteOn(1, 60, 100));
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::NoteOn(1, 60, 100));
     REQUIRE(midi_output_queue.empty());
   }
 
@@ -40,7 +41,8 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
     // Fill queue completely with valid MIDI notes (0-127)
     const uint8_t first_note = 60;
-    const uint8_t last_note = std::min<uint8_t>(127, first_note + MIDI_QUEUE_SIZE - 1);
+    const uint8_t last_note =
+        std::min<uint8_t>(127, first_note + MIDI_QUEUE_SIZE - 1);
     for (uint8_t note = first_note; note <= last_note; ++note) {
       OutgoingMidiMessage msg(1, note, 100, true);
       REQUIRE(enqueue_midi_message(msg, test_logger));
@@ -110,8 +112,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
                           << " p1=" << mock_midi_calls[0].p1
                           << " p2=" << mock_midi_calls[0].p2);
     }
-    REQUIRE(mock_midi_calls[0] ==
-            MockMidiCallRecord::NoteOn(1, 60, 100));
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::NoteOn(1, 60, 100));
 
     // Advance time and process CC
     advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
@@ -127,8 +128,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
                            << " p1=" << mock_midi_calls[1].p1
                            << " p2=" << mock_midi_calls[1].p2);
     }
-    REQUIRE(mock_midi_calls[1] ==
-            MockMidiCallRecord::ControlChange(1, 7, 127));
+    REQUIRE(mock_midi_calls[1] == MockMidiCallRecord::ControlChange(1, 7, 127));
     REQUIRE(midi_output_queue.empty());
   }
 
@@ -140,11 +140,11 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     REQUIRE(enqueue_midi_message(cc_msg1, test_logger));
     process_midi_output_queue(test_logger); // Send cc_msg1
     REQUIRE(mock_midi_calls.size() == 1);
-    REQUIRE(mock_midi_calls[0] ==
-            MockMidiCallRecord::ControlChange(1, 10, 50));
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::ControlChange(1, 10, 50));
 
     REQUIRE(enqueue_midi_message(cc_msg2, test_logger));
-    process_midi_output_queue(test_logger); // Attempt to send cc_msg2, should be deferred
+    process_midi_output_queue(
+        test_logger); // Attempt to send cc_msg2, should be deferred
     REQUIRE(mock_midi_calls.size() == 1); // Still 1, not sent yet
     REQUIRE_FALSE(midi_output_queue.empty());
 
@@ -157,8 +157,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
                          (MIN_INTERVAL_US_NON_REALTIME_TEST % 2));
     process_midi_output_queue(test_logger); // Should send now
     REQUIRE(mock_midi_calls.size() == 2);
-    REQUIRE(mock_midi_calls[1] ==
-            MockMidiCallRecord::ControlChange(1, 11, 60));
+    REQUIRE(mock_midi_calls[1] == MockMidiCallRecord::ControlChange(1, 11, 60));
     REQUIRE(midi_output_queue.empty());
   }
 
@@ -170,15 +169,14 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     REQUIRE(enqueue_midi_message(cc_msg, test_logger));
     process_midi_output_queue(test_logger); // Send cc_msg
     REQUIRE(mock_midi_calls.size() == 1);
-    REQUIRE(mock_midi_calls[0] ==
-            MockMidiCallRecord::ControlChange(1, 10, 50));
-    absolute_time_t time_after_cc = get_mock_time_us(); // Use the mock time getter
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::ControlChange(1, 10, 50));
+    absolute_time_t time_after_cc =
+        get_mock_time_us(); // Use the mock time getter
 
     REQUIRE(enqueue_midi_message(clock_msg, test_logger));
     process_midi_output_queue(test_logger); // Send clock_msg immediately
     REQUIRE(mock_midi_calls.size() == 2);
-    REQUIRE(mock_midi_calls[1] ==
-            MockMidiCallRecord::RealTime(::midi::Clock));
+    REQUIRE(mock_midi_calls[1] == MockMidiCallRecord::RealTime(::midi::Clock));
 
     // Check that last_non_realtime_send_time was not updated by the RT message
     OutgoingMidiMessage cc_msg2(1, 11, 60);
@@ -191,8 +189,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
     set_mock_time_us(time_after_cc + MIN_INTERVAL_US_NON_REALTIME_TEST);
     process_midi_output_queue(test_logger); // Now cc_msg2 should send
     REQUIRE(mock_midi_calls.size() == 3);
-    REQUIRE(mock_midi_calls[2] ==
-            MockMidiCallRecord::ControlChange(1, 11, 60));
+    REQUIRE(mock_midi_calls[2] == MockMidiCallRecord::ControlChange(1, 11, 60));
   }
 
   SECTION("Test All Message Types") {
@@ -231,40 +228,176 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
 
     REQUIRE(enqueue_midi_message(msg_rt, test_logger)); // Real-time
     process_midi_output_queue(test_logger);
-    // No time advance needed after RT for next non-RT, as RT doesn't affect its timer
+    // No time advance needed after RT for next non-RT, as RT doesn't affect its
+    // timer
 
     REQUIRE(enqueue_sysex_message(sysex_payload, sysex_len, test_logger));
-    // SysEx is non-RT. If the previous non-RT was recent, this might be deferred.
-    // The previous non-RT was pitch_bend, then RT, so the timer for non-RT is from pitch_bend.
-    // We advanced time after pitch_bend, so this should send.
+    // SysEx is non-RT. If the previous non-RT was recent, this might be
+    // deferred. The previous non-RT was pitch_bend, then RT, so the timer for
+    // non-RT is from pitch_bend. We advanced time after pitch_bend, so this
+    // should send.
+    process_midi_output_queue(test_logger);
+    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+
+    uint8_t poly_at_pressure = 90;
+    OutgoingMidiMessage msg_poly_at =
+        OutgoingMidiMessage::poly_aftertouch(ch, note, poly_at_pressure);
+    REQUIRE(enqueue_midi_message(msg_poly_at, test_logger));
     process_midi_output_queue(test_logger);
 
-    REQUIRE(mock_midi_calls.size() == 6);
-    REQUIRE(mock_midi_calls[0] ==
-            MockMidiCallRecord::NoteOn(ch, note, vel));
-    REQUIRE(mock_midi_calls[1] ==
-            MockMidiCallRecord::NoteOff(ch, note, vel));
+    REQUIRE(mock_midi_calls.size() == 7);
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::NoteOn(ch, note, vel));
+    REQUIRE(mock_midi_calls[1] == MockMidiCallRecord::NoteOff(ch, note, vel));
     REQUIRE(mock_midi_calls[2] ==
             MockMidiCallRecord::ControlChange(ch, ctrl, val));
-    REQUIRE(mock_midi_calls[3] ==
-            MockMidiCallRecord::PitchBend(ch, bend));
-    REQUIRE(mock_midi_calls[4] ==
-            MockMidiCallRecord::RealTime(rt_type));
+    REQUIRE(mock_midi_calls[3] == MockMidiCallRecord::PitchBend(ch, bend));
+    REQUIRE(mock_midi_calls[4] == MockMidiCallRecord::RealTime(rt_type));
     REQUIRE(mock_midi_calls[5] ==
             MockMidiCallRecord::SysEx(sysex_len, sysex_payload));
+    REQUIRE(mock_midi_calls[6] ==
+            MockMidiCallRecord::PolyAftertouch(ch, note, poly_at_pressure));
+  }
+
+  SECTION("Poly aftertouch enqueue and process") {
+    reset_test_state();
+    OutgoingMidiMessage msg = OutgoingMidiMessage::poly_aftertouch(1, 36, 100);
+    REQUIRE(enqueue_midi_message(msg, test_logger));
+    REQUIRE_FALSE(midi_output_queue.empty());
+
+    process_midi_output_queue(test_logger);
+
+    REQUIRE(mock_midi_calls.size() == 1);
+    REQUIRE(mock_midi_calls[0] ==
+            MockMidiCallRecord::PolyAftertouch(1, 36, 100));
+    REQUIRE(midi_output_queue.empty());
+  }
+
+  SECTION("Poly aftertouch coalesces per channel and note") {
+    reset_test_state();
+    REQUIRE(enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 10), test_logger));
+    REQUIRE(midi_output_queue.size() == 1);
+    REQUIRE(enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 50), test_logger));
+    REQUIRE(midi_output_queue.size() == 1);
+    REQUIRE(enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 90), test_logger));
+    REQUIRE(midi_output_queue.size() == 1);
+
+    process_midi_output_queue(test_logger);
+
+    REQUIRE(mock_midi_calls.size() == 1);
+    REQUIRE(mock_midi_calls[0] ==
+            MockMidiCallRecord::PolyAftertouch(1, 36, 90));
+    REQUIRE(midi_output_queue.empty());
+  }
+
+  SECTION("Poly aftertouch does not coalesce across notes or channels") {
+    reset_test_state();
+    REQUIRE(enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 10), test_logger));
+    REQUIRE(enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(1, 38, 20), test_logger));
+    REQUIRE(enqueue_midi_message(
+        OutgoingMidiMessage::poly_aftertouch(2, 36, 30), test_logger));
+    REQUIRE(midi_output_queue.size() == 3);
+
+    while (!midi_output_queue.empty()) {
+      advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+      process_midi_output_queue(test_logger);
+    }
+
+    REQUIRE(mock_midi_calls.size() == 3);
+    REQUIRE(mock_midi_calls[0] ==
+            MockMidiCallRecord::PolyAftertouch(1, 36, 10));
+    REQUIRE(mock_midi_calls[1] ==
+            MockMidiCallRecord::PolyAftertouch(1, 38, 20));
+    REQUIRE(mock_midi_calls[2] ==
+            MockMidiCallRecord::PolyAftertouch(2, 36, 30));
+  }
+
+  SECTION("Poly aftertouch does not coalesce with control change") {
+    reset_test_state();
+    OutgoingMidiMessage cc_msg(1, 36, 10); // CC, Ch 1, Ctrl 36, Val 10
+    OutgoingMidiMessage poly_at_msg =
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 50);
+
+    REQUIRE(enqueue_midi_message(cc_msg, test_logger));
+    REQUIRE(enqueue_midi_message(poly_at_msg, test_logger));
+    REQUIRE(midi_output_queue.size() == 2);
+
+    process_midi_output_queue(test_logger);
+    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+    process_midi_output_queue(test_logger);
+
+    REQUIRE(mock_midi_calls.size() == 2);
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::ControlChange(1, 36, 10));
+    REQUIRE(mock_midi_calls[1] ==
+            MockMidiCallRecord::PolyAftertouch(1, 36, 50));
+  }
+
+  SECTION("Poly aftertouch preserves FIFO order relative to notes") {
+    reset_test_state();
+    OutgoingMidiMessage note_on_msg1(1, 36, 100, true);
+    OutgoingMidiMessage poly_at_msg =
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 64);
+    OutgoingMidiMessage note_on_msg2(1, 38, 100, true);
+
+    REQUIRE(enqueue_midi_message(note_on_msg1, test_logger));
+    REQUIRE(enqueue_midi_message(poly_at_msg, test_logger));
+    REQUIRE(enqueue_midi_message(note_on_msg2, test_logger));
+    REQUIRE(midi_output_queue.size() == 3);
+
+    while (!midi_output_queue.empty()) {
+      advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+      process_midi_output_queue(test_logger);
+    }
+
+    REQUIRE(mock_midi_calls.size() == 3);
+    REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::NoteOn(1, 36, 100));
+    REQUIRE(mock_midi_calls[1] ==
+            MockMidiCallRecord::PolyAftertouch(1, 36, 64));
+    REQUIRE(mock_midi_calls[2] == MockMidiCallRecord::NoteOn(1, 38, 100));
+  }
+
+  SECTION("Poly aftertouch is rate limited") {
+    reset_test_state();
+    OutgoingMidiMessage poly_at_msg1 =
+        OutgoingMidiMessage::poly_aftertouch(1, 36, 40);
+    OutgoingMidiMessage poly_at_msg2 =
+        OutgoingMidiMessage::poly_aftertouch(1, 38, 80);
+
+    REQUIRE(enqueue_midi_message(poly_at_msg1, test_logger));
+    process_midi_output_queue(test_logger); // Send poly_at_msg1
+    REQUIRE(mock_midi_calls.size() == 1);
+    REQUIRE(mock_midi_calls[0] ==
+            MockMidiCallRecord::PolyAftertouch(1, 36, 40));
+
+    REQUIRE(enqueue_midi_message(poly_at_msg2, test_logger));
+    process_midi_output_queue(
+        test_logger); // Attempt to send poly_at_msg2, should be deferred
+    REQUIRE(mock_midi_calls.size() == 1); // Still 1, not sent yet
+    REQUIRE_FALSE(midi_output_queue.empty());
+
+    advance_mock_time_us(MIN_INTERVAL_US_NON_REALTIME_TEST);
+    process_midi_output_queue(test_logger); // Should send now
+    REQUIRE(mock_midi_calls.size() == 2);
+    REQUIRE(mock_midi_calls[1] ==
+            MockMidiCallRecord::PolyAftertouch(1, 38, 80));
+    REQUIRE(midi_output_queue.empty());
   }
 
   SECTION("System Exclusive Message Handling") {
     reset_test_state();
     SECTION("Normal SysEx") {
       reset_test_state();
-      uint8_t payload[] = {0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7};
+      uint8_t payload[] = {0xF0, 0x41, 0x10, 0x42, 0x12, 0x40,
+                           0x00, 0x7F, 0x00, 0x41, 0xF7};
       unsigned len = sizeof(payload);
       REQUIRE(enqueue_sysex_message(payload, len, test_logger));
       process_midi_output_queue(test_logger);
       REQUIRE(mock_midi_calls.size() == 1);
-      REQUIRE(mock_midi_calls[0] ==
-              MockMidiCallRecord::SysEx(len, payload));
+      REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::SysEx(len, payload));
       REQUIRE(mock_midi_calls[0].sysex_length == len);
       REQUIRE(std::equal(mock_midi_calls[0].sysex_data.begin(),
                          mock_midi_calls[0].sysex_data.end(), payload,
@@ -277,8 +410,7 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
       process_midi_output_queue(test_logger);
       REQUIRE(mock_midi_calls.size() == 1);
       // Constructor sets length to 0 if payload is nullptr
-      REQUIRE(mock_midi_calls[0] ==
-              MockMidiCallRecord::SysEx(0, nullptr));
+      REQUIRE(mock_midi_calls[0] == MockMidiCallRecord::SysEx(0, nullptr));
       REQUIRE(mock_midi_calls[0].sysex_length == 0);
       REQUIRE(mock_midi_calls[0].sysex_data.empty());
     }
@@ -303,12 +435,14 @@ TEST_CASE("MidiMessageQueue Tests", "[midi_queue]") {
       // Compare the truncated data
       REQUIRE(std::equal(mock_midi_calls[0].sysex_data.begin(),
                          mock_midi_calls[0].sysex_data.end(),
-                         long_payload_vec.begin(), long_payload_vec.begin() + MIDI::SysExMaxSize));
+                         long_payload_vec.begin(),
+                         long_payload_vec.begin() + MIDI::SysExMaxSize));
     }
 
     SECTION("SysEx with zero length but non-null pointer") {
       reset_test_state();
-      uint8_t dummy_payload[] = {1, 2, 3}; // Content doesn't matter as length is 0
+      uint8_t dummy_payload[] = {1, 2,
+                                 3}; // Content doesn't matter as length is 0
       REQUIRE(enqueue_sysex_message(dummy_payload, 0, test_logger));
       process_midi_output_queue(test_logger);
       REQUIRE(mock_midi_calls.size() == 1);

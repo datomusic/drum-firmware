@@ -17,6 +17,9 @@ struct DrumpadConfig {
   uint32_t hold_time_us;
   uint64_t max_velocity_time_us;
   uint64_t min_velocity_time_us;
+  // Minimum change in 7-bit pressure before a new Pressure event is emitted
+  // while the pad is held. 0 disables pressure reporting for this pad.
+  uint8_t pressure_hysteresis;
 };
 
 } // namespace musin::ui
